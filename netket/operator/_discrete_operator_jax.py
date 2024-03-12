@@ -15,10 +15,13 @@
 import abc
 
 import numpy as np
+from scipy import sparse
+
 import jax.numpy as jnp
 from jax.experimental.sparse import JAXSparse, BCOO
 
 from netket.operator import AbstractOperator, DiscreteOperator
+from netket.utils.optional_deps import import_optional_dependency
 
 
 class DiscreteJaxOperator(DiscreteOperator):
@@ -219,6 +222,28 @@ class DiscreteJaxOperator(DiscreteOperator):
             The dense matrix representation of the operator as a jax Array.
         """
         return self.to_sparse().todense()
+
+    def to_qobj(self):  # -> "qutip.Qobj"
+        r"""Convert the operator to a qutip's Qobj.
+
+        Returns:
+            A :class:`qutip.Qobj` object.
+        """
+        qutip = import_optional_dependency("qutip", descr="to_qobj")
+
+        # QuTiP does not like jax sparse matrices, so we convert to scipy sparse
+        # by hand
+        sparse_mat_jax = self.to_sparse()
+        sparse_mat_scipy = sparse.coo_matrix(
+            (
+                sparse_mat_jax.data,
+                (sparse_mat_jax.indices[:, 0], sparse_mat_jax.indices[:, 1]),
+            ),
+            shape=sparse_mat_jax.shape,
+        )
+        return qutip.Qobj(
+            sparse_mat_scipy, dims=[list(self.hilbert.shape), list(self.hilbert.shape)]
+        )
 
     def __matmul__(self, other):
         if (

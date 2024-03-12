@@ -145,7 +145,6 @@ class MCState(VariationalState):
         variables: Optional[PyTree] = None,
         init_fun: Optional[NNInitFunc] = None,
         apply_fun: Optional[Callable] = None,
-        sample_fun: Optional[Callable] = None,
         seed: Optional[SeedT] = None,
         sampler_seed: Optional[SeedT] = None,
         mutable: CollectionFilter = False,
@@ -175,7 +174,6 @@ class MCState(VariationalState):
             variables: Optional initial value for the variables (parameters and model state) of the model.
             apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defaults to
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
-            sample_fun: Optional function used to sample the state, if it is not the same as `apply_fun`.
             training_kwargs: a dict containing the optional keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
             chunk_size: (Defaults to `None`) If specified, calculations are split into chunks where the neural network
@@ -217,10 +215,7 @@ class MCState(VariationalState):
             self._model = wrap_afun(apply_fun)
 
         else:
-            raise ValueError(
-                "Must either pass the model or apply_fun, otherwise how do you think we"
-                "gonna evaluate the model?"
-            )
+            raise ValueError("Must either pass the model or apply_fun.")
 
         # default argument for n_samples/n_samples_per_rank
         if n_samples is None and n_samples_per_rank is None:
@@ -232,11 +227,6 @@ class MCState(VariationalState):
                 "Only one argument between `n_samples` and `n_samples_per_rank`"
                 "can be specified at the same time."
             )
-
-        if sample_fun is not None:
-            self._sample_fun = sample_fun
-        else:
-            self._sample_fun = self._apply_fun
 
         self.mutable = mutable
         self.training_kwargs = flax.core.freeze(training_kwargs)

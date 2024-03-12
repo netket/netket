@@ -15,7 +15,8 @@
 import numpy as np
 import jax.numpy as jnp
 
-from .discrete_hilbert import DiscreteHilbert, _is_indexable
+from .index import is_indexable
+from .discrete_hilbert import DiscreteHilbert
 from .tensor_hilbert import TensorHilbert
 
 
@@ -64,7 +65,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
     @property
     def is_indexable(self) -> bool:
         """Whether the space can be indexed with an integer"""
-        return all(hi.is_indexable for hi in self._hilbert_spaces) and _is_indexable(
+        return all(hi.is_indexable for hi in self._hilbert_spaces) and is_indexable(
             list(hi.n_states for hi in self._hilbert_spaces)
         )
 
@@ -72,12 +73,14 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         if not self._initialized:
             if self.is_indexable:
                 self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
-                self._ns_states_r = np.flip(self._ns_states)
-                self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
+                self._ns_states_r = np.flip(self._ns_states).tolist()
+                self._cum_ns_states = np.concatenate(
+                    [[0], np.cumprod(self._ns_states)]
+                ).tolist()
                 self._cum_ns_states_r = np.flip(
                     np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
-                )
-                self._n_states = np.prod(self._ns_states)
+                ).tolist()
+                self._n_states = int(np.prod(self._ns_states))
                 self._initialized = True
             else:
                 raise RuntimeError("The hilbert space is too large to be indexed.")
@@ -126,13 +129,16 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
 
         self._setup()
         rem = numbers
-        out = jnp.empty((numbers.size, self.size), dtype=jnp.int32)
+        tmp = []
         for i, dim in enumerate(self._ns_states_r):
             rem, loc_numbers = np.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
-            out = out.at[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]].set(
-                self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers)
-            )
+            tmp.append(self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers))
+
+        out = jnp.empty((numbers.size, self.size), dtype=jnp.result_type(*tmp))
+        for i, dim in enumerate(self._ns_states_r):
+            hi_i = self._n_hilbert_spaces - (i + 1)
+            out = out.at[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]].set(tmp[i])
         return out
 
     def _states_to_numbers(self, states):
@@ -148,11 +154,14 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         return out
 
     def states_to_local_indices(self, x):
-        out = jnp.empty_like(x, dtype=jnp.int32)
+        tmp = []
         for i, hilb_i in enumerate(self._hilbert_spaces):
-            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(
+            tmp.append(
                 hilb_i.states_to_local_indices(
                     x[..., self._cum_indices[i] : self._cum_sizes[i]]
                 )
             )
+        out = jnp.empty(x.shape, dtype=jnp.result_type(*tmp))
+        for i, _ in enumerate(self._hilbert_spaces):
+            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(tmp[i])
         return out

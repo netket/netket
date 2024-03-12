@@ -19,9 +19,9 @@ import numpy as np
 from numbers import Number
 
 from netket.utils.types import DType
-from netket.operator._discrete_operator import DiscreteOperator
+from netket.operator import DiscreteOperator, Transpose
 from netket.operator._pauli_strings.base import _count_of_locations
-from netket.hilbert.abstract_hilbert import AbstractHilbert
+from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
 
@@ -31,7 +31,7 @@ from ._fermion_operator_2nd_utils import (
     _convert_terms_to_spin_blocks,
     _canonicalize_input,
     _check_hermitian,
-    _herm_conj,
+    transpose_term,
     _remove_dict_zeros,
     _verify_input,
     OperatorDict,
@@ -267,9 +267,17 @@ class FermionOperator2ndBase(DiscreteOperator):
     def operators(self) -> OperatorDict:
         """Returns a dictionary with (term, weight) key-value pairs, with terms in tuple notation.
 
-        The constant diagonal shift of the operator is associated with a term represented as an empty tuple.
+        The constant diagonal shift of the operator is associated with a term represented as an
+        empty tuple.
         """
         return self._operators
+
+    @property
+    def cutoff(self) -> float:
+        """Threshold for the weights, if the absolute value of a weight is below the
+        cutoff, it's discarded.
+        """
+        return self._cutoff
 
     def copy(self, *, dtype: Optional[DType] = None, cutoff=None):
         """
@@ -458,23 +466,35 @@ class FermionOperator2ndBase(DiscreteOperator):
         op = self.copy(dtype=dtype)
         return op.__imul__(scalar)
 
+    def transpose(self, *, concrete=False):
+        r"""Returns the transpose of this operator.
+
+        For real operators, this is equivalent to complex conjugation.
+        This implementation always returns the concrete version of the operator.
+        """
+        if concrete:
+            new = type(self)(self.hilbert, dtype=self.dtype, cutoff=self._cutoff)
+            # operators (c,c†) are real already. Only conjugate coefficients if needed.
+            new._operators = {transpose_term(k): v for k, v in self._operators.items()}
+            return new
+        else:
+            return Transpose(self)
+
     def conjugate(self, *, concrete=False):
-        r"""Returns the complex conjugate of this operator."""
+        r"""Returns the complex conjugate of this operator.
 
-        terms = list(self._operators.keys())
-        weights = list(self._operators.values())
-        terms, weights = _herm_conj(terms, weights)  # changes also the terms
+        This implementation always returns the concrete version of the operator.
+        """
+        del concrete
 
-        cls = type(self)
-        new = cls(
-            self.hilbert,
-            dtype=self.dtype,
-        )
-        new._operators, _ = _canonicalize_input(
-            terms, weights, self.dtype, self._cutoff
-        )
-        new._cutoff = self._cutoff
-        return new
+        # if operator is real dtype, then just return a copy
+        if not np.issubdtype(self.dtype, np.complex_):
+            return self.copy()
+        else:
+            new = type(self)(self.hilbert, dtype=self.dtype, cutoff=self._cutoff)
+            # operators (c,c†) are real already. Only conjugate coefficients if needed.
+            new._operators = {k: np.conjugate(v) for k, v in self._operators.items()}
+            return new
 
     def to_normal_order(self):
         """Reoder the operators to normal order.

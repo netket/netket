@@ -142,10 +142,7 @@ class FullSumState(VariationalState):
             self._model = wrap_afun(apply_fun)
 
         else:
-            raise ValueError(
-                "Must either pass the model or apply_fun, otherwise how do you think we"
-                "gonna evaluate the model?"
-            )
+            raise ValueError("Must either pass the model or apply_fun.")
 
         self.mutable = mutable
         self.training_kwargs = flax.core.freeze(training_kwargs)

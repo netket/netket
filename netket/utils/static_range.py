@@ -185,6 +185,28 @@ class StaticRange(struct.Pytree):
         constant_sum = 2 * self.start + self.step
         return constant_sum - state
 
+    def all_states(self, dtype: DType = None):
+        """Return all elements in the range. Equal to __array__
+
+        Args:
+             dtype: Optional dtype to be used for the output.
+
+         Returns:
+             An array with all values from the range. The dtype by default
+             is that of the range.
+        """
+        return self.__array__(dtype=dtype)
+
+    @property
+    def n_states(self):
+        """The number of states in the range. Equal to length."""
+        return self.length
+
+    @property
+    def is_indexable(self):
+        """If the range is indexable. Always True"""
+        return True
+
     def __array__(self, dtype=None):
         if dtype is None:
             dtype = self.dtype

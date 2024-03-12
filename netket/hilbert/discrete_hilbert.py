@@ -23,18 +23,7 @@ from netket.utils.types import Array
 from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
 
 from .abstract_hilbert import AbstractHilbert
-
-max_states = np.iinfo(np.int32).max
-"""int: Maximum number of states that can be indexed"""
-
-
-def _is_indexable(shape):
-    """
-    Returns whether a discrete Hilbert space of shape `shape` is
-    indexable (i.e., its total number of states is below the maximum).
-    """
-    log_max = np.log(max_states)
-    return np.sum(np.log(shape)) <= log_max
+from .index import is_indexable
 
 
 class DiscreteHilbert(AbstractHilbert):
@@ -153,6 +142,9 @@ class DiscreteHilbert(AbstractHilbert):
         if np.any(numbers >= self.n_states):
             raise ValueError("numbers outside the range of allowed states")
 
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
+
         out = self._numbers_to_states(numbers_r)
 
         return out.reshape((*numbers.shape, self.size))
@@ -182,6 +174,9 @@ class DiscreteHilbert(AbstractHilbert):
 
         states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
 
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
+
         out = self._states_to_numbers(states_r)
 
         if states.ndim == 1:
@@ -209,7 +204,7 @@ class DiscreteHilbert(AbstractHilbert):
             to the pre-allocated array if it was passed.
         """
 
-        numbers = np.arange(0, self.n_states, dtype=np.int64)
+        numbers = np.arange(0, self.n_states, dtype=np.int32)
 
         return self.numbers_to_states(numbers)
 
@@ -240,7 +235,7 @@ class DiscreteHilbert(AbstractHilbert):
         """Whether the space can be indexed with an integer"""
         if not self.is_finite:
             return False
-        return _is_indexable(self.shape)
+        return is_indexable(self.shape)
 
     def __mul__(self, other: "DiscreteHilbert"):
         if type(self) == type(other):

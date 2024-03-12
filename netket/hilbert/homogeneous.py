@@ -20,7 +20,11 @@ from netket.utils import StaticRange
 from netket.utils.types import Array
 
 from .discrete_hilbert import DiscreteHilbert
-from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
+from .index import (
+    HilbertIndex,
+    UniformTensorProductHilbertIndex,
+    optimalConstrainedHilbertindex,
+)
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -84,7 +88,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         self._constraint_fn = constraint_fn
 
-        self.__hilbert_index = None
+        self._hilbert_index_ = None
 
         shape = tuple(self._local_size for _ in range(N))
         super().__init__(shape=shape)
@@ -117,6 +121,8 @@ class HomogeneousHilbert(DiscreteHilbert):
     def n_states(self) -> int:
         r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._hilbert_index.n_states
 
     def states_to_local_indices(self, x: Array):
@@ -145,7 +151,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     @property
     def constrained(self) -> bool:
-        r"""The hilbert space does not contains `prod(hilbert.shape)`
+        r"""The hilbert space does not contain `prod(hilbert.shape)`
         basis states.
 
         Typical constraints are population constraints (such as fixed
@@ -158,19 +164,9 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self._constraint_fn is not None
 
     def _numbers_to_states(self, numbers: np.ndarray) -> np.ndarray:
-        # this is guaranteed
-        # numbers = concrete_or_error(
-        #    np.asarray, numbers, HilbertIndexingDuringTracingError
-        # )
-
         return self._hilbert_index.numbers_to_states(numbers)
 
     def _states_to_numbers(self, states: np.ndarray):
-        # guaranteed
-        # states = concrete_or_error(
-        #    np.asarray, states, HilbertIndexingDuringTracingError
-        # )
-
         return self._hilbert_index.states_to_numbers(states)
 
     def all_states(self) -> np.ndarray:
@@ -182,31 +178,35 @@ class HomogeneousHilbert(DiscreteHilbert):
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
+        if not self.is_indexable:  # includes call to _setup
+            raise RuntimeError("The hilbert space is too large to be indexed.")
 
         return self._hilbert_index.all_states()
 
     @property
     def _hilbert_index(self) -> HilbertIndex:
         """
-        Returns the `HilbertIndex` object, which is a numba jitclass used to convert
-        integers to states and vice-versa.
+        The `self._hilbert_index` is a lazily constructed object used to index into homogeneous Hilbert spaces.
+
+        This indexing object implements the logic for `number_to_states`, `states_to_numbers` and `n_states`,
+        as well as the handling of constraints if necessary.
         """
-        if self.__hilbert_index is None:
-            if not self.is_indexable:
-                raise RuntimeError("The hilbert space is too large to be indexed.")
-
-            if self.constrained:
-                self.__hilbert_index = ConstrainedHilbertIndex(
-                    np.asarray(self.local_states),
-                    self.size,
-                    self._constraint_fn,
-                )
+        if self._hilbert_index_ is None:
+            if not self.constrained:
+                index = UniformTensorProductHilbertIndex(self._local_states, self.size)
             else:
-                self.__hilbert_index = UnconstrainedHilbertIndex(
-                    np.asarray(self.local_states), self.size
+                index = optimalConstrainedHilbertindex(
+                    self._local_states, self.size, self._constraint_fn
                 )
+            self._hilbert_index_ = index
+        return self._hilbert_index_
 
-        return self.__hilbert_index
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        if not self.is_finite:
+            return False
+        return self._hilbert_index.is_indexable
 
     def __repr__(self):
         constr = f", constrained={self.constrained}" if self.constrained else ""
