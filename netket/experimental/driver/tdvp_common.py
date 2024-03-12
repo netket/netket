@@ -19,7 +19,7 @@ import warnings
 import jax
 import jax.numpy as jnp
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 import netket as nk
 from netket import config
