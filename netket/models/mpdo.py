@@ -46,7 +46,7 @@ class MPDOPeriodic(nn.Module):
     with :math:`A^{\alpha_i, a}_{s_i}` being :math:`D \times D` matrices. The bond dimension is denoted by :math:`D` and the Kraus dimension by :math:`\chi`, which corresponds to the variable `kraus_dim` in the code.
 
     The periodic boundary conditions imply that there are connections between the first and the last tensors, forming a trace over the product of matrices for the entire system.
-    
+
     The implementation is based on `this paper <https://arxiv.org/abs/2401.14243>`_.
     """
 
@@ -152,7 +152,7 @@ class MPDOOpen(nn.Module):
     with :math:`A^{\alpha_i, a}_{s_i}` being :math:`D \times D` matrices for the bulk of the chain (:math:`i=2, \dots, N-1`) and :math:`D`-dimensional vectors for the edges (:math:`i=1, N`). The bond dimension is denoted by :math:`D` and the Kraus dimension by :math:`\chi`, which corresponds to the variable `kraus_dim` in the code.
 
     The open boundary conditions imply that there are no connections between the first and the last tensors in the trace.
-    
+
     The implementation is based on `this paper <https://arxiv.org/abs/2401.14243>`_.
     """
 
