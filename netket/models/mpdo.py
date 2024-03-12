@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.Mon
 
-from typing import Any, Optional
+from typing import Optional
 
 from flax import linen as nn
 import jax
@@ -23,6 +23,7 @@ from jax.nn.initializers import normal
 from netket.hilbert import HomogeneousHilbert
 from netket.utils.types import NNInitFunc
 from netket.jax import dtype_complex
+from netket.utils.types import DType
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -35,13 +36,16 @@ class MPDOPeriodic(nn.Module):
     The MPDO is defined as
 
     .. math::
-        \rho(s_1,\dots s_N, s_1',\dots s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} A^{\alpha_1}[s_1, s_1'] \dots A^{\alpha_{N-1}}[s_N, s_N'] \dots A^{\alpha_N}[s_1, s_1'],
+        \rho(s_1,\dots, s_N, s_1',\dots, s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} \mathrm{Tr} \left[ M^{\alpha_1}_{s_1,s_1'} \dots M^{\alpha_{N-1}}_{s_N, s_N'} M^{\alpha_N}_{s_1, s_1'} \right],
 
-    for arbitrary local quantum numbers :math:`s_i`, where :math:`A^{\alpha_i}[s_i, s_i']` is a tensor
-    of dimensions (bdim, bdim), depending on the value of the local quantum number :math:`s_i` and
-    the bond index :math:`\alpha_{i}` connecting the adjacent tensors (the purification).
+    for arbitrary local quantum numbers :math:`s_i` and :math:`s_i'`, where :math:`M^{\alpha_i}_{s_i,s_i'}` are :math:`D^2 \times D^2` matrices that can be decomposed as
 
-    The periodic boundary conditions imply that there are connections between the first and the last tensors.
+    .. math::
+        M^{\alpha_i}_{s_i,s_i'} = \sum_{a=1}^{\chi} A^{\alpha_i, a}_{s_i} \otimes (A^{\alpha_i, a}_{s_i'})^*,
+
+    with :math:`A^{\alpha_i, a}_{s_i}` being :math:`D \times D` matrices. The bond dimension is denoted by :math:`D` and the Kraus dimension by :math:`\chi`, which corresponds to the variable `kraus_dim` in the code.
+
+    The periodic boundary conditions imply that there are connections between the first and the last tensors, forming a trace over the product of matrices for the entire system.
     """
 
     hilbert: HomogeneousHilbert
@@ -49,7 +53,7 @@ class MPDOPeriodic(nn.Module):
     bond_dim: int
     """Bond dimension of the MPDO tensors. See formula above."""
     kraus_dim: int = 2
-    """Kraus dimension of the MPDO tensors."""
+    """The local Kraus dimension of the MPDO tensors. See formula above."""
     symperiod: Optional[bool] = None
     """
     Periodicity in the chain of MPDO tensors.
@@ -72,8 +76,6 @@ class MPDOPeriodic(nn.Module):
             self.kraus_dim,
         )
         self._L, self._d, self._D, self._Χ = L, d, D, Χ
-
-        self.param_dtype_cplx = dtype_complex(self.param_dtype)
 
         # determine the shape of the unit cell
         if self.symperiod is None:
@@ -107,7 +109,7 @@ class MPDOPeriodic(nn.Module):
         qn_x = self.hilbert.states_to_local_indices(x)
 
         ρ = jax.vmap(self.contract_mpdo, in_axes=(0, None))(qn_x, all_tensors)
-        return jnp.log(ρ.astype(self.param_dtype_cplx))
+        return jnp.log(ρ.astype(dtype_complex(self.param_dtype)))
 
     def contract_mpdo(self, qn, all_tensors):
         edge = jnp.eye(self._D**2, dtype=self.param_dtype)
@@ -137,27 +139,29 @@ class MPDOOpen(nn.Module):
     The MPDO is defined as
 
     .. math::
-        \rho(s_1,\dots, s_N, s_1',\dots, s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} A[s_1, s_1']^{\alpha_1} \dots A[s_N, s_N']^{\alpha_{N-1}},
+        \rho(s_1,\dots, s_N, s_1',\dots, s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} \mathrm{Tr} \left[ M^{\alpha_1}_{s_1,s_1'} \dots M^{\alpha_{N-1}}_{s_N, s_N'} \right],
 
-    for arbitrary local quantum numbers :math:`s_i`, where :math:`A^{\alpha_i}[s_i, s_i']` is a tensor
-    of dimensions (bdim, bdim), depending on the value of the local quantum number :math:`s_i`
-    and the bond index :math:`\alpha_{i}` connecting the adjacent tensors (the purification).
+    for arbitrary local quantum numbers :math:`s_i` and :math:`s_i'`, where :math:`M^{\alpha_i}_{s_i,s_i'}` are :math:`D^2 \times D^2` matrices for :math:`i=2, \dots, N-1`, and vectors for :math:`i=1, N`, that can be decomposed as
 
-    The open boundary conditions imply that there are no connections between the first and the last tensors:
-    :math:`A[s_1, s_1']^{\alpha_0} = A[s_N, s_N']^{\alpha_N} = \delta_{s_1, s_1'} \delta_{s_N, s_N'}`
+    .. math::
+        M^{\alpha_i}_{s_i,s_i'} = \sum_{a=1}^{\chi} A^{\alpha_i, a}_{s_i} \otimes (A^{\alpha_i, a}_{s_i'})^*,
+
+    with :math:`A^{\alpha_i, a}_{s_i}` being :math:`D \times D` matrices for the bulk of the chain (:math:`i=2, \dots, N-1`) and :math:`D`-dimensional vectors for the edges (:math:`i=1, N`). The bond dimension is denoted by :math:`D` and the Kraus dimension by :math:`\chi`, which corresponds to the variable `kraus_dim` in the code.
+
+    The open boundary conditions imply that there are no connections between the first and the last tensors in the trace.
     """
 
     hilbert: HomogeneousHilbert
     """Hilbert space on which the state is defined."""
     bond_dim: int
-    """Bond dimension of the MPDO tensors."""
+    """Bond dimension of the MPDO tensors. See formula above."""
     kraus_dim: int = 2
-    """Kraus dimension of the MPDO tensors."""
+    """The local Kraus dimension of the MPDO tensors. See formula above."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
     kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPDO are real or complex."""
 
     def setup(self):
@@ -204,7 +208,7 @@ class MPDOOpen(nn.Module):
 
         ρ = jax.vmap(self.contract_mpdo)(qn_x)
 
-        return jnp.log(ρ.astype(self.param_dtype_cplx))
+        return jnp.log(ρ.astype(dtype_complex(self.param_dtype)))
 
     def contract_mpdo(self, qn):
         qn_r, qn_c = jnp.split(qn, 2, axis=-1)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional
+from typing import Optional
 
 from flax import linen as nn
 import jax
@@ -22,6 +22,7 @@ from jax.nn.initializers import normal
 from netket.hilbert import HomogeneousHilbert
 from netket.utils.types import NNInitFunc
 from netket.jax import dtype_complex
+from netket.utils.types import DType
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -34,14 +35,13 @@ class MPSPeriodic(nn.Module):
 
     .. math:: \Psi(s_1,\dots s_N) = \mathrm{Tr} \left[ A[s_1] \dots A[s_N] \right] ,
 
-    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_i]` is a matrix
-    of dimension (bond_dim,bond_dim), depending on the value of the local quantum number :math:`s_i`.
+    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_i]` are matrices of shape :math:`(\text{bond_dim}, \text{bond_dim})` for  :math:`i=1, \dots N` , depending on the value of the local quantum number :math:`s_i`.
     """
 
     hilbert: HomogeneousHilbert
     """Hilbert space on which the state is defined."""
     bond_dim: int
-    """Bond dimension of the MPS tensors."""
+    """Bond dimension of the MPS tensors. See formula above."""
     symperiod: Optional[int] = None
     """
     Periodicity in the chain of MPS tensors.
@@ -53,14 +53,12 @@ class MPSPeriodic(nn.Module):
     """the number of scan iterations to unroll within a single iteration of a loop."""
     kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPS are real or complex."""
 
     def setup(self):
         L, d, D = self.hilbert.size, self.hilbert.local_size, self.bond_dim
         self._L, self._d, self._D = L, d, D
-
-        self.param_dtype_cplx = dtype_complex(self.param_dtype)
 
         # determine the shape of the unit cell
         if self.symperiod is None:
@@ -102,7 +100,7 @@ class MPSPeriodic(nn.Module):
         ψ = jax.vmap(self.contract_mps, in_axes=(0, None))(qn_x, all_tensors)
         ψ = ψ.reshape(x_shape[:-1])
 
-        return jnp.log(ψ.astype(self.param_dtype_cplx))
+        return jnp.log(ψ.astype(dtype_complex(self.param_dtype)))
 
     def contract_mps(self, qn, all_tensors):
         edge = jnp.eye(self._D, dtype=self.param_dtype)
@@ -121,7 +119,7 @@ class MPSPeriodic(nn.Module):
 class MPSOpen(nn.Module):
     r"""
     An open Matrix Product State (MPS) for a quantum state of discrete
-    degrees of freedom, wrapped as Jax machine.
+    degrees of freedom.
     The MPS is defined as
 
     .. math:: \Psi(s_1,\dots s_N) = \mathrm{Tr} \left[ A[s_1]\dots A[s_N] \right] ,
@@ -138,7 +136,7 @@ class MPSOpen(nn.Module):
     """the number of scan iterations to unroll within a single iteration of a loop."""
     kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPS are real or complex."""
 
     def setup(self):
@@ -182,7 +180,7 @@ class MPSOpen(nn.Module):
         ψ = jax.vmap(self.contract_mps)(qn_x)
         ψ = ψ.reshape(x_shape[:-1])
 
-        return jnp.log(ψ.astype(self.param_dtype_cplx))
+        return jnp.log(ψ.astype(dtype_complex(self.param_dtype)))
 
     def contract_mps(self, qn):
         edge = self.left_tensors[qn[0], :]
