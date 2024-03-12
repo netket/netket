@@ -245,22 +245,6 @@ def test_repr(op):
 
 
 @pytest.mark.parametrize(
-    "op", [pytest.param(op, id=name) for name, op in operators_numba.items()]
-)
-def test_get_conn_numpy_closure(op):
-    hi = op.hilbert
-    closure = op._get_conn_flattened_closure()
-    v = hi.random_state(jax.random.PRNGKey(0), 120)
-    conn = np.empty(v.shape[0], dtype=np.intp)
-
-    vp, mels = closure(np.asarray(v), conn)
-    vp2, mels2 = op.get_conn_flattened(v, conn, pad=False)
-
-    np.testing.assert_equal(vp, vp2)
-    np.testing.assert_equal(mels, mels2)
-
-
-@pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 @pytest.mark.parametrize(

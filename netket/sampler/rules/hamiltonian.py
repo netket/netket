@@ -20,7 +20,6 @@ import jax.numpy as jnp
 import numpy as np
 
 from numba import jit
-from numba4jax import njit4jax
 
 from netket.operator import AbstractOperator, DiscreteJaxOperator
 from netket.utils import struct
@@ -80,34 +79,26 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
     def transition(rule, sampler, machine, parameters, state, key, σ):
         """
         This implements the transition rule for `DiscreteOperator`s that are
-        implemented in Numba, relying on the `_get_conn_flattened_closure`
-        hack to make it work in numba.
+        not jax-compatible by using a :ref:`jax.pure_callback`, which has a large
+        overhead.
+
+        If possible, consider using a jax-variant of the operators.
         """
-        get_conn_flattened = rule.operator._get_conn_flattened_closure()
-        n_conn_from_sections = rule.operator._n_conn_from_sections
+        log_prob_dtype = jax.dtypes.canonicalize_dtype(float)
 
-        @njit4jax(
-            (
-                jax.core.ShapedArray(σ.shape, σ.dtype),
-                jax.core.ShapedArray((σ.shape[0],), σ.dtype),
-            )
-        )
-        def _transition(args):
-            # unpack arguments
-            v_proposed, log_prob_corr, v, rand_vec = args
+        def _transition(v, rand_vec):
+            log_prob_corr = np.zeros((σ.shape[0],), dtype=log_prob_dtype)
+            v_proposed = np.empty(σ.shape, dtype=σ.dtype)
 
-            log_prob_corr.fill(0)
             sections = np.empty(v.shape[0], dtype=np.int32)
-            vp, _ = get_conn_flattened(v, sections)
+            vp, _ = rule.operator.get_conn_flattened(v, sections)
 
             _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
 
-            # TODO: n_conn(v_proposed, sections) implemented below, but
-            # might be slower than fast implementations like ising
-            get_conn_flattened(v_proposed, sections)
-            n_conn_from_sections(sections)
+            rule.operator.n_conn(v_proposed, sections)
 
             log_prob_corr -= np.log(sections)
+            return v_proposed, log_prob_corr
 
         # ideally we would pass the key to python/numba in _choose, initialise a
         # np.random.default_rng(key) and use it to generate random uniform integers.
@@ -116,7 +107,15 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
         # to python
         rand_vec = jax.random.uniform(key, shape=(σ.shape[0],))
 
-        σp, log_prob_correction = _transition(σ, rand_vec)
+        σp, log_prob_correction = jax.pure_callback(
+            _transition,
+            (
+                jax.core.ShapedArray(σ.shape, σ.dtype),
+                jax.core.ShapedArray((σ.shape[0],), log_prob_dtype),
+            ),
+            σ,
+            rand_vec,
+        )
 
         return σp, log_prob_correction
 
