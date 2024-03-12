@@ -13,19 +13,22 @@
 # limitations under the License.
 
 import netket as nk
+import pytest
+import jax.numpy as jnp
 
 
-def test_mps_periodic():
+@pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
+def test_mps_periodic(dtype):
     L = 6
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.MPSPeriodic(hilbert=hi, bond_dim=2)
+    ma = nk.models.MPSPeriodic(hilbert=hi, bond_dim=2, param_dtype=dtype)
     sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
     vs = nk.vqs.MCState(sa, ma)
 
-    ha = nk.operator.Ising(hi, graph=g, h=1.0)
+    ha = nk.operator.Ising(hi, graph=g, h=1.0, dtype=dtype)
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
     driver = nk.VMC(ha, op, variational_state=vs)
@@ -33,17 +36,18 @@ def test_mps_periodic():
     driver.run(1)
 
 
-def test_mps_open():
+@pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
+def test_mps_open(dtype):
     L = 6
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.MPSOpen(hilbert=hi, bond_dim=2)
+    ma = nk.models.MPSOpen(hilbert=hi, bond_dim=2, param_dtype=dtype)
     sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
     vs = nk.vqs.MCState(sa, ma)
 
-    ha = nk.operator.Ising(hi, graph=g, h=1.0)
+    ha = nk.operator.Ising(hi, graph=g, h=1.0, dtype=dtype)
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
     driver = nk.VMC(ha, op, variational_state=vs)

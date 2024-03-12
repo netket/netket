@@ -88,6 +88,7 @@ class MPSPeriodic(nn.Module):
 
     def __call__(self, x):
         x = jnp.atleast_2d(x)
+        assert x.shape[-1] == self.hilbert.size
 
         x_shape = x.shape
         if jnp.ndim(x) != 2:
@@ -172,6 +173,7 @@ class MPSOpen(nn.Module):
 
     def __call__(self, x):
         x = jnp.atleast_2d(x)
+        assert x.shape[-1] == self.hilbert.size
         x_shape = x.shape
         if x.ndim > 2:
             x = jax.lax.collapse(x, 0, 2)

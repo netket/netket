@@ -33,7 +33,7 @@ class MPDOPeriodic(nn.Module):
     A Matrix Product Density Operator (MPDO) with periodic boundary conditions for a quantum mixed state of discrete
     degrees of freedom. The purification is used.
 
-    The MPDO is defined as
+    The MPDO is defined as (see `F. Verstraete, J. J. García-Ripoll, J. I. Cirac, Phys. Rev. Lett. 93, 207204 (2004) <https://doi.org/10.1103/PhysRevLett.93.207204>`_).
 
     .. math::
         \rho(s_1,\dots, s_N, s_1',\dots, s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} \mathrm{Tr} \left[ M^{\alpha_1}_{s_1,s_1'} \dots M^{\alpha_{N-1}}_{s_N, s_N'} M^{\alpha_N}_{s_1, s_1'} \right],
@@ -46,6 +46,8 @@ class MPDOPeriodic(nn.Module):
     with :math:`A^{\alpha_i, a}_{s_i}` being :math:`D \times D` matrices. The bond dimension is denoted by :math:`D` and the Kraus dimension by :math:`\chi`, which corresponds to the variable `kraus_dim` in the code.
 
     The periodic boundary conditions imply that there are connections between the first and the last tensors, forming a trace over the product of matrices for the entire system.
+    
+    The implementation is based on `this paper <https://arxiv.org/abs/2401.14243>`_.
     """
 
     hilbert: HomogeneousHilbert
@@ -106,6 +108,7 @@ class MPDOPeriodic(nn.Module):
         all_tensors = jnp.tile(self.tensors, (self._L // self._symperiod, 1, 1, 1, 1))
 
         x = jnp.atleast_2d(x)
+        assert x.shape[-1] == 2 * self.hilbert.size
         qn_x = self.hilbert.states_to_local_indices(x)
 
         ρ = jax.vmap(self.contract_mpdo, in_axes=(0, None))(qn_x, all_tensors)
@@ -136,7 +139,7 @@ class MPDOOpen(nn.Module):
     A Matrix Product Density Operator (MPDO) with open boundary conditions for a quantum mixed state of discrete
     degrees of freedom. The purification is used.
 
-    The MPDO is defined as
+    The MPDO is defined as (see `F. Verstraete, J. J. García-Ripoll, J. I. Cirac, Phys. Rev. Lett. 93, 207204 (2004) <https://doi.org/10.1103/PhysRevLett.93.207204>`_).
 
     .. math::
         \rho(s_1,\dots, s_N, s_1',\dots, s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} \mathrm{Tr} \left[ M^{\alpha_1}_{s_1,s_1'} \dots M^{\alpha_{N-1}}_{s_N, s_N'} \right],
@@ -149,6 +152,8 @@ class MPDOOpen(nn.Module):
     with :math:`A^{\alpha_i, a}_{s_i}` being :math:`D \times D` matrices for the bulk of the chain (:math:`i=2, \dots, N-1`) and :math:`D`-dimensional vectors for the edges (:math:`i=1, N`). The bond dimension is denoted by :math:`D` and the Kraus dimension by :math:`\chi`, which corresponds to the variable `kraus_dim` in the code.
 
     The open boundary conditions imply that there are no connections between the first and the last tensors in the trace.
+    
+    The implementation is based on `this paper <https://arxiv.org/abs/2401.14243>`_.
     """
 
     hilbert: HomogeneousHilbert
@@ -203,7 +208,7 @@ class MPDOOpen(nn.Module):
 
     def __call__(self, x):
         x = jnp.atleast_2d(x)
-        assert x.shape[-1] == self.hilbert.size
+        assert x.shape[-1] == 2 * self.hilbert.size
         qn_x = self.hilbert.states_to_local_indices(x)
 
         ρ = jax.vmap(self.contract_mpdo)(qn_x)
