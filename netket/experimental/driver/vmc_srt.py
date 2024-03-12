@@ -35,6 +35,23 @@ from netket.vqs import MCState
 from jax.flatten_util import ravel_pytree
 
 
+def _is_power_of_two(n: int) -> bool:
+    return (n != 0) and (n & (n - 1) == 0)
+
+
+def check_chunk_size(n_samples, chunk_size):
+    n_samples_per_rank = n_samples // sharding.device_count()
+
+    if chunk_size is not None:
+        if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
+            raise ValueError(
+                f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
+                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
+                "unsupported. Please change `chunk_size` so that it divides evenly the"
+                "number of samples per rank or set it to `None` to disable chunking."
+            )
+
+
 @partial(jax.jit, static_argnames=("mode", "solver_fn"))
 def SRt(
     O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure
@@ -150,23 +167,39 @@ class VMC_SRt(AbstractVariationalDriver):
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
         jacobian_mode: Optional[str] = None,
         variational_state: MCState = None,
+        chunk_size: Optional[int] = None,
     ):
         """
-        Initializes the driver class.
+                Initializes the driver class.
 
-        Args:
-            hamiltonian: The Hamiltonian of the system.
-            optimizer: Determines how optimization steps are performed given the
-                    bare energy gradient.
-            diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
-                        Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
-            hamiltonian: The Hamiltonian of the system.
-            linear_solver_fn: Callable to solve the linear problem associated to the
-                              updates of the parameters
-            jacobian_mode: The mode used to compute the jacobian of the variational state. Can be `'real'`
-                    or `'complex'` (defaults to the dtype of the output of the model).
-            variational_state: The :class:`netket.vqs.MCState` to be optimised. Other
-                variational states are not supported.
+                Args:
+                    hamiltonian: The Hamiltonian of the system.
+                    optimizer: Determines how optimization steps are performed given the
+                            bare energy gradient.
+                    diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
+                                Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
+                    hamiltonian: The Hamiltonian of the system.
+                    linear_solver_fn: Callable to
+
+
+        def check_chunk_size(n_samples, chunk_size):
+            n_samples_per_rank = n_samples // sharding.device_count()
+
+            if chunk_size is not None:
+                if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
+                    raise ValueError(
+                        f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
+                        "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
+                        "unsupported. Please change `chunk_size` so that it divides evenly the"
+                        "number of samples per rank or set it to `None` to disable chunking."
+                    )solve the linear problem associated to the
+                                      updates of the parameters
+                    jacobian_mode: The mode used to compute the jacobian of the variational state.
+                        Can be `'real'` or `'complex'` (defaults to the dtype of the output of the model).
+                    variational_state: The :class:`netket.vqs.MCState` to be optimised. Other
+                        variational states are not supported.
+                    chunk_size: The chunk size used for computing the Jacobian.
+                        Defaults to the chunk size of the variational state.
         """
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
@@ -209,6 +242,7 @@ class VMC_SRt(AbstractVariationalDriver):
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
+        self.chunk_size = chunk_size or variational_state.chunk_size
 
         self._params_structure = jax.tree_map(
             lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), self.state.parameters
@@ -254,6 +288,30 @@ class VMC_SRt(AbstractVariationalDriver):
             )
         self._jacobian_mode = mode
 
+    @property
+    def chunk_size(self) -> Optional[int]:
+        return self._chunk_size
+
+    @chunk_size.setter
+    def chunk_size(self, chunk_size: Optional[int]):
+        # disable chunks if it is None
+        if chunk_size is None:
+            self._chunk_size = None
+            return
+
+        if chunk_size <= 0:
+            raise ValueError("Chunk size must be a positive integer. ")
+
+        check_chunk_size(self.state.n_samples, chunk_size)
+
+        if not _is_power_of_two(chunk_size):
+            warnings.warn(
+                "For performance reasons, we suggest to use a power-of-two chunk size.",
+                stacklevel=2,
+            )
+
+        self._chunk_size = chunk_size
+
     def _forward_and_backward(self):
         """
         Performs a number of VMC optimization steps.
@@ -276,6 +334,7 @@ class VMC_SRt(AbstractVariationalDriver):
             samples,
             self.state.model_state,
             mode=self.jacobian_mode,
+            chunk_size=self.chunk_size,
             dense=True,
             center=True,
         )  # jacobians is centered
