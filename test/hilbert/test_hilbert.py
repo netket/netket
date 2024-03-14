@@ -33,6 +33,8 @@ from netket.utils import StaticRange
 
 import jax
 import jax.numpy as jnp
+from jax._src.lib import xla_extension
+
 
 from .. import common
 
@@ -716,3 +718,20 @@ def test_particle_alternative_constructors():
 
     with pytest.raises(ValueError, match=r".*must be specified.*"):
         nk.hilbert.Particle(N=5, L=3)
+
+
+def test_hilbert_states_outside_range_errors():
+    hi = nk.hilbert.Fock(3, 2, 4)
+
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: Numbers outside the range of allowed states.
+        hi.numbers_to_states(-1)
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: Numbers outside the range of allowed states.
+        hi.numbers_to_states(10000)
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: States outside the range of allowed states.
+        hi.states_to_numbers(jnp.array([0, 4]))
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: States do not fulfill constraint.
+        hi.states_to_numbers(jnp.array([0, 3]))

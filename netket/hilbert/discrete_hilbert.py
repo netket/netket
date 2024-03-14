@@ -20,6 +20,8 @@ from functools import reduce
 import numpy as np
 import jax.numpy as jnp
 
+from equinox import error_if
+
 from netket.utils.types import Array
 
 from .abstract_hilbert import AbstractHilbert
@@ -136,11 +138,14 @@ class DiscreteHilbert(AbstractHilbert):
         if not self.is_indexable:
             raise RuntimeError("The hilbert space is too large to be indexed.")
 
-        # TODO check and raise error when not jitted / return nan when jitted
-        # if np.any(numbers >= self.n_states):
-        #     raise ValueError("numbers outside the range of allowed states")
-
         numbers = jnp.asarray(numbers, dtype=np.int32)
+
+        numbers = error_if(
+            numbers,
+            (numbers >= self.n_states).any() | (numbers < 0).any(),
+            "Numbers outside the range of allowed states.",
+        )
+
         return self._numbers_to_states(numbers.ravel()).reshape(
             (*numbers.shape, self.size)
         )
