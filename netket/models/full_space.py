@@ -16,7 +16,6 @@ import flax.linen as nn
 import jax.numpy as jnp
 
 from netket.hilbert import DiscreteHilbert
-from netket.nn import states_to_numbers
 from netket.utils.types import DType, Array, NNInitFunc
 
 
@@ -52,4 +51,4 @@ class LogStateVector(nn.Module):
         )
 
     def __call__(self, x_in: Array):
-        return self.logstate[states_to_numbers(self.hilbert, x_in)]
+        return self.logstate[self.hilbert.states_to_numbers(x_in)]

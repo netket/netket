@@ -700,25 +700,6 @@ def test_constrained_eq_hash():
     assert hash(hi1) != hash(hi2)
 
 
-@pytest.mark.parametrize("hi", discrete_hilbert_params)
-def test_hilbert_numba_throws(hi):
-    """Check that get conn throws an error"""
-    from netket.errors import HilbertIndexingDuringTracingError
-
-    @partial(jax.jit, static_argnums=0)
-    def numbers_to_states(hi, s):
-        return hi.numbers_to_states(s)
-
-    @partial(jax.jit, static_argnums=0)
-    def states_to_numbers(hi, s):
-        return hi.states_to_numbers(s)
-
-    with pytest.raises(HilbertIndexingDuringTracingError):
-        numbers_to_states(hi, 1)
-    with pytest.raises(HilbertIndexingDuringTracingError):
-        states_to_numbers(hi, jnp.zeros((hi.size,)))()
-
-
 def test_particle_alternative_constructors():
     hi1 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf), pbc=False)
     hi2 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf))
