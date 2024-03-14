@@ -735,3 +735,31 @@ def test_hilbert_states_outside_range_errors():
     with pytest.raises(xla_extension.XlaRuntimeError):
         # XlaRuntimeError: States do not fulfill constraint.
         hi.states_to_numbers(jnp.array([0, 3]))
+
+
+@partial(jax.jit, static_argnums=0)
+def _states_to_numbers_jit(hi, states):
+    return hi.states_to_numbers(states)
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_hilbert_states_to_numbers_jit(hi: DiscreteHilbert):
+    if hi.is_indexable:
+        numbers0 = jnp.arange(min(10, hi.n_states))
+        states0 = hi.numbers_to_states(numbers0)
+        numbers1 = _states_to_numbers_jit(hi, states0)
+        np.testing.assert_allclose(numbers0, numbers1)
+
+
+@partial(jax.jit, static_argnums=0)
+def _numbers_to_states_jit(hi, numbers):
+    return hi.numbers_to_states(numbers)
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_hilbert_numbers_to_states_jit(hi: DiscreteHilbert):
+    if hi.is_indexable:
+        numbers0 = jnp.arange(min(10, hi.n_states))
+        states0 = hi.numbers_to_states(numbers0)
+        states1 = _numbers_to_states_jit(hi, numbers0)
+        np.testing.assert_allclose(states0, states1)
