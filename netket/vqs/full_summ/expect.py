@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial, lru_cache
+from functools import partial
 from typing import Callable, Optional
 
 import jax
@@ -38,21 +38,11 @@ def _check_hilbert(A, B):
         )
 
 
-# TODO: This cache is here so that we don't re-compute the sparse representation of the operators at every VMC step
-# but instead we cache the last 5 used. Should investigate a better way to implement this caching.
-@lru_cache(5)
-def sparsify(Ô):
-    """
-    Converts to sparse but also cache the sparsificated result to speed up.
-    """
-    return Ô.to_sparse()
-
-
 @dispatch
 def expect(vstate: FullSumState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate, Ô)
 
-    O = sparsify(Ô)
+    O = Ô.to_sparse()
     Ψ = vstate.to_array()
 
     # TODO: This performs the full computation on all MPI ranks.
@@ -104,7 +94,7 @@ def expect_and_forces_fullsum(
 
     _check_hilbert(vstate, Ô)
 
-    O = sparsify(Ô)
+    O = Ô.to_sparse()
     Ψ = vstate.to_array()
     OΨ = O @ Ψ
 

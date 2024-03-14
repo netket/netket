@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import lru_cache
+
 import numpy as np
 import jax.numpy as jnp
 
@@ -185,6 +187,7 @@ class DiscreteOperator(AbstractOperator):
 
         return out
 
+    @lru_cache(5)
     def to_sparse(self) -> _csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum

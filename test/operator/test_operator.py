@@ -387,7 +387,16 @@ def test_operator_jax_conversion(op):
             op_jax2.to_numba_operator()
 
     # check that it is hash stable
-    _, structure2 = jax.tree_util.tree_flatten(op.to_jax_operator())
+    if not isinstance(op_jax, nk.operator.DiscreteJaxOperatorPytree):
+        _, structure2 = jax.tree_util.tree_flatten(op.to_jax_operator())
+    else:
+        # If its a nk.operator.DiscreteJaxOperatorPytree the structure has changed,
+        # compared to the original op.to_jax_operator()
+        # because we cached the sparse array when to_dense was called
+        # therefore only compare to that structure here
+        op_jax2.to_dense()
+        _, structure2 = jax.tree_util.tree_flatten(op_jax2)
+
     assert hash(structure) == hash(structure2)
     assert structure == structure2
 
