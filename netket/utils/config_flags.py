@@ -356,3 +356,16 @@ config.define(
     ),
     runtime=True,
 )
+
+
+config.define(
+    "NETKET_MPI_AUTODETECT_LOCAL_GPU",
+    bool,
+    default=True,
+    runtime=False,
+    help=dedent(
+        """
+        SOme
+        """
+    ),
+)

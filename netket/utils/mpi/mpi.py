@@ -49,6 +49,17 @@ try:
     _mpi4jax_loaded = True
     mpi4jax_available = True
 
+    # If we got here, mpi4jax is loaded and we are using MPI.
+    # Let's check if we have multiple GPUs available. If that is the case, as netket
+    # does not support multiple GPUs per rank in MPI mode, we fix that only one gpu
+    # is avaialble per rank, by using local ranks.
+    if config.netket_mpi_autodetect_local_gpu:
+        from .gpu_autorank_util import autoset_default_gpu
+
+        autoset_default_gpu(MPI_py_comm)
+        del autoset_default_gpu
+
+
 except ImportError:
     mpi4py_available = False
     mpi4jax_available = False
@@ -106,3 +117,6 @@ if mpi4py_available:
             "Please update it to a more recent version by running "
             "(`pip install -U mpi4jax`)."
         )
+
+
+del os, warnings, dedent, config, module_version
