@@ -16,7 +16,8 @@ from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
 from .equivariant import GCNN
 from .full_space import LogStateVector
 from .jastrow import Jastrow
-from .mps import MPSPeriodic
+from .mps import MPSPeriodic, MPSOpen
+from .mpdo import MPDOPeriodic, MPDOOpen
 from .gaussian import Gaussian
 from .deepset import DeepSetRelDistance, DeepSetMLP
 from .ndm import NDM
