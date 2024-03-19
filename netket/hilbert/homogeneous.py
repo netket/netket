@@ -16,6 +16,10 @@ from typing import Optional, Callable
 
 import numpy as np
 
+import jax.numpy as jnp
+
+from equinox import error_if
+
 from netket.utils import StaticRange
 from netket.utils.types import Array
 
@@ -167,6 +171,24 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self._hilbert_index.numbers_to_states(numbers)
 
     def _states_to_numbers(self, states: np.ndarray):
+        states = jnp.asarray(states)
+
+        if self.is_finite:
+            start = self._local_states.start
+            end = start + self._local_states.step * self._local_states.length
+            states = error_if(
+                states,
+                (states < start).any() | (states >= end).any(),
+                "States outside the range of allowed states.",
+            )
+
+        if self.constrained:
+            states = error_if(
+                states,
+                ~self._constraint_fn(states).all(),
+                "States do not fulfill constraint.",
+            )
+
         return self._hilbert_index.states_to_numbers(states)
 
     def all_states(self) -> np.ndarray:

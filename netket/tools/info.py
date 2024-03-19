@@ -90,6 +90,7 @@ def info():
     printfmt("numpy", version("numpy"), indent=1)
     printfmt("jaxlib", version("jaxlib"), indent=1)
     printfmt("jax", version("jax"), indent=1)
+    printfmt("equinox", version("equinox"), indent=1)
     printfmt("flax", version("flax"), indent=1)
     printfmt("optax", version("optax"), indent=1)
     printfmt("numba", version("numba"), indent=1)
