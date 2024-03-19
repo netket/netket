@@ -19,7 +19,7 @@ import abc
 import numbers
 from functools import partial
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 import jax
 
