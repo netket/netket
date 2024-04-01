@@ -28,7 +28,7 @@ from netket.driver.abstract_variational_driver import _to_iterable
 from netket.jax import HashablePartial
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
-from netket.utils import mpi
+from netket.utils import mpi, timing
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
@@ -275,12 +275,13 @@ class TDVPBaseDriver(AbstractVariationalDriver):
     def run(
         self,
         T,
-        out=None,
+        out=(),
         obs=None,
         *,
         tstops=None,
         show_progress=True,
         callback=None,
+        timeit: bool = False,
     ):
         """
         Runs the time evolution.
@@ -301,6 +302,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             show_progress: If true displays a progress bar (default=True)
             callback: Callable or list of callable callback functions to be executed at each
                 stopping time.
+            timeit: If True, provide timing information.
         """
         if obs is None:
             obs = {}
@@ -308,15 +310,15 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         if callback is None:
             callback = lambda *_args, **_kwargs: True
 
+        # if out is a path, create an overwriting Json Log for output
+        if isinstance(out, str):
+            out = JsonLog(out, "w")
+        elif out is None:
+            out = ()
+
         # Log only non-root nodes
-        if self._mynode == 0:
-            if out is None:
-                loggers = ()
-            # if out is a path, create an overwriting Json Log for output
-            elif isinstance(out, str):
-                loggers = (JsonLog(out, "w"),)
-            else:
-                loggers = _to_iterable(out)
+        if self._is_root:
+            loggers = _to_iterable(out)
         else:
             loggers = tuple()
             show_progress = False
@@ -325,6 +327,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         callback_stop = False
 
         t_end = np.asarray(self.t + T)
+
         with tqdm(
             total=t_end,
             disable=not show_progress,
@@ -353,33 +356,35 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 pbar.set_postfix(self._postfix)
                 pbar.refresh()
 
-            for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
-                log_data = self.estimate(obs)
-                self._log_additional_data(log_data, step)
+            with timing.timed_scope(force=timeit) as timer:
+                for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
+                    with timing.timed_scope(name="observables"):
+                        log_data = self.estimate(obs)
+                        self._log_additional_data(log_data, step)
 
-                self._postfix = {"n": self.step_count}
-                # if the cost-function is defined then report it in the progress bar
-                if self._loss_stats is not None:
-                    self._postfix.update(
-                        {
-                            self._loss_name: str(self._loss_stats),
-                        }
-                    )
-                    log_data[self._loss_name] = self._loss_stats
-                pbar.set_postfix(self._postfix)
+                    self._postfix = {"n": self.step_count}
+                    # if the cost-function is defined then report it in the progress bar
+                    if self._loss_stats is not None:
+                        self._postfix.update(
+                            {
+                                self._loss_name: str(self._loss_stats),
+                            }
+                        )
+                        log_data[self._loss_name] = self._loss_stats
+                    pbar.set_postfix(self._postfix)
 
-                # Execute callbacks before loggers because they can append to log_data
-                for callback in callbacks:
-                    if not callback(step, log_data, self):
-                        callback_stop = True
+                    # Execute callbacks before loggers because they can append to log_data
+                    for callback in callbacks:
+                        if not callback(step, log_data, self):
+                            callback_stop = True
 
-                for logger in loggers:
-                    logger(self.step_value, log_data, self.state)
+                    for logger in loggers:
+                        logger(self.step_value, log_data, self.state)
 
-                if len(callbacks) > 0:
-                    if mpi.mpi_any(callback_stop):
-                        break
-                update_progress_bar()
+                    if len(callbacks) > 0:
+                        if mpi.mpi_any(callback_stop):
+                            break
+                    update_progress_bar()
 
             # Final update so that it shows up filled.
             update_progress_bar()
@@ -389,6 +394,10 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         for logger in loggers:
             logger.flush(self.state)
 
+        if timeit:
+            self._timer = timer
+            if self._is_root:
+                print(timer)
         return loggers
 
     def _log_additional_data(self, log_dict, step):
