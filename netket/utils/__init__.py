@@ -27,6 +27,7 @@ from . import types
 from . import float
 from . import optional_deps
 from . import timing
+from . import display
 
 from .array import HashableArray, array_in
 from .partial import HashablePartial
@@ -53,5 +54,14 @@ from .static_range import StaticRange
 _hide_submodules(
     __name__,
     remove_self=False,
-    ignore=["numbers", "types", "float", "dispatch", "errors", "plum"],
+    ignore=[
+        "numbers",
+        "types",
+        "float",
+        "dispatch",
+        "errors",
+        "plum",
+        "timing",
+        "display",
+    ],
 )
