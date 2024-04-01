@@ -26,6 +26,7 @@ from . import numbers
 from . import types
 from . import float
 from . import optional_deps
+from . import timing
 
 from .array import HashableArray, array_in
 from .partial import HashablePartial
