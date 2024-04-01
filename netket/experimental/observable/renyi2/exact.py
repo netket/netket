@@ -16,6 +16,7 @@ import numpy as np
 
 from netket.vqs import FullSumState, expect
 from netket.stats import Stats
+from netket.utils import module_version
 
 from .S2_operator import Renyi2EntanglementEntropy
 
@@ -36,6 +37,11 @@ def Renyi2(vstate: FullSumState, op: Renyi2EntanglementEntropy):
         mask[op.partition] = True
 
         rdm = state_qutip.ptrace(np.arange(N)[mask])
+
+        # TODO: when we drop support for qutip older versions, always keep this
+        # qutip 5 was released in march 2024
+        if module_version("qutip") >= (5, 0, 0):
+            rdm = rdm.data.to_array()
 
         n = 2
         out = np.log2(np.trace(np.linalg.matrix_power(rdm, n))) / (1 - n)

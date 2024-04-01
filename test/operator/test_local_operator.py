@@ -455,7 +455,7 @@ def test_qutip_conversion(jax):
     assert q_obj.dims[1] == list(op.hilbert.shape)
 
     assert q_obj.shape == (op.hilbert.n_states, op.hilbert.n_states)
-    np.testing.assert_allclose(q_obj.data.todense(), op.to_dense())
+    np.testing.assert_allclose(q_obj.data.to_array(), op.to_dense())
 
 
 def test_notsharing():
