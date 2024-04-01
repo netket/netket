@@ -18,40 +18,50 @@ import jax.numpy as jnp
 
 
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
-def test_mps_periodic(dtype):
+def test_mpdo_periodic(dtype):
     L = 6
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.tensor_networks.MPSPeriodic(
-        hilbert=hi, bond_dim=2, param_dtype=dtype
-    )
-    sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-
-    vs = nk.vqs.MCState(sa, ma)
-
     ha = nk.operator.Ising(hi, graph=g, h=1.0, dtype=dtype)
+    j_ops = [nk.operator.spin.sigmam(hi, i) for i in range(L)]
+
+    lind = nk.operator.LocalLiouvillian(ha, j_ops)
+
+    ma = nk.models.tensor_networks.MPDOPeriodic(
+        hilbert=hi, bond_dim=2, kraus_dim=2, param_dtype=dtype
+    )
+    sa = nk.sampler.MetropolisLocal(lind.hilbert)
+
+    vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000)
     op = nk.optimizer.Sgd(learning_rate=0.05)
+    sr = nk.optimizer.SR(diag_shift=0.01)
 
-    driver = nk.VMC(ha, op, variational_state=vs)
+    ss = nk.SteadyState(lind, op, variational_state=vs, preconditioner=sr)
 
-    driver.run(1)
+    ss.run(1)
 
 
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
-def test_mps_open(dtype):
+def test_mpdo_open(dtype):
     L = 6
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.tensor_networks.MPSOpen(hilbert=hi, bond_dim=2, param_dtype=dtype)
-    sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-
-    vs = nk.vqs.MCState(sa, ma)
-
     ha = nk.operator.Ising(hi, graph=g, h=1.0, dtype=dtype)
+    j_ops = [nk.operator.spin.sigmam(hi, i) for i in range(L)]
+
+    lind = nk.operator.LocalLiouvillian(ha, j_ops)
+
+    ma = nk.models.tensor_networks.MPDOOpen(
+        hilbert=hi, bond_dim=2, kraus_dim=2, param_dtype=dtype
+    )
+    sa = nk.sampler.MetropolisLocal(lind.hilbert)
+
+    vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000)
     op = nk.optimizer.Sgd(learning_rate=0.05)
+    sr = nk.optimizer.SR(diag_shift=0.01)
 
-    driver = nk.VMC(ha, op, variational_state=vs)
+    ss = nk.SteadyState(lind, op, variational_state=vs, preconditioner=sr)
 
-    driver.run(1)
+    ss.run(1)

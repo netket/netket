@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2021-2024 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from . import tensor_networks
+
 from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
 from .equivariant import GCNN
 from .full_space import LogStateVector
 from .jastrow import Jastrow
-from .mps import MPSPeriodic
 from .gaussian import Gaussian
 from .deepset import DeepSetRelDistance, DeepSetMLP
 from .ndm import NDM
