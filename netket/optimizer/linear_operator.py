@@ -18,6 +18,7 @@ import jax
 from jax import numpy as jnp
 from flax import struct
 
+from netket.utils import timing
 from netket.utils.types import PyTree
 
 
@@ -81,6 +82,7 @@ class LinearOperator:
         return solve_fun(self, y, **kwargs)
 
     # PUBLIC API: Extend _solve
+    @timing.timed
     def solve(
         self, solve_fun: SolverT, y: PyTree, *, x0: Optional[PyTree] = None, **kwargs
     ) -> PyTree:
@@ -100,6 +102,7 @@ class LinearOperator:
         return self._solve(jax.tree_util.Partial(solve_fun), y, x0=x0, **kwargs)
 
     # PUBLIC API: METHOD TO EXTEND IF YOU WANT TO DEFINE A NEW S object
+    @timing.timed
     def to_dense(self) -> jnp.ndarray:
         """
         Convert the lazy matrix representation to a dense matrix representation.s

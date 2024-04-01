@@ -34,6 +34,7 @@ from netket.utils import (
     maybe_wrap_module,
     wrap_afun,
     wrap_to_support_scalar,
+    timing,
 )
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
@@ -440,6 +441,7 @@ class MCState(VariationalState):
         """
         self._samples = None
 
+    @timing.timed
     def sample(
         self,
         *,
@@ -481,12 +483,13 @@ class MCState(VariationalState):
         )
 
         if self.n_discard_per_chain > 0:
-            _, self.sampler_state = self.sampler.sample(
-                self.model,
-                self.variables,
-                state=self.sampler_state,
-                chain_length=n_discard_per_chain,
-            )
+            with timing.timed_scope("sampling n_discarded samples"):
+                _, self.sampler_state = self.sampler.sample(
+                    self.model,
+                    self.variables,
+                    state=self.sampler_state,
+                    chain_length=n_discard_per_chain,
+                )
 
         self._samples, self.sampler_state = self.sampler.sample(
             self.model,
@@ -530,6 +533,7 @@ class MCState(VariationalState):
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
+    @timing.timed
     def local_estimators(
         self, op: AbstractOperator, *, chunk_size: Optional[int] = None
     ):
@@ -557,6 +561,7 @@ class MCState(VariationalState):
         return local_estimators(self, op, chunk_size=chunk_size)
 
     # override to use chunks
+    @timing.timed
     def expect(self, O: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator
         :math:`O` or generic observable.
@@ -576,6 +581,7 @@ class MCState(VariationalState):
         return expect(self, O, self.chunk_size)
 
     # override to use chunks
+    @timing.timed
     def expect_and_grad(
         self,
         O: AbstractOperator,
@@ -616,6 +622,7 @@ class MCState(VariationalState):
         )
 
     # override to use chunks
+    @timing.timed
     def expect_and_forces(
         self,
         O: AbstractOperator,

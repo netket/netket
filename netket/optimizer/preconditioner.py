@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from textwrap import dedent
 
 from netket.utils.types import PyTree, Scalar
-from netket.utils import warn_deprecation
+from netket.utils import warn_deprecation, timing
 from netket.vqs import VariationalState
 
 from .linear_operator import LinearOperator, SolverT
@@ -82,6 +82,7 @@ class AbstractLinearPreconditioner:
         self.solver = solver
         self.solver_restart = solver_restart
 
+    @timing.timed
     def __call__(
         self, vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = None
     ) -> PyTree:
