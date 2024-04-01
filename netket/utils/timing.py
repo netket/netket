@@ -33,13 +33,47 @@ class Timer(struct.Pytree, mutable=True):
     """
     Measures how much time was spent in a timer, with possible
     sub-timers.
+
+    Can be used as a context manager to time a scope, and will show
+    up timers used inside of the scope if present.
+
+    If you directly construct a timer, you cannot nest it inside another
+    timer. If you are building a library function you should instead use
+    :func:`netket.utils.timing.timed_scope`.
+
+    Example:
+
+        Time a scope
+
+        >>> import netket as nk
+        >>> import time
+        >>>
+        >>> with nk.utils.timing.Timer() as t:
+        ...    time.sleep(1)  # This line and the ones below are indented
+        ...    with nk.utils.timing.timed_scope("subfunction 1"):
+        ...       time.sleep(0.5)
+        ...    with nk.utils.timing.timed_scope("subfunction 2"):
+        ...       time.sleep(0.25)
+        >>>
+        >>> t  # doctest: +SKIP
+        ╭──────────────────────── Timing Information ─────────────────────────╮
+        │ Total: 1.763                                                        │
+        │ ├── (28.7%) | subfunction 1 : 0.505 s                               │
+        │ └── (14.3%) | subfunction 2 : 0.252 s                               │
+        ╰─────────────────────────────────────────────────────────────────────╯
+
     """
 
     total: float
     sub_timers: dict
     _start_time: float = 0.0
 
-    def __init__(self, name: str = None):
+    def __init__(self):
+        """
+        Constructs a new timer object.
+
+        Does not accept any argument.
+        """
         self.total = 0.0
         self.sub_timers = {}
 
@@ -99,13 +133,40 @@ class Timer(struct.Pytree, mutable=True):
 
 
 @contextlib.contextmanager
-def timed_scope(name: str = None, force: bool = True):
+def timed_scope(name: str = None, force: bool = False):
     """
     Context manager used to mark a scope to be timed individually
     by NetKet timers.
 
     If name is not specified, the file name and line number
     is used.
+
+    If `force` is not specified, the timer only runs if a top-level
+    timer is in use as well. If `force` is specified, the timer
+    and nested timers will always run.
+
+    Example:
+
+        Time a section of code
+
+        >>> import netket as nk
+        >>> import time
+        >>>
+        >>> with nk.utils.timing.timed_scope(force=True) as t:
+        ...    time.sleep(1)  # This line and the ones below are indented
+        ...    with nk.utils.timing.timed_scope("subfunction 1"):
+        ...       time.sleep(0.5)
+        ...    with nk.utils.timing.timed_scope("subfunction 2"):
+        ...       time.sleep(0.25)
+        >>>
+        >>> t  # doctest: +SKIP
+        ╭──────────────────────── Timing Information ─────────────────────────╮
+        │ Total: 1.763                                                        │
+        │ ├── (28.7%) | subfunction 1 : 0.505 s                               │
+        │ └── (14.3%) | subfunction 2 : 0.252 s                               │
+        ╰─────────────────────────────────────────────────────────────────────╯
+
+
 
     Args:
         name: Name to use for the timing of this line.

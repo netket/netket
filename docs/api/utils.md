@@ -64,7 +64,7 @@ Utility functions and classes.
 
 ## Symmetry Group Manipulation
 
- ```{eval-rst}
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/utils
    :nosignatures:
@@ -75,5 +75,21 @@ Utility functions and classes.
    group.FiniteGroup
    group.PointGroup
 
+```
+
+## Timing utils
+
+Use those utilities to coarsely profile some netket functions or scopes. The timer here
+can be nested and can be used in low-level library functions.
+
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/utils
+   :nosignatures:
+
+   timing.Timer
+   timing.timed_scope 
+   timing.timed 
 ```
 
