@@ -120,7 +120,7 @@ intersphinx_mapping = {
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
     "igraph": ("https://igraph.org/python/api/latest", None),
-    "qutip": ("https://qutip.org/docs/latest/", None),
+    "qutip": ("https://qutip.readthedocs.io/en/latest/", None),
     "pyscf": ("https://pyscf.org/", None),
 }
 
