@@ -339,7 +339,7 @@ def test_qutip_conversion(vstate):
     assert q_obj.dims[1] == [1 for i in range(vstate.hilbert.size)]
 
     assert q_obj.shape == (vstate.hilbert.n_states, 1)
-    np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
+    np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
 @common.skipif_mpi
