@@ -28,7 +28,9 @@ def test_mpdo_periodic(dtype):
 
     lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
-    ma = nk.models.MPDOPeriodic(hilbert=hi, bond_dim=2, kraus_dim=2, param_dtype=dtype)
+    ma = nk.models.tensor_networks.MPDOPeriodic(
+        hilbert=hi, bond_dim=2, kraus_dim=2, param_dtype=dtype
+    )
     sa = nk.sampler.MetropolisLocal(lind.hilbert)
 
     vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000)
@@ -51,7 +53,9 @@ def test_mpdo_open(dtype):
 
     lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
-    ma = nk.models.MPDOOpen(hilbert=hi, bond_dim=2, kraus_dim=2, param_dtype=dtype)
+    ma = nk.models.tensor_networks.MPDOOpen(
+        hilbert=hi, bond_dim=2, kraus_dim=2, param_dtype=dtype
+    )
     sa = nk.sampler.MetropolisLocal(lind.hilbert)
 
     vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000)

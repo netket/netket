@@ -23,7 +23,9 @@ def test_mps_periodic(dtype):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.MPSPeriodic(hilbert=hi, bond_dim=2, param_dtype=dtype)
+    ma = nk.models.tensor_networks.MPSPeriodic(
+        hilbert=hi, bond_dim=2, param_dtype=dtype
+    )
     sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
     vs = nk.vqs.MCState(sa, ma)
@@ -42,7 +44,7 @@ def test_mps_open(dtype):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.MPSOpen(hilbert=hi, bond_dim=2, param_dtype=dtype)
+    ma = nk.models.tensor_networks.MPSOpen(hilbert=hi, bond_dim=2, param_dtype=dtype)
     sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
     vs = nk.vqs.MCState(sa, ma)

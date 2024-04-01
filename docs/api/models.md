@@ -25,10 +25,6 @@ This section lists some simple variational architectures.
    RBMMultiVal
    RBMSymm
    Jastrow
-   MPSOpen
-   MPSPeriodic
-   MPDOOpen
-   MPDOPeriodic
    NDM
    GCNN
 
@@ -87,6 +83,22 @@ The following models are particularly suited for systems with continuous degrees
    DeepSetRelDistance
 ```
 
+## Tensor Networks
+
+The following models are tensor networks, that can be used as variational ansatzes:
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/models
+   :template: flax_module_or_default
+   :nosignatures:
+
+   tensor_networks.MPSOpen
+   tensor_networks.MPSPeriodic
+   tensor_networks.MPDOOpen
+   tensor_networks.MPDOPeriodic
+
+```
 
 ## Experimental models
 
