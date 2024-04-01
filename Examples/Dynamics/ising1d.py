@@ -42,7 +42,7 @@ op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=1e-4)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, variational_state=vs, n_samples=1000, n_discard_per_chain=50)
+gs = nk.VMC(ha, op, variational_state=vs)
 
 # Create observable
 Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
