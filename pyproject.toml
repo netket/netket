@@ -78,6 +78,7 @@ dev = [
     "pre-commit>=2.7",
     "black==23.9.1",
     "ruff==0.1.0",
+    "qutip>=5",
     "wheel",
     "build",
     # TODO remove vendoring plum

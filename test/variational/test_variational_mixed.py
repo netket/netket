@@ -338,7 +338,7 @@ def test_qutip_conversion(vstate):
         vstate.hilbert_physical.n_states,
         vstate.hilbert_physical.n_states,
     )
-    np.testing.assert_allclose(q_obj.data.todense(), rho)
+    np.testing.assert_allclose(q_obj.data.to_array(), rho)
 
 
 ###
