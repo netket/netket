@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import PyTree, Array
-from netket.utils import mpi
+from netket.utils import mpi, timing
 import netket.jax as nkjax
 from netket.nn import split_array_mpi
 
@@ -35,6 +35,7 @@ from .qgt_jacobian_common import (
 )
 
 
+@timing.timed
 def QGTJacobianPyTree(
     vstate=None,
     *,

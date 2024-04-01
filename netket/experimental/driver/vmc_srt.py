@@ -28,13 +28,14 @@ from netket.driver import AbstractVariationalDriver
 from netket.errors import UnoptimalSRtWarning
 from netket.jax import sharding
 from netket.operator import AbstractOperator
-from netket.utils import mpi
+from netket.utils import mpi, timing
 from netket.utils.types import ScalarOrSchedule, Optimizer, PyTree
 from netket.vqs import MCState
 
 from jax.flatten_util import ravel_pytree
 
 
+@timing.timed
 @partial(jax.jit, static_argnames=("mode", "solver_fn"))
 def SRt(
     O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure

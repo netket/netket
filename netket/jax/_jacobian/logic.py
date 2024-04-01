@@ -21,7 +21,7 @@ import jax.numpy as jnp
 from jax.tree_util import Partial
 
 from netket.stats import subtract_mean, sum as sum_mpi
-from netket.utils import mpi
+from netket.utils import mpi, timing
 from netket.utils.types import Array, Callable, PyTree
 from netket.jax import (
     tree_to_real,
@@ -32,6 +32,7 @@ from . import jacobian_dense
 from . import jacobian_pytree
 
 
+@timing.timed
 @partial(
     jax.jit,
     static_argnames=(

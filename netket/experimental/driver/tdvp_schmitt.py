@@ -25,6 +25,7 @@ from netket.optimizer.qgt import QGTJacobianDense
 from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 from netket.jax import tree_cast
+from netket.utils import timing
 
 from netket.experimental.dynamics import RKIntegratorConfig
 
@@ -190,6 +191,7 @@ class TDVPSchmitt(TDVPBaseDriver):
 # MIT License, Copyright (c) 2021 Markus Schmitt
 
 
+@timing.timed
 @partial(jax.jit, static_argnames=("n_samples"))
 def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_atol):
     E = stats.statistics(E_loc)

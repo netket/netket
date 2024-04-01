@@ -21,6 +21,7 @@ from jax import numpy as jnp
 from flax import struct
 
 import netket.jax as nkjax
+from netket.utils import timing
 from netket.utils.types import PyTree
 
 from netket.errors import (
@@ -36,6 +37,7 @@ from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 from ..linear_operator import LinearOperator, Uninitialized
 
 
+@timing.timed
 def QGTOnTheFly(
     vstate=None, *, chunk_size=None, holomorphic: Optional[bool] = None, **kwargs
 ) -> "QGTOnTheFlyT":
