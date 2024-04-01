@@ -68,7 +68,7 @@ class MPDOPeriodic(nn.Module):
     checkpoint: bool = True
     """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
-    """the initializer for the MPS weights."""
+    """the initializer for the MPS weights. This is added to an identity tensor."""
     param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPDO are real or complex."""
 
@@ -106,17 +106,31 @@ class MPDOPeriodic(nn.Module):
         )
 
     def __call__(self, x):
-        # create all tensors in mps from unit cell
-        all_tensors = jnp.tile(self.tensors, (self._L // self._symperiod, 1, 1, 1, 1))
+        """
+        Queries this MPDO for the input configurations x, which should contain
+        rows and columns entries concatenated.
 
+        Args:
+            x: the input configuration
+        """
         x = jnp.atleast_2d(x)
         assert x.shape[-1] == 2 * self.hilbert.size
         qn_x = self.hilbert.states_to_local_indices(x)
 
-        ρ = jax.vmap(self.contract_mpdo, in_axes=(0, None))(qn_x, all_tensors)
+        ρ = jax.vmap(self.contract_mpdo, in_axes=0)(qn_x)
         return jnp.log(ρ.astype(dtype_complex(self.param_dtype)))
 
-    def contract_mpdo(self, qn, all_tensors):
+    def contract_mpdo(self, qn):
+        """
+        Internal function, used to contract the tensor network with some input
+        tensor.
+
+        Args:
+            qn: The input tensor to be contracted with this MPDO
+        """
+        # create all tensors in mps from unit cell
+        all_tensors = jnp.tile(self.tensors, (self._L // self._symperiod, 1, 1, 1, 1))
+
         edge = jnp.eye(self._D**2, dtype=self.param_dtype)
 
         def base_scan_func(edge, pair):
@@ -174,7 +188,7 @@ class MPDOOpen(nn.Module):
     checkpoint: bool = True
     """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
-    """the initializer for the MPS weights."""
+    """the initializer for the MPS weights. This is added to an identity tensor."""
     param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPDO are real or complex."""
 
@@ -216,6 +230,13 @@ class MPDOOpen(nn.Module):
         )
 
     def __call__(self, x):
+        """
+        Queries this MPDO for the input configurations x, which should contain
+        rows and columns entries concatenated.
+
+        Args:
+            x: the input configuration
+        """
         x = jnp.atleast_2d(x)
         assert x.shape[-1] == 2 * self.hilbert.size
         qn_x = self.hilbert.states_to_local_indices(x)
@@ -225,6 +246,13 @@ class MPDOOpen(nn.Module):
         return jnp.log(ρ.astype(dtype_complex(self.param_dtype)))
 
     def contract_mpdo(self, qn):
+        """
+        Internal function, used to contract the tensor network with some input
+        tensor.
+
+        Args:
+            qn: The input tensor to be contracted with this MPDO
+        """
         qn_r, qn_c = jnp.split(qn, 2, axis=-1)
         left_edge = (
             self.left_tensors[qn_r[0], :] @ jnp.conj(self.left_tensors[qn_c[0], :]).T

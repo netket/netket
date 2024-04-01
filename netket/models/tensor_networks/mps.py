@@ -54,7 +54,7 @@ class MPSPeriodic(nn.Module):
     checkpoint: bool = True
     """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
-    """the initializer for the MPS weights."""
+    """the initializer for the MPS weights. This is added to an identity tensor."""
     param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPS are real or complex."""
 
@@ -89,23 +89,37 @@ class MPSPeriodic(nn.Module):
         )
 
     def __call__(self, x):
-        x = jnp.atleast_2d(x)
+        """
+        Queries the tensor network for the input configurations x.
+
+        Args:
+            x: the input configuration
+        """
+        x = jnp.atleast_1d(x)
         assert x.shape[-1] == self.hilbert.size
 
         x_shape = x.shape
         if jnp.ndim(x) != 2:
-            x = x.reshape((-1, x_shape[-1]))
+            x = jax.lax.collapse(x, 0, -1)
 
         qn_x = self.hilbert.states_to_local_indices(x)
-        # create all tensors in mps from unit cell
-        all_tensors = jnp.tile(self.tensors, (self._L // self._symperiod, 1, 1, 1))
 
-        ψ = jax.vmap(self.contract_mps, in_axes=(0, None))(qn_x, all_tensors)
+        ψ = jax.vmap(self.contract_mps, in_axes=0)(qn_x)
         ψ = ψ.reshape(x_shape[:-1])
 
         return jnp.log(ψ.astype(dtype_complex(self.param_dtype)))
 
-    def contract_mps(self, qn, all_tensors):
+    def contract_mps(self, qn):
+        """
+        Internal function, used to contract the tensor network with some input
+        tensor.
+
+        Args:
+            qn: The input tensor to be contracted with this MPS
+        """
+        # create all tensors in mps from unit cell
+        all_tensors = jnp.tile(self.tensors, (self._L // self._symperiod, 1, 1, 1))
+
         edge = jnp.eye(self._D, dtype=self.param_dtype)
 
         def base_scan_func(edge, pair):
@@ -144,7 +158,7 @@ class MPSOpen(nn.Module):
     checkpoint: bool = True
     """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
-    """the initializer for the MPS weights."""
+    """the initializer for the MPS weights. This is added to an identity tensor."""
     param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPS are real or complex."""
 
@@ -180,11 +194,17 @@ class MPSOpen(nn.Module):
         )
 
     def __call__(self, x):
-        x = jnp.atleast_2d(x)
+        """
+        Queries the tensor network for the input configurations x.
+
+        Args:
+            x: the input configuration
+        """
+        x = jnp.atleast_1d(x)
         assert x.shape[-1] == self.hilbert.size
         x_shape = x.shape
-        if x.ndim > 2:
-            x = jax.lax.collapse(x, 0, 2)
+        if x.ndim != 2:
+            x = jax.lax.collapse(x, 0, -1)
         qn_x = self.hilbert.states_to_local_indices(x)
 
         ψ = jax.vmap(self.contract_mps)(qn_x)
@@ -193,6 +213,14 @@ class MPSOpen(nn.Module):
         return jnp.log(ψ.astype(dtype_complex(self.param_dtype)))
 
     def contract_mps(self, qn):
+        """
+        Internal function, used to contract the tensor network with some input
+        tensor.
+
+        Args:
+            qn: The input tensor to be contracted with this MPS
+        """
+
         edge = self.left_tensors[qn[0], :]
 
         def base_scan_func(edge, pair):
