@@ -8,7 +8,7 @@
 ### New Features
 * Discrete Hilbert spaces now use a special {class}`nk.utils.StaticRange` object to store the local values that label the local degree of freedom. This special object is jax friendly and can be converted to arrays, and allows for easy conversion from the local degrees of freedom to integers that can be used to index into arrays, and back. While those objects are not really used internally yet, in the future they will be used to simplify the implementations of operators and other objects [#1732](https://github.com/netket/netket/issues/1732).
 * Some utilities to time execution of training loop are now provided, that can be used to coarsely see what part of the algorithm is dominating the training cost. To use it, pass `driver.run(..., timeit=True)` to all drivers when running them.
-
+* Added several new tensor network ansatze to the `nk.models.tensor_networks` namespace. Those also replace previous tensor network implementations, that were de-facto broken [#1745](https://github.com/netket/netket/issues/1745)..
 
 ### Breaking Changes
 * The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) deprecated in the last release has been removed completely [#1722](https://github.com/netket/netket/issues/1722).
