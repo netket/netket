@@ -371,7 +371,7 @@ def _recompute_default_device(val):
     if val is False:
         import jax
 
-        jax.config.set("jax_default_device", None)
+        jax.config.update("jax_default_device", None)
     else:
         from netket.utils.mpi.gpu_autorank_util import autoset_default_gpu
 
