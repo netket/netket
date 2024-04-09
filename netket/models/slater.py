@@ -47,6 +47,9 @@ class Slater2nd(nn.Module):
     If restricted, only one set of orbitals are parametrised, and they are used for all spin subsectors.
     If unrestricted, a different set of orbitals are parametrised and used for each spin subsector.
     """
+    
+    generalized: bool = False
+    """Flag to select generalize Hartree-Fock (defaults to standard spin-conserving Hartree-Fock)."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the orbital parameters."""
@@ -80,25 +83,34 @@ class Slater2nd(nn.Module):
     def setup(self):
         # Every determinant is a matrix of shape (n_orbitals, n_fermions_i) where
         # n_fermions_i is the number of fermions in the i-th spin sector.
-        if self.restricted:
+        if self.generalized:
             M = self.param(
                 "M",
                 self.kernel_init,
-                (self.hilbert.n_orbitals, self.hilbert.n_fermions_per_spin[0]),
+                (self.hilbert.size, self.hilbert.n_fermions),
                 self.param_dtype,
             )
-
-            self.orbitals = [M for _ in self.hilbert.n_fermions_per_spin]
+            self.orbitals = M
         else:
-            self.orbitals = [
-                self.param(
-                    f"M_{i}",
+            if self.restricted:
+                M = self.param(
+                    "M",
                     self.kernel_init,
-                    (self.hilbert.n_orbitals, nf_i),
+                    (self.hilbert.n_orbitals, self.hilbert.n_fermions_per_spin[0]),
                     self.param_dtype,
                 )
-                for i, nf_i in enumerate(self.hilbert.n_fermions_per_spin)
-            ]
+
+                self.orbitals = [M for _ in self.hilbert.n_fermions_per_spin]
+            else:
+                self.orbitals = [
+                    self.param(
+                        f"M_{i}",
+                        self.kernel_init,
+                        (self.hilbert.n_orbitals, nf_i),
+                        self.param_dtype,
+                    )
+                    for i, nf_i in enumerate(self.hilbert.n_fermions_per_spin)
+                ]
 
     def __call__(self, n):
         """
@@ -119,17 +131,86 @@ class Slater2nd(nn.Module):
             R = n.nonzero(size=self.hilbert.n_fermions)[0]
             log_det_sum = 0
             i_start = 0
-            for i, (n_fermions_i, M_i) in enumerate(
-                zip(self.hilbert.n_fermions_per_spin, self.orbitals)
-            ):
-                # convert global orbital positions to spin-sector-local positions
-                R_i = R[i_start : i_start + n_fermions_i] - i * self.hilbert.n_orbitals
-                # extract the corresponding Nf x Nf submatrix
-                A_i = M_i[R_i]
+            
+            if self.generalized:
+                # extract Nf x Nf submatrix
+                A_i = self.orbitals[R,:]
+                log_det_sum = nkjax.logdet_cmplx(A_i)
+            else:
+                for i, (n_fermions_i, M_i) in enumerate(
+                    zip(self.hilbert.n_fermions_per_spin, self.orbitals)
+                ):
+                    # convert global orbital positions to spin-sector-local positions
+                    R_i = R[i_start : i_start + n_fermions_i] - i * self.hilbert.n_orbitals
+                    # extract the corresponding Nf x Nf submatrix
+                    A_i = M_i[R_i]
 
-                log_det_sum = log_det_sum + nkjax.logdet_cmplx(A_i)
-                i_start = n_fermions_i
+                    log_det_sum = log_det_sum + nkjax.logdet_cmplx(A_i)
+                    i_start = n_fermions_i
 
             return log_det_sum
 
         return log_sd(n)
+    
+class MultiSlater2nd(nn.Module):
+    r"""
+    A slater determinant ansatz for second-quantised spinless or spin-full
+    fermions with a sum of determinants.
+    
+    Conventions are the same as in `Slater2nd'
+    """
+
+    hilbert: SpinOrbitalFermions
+    """The Hilbert space upon which this ansatz is defined. Used to determine the number of orbitals
+    and spin subspectors."""
+    
+    n_determinants: int = 1
+    """The number of determinants to be summed."""
+
+    restricted: bool = True
+    """Flag to select the restricted- or unrestricted- Hartree Fock orbtals (Defaults to restricted).
+
+    If restricted, only one set of orbitals are parametrised, and they are used for all spin subsectors.
+    If unrestricted, a different set of orbitals are parametrised and used for each spin subsector.
+    """
+    
+    generalized: bool = False
+    """Flag to select generalize Hartree-Fock (defaults to standard spin-conserving Hartree-Fock)."""
+
+    kernel_init: NNInitFunc = default_kernel_init
+    """Initializer for the orbital parameters."""
+
+    param_dtype: DType = float
+    """Dtype of the orbital amplitudes."""
+
+    @nn.compact
+    def __call__(self, n):
+        """
+        Assumes inputs are strings of 0,1 that specify which orbitals are occupied.
+        Spin sectors are assumed to follow the SpinOrbitalFermion's factorisation,
+        meaning that the first `n_orbitals` entries correspond to sector -1, the
+        second `n_orbitals` correspond to 0 ... etc.
+        """
+        if not self.n_determinants:
+            raise ValueError(
+                f"Number of determinants must be an integer greater than 0."
+            )
+        # make extra axis with copies to run determinants in parallel
+        n_bc = jnp.broadcast_to(n, (self.n_determinants, *n.shape))
+        multi_log_det = nn.vmap(
+            Slater2nd,
+            in_axes=0, out_axes=0, # vmap over copied axis
+            variable_axes={'params': 0},
+            split_rngs={'params': True}
+        )(
+            self.hilbert, 
+            restricted=self.restricted, 
+            generalized=self.generalized, 
+            kernel_init=self.kernel_init, 
+            param_dtype=self.param_dtype
+        )(n_bc)
+        # sum the determinants
+        log_det_sum = nkjax.logsumexp_cplx(multi_log_det, axis=0)
+        return log_det_sum
+        
+        
