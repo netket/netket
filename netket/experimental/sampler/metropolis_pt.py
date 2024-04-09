@@ -51,15 +51,16 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         rule_state: Optional[Any],
         beta: jnp.ndarray,
     ):
-        n_chains, n_replicas = beta.shape
+        n_chains_per_rank, n_replicas = beta.shape
 
         self.beta = beta
-        self.n_accepted_per_beta = jnp.zeros((n_chains, n_replicas), dtype=int)
-        self.beta_0_index = jnp.zeros((n_chains,), dtype=int)
-        self.beta_position = jnp.zeros((n_chains,), dtype=float)
-        self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
+        self.n_accepted_per_beta = jnp.zeros((n_chains_per_rank, n_replicas), dtype=int)
+        self.beta_0_index = jnp.zeros((n_chains_per_rank,), dtype=int)
+        self.beta_position = jnp.zeros((n_chains_per_rank,), dtype=float)
+        self.beta_diffusion = jnp.zeros((n_chains_per_rank,), dtype=float)
         self.exchange_steps = jnp.zeros((), dtype=int)
         super().__init__(σ, rng, rule_state)
+        self.n_accepted_proc = jnp.zeros(n_chains_per_rank, dtype=int) # correct shape is (n_chains_per_rank,)
 
     def __repr__(self):
         if self.n_steps > 0:
@@ -120,9 +121,9 @@ class MetropolisPtSampler(MetropolisSampler):
             dtype: The dtype of the states sampled (default = np.float32).
         """
         if (
-            not isinstance(n_replicas, int)
-            and n_replicas > 0
-            and np.mod(self.n_replicas, 2) == 0
+            not (isinstance(n_replicas, int)
+                 and n_replicas > 0
+                 and np.mod(n_replicas, 2) == 0)
         ):
             raise ValueError("n_replicas must be an even integer > 0.")
         self.n_replicas = n_replicas
@@ -158,7 +159,7 @@ class MetropolisPtSampler(MetropolisSampler):
         σ = with_samples_sharding_constraint(σ)
 
         beta = 1.0 - jnp.arange(sampler.n_replicas) / sampler.n_replicas
-        beta = jnp.tile(beta, (sampler.n_chains, 1))
+        beta = jnp.tile(beta, (sampler.n_batches // sampler.n_replicas, 1))
 
         return MetropolisPtSamplerState(
             σ=σ,
@@ -218,7 +219,7 @@ class MetropolisPtSampler(MetropolisSampler):
             # do_accept must match ndim of proposal and state (which is 2)
             s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
             n_accepted_per_beta = s["n_accepted_per_beta"] + do_accept.reshape(
-                (sampler.n_chains, sampler.n_replicas)
+                (sampler.n_batches // sampler.n_replicas, sampler.n_replicas)
             )
 
             s["log_prob"] = jax.numpy.where(
@@ -232,7 +233,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 key3,
                 minval=0,
                 maxval=2,
-                shape=(sampler.n_chains,),
+                shape=(sampler.n_batches // sampler.n_replicas,),
             )  # 0 or 1
             # iswap_order = jnp.mod(swap_order + 1, 2)  #  1 or 0
 
@@ -263,13 +264,13 @@ class MetropolisPtSampler(MetropolisSampler):
 
             # compute the probability of the swaps
             log_prob = (proposed_beta - state.beta) * s["log_prob"].reshape(
-                (sampler.n_chains, sampler.n_replicas)
+                (sampler.n_batches // sampler.n_replicas, sampler.n_replicas)
             )
 
             prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
 
             uniform = jax.random.uniform(
-                key4, shape=(sampler.n_chains, sampler.n_replicas // 2)
+                key4, shape=(sampler.n_batches // sampler.n_replicas, sampler.n_replicas // 2)
             )
 
             do_swap = uniform < prob_rescaled
@@ -379,24 +380,26 @@ class MetropolisPtSampler(MetropolisSampler):
         }
         s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
+        offsets = jnp.arange(
+            0, sampler.n_batches, sampler.n_replicas
+        )
+
+        idcs = s["beta_0_index"] + offsets
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
             # n_accepted=s["accepted"],
-            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_chains,
+            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches // sampler.n_replicas,
             beta=s["beta"],
             beta_0_index=s["beta_0_index"],
             beta_position=s["beta_position"],
             beta_diffusion=s["beta_diffusion"],
             exchange_steps=state.exchange_steps + sampler.sweep_size,
             n_accepted_per_beta=s["n_accepted_per_beta"],
+            n_accepted_proc=jax.vmap(lambda x,y:x[y])(s["n_accepted_per_beta"],idcs)
         )
 
-        offsets = jnp.arange(
-            0, sampler.n_chains * sampler.n_replicas, sampler.n_replicas
-        )
-
-        return new_state, new_state.σ[new_state.beta_0_index + offsets, :]
+        return new_state, new_state.σ[idcs, :]
 
 
 def MetropolisLocalPt(hilbert, *args, **kwargs):
