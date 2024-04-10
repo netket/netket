@@ -24,9 +24,11 @@ import pytest
 def test_Slater2nd():
     k = jax.random.PRNGKey(1)
 
-    
     n_dets = 4
-    for slater_class in [nkx.models.Slater2nd, partial(nkx.models.MultiSlater2nd, n_determinants=n_dets)]:
+    for slater_class in [
+        nkx.models.Slater2nd,
+        partial(nkx.models.MultiSlater2nd, n_determinants=n_dets),
+    ]:
         hi = nkx.hilbert.SpinOrbitalFermions(3, n_fermions=2)
         ma = slater_class(hi, restricted=True, param_dtype=jnp.float32)
 
@@ -96,14 +98,14 @@ def test_Slater2nd():
         out1 = ma.apply(pars, hi.random_state(k, (2, 3), dtype=jnp.float32))
         assert out1.shape == (2, 3)
         assert out1.dtype == jnp.complex64
-        
+
         if isinstance(ma, nkx.models.MultiSlater2nd):
             M = pars["params"]["VmapSlater2nd_0"]["M"]
             assert M.shape == (n_dets, hi.size, hi.n_fermions)
         else:
             M = pars["params"]["M"]
             assert M.shape == (hi.size, hi.n_fermions)
-            
+
 
 def test_Slater2nd_error():
     # Requires number of fermions
