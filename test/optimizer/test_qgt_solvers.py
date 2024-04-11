@@ -98,7 +98,7 @@ def test_qgt_throws(SType):
     vs = nk.vqs.MCState(sa, ma, n_samples=100, n_discard_per_chain=100)
 
     S = vs.quantum_geometric_tensor(SType)
-    g_cmplx = jax.tree_map(lambda x: x + x * 0.1j, vs.parameters)
+    g_cmplx = jax.tree_util.tree_map(lambda x: x + x * 0.1j, vs.parameters)
 
     with pytest.raises(
         nk.errors.RealQGTComplexDomainError, match="Cannot multiply the"

@@ -32,7 +32,7 @@ def _jvp(oks: PyTree, v: PyTree) -> Array:
     Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
     """
     td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
-    t = jax.tree_map(td, oks, v)
+    t = jax.tree_util.tree_map(td, oks, v)
     return jax.tree_util.tree_reduce(jnp.add, t)
 
 
@@ -40,8 +40,8 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     """
     Compute the vector-matrix product between the vector w and the pytree jacobian oks
     """
-    res = jax.tree_map(partial(jnp.tensordot, w, axes=w.ndim), oks)
-    return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
+    res = jax.tree_util.tree_map(partial(jnp.tensordot, w, axes=w.ndim), oks)
+    return jax.tree_util.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
 
 
 def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:

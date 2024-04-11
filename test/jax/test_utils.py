@@ -27,9 +27,9 @@ def test_tree_to_real(tree):
     tree_restored = restore(tree_real)
 
     assert not jax.tree_util.tree_reduce(
-        operator.or_, jax.tree_map(jnp.iscomplexobj, tree_real)
+        operator.or_, jax.tree_util.tree_map(jnp.iscomplexobj, tree_real)
     )
     assert jax.tree_util.tree_structure(tree) == jax.tree_util.tree_structure(
         tree_restored
     )
-    jax.tree_map(np.testing.assert_allclose, tree_restored, tree)
+    jax.tree_util.tree_map(np.testing.assert_allclose, tree_restored, tree)

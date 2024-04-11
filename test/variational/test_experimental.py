@@ -66,7 +66,9 @@ def test_variables_from_file(vstate, tmp_path):
         vstate2.variables = nkx.vqs.variables_from_file(name, vstate2.variables)
 
         # check
-        jax.tree_map(np.testing.assert_allclose, vstate.parameters, vstate2.parameters)
+        jax.tree_util.tree_map(
+            np.testing.assert_allclose, vstate.parameters, vstate2.parameters
+        )
 
 
 def test_variables_from_tar(vstate, tmp_path):
@@ -87,7 +89,7 @@ def test_variables_from_tar(vstate, tmp_path):
             vstate2.variables = nkx.vqs.variables_from_tar(name, vstate2.variables, j)
 
             # check
-            jax.tree_map(
+            jax.tree_util.tree_map(
                 np.testing.assert_allclose, vstate.parameters, vstate2.parameters
             )
 

@@ -238,7 +238,9 @@ def test_serialization(vstate):
 
     vstate_new = serialization.from_bytes(vstate_new, bdata)
 
-    jax.tree_map(np.testing.assert_allclose, vstate.parameters, vstate_new.parameters)
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose, vstate.parameters, vstate_new.parameters
+    )
     np.testing.assert_allclose(vstate.samples, vstate_new.samples)
     np.testing.assert_allclose(vstate.diagonal.samples, vstate_new.diagonal.samples)
     assert vstate.n_samples == vstate_new.n_samples
@@ -295,7 +297,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.diagonal.chunk_size = chunk_size_diag
     eval_chunk = vstate.expect(operator)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
     )
 
@@ -316,7 +318,7 @@ def test_expect_grad_chunking(vstate, n_chunks):
     vstate.diagonal.chunk_size = chunk_size_diag
     grad_chunk = vstate.grad(operator)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
 
@@ -439,7 +441,7 @@ def test_grad_finitedifferences(vstate, operator):
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
 
     if not operator.is_hermitian:
-        grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
+        grad_exact = jax.tree_util.tree_map(lambda x: x * 2, grad_exact)
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)

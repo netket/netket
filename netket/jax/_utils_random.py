@@ -36,7 +36,9 @@ def PRNGKey(
     else:
         key = seed
 
-    key = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key)
+    key = jax.tree_util.tree_map(
+        lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
+    )
 
     return key
 
@@ -90,7 +92,7 @@ def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     # on all MPI nodes?
     keys = jax.random.split(key, mpi.n_nodes)
 
-    keys = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
+    keys = jax.tree_util.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
 
     return keys[mpi.rank]
 
