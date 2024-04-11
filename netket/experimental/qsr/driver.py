@@ -268,7 +268,7 @@ class QSR(AbstractVariationalDriver):
 
             # gather gradient
             # grad <- grad - grad_cv + E[grad_cv]
-            self._grad_pos = jax.tree_map(
+            self._grad_pos = jax.tree_util.tree_map(
                 lambda x, y, Ey: x - y + Ey,
                 self._grad_pos,
                 self._grad_pos_cv,
@@ -281,7 +281,7 @@ class QSR(AbstractVariationalDriver):
 
         # restore the square in prob = |psi|^2
         if not self.mixed_states:
-            self._loss_grad = jax.tree_map(lambda x: x * 2.0, self._loss_grad)
+            self._loss_grad = jax.tree_util.tree_map(lambda x: x * 2.0, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._loss_grad = tree_cast(self._loss_grad, self.state.parameters)

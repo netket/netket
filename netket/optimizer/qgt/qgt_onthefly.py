@@ -245,7 +245,7 @@ def _solve(
 
     # we could cache this...
     if x0 is None:
-        x0 = jax.tree_map(jnp.zeros_like, y)
+        x0 = jax.tree_util.tree_map(jnp.zeros_like, y)
 
     out, info = solve_fun(self, y, x0=x0)
     return out, info

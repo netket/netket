@@ -389,7 +389,7 @@ class AbstractVariationalDriver(abc.ABC):
 
         # Do not unpack operators, even if they are pytrees!
         # this is necessary to support jax operators.
-        return jax.tree_map(
+        return jax.tree_util.tree_map(
             self._estimate_stats,
             observables,
             is_leaf=lambda x: isinstance(x, AbstractObservable),

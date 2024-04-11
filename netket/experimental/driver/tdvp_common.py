@@ -487,7 +487,7 @@ def odefun_host_callback(state, driver, *args, **kwargs):
     if config.netket_experimental_disable_ode_jit:
         return odefun(state, driver, *args, **kwargs)
 
-    result_shape = jax.tree_map(
+    result_shape = jax.tree_util.tree_map(
         lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
         state.parameters,
     )
