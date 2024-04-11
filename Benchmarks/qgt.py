@@ -57,7 +57,7 @@ def QGT(*args, **kwargs):
 
 def construct_and_solve(vstate, rhs):
     qgt_ = QGT(vstate=vstate, diag_shift=0.01)
-    return jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs))
+    return jax.tree.map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs))
 
 
 # Benchmark starts here
@@ -111,7 +111,7 @@ def _benchmark(n_nodes, n_samples, n_layers, width):
     qgt_ = QGT(vstate=vstate, diag_shift=0.01)
     Tsolve = (
         timeit_gc(
-            lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs2)),
+            lambda: jax.tree.map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs2)),
             number=5,
         )
         / 5
