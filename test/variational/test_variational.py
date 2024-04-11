@@ -280,7 +280,7 @@ def test_serialization(vstate):
 
     vstate = serialization.from_bytes(vstate, bdata)
 
-    jax.tree_map(np.testing.assert_allclose, vstate.parameters, old_params)
+    jax.tree_util.tree_map(np.testing.assert_allclose, vstate.parameters, old_params)
     np.testing.assert_allclose(vstate.samples, old_samples)
     assert vstate.n_samples == old_nsamples
     assert vstate.n_discard_per_chain == old_ndiscard
@@ -304,7 +304,7 @@ def test_init_parameters(vstate):
     def _f(x, y):
         np.testing.assert_allclose(x, y)
 
-    jax.tree_map(_f, pars, pars2)
+    jax.tree_util.tree_map(_f, pars, pars2)
 
 
 @common.skipif_mpi
@@ -428,14 +428,14 @@ def test_expect(vstate, operator):
 def test_forces(vstate, operator):
     _, O_grad1 = vstate.expect_and_grad(operator)
     O_grad2 = vstate.grad(operator)
-    jax.tree_map(np.testing.assert_array_equal, O_grad1, O_grad2)
+    jax.tree_util.tree_map(np.testing.assert_array_equal, O_grad1, O_grad2)
 
     _, f1 = vstate.expect_and_forces(operator)
     if nk.jax.tree_leaf_iscomplex(vstate.parameters):
         g1 = f1
     else:
-        g1 = jax.tree_map(lambda x: 2.0 * np.real(x), f1)
-    jax.tree_map(np.testing.assert_array_equal, g1, O_grad1)
+        g1 = jax.tree_util.tree_map(lambda x: 2.0 * np.real(x), f1)
+    jax.tree_util.tree_map(np.testing.assert_array_equal, g1, O_grad1)
 
 
 def test_forces_gradient_rule():
@@ -557,7 +557,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
     )
 
@@ -566,6 +566,6 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.chunk_size = chunk_size
     grad_chunk = vstate.grad(operator)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )

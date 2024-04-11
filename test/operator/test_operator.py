@@ -475,7 +475,7 @@ def test_pauli_string_operators_hashable_pytree():
 
     e1 = vs.expect(haj1)
     e2 = vs.expect(haj2)
-    jax.tree_map(np.testing.assert_allclose, e1, e2)
+    jax.tree_util.tree_map(np.testing.assert_allclose, e1, e2)
 
 
 @pytest.mark.parametrize(

@@ -102,7 +102,7 @@ def l4_norm(x):
     """
     return jax.tree_util.tree_reduce(
         lambda x, y: x + y,
-        jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 4), x),
+        jax.tree_util.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 4), x),
     ) ** (1.0 / 4.0)
 
 

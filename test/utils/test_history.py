@@ -74,7 +74,7 @@ def test_accum_mvhistory():
     def assert_len(x):
         assert len(x) == L
 
-    jax.tree_map(assert_len, tree)
+    jax.tree_util.tree_map(assert_len, tree)
 
     # check compound master type
     np.testing.assert_allclose(np.array(tree["compound"]), np.arange(10) * 10)
