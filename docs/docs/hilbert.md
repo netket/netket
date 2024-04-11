@@ -260,7 +260,7 @@ If you then want to sample this space, you'll encounter the following error:
 
 ```python
 >>> import jax
->>> hi.random_state(jax.random.PRNGKey(3), 3)
+>>> hi.random_state(jax.random.key(3), 3)
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
   File ".../netket/hilbert/abstract_hilbert.py", line 84, in random_state

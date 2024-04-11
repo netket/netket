@@ -89,7 +89,7 @@ def test_vmc_functions():
     def check_shape(a, b):
         assert a.shape == b.shape
 
-    jax.tree_map(check_shape, grads, ma.parameters)
+    jax.tree_util.tree_map(check_shape, grads, ma.parameters)
     grads, _ = nk.jax.tree_ravel(grads)
 
     assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)

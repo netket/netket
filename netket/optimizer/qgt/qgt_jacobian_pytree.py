@@ -254,12 +254,12 @@ def _matmul(
         vec, reassemble = nkjax.tree_to_real(vec)
 
     if self.scale is not None:
-        vec = jax.tree_map(jnp.multiply, vec, self.scale)
+        vec = jax.tree_util.tree_map(jnp.multiply, vec, self.scale)
 
     result = mat_vec(vec, self.O, self.diag_shift)
 
     if self.scale is not None:
-        result = jax.tree_map(jnp.multiply, result, self.scale)
+        result = jax.tree_util.tree_map(jnp.multiply, result, self.scale)
 
     # Reassemble real-imaginary split as needed
     if reassemble is not None:
@@ -285,9 +285,9 @@ def _solve(
             x0, _ = nkjax.tree_to_real(x0)
 
     if self.scale is not None:
-        y = jax.tree_map(jnp.divide, y, self.scale)
+        y = jax.tree_util.tree_map(jnp.divide, y, self.scale)
         if x0 is not None:
-            x0 = jax.tree_map(jnp.multiply, x0, self.scale)
+            x0 = jax.tree_util.tree_map(jnp.multiply, x0, self.scale)
 
     # to pass the object LinearOperator itself down
     # but avoid rescaling, we pass down an object with
@@ -298,7 +298,7 @@ def _solve(
     out, info = solve_fun(unscaled_self, y, x0=x0)
 
     if self.scale is not None:
-        out = jax.tree_map(jnp.divide, out, self.scale)
+        out = jax.tree_util.tree_map(jnp.divide, out, self.scale)
 
     # Reassemble real-imaginary split as needed
     if self.mode != "holomorphic":
@@ -312,7 +312,7 @@ def _to_dense(self: QGTJacobianPyTreeT) -> jnp.ndarray:
     O = self.O
     if self.mode == "complex":
         # I want to iterate across the samples and real/imaginary part
-        O = jax.tree_map(lambda x: x.reshape(-1, *x.shape[2:]), O)
+        O = jax.tree_util.tree_map(lambda x: x.reshape(-1, *x.shape[2:]), O)
     O = jax.vmap(lambda l: nkjax.tree_ravel(l)[0])(O)
 
     if self.scale is None:

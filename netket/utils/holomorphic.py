@@ -114,17 +114,17 @@ def is_probably_holomorphic(
     )
 
     # ∂ᵣψᵣ
-    dr_dpr = jax.tree_map(lambda x: x[:, 0, ...], jacs.real)
+    dr_dpr = jax.tree_util.tree_map(lambda x: x[:, 0, ...], jacs.real)
     # ∂ᵣψᵢ
-    dr_dpi = jax.tree_map(lambda x: x[:, 1, ...], jacs.real)
+    dr_dpi = jax.tree_util.tree_map(lambda x: x[:, 1, ...], jacs.real)
     # ∂ᵢψᵣ
-    di_dpr = jax.tree_map(lambda x: x[:, 0, ...], jacs.imag)
+    di_dpr = jax.tree_util.tree_map(lambda x: x[:, 0, ...], jacs.imag)
     # ∂ᵢψᵢ
-    di_dpi = jax.tree_map(lambda x: x[:, 1, ...], jacs.imag)
+    di_dpi = jax.tree_util.tree_map(lambda x: x[:, 1, ...], jacs.imag)
 
     # verify that ∂ᵣψᵣ == ∂ᵢψᵢ
-    cond1 = jax.tree_map(lambda x, y: jnp.allclose(x, y), dr_dpr, di_dpi)
+    cond1 = jax.tree_util.tree_map(lambda x, y: jnp.allclose(x, y), dr_dpr, di_dpi)
     # verify that ∂ᵣψᵢ == -∂ᵢψᵣ
-    cond2 = jax.tree_map(lambda x, y: jnp.allclose(x, -y), dr_dpi, di_dpr)
+    cond2 = jax.tree_util.tree_map(lambda x, y: jnp.allclose(x, -y), dr_dpi, di_dpr)
 
     return jax.tree_util.tree_reduce(jnp.bitwise_and, (cond1, cond2))

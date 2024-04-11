@@ -122,7 +122,7 @@ def test_SRt_vs_linear_solver_complexpars():
     gs.run(n_iter=n_iters, out=logger_sr)
 
     # check same parameters
-    jax.tree_map(
+    jax.tree_util.tree_map(
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
@@ -153,7 +153,7 @@ def test_SRt_vs_linear_solver():
     gs.run(n_iter=n_iters, out=logger_sr)
 
     # check same parameters
-    jax.tree_map(
+    jax.tree_util.tree_map(
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
@@ -189,7 +189,7 @@ def test_SRt_real_vs_complex():
     gs.run(n_iter=n_iters, out=logger_real)
 
     # check same parameters
-    jax.tree_map(
+    jax.tree_util.tree_map(
         np.testing.assert_allclose, vstate_complex.parameters, vstate_real.parameters
     )
 

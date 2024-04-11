@@ -82,7 +82,7 @@ def rescale(centered_oks, offset, *, ndims: int = 1):
     # should be (0,) for standard, (0,1) when we have 2 jacobians in complex mode
     axis = tuple(range(ndims))
 
-    scale = jax.tree_map(
+    scale = jax.tree_util.tree_map(
         lambda x: (
             mpi.mpi_sum_jax(jnp.sum((x * x.conj()).real, axis=axis, keepdims=True))[0]
             + offset
@@ -90,6 +90,6 @@ def rescale(centered_oks, offset, *, ndims: int = 1):
         ** 0.5,
         centered_oks,
     )
-    centered_oks = jax.tree_map(jnp.divide, centered_oks, scale)
-    scale = jax.tree_map(partial(jnp.squeeze, axis=axis), scale)
+    centered_oks = jax.tree_util.tree_map(jnp.divide, centered_oks, scale)
+    scale = jax.tree_util.tree_map(partial(jnp.squeeze, axis=axis), scale)
     return centered_oks, scale

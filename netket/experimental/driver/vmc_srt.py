@@ -211,7 +211,7 @@ class VMC_SRt(AbstractVariationalDriver):
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
 
-        self._params_structure = jax.tree_map(
+        self._params_structure = jax.tree_util.tree_map(
             lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), self.state.parameters
         )
         if not nkjax.tree_ishomogeneous(self._params_structure):

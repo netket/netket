@@ -162,7 +162,7 @@ def odefun_tdvp(  # noqa: F811
 
 @partial(jax.jit, static_argnums=(3, 4))
 def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
-    forces = jax.tree_map(
+    forces = jax.tree_util.tree_map(
         lambda x, target: loss_grad_factor * x,
         forces,
         parameters,

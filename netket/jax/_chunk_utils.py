@@ -4,7 +4,7 @@ from functools import partial
 
 def _treeify(f):
     def _f(x, *args, **kwargs):
-        return jax.tree_map(lambda y: f(y, *args, **kwargs), x)
+        return jax.tree_util.tree_map(lambda y: f(y, *args, **kwargs), x)
 
     return _f
 

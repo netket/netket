@@ -159,7 +159,7 @@ def jacobian(
     .. code:: python
 
       samples = samples.reshape(-1, samples.shape[-1])
-      parameters = jax.tree_map(lambda x: x.real, parameters)
+      parameters = jax.tree_util.tree_map(lambda x: x.real, parameters)
       O_k = jax.jacrev(lambda pars: logpsi(pars, samples).real, parameters)
 
     The jacobian that is returned is a PyTree with the same shape
@@ -202,7 +202,7 @@ def jacobian(
       samples = samples.reshape(-1, samples.shape[-1])
       Or_k = jax.jacrev(lambda pars: logpsi(pars, samples).real, parameters)
       Oi_k = jax.jacrev(lambda pars: logpsi(pars, samples).imag, parameters)
-      O_k = jax.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
+      O_k = jax.tree_util.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
                                                         Or_k, Oi_k)
 
     As both :code:`Or_k` and :code:`Oi_k` are real, instead of concatenating we
@@ -221,7 +221,7 @@ def jacobian(
 
     .. code:: python
 
-      O_k_cmplx = jax.tree_map(lambda jri: jri[:, 0, :] + 1j* jri[:, 1, :], O_k)
+      O_k_cmplx = jax.tree_util.tree_map(lambda jri: jri[:, 0, :] + 1j* jri[:, 1, :], O_k)
 
 
     **If some parameters** :math:`\theta_k` **are complex**, this mode splits the
@@ -250,13 +250,13 @@ def jacobian(
 
       samples = samples.reshape(-1, samples.shape[-1])
       # tree_to_real splits the parameters in a tuple like
-      # {'real': jax.tree_map(jnp.real, pars), 'imag': jax.tree_map(jnp.imag, pars)}
+      # {'real': jax.tree.map(jnp.real, pars), 'imag': jax.tree.map(jnp.imag, pars)}
       pars_real, reconstruct = nk.jax.tree_to_real(parameters)
       Or_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).real,
                         pars_real)
       Oi_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).imag,
                         pars_real)
-      O_k = jax.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
+      O_k = jax.tree_util.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
                                                         Or_k, Oi_k)
 
     This code is also valid if all parameters are real, in which case :code:`O_k.real`
@@ -353,20 +353,24 @@ def jacobian(
 
     if pdf is None:
         if center:
-            jacobians = jax.tree_map(lambda x: subtract_mean(x, axis=0), jacobians)
+            jacobians = jax.tree_util.tree_map(
+                lambda x: subtract_mean(x, axis=0), jacobians
+            )
 
         if _sqrt_rescale:
             sqrt_n_samp = math.sqrt(
                 samples.shape[0] * mpi.n_nodes
             )  # maintain weak type
-            jacobians = jax.tree_map(lambda x: x / sqrt_n_samp, jacobians)
+            jacobians = jax.tree_util.tree_map(lambda x: x / sqrt_n_samp, jacobians)
 
     else:
         if center:
-            jacobians_avg = jax.tree_map(
+            jacobians_avg = jax.tree_util.tree_map(
                 partial(sum_mpi, axis=0), _multiply_by_pdf(jacobians, pdf)
             )
-            jacobians = jax.tree_map(lambda x, y: x - y, jacobians, jacobians_avg)
+            jacobians = jax.tree_util.tree_map(
+                lambda x, y: x - y, jacobians, jacobians_avg
+            )
 
         if _sqrt_rescale:
             jacobians = _multiply_by_pdf(jacobians, jnp.sqrt(pdf))
@@ -380,7 +384,7 @@ def _multiply_by_pdf(oks, pdf):
     Used to multiply the log-derivatives by the probability density.
     """
 
-    return jax.tree_map(
+    return jax.tree_util.tree_map(
         lambda x: jax.lax.broadcast_in_dim(pdf, x.shape, (0,)) * x,
         oks,
     )

@@ -270,7 +270,7 @@ def test_create_annihil_number(Op):
 
 
 def _test_close_trees(tree1, tree2):
-    all_close = jax.tree_map(lambda x, y: np.allclose(x, y), tree1, tree2)
+    all_close = jax.tree_util.tree_map(lambda x, y: np.allclose(x, y), tree1, tree2)
     all_close = jax.tree_util.tree_reduce(lambda x, y: x and y, all_close)
     return all_close
 

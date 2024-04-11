@@ -166,7 +166,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     x, _ = S.solve(solver, vstate.parameters)
 
     rtol, atol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.param_dtype)]
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(testing.assert_allclose, rtol=rtol, atol=atol),
         S @ x,
         vstate.parameters,
@@ -186,7 +186,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all, _ = S.solve(solver, vstate.parameters)
 
-            jax.tree_map(
+            jax.tree_util.tree_map(
                 lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
                 x,
                 x_all,
@@ -204,7 +204,7 @@ def test_qgt_solve_with_x0(qgt, vstate):
         return
 
     solver = jax.scipy.sparse.linalg.gmres
-    x0 = jax.tree_map(jnp.zeros_like, vstate.parameters)
+    x0 = jax.tree_util.tree_map(jnp.zeros_like, vstate.parameters)
 
     S = qgt(vstate)
     x, _ = S.solve(solver, vstate.parameters, x0=x0)
@@ -225,7 +225,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 
     S = qgt(vstate)
     rng = nkjax.PRNGSeq(0)
-    y = jax.tree_map(
+    y = jax.tree_util.tree_map(
         lambda x: 0.001 * jax.random.normal(rng.next(), x.shape, dtype=x.dtype),
         vstate.parameters,
     )
@@ -234,14 +234,14 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     def check_same_dtype(x, y):
         assert x.dtype == y.dtype
 
-    jax.tree_map(check_same_dtype, x, y)
+    jax.tree_util.tree_map(check_same_dtype, x, y)
 
     # test multiplication by dense gives same result...
     y_dense, unravel = nk.jax.tree_ravel(y)
     x_dense = S @ y_dense
     x_dense_unravelled = unravel(x_dense)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
         x,
         x_dense_unravelled,
@@ -261,7 +261,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all = S @ y
 
-            jax.tree_map(
+            jax.tree_util.tree_map(
                 lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
                 x,
                 x_all,
@@ -337,17 +337,17 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     if isinstance(S, (QGTJacobianPyTreeT, QGTJacobianDenseT)):
         # extract the necessary shape for the diag_shift
         if S.mode == "complex":
-            t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0, 0], S.O))
+            t = jax.eval_shape(partial(jax.tree_util.tree_map, lambda x: x[0, 0], S.O))
         else:
-            t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0], S.O))
+            t = jax.eval_shape(partial(jax.tree_util.tree_map, lambda x: x[0], S.O))
     else:
         t = v
-    diag_shift_tree = jax.tree_map(
+    diag_shift_tree = jax.tree_util.tree_map(
         lambda x: diag_shift * jnp.ones(x.shape, dtype=x.dtype), t
     )
     S = S.replace(diag_shift=diag_shift_tree)
     res = S @ v
-    jax.tree_map(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
+    jax.tree_util.tree_map(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
 
 
 @common.skipif_mpi
