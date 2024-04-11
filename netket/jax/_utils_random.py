@@ -36,7 +36,9 @@ def PRNGKey(
     else:
         key = seed
 
-    key = jax.tree_util.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key)
+    key = jax.tree_util.tree_map(
+        lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
+    )
 
     return key
 

@@ -44,7 +44,9 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
             jax.tree_util.tree_map(check, x, target)
     except ValueError:
         # catches jax tree map errors
-        pars_struct = jax.tree_util.tree_map(lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), x)
+        pars_struct = jax.tree_util.tree_map(
+            lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), x
+        )
         vec_struct = jax.tree_util.tree_map(
             lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), target
         )

@@ -93,7 +93,9 @@ def assert_tree_allclose(t1, t2, rtol=None, atol=0):
                 rtol = 1e-6
         np.testing.assert_allclose(x, y, rtol, atol)
 
-    jax.tree_util.tree_map(lambda x, y: assert_allclose(x, y, rtol=rtol, atol=atol), t1, t2)
+    jax.tree_util.tree_map(
+        lambda x, y: assert_allclose(x, y, rtol=rtol, atol=atol), t1, t2
+    )
 
 
 def tree_samedtypes(t1, t2):

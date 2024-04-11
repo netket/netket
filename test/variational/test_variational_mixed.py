@@ -238,7 +238,9 @@ def test_serialization(vstate):
 
     vstate_new = serialization.from_bytes(vstate_new, bdata)
 
-    jax.tree_util.tree_map(np.testing.assert_allclose, vstate.parameters, vstate_new.parameters)
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose, vstate.parameters, vstate_new.parameters
+    )
     np.testing.assert_allclose(vstate.samples, vstate_new.samples)
     np.testing.assert_allclose(vstate.diagonal.samples, vstate_new.diagonal.samples)
     assert vstate.n_samples == vstate_new.n_samples

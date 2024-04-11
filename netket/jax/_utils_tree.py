@@ -76,7 +76,9 @@ def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
     """
-    return any(jax.tree_util.tree_leaves(jax.tree_util.tree_map(jnp.iscomplexobj, pars)))
+    return any(
+        jax.tree_util.tree_leaves(jax.tree_util.tree_map(jnp.iscomplexobj, pars))
+    )
 
 
 def tree_leaf_isreal(pars: PyTree) -> bool:
@@ -100,7 +102,9 @@ def tree_conj(t: PyTree) -> PyTree:
     Args:
         t: pytree
     """
-    return jax.tree_util.tree_map(lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t)
+    return jax.tree_util.tree_map(
+        lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t
+    )
 
 
 @jax.jit
@@ -116,7 +120,9 @@ def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     """
     return jax.tree_util.tree_reduce(
         jax.numpy.add,
-        jax.tree_util.tree_map(jax.numpy.sum, jax.tree_util.tree_map(jax.numpy.multiply, a, b)),
+        jax.tree_util.tree_map(
+            jax.numpy.sum, jax.tree_util.tree_map(jax.numpy.multiply, a, b)
+        ),
     )
 
 
@@ -198,7 +204,9 @@ def _tree_to_real(x):
 def _tree_to_real_inverse(x):
     if isinstance(x, RealImagTuple):
         # not using jax.lax.complex because it would convert scalars to arrays
-        return jax.tree_util.tree_map(lambda re, im: re + 1j * im if im is not None else re, *x)
+        return jax.tree_util.tree_map(
+            lambda re, im: re + 1j * im if im is not None else re, *x
+        )
     else:
         return x
 

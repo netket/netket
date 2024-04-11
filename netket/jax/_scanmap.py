@@ -11,7 +11,9 @@ else:
     from jax import linear_util as lu
 
 _tree_add = partial(jax.tree_util.tree_map, jax.lax.add)
-_tree_zeros_like = partial(jax.tree_util.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype))
+_tree_zeros_like = partial(
+    jax.tree_util.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype)
+)
 
 
 # TODO put it somewhere

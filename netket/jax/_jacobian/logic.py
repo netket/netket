@@ -353,7 +353,9 @@ def jacobian(
 
     if pdf is None:
         if center:
-            jacobians = jax.tree_util.tree_map(lambda x: subtract_mean(x, axis=0), jacobians)
+            jacobians = jax.tree_util.tree_map(
+                lambda x: subtract_mean(x, axis=0), jacobians
+            )
 
         if _sqrt_rescale:
             sqrt_n_samp = math.sqrt(
@@ -366,7 +368,9 @@ def jacobian(
             jacobians_avg = jax.tree_util.tree_map(
                 partial(sum_mpi, axis=0), _multiply_by_pdf(jacobians, pdf)
             )
-            jacobians = jax.tree_util.tree_map(lambda x, y: x - y, jacobians, jacobians_avg)
+            jacobians = jax.tree_util.tree_map(
+                lambda x, y: x - y, jacobians, jacobians_avg
+            )
 
         if _sqrt_rescale:
             jacobians = _multiply_by_pdf(jacobians, jnp.sqrt(pdf))
