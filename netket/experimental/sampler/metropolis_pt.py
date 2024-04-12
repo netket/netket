@@ -70,8 +70,7 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         else:
             acc_string = ""
 
-        text = "MetropolisNumpySamplerState(" + acc_string + f"rng state={self.rng})"
-        text = "MetropolisPtSamplerState(" + acc_string + f"rng state={self.rng}"
+        text = f"MetropolisPtSamplerState(# replicas = {self.beta.shape[-1]}, " + acc_string + f"rng state={self.rng}"
         return text
 
 
@@ -103,15 +102,17 @@ class MetropolisPtSampler(MetropolisSampler):
         .. math::
             A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} e^{L(s,s^\prime)} \right),
 
-        where the probability being sampled from is :math:`P(s)=|M(s)|^p`. Here :math:`M(s)` is a
+        where the probability being sampled from is :math:`P(s)=β|M(s)|^p`. Here :math:`M(s)` is a
         user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-        and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
+        :math:`β` is the temperature of the Markov Chain and :math:`L(s,s^\prime)` is a suitable correcting factor 
+        computed by the transition kernel.
 
 
         Args:
             hilbert: The hilbert space to sample
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
+            n_replicas: The number of different temperatures β for the sampling.
             n_chains: The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
