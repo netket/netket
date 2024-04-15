@@ -95,4 +95,4 @@ def test_multiplerules_pt_mpi(model_and_weights):
         state=sampler_state,
         chain_length=10,
     )
-    assert samples.shape == (sa.n_chains, 10, hi.size)
+    assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
