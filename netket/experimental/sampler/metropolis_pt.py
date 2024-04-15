@@ -51,16 +51,16 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         rule_state: Optional[Any],
         beta: jnp.ndarray,
     ):
-        n_chains_per_rank, n_replicas = beta.shape
+        n_chains, n_replicas = beta.shape
 
         self.beta = beta
-        self.n_accepted_per_beta = jnp.zeros((n_chains_per_rank, n_replicas), dtype=int)
-        self.beta_0_index = jnp.zeros((n_chains_per_rank,), dtype=int)
-        self.beta_position = jnp.zeros((n_chains_per_rank,), dtype=float)
-        self.beta_diffusion = jnp.zeros((n_chains_per_rank,), dtype=float)
+        self.n_accepted_per_beta = jnp.zeros((n_chains, n_replicas), dtype=int)
+        self.beta_0_index = jnp.zeros((n_chains,), dtype=int)
+        self.beta_position = jnp.zeros((n_chains,), dtype=float)
+        self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
         self.exchange_steps = jnp.zeros((), dtype=int)
         super().__init__(σ, rng, rule_state)
-        self.n_accepted_proc = jnp.zeros(n_chains_per_rank, dtype=int) # correct shape is (n_chains_per_rank,)
+        self.n_accepted_proc = jnp.zeros(n_chains, dtype=int) # correct shape is (n_chains,) and not (n_batches,)
 
     def __repr__(self):
         if self.n_steps > 0:
