@@ -60,7 +60,9 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
         self.exchange_steps = jnp.zeros((), dtype=int)
         super().__init__(σ, rng, rule_state)
-        self.n_accepted_proc = jnp.zeros(n_chains, dtype=int) # correct shape is (n_chains,) and not (n_batches,)
+        self.n_accepted_proc = jnp.zeros(
+            n_chains, dtype=int
+        )  # correct shape is (n_chains,) and not (n_batches,)
 
     def __repr__(self):
         if self.n_steps > 0:
@@ -70,7 +72,11 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         else:
             acc_string = ""
 
-        text = f"MetropolisPtSamplerState(# replicas = {self.beta.shape[-1]}, " + acc_string + f"rng state={self.rng}"
+        text = (
+            f"MetropolisPtSamplerState(# replicas = {self.beta.shape[-1]}, "
+            + acc_string
+            + f"rng state={self.rng}"
+        )
         return text
 
 
@@ -104,7 +110,7 @@ class MetropolisPtSampler(MetropolisSampler):
 
         where the probability being sampled from is :math:`P(s)=β|M(s)|^p`. Here :math:`M(s)` is a
         user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-        :math:`β` is the temperature of the Markov Chain and :math:`L(s,s^\prime)` is a suitable correcting factor 
+        :math:`β` is the temperature of the Markov Chain and :math:`L(s,s^\prime)` is a suitable correcting factor
         computed by the transition kernel.
 
 
@@ -121,10 +127,10 @@ class MetropolisPtSampler(MetropolisSampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float32).
         """
-        if (
-            not (isinstance(n_replicas, int)
-                 and n_replicas > 0
-                 and np.mod(n_replicas, 2) == 0)
+        if not (
+            isinstance(n_replicas, int)
+            and n_replicas > 0
+            and np.mod(n_replicas, 2) == 0
         ):
             raise ValueError("n_replicas must be an even integer > 0.")
         self.n_replicas = n_replicas
@@ -271,7 +277,11 @@ class MetropolisPtSampler(MetropolisSampler):
             prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
 
             uniform = jax.random.uniform(
-                key4, shape=(sampler.n_batches // sampler.n_replicas, sampler.n_replicas // 2)
+                key4,
+                shape=(
+                    sampler.n_batches // sampler.n_replicas,
+                    sampler.n_replicas // 2,
+                ),
             )
 
             do_swap = uniform < prob_rescaled
@@ -381,23 +391,22 @@ class MetropolisPtSampler(MetropolisSampler):
         }
         s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
-        offsets = jnp.arange(
-            0, sampler.n_batches, sampler.n_replicas
-        )
+        offsets = jnp.arange(0, sampler.n_batches, sampler.n_replicas)
 
         idcs = s["beta_0_index"] + offsets
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
             # n_accepted=s["accepted"],
-            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches // sampler.n_replicas,
+            n_steps_proc=state.n_steps_proc
+            + sampler.sweep_size * sampler.n_batches // sampler.n_replicas,
             beta=s["beta"],
             beta_0_index=s["beta_0_index"],
             beta_position=s["beta_position"],
             beta_diffusion=s["beta_diffusion"],
             exchange_steps=state.exchange_steps + sampler.sweep_size,
             n_accepted_per_beta=s["n_accepted_per_beta"],
-            n_accepted_proc=jax.vmap(lambda x,y:x[y])(s["n_accepted_per_beta"],idcs)
+            n_accepted_proc=jax.vmap(lambda x, y: x[y])(s["n_accepted_per_beta"], idcs),
         )
 
         return new_state, new_state.σ[idcs, :]
