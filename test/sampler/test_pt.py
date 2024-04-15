@@ -39,6 +39,23 @@ np.random.seed(1234)
 WEIGHT_SEED = 1234
 SAMPLER_SEED = 15324
 
+# This test verifies that the acceptance is indeed a float 
+# It also verifies that its value is 1 for a state with flat distribution
+def test_acceptance():
+    g = nk.graph.Hypercube(length=4, n_dim=1)
+    hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+
+    ma = nk.models.Jastrow(kernel_init=flax.linen.initializers.constant(0.0)) # |psi> = |+>
+
+    sa = nkx.sampler.MetropolisLocalPt(
+        hi,
+        n_replicas=4,
+        sweep_size=hi.size * 4,
+    )
+    vs = nk.vqs.MCState(sa,ma,n_samples=1000,seed=WEIGHT_SEED)
+
+    assert np.isclose(vs.sampler.acceptance,1.0)
+
 
 # The following fixture initialises a model and it's weights
 # for tests that require it.
