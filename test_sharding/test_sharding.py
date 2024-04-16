@@ -63,6 +63,9 @@ def test_sampling():
     _check_correct_sharding(x)
 
 
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
 def test_pt():
     vs, _, ha = _setup(8)
     hi = ha.hilbert
