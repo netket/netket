@@ -63,6 +63,25 @@ def test_sampling():
     _check_correct_sharding(x)
 
 
+def test_pt():
+    vs, _, ha = _setup(8)
+    hi = ha.hilbert
+
+    sa = nkx.sampler.MetropolisPtSampler(
+        hi,
+        rule=nk.sampler.rules.HamiltonianRule(ha),
+        n_replicas=4,
+        sweep_size=hi.size * 4,
+    )
+    vs.sampler = sa
+
+    samples = vs.sample(chain_length=10)
+
+    assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
+    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
+    assert samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+
+
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
@@ -92,12 +111,14 @@ def test_grad():
 
 @pytest.mark.parametrize(
     "Op",
-    [pytest.param(nk.operator.Ising, id="numba")]
-    if jax.process_count() < 2
-    else []
-    + [
-        pytest.param(nk.operator.IsingJax, id="jax"),
-    ],
+    (
+        [pytest.param(nk.operator.Ising, id="numba")]
+        if jax.process_count() < 2
+        else []
+        + [
+            pytest.param(nk.operator.IsingJax, id="jax"),
+        ]
+    ),
 )
 @pytest.mark.parametrize(
     "qgt",
@@ -177,12 +198,14 @@ def test_qgt_onthefly():
 
 @pytest.mark.parametrize(
     "Op",
-    [pytest.param(nk.operator.Ising, id="numba")]
-    if jax.process_count() < 2
-    else []
-    + [
-        pytest.param(nk.operator.IsingJax, id="jax"),
-    ],
+    (
+        [pytest.param(nk.operator.Ising, id="numba")]
+        if jax.process_count() < 2
+        else []
+        + [
+            pytest.param(nk.operator.IsingJax, id="jax"),
+        ]
+    ),
 )
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
