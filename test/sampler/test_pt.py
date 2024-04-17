@@ -53,6 +53,7 @@ def test_acceptance():
         sweep_size=hi.size * 4,
     )
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=WEIGHT_SEED)
+    vs.sample()
 
     assert jnp.isclose(vs.sampler_state.acceptance, 1.0)
 
