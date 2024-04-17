@@ -85,7 +85,7 @@ dev = [
     "IPython",
 ]
 docs = [
-    "Sphinx>=7.0,<7.3",
+    "Sphinx>=7.0,<7.4",
     "sphinx-design>=0.4.0",
     "sphinx-autodoc-typehints>=1.22,<3.0",
     "sphinxcontrib-fulltoc~=1.2.0",
