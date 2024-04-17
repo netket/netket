@@ -54,7 +54,7 @@ def test_acceptance():
     )
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=WEIGHT_SEED)
 
-    assert np.isclose(vs.sampler_state.acceptance, 1.0)
+    assert jnp.isclose(vs.sampler_state.acceptance, 1.0)
 
 
 # The following fixture initialises a model and it's weights
