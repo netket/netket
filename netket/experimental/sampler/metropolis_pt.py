@@ -404,7 +404,7 @@ class MetropolisPtSampler(MetropolisSampler):
             beta_diffusion=s["beta_diffusion"],
             exchange_steps=state.exchange_steps + sampler.sweep_size,
             n_accepted_per_beta=s["n_accepted_per_beta"],
-            n_accepted_proc=jax.vmap(lambda x, y: x[y])(s["n_accepted_per_beta"], idcs),
+            n_accepted_proc=jax.vmap(jnp.take)(s["n_accepted_per_beta"], idcs),
         )
 
         return new_state, new_state.σ[idcs, :]
