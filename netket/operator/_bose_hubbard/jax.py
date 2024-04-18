@@ -138,8 +138,6 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
     mels = jnp.concatenate([mels0, mels1, mels2], axis=-1)
     xp = jnp.concatenate([xp0, xp1, xp2], axis=-2)
 
-    xp = jnp.vectorize(
-        lambda m, xp, x: jax.lax.select(m, xp, x), signature="(),(n),(n)->(n)"
-    )(mask, xp, _x)
+    xp = jnp.vectorize(jax.lax.select, signature="(),(n),(n)->(n)")(mask, xp, _x)
 
     return xp, mels * mask
