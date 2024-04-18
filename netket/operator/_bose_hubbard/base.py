@@ -70,24 +70,50 @@ class BoseHubbardBase(SpecialHamiltonian):
            >>> print(op.hilbert.size)
            9
         """
-        assert (
-            graph.n_nodes == hilbert.size
-        ), "The size of the graph must match the hilbert space."
-
         assert isinstance(hilbert, Fock)
         super().__init__(hilbert)
+
+        if isinstance(graph, AbstractGraph):
+            if graph.n_nodes != hilbert.size:
+                raise ValueError(
+                    """
+                    The size of the graph must match the hilbert space.
+                    """
+                )
+            # support also a matrix input in here.
+            graph = graph.edges()
+
+        if isinstance(graph, list):
+            graph = np.asarray(
+                [[u, v] for u, v in graph],
+                dtype=np.intp,
+            )
+
+        if graph.ndim != 2 or graph.shape[1] != 2:
+            raise ValueError(
+                """
+                Graph should be one of:
+                    - NetKet graph type (nk.operator.AbstractGraph)
+                    - List of tuples, describing the edges
+                    - a (N,2) array of integers.
+                """
+            )
 
         dtype = canonicalize_dtypes(float, U, V, J, mu, dtype=dtype)
         self._dtype = dtype
 
-        self._U = np.asarray(U, dtype=dtype)
-        self._V = np.asarray(V, dtype=dtype)
-        self._J = np.asarray(J, dtype=dtype)
-        self._mu = np.asarray(mu, dtype=dtype)
+        # self._U = np.asarray(U, dtype=dtype)
+        # self._V = np.asarray(V, dtype=dtype)
+        # self._J = np.asarray(J, dtype=dtype)
+        # self._mu = np.asarray(mu, dtype=dtype)
+        self._U = U.astype(dtype=dtype)
+        self._V = V.astype(dtype=dtype)
+        self._J = J.astype(dtype=dtype)
+        self._mu = mu.astype(dtype=dtype)
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
-        self._edges = np.asarray(list(graph.edges()))
+        self._edges = graph.astype(np.intp)
         self._max_conn = 1 + self._edges.shape[0] * 2
         self._max_mels = np.empty(self._max_conn, dtype=self.dtype)
         self._max_xprime = np.empty((self._max_conn, self._n_sites))
