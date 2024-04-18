@@ -54,7 +54,7 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)
 
         self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
-        self._n_max = tuple(self.hilbert.n_max)
+        self._n_max = self.hilbert.n_max
 
 
     # @jax.jit
@@ -67,17 +67,17 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
     def get_conn_padded(self, x):
         return _bh_kernel_jax(x, self._edges, self.U, self.V, self.J, self.mu, self._n_max)
 
-    # def to_numba_operator(self) -> "BoseHubbard":  # noqa: F821
-    #     """
-    #     Returns the standard (numba) version of this operator, which is an
-    #     instance of {class}`nk.operator.BoseHubbard`.
-    #     """
+    def to_numba_operator(self) -> "BoseHubbard":  # noqa: F821
+        """
+        Returns the standard (numba) version of this operator, which is an
+        instance of {class}`nk.operator.BoseHubbard`.
+        """
 
-    #     from .numba import BoseHubbard
+        from .numba import BoseHubbard
 
-    #     return BoseHubbard(
-    #         self.hilbert, graph=self.edges, U=self.U, V=self.V, J=self.J, mu=self.mu, dtype=self.dtype
-    #     )
+        return BoseHubbard(
+            self.hilbert, graph=self.edges, U=self.U, V=self.V, J=self.J, mu=self.mu, dtype=self.dtype
+        )
 
     def to_local_operator(self):
         # The hamiltonian
@@ -132,5 +132,5 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
     mask_all = jnp.concatenate([mask0, mask1, mask2], axis=-1)
     mels_all = jnp.concatenate([mels0, mels1, mels2], axis=-1)
     xp_all = jnp.concatenate([x_prime0, x_prime1, x_prime2], axis=-2)
-    return xp_all, mels_all, mask_all
+    return xp_all, mels_all * mask_all
 
