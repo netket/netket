@@ -109,7 +109,7 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
     Uh = 0.5 * U
 
     _x = jnp.expand_dims(x, axis=-2)
-    x_prime0 = _x
+    xp0 = _x
     mels0 = 0
     mels0 -= mu * x.sum(axis=-1, keepdims=True)
     mels0 += Uh * (x * (x - 1)).sum(axis=-1, keepdims=True)
@@ -123,23 +123,23 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
     # destroy on i create on j
     mask1 = (n_i > 0) & (n_j < n_max)
     mels1 = mask1 * (-J * jnp.sqrt(n_i) * jnp.sqrt(n_j + 1))
-    x_prime1 = jnp.repeat(_x, mask1.shape[-1], axis=-2)
-    x_prime1 = add_at(x_prime1, i, -1)
-    x_prime1 = add_at(x_prime1, j, +1)
+    xp1 = jnp.repeat(_x, mask1.shape[-1], axis=-2)
+    xp1 = add_at(xp1, i, -1)
+    xp1 = add_at(xp1, j, +1)
 
     # destroy on j create on i
     mask2 = (n_j > 0) & (n_i < n_max)
     mels2 = mask2 * (-J * jnp.sqrt(n_j) * jnp.sqrt(n_i + 1))
-    x_prime2 = jnp.repeat(_x, mask2.shape[-1], axis=-2)
-    x_prime2 = add_at(x_prime2, j, -1)
-    x_prime2 = add_at(x_prime2, i, +1)
+    xp2 = jnp.repeat(_x, mask2.shape[-1], axis=-2)
+    xp2 = add_at(xp2, j, -1)
+    xp2 = add_at(xp2, i, +1)
 
-    mask_all = jnp.concatenate([mask0, mask1, mask2], axis=-1)
-    mels_all = jnp.concatenate([mels0, mels1, mels2], axis=-1)
-    xp_all = jnp.concatenate([x_prime0, x_prime1, x_prime2], axis=-2)
+    mask = jnp.concatenate([mask0, mask1, mask2], axis=-1)
+    mels = jnp.concatenate([mels0, mels1, mels2], axis=-1)
+    xp = jnp.concatenate([xp0, xp1, xp2], axis=-2)
 
-    xp_all = jnp.vectorize(
+    xp = jnp.vectorize(
         lambda m, xp, x: jax.lax.select(m, xp, x), signature="(),(n),(n)->(n)"
-    )(mask_all, xp_all, _x)
+    )(mask, xp, _x)
 
-    return xp_all, mels_all * mask_all
+    return xp, mels * mask
