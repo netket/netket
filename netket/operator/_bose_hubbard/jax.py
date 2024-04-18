@@ -54,11 +54,6 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
         self._n_max = self.hilbert.n_max
 
-    # @jax.jit
-    # @wraps(BoseHubbardBase.n_conn)
-    # def n_conn(self, x):
-    #     return _bh_n_conn_jax(x, self._edges, self.h, self.J)
-
     @jax.jit
     @wraps(BoseHubbardBase.get_conn_padded)
     def get_conn_padded(self, x):

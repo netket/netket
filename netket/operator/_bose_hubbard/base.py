@@ -19,7 +19,7 @@ import numpy as np
 from netket.graph import AbstractGraph
 from netket.hilbert import Fock
 from netket.jax import canonicalize_dtypes
-from netket.utils.types import Array, DType
+from netket.utils.types import DType
 
 from .. import boson
 from .._hamiltonian import SpecialHamiltonian
@@ -152,23 +152,6 @@ class BoseHubbardBase(SpecialHamiltonian):
             return self
         else:
             raise NotImplementedError
-
-    # def n_conn(self, x, out=None):  # pragma: no cover
-    #     r"""Return the number of states connected to x.
-
-    #     Args:
-    #         x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-    #                     the batch of quantum numbers x.
-    #         out (array): If None an output array is allocated.
-
-    #     Returns:
-    #         array: The number of connected states x' for each x[i].
-
-    #     """
-    #     if out is None:
-    #         out = np.empty(x.shape[0], dtype=np.int32)
-    #     out.fill((self.h != 0) * x.shape[1] + 1)
-    #     return out
 
     @property
     def max_conn_size(self) -> int:
