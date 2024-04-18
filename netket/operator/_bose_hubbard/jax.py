@@ -137,4 +137,4 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
     mask_all = jnp.concatenate([mask0, mask1, mask2], axis=-1)
     mels_all = jnp.concatenate([mels0, mels1, mels2], axis=-1)
     xp_all = jnp.concatenate([x_prime0, x_prime1, x_prime2], axis=-2)
-    return xp_all, mels_all * mask_all
+    return xp_all * mask_all[..., None], mels_all * mask_all
