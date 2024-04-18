@@ -91,7 +91,13 @@ class BoseHubbard(BoseHubbardBase):
         from .jax import BoseHubbardJax
 
         return BoseHubbardJax(
-            self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
+            self.hilbert,
+            graph=self.edges,
+            U=self.U,
+            V=self.V,
+            J=self.J,
+            mu=self.mu,
+            dtype=self.dtype,
         )
 
     @staticmethod
