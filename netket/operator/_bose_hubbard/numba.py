@@ -262,4 +262,3 @@ class BoseHubbard(BoseHubbardBase):
             )
 
         return jit(nopython=True)(gccf_fun)
-

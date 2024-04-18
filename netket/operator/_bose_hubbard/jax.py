@@ -21,8 +21,6 @@ from jax.tree_util import register_pytree_node_class
 
 from netket.graph import AbstractGraph
 from netket.hilbert import Fock
-from netket.hilbert import AbstractHilbert
-from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
 from .._discrete_operator_jax import DiscreteJaxOperator
@@ -56,7 +54,6 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
         self._n_max = self.hilbert.n_max
 
-
     # @jax.jit
     # @wraps(BoseHubbardBase.n_conn)
     # def n_conn(self, x):
@@ -65,7 +62,9 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
     @jax.jit
     @wraps(BoseHubbardBase.get_conn_padded)
     def get_conn_padded(self, x):
-        return _bh_kernel_jax(x, self._edges, self.U, self.V, self.J, self.mu, self._n_max)
+        return _bh_kernel_jax(
+            x, self._edges, self.U, self.V, self.J, self.mu, self._n_max
+        )
 
     def to_numba_operator(self) -> "BoseHubbard":  # noqa: F821
         """
@@ -76,7 +75,13 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         from .numba import BoseHubbard
 
         return BoseHubbard(
-            self.hilbert, graph=self.edges, U=self.U, V=self.V, J=self.J, mu=self.mu, dtype=self.dtype
+            self.hilbert,
+            graph=self.edges,
+            U=self.U,
+            V=self.V,
+            J=self.J,
+            mu=self.mu,
+            dtype=self.dtype,
         )
 
     def to_local_operator(self):
@@ -133,4 +138,3 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
     mels_all = jnp.concatenate([mels0, mels1, mels2], axis=-1)
     xp_all = jnp.concatenate([x_prime0, x_prime1, x_prime2], axis=-2)
     return xp_all, mels_all * mask_all
-

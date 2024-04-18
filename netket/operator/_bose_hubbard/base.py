@@ -180,7 +180,13 @@ class BoseHubbardBase(SpecialHamiltonian):
             dtype = self.dtype
 
         return type(self)(
-            hilbert=self.hilbert, graph=self.edges, U=self.U, V=self.V, J=self.J, mu=self.mu, dtype=dtype
+            hilbert=self.hilbert,
+            graph=self.edges,
+            U=self.U,
+            V=self.V,
+            J=self.J,
+            mu=self.mu,
+            dtype=dtype,
         )
 
     def to_local_operator(self):
@@ -193,7 +199,7 @@ class BoseHubbardBase(SpecialHamiltonian):
                 ha += (self.U / 2) * n_i * (n_i - 1) - self.mu * n_i
 
         if self.J != 0:
-            for (i, j) in self.edges:
+            for i, j in self.edges:
                 ha += self.V * (
                     boson.number(self.hilbert, i) * boson.number(self.hilbert, j)
                 )
@@ -227,6 +233,4 @@ class BoseHubbardBase(SpecialHamiltonian):
         self._mu -= other.mu
 
     def __repr__(self):
-        return (
-            f"{type(self).__name__}(U={self._U}, V={self._V}, J={self._J}, mu={self._mu}; dim={self.hilbert.size})"
-        )
+        return f"{type(self).__name__}(U={self._U}, V={self._V}, J={self._J}, mu={self._mu}; dim={self.hilbert.size})"
