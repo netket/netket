@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
-from jax import numpy as jnp
-
 from netket.graph import AbstractGraph
 from netket.hilbert import Fock
-from netket.hilbert import AbstractHilbert
 from netket.jax import canonicalize_dtypes
-from netket.utils.numbers import dtype as _dtype
 from netket.utils.types import Array, DType
 
 from .. import boson
