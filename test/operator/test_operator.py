@@ -25,10 +25,14 @@ operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
 g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
 hi = nk.hilbert.Fock(n_max=3, n_particles=6, N=g.n_nodes)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
+operators["Bose Hubbard Jax"] = nk.operator.BoseHubbardJax(U=4.0, hilbert=hi, graph=g)
 
 g = nk.graph.Hypercube(length=3, n_dim=1, pbc=True)
 hi = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 operators["Bose Hubbard Complex"] = nk.operator.BoseHubbard(
+    U=4.0, V=2.3, mu=-0.4, J=0.7, hilbert=hi, graph=g
+)
+operators["Bose Hubbard Complex Jax"] = nk.operator.BoseHubbardJax(
     U=4.0, V=2.3, mu=-0.4, J=0.7, hilbert=hi, graph=g
 )
 
@@ -115,12 +119,12 @@ operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
 )
 
-operators[
-    "FermionOperator2ndJax(_mode=default-scan)"
-] = nkx.operator.FermionOperator2ndJax(
-    hi,
-    terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
-    weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+operators["FermionOperator2ndJax(_mode=default-scan)"] = (
+    nkx.operator.FermionOperator2ndJax(
+        hi,
+        terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
+        weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+    )
 )
 
 operators["FermionOperator2ndJax(_mode=mask)"] = nkx.operator.FermionOperator2ndJax(
@@ -320,6 +324,8 @@ def test_enforce_float_BoseHubbard():
     g = nk.graph.Hypercube(5, 1)
     hi = nk.hilbert.Fock(N=g.n_nodes, n_particles=3)
     op = nk.operator.BoseHubbard(hilbert=hi, graph=g, J=1, U=2, V=3, mu=4)
+    assert np.issubdtype(op.dtype, np.floating)
+    op = nk.operator.BoseHubbardJax(hilbert=hi, graph=g, J=1, U=2, V=3, mu=4)
     assert np.issubdtype(op.dtype, np.floating)
 
 
