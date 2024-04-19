@@ -34,7 +34,7 @@ LHSConstructorT = Callable[[VariationalState, Optional[Scalar]], LinearOperator]
 
 
 def identity_preconditioner(
-    vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = 0
+    vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = 0, *args, **kwargs,
 ) -> PyTree:
     return gradient
 
@@ -84,7 +84,9 @@ class AbstractLinearPreconditioner:
 
     @timing.timed
     def __call__(
-        self, vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = None
+        self, vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = None,
+        *args,
+        **kwargs,
     ) -> PyTree:
         self._lhs = self.lhs_constructor(vstate, step)
 
