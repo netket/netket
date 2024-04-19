@@ -190,22 +190,17 @@ def test_is_hermitean(op):
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
 
-    def _sort_get_conn(op, s):
+    def _get_nonzero_conn(op, s):
         sp, mels = op.get_conn(s)
-        nbp = op.hilbert.states_to_numbers(sp)
-        _nbp = np.where(mels != 0, nbp, np.max(nbp) + 1)
-        p = np.argsort(_nbp)
-        sp = op.hilbert.numbers_to_states(np.take_along_axis(nbp, p, axis=-1))
-        mels = np.take_along_axis(mels, p, axis=-1)
-        return sp, mels
+        return sp[mels != 0, :], mels[mels != 0]
 
     rstates = hi.random_state(rng.next(), 100)
     for i in range(len(rstates)):
         rstate = rstates[i]
-        rstatet, mels = _sort_get_conn(op, rstate)
+        rstatet, mels = _get_nonzero_conn(op, rstate)
 
         for k, state in enumerate(rstatet):
-            invstates, mels1 = _sort_get_conn(op, state)
+            invstates, mels1 = _get_nonzero_conn(op, state)
 
             found = False
             for kp, invstate in enumerate(invstates):
