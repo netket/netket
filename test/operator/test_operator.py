@@ -190,13 +190,22 @@ def test_is_hermitean(op):
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
 
+    def _sort_get_conn(op, s):
+        sp, mels = op.get_conn(s)
+        nbp = op.hilbert.states_to_numbers(sp)
+        _nbp = np.where(mels != 0, nbp, np.max(nbp) + 1)
+        p = np.argsort(_nbp)
+        sp = op.hilbert.numbers_to_states(np.take_along_axis(nbp, p, axis=-1))
+        mels = np.take_along_axis(mels, p, axis=-1)
+        return sp, mels
+
     rstates = hi.random_state(rng.next(), 100)
     for i in range(len(rstates)):
         rstate = rstates[i]
-        rstatet, mels = op.get_conn(rstate)
+        rstatet, mels = _sort_get_conn(op, rstate)
 
         for k, state in enumerate(rstatet):
-            invstates, mels1 = op.get_conn(state)
+            invstates, mels1 = _sort_get_conn(op, state)
 
             found = False
             for kp, invstate in enumerate(invstates):
@@ -411,9 +420,18 @@ def test_operator_jax_getconn(op):
     def _get_conn_padded(op, s):
         return op.get_conn_padded(s)
 
+    def _sort_get_conn_padded(op, s, is_jax=False):
+        sp, mels = _get_conn_padded(op, s) if is_jax else op.get_conn_padded(s)
+        nbp = op.hilbert.states_to_numbers(sp)
+        _nbp = np.where(mels != 0, nbp, np.max(nbp) + 1)
+        p = np.argsort(_nbp)
+        sp = op.hilbert.numbers_to_states(np.take_along_axis(nbp, p, axis=-1))
+        mels = np.take_along_axis(mels, p, axis=-1)
+        return sp, mels
+
     # check on all states
-    sp, mels = op.get_conn_padded(states)
-    sp_j, mels_j = _get_conn_padded(op_jax, states)
+    sp, mels = _sort_get_conn_padded(op, states)
+    sp_j, mels_j = _sort_get_conn_padded(op_jax, states, is_jax=True)
     assert mels.shape[-1] <= op.max_conn_size
 
     np.testing.assert_allclose(sp, sp_j)
@@ -422,15 +440,10 @@ def test_operator_jax_getconn(op):
     for shape in [None, (1,), (2, 2)]:
         states = op.hilbert.random_state(jax.random.PRNGKey(1), shape)
 
-        sp, mels = op.get_conn_padded(states)
-        sp_j, mels_j = _get_conn_padded(op_jax, states)
+        sp, mels = _sort_get_conn_padded(op, states)
+        sp_j, mels_j = _sort_get_conn_padded(op_jax, states, is_jax=True)
         assert mels_j.shape[-1] <= op.max_conn_size
 
-        # here we deal with the special case when the jax operator is padded
-        # with zeros, but the numba one is not.
-        # For simplicitt we assume that the padding is at the end,
-        # which might not be true in general, so if this fails for your operator
-        # please consider generalizing this test
         if mels_j.shape[-1] > mels.shape[-1]:
             n_conn = mels.shape[-1]
             # make sure padding is at end and zero
