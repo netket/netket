@@ -132,7 +132,7 @@ class BoseHubbard(BoseHubbardBase):
             x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
 
         if pad:
-            x_prime[:, :] = 0
+            x_prime[:] = 0
             mels[:] = 0
 
         sqrt = math.sqrt
@@ -173,6 +173,7 @@ class BoseHubbard(BoseHubbardBase):
                     odiag_ind += 1
 
             if pad:
+                x_prime[odiag_ind : (b + 1) * max_conn] = np.copy(x[b])
                 odiag_ind = (b + 1) * max_conn
 
             diag_ind = odiag_ind
