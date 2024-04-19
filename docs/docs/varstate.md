@@ -277,7 +277,7 @@ use the same procedure outlined above, only that the list line should be:
 
 ```python
 with open("parameters.mpack", 'rb') as file:
-  vstate.variables = flax.serialization.from_bytes(vstate.variables, file.read())
+  vstate.variables = flax.serialization.from_bytes(vstate, file.read()).variables
 ```
 :::
 
