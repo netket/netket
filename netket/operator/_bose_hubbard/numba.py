@@ -12,29 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
-from numba import jit
+from functools import wraps
+from typing import Optional, TYPE_CHECKING
+
+import jax
 
 import numpy as np
+from numba import jit
 import math
 
-from netket.graph import AbstractGraph, Graph
+from netket.graph import AbstractGraph
 from netket.hilbert import Fock
-from netket.jax import canonicalize_dtypes
 from netket.utils.types import DType
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
-from . import boson
-from ._local_operator import LocalOperator
-from ._hamiltonian import SpecialHamiltonian
+from .base import BoseHubbardBase
+
+if TYPE_CHECKING:
+    from .jax import BoseHubbardJax
 
 
-class BoseHubbard(SpecialHamiltonian):
+class BoseHubbard(BoseHubbardBase):
     r"""
     An extended Bose Hubbard model Hamiltonian operator, containing both
     on-site interactions and nearest-neighboring density-density interactions.
     """
 
+    @wraps(BoseHubbardBase.__init__)
     def __init__(
         self,
         hilbert: Fock,
@@ -69,120 +73,32 @@ class BoseHubbard(SpecialHamiltonian):
            >>> print(op.hilbert.size)
            9
         """
-        assert (
-            graph.n_nodes == hilbert.size
-        ), "The size of the graph must match the hilbert space."
-
         assert isinstance(hilbert, Fock)
-        super().__init__(hilbert)
 
-        dtype = canonicalize_dtypes(float, U, V, J, mu, dtype=dtype)
-        self._dtype = dtype
+        U = np.array(U, dtype=dtype)
+        V = np.array(V, dtype=dtype)
+        J = np.array(J, dtype=dtype)
+        mu = np.array(mu, dtype=dtype)
+        if isinstance(graph, jax.Array):
+            graph = np.asarray(graph)
+        super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)
 
-        self._U = np.asarray(U, dtype=dtype)
-        self._V = np.asarray(V, dtype=dtype)
-        self._J = np.asarray(J, dtype=dtype)
-        self._mu = np.asarray(mu, dtype=dtype)
+    def to_jax_operator(self) -> "BoseHubbardJax":  # noqa: F821
+        """
+        Returns the jax-compatible version of this operator, which is an
+        instance of :class:`netket.operator.IsingJax`.
+        """
+        from .jax import BoseHubbardJax
 
-        self._n_max = hilbert.n_max
-        self._n_sites = hilbert.size
-        self._edges = np.asarray(list(graph.edges()))
-        self._max_conn = 1 + self._edges.shape[0] * 2
-        self._max_mels = np.empty(self._max_conn, dtype=self.dtype)
-        self._max_xprime = np.empty((self._max_conn, self._n_sites))
-
-    @property
-    def is_hermitian(self):
-        return True
-
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @property
-    def edges(self) -> np.ndarray:
-        return self._edges
-
-    @property
-    def U(self):
-        """The strength of on-site interaction term."""
-        return self._U
-
-    @property
-    def V(self):
-        """The strength of density-density interaction term."""
-        return self._V
-
-    @property
-    def J(self):
-        """The hopping amplitude."""
-        return self._J
-
-    @property
-    def mu(self):
-        """The chemical potential."""
-        return self._mu
-
-    def copy(self):
-        graph = Graph(edges=[list(edge) for edge in self.edges])
-        return BoseHubbard(
-            hilbert=self.hilbert,
-            graph=graph,
-            J=self.J,
+        return BoseHubbardJax(
+            self.hilbert,
+            graph=self.edges,
             U=self.U,
             V=self.V,
+            J=self.J,
             mu=self.mu,
             dtype=self.dtype,
         )
-
-    def to_local_operator(self):
-        # The hamiltonian
-        ha = LocalOperator(self.hilbert, dtype=self.dtype)
-
-        if self.U != 0 or self.mu != 0:
-            for i in range(self.hilbert.size):
-                n_i = boson.number(self.hilbert, i)
-                ha += (self.U / 2) * n_i * (n_i - 1) - self.mu * n_i
-
-        if self.J != 0:
-            for i, j in self.edges:
-                ha += self.V * (
-                    boson.number(self.hilbert, i) * boson.number(self.hilbert, j)
-                )
-                ha -= self.J * (
-                    boson.destroy(self.hilbert, i) * boson.create(self.hilbert, j)
-                    + boson.create(self.hilbert, i) * boson.destroy(self.hilbert, j)
-                )
-
-        return ha
-
-    def _iadd_same_hamiltonian(self, other):
-        if self.hilbert != other.hilbert:
-            raise NotImplementedError(
-                "Cannot add hamiltonians on different hilbert spaces"
-            )
-
-        self._mu += other.mu
-        self._U += other.U
-        self._J += other.J
-        self._V += other.V
-
-    def _isub_same_hamiltonian(self, other):
-        if self.hilbert != other.hilbert:
-            raise NotImplementedError(
-                "Cannot add hamiltonians on different hilbert spaces"
-            )
-
-        self._mu -= other.mu
-        self._U -= other.U
-        self._J -= other.J
-        self._V -= other.V
-
-    @property
-    def max_conn_size(self) -> int:
-        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        # 1 diagonal element + 2 for every coupling
-        return 1 + 2 * len(self._edges)
 
     @staticmethod
     @jit(nopython=True)
@@ -216,7 +132,7 @@ class BoseHubbard(SpecialHamiltonian):
             x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
 
         if pad:
-            x_prime[:, :] = 0
+            x_prime[:] = 0
             mels[:] = 0
 
         sqrt = math.sqrt
@@ -257,6 +173,7 @@ class BoseHubbard(SpecialHamiltonian):
                     odiag_ind += 1
 
             if pad:
+                x_prime[odiag_ind : (b + 1) * max_conn] = np.copy(x[b])
                 odiag_ind = (b + 1) * max_conn
 
             diag_ind = odiag_ind

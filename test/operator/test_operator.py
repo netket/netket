@@ -25,10 +25,14 @@ operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
 g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
 hi = nk.hilbert.Fock(n_max=3, n_particles=6, N=g.n_nodes)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
+operators["Bose Hubbard Jax"] = nk.operator.BoseHubbardJax(U=4.0, hilbert=hi, graph=g)
 
 g = nk.graph.Hypercube(length=3, n_dim=1, pbc=True)
 hi = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 operators["Bose Hubbard Complex"] = nk.operator.BoseHubbard(
+    U=4.0, V=2.3, mu=-0.4, J=0.7, hilbert=hi, graph=g
+)
+operators["Bose Hubbard Complex Jax"] = nk.operator.BoseHubbardJax(
     U=4.0, V=2.3, mu=-0.4, J=0.7, hilbert=hi, graph=g
 )
 
@@ -180,19 +184,23 @@ def test_produce_elements_in_hilbert(op, attr):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-def test_is_hermitean(op):
+def test_is_hermitian(op):
     rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
 
+    def _get_nonzero_conn(op, s):
+        sp, mels = op.get_conn(s)
+        return sp[mels != 0, :], mels[mels != 0]
+
     rstates = hi.random_state(rng.next(), 100)
     for i in range(len(rstates)):
         rstate = rstates[i]
-        rstatet, mels = op.get_conn(rstate)
+        rstatet, mels = _get_nonzero_conn(op, rstate)
 
         for k, state in enumerate(rstatet):
-            invstates, mels1 = op.get_conn(state)
+            invstates, mels1 = _get_nonzero_conn(op, state)
 
             found = False
             for kp, invstate in enumerate(invstates):
@@ -321,6 +329,8 @@ def test_enforce_float_BoseHubbard():
     hi = nk.hilbert.Fock(N=g.n_nodes, n_particles=3)
     op = nk.operator.BoseHubbard(hilbert=hi, graph=g, J=1, U=2, V=3, mu=4)
     assert np.issubdtype(op.dtype, np.floating)
+    op = nk.operator.BoseHubbardJax(hilbert=hi, graph=g, J=1, U=2, V=3, mu=4)
+    assert np.issubdtype(op.dtype, np.floating)
 
 
 def test_no_segfault():
@@ -405,9 +415,18 @@ def test_operator_jax_getconn(op):
     def _get_conn_padded(op, s):
         return op.get_conn_padded(s)
 
+    def _sort_get_conn_padded(op, s, is_jax=False):
+        sp, mels = _get_conn_padded(op, s) if is_jax else op.get_conn_padded(s)
+        nbp = op.hilbert.states_to_numbers(sp)
+        _nbp = np.where(mels != 0, nbp, np.max(nbp) + 1)
+        p = np.argsort(_nbp)
+        sp = op.hilbert.numbers_to_states(np.take_along_axis(nbp, p, axis=-1))
+        mels = np.take_along_axis(mels, p, axis=-1)
+        return sp, mels
+
     # check on all states
-    sp, mels = op.get_conn_padded(states)
-    sp_j, mels_j = _get_conn_padded(op_jax, states)
+    sp, mels = _sort_get_conn_padded(op, states)
+    sp_j, mels_j = _sort_get_conn_padded(op_jax, states, is_jax=True)
     assert mels.shape[-1] <= op.max_conn_size
 
     np.testing.assert_allclose(sp, sp_j)
@@ -416,15 +435,10 @@ def test_operator_jax_getconn(op):
     for shape in [None, (1,), (2, 2)]:
         states = op.hilbert.random_state(jax.random.PRNGKey(1), shape)
 
-        sp, mels = op.get_conn_padded(states)
-        sp_j, mels_j = _get_conn_padded(op_jax, states)
+        sp, mels = _sort_get_conn_padded(op, states)
+        sp_j, mels_j = _sort_get_conn_padded(op_jax, states, is_jax=True)
         assert mels_j.shape[-1] <= op.max_conn_size
 
-        # here we deal with the special case when the jax operator is padded
-        # with zeros, but the numba one is not.
-        # For simplicitt we assume that the padding is at the end,
-        # which might not be true in general, so if this fails for your operator
-        # please consider generalizing this test
         if mels_j.shape[-1] > mels.shape[-1]:
             n_conn = mels.shape[-1]
             # make sure padding is at end and zero
