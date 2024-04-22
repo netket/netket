@@ -391,7 +391,6 @@ class MetropolisPtSampler(MetropolisSampler):
 
         offsets = jnp.arange(0, sampler.n_batches, sampler.n_replicas)
 
-        idcs = s["beta_0_index"] + offsets
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
@@ -404,10 +403,12 @@ class MetropolisPtSampler(MetropolisSampler):
             beta_diffusion=s["beta_diffusion"],
             exchange_steps=state.exchange_steps + sampler.sweep_size,
             n_accepted_per_beta=s["n_accepted_per_beta"],
-            n_accepted_proc=jax.vmap(jnp.take)(s["n_accepted_per_beta"], idcs),
+            n_accepted_proc=jax.vmap(jnp.take)(
+                s["n_accepted_per_beta"], s["beta_0_index"]
+            ),
         )
 
-        return new_state, new_state.σ[idcs, :]
+        return new_state, new_state.σ[s["beta_0_index"] + offsets, :]
 
 
 def MetropolisLocalPt(hilbert, *args, **kwargs):
