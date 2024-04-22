@@ -125,15 +125,11 @@ class BoseHubbard(BoseHubbardBase):
         # When executed as a closure those must be allocated inside the numba jitted function
         if mels is None:
             mels_allocated = True
-            mels = np.empty(batch_size * max_conn, dtype=U.dtype)
+            mels = np.zeros(batch_size * max_conn, dtype=U.dtype)
 
         if x_prime is None:
             x_prime_allocated = True
-            x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
-
-        if pad:
-            x_prime[:] = 0
-            mels[:] = 0
+            x_prime = np.zeros((batch_size * max_conn, n_sites), dtype=x.dtype)
 
         sqrt = math.sqrt
         Uh = 0.5 * U
