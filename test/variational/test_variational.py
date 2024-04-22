@@ -569,3 +569,8 @@ def test_expect_chunking(vstate, operator, n_chunks):
     jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
+
+
+def test_burn_in(vstate):
+    # just verify that it does not throw errors
+    vstate.burn_in(n=2)
