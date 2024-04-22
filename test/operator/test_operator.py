@@ -184,7 +184,7 @@ def test_produce_elements_in_hilbert(op, attr):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-def test_is_hermitean(op):
+def test_is_hermitian(op):
     rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
