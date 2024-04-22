@@ -70,8 +70,12 @@ class MetropolisSamplerState(SamplerState):
         self.rng = rng
         self.rule_state = rule_state
 
-        self.n_accepted_proc = with_samples_sharding_constraint(jnp.zeros(σ.shape[0], dtype=int))
-        self.n_steps_proc = with_samples_sharding_constraint(jnp.zeros(device_count_per_rank(), dtype=int))
+        self.n_accepted_proc = with_samples_sharding_constraint(
+            jnp.zeros(σ.shape[0], dtype=int)
+        )
+        self.n_steps_proc = with_samples_sharding_constraint(
+            jnp.zeros(device_count_per_rank(), dtype=int)
+        )
         super().__init__()
 
     @property
@@ -472,7 +476,8 @@ class MetropolisSampler(Sampler):
             σ=s["σ"],
             n_accepted_proc=s["accepted"],
             # n_steps_proc is a per-device object, so we divide by number of devices on every rank.
-            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_chains_per_rank,
+            n_steps_proc=state.n_steps_proc
+            + sampler.sweep_size * sampler.n_chains_per_rank,
         )
 
         return new_state, new_state.σ
