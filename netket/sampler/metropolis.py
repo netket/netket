@@ -37,6 +37,7 @@ from netket.jax.sharding import (
     gather,
     distribute_to_devices_along_axis,
     device_count,
+    device_count_per_rank,
     with_samples_sharding_constraint,
 )
 
@@ -69,8 +70,8 @@ class MetropolisSamplerState(SamplerState):
         self.rng = rng
         self.rule_state = rule_state
 
-        self.n_accepted_proc = jnp.zeros(σ.shape[0], dtype=int)
-        self.n_steps_proc = jnp.zeros((), dtype=int)
+        self.n_accepted_proc = with_samples_sharding_constraint(jnp.zeros(σ.shape[0], dtype=int))
+        self.n_steps_proc = with_samples_sharding_constraint(jnp.zeros(device_count_per_rank(), dtype=int))
         super().__init__()
 
     @property
@@ -88,7 +89,7 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_steps(self) -> int:
         """Total number of moves performed across all processes since the last reset."""
-        return self.n_steps_proc * mpi.n_nodes
+        return jnp.sum(self.n_steps_proc) * mpi.n_nodes
 
     @property
     def n_accepted(self) -> int:
@@ -470,7 +471,8 @@ class MetropolisSampler(Sampler):
             rng=new_rng,
             σ=s["σ"],
             n_accepted_proc=s["accepted"],
-            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches,
+            # n_steps_proc is a per-device object, so we divide by number of devices on every rank.
+            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_chains_per_rank,
         )
 
         return new_state, new_state.σ
