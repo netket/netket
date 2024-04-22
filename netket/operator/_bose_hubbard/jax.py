@@ -140,4 +140,4 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
 
     xp = jnp.vectorize(jax.lax.select, signature="(),(n),(n)->(n)")(mask, xp, _x)
 
-    return xp, mels * mask
+    return xp, mels
