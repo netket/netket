@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import math
+from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -24,6 +25,7 @@ from numba4jax import njit4jax
 
 from netket.operator import AbstractOperator, DiscreteJaxOperator
 from netket.utils import struct
+from netket.jax.sharding import sharding_decorator, with_samples_sharding_constraint
 
 from .base import MetropolisRule
 
@@ -86,28 +88,32 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
         get_conn_flattened = rule.operator._get_conn_flattened_closure()
         n_conn_from_sections = rule.operator._n_conn_from_sections
 
-        @njit4jax(
-            (
-                jax.core.ShapedArray(σ.shape, σ.dtype),
-                jax.core.ShapedArray((σ.shape[0],), σ.dtype),
+        @partial(sharding_decorator, sharded_args_tree=(True, True), check_rep=False)
+        def _transition(v, rand_vec):
+            @njit4jax(
+                (
+                    jax.core.ShapedArray(v.shape, v.dtype),
+                    jax.core.ShapedArray((v.shape[0],), v.dtype),
+                )
             )
-        )
-        def _transition(args):
-            # unpack arguments
-            v_proposed, log_prob_corr, v, rand_vec = args
+            def __transition(args):
+                # unpack arguments
+                v_proposed, log_prob_corr, v, rand_vec = args
 
-            log_prob_corr.fill(0)
-            sections = np.empty(v.shape[0], dtype=np.int32)
-            vp, _ = get_conn_flattened(v, sections)
+                log_prob_corr.fill(0)
+                sections = np.empty(v.shape[0], dtype=np.int32)
+                vp, _ = get_conn_flattened(v, sections)
 
-            _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
+                _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
 
-            # TODO: n_conn(v_proposed, sections) implemented below, but
-            # might be slower than fast implementations like ising
-            get_conn_flattened(v_proposed, sections)
-            n_conn_from_sections(sections)
+                # TODO: n_conn(v_proposed, sections) implemented below, but
+                # might be slower than fast implementations like ising
+                get_conn_flattened(v_proposed, sections)
+                n_conn_from_sections(sections)
 
-            log_prob_corr -= np.log(sections)
+                log_prob_corr -= np.log(sections)
+
+            return __transition(v, rand_vec)
 
         # ideally we would pass the key to python/numba in _choose, initialise a
         # np.random.default_rng(key) and use it to generate random uniform integers.
@@ -115,7 +121,7 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
         # would be slow so we generate floats in the [0,1] range in jax and pass those
         # to python
         rand_vec = jax.random.uniform(key, shape=(σ.shape[0],))
-
+        rand_vec = with_samples_sharding_constraint(rand_vec)
         σp, log_prob_correction = _transition(σ, rand_vec)
 
         return σp, log_prob_correction
