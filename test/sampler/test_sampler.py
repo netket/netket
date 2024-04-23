@@ -428,6 +428,40 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
 
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+@pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
+def test_sampling_sharded_not_commuincating(
+    sampler_c, model_and_weights, set_pdf_power
+):
+    sampler = set_pdf_power(sampler_c)
+    hi = sampler.hilbert
+    ma, w = model_and_weights(hi, sampler)
+    sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+    samples, sampler_state = sampler.sample(ma, w, state=sampler_state, chain_length=1)
+
+    if isinstance(
+        sampler_state, nk.sampler._metropolis_numpy.MetropolisNumpySamplerState
+    ):
+        pytest.xfail("MetropolisNumpySamplerState is not jit compatible")
+
+    sample_jit = jax.jit(
+        sampler.sample, static_argnums=0, static_argnames="chain_length"
+    )
+    complied = sample_jit.lower(ma, w, state=sampler_state, chain_length=1).compile()
+    txt = complied.as_text()
+    for o in [
+        "all-reduce",
+        "collective-permute",
+        "all-gather",
+        "all-to-all",
+        "reduce-scatter",
+    ]:
+        for l in txt.split("\n"):
+            assert o not in l
+
+
 def test_throwing(model_and_weights):
     with pytest.raises(TypeError):
         nk.sampler.MetropolisHamiltonian(
