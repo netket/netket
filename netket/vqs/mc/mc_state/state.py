@@ -275,12 +275,22 @@ class MCState(VariationalState):
 
     @property
     def model(self) -> Optional[Any]:
-        """Returns the model definition of this variational state.
-
-        This field is optional, and is set to `None` if the variational state has
-        been initialized using a custom function.
-        """
+        """Returns the model definition of this variational state."""
         return self._model
+
+    @property
+    def _sampler_model(self):
+        """Returns the model definition used for sampling this variational state.
+        Equal to `.model`.
+        """
+        return self.model
+
+    @property
+    def _sampler_variables(self):
+        """Returns the variables used for sampling this variational state.
+        Equal to `.variables`
+        """
+        return self.variables
 
     @property
     def sampler(self) -> Sampler:
@@ -303,7 +313,7 @@ class MCState(VariationalState):
 
         self._sampler = sampler
         self.sampler_state = self.sampler.init_state(
-            self.model, self.variables, seed=self._sampler_seed
+            self._sampler_model, self._sampler_variables, seed=self._sampler_seed
         )
         self._sampler_state_previous = self.sampler_state
 
@@ -479,7 +489,7 @@ class MCState(VariationalState):
         self._sampler_state_previous = self.sampler_state
 
         self.sampler_state = self.sampler.reset(
-            self.model, self.variables, self.sampler_state
+            self._sampler_model, self._sampler_variables, self.sampler_state
         )
 
         if self.n_discard_per_chain > 0:
@@ -492,8 +502,8 @@ class MCState(VariationalState):
                 )
 
         self._samples, self.sampler_state = self.sampler.sample(
-            self.model,
-            self.variables,
+            self._sampler_model,
+            self._sampler_variables,
             state=self.sampler_state,
             chain_length=chain_length,
         )
