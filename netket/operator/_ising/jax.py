@@ -42,22 +42,26 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         h: float,
         J: float = 1.0,
         dtype: Optional[DType] = None,
+        _unflatten=False,
     ):
-        if len(hilbert.local_states) != 2:
-            raise ValueError(
-                "IsingJax only supports Hamiltonians with two local states"
-            )
+        if _unflatten:
+            self._hilbert = hilbert
+            self._edges = graph
+            self._J = J
+            self._h = h
+        else:
+            if len(hilbert.local_states) != 2:
+                raise ValueError(
+                    "IsingJax only supports Hamiltonians with two local states"
+                )
+            if not isinstance(h, jax.Array) and (h == 0 or h is None):
+                h = StaticZero()
+            J = jnp.array(J, dtype=dtype)
+            if not isinstance(h, StaticZero):
+                h = jnp.array(h, dtype=dtype)
+            super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
+            self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
 
-        if not isinstance(h, jax.Array) and (h == 0 or h is None):
-            h = StaticZero()
-
-        J = jnp.array(J, dtype=dtype)
-        if not isinstance(h, StaticZero):
-            h = jnp.array(h, dtype=dtype)
-
-        super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
-
-        self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
         self._hi_local_states = tuple(self.hilbert.local_states)
 
     @jax.jit
@@ -90,16 +94,15 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
 
     def tree_flatten(self):
         data = (self.h, self.J, self.edges)
-        metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
+        metadata = {"hilbert": self.hilbert}
         return data, metadata
 
     @classmethod
     def tree_unflatten(cls, metadata, data):
         h, J, edges = data
         hi = metadata["hilbert"]
-        dtype = metadata["dtype"]
 
-        return cls(hi, h=h, J=J, graph=edges, dtype=dtype)
+        return cls(hi, h=h, J=J, graph=edges, _unflatten=True)
 
 
 def _ising_mels_jax(x, edges, h, J):

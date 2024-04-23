@@ -43,15 +43,23 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         J: float = 1.0,
         mu: float = 0.0,
         dtype: Optional[DType] = None,
+        _unflatten=False,
     ):
-        U = jnp.array(U, dtype=dtype)
-        V = jnp.array(V, dtype=dtype)
-        J = jnp.array(J, dtype=dtype)
-        mu = jnp.array(mu, dtype=dtype)
+        if _unflatten:
+            self._hilbert = hilbert
+            self._edges = graph
+            self._U = U
+            self._V = V
+            self._J = J
+            self._mu = mu
+        else:
+            U = jnp.asarray(U)
+            V = jnp.asarray(V)
+            J = jnp.asarray(J)
+            mu = jnp.asarray(mu)
+            super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)
+            self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
 
-        super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)
-
-        self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
         self._n_max = self.hilbert.n_max
 
     @jax.jit
@@ -87,16 +95,15 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
 
     def tree_flatten(self):
         data = (self.U, self.V, self.J, self.mu, self.edges)
-        metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
+        metadata = {"hilbert": self.hilbert}
         return data, metadata
 
     @classmethod
     def tree_unflatten(cls, metadata, data):
         U, V, J, mu, edges = data
         hi = metadata["hilbert"]
-        dtype = metadata["dtype"]
 
-        return cls(hi, U=U, V=V, J=J, mu=mu, graph=edges, dtype=dtype)
+        return cls(hi, U=U, V=V, J=J, mu=mu, graph=edges, _unflatten=True)
 
 
 @partial(jax.jit, static_argnames="n_max")
