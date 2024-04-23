@@ -30,11 +30,14 @@ class Slater2nd(nn.Module):
     A slater determinant ansatz for second-quantised spinless or spin-full
     fermions.
 
-    The log-determinants of every spin sub-sector are summed together.
+    A slater determinant ansatz for second-quantised spinless or spin-full fermions.
 
-    The total number of parameters of this ansatz is :math:`n_{\mathrm{o}} \times n_{\mathrm{f}}`,
-    where :math:`n_{\mathrm{o}}` is the number of orbitals and :math:`n_{\mathrm{f}}` is the
-    total number of fermions in the system.
+    The model implements three versions in the spinful case. They differ by how the orbitals are represented. The more restrictions we impose, the lower the number of parameters, the higher the number of imposed symmetries, but the lower the attainable ground-state energies.
+
+    Assume we introduce a set of orbitals :math:`\phi_\mu(r, s)` with orbital index :math:`\mu`.  We use :math:`n_{\textrm{M}}` to denote the number of fermionic modes, :math:`n_{\textrm{L}}` the number of spatial orbitals, and :math:`n_{\textrm{S}}` the number of spin states. The number of fermions is denoted :math:`n_{\mathrm{f}}`, or :math:`n_{\textrm{f, \alpha}}` for the number of fermions in a given spin sector :math:`\alpha`. We assume the same number of fermions in each spin sector for simplicity.
+    - The most general case is the `generalized Hartree-Fock case`, where we impose no restrictions. In particular, we do not restrict the orbitals to have definite spin or orbital quantum numbers. The total number of parameters is :math:`n_{\mathrm{M}} \times n_{\mathrm{f}}`. Hence, any fermion can occupy any of the fermionic modes.
+    - Most physical Hamiltonians are spin conserving, and hence we can impose this symmetry on the wave function. In this case, we separate the orbital index :math:`\mu \to (l, \alpha)` into a spin and spatial orbital part: :math:`\phi_\mu(r, s)=\varphi_{l,\alpha}(r) \chi_{\alpha}(s)`. Here, :math:`l` and :math:`\alpha` indicate the orbital and spin quantum numbers associated with the orbital, and :math:`(r, s)` are the position vector and spin quantum number at which we aim to evaluate the orbital (i.e. properties of a given fermion). Furthermore, :math:`\varphi_{l,\alpha}(r)` is the spatial orbital at position :math:`r`, and and :math:`\chi_\alpha(s)` the spin part. In `unrestricted Hartree Fock (UHF)`, the orbitals can have a different spatial orbital :math:`\varphi` for different spin states. Since e.g. the up spin fermions cannot occupy the down spin orbitals and vice versa, the Slater matrix becomes block diagonal. This allows us to write the determinant as a product of determinants of the two spin sectors. The total number of parameters is :math:`n_{\mathrm{S}} \times n_{\mathrm{L}} \times n_{\textrm{f, s}}`. For more information, see [Wikipedia: Unrestricted Hartree-Fock](https://en.wikipedia.org/wiki/Unrestricted_Hartree%E2%80%93Fock).
+    - Lastly, we assume that different spin states have the same spatial orbitals in `restricted Hartree-Fock (RHF)`: :math:`\phi_\mu(r, s)=\varphi_l(r) \chi_\alpha(s)`, and hence :math:`\varphi_l` only depends on the spatial orbital index :math:`l`. The number of parameters now reduces to :math:`n_{\mathrm{L}} \times n_{\textrm{f, s}}`.
     """
 
     hilbert: SpinOrbitalFermions
@@ -47,7 +50,7 @@ class Slater2nd(nn.Module):
     If restricted, only one set of orbitals are parametrised, and they are used for all spin subsectors.
     If unrestricted, a different set of orbitals are parametrised and used for each spin subsector.
     """
-    
+
     generalized: bool = False
     """Flag to select generalize Hartree-Fock (defaults to standard spin-conserving Hartree-Fock)."""
 
@@ -131,17 +134,20 @@ class Slater2nd(nn.Module):
             R = n.nonzero(size=self.hilbert.n_fermions)[0]
             log_det_sum = 0
             i_start = 0
-            
+
             if self.generalized:
                 # extract Nf x Nf submatrix
-                A_i = self.orbitals[R,:]
+                A_i = self.orbitals[R, :]
                 log_det_sum = nkjax.logdet_cmplx(A_i)
             else:
                 for i, (n_fermions_i, M_i) in enumerate(
                     zip(self.hilbert.n_fermions_per_spin, self.orbitals)
                 ):
                     # convert global orbital positions to spin-sector-local positions
-                    R_i = R[i_start : i_start + n_fermions_i] - i * self.hilbert.n_orbitals
+                    R_i = (
+                        R[i_start : i_start + n_fermions_i]
+                        - i * self.hilbert.n_orbitals
+                    )
                     # extract the corresponding Nf x Nf submatrix
                     A_i = M_i[R_i]
 
@@ -151,19 +157,20 @@ class Slater2nd(nn.Module):
             return log_det_sum
 
         return log_sd(n)
-    
+
+
 class MultiSlater2nd(nn.Module):
     r"""
     A slater determinant ansatz for second-quantised spinless or spin-full
     fermions with a sum of determinants.
-    
-    Conventions are the same as in `Slater2nd'
+
+    Conventions are the same as in `Slater2nd'.
     """
 
     hilbert: SpinOrbitalFermions
     """The Hilbert space upon which this ansatz is defined. Used to determine the number of orbitals
     and spin subspectors."""
-    
+
     n_determinants: int = 1
     """The number of determinants to be summed."""
 
@@ -173,7 +180,7 @@ class MultiSlater2nd(nn.Module):
     If restricted, only one set of orbitals are parametrised, and they are used for all spin subsectors.
     If unrestricted, a different set of orbitals are parametrised and used for each spin subsector.
     """
-    
+
     generalized: bool = False
     """Flag to select generalize Hartree-Fock (defaults to standard spin-conserving Hartree-Fock)."""
 
@@ -193,24 +200,25 @@ class MultiSlater2nd(nn.Module):
         """
         if not self.n_determinants:
             raise ValueError(
-                f"Number of determinants must be an integer greater than 0."
+                "Number of determinants must be an integer greater than 0."
             )
         # make extra axis with copies to run determinants in parallel
         n_bc = jnp.broadcast_to(n, (self.n_determinants, *n.shape))
         multi_log_det = nn.vmap(
             Slater2nd,
-            in_axes=0, out_axes=0, # vmap over copied axis
-            variable_axes={'params': 0},
-            split_rngs={'params': True}
+            in_axes=0,
+            out_axes=0,  # vmap over copied axis
+            variable_axes={"params": 0},
+            split_rngs={"params": True},
         )(
-            self.hilbert, 
-            restricted=self.restricted, 
-            generalized=self.generalized, 
-            kernel_init=self.kernel_init, 
-            param_dtype=self.param_dtype
-        )(n_bc)
+            self.hilbert,
+            restricted=self.restricted,
+            generalized=self.generalized,
+            kernel_init=self.kernel_init,
+            param_dtype=self.param_dtype,
+        )(
+            n_bc
+        )
         # sum the determinants
         log_det_sum = nkjax.logsumexp_cplx(multi_log_det, axis=0)
         return log_det_sum
-        
-        
