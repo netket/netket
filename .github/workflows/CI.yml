@@ -33,7 +33,7 @@ jobs:
             oldest_deps: false
 
           - os: macos-latest
-            python-version: "3.9"
+            python-version: "3.10"
             mpi: ""
             main_tests: true
             oldest_deps: false
