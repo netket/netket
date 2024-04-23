@@ -199,10 +199,15 @@ class LocalOperatorBase(DiscreteOperator):
     def constant(self) -> numbers.Number:
         return self._constant
 
-    def to_pauli_strings(self) -> "PauliStrings":  # noqa: F821
+    def to_pauli_strings(self, **kwargs) -> "PauliStrings":  # noqa: F821
         """Convert to PauliStrings object"""
         return local_operators_to_pauli_strings(
-            self.hilbert, self.operators, self.acting_on, self.constant, self.dtype
+            self.hilbert,
+            self.operators,
+            self.acting_on,
+            self.constant,
+            self.dtype,
+            **kwargs,
         )
 
     def copy(self, *, dtype: Optional[DType] = None, _cls=None):

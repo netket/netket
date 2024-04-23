@@ -147,7 +147,9 @@ def _convert_to_dense(m):
     return m.todense() if issparse(m) else m
 
 
-def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dtype):
+def local_operators_to_pauli_strings(
+    hilbert, operators, acting_on, constant, dtype, cls=PauliStrings
+):
     """Convert a LocalOperator into PauliStrings
 
     Args:
@@ -196,5 +198,5 @@ def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dt
     # purely real, so we discard their imaginary parts
     weights = [x.real if np.isreal(x) else x for x in weights]
 
-    res = PauliStrings(hilbert, operators=pauli_strings, weights=weights, dtype=dtype)
+    res = cls(hilbert, operators=pauli_strings, weights=weights, dtype=dtype)
     return res
