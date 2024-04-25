@@ -241,7 +241,7 @@ class MCState(VariationalState):
             key, key2 = jax.random.split(nkjax.PRNGKey(seed), 2)
             sampler_seed = key2
 
-        self._sampler_seed = sampler_seed
+        self._sampler_seed = nkjax.PRNGKey(sampler_seed)
         self.sampler = sampler
 
         if n_samples is not None:
@@ -306,6 +306,8 @@ class MCState(VariationalState):
                 )
             )
 
+        self._sampler_seed, seed = jax.random.split(self._sampler_seed, 2)
+
         # Save the old `n_samples` before the new `sampler` is set.
         # `_chain_length == 0` means that this `MCState` is being constructed.
         if self._chain_length > 0:
@@ -313,7 +315,7 @@ class MCState(VariationalState):
 
         self._sampler = sampler
         self.sampler_state = self.sampler.init_state(
-            self._sampler_model, self._sampler_variables, seed=self._sampler_seed
+            self._sampler_model, self._sampler_variables, seed=seed
         )
         self._sampler_state_previous = self.sampler_state
 

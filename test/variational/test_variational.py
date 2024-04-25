@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import partial
+import copy
 
 import pytest
 from pytest import approx, raises
@@ -569,3 +570,34 @@ def test_expect_chunking(vstate, operator, n_chunks):
     jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
+
+
+def test_reproducible_copy():
+    # This checks that if i duplicate a variational state and perform the same operations
+    # I get exactly the same samples
+
+    hi = nk.hilbert.Spin(0.5, 10)
+    ma = nk.models.RBM()
+    sa = nk.sampler.MetropolisLocal(hilbert=hi)
+    vs = nk.vqs.MCState(sa, ma, n_samples=64)
+
+    # If i copy, I have same sampler_state
+    vs2 = copy.copy(vs)
+    s1 = vs.samples
+    s2 = vs2.samples
+    np.testing.assert_allclose(s1, s2)
+
+    # If i change the sampler, I get a new sampler_state and
+    # the seed should be computed
+    sa = nk.sampler.MetropolisLocal(hilbert=hi, sweep_size=4)
+
+    vs.sampler = sa
+    vs2.sampler = sa
+    s1_2 = vs.samples
+    s2_2 = vs.samples
+
+    # same seed for the new sampler state.
+    np.testing.assert_allclose(s1_2, s2_2)
+    # But different samples
+    with pytest.raises(ValueError):
+        np.testing.assert_allclose(s1, s1_2)
