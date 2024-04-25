@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from textwrap import dedent
 
 from netket.utils.types import PyTree, Scalar
-from netket.utils import warn_deprecation
+from netket.utils import warn_deprecation, timing
 from netket.vqs import VariationalState
 
 from .linear_operator import LinearOperator, SolverT
@@ -34,7 +34,11 @@ LHSConstructorT = Callable[[VariationalState, Optional[Scalar]], LinearOperator]
 
 
 def identity_preconditioner(
-    vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = 0
+    vstate: VariationalState,
+    gradient: PyTree,
+    step: Optional[Scalar] = 0,
+    *args,
+    **kwargs,
 ) -> PyTree:
     return gradient
 
@@ -82,8 +86,14 @@ class AbstractLinearPreconditioner:
         self.solver = solver
         self.solver_restart = solver_restart
 
+    @timing.timed
     def __call__(
-        self, vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = None
+        self,
+        vstate: VariationalState,
+        gradient: PyTree,
+        step: Optional[Scalar] = None,
+        *args,
+        **kwargs,
     ) -> PyTree:
         self._lhs = self.lhs_constructor(vstate, step)
 

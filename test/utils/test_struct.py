@@ -120,7 +120,7 @@ def test_pytree_nodes(PointT):
     p = PointT(x=1, y=2, meta={"abc": True})
     leaves = jax.tree_util.tree_leaves(p)
     assert leaves == [1, 2]
-    new_p = jax.tree_map(lambda x: x + x, p)
+    new_p = jax.tree_util.tree_map(lambda x: x + x, p)
     assert new_p == PointT(x=2, y=4, meta={"abc": True})
 
 
@@ -129,7 +129,7 @@ def test_pytree_nodes_inheritance():
     _ = Point1Child(1, 2, {"abc": True}, 3)
     leaves = jax.tree_util.tree_leaves(p)
     assert leaves == [1, 2, 3]
-    new_p = jax.tree_map(lambda x: x + x, p)
+    new_p = jax.tree_util.tree_map(lambda x: x + x, p)
     assert new_p == Point1Child(x=2, y=4, z=6, meta={"abc": True})
 
 

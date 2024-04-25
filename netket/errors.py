@@ -587,7 +587,7 @@ class RealQGTComplexDomainError(NetketError):
        >>> _, vec = vstate.expect_and_grad(nk.operator.spin.sigmax(vstate.hilbert, 1))
        >>> G = nk.optimizer.qgt.QGTOnTheFly(vstate, holomorphic=False)
        >>>
-       >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+       >>> vec_real = jax.tree.map(lambda x: x.real, vec)
        >>> sol = G@vec_real
 
    Or, if you used the QGT in a linear solver, try using:
@@ -601,7 +601,7 @@ class RealQGTComplexDomainError(NetketError):
        >>> _, vec = vstate.expect_and_grad(nk.operator.spin.sigmax(vstate.hilbert, 1))
        >>>
        >>> G = nk.optimizer.qgt.QGTOnTheFly(vstate, holomorphic=False)
-       >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+       >>> vec_real = jax.tree.map(lambda x: x.real, vec)
        >>>
        >>> linear_solver = jax.scipy.sparse.linalg.cg
        >>> solution, info = G.solve(linear_solver, vec_real)
@@ -624,14 +624,14 @@ class RealQGTComplexDomainError(NetketError):
 
             .. code:: python
 
-               >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+               >>> vec_real = jax.tree_util.tree_map(lambda x: x.real, vec)
                >>> G@vec_real
 
             If you used the QGT in a linear solver, try using:
 
             .. code:: python
 
-               >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+               >>> vec_real = jax.tree_util.tree_map(lambda x: x.real, vec)
                >>> G.solve(linear_solver, vec_real)
 
             to fix this error.

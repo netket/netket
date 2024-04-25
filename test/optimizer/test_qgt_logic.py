@@ -62,7 +62,7 @@ def toreal(x):
 
 
 def tree_toreal(x):
-    return jax.tree_map(toreal, x)
+    return jax.tree_util.tree_map(toreal, x)
 
 
 def tree_toreal_flat(x):
@@ -93,7 +93,9 @@ def assert_tree_allclose(t1, t2, rtol=None, atol=0):
                 rtol = 1e-6
         np.testing.assert_allclose(x, y, rtol, atol)
 
-    jax.tree_map(lambda x, y: assert_allclose(x, y, rtol=rtol, atol=atol), t1, t2)
+    jax.tree_util.tree_map(
+        lambda x, y: assert_allclose(x, y, rtol=rtol, atol=atol), t1, t2
+    )
 
 
 def tree_samedtypes(t1, t2):
@@ -101,7 +103,7 @@ def tree_samedtypes(t1, t2):
         assert x.dtype == y.dtype
         assert x.weak_type == y.weak_type
 
-    jax.tree_map(_same_dtypes, t1, t2)
+    jax.tree_util.tree_map(_same_dtypes, t1, t2)
 
 
 def random_split_like_tree(rng_key, target=None, treedef=None):
@@ -113,7 +115,7 @@ def random_split_like_tree(rng_key, target=None, treedef=None):
 
 def tree_random_normal_like(rng_key, target):
     keys_tree = random_split_like_tree(rng_key, target)
-    return jax.tree_map(
+    return jax.tree_util.tree_map(
         lambda l, k: jax.random.normal(k, l.shape, l.dtype),
         target,
         keys_tree,
@@ -132,13 +134,13 @@ def astype_unsafe(x, dtype):
 
 
 def tree_subtract_mean(tree):
-    return jax.tree_map(lambda x: nkstats.subtract_mean(x, axis=0), tree)
+    return jax.tree_util.tree_map(lambda x: nkstats.subtract_mean(x, axis=0), tree)
 
 
 def divide_by_sqrt_n_samp(oks, samples):
     n_samp = samples.shape[0] * mpi.n_nodes  # MPI
     sqrt_n = math.sqrt(n_samp)  # enforce weak type
-    return jax.tree_map(lambda x: x / sqrt_n, oks)
+    return jax.tree_util.tree_map(lambda x: x / sqrt_n, oks)
 
 
 class Example:
@@ -171,7 +173,7 @@ class Example:
         if pardtype is None:  # mixed precision as above
             pass
         else:
-            self.target = jax.tree_map(
+            self.target = jax.tree_util.tree_map(
                 lambda x: astype_unsafe(x, pardtype),
                 self.target,
             )

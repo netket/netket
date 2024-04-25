@@ -139,7 +139,7 @@ vstate.parameters['visible_bias']
               0.06278384,  0.00275547,  0.05843748,  0.07516951,
               0.21897993, -0.01632223], dtype=float64)
 
-vstate.parameters = jax.tree_map(lambda x: x+0.1, vstate.parameters)
+vstate.parameters = jax.tree.map(lambda x: x+0.1, vstate.parameters)
 
 # Look at the new values
 vstate.parameters['visible_bias']
@@ -219,7 +219,7 @@ the {py:attr}`~netket.vqs.VariationalState.model_state` attribute.
 
 Parameters are stored as a set of nested dictionaries.
 In Jax jargon, Parameters are a PyTree (see [PyTree documentation](https://jax.readthedocs.io/en/latest/pytrees.html)) and they
-can be operated upon with functions like [jax.tree_map](https://jax.readthedocs.io/en/latest/jax.tree_util.html?highlight=tree_map#jax.tree_util.tree_map).
+can be operated upon with functions like [jax.tree.map](https://jax.readthedocs.io/en/latest/_autosummary/jax.tree.map.html).
 
 Before modifying the parameters or what is stored inside of a dictionary of parameters, it is a good idea to make a copy using {func}`flax.core.copy`, which calls recursively `{}.copy()` in all nested dictionaries. 
 If you do not do this, you will only copy the outermost dictionary but the inner ones will be referenced, and so modifying them will modify the original parameters as well.
@@ -277,7 +277,7 @@ use the same procedure outlined above, only that the list line should be:
 
 ```python
 with open("parameters.mpack", 'rb') as file:
-  vstate.variables = flax.serialization.from_bytes(vstate.variables, file.read())
+  vstate.variables = flax.serialization.from_bytes(vstate, file.read()).variables
 ```
 :::
 

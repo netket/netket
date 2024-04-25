@@ -69,7 +69,9 @@ class MetropolisSamplerState(SamplerState):
         self.rng = rng
         self.rule_state = rule_state
 
-        self.n_accepted_proc = jnp.zeros(σ.shape[0], dtype=int)
+        self.n_accepted_proc = with_samples_sharding_constraint(
+            jnp.zeros(σ.shape[0], dtype=int)
+        )
         self.n_steps_proc = jnp.zeros((), dtype=int)
         super().__init__()
 

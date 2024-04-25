@@ -107,7 +107,7 @@ def test_init_parameters(vstate):
     def _f(x, y):
         np.testing.assert_allclose(x, y)
 
-    jax.tree_map(_f, pars, pars2)
+    jax.tree_util.tree_map(_f, pars, pars2)
 
 
 @common.skipif_mpi
@@ -143,7 +143,7 @@ def test_qutip_conversion(vstate):
     assert q_obj.dims[1] == [1 for i in range(vstate.hilbert.size)]
 
     assert q_obj.shape == (vstate.hilbert.n_states, 1)
-    np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
+    np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
 @pytest.mark.parametrize(
@@ -308,6 +308,6 @@ def test_qgt_chunking(vstate, qgt, n_chunks):
     S_chunk = vstate.quantum_geometric_tensor(qgt)
     eval_chunk = S_chunk @ vec
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
     )

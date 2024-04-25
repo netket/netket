@@ -114,9 +114,8 @@ class Sampler(struct.Pytree):
 
         .. code:: python
 
-        from netket.jax import sharding
-        sharding.device_count()
-        sampler.n_chains // sharding.device_count()
+            from netket.jax import sharding
+            sampler.n_chains // sharding.device_count()
 
         """
         n_devices = sharding.device_count()

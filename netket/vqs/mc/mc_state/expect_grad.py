@@ -163,7 +163,7 @@ def _grad_expect_nonherm_kernel(
 
     # This term below is needed otherwise it does not match the value obtained by
     # (ha@ha).collect(). I'm unsure of why it is needed.
-    Ō_pars_grad = jax.tree_map(
+    Ō_pars_grad = jax.tree_util.tree_map(
         lambda x, target: x / 2 if jnp.iscomplexobj(target) else x,
         Ō_pars_grad,
         parameters,
@@ -178,6 +178,6 @@ def _grad_expect_nonherm_kernel(
 
     return (
         Ō_stats,
-        jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
+        jax.tree_util.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
         new_model_state,
     )

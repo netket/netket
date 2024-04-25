@@ -25,6 +25,7 @@ from netket.optimizer.qgt import QGTJacobianDense
 from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 from netket.jax import tree_cast
+from netket.utils import timing
 
 from netket.experimental.dynamics import RKIntegratorConfig
 
@@ -190,6 +191,7 @@ class TDVPSchmitt(TDVPBaseDriver):
 # MIT License, Copyright (c) 2021 Markus Schmitt
 
 
+@timing.timed
 @partial(jax.jit, static_argnames=("n_samples"))
 def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_atol):
     E = stats.statistics(E_loc)
@@ -280,7 +282,7 @@ def odefun_schmitt(state: MCState, self: TDVPSchmitt, t, w, *, stage=0):  # noqa
 
 @partial(jax.jit, static_argnums=(3, 4))
 def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
-    forces = jax.tree_map(
+    forces = jax.tree_util.tree_map(
         lambda x, target: loss_grad_factor * x,
         forces,
         parameters,

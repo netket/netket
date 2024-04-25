@@ -76,14 +76,16 @@ def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
     """
-    return any(jax.tree_util.tree_leaves(jax.tree_map(jnp.iscomplexobj, pars)))
+    return any(
+        jax.tree_util.tree_leaves(jax.tree_util.tree_map(jnp.iscomplexobj, pars))
+    )
 
 
 def tree_leaf_isreal(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has real dtype.
     """
-    return any(jax.tree_util.tree_leaves(jax.tree_map(jnp.isrealobj, pars)))
+    return any(jax.tree_util.tree_leaves(jax.tree_util.tree_map(jnp.isrealobj, pars)))
 
 
 def tree_ishomogeneous(pars: PyTree) -> bool:
@@ -100,7 +102,9 @@ def tree_conj(t: PyTree) -> PyTree:
     Args:
         t: pytree
     """
-    return jax.tree_map(lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t)
+    return jax.tree_util.tree_map(
+        lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t
+    )
 
 
 @jax.jit
@@ -116,7 +120,9 @@ def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     """
     return jax.tree_util.tree_reduce(
         jax.numpy.add,
-        jax.tree_map(jax.numpy.sum, jax.tree_map(jax.numpy.multiply, a, b)),
+        jax.tree_util.tree_map(
+            jax.numpy.sum, jax.tree_util.tree_map(jax.numpy.multiply, a, b)
+        ),
     )
 
 
@@ -135,7 +141,7 @@ def tree_cast(x: PyTree, target: PyTree) -> PyTree:
     """
     # astype alone would also work, however that raises ComplexWarning when casting complex to real
     # therefore the real is taken first where needed
-    return jax.tree_map(
+    return jax.tree_util.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
             target.dtype
         ),
@@ -157,9 +163,9 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
         where the leaves of x are first scaled with a.
     """
     if is_scalar(a):
-        return jax.tree_map(lambda x_, y_: a * x_ + y_, x, y)
+        return jax.tree_util.tree_map(lambda x_, y_: a * x_ + y_, x, y)
     else:
-        return jax.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
+        return jax.tree_util.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
 
 
 class RealImagTuple(tuple):
@@ -188,8 +194,8 @@ def _tree_to_real(x):
     if tree_leaf_iscomplex(x):
         # TODO find a way to make it a nop?
         # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
-        r = jax.tree_map(lambda x: x.real if jnp.iscomplexobj(x) else x, x)
-        i = jax.tree_map(lambda x: x.imag if jnp.iscomplexobj(x) else None, x)
+        r = jax.tree_util.tree_map(lambda x: x.real if jnp.iscomplexobj(x) else x, x)
+        i = jax.tree_util.tree_map(lambda x: x.imag if jnp.iscomplexobj(x) else None, x)
         return RealImagTuple((r, i))
     else:
         return x
@@ -198,7 +204,9 @@ def _tree_to_real(x):
 def _tree_to_real_inverse(x):
     if isinstance(x, RealImagTuple):
         # not using jax.lax.complex because it would convert scalars to arrays
-        return jax.tree_map(lambda re, im: re + 1j * im if im is not None else re, *x)
+        return jax.tree_util.tree_map(
+            lambda re, im: re + 1j * im if im is not None else re, *x
+        )
     else:
         return x
 

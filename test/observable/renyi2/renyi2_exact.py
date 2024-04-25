@@ -20,7 +20,7 @@ def _renyi2_exact(vstate, subsys):
     else:
         mask[subsys] = True
 
-        rdm = state_qutip.ptrace(np.arange(N)[mask])
+        rdm = state_qutip.ptrace(np.arange(N)[mask]).data.to_array()
 
         n = 2
         out = np.log2(np.trace(np.linalg.matrix_power(rdm, n))) / (1 - n)

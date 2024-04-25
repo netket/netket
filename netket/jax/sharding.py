@@ -257,7 +257,7 @@ def extract_replicated(t):
         else:
             return x
 
-    return jax.tree_map(_extract_replicated, t)
+    return jax.tree_util.tree_map(_extract_replicated, t)
 
 
 def gather(x):
@@ -490,7 +490,9 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
                     if o is True:
                         return lambda x: Partial(partial(lambda x: x, x))
                     else:
-                        return partial(jax.tree_map, partial(o, axis_name="i"))
+                        return partial(
+                            jax.tree_util.tree_map, partial(o, axis_name="i")
+                        )
 
                 reductions = [_sele_op(o) for o in reduction_op]
                 res = out_treedef.flatten_up_to(res)

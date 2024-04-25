@@ -104,7 +104,7 @@ def euclidean_norm(x: Union[PyTree, Array]):
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
                 lambda x, y: x + y,
-                jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
+                jax.tree_util.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
             )
         )
 
@@ -119,7 +119,7 @@ def maximum_norm(x: Union[PyTree, Array]):
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
                 jnp.maximum,
-                jax.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
+                jax.tree_util.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
             )
         )
 

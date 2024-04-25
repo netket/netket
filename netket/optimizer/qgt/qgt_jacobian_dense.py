@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import Scalar, PyTree
-from netket.utils import mpi
+from netket.utils import mpi, timing
 import netket.jax as nkjax
 from netket.nn import split_array_mpi
 
@@ -34,6 +34,7 @@ from .qgt_jacobian_common import (
 )
 
 
+@timing.timed
 def QGTJacobianDense(
     vstate=None,
     *,
@@ -146,7 +147,7 @@ def QGTJacobianDense(
     else:
         scale = None
 
-    pars_struct = jax.tree_map(
+    pars_struct = jax.tree_util.tree_map(
         lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), vstate.parameters
     )
 

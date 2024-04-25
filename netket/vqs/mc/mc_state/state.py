@@ -34,6 +34,7 @@ from netket.utils import (
     maybe_wrap_module,
     wrap_afun,
     wrap_to_support_scalar,
+    timing,
 )
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
@@ -240,7 +241,7 @@ class MCState(VariationalState):
             key, key2 = jax.random.split(nkjax.PRNGKey(seed), 2)
             sampler_seed = key2
 
-        self._sampler_seed = sampler_seed
+        self._sampler_seed = nkjax.PRNGKey(sampler_seed)
         self.sampler = sampler
 
         if n_samples is not None:
@@ -274,12 +275,22 @@ class MCState(VariationalState):
 
     @property
     def model(self) -> Optional[Any]:
-        """Returns the model definition of this variational state.
-
-        This field is optional, and is set to `None` if the variational state has
-        been initialized using a custom function.
-        """
+        """Returns the model definition of this variational state."""
         return self._model
+
+    @property
+    def _sampler_model(self):
+        """Returns the model definition used for sampling this variational state.
+        Equal to `.model`.
+        """
+        return self.model
+
+    @property
+    def _sampler_variables(self):
+        """Returns the variables used for sampling this variational state.
+        Equal to `.variables`
+        """
+        return self.variables
 
     @property
     def sampler(self) -> Sampler:
@@ -295,6 +306,8 @@ class MCState(VariationalState):
                 )
             )
 
+        self._sampler_seed, seed = jax.random.split(self._sampler_seed, 2)
+
         # Save the old `n_samples` before the new `sampler` is set.
         # `_chain_length == 0` means that this `MCState` is being constructed.
         if self._chain_length > 0:
@@ -302,7 +315,7 @@ class MCState(VariationalState):
 
         self._sampler = sampler
         self.sampler_state = self.sampler.init_state(
-            self.model, self.variables, seed=self._sampler_seed
+            self._sampler_model, self._sampler_variables, seed=seed
         )
         self._sampler_state_previous = self.sampler_state
 
@@ -440,6 +453,7 @@ class MCState(VariationalState):
         """
         self._samples = None
 
+    @timing.timed
     def sample(
         self,
         *,
@@ -477,20 +491,21 @@ class MCState(VariationalState):
         self._sampler_state_previous = self.sampler_state
 
         self.sampler_state = self.sampler.reset(
-            self.model, self.variables, self.sampler_state
+            self._sampler_model, self._sampler_variables, self.sampler_state
         )
 
         if self.n_discard_per_chain > 0:
-            _, self.sampler_state = self.sampler.sample(
-                self.model,
-                self.variables,
-                state=self.sampler_state,
-                chain_length=n_discard_per_chain,
-            )
+            with timing.timed_scope("sampling n_discarded samples"):
+                _, self.sampler_state = self.sampler.sample(
+                    self.model,
+                    self.variables,
+                    state=self.sampler_state,
+                    chain_length=n_discard_per_chain,
+                )
 
         self._samples, self.sampler_state = self.sampler.sample(
-            self.model,
-            self.variables,
+            self._sampler_model,
+            self._sampler_variables,
             state=self.sampler_state,
             chain_length=chain_length,
         )
@@ -530,6 +545,7 @@ class MCState(VariationalState):
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
+    @timing.timed
     def local_estimators(
         self, op: AbstractOperator, *, chunk_size: Optional[int] = None
     ):
@@ -557,6 +573,7 @@ class MCState(VariationalState):
         return local_estimators(self, op, chunk_size=chunk_size)
 
     # override to use chunks
+    @timing.timed
     def expect(self, O: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator
         :math:`O` or generic observable.
@@ -576,6 +593,7 @@ class MCState(VariationalState):
         return expect(self, O, self.chunk_size)
 
     # override to use chunks
+    @timing.timed
     def expect_and_grad(
         self,
         O: AbstractOperator,
@@ -616,6 +634,7 @@ class MCState(VariationalState):
         )
 
     # override to use chunks
+    @timing.timed
     def expect_and_forces(
         self,
         O: AbstractOperator,

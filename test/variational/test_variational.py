@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import partial
+import copy
 
 import pytest
 from pytest import approx, raises
@@ -280,7 +281,7 @@ def test_serialization(vstate):
 
     vstate = serialization.from_bytes(vstate, bdata)
 
-    jax.tree_map(np.testing.assert_allclose, vstate.parameters, old_params)
+    jax.tree_util.tree_map(np.testing.assert_allclose, vstate.parameters, old_params)
     np.testing.assert_allclose(vstate.samples, old_samples)
     assert vstate.n_samples == old_nsamples
     assert vstate.n_discard_per_chain == old_ndiscard
@@ -304,7 +305,7 @@ def test_init_parameters(vstate):
     def _f(x, y):
         np.testing.assert_allclose(x, y)
 
-    jax.tree_map(_f, pars, pars2)
+    jax.tree_util.tree_map(_f, pars, pars2)
 
 
 @common.skipif_mpi
@@ -339,7 +340,7 @@ def test_qutip_conversion(vstate):
     assert q_obj.dims[1] == [1 for i in range(vstate.hilbert.size)]
 
     assert q_obj.shape == (vstate.hilbert.n_states, 1)
-    np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
+    np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
 @common.skipif_mpi
@@ -428,14 +429,14 @@ def test_expect(vstate, operator):
 def test_forces(vstate, operator):
     _, O_grad1 = vstate.expect_and_grad(operator)
     O_grad2 = vstate.grad(operator)
-    jax.tree_map(np.testing.assert_array_equal, O_grad1, O_grad2)
+    jax.tree_util.tree_map(np.testing.assert_array_equal, O_grad1, O_grad2)
 
     _, f1 = vstate.expect_and_forces(operator)
     if nk.jax.tree_leaf_iscomplex(vstate.parameters):
         g1 = f1
     else:
-        g1 = jax.tree_map(lambda x: 2.0 * np.real(x), f1)
-    jax.tree_map(np.testing.assert_array_equal, g1, O_grad1)
+        g1 = jax.tree_util.tree_map(lambda x: 2.0 * np.real(x), f1)
+    jax.tree_util.tree_map(np.testing.assert_array_equal, g1, O_grad1)
 
 
 def test_forces_gradient_rule():
@@ -557,7 +558,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
     )
 
@@ -566,6 +567,37 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.chunk_size = chunk_size
     grad_chunk = vstate.grad(operator)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
+
+
+def test_reproducible_copy():
+    # This checks that if i duplicate a variational state and perform the same operations
+    # I get exactly the same samples
+
+    hi = nk.hilbert.Spin(0.5, 10)
+    ma = nk.models.RBM()
+    sa = nk.sampler.MetropolisLocal(hilbert=hi)
+    vs = nk.vqs.MCState(sa, ma, n_samples=64)
+
+    # If i copy, I have same sampler_state
+    vs2 = copy.copy(vs)
+    s1 = vs.samples
+    s2 = vs2.samples
+    np.testing.assert_allclose(s1, s2)
+
+    # If i change the sampler, I get a new sampler_state and
+    # the seed should be computed
+    sa = nk.sampler.MetropolisLocal(hilbert=hi, sweep_size=4)
+
+    vs.sampler = sa
+    vs2.sampler = sa
+    s1_2 = vs.samples
+    s2_2 = vs.samples
+
+    # same seed for the new sampler state.
+    np.testing.assert_allclose(s1_2, s2_2)
+    # But different samples
+    with pytest.raises(ValueError):
+        np.testing.assert_allclose(s1, s1_2)

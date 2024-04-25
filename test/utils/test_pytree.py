@@ -42,7 +42,7 @@ class TestPytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 
@@ -66,7 +66,7 @@ class TestPytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 
@@ -229,7 +229,7 @@ class TestPytree:
 
         pytree = A(a=1)
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
 
     @pytest.mark.parametrize("dynamic_nodes", [True, False])
     def test_deterministic_order(self, dynamic_nodes):
@@ -270,7 +270,7 @@ class TestMutablePytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 
@@ -314,7 +314,7 @@ class TestMutablePytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 
