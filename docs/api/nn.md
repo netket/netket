@@ -60,7 +60,6 @@ The following modules can be used in autoregressive neural networks, see {class}
     :toctree: _generated/nn
 
     binary_encoding
-    states_to_numbers
 ```
 
 ## Utility functions
