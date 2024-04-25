@@ -283,6 +283,8 @@ You can freely use {class}`~nk.hilbert.AbstractHilbert` objects inside of {func}
 All attributes and methods of Hilbert spaces can be freely used inside of a {func}`jax.jit` block.
 In particular the {meth}`~DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax {func}`jax.random.PRNGKey` object as the first argument.
 
+### Adapting Hilbert spaces with numpy `states_to_numbers` / `numbers_to_states`
+
 If you want to write a custom hilbert space for which `states_to_numbers` and `numbers_to_states` are not easily implementable in pure jax code, you can use a {func}`jax.pure_callback` as outlined in the following example:
 
 ```python
