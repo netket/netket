@@ -26,6 +26,7 @@ from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert
 
 from netket.utils import config
+from netket.utils.deprecation import deprecated
 from netket.jax.sharding import (
     extract_replicated,
     gather,
@@ -322,3 +323,11 @@ def binary_encoding(
     return binarised_states.reshape(
         *binarised_states.shape[:-2], prod(binarised_states.shape[-2:])
     )[..., output_idx]
+
+
+@deprecated(
+    "The function `netket.nn.states_to_numbers` is deprecated. "
+    "Please call `hilbert.states_to_numbers` directly."
+)
+def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
+    return hilbert.states_to_numbers(σ)
