@@ -47,14 +47,17 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
             raise ValueError(
                 "IsingJax only supports Hamiltonians with two local states"
             )
+
         if not isinstance(h, jax.Array) and (h == 0 or h is None):
             h = StaticZero()
+
         J = jnp.array(J, dtype=dtype)
         if not isinstance(h, StaticZero):
             h = jnp.array(h, dtype=dtype)
-        super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
-        self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
 
+        super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
+
+        self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
         self._hi_local_states = tuple(self.hilbert.local_states)
 
     @jax.jit
