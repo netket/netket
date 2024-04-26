@@ -83,19 +83,19 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
 
     def tree_flatten(self):
         data = (self.U, self.V, self.J, self.mu, self.edges)
-        metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
+        metadata = {"hilbert": self.hilbert}
         return data, metadata
 
     @classmethod
     def tree_unflatten(cls, metadata, data):
         U, V, J, mu, edges = data
         hi = metadata["hilbert"]
-        dtype = metadata["dtype"]
-        res = cls(hi, graph=edges, U=1.0, dtype=dtype)
+        res = cls(hi, graph=[(0, 0)], U=1.0)
         res._U = U
         res._V = V
         res._J = J
         res._mu = mu
+        res._edges = edges
         return res
 
 
