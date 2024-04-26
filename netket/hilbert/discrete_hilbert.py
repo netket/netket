@@ -15,9 +15,11 @@
 from typing import Optional
 from collections.abc import Iterator
 from textwrap import dedent
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
+
+import jax
 import jax.numpy as jnp
 
 from equinox import error_if
@@ -122,6 +124,7 @@ class DiscreteHilbert(AbstractHilbert):
         """
         raise NotImplementedError()  # pragma: no cover
 
+    @partial(jax.jit, static_argnums=0)
     def numbers_to_states(self, numbers: Array) -> Array:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n.
@@ -155,6 +158,7 @@ class DiscreteHilbert(AbstractHilbert):
             (*numbers.shape, self.size)
         )
 
+    @partial(jax.jit, static_argnums=0)
     def states_to_numbers(self, states: Array) -> Array:
         r"""Returns the basis state number corresponding to given quantum states.
 
@@ -196,6 +200,7 @@ class DiscreteHilbert(AbstractHilbert):
         for i in range(self.n_states):
             yield self.numbers_to_states(i).reshape(-1)
 
+    @partial(jax.jit, static_argnums=0)
     def all_states(self) -> Array:
         r"""Returns all valid states of the Hilbert space.
 
