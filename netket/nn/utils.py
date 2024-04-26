@@ -26,6 +26,7 @@ from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert
 
 from netket.utils import config
+from netket.utils.deprecation import deprecated
 from netket.jax.sharding import (
     extract_replicated,
     gather,
@@ -324,30 +325,9 @@ def binary_encoding(
     )[..., output_idx]
 
 
+@deprecated(
+    "The function `netket.nn.states_to_numbers` is deprecated. "
+    "Please call `DiscreteHilbert.states_to_numbers` directly."
+)
 def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
-    """
-    Converts the configuration σ to a 32-bit integer denoting its index in the full Hilbert space.
-
-    This function calls `hilbert.states_to_numbers` as a JAX pure callback and can thus be used within
-    `jax.jit`.
-
-    Args:
-        hilbert: The Hilbert space
-        σ: A single or a batch of configurations
-
-    Returns:
-        a single integer or a batch of integer indices.
-    """
-    if not hilbert.is_indexable:
-        raise ValueError(
-            f"Hilbert space {hilbert} is too large to be indexed or "
-            f"cannot be indexed at all."
-        )
-
-    # calls back into python
-    return jax.pure_callback(
-        hilbert.states_to_numbers,
-        jax.ShapeDtypeStruct(σ.shape[:-1], jnp.int32),
-        σ,
-        vectorized=True,
-    )
+    return hilbert.states_to_numbers(σ)

@@ -33,6 +33,8 @@ from netket.utils import StaticRange
 
 import jax
 import jax.numpy as jnp
+from jax._src.lib import xla_extension
+
 
 from .. import common
 
@@ -700,25 +702,6 @@ def test_constrained_eq_hash():
     assert hash(hi1) != hash(hi2)
 
 
-@pytest.mark.parametrize("hi", discrete_hilbert_params)
-def test_hilbert_numba_throws(hi):
-    """Check that get conn throws an error"""
-    from netket.errors import HilbertIndexingDuringTracingError
-
-    @partial(jax.jit, static_argnums=0)
-    def numbers_to_states(hi, s):
-        return hi.numbers_to_states(s)
-
-    @partial(jax.jit, static_argnums=0)
-    def states_to_numbers(hi, s):
-        return hi.states_to_numbers(s)
-
-    with pytest.raises(HilbertIndexingDuringTracingError):
-        numbers_to_states(hi, 1)
-    with pytest.raises(HilbertIndexingDuringTracingError):
-        states_to_numbers(hi, jnp.zeros((hi.size,)))()
-
-
 def test_particle_alternative_constructors():
     hi1 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf), pbc=False)
     hi2 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf))
@@ -735,3 +718,48 @@ def test_particle_alternative_constructors():
 
     with pytest.raises(ValueError, match=r".*must be specified.*"):
         nk.hilbert.Particle(N=5, L=3)
+
+
+def test_hilbert_states_outside_range_errors():
+    hi = nk.hilbert.Fock(3, 2, 4)
+
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: Numbers outside the range of allowed states.
+        hi.numbers_to_states(-1)
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: Numbers outside the range of allowed states.
+        hi.numbers_to_states(10000)
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: States outside the range of allowed states.
+        hi.states_to_numbers(jnp.array([0, 4]))
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: States do not fulfill constraint.
+        hi.states_to_numbers(jnp.array([0, 3]))
+
+
+@partial(jax.jit, static_argnums=0)
+def _states_to_numbers_jit(hi, states):
+    return hi.states_to_numbers(states)
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_hilbert_states_to_numbers_jit(hi: DiscreteHilbert):
+    if hi.is_indexable:
+        numbers0 = jnp.arange(min(10, hi.n_states))
+        states0 = hi.numbers_to_states(numbers0)
+        numbers1 = _states_to_numbers_jit(hi, states0)
+        np.testing.assert_allclose(numbers0, numbers1)
+
+
+@partial(jax.jit, static_argnums=0)
+def _numbers_to_states_jit(hi, numbers):
+    return hi.numbers_to_states(numbers)
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_hilbert_numbers_to_states_jit(hi: DiscreteHilbert):
+    if hi.is_indexable:
+        numbers0 = jnp.arange(min(10, hi.n_states))
+        states0 = hi.numbers_to_states(numbers0)
+        states1 = _numbers_to_states_jit(hi, numbers0)
+        np.testing.assert_allclose(states0, states1)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
+import jax.numpy as jnp
 
 from netket.utils.dispatch import parametric
 
@@ -123,11 +123,11 @@ class DoubledHilbert(DiscreteHilbert):
         # etc...
 
         dim = self.physical.n_states
-        left, right = np.divmod(numbers, dim)
+        left, right = jnp.divmod(numbers, dim)
 
         out_l = self.physical.numbers_to_states(left)
         out_r = self.physical.numbers_to_states(right)
-        return np.concatenate([out_l, out_r], axis=-1)
+        return jnp.concatenate([out_l, out_r], axis=-1)
 
     def _states_to_numbers(self, states):
         # !!! WARNING

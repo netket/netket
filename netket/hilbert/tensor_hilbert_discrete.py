@@ -131,7 +131,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         rem = numbers
         tmp = []
         for i, dim in enumerate(self._ns_states_r):
-            rem, loc_numbers = np.divmod(rem, dim)
+            rem, loc_numbers = jnp.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
             tmp.append(self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers))
 

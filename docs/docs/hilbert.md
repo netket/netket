@@ -280,10 +280,87 @@ Hilbert spaces are immutable, hashable objects.
 Their hash is computed by hashing their inner fields, determined by the internal {meth}`~DiscreteHilbert._attrs` method.
 You can freely use {class}`~nk.hilbert.AbstractHilbert` objects inside of {func}`jax.jit`ted functions as long as you specify that they are `static`.
 
-All attributes and methods of Hilbert spaces can be freely used inside of a {func}`jax.jit` block except for 
-{meth}`~DiscreteHilbert.states_to_numbers` and {meth}`~DiscreteHilbert.numbers_to_states`, because
-they are written using standard [numpy](https://numpy.org/doc/stable/user/index.html#user) instead of jax.
+All attributes and methods of Hilbert spaces can be freely used inside of a {func}`jax.jit` block.
+In particular the {meth}`~DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax {func}`jax.random.PRNGKey` object as the first argument.
 
-In particular the {meth}`~DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax 
-{func}`jax.random.PRNGKey` object as the first argument.
+### Adapting Hilbert spaces with numpy `states_to_numbers` / `numbers_to_states`
 
+If you want to write a custom hilbert space for which `states_to_numbers` and `numbers_to_states` are not easily implementable in pure jax code, you can use a {func}`jax.pure_callback` as outlined in the following example:
+
+```python
+from functools import partial
+import numpy as np
+import jax
+import jax.numpy as jnp
+from netket.hilbert import DiscreteHilbert
+
+
+def numbers_to_states_py(hi, numbers):
+    numbers = np.asarray(numbers)
+    states = np.zeros((*numbers.shape, hi.size), dtype=hi.dtype)
+    b = 1
+    for i, s in enumerate(hi.shape):
+        b = b * s
+        numbers, states[..., i] = np.divmod(numbers, b)
+    return states
+
+
+def states_to_numbers_py(hi, states):
+    numbers = np.zeros(states.shape[:-1], dtype=np.int32)
+    b = 1
+    for i, s in enumerate(hi.shape):
+        numbers = numbers + states[..., i] * b
+        b = b * s
+    return numbers
+
+
+class ExamplePythonHilbertSpace(DiscreteHilbert):
+    def __init__(self, shape, dtype):
+        self._dtype = dtype
+        super().__init__(shape=shape)
+
+    @property
+    def size(self):
+        return len(self.shape)
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def _attrs(self):
+        return (self.shape,)
+
+    @property
+    def n_states(self):
+        return np.prod(self.shape)
+
+    @property
+    def is_finite(self):
+        return True
+
+    def numbers_to_states(self, numbers):
+        return jax.pure_callback(
+            partial(numbers_to_states_py, self),
+            jax.ShapeDtypeStruct(
+                (*numbers.shape, self.size),
+                self.dtype,
+            ),
+            numbers,
+            vectorized=True,
+        )
+
+    def states_to_numbers(self, states):
+        return jax.pure_callback(
+            partial(states_to_numbers_py, self),
+            jax.ShapeDtypeStruct(states.shape[:-1], jnp.int32),
+            states,
+            vectorized=True,
+        )
+
+
+hi = ExamplePythonHilbertSpace((1, 2, 3), jnp.int8)
+numbers = np.arange(hi.n_states)
+states = jax.jit(lambda hi, i: hi.numbers_to_states(i), static_argnums=0)(hi, numbers)
+numbers2 = jax.jit(lambda hi, x: hi.states_to_numbers(x), static_argnums=0)(hi, states)
+```

@@ -111,7 +111,9 @@ class SumConstrainedHilbertIndex(HilbertIndex):
 
     @struct.property_cached(pytree_node=True)
     def _lookup_table(self) -> LookupTableHilbertIndex:
-        return LookupTableHilbertIndex(self._compute_all_states())
+        with jax.ensure_compile_time_eval():
+            all_states = self._compute_all_states()
+        return LookupTableHilbertIndex(all_states)
 
     @property
     def n_states_bound(self):

@@ -599,5 +599,5 @@ def test_reproducible_copy():
     # same seed for the new sampler state.
     np.testing.assert_allclose(s1_2, s2_2)
     # But different samples
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         np.testing.assert_allclose(s1, s1_2)

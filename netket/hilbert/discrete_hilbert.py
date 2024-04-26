@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional
 from collections.abc import Iterator
 from textwrap import dedent
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 
+import jax
+import jax.numpy as jnp
+
+from equinox import error_if
+
 from netket.utils.types import Array
-from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
 
 from .abstract_hilbert import AbstractHilbert
 from .index import is_indexable
@@ -120,7 +124,8 @@ class DiscreteHilbert(AbstractHilbert):
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def numbers_to_states(self, numbers: Union[int, np.ndarray]) -> np.ndarray:
+    @partial(jax.jit, static_argnums=0)
+    def numbers_to_states(self, numbers: Array) -> Array:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n.
 
@@ -128,28 +133,33 @@ class DiscreteHilbert(AbstractHilbert):
         :code:`numbers[k]=Index(states[k])`.
         Throws an exception iff the space is not indexable.
 
+        This function validates the inputs by checking that the numbers provided
+        are smaller than the Hilbert space size, and throws an error if that
+        condition is not met. When called from within a `jax.jit` context, this
+        uses {func}`equinox.error_if` to throw runtime errors.
+
         Args:
             numbers (numpy.array): Batch of input numbers to be converted into arrays of
                 quantum numbers.
         """
 
-        numbers = concrete_or_error(
-            np.asarray, numbers, HilbertIndexingDuringTracingError
-        )
-
-        numbers_r = np.asarray(np.reshape(numbers, -1))
-
-        if np.any(numbers >= self.n_states):
-            raise ValueError("numbers outside the range of allowed states")
-
         if not self.is_indexable:
             raise RuntimeError("The hilbert space is too large to be indexed.")
 
-        out = self._numbers_to_states(numbers_r)
+        numbers = jnp.asarray(numbers, dtype=np.int32)
 
-        return out.reshape((*numbers.shape, self.size))
+        numbers = error_if(
+            numbers,
+            (numbers >= self.n_states).any() | (numbers < 0).any(),
+            "Numbers outside the range of allowed states.",
+        )
 
-    def states_to_numbers(self, states: np.ndarray) -> Union[int, np.ndarray]:
+        return self._numbers_to_states(numbers.ravel()).reshape(
+            (*numbers.shape, self.size)
+        )
+
+    @partial(jax.jit, static_argnums=0)
+    def states_to_numbers(self, states: Array) -> Array:
         r"""Returns the basis state number corresponding to given quantum states.
 
         The states are given in a batch, such that states[k] has shape (hilbert.size).
@@ -168,11 +178,7 @@ class DiscreteHilbert(AbstractHilbert):
                 f"corresponding to this hilbert space {self.size}"
             )
 
-        states = concrete_or_error(
-            np.asarray, states, HilbertIndexingDuringTracingError
-        )
-
-        states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
+        states_r = jnp.reshape(states, (-1, states.shape[-1]))
 
         if not self.is_indexable:
             raise RuntimeError("The hilbert space is too large to be indexed.")
@@ -194,7 +200,8 @@ class DiscreteHilbert(AbstractHilbert):
         for i in range(self.n_states):
             yield self.numbers_to_states(i).reshape(-1)
 
-    def all_states(self) -> np.ndarray:
+    @partial(jax.jit, static_argnums=0)
+    def all_states(self) -> Array:
         r"""Returns all valid states of the Hilbert space.
 
         Throws an exception if the space is not indexable.
@@ -204,8 +211,7 @@ class DiscreteHilbert(AbstractHilbert):
             to the pre-allocated array if it was passed.
         """
 
-        numbers = np.arange(0, self.n_states, dtype=np.int32)
-
+        numbers = jnp.arange(0, self.n_states, dtype=np.int32)
         return self.numbers_to_states(numbers)
 
     def states_to_local_indices(self, x: Array):
