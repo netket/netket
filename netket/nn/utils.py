@@ -327,7 +327,7 @@ def binary_encoding(
 
 @deprecated(
     "The function `netket.nn.states_to_numbers` is deprecated. "
-    "Please call `hilbert.states_to_numbers` directly."
+    "Please call `DiscreteHilbert.states_to_numbers` directly."
 )
 def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
     return hilbert.states_to_numbers(σ)
