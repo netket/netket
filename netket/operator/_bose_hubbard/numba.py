@@ -83,6 +83,10 @@ class BoseHubbard(BoseHubbardBase):
             graph = np.asarray(graph)
         super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)
 
+        # caches for numba indexing methods
+        self._max_mels = np.zeros(self._max_conn, dtype=self.dtype)
+        self._max_xprime = np.zeros((self._max_conn, self._n_sites))
+
     def to_jax_operator(self) -> "BoseHubbardJax":  # noqa: F821
         """
         Returns the jax-compatible version of this operator, which is an

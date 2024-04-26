@@ -108,8 +108,6 @@ class BoseHubbardBase(SpecialHamiltonian):
         self._n_sites = hilbert.size
         self._edges = graph.astype(np.intp)
         self._max_conn = 1 + self._edges.shape[0] * 2
-        self._max_mels = np.zeros(self._max_conn, dtype=self.dtype)
-        self._max_xprime = np.zeros((self._max_conn, self._n_sites))
 
     @property
     def is_hermitian(self):
