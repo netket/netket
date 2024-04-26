@@ -298,19 +298,21 @@ from netket.hilbert import DiscreteHilbert
 def numbers_to_states_py(hi, numbers):
     numbers = np.asarray(numbers)
     states = np.zeros((*numbers.shape, hi.size), dtype=hi.dtype)
-    b=1
+    b = 1
     for i, s in enumerate(hi.shape):
-        b = b*s
-        numbers, states[..., i] = np.divmod(numbers, b)            
+        b = b * s
+        numbers, states[..., i] = np.divmod(numbers, b)
     return states
+
 
 def states_to_numbers_py(hi, states):
     numbers = np.zeros(states.shape[:-1], dtype=np.int32)
-    b=1
+    b = 1
     for i, s in enumerate(hi.shape):
-        numbers = numbers + states[..., i]*b
-        b = b*s
+        numbers = numbers + states[..., i] * b
+        b = b * s
     return numbers
+
 
 class ExamplePythonHilbertSpace(DiscreteHilbert):
     def __init__(self, shape, dtype):
@@ -332,6 +334,7 @@ class ExamplePythonHilbertSpace(DiscreteHilbert):
     @property
     def n_states(self):
         return np.prod(self.shape)
+
     @property
     def is_finite(self):
         return True
@@ -339,16 +342,24 @@ class ExamplePythonHilbertSpace(DiscreteHilbert):
     def numbers_to_states(self, numbers):
         return jax.pure_callback(
             partial(numbers_to_states_py, self),
-            jax.ShapeDtypeStruct((*numbers.shape, self.size), self.dtype,),
-            numbers, vectorized=True)
+            jax.ShapeDtypeStruct(
+                (*numbers.shape, self.size),
+                self.dtype,
+            ),
+            numbers,
+            vectorized=True,
+        )
 
     def states_to_numbers(self, states):
         return jax.pure_callback(
             partial(states_to_numbers_py, self),
             jax.ShapeDtypeStruct(states.shape[:-1], jnp.int32),
-            states, vectorized=True)
+            states,
+            vectorized=True,
+        )
 
-hi = ExamplePythonHilbertSpace((1,2,3), jnp.int8)
+
+hi = ExamplePythonHilbertSpace((1, 2, 3), jnp.int8)
 numbers = np.arange(hi.n_states)
 states = jax.jit(lambda hi, i: hi.numbers_to_states(i), static_argnums=0)(hi, numbers)
 numbers2 = jax.jit(lambda hi, x: hi.states_to_numbers(x), static_argnums=0)(hi, states)
