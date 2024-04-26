@@ -125,6 +125,7 @@ def flip_state_scalar(hilb, key, state, indx):
     return new_state.reshape(-1), old_val.reshape()
 
 
+# we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
 @dispatch
 @partial(sharding_decorator, sharded_args_tree=(False, "key", True, True))
 def flip_state_batch(hilb, key, states, indxs):

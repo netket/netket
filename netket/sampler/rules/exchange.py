@@ -102,6 +102,7 @@ class ExchangeRule(MetropolisRule):
             key, shape=(n_chains,), minval=0, maxval=rule.clusters.shape[0]
         )
 
+        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
         @partial(sharding_decorator, sharded_args_tree=(True, True))
         @jax.vmap
         def update_fun(σ, cluster):

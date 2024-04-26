@@ -80,6 +80,7 @@ class ParticleExchangeRule(ExchangeRule):
 
         keys = jnp.asarray(jax.random.split(key, n_chains))
 
+        # we use shard_map to avoid the all-gather coming from the batched jnp.take / indexing
         @partial(sharding_decorator, sharded_args_tree=(True, True, True))
         @jax.vmap
         def _update_samples(key, σ, hoppable_clusters):

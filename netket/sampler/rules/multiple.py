@@ -133,6 +133,7 @@ class MultipleRules(MetropolisRule):
             p=self.probabilities,
         )
 
+        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
         batch_select = sharding_decorator(
             jax.vmap(partial(jnp.take, axis=0)), (True, True)
         )

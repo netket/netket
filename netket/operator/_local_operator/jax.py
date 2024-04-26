@@ -200,6 +200,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         # move nonzero mels to the front and keep exactly max_conn_size
         (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(mask)
 
+        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
         xp = sharding_decorator(jax.vmap(partial(jnp.take, axis=0)), (True, True))(
             xp, ind
         )
