@@ -16,7 +16,7 @@ from .. import common
 
 pytestmark = common.skipif_mpi
 
-SEED = 214748364
+SEED = 21478364
 
 
 def _setup_vmc(dtype=np.float32, sr=True):
