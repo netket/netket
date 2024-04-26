@@ -459,6 +459,9 @@ def test_sampling_sharded_not_commuincating(
         "reduce-scatter",
     ]:
         for l in txt.split("\n"):
+            if "equinox" in l:
+                # allow equinox error_if all-gather
+                continue
             assert o not in l
 
 
