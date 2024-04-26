@@ -77,6 +77,21 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         )
         return text
 
+    @property
+    def normalized_diffusion(self):
+        r"""
+        Average variance of the position of :math:`\\beta = 1`.
+        In the ideal case, this quantity should be of order ~[0.2, 1.0]
+        """
+        return jnp.sqrt(self.beta_diffusion / self.exchange_steps / self.beta.shape[-1])
+
+    @property
+    def normalized_position(self):
+        r"""
+        Average position of :math:`\\beta = 1`, normalized and centered around 0.
+        """
+        return self.beta_position / float(self.beta.shape[-1] - 1) - 0.5
+
 
 class MetropolisPtSampler(MetropolisSampler):
     """
@@ -205,6 +220,7 @@ class MetropolisPtSampler(MetropolisSampler):
 
             beta = s["beta"]
 
+            ## Usual Metropolis sampling
             σp, log_prob_correction = sampler.rule.transition(
                 sampler, machine, parameters, state, key1, s["σ"]
             )
@@ -231,7 +247,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
             )
 
-            # exchange betas
+            ## exchange betas
 
             # randomly decide if every set of replicas should be swapped in even or odd order
             swap_order = jax.random.randint(
@@ -240,7 +256,6 @@ class MetropolisPtSampler(MetropolisSampler):
                 maxval=2,
                 shape=(sampler.n_batches // sampler.n_replicas,),
             )  # 0 or 1
-            # iswap_order = jnp.mod(swap_order + 1, 2)  #  1 or 0
 
             # indices of even swapped elements (per-row)
             idxs = jnp.arange(0, sampler.n_replicas, 2).reshape(
@@ -264,11 +279,14 @@ class MetropolisPtSampler(MetropolisSampler):
 
             @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
             def compute_proposed_prob(prob, idxs, inn):
+                # prob[idxs] = (beta_i - beta_j) log psi(x_i)
+                # prob[inn] = (beta_j - beta_i) log psi(x_j)
+                # so we have to add the log probabilities to get the right acceptance
                 prob_rescaled = prob[idxs] + prob[inn]
                 return prob_rescaled
 
             # compute the probability of the swaps
-            log_prob = (proposed_beta - state.beta) * s["log_prob"].reshape(
+            log_prob = (proposed_beta - s["beta"]) * s["log_prob"].reshape(
                 (sampler.n_batches // sampler.n_replicas, sampler.n_replicas)
             )
 
@@ -282,13 +300,14 @@ class MetropolisPtSampler(MetropolisSampler):
                 ),
             )
 
+            # decide where to swap
             do_swap = uniform < prob_rescaled
 
             do_swap = jnp.dstack((do_swap, do_swap)).reshape(
                 (-1, sampler.n_replicas)
             )  # concat along last dimension
 
-            # roll if swap_ordeer is odd
+            # roll if swap_order is odd
             @partial(jax.vmap, in_axes=(0, 0), out_axes=0)
             def fix_swap(do_swap, swap_order):
                 return jax.lax.cond(
@@ -296,11 +315,9 @@ class MetropolisPtSampler(MetropolisSampler):
                 )
 
             do_swap = fix_swap(do_swap, swap_order)
-            # jax.experimental.host_callback.id_print(state.beta)
-            # jax.experimental.host_callback.id_print(proposed_beta)
 
-            # new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
-
+            # Do the swap where it has to be done
+            new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
             # def cb(data):
             #     _bt, _pbt, new_beta, so, do_swap, log_prob, prob = data
             #     print("--------.---------.---------.--------")
@@ -312,7 +329,7 @@ class MetropolisPtSampler(MetropolisSampler):
             #     print("log_prob;\n", log_prob)
             #     print("prob_rescaled;\n", prob)
             #     return new_beta
-            #
+
             # new_beta = hcb.call(
             #    cb,
             #    (
@@ -326,17 +343,19 @@ class MetropolisPtSampler(MetropolisSampler):
             #    ),
             #    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
             # )
-            # s["beta"] = new_beta
+            s["beta"] = new_beta
 
-            swap_order = swap_order.reshape(-1)
+            swap_order = swap_order.reshape(-1)  # (n_chains)
 
             beta_0_moved = jax.vmap(
-                lambda do_swap, i: do_swap[i], in_axes=(0, 0), out_axes=0
-            )(do_swap, state.beta_0_index)
+                lambda do_swap, k: do_swap[k], in_axes=(0, 0), out_axes=0
+            )(
+                do_swap, s["beta_0_index"]
+            )  # flag saying if beta_0 should move
             proposed_beta_0_index = jnp.mod(
-                state.beta_0_index
-                + (-jnp.mod(swap_order, 2) * 2 + 1)
-                * (-jnp.mod(state.beta_0_index, 2) * 2 + 1),
+                s["beta_0_index"]
+                + (-2 * jnp.mod(swap_order, 2) + 1)
+                * (-2 * jnp.mod(s["beta_0_index"], 2) + 1),
                 sampler.n_replicas,
             )
 
@@ -354,27 +373,15 @@ class MetropolisPtSampler(MetropolisSampler):
 
             # Update statistics to compute diffusion coefficient of replicas
             # Total exchange steps performed
+            s["exchange_steps"] += 1
             delta = s["beta_0_index"] - s["beta_position"]
-            s["beta_position"] = s["beta_position"] + delta / (
-                state.exchange_steps + jnp.asarray(i, dtype=jnp.int64)
-            )
+            s["beta_position"] = s["beta_position"] + delta / s["exchange_steps"]
             delta2 = s["beta_0_index"] - s["beta_position"]
             s["beta_diffusion"] = s["beta_diffusion"] + delta * delta2
 
             return s
 
         new_rng, rng = jax.random.split(state.rng)
-
-        # def cbr(data):
-        #    new_rng, rng = data
-        #    print("sample_next newrng:\n", new_rng,  "\nand rng:\n", rng)
-        #    return new_rng
-        #
-        # new_rng = hcb.call(
-        #   cbr,
-        #   (new_rng, rng),
-        #   result_shape=jax.ShapeDtypeStruct(new_rng.shape, new_rng.dtype),
-        # )
 
         s = {
             "key": rng,
@@ -386,6 +393,7 @@ class MetropolisPtSampler(MetropolisSampler):
             "n_accepted_per_beta": state.n_accepted_per_beta,
             "beta_position": state.beta_position,
             "beta_diffusion": state.beta_diffusion,
+            "exchange_steps": state.exchange_steps,
         }
         s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
@@ -394,14 +402,13 @@ class MetropolisPtSampler(MetropolisSampler):
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
-            # n_accepted=s["accepted"],
             n_steps_proc=state.n_steps_proc
             + sampler.sweep_size * sampler.n_batches // sampler.n_replicas,
             beta=s["beta"],
             beta_0_index=s["beta_0_index"],
             beta_position=s["beta_position"],
             beta_diffusion=s["beta_diffusion"],
-            exchange_steps=state.exchange_steps + sampler.sweep_size,
+            exchange_steps=s["exchange_steps"],
             n_accepted_per_beta=s["n_accepted_per_beta"],
             n_accepted_proc=jax.vmap(jnp.take)(
                 s["n_accepted_per_beta"], s["beta_0_index"]
