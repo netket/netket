@@ -130,6 +130,11 @@ class DiscreteHilbert(AbstractHilbert):
         :code:`numbers[k]=Index(states[k])`.
         Throws an exception iff the space is not indexable.
 
+        This function validates the inputs by checking that the numbers provided
+        are smaller than the Hilbert space size, and throws an error if that
+        condition is not met. When called from within a `jax.jit` context, this
+        uses {func}`equinox.error_if` to throw runtime errors.
+
         Args:
             numbers (numpy.array): Batch of input numbers to be converted into arrays of
                 quantum numbers.
