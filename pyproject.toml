@@ -91,7 +91,7 @@ docs = [
     "sphinx-autodoc-typehints>=1.22,<3.0",
     "sphinxcontrib-fulltoc~=1.2.0",
     "sphinxcontrib-jsmath~=1.0.1",
-    "myst-parser>=2.0.0,<2.1.0",
+    "myst-parser>=2.0.0,<3.1.0",
     "myst-nb>=1.0,<1.2",
     "sphinx-book-theme~=1.1.0",
 ]
