@@ -340,6 +340,7 @@ class MCState(VariationalState):
     def n_samples(self, n_samples: int):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
         self.chain_length = chain_length
+        self.reset()
 
     @property
     def n_samples_per_rank(self) -> int:
