@@ -225,7 +225,8 @@ class MultiSlater2nd(nn.Module):
     A slater determinant ansatz for second-quantised spinless or spin-full
     fermions with a sum of determinants.
 
-    Conventions are the same as in `Slater2nd'.
+    Refer to :class:`~netket.experimental.models.Slater2nd` for details about the different
+    variants of Hartree Fock and the flags.
     """
 
     hilbert: SpinOrbitalFermions
@@ -235,15 +236,23 @@ class MultiSlater2nd(nn.Module):
     n_determinants: int = 1
     """The number of determinants to be summed."""
 
-    restricted: bool = True
-    """Flag to select the restricted- or unrestricted- Hartree Fock orbtals (Defaults to restricted).
-
-    If restricted, only one set of orbitals are parametrised, and they are used for all spin subsectors.
-    If unrestricted, a different set of orbitals are parametrised and used for each spin subsector.
+    generalized: bool = False
+    """Uses Generalized Hartree-Fock if True (defaults to `False`, corresponding to the
+    standard spin-conserving Hartree-Fock).
     """
 
-    generalized: bool = False
-    """Flag to select generalize Hartree-Fock (defaults to standard spin-conserving Hartree-Fock)."""
+    restricted: bool = True
+    """Flag to select the restricted- or unrestricted- Hartree Fock orbitals
+    (Defaults to restricted).
+
+    This flag is ignored if :code:`generalized=True`.
+
+    - If restricted, only one set of orbitals are parametrised, and they are
+      used for all spin subsectors. This only works if every spin subsector
+      holds the same number of fermions.
+    - If unrestricted, a different set of orbitals are parametrised and used
+      for each spin subsector.
+    """
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the orbital parameters."""
