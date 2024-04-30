@@ -46,6 +46,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - uses: yezz123/setup-uv@v4
+        with:
+          uv-venv: "env"
 
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
