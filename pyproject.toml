@@ -78,7 +78,7 @@ dev = [
     "coverage>=5",
     "pre-commit>=2.7",
     "black==23.9.1",
-    "ruff==0.1.0",
+    "ruff==0.4.2",
     "qutip>=5",
     "wheel",
     "build",
@@ -162,14 +162,16 @@ testpaths = [
 
 [tool.ruff]
 target-version = "py39"
+line-length = 88
+exclude = ["Examples/Legacy", "docs/conf.py"]
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "D410", "UP"]
 fixable = ["E", "F", "W", "D", "UP"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]
-line-length = 88
-exclude = ["Examples/Legacy", "docs/conf.py"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402","F401"]
 "netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
