@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.models.slater import Slater2nd
+from netket.models.slater import Slater2nd, MultiSlater2nd
 
 from .rnn import RNN, LSTMNet, GRUNet1D
 from .fast_rnn import FastRNN, FastLSTMNet, FastGRUNet1D
