@@ -33,55 +33,87 @@ class Slater2nd(nn.Module):
     When working with spin-full fermionic hilbert spaces (where the number of degrees of
     freedom is a multiple of the number of orbitals) :class:`~netket.models.Slater2nd`
     may behave in 3 different ways, depending on some flags.  Those modes differ by how
-    the orbitals are represented. 
-    
+    the orbitals are represented.
+
     The more restrictions we impose, the lower the number of parameters,
     the higher the number of imposed symmetries, but the expressivity will be worse and it will
     be less likely to attain accurate ground-state energies.
 
-    Assume we introduce a set of orbitals :math:`\phi_\mu(r, s)` with orbital index :math:`\mu`.
-    We use :math:`n_{\textrm{M}}` to denote the number of fermionic modes, :math:`n_{\textrm{L}}`
+    Those options are summarised in this table, while the details are discussed below.
+
+    =================  =====================================================================  =============================================
+    Hartree Fock type  Number of Parameters                                                   Options
+    =================  =====================================================================  =============================================
+    Generalized        :math:`n_{\mathrm{M}} \times n_{\mathrm{f}}`                           :code:`generalized = True`
+    Unrestricted       :math:`n_{\mathrm{S}} \times n_{\mathrm{L}} \times n_{\textrm{f, s}}`  :code:`generalized=False, restricted=False`
+    Restricted         :math:`n_{\mathrm{L}} \times n_{\textrm{f, s}}`                        :code:`generalized=False, restricted=True`
+    =================  =====================================================================  =============================================
+
+
+    Where we use :math:`n_{\textrm{M}}` to denote the number of fermionic modes, :math:`n_{\textrm{L}}`
     the number of spatial orbitals, and :math:`n_{\textrm{S}}` the number of spin states. The number
     of fermions is denoted :math:`n_{\mathrm{f}}`, or :math:`n_{\textrm{f}, \alpha}` for the number of
     fermions in a given spin sector :math:`\alpha`. We assume the same number of fermions in each spin
     sector for simplicity.
-    
-    - The most general case is the **generalized Hartree-Fock** case, where we impose no restrictions.
-      In particular, we do not restrict the orbitals to have definite spin or orbital quantum numbers.
+
+
+    Details about different hartree Fock types
+    ==========================================
+
+    Assume we introduce a set of orbitals :math:`\phi_\mu(r, s)` with orbital index :math:`\mu`.
+
+    - **Generalized Hartree-Fock** (:code:`generalized = True`) is the most general case
+      where we impose no restrictions. In particular, we do not restrict the orbitals
+      to have definite spin or orbital quantum numbers.
       The total number of parameters is :math:`n_{\mathrm{M}} \times n_{\mathrm{f}}`. Hence,
       any fermion can occupy any of the fermionic modes.
-    - Most physical Hamiltonians are **spin conserving**, and hence we can impose it also on the 
+    - **Hartree-Fock (Spin-Conserving)** (:code:`[generalized=False,] restricted=True/False`).
+      Most physical Hamiltonians are spin conserving, and hence we can impose it also on the
       wave-function. In this case, we separate the orbital index :math:`\mu \to (l, \alpha)` into
       a spin and spatial orbital part: :math:`\phi_\mu(r, s)=\varphi_{l,\alpha}(r) \chi_{\alpha}(s)`.
       Here, :math:`l` and :math:`\alpha` indicate the orbital and spin quantum numbers associated
       with the orbital, and :math:`(r, s)` are the position vector and spin quantum number at which
       we aim to evaluate the orbital (i.e. properties of a given fermion). Furthermore,
       :math:`\varphi_{l,\alpha}(r)` is the spatial orbital at position :math:`r`, and and
-      :math:`\chi_\alpha(s)` the spin part. In `unrestricted Hartree Fock (UHF)`, the orbitals can
-      have a different spatial orbital :math:`\varphi` for different spin states. Since e.g. the up
-      spin fermions cannot occupy the down spin orbitals and vice versa, the Slater matrix becomes block
-      diagonal. This allows us to write the determinant as a product of determinants of the two spin sectors.
-      The total number of parameters is :math:`n_{\mathrm{S}} \times n_{\mathrm{L}} \times n_{\textrm{f, s}}`. For
-      more information, see [Unrestricted Hartree-Fock](https://en.wikipedia.org/wiki/Unrestricted_Hartree%E2%80%93Fock).
-    - Lastly, we assume that different spin states have the same spatial orbitals in
-      **restricted Hartree-Fock (RHF)**: :math:`\phi_\mu(r, s)=\varphi_l(r) \chi_\alpha(s)`, and
-      hence :math:`\varphi_l` only depends on the spatial orbital index :math:`l`. The number of
-      parameters now reduces to :math:`n_{\mathrm{L}} \times n_{\textrm{f, s}}`.
+      :math:`\chi_\alpha(s)` the spin part.
+
+      - **Unrestricted Hartree Fock (UHF)** (:code:`[generalized=False,] restricted=False`),
+        the orbitals can have a different spatial
+        orbital :math:`\varphi` for different spin states. Since e.g. the up
+        spin fermions cannot occupy the down spin orbitals and vice versa, the Slater matrix becomes block
+        diagonal. This allows us to write the determinant as a product of determinants of the two spin sectors.
+        The total number of parameters is :math:`n_{\mathrm{S}} \times n_{\mathrm{L}} \times n_{\textrm{f, s}}`. For
+        more information, see
+        `Wikipedia: Unrestricted Hartree-Fock <https://en.wikipedia.org/wiki/Unrestricted_Hartree%E2%80%93Fock>`_
+      - **Restricted Hartree-Fock (RHF)** (:code:`[generalized=False, restricted=True]`), which assumes
+        that different spin states have the same spatial orbitals
+        in :math:`\phi_\mu(r, s)=\varphi_l(r) \chi_\alpha(s)`, and hence :math:`\varphi_l` only depends
+        on the spatial orbital index :math:`l`. The number of
+        parameters now reduces to :math:`n_{\mathrm{L}} \times n_{\textrm{f, s}}`.
+
     """
 
     hilbert: SpinOrbitalFermions
     """The Hilbert space upon which this ansatz is defined. Used to determine the number of orbitals
     and spin subspectors."""
 
-    restricted: bool = True
-    """Flag to select the restricted- or unrestricted- Hartree Fock orbtals (Defaults to restricted).
-
-    If restricted, only one set of orbitals are parametrised, and they are used for all spin subsectors.
-    If unrestricted, a different set of orbitals are parametrised and used for each spin subsector.
+    generalized: bool = False
+    """Uses Generalized Hartree-Fock if True (defaults to `False`, corresponding to the
+    standard spin-conserving Hartree-Fock).
     """
 
-    generalized: bool = False
-    """Flag to select generalize Hartree-Fock (defaults to standard spin-conserving Hartree-Fock)."""
+    restricted: bool = True
+    """Flag to select the restricted- or unrestricted- Hartree Fock orbitals
+    (Defaults to restricted).
+
+    This flag is ignored if :code:`generalized=True`.
+
+    - If restricted, only one set of orbitals are parametrised, and they are
+      used for all spin subsectors. This only works if every spin subsector
+      holds the same number of fermions.
+    - If unrestricted, a different set of orbitals are parametrised and used
+      for each spin subsector.
+    """
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the orbital parameters."""
