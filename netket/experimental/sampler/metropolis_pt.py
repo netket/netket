@@ -36,13 +36,25 @@ from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
 
 
 class MetropolisPtSamplerState(MetropolisSamplerState):
+    """
+    State for the Metropolis Parallel Tempering sampler.
+
+    Contains the usual quantities, as well as statistics about the paralel tempering.
+    """
+
     beta: jnp.ndarray = None
+    """The inverse temperatures of the different chains."""
 
     n_accepted_per_beta: jnp.ndarray = None
+    """Total number of moves accepted per beta across all processes since the last reset."""
     beta_0_index: jnp.ndarray = None
+    r"""Index of the position of the chain with :math:`\\beta=1`."""
     beta_position: jnp.ndarray = None
+    r"""Averaged position of :math:`\\beta=1`."""
     beta_diffusion: jnp.ndarray = None
+    """Average variance of the position of :math:`\\beta = 1`."""
     exchange_steps: int = 0
+    """Number of exchanges between the different temperatures."""
 
     def __init__(
         self,
@@ -60,18 +72,45 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
         self.exchange_steps = jnp.zeros((), dtype=int)
         super().__init__(σ, rng, rule_state)
+        self.n_accepted_proc = jnp.zeros(
+            n_chains, dtype=int
+        )  # correct shape is (n_chains,) and not (n_batches,)
 
     def __repr__(self):
         if self.n_steps > 0:
-            acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_steps, self.acceptance * 100
-            )
+            acc_string = f"# accepted = {self.n_accepted}/{self.n_steps} ({self.acceptance * 100}%), "
         else:
             acc_string = ""
 
-        text = "MetropolisNumpySamplerState(" + acc_string + f"rng state={self.rng})"
-        text = "MetropolisPtSamplerState(" + acc_string + f"rng state={self.rng}"
+        text = (
+            f"MetropolisPtSamplerState(# replicas = {self.beta.shape[-1]}, "
+            + acc_string
+            + f"rng state={self.rng}"
+        )
         return text
+
+    @property
+    def normalized_diffusion(self):
+        r"""
+        Average variance of the position of :math:`\\beta = 1`.
+        In the ideal case, this quantity should be of order ~[0.2, 1.0]
+        """
+        diffusion = jnp.sqrt(
+            self.beta_diffusion / self.exchange_steps / self.beta.shape[-1]
+        )
+        out, _ = mpi.mpi_mean_jax(diffusion.mean())
+
+        return out
+
+    @property
+    def normalized_position(self):
+        r"""
+        Average position of :math:`\\beta = 1`, normalized and centered around 0.
+        """
+        position = self.beta_position / float(self.beta.shape[-1] - 1) - 0.5
+        out, _ = mpi.mpi_mean_jax(position.mean())
+
+        return out
 
 
 class MetropolisPtSampler(MetropolisSampler):
@@ -102,15 +141,18 @@ class MetropolisPtSampler(MetropolisSampler):
         .. math::
             A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} e^{L(s,s^\prime)} \right),
 
-        where the probability being sampled from is :math:`P(s)=|M(s)|^p`. Here :math:`M(s)` is a
+        where the probability being sampled from is :math:`P(s)=β|M(s)|^p`. Here :math:`M(s)` is a
         user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-        and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
+        :math:`β` is the temperature of the Markov Chain and :math:`L(s,s^\prime)` is a suitable correcting factor
+        computed by the transition kernel.
 
 
         Args:
             hilbert: The hilbert space to sample
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
+            n_replicas: The number of different temperatures β for the sampling.
+                    (default : linear distribution of 32 temperatures between 0 and 1)
             n_chains: The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
@@ -119,10 +161,10 @@ class MetropolisPtSampler(MetropolisSampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float32).
         """
-        if (
-            not isinstance(n_replicas, int)
+        if not (
+            isinstance(n_replicas, int)
             and n_replicas > 0
-            and np.mod(self.n_replicas, 2) == 0
+            and np.mod(n_replicas, 2) == 0
         ):
             raise ValueError("n_replicas must be an even integer > 0.")
         self.n_replicas = n_replicas
@@ -158,7 +200,7 @@ class MetropolisPtSampler(MetropolisSampler):
         σ = with_samples_sharding_constraint(σ)
 
         beta = 1.0 - jnp.arange(sampler.n_replicas) / sampler.n_replicas
-        beta = jnp.tile(beta, (sampler.n_chains, 1))
+        beta = jnp.tile(beta, (sampler.n_batches // sampler.n_replicas, 1))
 
         return MetropolisPtSamplerState(
             σ=σ,
@@ -199,6 +241,7 @@ class MetropolisPtSampler(MetropolisSampler):
 
             beta = s["beta"]
 
+            ## Usual Metropolis sampling
             σp, log_prob_correction = sampler.rule.transition(
                 sampler, machine, parameters, state, key1, s["σ"]
             )
@@ -218,23 +261,22 @@ class MetropolisPtSampler(MetropolisSampler):
             # do_accept must match ndim of proposal and state (which is 2)
             s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
             n_accepted_per_beta = s["n_accepted_per_beta"] + do_accept.reshape(
-                (sampler.n_chains, sampler.n_replicas)
+                (sampler.n_batches // sampler.n_replicas, sampler.n_replicas)
             )
 
             s["log_prob"] = jax.numpy.where(
                 do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
             )
 
-            # exchange betas
+            ## exchange betas
 
             # randomly decide if every set of replicas should be swapped in even or odd order
             swap_order = jax.random.randint(
                 key3,
                 minval=0,
                 maxval=2,
-                shape=(sampler.n_chains,),
+                shape=(sampler.n_batches // sampler.n_replicas,),
             )  # 0 or 1
-            # iswap_order = jnp.mod(swap_order + 1, 2)  #  1 or 0
 
             # indices of even swapped elements (per-row)
             idxs = jnp.arange(0, sampler.n_replicas, 2).reshape(
@@ -258,75 +300,54 @@ class MetropolisPtSampler(MetropolisSampler):
 
             @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
             def compute_proposed_prob(prob, idxs, inn):
+                # prob[idxs] = (beta_i - beta_j) log psi(x_i)
+                # prob[inn] = (beta_j - beta_i) log psi(x_j)
+                # so we have to add the log probabilities to get the right acceptance
                 prob_rescaled = prob[idxs] + prob[inn]
                 return prob_rescaled
 
             # compute the probability of the swaps
-            log_prob = (proposed_beta - state.beta) * s["log_prob"].reshape(
-                (sampler.n_chains, sampler.n_replicas)
+            log_prob = (proposed_beta - s["beta"]) * s["log_prob"].reshape(
+                (sampler.n_batches // sampler.n_replicas, sampler.n_replicas)
             )
 
             prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
 
             uniform = jax.random.uniform(
-                key4, shape=(sampler.n_chains, sampler.n_replicas // 2)
+                key4,
+                shape=(
+                    sampler.n_batches // sampler.n_replicas,
+                    sampler.n_replicas // 2,
+                ),
             )
 
+            # decide where to swap
             do_swap = uniform < prob_rescaled
 
             do_swap = jnp.dstack((do_swap, do_swap)).reshape(
                 (-1, sampler.n_replicas)
             )  # concat along last dimension
 
-            # roll if swap_ordeer is odd
-            @partial(jax.vmap, in_axes=(0, 0), out_axes=0)
-            def fix_swap(do_swap, swap_order):
-                return jax.lax.cond(
-                    swap_order == 0, lambda x: x, lambda x: jnp.roll(x, 1), do_swap
-                )
+            # roll if swap_order is odd
+            do_swap = jax.vmap(jnp.where, in_axes=(0, 0, 0), out_axes=0)(
+                swap_order == 0, do_swap, jnp.roll(do_swap, 1, axis=-1)
+            )
 
-            do_swap = fix_swap(do_swap, swap_order)
-            # jax.experimental.host_callback.id_print(state.beta)
-            # jax.experimental.host_callback.id_print(proposed_beta)
-
-            # new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
-
-            # def cb(data):
-            #     _bt, _pbt, new_beta, so, do_swap, log_prob, prob = data
-            #     print("--------.---------.---------.--------")
-            #     print("     cur beta:\n", _bt)
-            #     print("proposed beta:\n", _pbt)
-            #     print("     new beta:\n", new_beta)
-            #     print("swaporder :", so)
-            #     print("do_swap :\n", do_swap)
-            #     print("log_prob;\n", log_prob)
-            #     print("prob_rescaled;\n", prob)
-            #     return new_beta
-            #
-            # new_beta = hcb.call(
-            #    cb,
-            #    (
-            #        beta,
-            #        proposed_beta,
-            #        new_beta,
-            #        swap_order,
-            #        do_swap,
-            #        log_prob,
-            #        prob_rescaled,
-            #    ),
-            #    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
-            # )
-            # s["beta"] = new_beta
+            # Do the swap where it has to be done
+            new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
+            s["beta"] = new_beta
 
             swap_order = swap_order.reshape(-1)
 
             beta_0_moved = jax.vmap(
-                lambda do_swap, i: do_swap[i], in_axes=(0, 0), out_axes=0
-            )(do_swap, state.beta_0_index)
+                lambda do_swap, k: do_swap[k], in_axes=(0, 0), out_axes=0
+            )(
+                do_swap, s["beta_0_index"]
+            )  # flag saying if beta_0 should move
             proposed_beta_0_index = jnp.mod(
-                state.beta_0_index
-                + (-jnp.mod(swap_order, 2) * 2 + 1)
-                * (-jnp.mod(state.beta_0_index, 2) * 2 + 1),
+                s["beta_0_index"]
+                + (-2 * jnp.mod(swap_order, 2) + 1)
+                * (-2 * jnp.mod(s["beta_0_index"], 2) + 1),
                 sampler.n_replicas,
             )
 
@@ -344,27 +365,15 @@ class MetropolisPtSampler(MetropolisSampler):
 
             # Update statistics to compute diffusion coefficient of replicas
             # Total exchange steps performed
+            s["exchange_steps"] += 1
             delta = s["beta_0_index"] - s["beta_position"]
-            s["beta_position"] = s["beta_position"] + delta / (
-                state.exchange_steps + jnp.asarray(i, dtype=jnp.int64)
-            )
+            s["beta_position"] = s["beta_position"] + delta / s["exchange_steps"]
             delta2 = s["beta_0_index"] - s["beta_position"]
             s["beta_diffusion"] = s["beta_diffusion"] + delta * delta2
 
             return s
 
         new_rng, rng = jax.random.split(state.rng)
-
-        # def cbr(data):
-        #    new_rng, rng = data
-        #    print("sample_next newrng:\n", new_rng,  "\nand rng:\n", rng)
-        #    return new_rng
-        #
-        # new_rng = hcb.call(
-        #   cbr,
-        #   (new_rng, rng),
-        #   result_shape=jax.ShapeDtypeStruct(new_rng.shape, new_rng.dtype),
-        # )
 
         s = {
             "key": rng,
@@ -376,27 +385,29 @@ class MetropolisPtSampler(MetropolisSampler):
             "n_accepted_per_beta": state.n_accepted_per_beta,
             "beta_position": state.beta_position,
             "beta_diffusion": state.beta_diffusion,
+            "exchange_steps": state.exchange_steps,
         }
         s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
+
+        offsets = jnp.arange(0, sampler.n_batches, sampler.n_replicas)
 
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
-            # n_accepted=s["accepted"],
-            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_chains,
+            n_steps_proc=state.n_steps_proc
+            + sampler.sweep_size * sampler.n_batches // sampler.n_replicas,
             beta=s["beta"],
             beta_0_index=s["beta_0_index"],
             beta_position=s["beta_position"],
             beta_diffusion=s["beta_diffusion"],
-            exchange_steps=state.exchange_steps + sampler.sweep_size,
+            exchange_steps=s["exchange_steps"],
             n_accepted_per_beta=s["n_accepted_per_beta"],
+            n_accepted_proc=jax.vmap(jnp.take)(
+                s["n_accepted_per_beta"], s["beta_0_index"]
+            ),
         )
 
-        offsets = jnp.arange(
-            0, sampler.n_chains * sampler.n_replicas, sampler.n_replicas
-        )
-
-        return new_state, new_state.σ[new_state.beta_0_index + offsets, :]
+        return new_state, new_state.σ[s["beta_0_index"] + offsets, :]
 
 
 def MetropolisLocalPt(hilbert, *args, **kwargs):

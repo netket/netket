@@ -278,22 +278,11 @@ def findrng(rng):
         return rng
 
 
-# Mark tests that we know are failing on correctedness
-def failing_test(sampler):
-    # PT Samplers are experimental and fail the correctness test.
-    if isinstance(sampler, nkx.sampler.MetropolisPtSampler):
-        return True
-    return False
-
-
 @pytest.fixture(
     params=[
         pytest.param(
             sampl,
             id=name,
-            marks=pytest.mark.xfail(reason="MUSTFIX: this sampler is known to fail")
-            if failing_test(sampl)
-            else [],
         )
         for name, sampl in samplers.items()
     ]
