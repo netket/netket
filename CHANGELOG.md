@@ -30,11 +30,11 @@
 * The methods converting Jax Operators to another kind (such as LocalOperators to PauliOperators) will return the Jax version of those operators if available [#1781](https://github.com/netket/netket/pull/1781).
 
 ### Internal changes
+* Initialize the MetropolisSamplerState in a way that avoids recompilation when using sharding [#1776](https://github.com/netket/netket/pull/1776).
 * Wrap several functions in the samplers and operators with a `shard_map` to avoid unnecessary collective communication when doing batched indexing of sharded arrays [#1777](https://github.com/netket/netket/pull/1777).
 
 
 ### Bug Fixes
-* We performed several improvements to the `NETKET_EXPERIMENTAL_SHARDING` mode, which used to repeat several computation on all nodes when sampling or computing connected elements of some jax operators [#1748](https://github.com/netket/netket/pull/1748), [#1776](https://github.com/netket/netket/pull/1776).
 
 
 
