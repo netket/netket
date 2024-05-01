@@ -315,7 +315,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
             containing True/False indicating that each input in the argumens of f is:
                 True: sharded on axis 0 (True)
                 False: assumed to be replicated
-                'key': A jax.random.key. It is split across devices.
+                'key': A single jax.random.key. It is split across devices so that the function executed on every device is passed a different key.
+                       If the argument is already a sharded array of keys use True instead.
             the args of f are flattened according to sharded_args_tree, so if an arg is a pytree a single True/False is assumed the whole tree
         reduction_op_tree: a tuple/pyrtree of reduction_op, where for each output:
             reduction_op is e.g. jax.lax.psum if it is to be reduced, then f_wrapped returns a replicated array
