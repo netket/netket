@@ -18,7 +18,7 @@
 ### Breaking Changes
 * The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) deprecated in the last release has been removed completely [#1722](https://github.com/netket/netket/issues/1722).
 * The Homogeneous Hilbert spaces now must store the list of valid local values for the states with a {class}`nk.utils.StaticRange` objects instead of list of floats. The constructors have been updated accordingly. {class}`~nk.utils.StaticRange` is a range-like object that is jax-compatible and from now on should be used to index into local hilbert spaces [#1732](https://github.com/netket/netket/issues/1732).
-* The `numbers_to_states` and `states_to_numbers` methods of {class}`nk.hilbert.DiscreteHilbert` must now be jax jittable. Custom Hilbert spaces using non-jittable functions have to be adapted by including a {func}`{jax.pure_callback}` in the `numbers_to_states`/`states_to_numbers` member functions [#1748](https://github.com/netket/netket/issues/1748).
+* The `numbers_to_states` and `states_to_numbers` methods of {class}`netket.hilbert.DiscreteHilbert` must now be jax jittable. Custom Hilbert spaces using non-jittable functions have to be adapted by including a {func}`jax.pure_callback` in the `numbers_to_states`/`states_to_numbers` member functions [#1748](https://github.com/netket/netket/issues/1748).
 
 ### Deprecations
 * The method {func}`netket.nn.states_to_numbers` is now deprecated. Please use {meth}`~DiscreteHilbert.numbers_to_states` directly.
@@ -26,11 +26,15 @@
 ### Improvements
 * Rewrite the code for generating random states of `netket.hilbert.Fock` and `netket.hilbert.Spin` in Jax and jit the `init` and `reset` functions of `netket.sampler.MetropolisSampler` for better performance and improved compatibility with sharding [#1721](https://github.com/netket/netket/pull/1721).
 * Rewrite `netket.hilbert.index` used by `HomogeneousHilbert` (including `Spin` and `Fock`) so that larger spaces with a sum constraint can be indexed. This can be useful for `netket.sampler.Exactsampler`, `netket.vqs.FullSumState` as well as for ED calculations [#1720](https://github.com/netket/netket/pull/1720).
-* Duplicating a `netket.vqs.MCState` now leads to perfectly deterministic, identical samples between two different copies of the same `MCState` even if the sampler is changed. Previously, duplicating an `MCState` and changing the sampler on two copies of the same state would lead to some completely random seed being used and therefore different samples to be generated. This change is needed to eventually achieve proper checkpointing of our calculations [#177X](https://github.com/netket/netket/pull/177X).
+* Duplicating a `netket.vqs.MCState` now leads to perfectly deterministic, identical samples between two different copies of the same `MCState` even if the sampler is changed. Previously, duplicating an `MCState` and changing the sampler on two copies of the same state would lead to some completely random seed being used and therefore different samples to be generated. This change is needed to eventually achieve proper checkpointing of our calculations [#1778](https://github.com/netket/netket/pull/1778).
 * The methods converting Jax Operators to another kind (such as LocalOperators to PauliOperators) will return the Jax version of those operators if available [#1781](https://github.com/netket/netket/pull/1781).
 
+### Internal changes
+* Initialize the MetropolisSamplerState in a way that avoids recompilation when using sharding [#1776](https://github.com/netket/netket/pull/1776).
+* Wrap several functions in the samplers and operators with a `shard_map` to avoid unnecessary collective communication when doing batched indexing of sharded arrays [#1777](https://github.com/netket/netket/pull/1777).
+
+
 ### Bug Fixes
-* We performed several improvements to the `NETKET_EXPERIMENTAL_SHARDING` mode, which used to repeat several computation on all nodes when sampling or computing connected elements of some jax operators [#1748](https://github.com/netket/netket/pull/1748), [#1776](https://github.com/netket/netket/pull/1776).
 
 
 
@@ -47,7 +51,7 @@ Bugfix release addressing the following issues:
 ## NetKet 3.11.2 (27 february 2024)
 
 Bugfix release to solve the following issues:
-* Fix error thrown in repr method of error thrown in TDVP integrators. 
+* Fix error thrown in repr method of error thrown in TDVP integrators.
 * Fix repr error of {class}`nk.sampler.rules.MultipleRules` [#1729](https://github.com/netket/netket/pull/1729).
 * Solve an issue with RK Integrators that could not be initialised with integer `t0` initial time if `dt` was a float, as well as a wrong `repr` method leading to uncomprehensible stacktraces [#1736](https://github.com/netket/netket/pull/1736).
 

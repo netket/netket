@@ -32,6 +32,7 @@ from jax.sharding import (
     PositionalSharding,
 )
 from jax.experimental.shard_map import shard_map
+from jax.util import safe_zip
 
 from netket.utils import config, mpi
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
@@ -116,7 +117,7 @@ def replicate_sharding_decorator_for_get_conn_padded(f):
                 n_conn_max = int(jax.jit(lambda x: x.max())(n_conn))
                 xp_dev = []
                 mels_dev = []
-                for (xp, mels), s in zip(xp_mels_np, x.addressable_shards):
+                for (xp, mels), s in safe_zip(xp_mels_np, x.addressable_shards):
                     npad = n_conn_max - mels.shape[-1]
                     if npad > 0:
                         mels = np.pad(
@@ -293,7 +294,7 @@ def gather(x):
     # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
-def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
+def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
     """
     A decorator which wraps a function so that it is evaluated on every shard of the distributed arguments,
     and the output is either returned sharded, or can be reduced with a collective operation.
@@ -314,6 +315,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
             containing True/False indicating that each input in the argumens of f is:
                 True: sharded on axis 0 (True)
                 False: assumed to be replicated
+                'key': A single jax.random.key. It is split across devices so that the function executed on every device is passed a different key.
+                       If the argument is already a sharded array of keys use True instead.
             the args of f are flattened according to sharded_args_tree, so if an arg is a pytree a single True/False is assumed the whole tree
         reduction_op_tree: a tuple/pyrtree of reduction_op, where for each output:
             reduction_op is e.g. jax.lax.psum if it is to be reduced, then f_wrapped returns a replicated array
@@ -459,25 +462,38 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
         def _fun(*args):
             args = args_treedef.flatten_up_to(args)
 
-            _sele = lambda cond, xs: tuple(x for c, x in zip(cond, xs) if c)
+            _sele = lambda cond, xs: tuple(x for c, x in safe_zip(cond, xs) if c)
             _not = lambda t: tuple(not x for x in t)
             _sele2 = lambda cond, x, y: tuple(x if c else y for c in cond)
+
+            # PRNGKey treatment 1/2
+            args = tuple(
+                jax.random.split(a, jax.device_count()) if c == "key" else a
+                for a, c in safe_zip(args, sharded_args)
+            )
 
             # workaround for shard_map not supporting non-array args part 1/2
             nonarray_args = tuple(not hasattr(a, "dtype") for a in args)
             args = tuple(
                 Partial(partial(lambda x: x, a)) if c else a
-                for a, c in zip(args, nonarray_args)
+                for a, c in safe_zip(args, nonarray_args)
             )
 
             mesh = Mesh(jax.devices(), axis_names=("i"))
             in_specs = _sele2(sharded_args, P("i"), P())
             out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P("i")))
 
-            @partial(shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
+            @partial(
+                shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs, **kwargs
+            )
             def _f(*args):
                 # workaround for shard_map not supporting non-array args part 2/2
-                args = tuple(a() if c else a for a, c in zip(args, nonarray_args))
+                args = tuple(a() if c else a for a, c in safe_zip(args, nonarray_args))
+
+                # PRNGKey treatment 2/2
+                args = tuple(
+                    a[0] if c == "key" else a for a, c in safe_zip(args, sharded_args)
+                )
 
                 res = f(*args_treedef.unflatten(args))
 
@@ -496,13 +512,13 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
 
                 reductions = [_sele_op(o) for o in reduction_op]
                 res = out_treedef.flatten_up_to(res)
-                res = [f(r) for f, r in zip(reductions, res)]
+                res = [f(r) for f, r in safe_zip(reductions, res)]
                 res = out_treedef.unflatten(res)
                 return res
 
             res = _f(*args)
             res = out_treedef.flatten_up_to(res)
-            res = [a() if c is True else a for a, c in zip(res, reduction_op)]
+            res = [a() if c is True else a for a, c in safe_zip(res, reduction_op)]
             res = out_treedef.unflatten(res)
             return res
 

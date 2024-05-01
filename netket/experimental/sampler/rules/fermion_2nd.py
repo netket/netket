@@ -1,3 +1,5 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 from typing import Optional
@@ -7,6 +9,7 @@ from netket.sampler.rules import ExchangeRule
 from netket.graph import AbstractGraph
 from netket.graph import disjoint_union
 from netket.experimental.hilbert import SpinOrbitalFermions
+from netket.jax.sharding import sharding_decorator
 
 
 class ParticleExchangeRule(ExchangeRule):
@@ -77,7 +80,10 @@ class ParticleExchangeRule(ExchangeRule):
 
         keys = jnp.asarray(jax.random.split(key, n_chains))
 
-        def _update_sample(key, σ, hoppable_clusters):
+        # we use shard_map to avoid the all-gather coming from the batched jnp.take / indexing
+        @partial(sharding_decorator, sharded_args_tree=(True, True, True))
+        @jax.vmap
+        def _update_samples(key, σ, hoppable_clusters):
             # pick a random cluster, taking into account the mask
             n_conn = hoppable_clusters.sum(axis=-1)
             cluster = jax.random.choice(
@@ -102,9 +108,7 @@ class ParticleExchangeRule(ExchangeRule):
             log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
             return σp, log_prob_corr
 
-        return jax.vmap(_update_sample, in_axes=(0, 0, 0), out_axes=0)(
-            keys, σ, hoppable_clusters
-        )
+        return _update_samples(keys, σ, hoppable_clusters)
 
     def __repr__(self):
         return f"ParticleExchangeRule(# of clusters: {len(self.clusters)})"

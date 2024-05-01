@@ -7,6 +7,7 @@ from netket.operator import DiscreteJaxOperator
 import pytest
 import jax
 from jax.experimental.sparse import BCOO
+from netket.jax.sharding import with_samples_sharding_constraint
 
 operators = {}
 
@@ -304,6 +305,37 @@ def test_get_conn_padded(op, shape, dtype):
     vp_f, mels_f = op.get_conn_padded(v.reshape(-1, hi.size))
     np.testing.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
     np.testing.assert_allclose(mels_f, mels.reshape(-1, mels.shape[-1]))
+
+
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+)
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+@pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
+def test_operator_sharded_not_commuincating(op):
+    if isinstance(op, nk.operator.DiscreteOperator) and not isinstance(
+        op, nk.operator.DiscreteJaxOperator
+    ):
+        pytest.xfail("numba operator is not jit compatible")
+
+    hi = op.hilbert
+    x = hi.random_state(jax.random.PRNGKey(0), 8 * jax.device_count(), dtype=np.float64)
+    x = with_samples_sharding_constraint(x)
+
+    gcp_jit = jax.jit(lambda ha, x: ha.get_conn_padded(x))
+    compiled = gcp_jit.lower(op, x).compile()
+    txt = compiled.as_text()
+    for o in [
+        "all-reduce",
+        "collective-permute",
+        "all-gather",
+        "all-to-all",
+        "reduce-scatter",
+    ]:
+        for l in txt.split("\n"):
+            assert o not in l
 
 
 @pytest.mark.parametrize(

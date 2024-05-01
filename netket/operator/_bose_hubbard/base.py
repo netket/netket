@@ -13,12 +13,15 @@
 # limitations under the License.
 
 from typing import Optional
+from functools import reduce
 
 import numpy as np
+from jax import numpy as jnp
 
 from netket.graph import AbstractGraph
 from netket.hilbert import Fock
 from netket.jax import canonicalize_dtypes
+from netket.utils.numbers import dtype as _dtype
 from netket.utils.types import DType
 
 from .. import boson
@@ -96,12 +99,6 @@ class BoseHubbardBase(SpecialHamiltonian):
             )
 
         dtype = canonicalize_dtypes(float, U, V, J, mu, dtype=dtype)
-        self._dtype = dtype
-
-        # self._U = np.asarray(U, dtype=dtype)
-        # self._V = np.asarray(V, dtype=dtype)
-        # self._J = np.asarray(J, dtype=dtype)
-        # self._mu = np.asarray(mu, dtype=dtype)
         self._U = U.astype(dtype=dtype)
         self._V = V.astype(dtype=dtype)
         self._J = J.astype(dtype=dtype)
@@ -111,16 +108,18 @@ class BoseHubbardBase(SpecialHamiltonian):
         self._n_sites = hilbert.size
         self._edges = graph.astype(np.intp)
         self._max_conn = 1 + self._edges.shape[0] * 2
-        self._max_mels = np.zeros(self._max_conn, dtype=self.dtype)
-        self._max_xprime = np.zeros((self._max_conn, self._n_sites))
 
     @property
     def is_hermitian(self):
         return True
 
     @property
-    def dtype(self):
-        return self._dtype
+    def dtype(self) -> DType:
+        """The dtype of the matrix elements."""
+        return reduce(
+            jnp.promote_types,
+            (_dtype(self.U), _dtype(self.V), _dtype(self._J), _dtype(self._mu)),
+        )
 
     @property
     def edges(self) -> np.ndarray:

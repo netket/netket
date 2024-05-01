@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from typing import Optional
-
+from functools import partial
+from netket.jax.sharding import sharding_decorator
 import jax
 import numpy as np
 
@@ -101,7 +102,10 @@ class ExchangeRule(MetropolisRule):
             key, shape=(n_chains,), minval=0, maxval=rule.clusters.shape[0]
         )
 
-        def scalar_update_fun(σ, cluster):
+        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
+        @partial(sharding_decorator, sharded_args_tree=(True, True))
+        @jax.vmap
+        def update_fun(σ, cluster):
             # sites to be exchanged,
             si = rule.clusters[cluster, 0]
             sj = rule.clusters[cluster, 1]
@@ -109,10 +113,7 @@ class ExchangeRule(MetropolisRule):
             σp = σ.at[si].set(σ[sj])
             return σp.at[sj].set(σ[si])
 
-        return (
-            jax.vmap(scalar_update_fun, in_axes=(0, 0), out_axes=0)(σ, cluster_id),
-            None,
-        )
+        return (update_fun(σ, cluster_id), None)
 
     def __repr__(self):
         return f"ExchangeRule(# of clusters: {len(self.clusters)})"

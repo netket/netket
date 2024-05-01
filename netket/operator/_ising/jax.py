@@ -90,16 +90,19 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
 
     def tree_flatten(self):
         data = (self.h, self.J, self.edges)
-        metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
+        metadata = {"hilbert": self.hilbert}
         return data, metadata
 
     @classmethod
     def tree_unflatten(cls, metadata, data):
         h, J, edges = data
         hi = metadata["hilbert"]
-        dtype = metadata["dtype"]
 
-        return cls(hi, h=h, J=J, graph=edges, dtype=dtype)
+        res = cls(hi, h=1.0, graph=[(0, 0)])
+        res._h = h
+        res._J = J
+        res._edges = edges
+        return res
 
 
 def _ising_mels_jax(x, edges, h, J):

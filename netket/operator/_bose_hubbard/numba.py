@@ -75,13 +75,17 @@ class BoseHubbard(BoseHubbardBase):
         """
         assert isinstance(hilbert, Fock)
 
-        U = np.array(U, dtype=dtype)
-        V = np.array(V, dtype=dtype)
-        J = np.array(J, dtype=dtype)
-        mu = np.array(mu, dtype=dtype)
+        U = np.asarray(U)
+        V = np.asarray(V)
+        J = np.asarray(J)
+        mu = np.asarray(mu)
         if isinstance(graph, jax.Array):
             graph = np.asarray(graph)
         super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)
+
+        # caches for numba indexing methods
+        self._max_mels = np.zeros(self._max_conn, dtype=self.dtype)
+        self._max_xprime = np.zeros((self._max_conn, self._n_sites))
 
     def to_jax_operator(self) -> "BoseHubbardJax":  # noqa: F821
         """
