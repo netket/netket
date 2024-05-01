@@ -23,7 +23,6 @@ from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
 from netket.utils.types import PyTree, SeedT, DType
-from netket.jax.sharding import sharding_decorator
 
 from .base import Sampler, SamplerState
 
