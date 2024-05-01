@@ -473,6 +473,7 @@ def get_conn_padded_jax(
     _nonzero_fn = partial(jnp.where, size=max_conn_size, fill_value=-1)
     (i_nonzero,) = jnp.vectorize(_nonzero_fn, signature="(i)->(j)")(nonzero_mask)
     # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
+    # (True, True) means that both arguments are sharded across devices.
     xp_u = sharding_decorator(partial(jnp.take_along_axis, axis=-2), (True, True))(
         xp_padded, i_nonzero[..., None]
     )
