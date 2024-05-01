@@ -36,13 +36,25 @@ from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
 
 
 class MetropolisPtSamplerState(MetropolisSamplerState):
+    """
+    State for the Metropolis Parallel Tempering sampler.
+
+    Contains the usual quantities, as well as statistics about the paralel tempering.
+    """
+
     beta: jnp.ndarray = None
+    """The inverse temperatures of the different chains."""
 
     n_accepted_per_beta: jnp.ndarray = None
+    """Total number of moves accepted per beta across all processes since the last reset."""
     beta_0_index: jnp.ndarray = None
+    r"""Index of the position of the chain with :math:`\\beta=1`."""
     beta_position: jnp.ndarray = None
+    r"""Averaged position of :math:`\\beta=1`."""
     beta_diffusion: jnp.ndarray = None
+    """Average variance of the position of :math:`\\beta = 1`."""
     exchange_steps: int = 0
+    """Number of exchanges between the different temperatures."""
 
     def __init__(
         self,
@@ -83,14 +95,22 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         Average variance of the position of :math:`\\beta = 1`.
         In the ideal case, this quantity should be of order ~[0.2, 1.0]
         """
-        return jnp.sqrt(self.beta_diffusion / self.exchange_steps / self.beta.shape[-1])
+        diffusion = jnp.sqrt(
+            self.beta_diffusion / self.exchange_steps / self.beta.shape[-1]
+        )
+        out, _ = mpi.mpi_mean_jax(diffusion.mean())
+
+        return out
 
     @property
     def normalized_position(self):
         r"""
         Average position of :math:`\\beta = 1`, normalized and centered around 0.
         """
-        return self.beta_position / float(self.beta.shape[-1] - 1) - 0.5
+        position = self.beta_position / float(self.beta.shape[-1] - 1) - 0.5
+        out, _ = mpi.mpi_mean_jax(position.mean())
+
+        return out
 
 
 class MetropolisPtSampler(MetropolisSampler):
@@ -132,6 +152,7 @@ class MetropolisPtSampler(MetropolisSampler):
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
             n_replicas: The number of different temperatures β for the sampling.
+                    (default : linear distribution of 32 temperatures between 0 and 1)
             n_chains: The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
@@ -308,44 +329,15 @@ class MetropolisPtSampler(MetropolisSampler):
             )  # concat along last dimension
 
             # roll if swap_order is odd
-            @partial(jax.vmap, in_axes=(0, 0), out_axes=0)
-            def fix_swap(do_swap, swap_order):
-                return jax.lax.cond(
-                    swap_order == 0, lambda x: x, lambda x: jnp.roll(x, 1), do_swap
-                )
-
-            do_swap = fix_swap(do_swap, swap_order)
+            do_swap = jax.vmap(jnp.where, in_axes=(0, 0, 0), out_axes=0)(
+                swap_order == 0, do_swap, jnp.roll(do_swap, 1, axis=-1)
+            )
 
             # Do the swap where it has to be done
             new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
-            # def cb(data):
-            #     _bt, _pbt, new_beta, so, do_swap, log_prob, prob = data
-            #     print("--------.---------.---------.--------")
-            #     print("     cur beta:\n", _bt)
-            #     print("proposed beta:\n", _pbt)
-            #     print("     new beta:\n", new_beta)
-            #     print("swaporder :", so)
-            #     print("do_swap :\n", do_swap)
-            #     print("log_prob;\n", log_prob)
-            #     print("prob_rescaled;\n", prob)
-            #     return new_beta
-
-            # new_beta = hcb.call(
-            #    cb,
-            #    (
-            #        beta,
-            #        proposed_beta,
-            #        new_beta,
-            #        swap_order,
-            #        do_swap,
-            #        log_prob,
-            #        prob_rescaled,
-            #    ),
-            #    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
-            # )
             s["beta"] = new_beta
 
-            swap_order = swap_order.reshape(-1)  # (n_chains)
+            swap_order = swap_order.reshape(-1)
 
             beta_0_moved = jax.vmap(
                 lambda do_swap, k: do_swap[k], in_axes=(0, 0), out_axes=0
