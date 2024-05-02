@@ -433,7 +433,7 @@ def test_forces(vstate, operator):
 
     _, f1 = vstate.expect_and_forces(operator)
     if nk.jax.tree_leaf_iscomplex(vstate.parameters):
-        g1 = f1
+        g1 = jax.tree_util.tree_map(lambda x: 2.0 * x, f1)
     else:
         g1 = jax.tree_util.tree_map(lambda x: 2.0 * np.real(x), f1)
     jax.tree_util.tree_map(np.testing.assert_array_equal, g1, O_grad1)
@@ -489,12 +489,12 @@ def test_forces_gradient_rule():
     _, g1 = vs1.expect_and_grad(ha)
     _, g2 = vs2.expect_and_grad(ha)
 
-    np.testing.assert_allclose(g1["weights"], f1["weights"])
+    np.testing.assert_allclose(g1["weights"], 2 * f1["weights"])
     np.testing.assert_allclose(g2["weights_re"], 2 * np.real(f2["weights_re"]))
     np.testing.assert_allclose(g2["weights_im"], 2 * np.real(f2["weights_im"]))
-    np.testing.assert_allclose(
-        g1["weights"], 0.5 * (g2["weights_re"] + 1j * g2["weights_im"])
-    )
+
+    # check that the gradient of the real-param and complex-param model are the same
+    np.testing.assert_allclose(g1["weights"], g2["weights_re"] + 1j * g2["weights_im"])
 
 
 @common.skipif_mpi
