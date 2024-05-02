@@ -23,7 +23,7 @@ from jax import numpy as jnp
 from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct, mpi
-from netket.jax.sharding import with_samples_sharding_constraint
+from netket.jax.sharding import with_samples_sharding_constraint, sharding_decorator
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
@@ -339,9 +339,8 @@ class MetropolisPtSampler(MetropolisSampler):
 
             swap_order = swap_order.reshape(-1)
 
-            beta_0_moved = jax.vmap(
-                lambda do_swap, k: do_swap[k], in_axes=(0, 0), out_axes=0
-            )(
+            # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
+            beta_0_moved = sharding_decorator(jax.vmap(jnp.take), (True, True))(
                 do_swap, s["beta_0_index"]
             )  # flag saying if beta_0 should move
             proposed_beta_0_index = jnp.mod(
@@ -389,7 +388,10 @@ class MetropolisPtSampler(MetropolisSampler):
         }
         s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
-        offsets = jnp.arange(0, sampler.n_batches, sampler.n_replicas)
+        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
+        n_accepted_proc = sharding_decorator(jax.vmap(jnp.take), (True, True))(
+            s["n_accepted_per_beta"], s["beta_0_index"]
+        )
 
         new_state = state.replace(
             rng=new_rng,
@@ -402,12 +404,16 @@ class MetropolisPtSampler(MetropolisSampler):
             beta_diffusion=s["beta_diffusion"],
             exchange_steps=s["exchange_steps"],
             n_accepted_per_beta=s["n_accepted_per_beta"],
-            n_accepted_proc=jax.vmap(jnp.take)(
-                s["n_accepted_per_beta"], s["beta_0_index"]
-            ),
+            n_accepted_proc=n_accepted_proc,
         )
-
-        return new_state, new_state.σ[s["beta_0_index"] + offsets, :]
+        σ_flat = new_state.σ
+        σ = σ_flat.reshape((-1, sampler.n_replicas, σ_flat.shape[-1]))
+        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
+        σ_new = sharding_decorator(partial(jnp.take_along_axis, axis=1), (True, True))(
+            σ, s["beta_0_index"][:, None, None]
+        )
+        σ_new = jax.lax.collapse(σ_new, 0, 2)  # remove dummy replica dim
+        return new_state, σ_new
 
 
 def MetropolisLocalPt(hilbert, *args, **kwargs):
