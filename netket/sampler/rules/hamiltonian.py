@@ -121,7 +121,10 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
 
                 log_prob_corr -= np.log(sections)
 
-            return __transition(v, rand_vec)
+            v_id = rule.operator.hilbert.states_to_local_indices(v)
+            vp_ids, log_prob_correction = __transition(v_id, rand_vec)
+            vp = rule.operator.hilbert.local_indices_to_states(vp_ids, dtype=v.dtype)
+            return vp, log_prob_correction
 
         # ideally we would pass the key to python/numba in _choose, initialise a
         # np.random.default_rng(key) and use it to generate random uniform integers.

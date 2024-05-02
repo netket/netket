@@ -271,7 +271,9 @@ def test_get_conn_numpy_closure(op):
     v = hi.random_state(jax.random.PRNGKey(0), 120)
     conn = np.empty(v.shape[0], dtype=np.intp)
 
-    vp, mels = closure(np.asarray(v), conn)
+    v_id = op.hilbert.states_to_local_indices(v)
+    vp_id, mels = closure(np.asarray(v_id), conn)
+    vp = op.hilbert.local_indices_to_states(vp_id, dtype=v.dtype)
     vp2, mels2 = op.get_conn_flattened(v, conn, pad=False)
 
     np.testing.assert_equal(vp, vp2)
