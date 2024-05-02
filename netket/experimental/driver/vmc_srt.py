@@ -103,7 +103,7 @@ def SRt(
     # To repack the real coefficients in order to get complex updates
     if mode == "complex" and nkjax.tree_leaf_iscomplex(params_structure):
         np = updates.shape[-1] // 2
-        updates = (updates[:np] + 1j * updates[np:]) / 2
+        updates = updates[:np] + 1j * updates[np:]
 
     return -updates
 
