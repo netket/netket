@@ -59,7 +59,7 @@ jobs:
 
       - uses: yezz123/setup-uv@v4
         with:
-          uv-venv: "env"
+          uv-venv: ~/.venv
 
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
