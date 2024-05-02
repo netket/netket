@@ -35,6 +35,7 @@
 
 
 ### Bug Fixes
+* Fixed the gradient of variational states w.r.t. complex parameters which was missing a factor of 2. The learning rate needs to be halved to reproduce simulations made with previous versions of NetKet [#1785](https://github.com/netket/netket/pull/1785).
 
 
 
