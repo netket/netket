@@ -236,6 +236,30 @@ class DiscreteHilbert(AbstractHilbert):
             f"implemented for Hilbert space {self} of type {type(self)}"
         )
 
+    def local_indices_to_states(self, x: Array, dtype=None):
+        r"""
+        Converts a tensor of integers to the corresponding local_values in
+        this hilbert space.
+
+        Equivalent to
+
+        .. code::py
+
+            hilbert.local_states[x]
+
+        The input last dimension must match the size of this Hilbert space.
+        This function can be jax-jitted.
+
+        Args:
+            x: a tensor with integer dtype and whose last dimension matches
+                the size of this Hilbert space.
+
+        Returns:
+            a tensor with the same shape as the input, and values corresponding
+            to the local_state indexed by the input tensor `x`.
+        """
+        raise NotImplementedError()
+
     @property
     def is_indexable(self) -> bool:
         """Whether the space can be indexed with an integer"""
