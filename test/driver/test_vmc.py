@@ -5,12 +5,13 @@ from pytest import approx, raises
 
 import numpy as np
 import jax
-import jax.numpy as jnp
 import netket as nk
 
 from contextlib import redirect_stderr
 import tempfile
 import re
+
+from ..variational.finite_diff import central_diff_grad
 
 from .. import common
 
@@ -135,26 +136,6 @@ def _energy(par, vstate, H):
     vstate.parameters = par
     psi = vstate.to_array()
     return np.real(psi.conj() @ H @ psi)
-
-
-def central_diff_grad(func, x, eps, *args):
-    grad = np.zeros(len(x), dtype=x.dtype)
-    epsd = np.zeros(len(x), dtype=x.dtype)
-    epsd[0] = eps
-    for i in range(len(x)):
-        assert not np.any(np.isnan(x + epsd))
-        grad_r = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
-        if jnp.iscomplexobj(x):
-            grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
-            grad[i] = 0.5 * grad_r + 0.5j * grad_i
-        else:
-            # grad_i = 0.0
-            grad[i] = grad_r
-
-        assert not np.isnan(grad[i])
-        grad[i] /= eps
-        epsd = np.roll(epsd, 1)
-    return grad
 
 
 def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):

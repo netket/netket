@@ -43,7 +43,7 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
         grad_r = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
         if jnp.iscomplexobj(x):
             grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
-            grad[i] = 0.5 * grad_r + 0.5j * grad_i
+            grad[i] = grad_r + 1j * grad_i
         else:
             # grad_i = 0.0
             grad[i] = grad_r
