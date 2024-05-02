@@ -153,14 +153,7 @@ class RungeKuttaState:
             last_norm = f"{self.last_norm}"
             accepted = f"{SolverFlags.INFO_STEP_ACCEPTED}"
 
-        return "RKState(step_no(total)={}({}), t={}, dt={}{}{})".format(
-            self.step_no,
-            self.step_no_total,
-            self.t.value,
-            dt,
-            last_norm,
-            accepted,
-        )
+        return f"RKState(step_no(total)={self.step_no}({self.step_no_total}), t={self.t.value}, dt={dt}{last_norm}{accepted})"
 
     @property
     def accepted(self):

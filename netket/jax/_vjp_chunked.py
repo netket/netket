@@ -222,9 +222,7 @@ def vjp_chunked(
 
     if not all(map(lambda x: (0 <= x) and (x < len(primals)), chunk_argnums)):
         raise ValueError(
-            "chunk_argnums must index primals. Got chunk_argnums={} but len(primals)={}".format(
-                chunk_argnums, len(primals)
-            )
+            f"chunk_argnums must index primals. Got chunk_argnums={chunk_argnums} but len(primals)={len(primals)}"
         )
         # TODO also check they are unique?
 

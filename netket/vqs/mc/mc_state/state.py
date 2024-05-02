@@ -301,9 +301,7 @@ class MCState(VariationalState):
     def sampler(self, sampler: Sampler):
         if not isinstance(sampler, Sampler):
             raise TypeError(
-                "The sampler should be a subtype of netket.sampler.Sampler, but {} is not.".format(
-                    type(sampler)
-                )
+                f"The sampler should be a subtype of netket.sampler.Sampler, but {type(sampler)} is not."
             )
 
         self._sampler_seed, seed = jax.random.split(self._sampler_seed, 2)
@@ -382,9 +380,7 @@ class MCState(VariationalState):
     def n_discard_per_chain(self, n_discard_per_chain: Optional[int]):
         if n_discard_per_chain is not None and n_discard_per_chain < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard_per_chain={}".format(
-                    n_discard_per_chain
-                )
+                f"Invalid number of discarded samples: n_discard_per_chain={n_discard_per_chain}"
             )
 
         # don't discard if the sampler is exact

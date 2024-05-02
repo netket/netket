@@ -41,9 +41,13 @@ jobs:
           fetch-tags: true
 
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
+      - uses: yezz123/setup-uv@v4
+        with:
+          uv-venv: .venv
 
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
@@ -53,10 +57,8 @@ jobs:
 
       - name: Pip install packages
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install wheel
-          pip install jaxlib
-          pip install -e ".[dev,extra]"
+          uv pip install jaxlib
+          uv pip install -e ".[dev,extra]"
 
       - name: run tests
         run: |

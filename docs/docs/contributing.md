@@ -62,7 +62,13 @@ Follow these steps to contribute code:
 
    And implement your changes.
 
-6. Make sure the tests pass by running the following command from the top of
+6. You can make sure your code passes some 'preliminary' tests for very simple errors or code style by running (the flag `--fix` will automatically fix most errors).
+
+   ```bash
+   ruff check --fix
+   ```
+
+7. Make sure the tests pass by running the following command from the top of
    the repository:
 
    ```bash
@@ -78,14 +84,24 @@ Follow these steps to contribute code:
    mpirun -np 2 pytest -n0 test/
    ```
 
-   NetKet's test suite is quite large, so if you know the specific test file that covers your
-   changes, you can limit the tests to that; for example:
+   NetKet's test suite is quite large, so if you know the specific test file or folder that covers your changes, you can limit the tests to that, as shown in the example below:
 
    ```bash
    pytest -n auto test/hilbert
    ```
 
-7. Once you are satisfied with your change, create a commit as follows (
+   You can narrow the tests further by using the `pytest -k` flag to match particular test names, as shown in this example here:
+
+   ```bash
+   pytest -n auto test/hilbert -k 'Spin'
+   ```
+
+8. To make sure that your code is properly formatted and passes some 'preliminary checks' you should also run black (and ruff) by running
+   ```bash
+   pre-commit run --all-files 
+   ```
+
+9. Once you are satisfied with your change, create a commit as follows (
    [how to write a commit message](https://chris.beams.io/posts/git-commit/)):
 
    ```bash
@@ -95,13 +111,6 @@ Follow these steps to contribute code:
    You can also use a graphical git client that simplifies a lot using Git.
    We suggest [GitKraken](https://www.gitkraken.com/) or [SourceTree](https://www.sourcetreeapp.com/).
 
-   Then sync your code with the main repo:
-
-   ```bash
-   git fetch upstream
-   git rebase upstream/master
-   ```
-
    Finally, push your commit on your development branch and create a remote 
    branch in your fork that you can use to create a pull request from:
 
@@ -109,7 +118,7 @@ Follow these steps to contribute code:
    git push --set-upstream origin name-of-change
    ```
 
-8. Create a pull request from the NetKet repository and send it for review.
+10. Create a pull request from the NetKet repository and send it for review.
    Check the {ref}`pr-checklist` for considerations when preparing your PR, and
    consult [GitHub Help](https://help.github.com/articles/about-pull-requests/)
    if you need more information on using pull requests.

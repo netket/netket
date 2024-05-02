@@ -18,14 +18,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Pip install python dependencies
+      - uses: yezz123/setup-uv@v4
+        with:
+          uv-venv: .venv
+
+      - name: Install black
         run: |
-          python -m pip install --upgrade pip
-          pip install -v black==23.9.1
+          uv pip install -v black==23.9.1
 
       - name: Black Code Formatter
         run: black --check --diff --color .
@@ -44,6 +47,6 @@ jobs:
       - name: Set up Python 3.10
         uses: chartboost/ruff-action@v1
         with:
-          version: 0.1.0
+          version: 0.4.2
           args: --config pyproject.toml
           src: netket test Examples

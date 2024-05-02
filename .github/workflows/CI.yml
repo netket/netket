@@ -53,9 +53,13 @@ jobs:
           fetch-tags: true
 
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
+      - uses: yezz123/setup-uv@v4
+        with:
+          uv-venv: .venv
 
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
@@ -63,23 +67,16 @@ jobs:
         with:
           mpi: ${{ matrix.mpi }}
 
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install wheel
-          echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-      - name: Pip install packages
+      - name: Install packages
         if: ${{ ! matrix.oldest_deps }}
         run: |
-          pip install jaxlib
+          uv pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
-            pip install -e ".[dev,extra,pyscf]"
+            uv pip install -e ".[dev,extra,pyscf]"
           else
-            pip install -e ".[dev,mpi]"
+            uv pip install -e ".[dev,mpi]"
           fi
-          pip install dm-haiku
+          uv pip install dm-haiku
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}
