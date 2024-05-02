@@ -131,8 +131,8 @@ class MetropolisPtSampler(MetropolisSampler):
     """
     sorted_betas: jax.Array
     """
-    The sorted values of the temperatures for each _physical_ markov chain. 
-    The first value should be β = 1 and is the _physical_ temperature. 
+    The sorted values of the temperatures for each _physical_ markov chain.
+    The first value should be β = 1 and is the _physical_ temperature.
     """
 
     def __init__(
@@ -192,7 +192,7 @@ class MetropolisPtSampler(MetropolisSampler):
 
             if not (jnp.isclose(jnp.max(betas), 1) and jnp.min(betas) > 0):
                 raise ValueError(
-                    f"""The values for beta should be in (0,1] and obligatory contain β=1, 
+                    f"""The values for beta should be in (0,1] and obligatory contain β=1,
                     instead got [{jnp.min(betas):.2f},{jnp.max(betas):.8f}]."""
                 )
 
