@@ -392,11 +392,6 @@ def test_expect_exact(vstate, operator):
         np.testing.assert_allclose(O_expval_exact.imag, O_mean.imag, atol=err, rtol=err)
 
 
-# This test is 'broken' on CI when running under pytest-xdist. It does pass with
-# pytest -n0 . I cannot reproduce locally, and I suspect it's a bug in Jax itself
-# so I still include it in the local runs. Should be tested in a while to see if
-# Jax fixed this bug.
-@common.skipif_ci
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
