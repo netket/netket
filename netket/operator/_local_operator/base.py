@@ -160,6 +160,11 @@ class LocalOperatorBase(DiscreteOperator):
 
     @property
     def n_operators(self) -> int:
+        """The total number of operators that were summed upon to build this operator.
+
+        This excludes an optional identity term that is tracked by 
+        :attr:`netket.operator.LocalOperator.constant`.
+        """
         return len(self._operators_dict)
 
     @property
