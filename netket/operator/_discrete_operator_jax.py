@@ -37,10 +37,9 @@ class DiscreteJaxOperator(DiscreteOperator):
     arguments, and they will not trigger recompilation if
     only the coefficients have changed.
 
-    Some operators, such as :class:`netket.operator.Ising` or
-    :class:`netket.operator.PauliStrings` can be converted to
+    Most operators can be converted to
     their jax-enabled counterparts by calling the method
-    :meth:`~netket.operator.PauliStrings.to_jax_operator`.
+    :meth:`~netket.operator.DiscreteJaxOperator.to_jax_operator`.
     Not all operators support this conversion, but as
     :class:`netket.operator.PauliStrings` are flexible, if you
     can convert or write your hamiltonian as a sum of pauli

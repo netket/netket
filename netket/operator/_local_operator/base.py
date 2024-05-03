@@ -160,10 +160,16 @@ class LocalOperatorBase(DiscreteOperator):
 
     @property
     def n_operators(self) -> int:
+        """The total number of operators that were summed upon to build this operator.
+
+        This excludes an optional identity term that is tracked by
+        :attr:`netket.operator.LocalOperator.constant`.
+        """
         return len(self._operators_dict)
 
     @property
     def dtype(self) -> DType:
+        """DType of the matrix elements of this operator."""
         return self._dtype
 
     @property
@@ -197,6 +203,9 @@ class LocalOperatorBase(DiscreteOperator):
 
     @property
     def constant(self) -> numbers.Number:
+        """
+        A constant multiplying the identity added to the diagonal of the operator.
+        """
         return self._constant
 
     def to_pauli_strings(self, **kwargs) -> "PauliStrings":  # noqa: F821

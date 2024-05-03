@@ -34,6 +34,10 @@ if TYPE_CHECKING:
 
 @register_pytree_node_class
 class IsingJax(IsingBase, DiscreteJaxOperator):
+    """
+    Jax-compatible version of :class:`netket.operator.Ising`.
+    """
+
     @wraps(IsingBase.__init__)
     def __init__(
         self,
