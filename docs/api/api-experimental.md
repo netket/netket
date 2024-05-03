@@ -70,31 +70,6 @@ several CPUs, but you have to start jax with a specific environment variable.
    sampler.MetropolisSamplerPmap
 ```
 
-### Particle-specific samplers
-
-The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class}`netket.experimental.hilbert.SpinOrbitalFermions`).
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/samplers
-   :template: flax_module_or_default
-   :nosignatures:
-
-
-   sampler.MetropolisParticleExchange
-```
-
-And the corresponding rules
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/samplers
-   :template: flax_module_or_default
-   :nosignatures:
-
-
-   sampler.rules.ParticleExchangeRule
-```
-
 (experimental-logging-api)=
 ## Logging
 
@@ -168,38 +143,6 @@ This is a collection of ODE integrators that can be used with the TDVP driver ab
    dynamics.RK23
    dynamics.RK4
    dynamics.RK45
-```
-
-## Fermions
-
-This modules contains hilbert space and operator implementations of fermions in second quantization.
-It is experimental until it has been thoroughly tested by the community, meaning feedback is welcome.
-
-```{eval-rst}
-.. currentmodule:: netket.experimental
-```
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/hilbert
-   :template: class
-   :nosignatures:
-
-   hilbert.SpinOrbitalFermions
-```
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/operator
-   :template: class
-   :nosignatures:
-
-   operator.FermionOperator2nd
-   operator.fermion.create
-   operator.fermion.destroy
-   operator.fermion.number
-   operator.from_pyscf_molecule
-   operator.pyscf.TV_from_pyscf_molecule
 ```
 
 ## Observables

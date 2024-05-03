@@ -63,17 +63,25 @@ Below you find a list of all concrete Operators that you can create on {class}`~
 
 ```
 
-In the experimental submodule there is also a class to represent fermionic operators.
+### Fermions
+
+Operators and functions to work with fermions are the following:
 
 ```{eval-rst}
-.. currentmodule:: netket
-
 .. autosummary::
    :toctree: _generated/operator
+   :template: class
    :nosignatures:
 
-   experimental.operator.FermionOperator2nd
+   operator.FermionOperator2nd
+   operator.fermion.create
+   operator.fermion.destroy
+   operator.fermion.number
+   operator.from_pyscf_molecule
+   operator.pyscf.TV_from_pyscf_molecule
 ```
+
+Note in particular the pyscf module that can be used to convert molecules from pyscf to netket format.
 
 ### Continuous space operators
 

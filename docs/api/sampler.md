@@ -91,6 +91,17 @@ This is an equivalent list of shorthands that allow to construct a {class}`~netk
    ParallelTemperingHamiltonian
 ```
 
+The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class}`netket.hilbert.SpinOrbitalFermions`).
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   sampler.MetropolisParticleExchange
+```
 
 ### Transition Rules
 
@@ -113,6 +124,7 @@ Sampler. Rules with `Numpy` in their name can only be used with
   rules.HamiltonianRuleNumpy
   rules.GaussianRule
   rules.LangevinRule
+  rules.ParticleExchangeRule
 
 ```
 
