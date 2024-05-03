@@ -53,9 +53,12 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
     @jax.jit
     @wraps(BoseHubbardBase.get_conn_padded)
     def get_conn_padded(self, x):
-        return _bh_kernel_jax(
-            x, self._edges, self.U, self.V, self.J, self.mu, self._n_max
+        x_ids = self.hilbert.states_to_local_indices(x)
+        xp_ids, mels = _bh_kernel_jax(
+            x_ids, self._edges, self.U, self.V, self.J, self.mu, self._n_max
         )
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
+        return xp, mels
 
     def to_numba_operator(self) -> "BoseHubbard":  # noqa: F821
         """
