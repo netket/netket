@@ -30,7 +30,10 @@ class LocalRuleState:
 @struct.dataclass
 class LocalRuleNumpy(MetropolisRule):
     def init_state(rule, sampler, machine, params, key):
-        return LocalRuleState(local_states=np.array(sampler.hilbert.local_states))
+        # _kernel below assumes that local states are sorted
+        return LocalRuleState(
+            local_states=np.sort(np.array(sampler.hilbert.local_states))
+        )
 
     def transition(rule, sampler, machine, parameters, state, rng, σ):
         σ = state.σ
