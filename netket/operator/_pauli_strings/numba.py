@@ -244,13 +244,13 @@ class PauliStrings(PauliStringsBase):
         """
         self._setup()
 
-        x = concrete_or_error(
+        x_ids = self.hilbert.states_to_local_indices(x)
+        x_ids = concrete_or_error(
             np.asarray,
-            x,
+            x_ids,
             NumbaOperatorGetConnDuringTracingError,
             self,
         )
-        x_ids = self.hilbert.states_to_local_indices(x)
 
         assert (
             x.shape[-1] == self.hilbert.size
