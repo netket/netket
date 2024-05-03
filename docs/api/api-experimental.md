@@ -70,29 +70,24 @@ several CPUs, but you have to start jax with a specific environment variable.
    sampler.MetropolisSamplerPmap
 ```
 
-### Particle-specific samplers
+(experimental-fermions-api)=
+## Fermions and PyScf
 
-The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class}`netket.experimental.hilbert.SpinOrbitalFermions`).
+This modules contains some utility functions that are used to create hamiltonians directly from some PyScf molecules. 
+Previously we also had several Fermionic functionality in the experimental namespace, but in May 2024 they were stabilised and moved to the main netket namespace.
 
 ```{eval-rst}
-.. autosummary::
-   :toctree: _generated/samplers
-   :template: flax_module_or_default
-   :nosignatures:
-
-
-   sampler.MetropolisParticleExchange
+.. currentmodule:: netket.experimental
 ```
 
-And the corresponding rules
 ```{eval-rst}
 .. autosummary::
-   :toctree: _generated/samplers
-   :template: flax_module_or_default
-   :nosignatures:
+    :toctree: _generated/operator
+    :template: class
+    :nosignatures:
 
-
-   sampler.rules.ParticleExchangeRule
+    operator.from_pyscf_molecule
+    operator.pyscf.TV_from_pyscf_molecule
 ```
 
 (experimental-logging-api)=
@@ -189,38 +184,6 @@ Those are the abstract classes you can inherit from to implement your own solver
    dynamics.AbstractSolverState
 ```
 
-
-## Fermions
-
-This modules contains hilbert space and operator implementations of fermions in second quantization.
-It is experimental until it has been thoroughly tested by the community, meaning feedback is welcome.
-
-```{eval-rst}
-.. currentmodule:: netket.experimental
-```
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/hilbert
-   :template: class
-   :nosignatures:
-
-   hilbert.SpinOrbitalFermions
-```
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/operator
-   :template: class
-   :nosignatures:
-
-   operator.FermionOperator2nd
-   operator.fermion.create
-   operator.fermion.destroy
-   operator.fermion.number
-   operator.from_pyscf_molecule
-   operator.pyscf.TV_from_pyscf_molecule
-```
 
 ## Observables
 This module contains various observables that can be computed starting from various variational states.

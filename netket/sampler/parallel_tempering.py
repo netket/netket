@@ -150,7 +150,7 @@ class ParallelTemperingSampler(MetropolisSampler):
         **kwargs,
     ):
         r"""
-        ``ParallelTemperingSampler`` is a generic Metropolis-Hastings sampler using
+        :class:`~netket.sampler.ParallelTemperingSampler` is a generic Metropolis-Hastings sampler using
         a transition rule to perform moves in the Markov Chain.
         The transition kernel is used to generate
         a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
@@ -620,17 +620,16 @@ def ParallelTemperingExchange(
           Sampling from a RBM machine in a 1D lattice of spin 1/2, using
           nearest-neighbours exchanges.
 
-          >>> import pytest; pytest.skip("EXPERIMENTAL")
           >>> import netket as nk
-          >>> import netket.sampler.metropolis_pt as mpt
           >>>
           >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
           >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
           >>>
           >>> # Construct a MetropolisExchange Sampler
-          >>> sa = mpt.MetropolisExchangePt(hi, graph=g)
+          >>> sa = nk.sampler.ParallelTemperingExchange(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = int8)
+          ParallelTemperingSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+
     """
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return ParallelTemperingSampler(hilbert, rule, *args, **kwargs)
@@ -666,9 +665,7 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
     Examples:
        Sampling from a RBM machine in a 1D lattice of spin 1/2
 
-       >>> import pytest; pytest.skip("EXPERIMENTAL")
        >>> import netket as nk
-       >>> import netket.sampler.metropolis_pt as mpt
        >>>
        >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
        >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
@@ -677,9 +674,10 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
        >>> ha = nk.operator.Ising(hilbert=hi, h=1.0, graph=g)
        >>>
        >>> # Construct a MetropolisExchange Sampler
-       >>> sa = mpt.MetropolisHamiltonianPt(hi, hamiltonian=ha)
+       >>> sa = nk.sampler.ParallelTemperingHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
+       ParallelTemperingSampler(rule = HamiltonianRuleNumba(operator=Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+
     """
     rule = HamiltonianRule(hamiltonian)
     return ParallelTemperingSampler(hilbert, rule, *args, **kwargs)
