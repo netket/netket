@@ -27,9 +27,19 @@ from .full_summ import FullSumState
 # eventually remove this file and import
 from . import experimental
 
-# TODO: deprecated on May 2023
-from .deprecated import ExactState
+_deprecations = {
+    # May 2023
+    "ExactState": (
+        "netket.vqs.ExactState is deprecated: use netket.vqs.FullSumState (netket >= 3.12)",
+        FullSumState,
+    ),
+}
 
 from netket.utils import _hide_submodules
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 
 _hide_submodules(__name__, ignore=["experimental"], hide_folder=["mc"])
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
+del _deprecation_getattr
+
+
