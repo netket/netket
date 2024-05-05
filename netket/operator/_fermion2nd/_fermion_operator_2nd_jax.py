@@ -518,7 +518,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     better performance.
 
     Can be converted to the Numba one with the method
-    :meth:`~netket.experimental.operator.FermionOperator2ndJax.to_numba_operator()`.
+    :meth:`~netket.operator.FermionOperator2ndJax.to_numba_operator()`.
     """
 
     @wraps(FermionOperator2ndBase.__init__)
@@ -624,7 +624,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     def to_numba_operator(self) -> "FermionOperator2nd":  # noqa: F821
         """
         Returns the standard numba version of this operator, which is an
-        instance of :class:`netket.experimental.operator.FermionOperator2nd`.
+        instance of :class:`netket.operator.FermionOperator2nd`.
         """
         from ._fermion_operator_2nd_numba import FermionOperator2nd
 

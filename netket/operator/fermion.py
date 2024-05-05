@@ -14,12 +14,12 @@
 
 
 from netket.utils.types import DType as _DType
-from netket.hilbert.abstract_hilbert import AbstractHilbert as _AbstractHilbert
-from netket.experimental.operator import FermionOperator2nd as _FermionOperator2nd
+from netket.hilbert import SpinOrbitalFermions as _SpinOrbitalFermions
+from netket.operator import FermionOperator2nd as _FermionOperator2nd
 
 
 def destroy(
-    hilbert: _AbstractHilbert,
+    hilbert: _SpinOrbitalFermions,
     site: int,
     sz: int | None = None,
     cutoff: float = 1e-10,
@@ -47,7 +47,7 @@ def destroy(
 
 
 def create(
-    hilbert: _AbstractHilbert,
+    hilbert: _SpinOrbitalFermions,
     site: int,
     sz: int | None = None,
     cutoff: float = 1e-10,
@@ -75,7 +75,7 @@ def create(
 
 
 def number(
-    hilbert: _AbstractHilbert,
+    hilbert: _SpinOrbitalFermions,
     site: int,
     sz: int | None = None,
     cutoff: float = 1e-10,
@@ -112,7 +112,7 @@ def number(
     )
 
 
-def _get_index(hilbert: _AbstractHilbert, site: int, sz: int | None = None):
+def _get_index(hilbert: _SpinOrbitalFermions, site: int, sz: int | None = None):
     """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
     if sz is None:
         if hasattr(hilbert, "spin") and hilbert.spin is not None:
@@ -136,7 +136,9 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: int | None = None):
 
 
 def identity(
-    hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _DType | None = None
+    hilbert: _SpinOrbitalFermions,
+    cutoff: float = 1e-10,
+    dtype: _DType | None = None,
 ):
     """
     Builds the :math:`\\mathbb{I}` identity operator.
@@ -151,7 +153,11 @@ def identity(
     return _FermionOperator2nd(hilbert, constant=1, dtype=dtype, cutoff=cutoff)
 
 
-def zero(hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _DType | None = None):
+def zero(
+    hilbert: _SpinOrbitalFermions,
+    cutoff: float = 1e-10,
+    dtype: _DType | None = None,
+):
     """
     Builds the :math:`0` operator, which has no connected components.
 
