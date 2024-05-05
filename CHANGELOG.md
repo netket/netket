@@ -29,6 +29,9 @@
 * Duplicating a `netket.vqs.MCState` now leads to perfectly deterministic, identical samples between two different copies of the same `MCState` even if the sampler is changed. Previously, duplicating an `MCState` and changing the sampler on two copies of the same state would lead to some completely random seed being used and therefore different samples to be generated. This change is needed to eventually achieve proper checkpointing of our calculations [#1778](https://github.com/netket/netket/pull/1778).
 * The methods converting Jax Operators to another kind (such as LocalOperators to PauliOperators) will return the Jax version of those operators if available [#1781](https://github.com/netket/netket/pull/1781).
 
+### Finalized Deprecations
+* Removed module function `netket.sampler.sample_next` that was deprecated in NetKet 3.3 (December 2021) [#17XX](https://github.com/netket/netket/pull/17XX).
+
 ### Internal changes
 * Initialize the MetropolisSamplerState in a way that avoids recompilation when using sharding [#1776](https://github.com/netket/netket/pull/1776).
 * Wrap several functions in the samplers and operators with a `shard_map` to avoid unnecessary collective communication when doing batched indexing of sharded arrays [#1777](https://github.com/netket/netket/pull/1777).
