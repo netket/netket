@@ -279,6 +279,7 @@ class VMC_SRt(AbstractVariationalDriver):
             mode=self.jacobian_mode,
             dense=True,
             center=True,
+            chunk_size=self.state.chunk_size,
         )  # jacobians is centered
 
         diag_shift = self.diag_shift
