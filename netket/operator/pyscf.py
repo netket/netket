@@ -12,23 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import MetropolisRule
-
-from .fixed import FixedRule
-from .local import LocalRule
-from .exchange import ExchangeRule
-from .hamiltonian import HamiltonianRule
-from .continuous_gaussian import GaussianRule
-from .langevin import LangevinRule
-from .tensor import TensorRule
-from .multiple import MultipleRules
-from .fermion_2nd import ParticleExchangeRule
-
-# numpy backend
-from .local_numpy import LocalRuleNumpy
-from .hamiltonian_numpy import HamiltonianRuleNumpy
-from .custom_numpy import CustomRuleNumpy
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from ._pyscf import from_pyscf_molecule  # noqa: F401

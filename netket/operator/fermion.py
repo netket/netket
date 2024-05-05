@@ -15,12 +15,12 @@
 from typing import Optional as _Optional
 
 from netket.utils.types import DType as _DType
-from netket.hilbert.abstract_hilbert import AbstractHilbert as _AbstractHilbert
-from netket.experimental.operator import FermionOperator2nd as _FermionOperator2nd
+from netket.hilbert import SpinOrbitalFermions as _SpinOrbitalFermions
+from netket.operator import FermionOperator2nd as _FermionOperator2nd
 
 
 def destroy(
-    hilbert: _AbstractHilbert,
+    hilbert: _SpinOrbitalFermions,
     site: int,
     sz: _Optional[int] = None,
     cutoff: float = 1e-10,
@@ -48,7 +48,7 @@ def destroy(
 
 
 def create(
-    hilbert: _AbstractHilbert,
+    hilbert: _SpinOrbitalFermions,
     site: int,
     sz: _Optional[int] = None,
     cutoff: float = 1e-10,
@@ -76,7 +76,7 @@ def create(
 
 
 def number(
-    hilbert: _AbstractHilbert,
+    hilbert: _SpinOrbitalFermions,
     site: int,
     sz: _Optional[int] = None,
     cutoff: float = 1e-10,
@@ -113,7 +113,7 @@ def number(
     )
 
 
-def _get_index(hilbert: _AbstractHilbert, site: int, sz: _Optional[int] = None):
+def _get_index(hilbert: _SpinOrbitalFermions, site: int, sz: _Optional[int] = None):
     """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
     if sz is None:
         if hasattr(hilbert, "spin") and hilbert.spin is not None:
@@ -137,7 +137,9 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: _Optional[int] = None):
 
 
 def identity(
-    hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _Optional[_DType] = None
+    hilbert: _SpinOrbitalFermions,
+    cutoff: float = 1e-10,
+    dtype: _Optional[_DType] = None,
 ):
     """
     Builds the :math:`\\mathbb{I}` identity operator.
@@ -153,7 +155,9 @@ def identity(
 
 
 def zero(
-    hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _Optional[_DType] = None
+    hilbert: _SpinOrbitalFermions,
+    cutoff: float = 1e-10,
+    dtype: _Optional[_DType] = None,
 ):
     """
     Builds the :math:`0` operator, which has no connected components.
