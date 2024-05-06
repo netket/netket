@@ -23,13 +23,13 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Ising spin hamiltonian
-ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0).to_local_operator()
+ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
 ma = nk.models.RBM(alpha=1, param_dtype=float)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisHamiltonian(hi, ha, n_chains=16)
+sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer with a decreasing learning rate
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
