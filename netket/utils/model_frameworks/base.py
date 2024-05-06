@@ -83,4 +83,6 @@ def maybe_wrap_module(module) -> tuple:
     """
     framewrk = identify_framework(module)
 
-    return framewrk.wrap(module)
+    maybe_module_variables, static_module = framewrk.wrap(module)
+
+    return maybe_module_variables, static_module
