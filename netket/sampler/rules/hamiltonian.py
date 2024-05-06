@@ -74,6 +74,10 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
                 "Argument to HamiltonianRule must be a valid operator, "
                 f"but operator is a {type(self.operator)}."
             )
+        # call _setup on the operator if it exists, to warmup the cache and
+        # avoid calling it in a numba callback which might break things.
+        if hasattr(operator, "_setup"):
+            operator._setup()
         self.operator = operator
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
