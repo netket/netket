@@ -28,7 +28,6 @@ from .metropolis import (
     MetropolisHamiltonian,
     MetropolisGaussian,
     MetropolisAdjustedLangevin,
-    sample_next,
 )
 
 from .metropolis_numpy import (
