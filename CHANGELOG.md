@@ -36,7 +36,7 @@
 
 ### Bug Fixes
 * Fixed the gradient of variational states w.r.t. complex parameters which was missing a factor of 2. The learning rate needs to be halved to reproduce simulations made with previous versions of NetKet [#1785](https://github.com/netket/netket/pull/1785).
-
+* Fixed the bug [#1791](https://github.com/netket/netket/pull/1791). where MetropolisHamiltonian with jax operators was leaking tracers and crashing [#1792](https://github.com/netket/netket/pull/1792).
 
 
 ## NetKet 3.11.3 (🐟 2 April 2024)
