@@ -23,7 +23,7 @@ import numpy as np
 from numba import jit
 from numba4jax import njit4jax
 
-from netket.operator import AbstractOperator, DiscreteJaxOperator
+from netket.operator import DiscreteOperator, DiscreteJaxOperator
 from netket.utils import struct
 from netket.jax.sharding import sharding_decorator, with_samples_sharding_constraint
 
@@ -35,49 +35,46 @@ class HamiltonianRuleBase(MetropolisRule):
     Rule proposing moves according to the terms in an operator.
     """
 
-    operator: AbstractOperator = struct.field(pytree_node=False)
+    # operator: AbstractOperator = struct.field(pytree_node=False / True depending on jax or not jax)
     """The (hermitian) operator giving the transition amplitudes."""
 
-    def __init__(self, operator: AbstractOperator):
-        self.operator = operator
-
-    def init_state(rule, sampler, machine, params, key):
-        if sampler.hilbert != rule.operator.hilbert:
+    def init_state(self, sampler, machine, params, key):
+        if sampler.hilbert != self.operator.hilbert:
             raise ValueError(
                 f"""
             The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
-            of the operator ({rule.operator.hilbert}) for HamiltonianRule must be the same.
+            of the operator ({self.operator.hilbert}) for HamiltonianRule must be the same.
             """
             )
         return super().init_state(sampler, machine, params, key)
 
-    def __post_init__(self):
-        # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.operator, AbstractOperator):
-            raise TypeError(
-                "Argument to HamiltonianRule must be a valid operator, "
-                f"but operator is a {type(self.operator)}."
-            )
-
-    def __repr__(self):
-        return f"HamiltonianRuleNumba({self.operator})"
-
 
 @struct.dataclass
 class HamiltonianRuleNumba(HamiltonianRuleBase):
-    """
+    r"""
     Rule proposing moves according to the terms in an operator.
 
     In this case, the transition matrix is taken to be:
 
     .. math::
 
-       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+       T( \mathbf{s} \rightarrow \mathbf{s}^\\prime) = \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
 
     This rule only works on CPU! If you want to use it on GPU, you
     must use the numpy variant :class:`netket.sampler.rules.HamiltonianRuleNumpy`
     together with the numpy metropolis sampler :class:`netket.sampler.MetropolisSamplerNumpy`.
     """
+
+    operator: DiscreteOperator = struct.field(pytree_node=False)
+    """The (hermitian) operator giving the transition amplitudes."""
+
+    def __init__(self, operator: DiscreteOperator):
+        if not isinstance(operator, DiscreteOperator):
+            raise TypeError(
+                "Argument to HamiltonianRule must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
+            )
+        self.operator = operator
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
         """
@@ -126,9 +123,6 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
 
         return σp, log_prob_correction
 
-    def __repr__(self):
-        return f"HamiltonianRuleNumba({self.operator})"
-
 
 @jit(nopython=True)
 def _choose(vp, sections, rand_vec, out, w):
@@ -142,17 +136,28 @@ def _choose(vp, sections, rand_vec, out, w):
 
 @struct.dataclass
 class HamiltonianRuleJax(HamiltonianRuleBase):
-    """
+    r"""
     Rule proposing moves according to the terms in an operator.
 
     In this case, the transition matrix is taken to be:
 
     .. math::
 
-       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
 
     This rule only works with operators which are written in jax.
     """
+
+    operator: DiscreteJaxOperator = struct.field(pytree_node=True)
+    """The (hermitian) operator giving the transition amplitudes."""
+
+    def __init__(self, operator: DiscreteJaxOperator):
+        if not isinstance(operator, DiscreteJaxOperator):
+            raise TypeError(
+                "Argument to HamiltonianRule must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
+            )
+        self.operator = operator
 
     def transition(self, _0, _1, _2, _3, key, x):
         xp, mels = self.operator.get_conn_padded(x)
@@ -201,9 +206,6 @@ class HamiltonianRuleJax(HamiltonianRuleBase):
         log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
 
         return x_proposed, log_prob_corr
-
-    def __repr__(self):
-        return f"HamiltonianRuleJax({self.operator})"
 
 
 def HamiltonianRule(operator):
