@@ -72,7 +72,7 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
         if not isinstance(operator, DiscreteOperator):
             raise TypeError(
                 "Argument to HamiltonianRule must be a valid operator, "
-                f"but operator is a {type(self.operator)}."
+                f"but operator is a {type(operator)}."
             )
         # call _setup on the operator if it exists, to warmup the cache and
         # avoid calling it in a numba callback which might break things.
@@ -159,7 +159,7 @@ class HamiltonianRuleJax(HamiltonianRuleBase):
         if not isinstance(operator, DiscreteJaxOperator):
             raise TypeError(
                 "Argument to HamiltonianRule must be a valid operator, "
-                f"but operator is a {type(self.operator)}."
+                f"but operator is a {type(operator)}."
             )
         self.operator = operator
 
