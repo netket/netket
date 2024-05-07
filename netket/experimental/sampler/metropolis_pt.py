@@ -182,8 +182,6 @@ class MetropolisPtSampler(MetropolisSampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float32).
         """
-        beta_distribution = ""
-
         # if beta is not provided, linear distribution of 32 temperatures
         if betas is None:
             if n_replicas is None:
@@ -191,7 +189,7 @@ class MetropolisPtSampler(MetropolisSampler):
             beta_distribution = "lin"
 
         # beta is provided
-        elif betas is not None:
+        else:
             # either we know the distribution
             if isinstance(betas, str):
                 beta_distribution = betas
