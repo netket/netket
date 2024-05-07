@@ -35,7 +35,7 @@
 ### Internal changes
 * Initialize the MetropolisSamplerState in a way that avoids recompilation when using sharding [#1776](https://github.com/netket/netket/pull/1776).
 * Wrap several functions in the samplers and operators with a `shard_map` to avoid unnecessary collective communication when doing batched indexing of sharded arrays [#1777](https://github.com/netket/netket/pull/1777).
-
+* Callbacks are now Pytree and can be flattened/unflatted and serialized with flax [#1666](https://github.com/netket/netket/pull/1666).
 
 ### Bug Fixes
 * Fixed the gradient of variational states w.r.t. complex parameters which was missing a factor of 2. The learning rate needs to be halved to reproduce simulations made with previous versions of NetKet [#1785](https://github.com/netket/netket/pull/1785).
