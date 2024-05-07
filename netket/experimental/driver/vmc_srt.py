@@ -50,7 +50,7 @@ def SRt(
     local_energies = local_energies.flatten()
 
     if e_mean is None:
-        e_mean = mpi.mean(local_energies)
+        e_mean = nkstats.mean(local_energies)
     de = jnp.conj(local_energies - e_mean).squeeze()
 
     # * in this case O_L should be padded with zeros
