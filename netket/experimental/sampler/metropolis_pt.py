@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from functools import partial
 
 import numpy as np
@@ -129,17 +129,20 @@ class MetropolisPtSampler(MetropolisSampler):
 
     The total number of chains evolved is :code:`n_chains * n_replicas`.
     """
-    sorted_betas: jax.Array
+    _beta_sorted: jax.Array = None
     """
-    The sorted values of the temperatures for each _physical_ markov chain.
-    The first value should be β = 1 and is the _physical_ temperature.
+    An internal cache for the user-specified betas, sorted.
+    """
+    _beta_distribution: str = struct.field(pytree_node=False, default="lin")
+    """
+    An internal for the user-specified distribution of betas.
     """
 
     def __init__(
         self,
         *args,
         n_replicas: Optional[int] = None,
-        betas: Optional[jax.Array] = None,
+        betas: Optional[Union[str, jax.Array]] = None,
         **kwargs,
     ):
         r"""
@@ -164,9 +167,13 @@ class MetropolisPtSampler(MetropolisSampler):
                     well as uniform random states.
             n_replicas: The number of different temperatures β for the sampling.
                     (default : 32).
-            betas: (Optional) the values of the temperatures β.
-                    The value β=1 must obligatory be an element of betas, all other temperatures must be in (0,1].
-                    (default : linear distribution between (0,1]).
+            betas: (Optional) Distribution or list of values of the temperatures β.
+                    For the distribution, possibility between "lin" for a linear distribution and
+                    "log" for a logarithmic one.
+                    For the explicit list of values, the value β=1 must obligatory be an element of betas,
+                    all other temperatures must be in (0,1]. In this case, if n_replicas is provided, it must 
+                    correspond to the length of the provided temperatures.
+                    (default : "lin", i.e. linear distribution between (0,1]).
             n_chains: The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
@@ -175,30 +182,53 @@ class MetropolisPtSampler(MetropolisSampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float32).
         """
+        beta_distribution = ""
+
+        # if beta is not provided, linear distribution of 32 temperatures
         if betas is None:
             if n_replicas is None:
                 n_replicas = 32
+            beta_distribution = "lin"
 
-            betas = 1.0 - jnp.arange(n_replicas) / n_replicas
-
+        # beta is provided
         elif betas is not None:
-            betas = jnp.array(betas, dtype=jnp.float64).reshape(-1)
+            # either we know the distribution
+            if isinstance(betas, str):
+                beta_distribution = betas
+                if not (beta_distribution == "lin" or beta_distribution == "log"):
+                    raise ValueError(
+                        f"""To initialize the temperatures with a string, you must choose between "lin" for a linear distribution and "log" for a logarithmic distribution. Instead got "{beta_distribution}"."""
+                    )
 
-            if n_replicas is not None and betas.shape[-1] != n_replicas:
-                raise ValueError(
-                    f"""The dimension of the array beta and the number of replicas must match,
-                    instead, got {n_replicas} replicas but {betas.shape[-1]} values for beta."""
-                )
+                # default if not provided
+                if n_replicas is None:
+                    n_replicas = 32
 
-            if not (jnp.isclose(jnp.max(betas), 1) and jnp.min(betas) > 0):
-                raise ValueError(
-                    f"""The values for beta should be in (0,1] and obligatory contain β=1,
-                    instead got [{jnp.min(betas):.2f},{jnp.max(betas):.8f}]."""
-                )
+                # list is empty if we have a string
+                betas = None
 
-            betas = jnp.sort(betas, descending=True)  # we need beta[0] = 1
-            n_replicas = betas.shape[-1]
+            # or we have the list
+            else:
+                betas = jnp.array(betas, dtype=jnp.float64).reshape(-1)
 
+                # verify that the list is compatible with n_replicas
+                if n_replicas is not None and betas.shape[-1] != n_replicas:
+                    raise ValueError(
+                        f"""The dimension of the array beta and the number of replicas must match, instead, got {n_replicas} replicas but {betas.shape[-1]} values for beta."""
+                    )
+
+                # is the list valid
+                if not (jnp.isclose(jnp.max(betas), 1) and jnp.min(betas) > 0):
+                    raise ValueError(
+                        rf"""The values for beta should be in (0,1] and obligatory contain beta=1, instead got [{jnp.min(betas):.2f},{jnp.max(betas):.8f}]."""
+                    )
+
+                # sort and adapt the rest correspondingly
+                betas = jnp.sort(betas, descending=True)  # we need beta[0] = 1
+                n_replicas = betas.shape[-1]
+                beta_distribution = "custom"
+
+        # verify the number of replicas
         if not (
             isinstance(n_replicas, int)
             and n_replicas > 0
@@ -207,9 +237,31 @@ class MetropolisPtSampler(MetropolisSampler):
             raise ValueError("n_replicas must be an even integer > 0.")
 
         self.n_replicas = n_replicas
-        self.sorted_betas = betas
+        self._beta_sorted = betas
+        self._beta_distribution = beta_distribution
 
         super().__init__(*args, **kwargs)
+
+    @property
+    def sorted_betas(self):
+        """
+        The sorted values of the temperatures for each _physical_ markov chain.
+        The first value is β = 1 and is the _physical_ temperature.
+        """
+
+        if self._beta_sorted is not None:
+            return self._beta_sorted
+        else:
+            if self._beta_distribution == "lin":
+                return (
+                    1.0
+                    - jnp.arange(self.n_replicas, dtype=jnp.float64) / self.n_replicas
+                )
+            elif self._beta_distribution == "log":
+                return -jnp.log(
+                    jnp.arange(1, self.n_replicas + 1, dtype=jnp.float64)
+                    / (self.n_replicas + 1)
+                ) / jnp.log(self.n_replicas + 1)
 
     @property
     def n_batches(self) -> int:
