@@ -171,7 +171,7 @@ class MetropolisPtSampler(MetropolisSampler):
                     For the distribution, possibility between "lin" for a linear distribution and
                     "log" for a logarithmic one.
                     For the explicit list of values, the value β=1 must obligatory be an element of betas,
-                    all other temperatures must be in (0,1]. In this case, if n_replicas is provided, it must 
+                    all other temperatures must be in (0,1]. In this case, if n_replicas is provided, it must
                     correspond to the length of the provided temperatures.
                     (default : "lin", i.e. linear distribution between (0,1]).
             n_chains: The number of Markov Chain to be run in parallel on a single process.
