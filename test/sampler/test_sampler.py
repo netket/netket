@@ -603,3 +603,33 @@ def test_multiplerules_pt(model_and_weights):
         chain_length=10,
     )
     assert samples.shape == (sa.n_chains, 10, hi.size)
+
+
+def test_hamiltonian_jax_sampler_isleaf():
+    g = nk.graph.Hypercube(length=4, n_dim=1, pbc=True)
+
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    rule1 = nk.sampler.rules.HamiltonianRule(
+        nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)
+    )
+    rule2 = nk.sampler.rules.HamiltonianRule(
+        nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)
+    )
+    leaf1, struct1 = jax.tree_util.tree_flatten(rule1)
+    leaf2, struct2 = jax.tree_util.tree_flatten(rule2)
+
+    # if the structures are identical, the operators must have been unpacked.
+    assert struct1 == struct2
+    assert hash(struct1) == hash(struct2)
+
+    # check contained in leafs (this only works because the arrays are identically the same, but it
+    # is enough for this check):
+    for leaf in jax.tree_util.tree_leaves(rule1.operator):
+        found = False
+        for l in leaf1:
+            if leaf is l:
+                found = True
+                break
+        # If this fails, it is either because the operator is not a leaf ot the rule, or because jax changed
+        # some internals and the flattening does not return identical arrays anymore.
+        assert found
