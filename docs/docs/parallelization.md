@@ -132,7 +132,10 @@ import netket as nk
 # ...
 ```
 
-#### GLOO (CPU)__ (experimental, requires `jax/jaxlib>=0.4.27`)
+#### GLOO (CPU)
+Experimental, requires `jax/jaxlib>=0.4.27`.
+
+
 ```python
 import jax
 jax.config.update('jax_cpu_collectives_implementation', 'gloo')
