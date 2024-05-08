@@ -109,7 +109,7 @@ Experimental, requires `jax/jaxlib>=0.4.27`.
 - Download and compile [MPIwrapper](https://github.com/eschnett/MPIwrapper)
 
 ```bash
-git glone https://github.com/eschnett/MPIwrapper.git
+git clone https://github.com/eschnett/MPIwrapper.git
 cd MPIwrapper
 mkdir build
 cd build
