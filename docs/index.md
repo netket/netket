@@ -46,6 +46,8 @@ Guidelines on citation are provided in the [Citation](https://www.netket.org/cit
 :maxdepth: 1
 
 docs/install
+docs/parallelization
+docs/sharp-bits
 ```   
 
 ```{toctree}
@@ -66,7 +68,6 @@ tutorials/vmc-from-scratch
 :caption: Reference Documentation
 :maxdepth: 2
 
-docs/sharp-bits
 docs/hilbert
 docs/operator
 docs/sampler
