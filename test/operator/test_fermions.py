@@ -4,8 +4,9 @@ import netket as nk
 import numpy as np
 import jax
 import netket.experimental as nkx
-from netket.experimental.operator._fermion_operator_2nd_utils import (
+from netket.operator._fermion2nd.utils import (
     _convert_terms_to_spin_blocks,
+    _dict_compare,
 )
 from netket.experimental.operator.fermion import destroy, create, number
 
@@ -899,8 +900,6 @@ def test_fermion_constants():
 
 
 def test_fermion_reduce():
-    from netket.experimental.operator._fermion_operator_2nd_utils import _dict_compare
-
     hi = nkx.hilbert.SpinOrbitalFermions(2)
 
     op1 = nkx.operator.FermionOperator2nd(
@@ -983,8 +982,6 @@ def test_fermion_reduce():
 
 
 def test_fermion_ordering():
-    from netket.experimental.operator._fermion_operator_2nd_utils import _dict_compare
-
     hi = nkx.hilbert.SpinOrbitalFermions(2)
     op1 = nkx.operator.FermionOperator2nd(
         hi, terms=("0^ 1", "0^ 1^", "0 1^", "1 1^"), weights=(2, 3, 4j, 7j), constant=1

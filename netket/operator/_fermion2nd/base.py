@@ -26,7 +26,7 @@ from netket.utils.optional_deps import import_optional_dependency
 
 from netket.hilbert import SpinOrbitalFermions
 
-from ._fermion_operator_2nd_utils import (
+from .utils import (
     _convert_terms_to_spin_blocks,
     _canonicalize_input,
     _check_hermitian,
