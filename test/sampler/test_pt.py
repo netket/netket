@@ -44,32 +44,19 @@ def test_wrong_initialization():
     hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
     for n_replicas in [-3, 0, 5, 2.1]:
-        with pytest.raises(ValueError, match="n_replicas must be an even integer > 0."):
+        with pytest.raises(
+            ValueError,
+        ):
             sa = nkx.sampler.MetropolisLocalPt(
                 hi,
                 n_replicas=n_replicas,
                 sweep_size=hib_u.size * 4,
             )
 
-    with pytest.raises(
-        ValueError,
-        match="""To initialize the temperatures with a string, you must choose between "lin" for a linear distribution and "log" for a logarithmic distribution. Instead got "custom".""",
-    ):
+    with pytest.raises(ValueError):
         sa = nkx.sampler.MetropolisLocalPt(
             hi,
-            n_replicas=10,
             betas="custom",
-            sweep_size=hib_u.size * 4,
-        )
-
-    with pytest.raises(
-        ValueError,
-        match="""The dimension of the array beta and the number of replicas must match, instead, got 10 replicas but 4 values for beta.""",
-    ):
-        sa = nkx.sampler.MetropolisLocalPt(
-            hi,
-            n_replicas=10,
-            betas=[1.0, 0.9, 0.8, 0.7],
             sweep_size=hib_u.size * 4,
         )
 
@@ -88,19 +75,10 @@ def test_wrong_initialization():
     assert (sa.sorted_betas == 1 - np.arange(32) / 32).all()
 
 
-betas_list = [
-    pytest.param(None, id="None"),
-    pytest.param("lin", id="lin"),
-    pytest.param("log", id="log"),
-    pytest.param(1 - (np.arange(32) / 32) ** 3, id="cubic"),
-    pytest.param(np.linspace(0.1, 1, 32)[::-1], id="shuffled"),
-]
-
-
 # Verify the possibility to initialize in multiple ways
 @pytest.mark.parametrize("n_replicas", [None, 32])
-@pytest.mark.parametrize("betas", betas_list)
-def test_initialization_beta(model_and_weights, n_replicas, betas):
+@pytest.mark.parametrize("betas", ["linear", "logarithmic"])
+def test_initialization_beta_distribution(model_and_weights, n_replicas, betas):
     g = nk.graph.Hypercube(length=4, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
     hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
@@ -108,6 +86,34 @@ def test_initialization_beta(model_and_weights, n_replicas, betas):
     sa = nkx.sampler.MetropolisLocalPt(
         hi,
         n_replicas=n_replicas,
+        betas=betas,
+        sweep_size=hib_u.size * 4,
+    )
+    assert sa.n_replicas == 32
+    assert sa.sorted_betas.shape == (32,)
+    assert sa.sorted_betas[0] == 1 and sa.sorted_betas[-1] > 0
+
+    ma, w = model_and_weights(hi, sa)
+
+    sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
+    assert sampler_state.beta.shape == (sa.n_batches // sa.n_replicas, sa.n_replicas)
+
+
+betas_list = [
+    pytest.param(1 - (np.arange(32) / 32) ** 3, id="cubic"),
+    pytest.param(np.linspace(0.1, 1, 32)[::-1], id="shuffled"),
+]
+
+
+# Verify the possibility to initialize in multiple ways
+@pytest.mark.parametrize("betas", betas_list)
+def test_initialization_beta_list(model_and_weights, betas):
+    g = nk.graph.Hypercube(length=4, n_dim=1)
+    hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+    hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
+
+    sa = nkx.sampler.MetropolisLocalPt(
+        hi,
         betas=betas,
         sweep_size=hib_u.size * 4,
     )

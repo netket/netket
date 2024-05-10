@@ -21,7 +21,7 @@ import jax
 from jax import numpy as jnp
 
 from netket import config
-from netket.utils.types import PyTree, PRNGKeyT
+from netket.utils.types import PyTree, PRNGKeyT, Array
 from netket.utils import struct, mpi
 from netket.jax.sharding import with_samples_sharding_constraint, sharding_decorator
 
@@ -133,7 +133,7 @@ class MetropolisPtSampler(MetropolisSampler):
     """
     An internal cache for the user-specified betas, sorted.
     """
-    _beta_distribution: str = struct.field(pytree_node=False, default="lin")
+    _beta_distribution: str = struct.field(pytree_node=False, default="linear")
     """
     An internal for the user-specified distribution of betas.
     """
@@ -142,7 +142,7 @@ class MetropolisPtSampler(MetropolisSampler):
         self,
         *args,
         n_replicas: Optional[int] = None,
-        betas: Optional[Union[str, jax.Array]] = None,
+        betas: Optional[Union[str, jax.Array]] = "linear",
         **kwargs,
     ):
         r"""
@@ -165,14 +165,13 @@ class MetropolisPtSampler(MetropolisSampler):
             hilbert: The hilbert space to sample
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
-            n_replicas: The number of different temperatures β for the sampling.
+            n_replicas: The number of different temperatures β for the sampling, must be even.
                     (default : 32).
             betas: (Optional) Distribution or list of values of the temperatures β.
-                    For the distribution, possibility between "lin" for a linear distribution and
-                    "log" for a logarithmic one.
-                    For the explicit list of values, the value β=1 must obligatory be an element of betas,
-                    all other temperatures must be in (0,1]. In this case, if n_replicas is provided, it must
-                    correspond to the length of the provided temperatures.
+                    For the distribution, possibility between "linear" for a linear distribution
+                    and "log" for a logarithmic one.
+                    For the explicit list of values, the length must be even and the value β=1 must
+                    obligatory be an element of betas, all other temperatures must be in (0,1].
                     (default : "lin", i.e. linear distribution between (0,1]).
             n_chains: The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
@@ -182,49 +181,49 @@ class MetropolisPtSampler(MetropolisSampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float32).
         """
-        # if beta is not provided, linear distribution of 32 temperatures
-        if betas is None:
+        if isinstance(betas, str):
+            betas = betas.lower()
+            if betas not in ["linear", "lin", "logarithmic", "log"]:
+                raise ValueError(
+                    f"""
+                    To initialize the temperatures with a string, you must choose between
+                    "lin" for a linear distribution and "log" for a logarithmic distribution.
+                    Instead got "{betas}".
+                    """
+                )
             if n_replicas is None:
                 n_replicas = 32
-            beta_distribution = "lin"
 
-        # beta is provided
+            # truncate to last 3
+            beta_distribution = betas[:3]
+            betas = None
+        elif isinstance(betas, Array) or isinstance(betas, list):
+            # TODO: this defaults to float32/64 depending on what is enabled.
+            # Might need to think about a better default here.
+            betas = jnp.array(betas, dtype=float)
+            if betas.ndim != 1:
+                raise ValueError("betas must have exactly 1 dimension.")
+            if n_replicas is not None:
+                raise ValueError(
+                    """
+                    Cannot specify the list of betas and n_replicas at the same time.
+                    The number of replicas will be inferred automatically from the length
+                    of the vector of inverse temperatures.
+                    """
+                )
+            # we need beta[0] = 1, so we sort and check that the temperatures are valid
+            betas = jnp.sort(betas, descending=True)
+            if not (jnp.isclose(betas[0], 1) and betas[-1] > 0):
+                raise ValueError(
+                    rf"""The values for beta should be in (0,1] and obligatory contain beta=1, instead got [{jnp.min(betas):.2f},{jnp.max(betas):.8f}]."""
+                )
+
+            beta_distribution = "custom"
+            n_replicas = betas.shape[-1]
         else:
-            # either we know the distribution
-            if isinstance(betas, str):
-                beta_distribution = betas
-                if not (beta_distribution == "lin" or beta_distribution == "log"):
-                    raise ValueError(
-                        f"""To initialize the temperatures with a string, you must choose between "lin" for a linear distribution and "log" for a logarithmic distribution. Instead got "{beta_distribution}"."""
-                    )
-
-                # default if not provided
-                if n_replicas is None:
-                    n_replicas = 32
-
-                # list is empty if we have a string
-                betas = None
-
-            # or we have the list
-            else:
-                betas = jnp.array(betas, dtype=jnp.float64).reshape(-1)
-
-                # verify that the list is compatible with n_replicas
-                if n_replicas is not None and betas.shape[-1] != n_replicas:
-                    raise ValueError(
-                        f"""The dimension of the array beta and the number of replicas must match, instead, got {n_replicas} replicas but {betas.shape[-1]} values for beta."""
-                    )
-
-                # is the list valid
-                if not (jnp.isclose(jnp.max(betas), 1) and jnp.min(betas) > 0):
-                    raise ValueError(
-                        rf"""The values for beta should be in (0,1] and obligatory contain beta=1, instead got [{jnp.min(betas):.2f},{jnp.max(betas):.8f}]."""
-                    )
-
-                # sort and adapt the rest correspondingly
-                betas = jnp.sort(betas, descending=True)  # we need beta[0] = 1
-                n_replicas = betas.shape[-1]
-                beta_distribution = "custom"
+            raise TypeError(
+                "`betas` must be a string or a vector of inverse temperatures."
+            )
 
         # verify the number of replicas
         if not (
@@ -232,7 +231,9 @@ class MetropolisPtSampler(MetropolisSampler):
             and n_replicas > 0
             and np.mod(n_replicas, 2) == 0
         ):
-            raise ValueError("n_replicas must be an even integer > 0.")
+            raise ValueError(
+                "n_replicas (or the length of `betas`) must be an even integer > 0."
+            )
 
         self.n_replicas = n_replicas
         self._beta_sorted = betas
@@ -260,6 +261,23 @@ class MetropolisPtSampler(MetropolisSampler):
                     jnp.arange(1, self.n_replicas + 1, dtype=jnp.float64)
                     / (self.n_replicas + 1)
                 ) / jnp.log(self.n_replicas + 1)
+            else:
+                raise NotImplementedError(f"distribution: {self._beta_distribution}")
+
+    def __repr__(sampler):
+        return (
+            f"{type(sampler).__name__}("
+            + f"\n  hilbert = {sampler.hilbert},"
+            + f"\n  rule = {sampler.rule},"
+            + f"\n  n_chains = {sampler.n_chains},"
+            + f"\n  n_replicas = {sampler.n_replicas},"
+            + f"\n  beta_distribution = {sampler._beta_distribution},"
+            + f"\n  sweep_size = {sampler.sweep_size},"
+            + f"\n  reset_chains = {sampler.reset_chains},"
+            + f"\n  machine_power = {sampler.machine_pow},"
+            + f"\n  dtype = {sampler.dtype}"
+            + ")"
+        )
 
     @property
     def n_batches(self) -> int:
