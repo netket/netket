@@ -66,4 +66,4 @@ from . import sharding
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
+_hide_submodules(__name__, ignore="sharding")
