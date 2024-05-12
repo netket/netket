@@ -20,6 +20,7 @@ All functions in here are not part of the public API, internal, and may change w
 import math
 from functools import partial, wraps
 import warnings
+import contextlib
 
 import numpy as np
 
@@ -295,6 +296,35 @@ def gather(x):
     # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
+SHARD_MAP_STACK_LEVEL : int = 0
+"""
+A counter used to keep track of how many levels deep we are in shard_map.
+
+This should not be modified directly, but controlled through the context manager
+_increase_SHARD_MAP_STACK_LEVEL.
+"""
+
+
+@contextlib.contextmanager
+def _increase_SHARD_MAP_STACK_LEVEL():
+    """
+    A context manager used by `sharding_decorator` to keep track of how many nested
+    sharded function calls we are in.
+
+    In pratice, this is used to ensure that only the outermost function is sharded, and following
+    calls are not sharded.
+    """
+    global SHARD_MAP_STACK_LEVEL
+    try:
+        SHARD_MAP_STACK_LEVEL += 1
+        yield
+    except Exception as e:
+        raise e
+    finally:
+        SHARD_MAP_STACK_LEVEL -= 1
+
+
+
 def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
     """
     A decorator which wraps a function so that it is evaluated on every shard of the distributed arguments,
@@ -309,6 +339,10 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
 
     .. note:
         if `netket.config.netket_experimental_sharding=False` it returns the unchanged original function
+
+    .. note:
+        If nested functions are decorated with this decorator, only the outermost one is sharded and the internal
+        ones are ignored.
 
     Args:
         f: a function
@@ -452,7 +486,6 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         obj_wrapped = Partial(partial(lambda x: x, obj))
         y4 = jax.jit(sharding_decorator(looped_computation4, sharded_args_tree=(True, False)))(x, obj_wrapped)
     """
-
     if config.netket_experimental_sharding:
         if not isinstance(sharded_args_tree, tuple):
             sharded_args_tree = (sharded_args_tree,)
@@ -460,8 +493,15 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         reduction_op, out_treedef = jax.tree_util.tree_flatten(reduction_op_tree)
 
         @wraps(f)
-        def _fun(*args):
-            args = args_treedef.flatten_up_to(args)
+        def _fun(*args_orig):
+
+            global SHARD_MAP_STACK_LEVEL
+            # Jax 0.4.28 does not support nested shard_map calls, so we bail out eaerly
+            # if we are already inside of a shard map call
+            if SHARD_MAP_STACK_LEVEL > 0:
+                return f(*args_orig)
+
+            args = args_treedef.flatten_up_to(args_orig)
 
             _sele = lambda cond, xs: tuple(x for c, x in safe_zip(cond, xs) if c)
             _not = lambda t: tuple(not x for x in t)
@@ -517,7 +557,12 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 res = out_treedef.unflatten(res)
                 return res
 
-            res = _f(*args)
+            # We are sure that, so far, we have SHARD_MAP_STACK_LEVEL=0, so we can
+            # safely call a @shard_map decorated function. The context manager
+            # makes sure we only shard the outermost call.
+            with _increase_SHARD_MAP_STACK_LEVEL():
+                res = _f(*args)
+
             res = out_treedef.flatten_up_to(res)
             res = [a() if c is True else a for a, c in safe_zip(res, reduction_op)]
             res = out_treedef.unflatten(res)
