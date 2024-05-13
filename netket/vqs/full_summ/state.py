@@ -219,8 +219,10 @@ class FullSumState(VariationalState):
             self._chunk_size = None
             return
 
-        if chunk_size <= 0:
+        if chunk_size <= 0 or chunk_size != int(chunk_size):
             raise ValueError("Chunk size must be a positive integer. ")
+
+        chunk_size = int(chunk_size)
 
         if not _is_power_of_two(chunk_size):
             warnings.warn(

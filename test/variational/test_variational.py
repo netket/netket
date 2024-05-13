@@ -193,10 +193,11 @@ def test_n_samples_api(vstate, _device_count):
 def test_chunk_size_api(vstate, _mpi_size):
     assert vstate.chunk_size is None
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chunk_size = -1
+
+    with raises(ValueError):
+        vstate.chunk_size = 1.5
 
     vstate.n_samples = 1008
 
@@ -214,22 +215,20 @@ def test_chunk_size_api(vstate, _mpi_size):
     vstate.n_samples = 1008 * 2
     assert vstate.chunk_size == 126
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chunk_size = 500
 
     _ = vstate.sample()
     _ = vstate.sample(n_samples=vstate.n_samples)
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.sample(n_samples=1008 + 16)
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.sample(n_samples=1008, chain_length=100)
+
+    # assert type coercion
+    vstate.chunk_size = 1.0
+    assert isinstance(vstate.chunk_size, int)
 
 
 @common.skipif_mpi
