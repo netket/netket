@@ -3,7 +3,12 @@
 
 # Change Log
 
-## NetKet 3.12 (⚙️ In development)
+## NetKet 3.13 (⚙️ In development)
+
+### Bug Fixes
+
+
+## NetKet 3.12 (💫 13 May 2024)
 
 ### New Features
 * Discrete Hilbert spaces now use a special {class}`nk.utils.StaticRange` object to store the local values that label the local degree of freedom. This special object is jax friendly and can be converted to arrays, and allows for easy conversion from the local degrees of freedom to integers that can be used to index into arrays, and back. While those objects are not really used internally yet, in the future they will be used to simplify the implementations of operators and other objects [#1732](https://github.com/netket/netket/issues/1732).
@@ -29,6 +34,7 @@
 * Rewrite `netket.hilbert.index` used by `HomogeneousHilbert` (including `Spin` and `Fock`) so that larger spaces with a sum constraint can be indexed. This can be useful for `netket.sampler.Exactsampler`, `netket.vqs.FullSumState` as well as for ED calculations [#1720](https://github.com/netket/netket/pull/1720).
 * Duplicating a `netket.vqs.MCState` now leads to perfectly deterministic, identical samples between two different copies of the same `MCState` even if the sampler is changed. Previously, duplicating an `MCState` and changing the sampler on two copies of the same state would lead to some completely random seed being used and therefore different samples to be generated. This change is needed to eventually achieve proper checkpointing of our calculations [#1778](https://github.com/netket/netket/pull/1778).
 * The methods converting Jax Operators to another kind (such as LocalOperators to PauliOperators) will return the Jax version of those operators if available [#1781](https://github.com/netket/netket/pull/1781).
+* Parallel Tempering samplers {class}`netket.experimental.sampler.MetropolisPt` now accept a distribution (`lin` or `log`) for the distribution of the temperatures, or a custom array [#1786](https://github.com/netket/netket/pull/1786).
 
 ### Finalized Deprecations
 * Removed module function `netket.sampler.sample_next` that was deprecated in NetKet 3.3 (December 2021) [#17XX](https://github.com/netket/netket/pull/17XX).
@@ -41,6 +47,7 @@
 ### Bug Fixes
 * Fixed the gradient of variational states w.r.t. complex parameters which was missing a factor of 2. The learning rate needs to be halved to reproduce simulations made with previous versions of NetKet [#1785](https://github.com/netket/netket/pull/1785).
 * Fixed the bug [#1791](https://github.com/netket/netket/pull/1791). where MetropolisHamiltonian with jax operators was leaking tracers and crashing [#1792](https://github.com/netket/netket/pull/1792).
+* The bug in Parallel Tempering samplers was found and they have now been fixed. In short, usages until now were most likely returning garbage samples, but not anymore! [#1769](https://github.com/netket/netket/pull/1769).
 
 
 ## NetKet 3.11.3 (🐟 2 April 2024)
