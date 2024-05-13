@@ -120,6 +120,8 @@ class MetropolisPtSampler(MetropolisSampler):
     This sampler samples an Hilbert space, producing samples off a specific dtype.
     The samples are generated according to a transition rule that must be
     specified.
+
+    The Metropolis Hastings acceptance rule is correted with a temperature.
     """
 
     n_replicas: int = struct.field(pytree_node=False, default=32)
@@ -146,7 +148,7 @@ class MetropolisPtSampler(MetropolisSampler):
         **kwargs,
     ):
         r"""
-        ``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
+        ``MetropolisPtSampler`` is a generic Metropolis-Hastings sampler using
         a transition rule to perform moves in the Markov Chain.
         The transition kernel is used to generate
         a proposed state :math:`s^\prime`, starting from the current state :math:`s`.

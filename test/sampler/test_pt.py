@@ -183,7 +183,7 @@ def test_multiplerules_pt_mpi(model_and_weights):
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
     hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
-    sa = nkx.sampler.MetropolisPtSampler(
+    sa = nk.sampler.MetropolisPtSampler(
         hi,
         rule=nk.sampler.rules.MultipleRules(
             [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],
