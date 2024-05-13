@@ -86,9 +86,9 @@ def QGTOnTheFly(
     if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
 
-    n_samples = samples.shape[0]
+    n_samples_per_rank = samples.shape[0] // nkjax.sharding.device_count_per_rank()
 
-    if chunk_size is None or chunk_size >= n_samples:
+    if chunk_size is None or chunk_size >= n_samples_per_rank:
         mv_factory = mat_vec_factory
         chunking = False
     else:
