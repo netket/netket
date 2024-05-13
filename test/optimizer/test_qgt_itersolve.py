@@ -364,3 +364,43 @@ def test_qgt_holomorphic_real_pars_throws():
         vstate.quantum_geometric_tensor(qgt.QGTJacobianDense(holomorphic=True))
 
     return vstate
+
+
+def test_qgt_onthefly_correct_chunking_selection():
+    # construct a vstate
+    N = 5
+    hi = nk.hilbert.Spin(1 / 2, N)
+    vstate = nk.vqs.MCState(
+        nk.sampler.MetropolisLocal(hi, n_chains=16),
+        nk.models.RBM(alpha=1),
+        n_samples=16 * 4,
+    )
+
+    from netket.optimizer.qgt.qgt_onthefly_logic import _mat_vec
+
+    # in standard version
+    if not nk.config.netket_experimental_sharding:
+        # check is the non chunked code
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is _mat_vec
+
+        # this just check it's not the unchunked code. We only have 2 implementations
+        # so that's enough.
+        vstate.chunk_size = 16 * 2
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is not _mat_vec
+    # in sharding version
+    else:
+        # check is the non chunked code
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is _mat_vec
+
+        # check is still non chunked
+        vstate.chunk_size = vstate.n_samples / len(jax.devices())
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is _mat_vec
+
+        # check is chunked
+        vstate.chunk_size = vstate.n_samples / (2 * len(jax.devices()))
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is not _mat_vec
