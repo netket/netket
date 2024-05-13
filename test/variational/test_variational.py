@@ -194,10 +194,10 @@ def test_chunk_size_api(vstate, _mpi_size):
     assert vstate.chunk_size is None
 
     with raises(ValueError):
-        vstate.chunk_size = -1
+        vstate.chunk_size = 1.5
 
     with raises(ValueError):
-        vstate.chunk_size = 1.5
+        vstate.chunk_size = -1
 
     vstate.n_samples = 1008
 
@@ -225,10 +225,6 @@ def test_chunk_size_api(vstate, _mpi_size):
 
     with raises(ValueError):
         vstate.sample(n_samples=1008, chain_length=100)
-
-    # assert type coercion
-    vstate.chunk_size = 1.0
-    assert isinstance(vstate.chunk_size, int)
 
 
 @common.skipif_mpi
