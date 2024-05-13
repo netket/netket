@@ -18,7 +18,7 @@ import numpy as np
 from scipy import sparse
 
 import jax.numpy as jnp
-from jax.experimental.sparse import JAXSparse, BCOO
+from jax.experimental.sparse import JAXSparse, BCOO, BCSR
 
 from netket.operator import AbstractOperator, DiscreteOperator
 from netket.utils.optional_deps import import_optional_dependency
@@ -207,7 +207,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
         j = self.hilbert.states_to_numbers(xp).ravel()
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        return BCOO((a, ij), shape=(n, n))
+        return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
