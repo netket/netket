@@ -28,6 +28,7 @@
 
 ### Deprecations
 * The method {func}`netket.nn.states_to_numbers` is now deprecated. Please use {meth}`~DiscreteHilbert.numbers_to_states` directly.
+* Following the discovery and fix of the Parallel Tempering bugs, {class}`netket.experimental.sampler.MetropolisPt` and related samplers have been stabilised, so they should be constructed with {class}`netket.sampler.MetropolisPt` [#1803](https://github.com/netket/netket/issues/1803).
 
 ### Improvements
 * Rewrite the code for generating random states of `netket.hilbert.Fock` and `netket.hilbert.Spin` in Jax and jit the `init` and `reset` functions of `netket.sampler.MetropolisSampler` for better performance and improved compatibility with sharding [#1721](https://github.com/netket/netket/pull/1721).
