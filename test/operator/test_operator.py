@@ -536,8 +536,9 @@ def test_matmul_sparse_vector(op):
 
     if isinstance(op, DiscreteJaxOperator):
         v = BCOO.fromdense(v)
+        Ov_sparse = op @ v
     else:
         v = scipy.sparse.csr_array(v)
-    Ov_sparse = op @ v
+        Ov_sparse = (op @ v).todense()
 
-    np.testing.assert_array_equal(Ov_dense, Ov_sparse.todense())
+    np.testing.assert_array_equal(Ov_dense, Ov_sparse)

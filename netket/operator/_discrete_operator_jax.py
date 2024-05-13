@@ -233,10 +233,11 @@ class DiscreteJaxOperator(DiscreteOperator):
         # QuTiP does not like jax sparse matrices, so we convert to scipy sparse
         # by hand
         sparse_mat_jax = self.to_sparse()
-        sparse_mat_scipy = sparse.coo_matrix(
+        sparse_mat_scipy = sparse.csr_matrix(
             (
                 sparse_mat_jax.data,
-                (sparse_mat_jax.indices[:, 0], sparse_mat_jax.indices[:, 1]),
+                sparse_mat_jax.indices,
+                sparse_mat_jax.indptr,
             ),
             shape=sparse_mat_jax.shape,
         )
@@ -245,11 +246,9 @@ class DiscreteJaxOperator(DiscreteOperator):
         )
 
     def __matmul__(self, other):
-        if (
-            isinstance(other, np.ndarray)
-            or isinstance(other, jnp.ndarray)
-            or isinstance(other, JAXSparse)
-        ):
+        if isinstance(other, JAXSparse):
+            return self.apply(other.todense())
+        elif isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
             return self._op__matmul__(other)
