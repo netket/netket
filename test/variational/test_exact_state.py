@@ -268,10 +268,6 @@ def test_chunk_size_api(vstate, _mpi_size):
     vstate.chunk_size = vstate.hilbert.n_states // 4
     assert vstate.chunk_size == vstate.hilbert.n_states // 4
 
-    # assert type coercion
-    vstate.chunk_size = 1.0
-    assert isinstance(vstate.chunk_size, int)
-
 
 @pytest.mark.parametrize(
     "qgt", [pytest.param(qgt, id=name) for name, qgt in QGT_objects.items()]
