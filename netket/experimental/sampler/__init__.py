@@ -16,14 +16,39 @@ from . import rules
 
 from .metropolis_pmap import MetropolisSamplerPmap
 
-from .metropolis_pt import (
-    MetropolisPtSampler,
-    MetropolisLocalPt,
-    MetropolisExchangePt,
-)
-
 from .metropolis import MetropolisParticleExchange
 
+
+# Deprecated bindings from stabilisaation
+from netket.sampler import (
+    MetropolisPtSampler as _deprecated_MetropolisPtSampler,
+    MetropolisLocalPt as _deprecated_MetropolisLocalPtSampler,
+    MetropolisExchangePt as _deprecated_MetropolisExchangePtSampler,
+)
+
+_deprecations = {
+    # May 2024, NetKet 3.12
+    "MetropolisPtSampler": (
+        "netket.experimental.sampler.MetropolisPtSampler is deprecated: use "
+        "netket.sampler.MetropolisPtSampler (netket >= 3.12)",
+        _deprecated_MetropolisPtSampler,
+    ),
+    "MetropolisLocalPt": (
+        "netket.experimental.sampler.MetropolisLocalPt is deprecated: use "
+        "netket.sampler.MetropolisLocalPt (netket >= 3.12)",
+        _deprecated_MetropolisLocalPtSampler,
+    ),
+    "MetropolisExchangePt": (
+        "netket.experimental.sampler.MetropolisExchangePt is deprecated: use "
+        "netket.sampler.MetropolisExchangePt (netket >= 3.12)",
+        _deprecated_MetropolisExchangePtSampler,
+    ),
+}
+
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _hide_submodules
 
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
+
+del _deprecation_getattr

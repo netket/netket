@@ -30,6 +30,12 @@ from .metropolis import (
     MetropolisAdjustedLangevin,
 )
 
+from .metropolis_pt import (
+    MetropolisPtSampler,
+    MetropolisLocalPt,
+    MetropolisExchangePt,
+)
+
 from .metropolis_numpy import (
     MetropolisSamplerNumpy,
     MetropolisLocalNumpy,
