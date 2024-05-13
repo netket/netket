@@ -145,7 +145,8 @@ def replicate_sharding_decorator_for_get_conn_padded(f):
                 )
                 return xp, mels
             elif isinstance(x, jax.Array):  # and len(x.devices()) == 1; single device
-                return jax.device_put(f(self, x), device=x.device())
+                (device,) = x.devices()
+                return jax.device_put(f(self, x), device=device)
             else:
                 return f(self, x)
 
