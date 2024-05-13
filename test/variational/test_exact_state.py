@@ -253,15 +253,14 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
 def test_chunk_size_api(vstate, _mpi_size):
     assert vstate.chunk_size is None
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chunk_size = -1
 
+    with raises(ValueError):
+        vstate.chunk_size = 1.5
+
     # does not divide hi.n_states
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chunk_size = 3
 
     assert vstate.chunk_size is None
