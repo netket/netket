@@ -271,13 +271,13 @@ with open("test.mpack", 'rb') as file:
 Note that this also serializes the state of the sampler.
 
 :::{note}
-The JSonLog serializer only serializes the parameters of the model, and not the whole variational state.
+The {class}`~nk.logging.JSonLog` serializer only serializes the parameters of the model, and not the whole variational state.
 Therefore, if you wish to reload the parameters of a variational state, saved by the json logger, you should
 use the same procedure outlined above, only that the list line should be:
 
 ```python
 with open("parameters.mpack", 'rb') as file:
-  vstate.variables = flax.serialization.from_bytes(vstate, file.read()).variables
+  vstate.variables = flax.serialization.from_bytes(vstate.variables, file.read())
 ```
 :::
 
