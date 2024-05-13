@@ -13,7 +13,7 @@
 * NetKet now automatically sets the visible GPUs when running under MPI with GPUs, by enumerating local GPUs and setting `jax_default_device` according to some local rank. This behaviour should allow users to not have to specify `CUDA_VISIBLE_DEVICES` and local mpi ranks on their scripts. This behaviour is only activated when running using MPI, and not used when using experimental sharding mode. To disable this functionality, set `NETKET_MPI_AUTODETECT_LOCAL_GPU=0` [#1757](https://github.com/netket/netket/issues/1757).
 * {class}`netket.experimental.models.Slater2nd` now implements also the generalized hartree fock, as well as the restricted and unrestricted HF of before [#1765](https://github.com/netket/netket/issues/1765).
 * A new variational state computing the sum of multiple slater determinants has been added, named {class}`nk.experimental.models.MultiSlater2nd`. This state has the same options of {class}`~netket.experimental.models.Slater2nd` [#1765](https://github.com/netket/netket/issues/1765).
-
+* Support for `jax>=0.4.27` [#1801](https://github.com/netket/netket/issues/1801).
 
 ### Breaking Changes
 * The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) deprecated in the last release has been removed completely [#1722](https://github.com/netket/netket/issues/1722).
