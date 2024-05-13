@@ -296,7 +296,7 @@ def gather(x):
     # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
-SHARD_MAP_STACK_LEVEL : int = 0
+SHARD_MAP_STACK_LEVEL: int = 0
 """
 A counter used to keep track of how many levels deep we are in shard_map.
 
@@ -322,7 +322,6 @@ def _increase_SHARD_MAP_STACK_LEVEL():
         raise e
     finally:
         SHARD_MAP_STACK_LEVEL -= 1
-
 
 
 def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
@@ -494,7 +493,6 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
 
         @wraps(f)
         def _fun(*args_orig):
-
             global SHARD_MAP_STACK_LEVEL
             # Jax 0.4.28 does not support nested shard_map calls, so we bail out eaerly
             # if we are already inside of a shard map call
