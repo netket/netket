@@ -351,7 +351,9 @@ def test_serialization():
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
-@pytest.mark.parametrize("ode_jit", [False]) # odejit is broken since jax 0.4.27, True])
+@pytest.mark.parametrize(
+    "ode_jit", [False]
+)  # odejit is broken since jax 0.4.27, True])
 def test_timeevolution(ode_jit):
     nk.config.update("netket_experimental_disable_ode_jit", not ode_jit)
     L = 8
