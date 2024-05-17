@@ -7,7 +7,7 @@
 
 ### Deprecations
 
-* Following the discovery and fix of the Parallel Tempering bugs, {class}`netket.experimental.sampler.MetropolisPt` and related samplers have been stabilised, so they should be constructed with {class}`netket.sampler.ParallelTempering` [#1803](https://github.com/netket/netket/issues/1803).
+* Following the discovery and fix of the Parallel Tempering bugs, {class}`netket.experimental.sampler.MetropolisPt` and related samplers have been stabilised, so they should be constructed with {class}`netket.sampler.ParallelTemperingSampler` [#1803](https://github.com/netket/netket/issues/1803).
 
 
 ### Bug Fixes
