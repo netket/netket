@@ -71,10 +71,10 @@ samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(hi)
 #    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2))
 # )
 
-samplers["MetropolisPT(Local): Spin"] = nk.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Spin"] = nk.sampler.ParallelTemperingLocal(
     hi, n_replicas=4, sweep_size=hi.size * 4
 )
-samplers["MetropolisPT(Local): Fock"] = nk.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Fock"] = nk.sampler.ParallelTemperingLocal(
     hib_u, n_replicas=4, sweep_size=hib_u.size * 4
 )
 
