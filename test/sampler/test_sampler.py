@@ -580,7 +580,7 @@ def test_fermions_spin_exchange():
 
 def test_multiplerules_pt(model_and_weights):
     hi = ha.hilbert
-    sa = nk.sampler.MetropolisPtSampler(
+    sa = nk.sampler.ParallelTemperingSampler(
         hi,
         rule=nk.sampler.rules.MultipleRules(
             [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],

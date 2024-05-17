@@ -21,26 +21,26 @@ from .metropolis import MetropolisParticleExchange
 
 # Deprecated bindings from stabilisaation
 from netket.sampler import (
-    MetropolisPtSampler as _deprecated_MetropolisPtSampler,
-    MetropolisLocalPt as _deprecated_MetropolisLocalPtSampler,
-    MetropolisExchangePt as _deprecated_MetropolisExchangePtSampler,
+    ParallelTemperingSampler as _deprecated_MetropolisPtSampler,
+    ParallelTemperingLocal as _deprecated_MetropolisLocalPtSampler,
+    ParallelTemperingExchange as _deprecated_MetropolisExchangePtSampler,
 )
 
 _deprecations = {
     # May 2024, NetKet 3.12
     "MetropolisPtSampler": (
         "netket.experimental.sampler.MetropolisPtSampler is deprecated: use "
-        "netket.sampler.MetropolisPtSampler (netket >= 3.12)",
+        "netket.sampler.ParallelTemperingSampler (netket >= 3.12)",
         _deprecated_MetropolisPtSampler,
     ),
     "MetropolisLocalPt": (
         "netket.experimental.sampler.MetropolisLocalPt is deprecated: use "
-        "netket.sampler.MetropolisLocalPt (netket >= 3.12)",
+        "netket.sampler.ParallelTemperingLocal (netket >= 3.12)",
         _deprecated_MetropolisLocalPtSampler,
     ),
     "MetropolisExchangePt": (
         "netket.experimental.sampler.MetropolisExchangePt is deprecated: use "
-        "netket.sampler.MetropolisExchangePt (netket >= 3.12)",
+        "netket.sampler.ParallelTemperingExchange (netket >= 3.12)",
         _deprecated_MetropolisExchangePtSampler,
     ),
 }

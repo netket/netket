@@ -31,9 +31,9 @@ from .metropolis import (
 )
 
 from .metropolis_pt import (
-    MetropolisPtSampler,
-    MetropolisLocalPt,
-    MetropolisExchangePt,
+    ParallelTemperingSampler,
+    ParallelTemperingLocal,
+    ParallelTemperingExchange,
 )
 
 from .metropolis_numpy import (
