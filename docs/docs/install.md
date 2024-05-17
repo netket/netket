@@ -203,7 +203,7 @@ ma = nk.models.RBM(alpha=1, param_dtype=float)
 
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
-vstate = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
+vstate = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 ```
 
 Then, one must chose the model to use as a Neural Quantum State. Netket provides
@@ -226,7 +226,8 @@ Samples don't need double precision at all, so it makes sense to use the lower
 precision, but you have to be careful with the dtype of your model in order
 not to reduce the precision.
 
-Having defined the model and the sampler, we fuse them into a single entity using the [variational state interface](varstate.md) which thus encapsulates both the parameterized state and the way to probe it (e.g. using a specific sampler to estimate the relevant observables).
+Having defined the model and the sampler, we construct a [Monte Carlo Variational State](varstate.md) which encapsulates both the parameterized state and the way to probe it (e.g. using a specific sampler to estimate the relevant observables).
+NetKet also supports other types of variational states, such as the Full Summation state, which compute quantities without sampling.
 
 ```python
 # Optimizer
