@@ -8,7 +8,7 @@ plt.ion()
 # exact=-3.21550807082536*16
 
 # 5x5 lattice
-exact = -34.01059755084626
+exact = -80.13310152422413
 
 
 while True:
