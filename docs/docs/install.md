@@ -202,6 +202,8 @@ See the [Operators](operator.md) documentation for more information.
 ma = nk.models.RBM(alpha=1, param_dtype=float)
 
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+
+vstate = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 ```
 
 Then, one must chose the model to use as a Neural Quantum State. Netket provides
@@ -224,6 +226,9 @@ Samples don't need double precision at all, so it makes sense to use the lower
 precision, but you have to be careful with the dtype of your model in order
 not to reduce the precision.
 
+Having defined the model and the sampler, we construct a [Monte Carlo Variational State](varstate.md) which encapsulates both the parameterized state and the way to probe it (e.g. using a specific sampler to estimate the relevant observables).
+NetKet also supports other types of variational states, such as the Full Summation state, which compute quantities without sampling.
+
 ```python
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.01)
@@ -233,7 +238,7 @@ You can then chose an optimizer from the [optimizer](netket_optimizer_api) submo
 
 ```python
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard_per_chain=100)
+gs = nk.VMC(ha, op, variational_state=vstate)
 
 gs.run(n_iter=300, out=None)
 ```
@@ -241,7 +246,7 @@ gs.run(n_iter=300, out=None)
 Once you have all the pieces together, you can construct a variational monte
 carlo optimisation driver by passing the constructor the hamiltonian and the
 optimizer (which must always be the first two arguments), and then the
-sampler, machine and various options.
+variational state and various options.
 
 Once that is done, you can run the simulation by calling the {meth}`~nk.driver.VMC.run` method in the driver, specifying the output loggers and the number of iterations in
 the optimisation.
