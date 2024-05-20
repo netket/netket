@@ -56,22 +56,10 @@ This is because it is not possible to implement all transition rules in Jax.
    ExactSampler
    MetropolisSampler
    MetropolisSamplerNumpy
+   ParallelTemperingSampler
    ARDirectSampler
 
 ```
-
-```{eval-rst}
-.. currentmodule:: netket
-
-.. autosummary::
-   :toctree: _generated/samplers
-   :template: class
-   :nosignatures:
-
-   experimental.sampler.MetropolisPtSampler
-
-```
-
 
 This is a list of shorthands that allow to construct a {class}`~netket.sampler.MetropolisSampler` with a corresponding rule.
 
@@ -88,6 +76,8 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
    MetropolisAdjustedLangevin
 ```
 
+This is an equivalent list of shorthands that allow to construct a {class}`~netket.sampler.ParallelTemperingSampler` with a corresponding rule.
+
 ```{eval-rst}
 .. currentmodule:: netket
 
@@ -96,8 +86,9 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
    :template: class
    :nosignatures:
 
-   experimental.sampler.MetropolisLocalPt
-   experimental.sampler.MetropolisExchangePt
+   ParallelTemperingLocal
+   ParallelTemperingExchange
+   ParallelTemperingHamiltonian
 ```
 
 

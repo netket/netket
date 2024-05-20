@@ -35,7 +35,7 @@ from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
 # https://github.com/netket/netket/blob/87d469aa8c23f71c4838cf09d7ed7b87ff2ea01f/netket/legacy/sampler/numpy/metropolis_hastings_pt.py
 
 
-class MetropolisPtSamplerState(MetropolisSamplerState):
+class ParallelTemperingSamplerState(MetropolisSamplerState):
     """
     State for the Metropolis Parallel Tempering sampler.
 
@@ -83,7 +83,7 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
             acc_string = ""
 
         text = (
-            f"MetropolisPtSamplerState(# replicas = {self.beta.shape[-1]}, "
+            f"ParallelTemperingSamplerState(# replicas = {self.beta.shape[-1]}, "
             + acc_string
             + f"rng state={self.rng}"
         )
@@ -113,13 +113,15 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         return out
 
 
-class MetropolisPtSampler(MetropolisSampler):
+class ParallelTemperingSampler(MetropolisSampler):
     """
     Metropolis-Hastings with Parallel Tempering sampler.
 
     This sampler samples an Hilbert space, producing samples off a specific dtype.
     The samples are generated according to a transition rule that must be
     specified.
+
+    The Metropolis Hastings acceptance rule is correted with a temperature.
     """
 
     n_replicas: int = struct.field(pytree_node=False, default=32)
@@ -146,7 +148,7 @@ class MetropolisPtSampler(MetropolisSampler):
         **kwargs,
     ):
         r"""
-        ``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
+        ``ParallelTemperingSampler`` is a generic Metropolis-Hastings sampler using
         a transition rule to perform moves in the Markov Chain.
         The transition kernel is used to generate
         a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
@@ -301,7 +303,7 @@ class MetropolisPtSampler(MetropolisSampler):
     @partial(jax.jit, static_argnums=1)
     def _init_state(
         sampler, machine, parameters: PyTree, key: PRNGKeyT
-    ) -> MetropolisPtSamplerState:
+    ) -> ParallelTemperingSamplerState:
         key_state, key_rule, rng = jax.random.split(key, 3)
         rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
         σ = sampler.rule.random_state(sampler, machine, parameters, rule_state, rng)
@@ -311,7 +313,7 @@ class MetropolisPtSampler(MetropolisSampler):
             sampler.sorted_betas, (sampler.n_batches // sampler.n_replicas, 1)
         )
 
-        return MetropolisPtSamplerState(
+        return ParallelTemperingSamplerState(
             σ=σ,
             rng=key_state,
             rule_state=rule_state,
@@ -319,7 +321,9 @@ class MetropolisPtSampler(MetropolisSampler):
         )
 
     @partial(jax.jit, static_argnums=1)
-    def _reset(sampler, machine, parameters: PyTree, state: MetropolisPtSamplerState):
+    def _reset(
+        sampler, machine, parameters: PyTree, state: ParallelTemperingSamplerState
+    ):
         state = super()._reset(machine, parameters, state)
         return state.replace(
             n_accepted_per_beta=jnp.zeros_like(state.n_accepted_per_beta),
@@ -331,7 +335,7 @@ class MetropolisPtSampler(MetropolisSampler):
         )
 
     def _sample_next(
-        sampler, machine, parameters: PyTree, state: MetropolisPtSamplerState
+        sampler, machine, parameters: PyTree, state: ParallelTemperingSamplerState
     ):
         def loop_body(i, s):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
@@ -525,7 +529,7 @@ class MetropolisPtSampler(MetropolisSampler):
         return new_state, σ_new
 
 
-def MetropolisLocalPt(hilbert, *args, **kwargs):
+def ParallelTemperingLocal(hilbert, *args, **kwargs):
     r"""
     Sampler acting on one local degree of freedom.
 
@@ -561,10 +565,12 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
         dtype: The dtype of the states sampled (default = np.float32).
     """
-    return MetropolisPtSampler(hilbert, LocalRule(), *args, **kwargs)
+    return ParallelTemperingSampler(hilbert, LocalRule(), *args, **kwargs)
 
 
-def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **kwargs):
+def ParallelTemperingExchange(
+    hilbert, *args, clusters=None, graph=None, d_max=1, **kwargs
+):
     r"""
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
@@ -617,10 +623,10 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
           MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
     """
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
-    return MetropolisPtSampler(hilbert, rule, *args, **kwargs)
+    return ParallelTemperingSampler(hilbert, rule, *args, **kwargs)
 
 
-def MetropolisHamiltonianPt(hilbert, hamiltonian, *args, **kwargs):
+def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
     r"""
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
@@ -666,4 +672,4 @@ def MetropolisHamiltonianPt(hilbert, hamiltonian, *args, **kwargs):
        MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
     """
     rule = HamiltonianRule(hamiltonian)
-    return MetropolisPtSampler(hilbert, rule, *args, **kwargs)
+    return ParallelTemperingSampler(hilbert, rule, *args, **kwargs)

@@ -25,12 +25,7 @@ from jax.nn.initializers import normal
 import netket as nk
 from netket.hilbert import Particle
 
-from netket import experimental as nkx
 
-
-pytestmark = common.onlyif_mpi
-
-nk.config.update("NETKET_EXPERIMENTAL", True)
 np.random.seed(1234)
 
 WEIGHT_SEED = 1234
@@ -38,6 +33,7 @@ SAMPLER_SEED = 15324
 
 
 # Initializations raising errors
+@common.skipif_mpi
 def test_wrong_initialization():
     g = nk.graph.Hypercube(length=4, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
@@ -47,14 +43,14 @@ def test_wrong_initialization():
         with pytest.raises(
             ValueError,
         ):
-            sa = nkx.sampler.MetropolisLocalPt(
+            sa = nk.sampler.ParallelTemperingLocal(
                 hi,
                 n_replicas=n_replicas,
                 sweep_size=hib_u.size * 4,
             )
 
     with pytest.raises(ValueError):
-        sa = nkx.sampler.MetropolisLocalPt(
+        sa = nk.sampler.ParallelTemperingLocal(
             hi,
             betas="custom",
             sweep_size=hib_u.size * 4,
@@ -62,13 +58,13 @@ def test_wrong_initialization():
 
     for betas in [[1.1, 0.5], [-1.0, 0.2], [0.0, 1.0]]:
         with pytest.raises(ValueError):
-            sa = nkx.sampler.MetropolisLocalPt(
+            sa = nk.sampler.ParallelTemperingLocal(
                 hi,
                 betas=betas,
                 sweep_size=hib_u.size * 4,
             )
 
-    sa = nkx.sampler.MetropolisLocalPt(
+    sa = nk.sampler.ParallelTemperingLocal(
         hi,
         sweep_size=hib_u.size * 4,
     )
@@ -83,7 +79,7 @@ def test_initialization_beta_distribution(model_and_weights, n_replicas, betas):
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
     hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
-    sa = nkx.sampler.MetropolisLocalPt(
+    sa = nk.sampler.ParallelTemperingLocal(
         hi,
         n_replicas=n_replicas,
         betas=betas,
@@ -112,7 +108,7 @@ def test_initialization_beta_list(model_and_weights, betas):
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
     hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
-    sa = nkx.sampler.MetropolisLocalPt(
+    sa = nk.sampler.ParallelTemperingLocal(
         hi,
         betas=betas,
         sweep_size=hib_u.size * 4,
@@ -137,7 +133,7 @@ def test_acceptance():
         kernel_init=flax.linen.initializers.constant(0.0)
     )  # |psi> = |+>
 
-    sa = nkx.sampler.MetropolisLocalPt(
+    sa = nk.sampler.ParallelTemperingLocal(
         hi,
         n_replicas=4,
         sweep_size=hi.size * 4,
@@ -177,13 +173,14 @@ def model_and_weights(request):
     return build_model
 
 
+@common.onlyif_mpi
 def test_multiplerules_pt_mpi(model_and_weights):
     g = nk.graph.Hypercube(length=4, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
     hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
-    sa = nkx.sampler.MetropolisPtSampler(
+    sa = nk.sampler.ParallelTemperingSampler(
         hi,
         rule=nk.sampler.rules.MultipleRules(
             [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],

@@ -71,10 +71,10 @@ samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(hi)
 #    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2))
 # )
 
-samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Spin"] = nk.sampler.ParallelTemperingLocal(
     hi, n_replicas=4, sweep_size=hi.size * 4
 )
-samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Fock"] = nk.sampler.ParallelTemperingLocal(
     hib_u, n_replicas=4, sweep_size=hib_u.size * 4
 )
 
@@ -135,8 +135,6 @@ samplers[
     ),
 )
 
-
-# samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
 
 samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi)
 samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1)
@@ -582,7 +580,7 @@ def test_fermions_spin_exchange():
 
 def test_multiplerules_pt(model_and_weights):
     hi = ha.hilbert
-    sa = nkx.sampler.MetropolisPtSampler(
+    sa = nk.sampler.ParallelTemperingSampler(
         hi,
         rule=nk.sampler.rules.MultipleRules(
             [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],
