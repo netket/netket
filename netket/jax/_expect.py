@@ -75,6 +75,9 @@ def expect(
             the sharding declaration of the samples and the additional arguments to the expected_fun function (must have length
             equal to the number of expected_fun_args + 2).
 
+    Returns:
+        A tuple where the first element is the scalar value containing the expectation value, and the second element is
+        a :class:`netket.stats.Stats` object containing the statistics (including the mean) of the expectation value.
     """
     return _expect(
         n_chains,
