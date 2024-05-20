@@ -23,9 +23,7 @@ from jax import numpy as jnp
 from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 from netket.utils.types import PyTree
 
-from ._vjp import vjp as nkvjp
-from ._vjp_chunked import vjp_chunked
-from ._vmap_chunked import apply_chunked
+from netket.jax import apply_chunked, vjp as nkvjp
 
 
 def expect(
@@ -157,25 +155,39 @@ def _expect_bwd(n_chains, chunk_size, in_axes, log_pdf, expected_fun, residuals,
     pars, σ, cost_args, ΔL_σ = residuals
     dL̄, dL̄_stats = dout
 
-    def f(pars, σ, *cost_args):
-        log_p = log_pdf(pars, σ)
-        term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
-        term2 = expected_fun(pars, σ, *cost_args)
-        out = mpi_mean(term1 + term2, axis=0)
-        out = out.sum()
-        return out
-
     if chunk_size is None:
-        _, pb = nkvjp(f, pars, σ, *cost_args)
-    else:
-        pb = vjp_chunked(
-            f,
-            pars,
-            σ,
-            *cost_args,
-            chunk_size=chunk_size,
-        )
 
+        def f(pars, σ, *cost_args):
+            log_p = log_pdf(pars, σ)
+            term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
+            term2 = expected_fun(pars, σ, *cost_args)
+            out = mpi_mean(term1 + term2, axis=0)
+            out = out.sum()
+            return out
+
+    else:
+        if in_axes is None:
+            in_axes = (
+                None,
+                0,
+            ) + tuple(None for _ in cost_args)
+
+        def chunked_f(ΔL_σ, pars, σ, *cost_args):
+            log_p = apply_chunked(log_pdf, chunk_size=chunk_size, in_axes=(None, 0))(
+                pars, σ
+            )
+            term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
+            term2 = apply_chunked(expected_fun, chunk_size=chunk_size, in_axes=in_axes)(
+                pars, σ, *cost_args
+            )
+            out = mpi_mean(term1 + term2, axis=0)
+            out = out.sum()
+            return out
+
+        # capture ΔL_σ to not differentiate through it
+        f = partial(chunked_f, ΔL_σ)
+
+    _, pb = nkvjp(f, pars, σ, *cost_args)
     grad_f = pb(dL̄)
     return grad_f
 
