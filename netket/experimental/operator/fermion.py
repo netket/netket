@@ -18,17 +18,27 @@ This file only contains deprecated bindings. To be removed.
 """
 
 from netket.operator import fermion as _deprecated_fermion
+
 _deprecations = {
     # May 2024
-      f"{_name}": (
-    f"netket.experimental.operator.fermion.{_name} is deprecated: use "
-    f"netket.operator.fermion.{_name} (netket >= 3.12)",
-    getattr(_deprecated_fermion, _name)
-  ) for _name in ["destroy", "create", "number", "identity", "zero", ]
+    f"{_name}": (
+        f"netket.experimental.operator.fermion.{_name} is deprecated: use "
+        f"netket.operator.fermion.{_name} (netket >= 3.12)",
+        getattr(_deprecated_fermion, _name),
+    )
+    for _name in [
+        "destroy",
+        "create",
+        "number",
+        "identity",
+        "zero",
+    ]
 }
 
-from netket.utils import _auto_export
-from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+from netket.utils import _auto_export  # noqa: E402
+from netket.utils.deprecation import (  # noqa: E402
+    deprecation_getattr as _deprecation_getattr,
+)
+
 __getattr__ = _deprecation_getattr(__name__, _deprecations)
 _auto_export(__name__)
-

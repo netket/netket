@@ -15,11 +15,13 @@
 
 __all__ = ["FermionOperator2nd", "FermionOperator2ndJax"]
 
+from .pscf import from_pyscf_molecule
+
+
 from . import fermion
 
 from netket.operator import FermionOperator2nd as _deprecated_FermionOperator2nd
 from netket.operator import FermionOperator2ndJax as _deprecated_FermionOperator2ndJax
-from netket.operator.pyscf import from_pyscf_molecule as _deprecated_from_pyscf_molecule
 
 _deprecations = {
     # May 2024
@@ -33,12 +35,8 @@ _deprecations = {
         "netket.operator.FermionOperator2ndJax (netket >= 3.12)",
         _deprecated_FermionOperator2ndJax,
     ),
-    "from_pyscf_molecule": (
-        "netket.experimental.operator.from_pyscf_molecule is deprecated: use "
-        "netket.operator.pyscf.from_pyscf_molecule (netket >= 3.12)",
-        _deprecated_from_pyscf_molecule,
-    ),
 }
+
 
 from netket.utils import _auto_export
 from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
