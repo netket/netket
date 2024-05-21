@@ -50,7 +50,7 @@ To run on a single process with multiple devices on a single node usually all th
 - __GPU__
 ```python
 import os
-os.environ['NETKET_EXPERIMENTAL_SHARDING'] = 1
+os.environ['NETKET_EXPERIMENTAL_SHARDING'] = '1'
 
 import netket as nk
 # ...
@@ -61,7 +61,7 @@ You can force jax to use multiple threads as cpu devices (see [jax 101](https://
 ```python
 import os
 os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=8'
-os.environ['NETKET_EXPERIMENTAL_SHARDING'] = 1
+os.environ['NETKET_EXPERIMENTAL_SHARDING'] = '1'
 
 import netket as nk
 # ...
@@ -83,7 +83,7 @@ import jax
 jax.distributed.initialize()
 
 import os
-os.environ['NETKET_EXPERIMENTAL_SHARDING'] = 1
+os.environ['NETKET_EXPERIMENTAL_SHARDING'] = '1'
 
 import netket as nk
 # ...
@@ -120,13 +120,13 @@ make
 
 ```python
 import os
-os.environ['MPITRAMPOLINE_LIB'] = "/path/to/libmpiwrapper.so"
+os.environ['MPITRAMPOLINE_LIB'] = '/path/to/libmpiwrapper.so'
 
 import jax
 jax.config.update('jax_cpu_collectives_implementation', 'mpi')
 jax.distributed.initialize()
 
-os.environ['NETKET_EXPERIMENTAL_SHARDING'] = 1
+os.environ['NETKET_EXPERIMENTAL_SHARDING'] = '1'
 
 import netket as nk
 # ...
@@ -142,7 +142,7 @@ jax.config.update('jax_cpu_collectives_implementation', 'gloo')
 jax.distributed.initialize()
 
 import os
-os.environ['NETKET_EXPERIMENTAL_SHARDING'] = 1
+os.environ['NETKET_EXPERIMENTAL_SHARDING'] = '1'
 
 import netket as nk
 # ...
