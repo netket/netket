@@ -241,7 +241,7 @@ def TV_from_pyscf_molecule(
 
     .. note::
 
-        In the `netket.operator.pyscf` module you can find some utility
+        In the `netket.experimental.operator.pyscf` module you can find some utility
         functions to convert from normal ordering to other orderings, but
         those are all internals so if you need them do copy-paste them somewhere else.
 
@@ -250,7 +250,7 @@ def TV_from_pyscf_molecule(
         and the Boys orbitals
 
         >>> from pyscf import gto, scf, lo
-        >>> import netket as nk; import netket as nk
+        >>> import netket as nk; import netket.experimental as nkx
         >>>
         >>> geometry = [('Li', (0., 0., -1.5109/2)), ('H', (0., 0., 1.5109/2))]
         >>> mol = gto.M(atom=geometry, basis='STO-3G')
@@ -259,7 +259,7 @@ def TV_from_pyscf_molecule(
         >>> mf = scf.RHF(mol).run()  # doctest:+ELLIPSIS
             converged SCF energy = -7.86338...
         >>> mo_coeff = lo.Boys(mol).kernel(mf.mo_coeff)
-        >>> ha = nk.operator.pyscf.TV_from_pyscf_molecule(mol, mo_coeff)
+        >>> ha = nkx.operator.pyscf.TV_from_pyscf_molecule(mol, mo_coeff)
 
     Args:
         molecule: The pyscf :class:`~pyscf.gto.mole.Mole` object describing the
@@ -306,7 +306,7 @@ def from_pyscf_molecule(
         and the default Hartree-Fock molecular orbitals.
 
         >>> from pyscf import gto, scf, fci
-        >>> import netket as nk; import netket as nk
+        >>> import netket as nk; import netket.experimental as nkx
         >>>
         >>> bond_length = 1.5109
         >>> geometry = [('Li', (0., 0., -bond_length/2)), ('H', (0., 0., bond_length/2))]
@@ -318,7 +318,7 @@ def from_pyscf_molecule(
         >>>
         >>> E_fci = fci.FCI(mf).kernel()[0]
         >>>
-        >>> ha = nk.operator.from_pyscf_molecule(mol)  # doctest:+ELLIPSIS
+        >>> ha = nkx.operator.from_pyscf_molecule(mol)  # doctest:+ELLIPSIS
             converged SCF energy = -7.86338...
         >>> E0 = float(nk.exact.lanczos_ed(ha))
         >>> print(f"{E0 = :.5f}, {E_fci = :.5f}")
@@ -329,7 +329,7 @@ def from_pyscf_molecule(
         and the Boys orbitals using :class:`~pyscf.lo.Boys`.
 
         >>> from pyscf import gto, scf, lo
-        >>> import netket as nk; import netket as nk
+        >>> import netket as nk; import netket.experimental as nkx
         >>>
         >>> bond_length = 1.5109
         >>> geometry = [('Li', (0., 0., -bond_length/2)), ('H', (0., 0., bond_length/2))]
@@ -340,7 +340,7 @@ def from_pyscf_molecule(
             converged SCF energy = -7.86338...
         >>> mo_coeff = lo.Boys(mol).kernel(mf.mo_coeff)
         >>> # use the boys orbitals to construct the netket hamiltonian
-        >>> ha = nk.operator.from_pyscf_molecule(mol, mo_coeff=mo_coeff)
+        >>> ha = nkx.operator.from_pyscf_molecule(mol, mo_coeff=mo_coeff)
 
     Args:
         molecule: The pyscf :class:`~pyscf.gto.mole.Mole` object describing the
