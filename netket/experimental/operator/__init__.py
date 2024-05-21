@@ -15,7 +15,7 @@
 
 __all__ = ["FermionOperator2nd", "FermionOperator2ndJax"]
 
-from .pscf import from_pyscf_molecule
+from .pyscf import from_pyscf_molecule
 
 
 from . import fermion
