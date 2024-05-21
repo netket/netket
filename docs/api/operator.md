@@ -77,11 +77,9 @@ Operators and functions to work with fermions are the following:
    operator.fermion.create
    operator.fermion.destroy
    operator.fermion.number
-   operator.from_pyscf_molecule
-   operator.pyscf.TV_from_pyscf_molecule
 ```
 
-Note in particular the pyscf module that can be used to convert molecules from pyscf to netket format.
+Note in particular the pyscf module that can be used to convert molecules from pyscf to netket format. The support for PyScf is still experimental, and can be found in [Fermions and PyScf](experimental-fermions-api)
 
 ### Continuous space operators
 

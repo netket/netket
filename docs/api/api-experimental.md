@@ -70,6 +70,25 @@ several CPUs, but you have to start jax with a specific environment variable.
    sampler.MetropolisSamplerPmap
 ```
 
+(experimental-fermions-api)=
+## Fermions and PyScf
+
+ This modules contains some utility functions that are used to create hamiltonians directly from some PyScf molecules. 
+ Previously we also had several Fermionic functionality in the experimental namespace, but in May 2024 they were stabilised and moved to the main netket namespace.
+
+ ```{eval-rst}
+ .. currentmodule:: netket.experimental
+ ```
+
+ ```{eval-rst}
+ .. autosummary::
+    :toctree: _generated/operator
+    :template: class
+    :nosignatures:
+    operator.from_pyscf_molecule
+    operator.pyscf.TV_from_pyscf_molecule
+ ```
+
 (experimental-logging-api)=
 ## Logging
 
