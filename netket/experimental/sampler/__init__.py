@@ -16,8 +16,6 @@ from . import rules
 
 from .metropolis_pmap import MetropolisSamplerPmap
 
-from .metropolis import MetropolisParticleExchange
-
 
 # Deprecated bindings from stabilisaation
 from netket.sampler import (
