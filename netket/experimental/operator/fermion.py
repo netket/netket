@@ -20,10 +20,10 @@ This file only contains deprecated bindings. To be removed.
 from netket.operator import fermion as _deprecated_fermion
 
 _deprecations = {
-    # May 2024
+    # June 2024, NetKet 3.13
     f"{_name}": (
         f"netket.experimental.operator.fermion.{_name} is deprecated: use "
-        f"netket.operator.fermion.{_name} (netket >= 3.12)",
+        f"netket.operator.fermion.{_name} (netket >= 3.13)",
         getattr(_deprecated_fermion, _name),
     )
     for _name in [

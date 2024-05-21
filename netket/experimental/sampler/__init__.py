@@ -45,7 +45,7 @@ _deprecations = {
     # June 2024, NetKet 3.13
     "MetropolisParticleExchange": (
         "netket.experimental.sampler.MetropolisParticleExchange is deprecated: use "
-        "netket.sampler.MetropolisParticleExchange (netket >= 3.12)",
+        "netket.sampler.MetropolisParticleExchange (netket >= 3.13)",
         _deprecated_MetropolisParticleExchange,
     ),
 }

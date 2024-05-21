@@ -24,15 +24,15 @@ from netket.operator import FermionOperator2nd as _deprecated_FermionOperator2nd
 from netket.operator import FermionOperator2ndJax as _deprecated_FermionOperator2ndJax
 
 _deprecations = {
-    # May 2024
+    # June 2024, NetKet 3.13
     "FermionOperator2nd": (
         "netket.experimental.operator.FermionOperator2nd is deprecated: use "
-        "netket.operator.FermionOperator2nd (netket >= 3.12)",
+        "netket.operator.FermionOperator2nd (netket >= 3.13)",
         _deprecated_FermionOperator2nd,
     ),
     "FermionOperator2ndJax": (
         "netket.experimental.operator.FermionOperator2ndJax is deprecated: use "
-        "netket.operator.FermionOperator2ndJax (netket >= 3.12)",
+        "netket.operator.FermionOperator2ndJax (netket >= 3.13)",
         _deprecated_FermionOperator2ndJax,
     ),
 }
