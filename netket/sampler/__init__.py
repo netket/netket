@@ -31,10 +31,11 @@ from .metropolis import (
     MetropolisParticleExchange,
 )
 
-from .metropolis_pt import (
+from .parallel_tempering import (
     ParallelTemperingSampler,
     ParallelTemperingLocal,
     ParallelTemperingExchange,
+    ParallelTemperingHamiltonian,
 )
 
 from .metropolis_numpy import (

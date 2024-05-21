@@ -73,10 +73,11 @@ Operators and functions to work with fermions are the following:
    :template: class
    :nosignatures:
 
-   operator.FermionOperator2nd
-   operator.fermion.create
-   operator.fermion.destroy
-   operator.fermion.number
+   FermionOperator2nd
+   FermionOperator2ndJax
+   fermion.create
+   fermion.destroy
+   fermion.number
 ```
 
 Note in particular the pyscf module that can be used to convert molecules from pyscf to netket format. The support for PyScf is still experimental, and can be found in [Fermions and PyScf](experimental-fermions-api)

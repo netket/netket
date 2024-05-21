@@ -94,13 +94,15 @@ This is an equivalent list of shorthands that allow to construct a {class}`~netk
 The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class}`netket.hilbert.SpinOrbitalFermions`).
 
 ```{eval-rst}
+.. currentmodule:: netket.sampler
+
 .. autosummary::
    :toctree: _generated/samplers
    :template: flax_module_or_default
    :nosignatures:
 
 
-   sampler.MetropolisParticleExchange
+   MetropolisParticleExchange
 ```
 
 ### Transition Rules

@@ -2,7 +2,7 @@
 
 NetKet makes use of parallelism in two principal ways:
 
-- By leveraging the just-in-time compilation of XLA vector-instructions are used on CPU (as well as [multiple threads for certain linear algebra operations](xla_multithread)), and, similarly, calculations are parallelized to run on all available cuda cores on GPU.
+- By leveraging the just-in-time compilation of XLA vector-instructions are used on CPU (as well as multiple threads for certain linear algebra operations), and, similarly, calculations are parallelized to run on all available cuda cores on GPU.
 - Explicit parallelization by distributing the markov chains and samples across multiples nodes/devices. This is achieved by using [MPI (with mpi4jax)](mpi), or alternatively by using [native collective communication built into jax](sharding) (still experimental).
 
 (mpi)=
