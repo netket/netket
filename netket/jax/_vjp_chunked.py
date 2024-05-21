@@ -102,8 +102,10 @@ def __vjp_fun_chunked(
                 return l
 
         return _multimap(_f, append_cond, res_chunk)
-    else:
+    elif n_rest > 0:
         return res_rest
+    else:
+        return __vjp(fun, cotangents, *primals)
 
 
 def _gen_append_cond_vjp(primals, nondiff_argnums, chunk_argnums):
