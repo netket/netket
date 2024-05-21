@@ -3,10 +3,10 @@ from netket.sampler.rules import (
 )
 
 _deprecations = {
-    # May 2024
+    # June 2024, NetKet 3.13
     "ParticleExchangeRule": (
         "netket.experimental.sampler.rules.ParticleExchangeRule is deprecated: use "
-        "netket.sampler.rules.ParticleExchangeRule (netket >= 3.12)",
+        "netket.sampler.rules.ParticleExchangeRule (netket >= 3.13)",
         _deprecated_ParticleExchangeRule,
     ),
 }
