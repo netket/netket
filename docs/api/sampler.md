@@ -79,7 +79,7 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
 This is an equivalent list of shorthands that allow to construct a {class}`~netket.sampler.ParallelTemperingSampler` with a corresponding rule.
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.sampler
 
 .. autosummary::
    :toctree: _generated/samplers
