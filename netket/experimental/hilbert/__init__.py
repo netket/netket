@@ -33,4 +33,5 @@ __getattr__ = _deprecation_getattr(__name__, _deprecations)
 del _deprecation_getattr
 
 from netket.utils import _hide_submodules
+
 _hide_submodules(__name__)

@@ -35,8 +35,6 @@ from ._sumoperators import SumOperator
 
 from ._fermion2nd import FermionOperator2nd, FermionOperator2ndJax
 
-from . import pyscf
-
 from . import spin, boson, fermion
 
 from netket.utils import _auto_export
