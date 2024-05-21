@@ -61,20 +61,49 @@ def __vjp_fun_chunked(
 ):
     append_cond = _append_cond_fun(primals, nondiff_argnums, chunk_argnums)
     scan_fun = partial(scan_append_reduce, append_cond=append_cond)
-    primals = tuple(
-        _tree_chunk(p, chunk_size) if i in chunk_argnums else p
-        for i, p in enumerate(primals)
+    primals_chunk, primals_rest = zip(
+        *[
+            _tree_chunk(p, chunk_size) if i in chunk_argnums else (p, p)
+            for i, p in enumerate(primals)
+        ]
     )
-    cotangents = _tree_chunk(cotangents, chunk_size)
-    # cotangents, and whatever requested in primals; +2 since 0 is the function, and 1 is cotangents
-    argnums = (1,) + tuple(map(lambda x: x + 2, chunk_argnums))
-    res = scanmap(
-        partial(_vjp, nondiff_argnums=nondiff_argnums, conjugate=conjugate),
-        scan_fun=scan_fun,
-        argnums=argnums,
-    )(fun, cotangents, *primals)
+    cotangents_chunk, cotangents_rest = _tree_chunk(cotangents, chunk_size)
+    __vjp = partial(_vjp, nondiff_argnums=nondiff_argnums, conjugate=conjugate)
 
-    return _multimap(lambda c, l: _tree_unchunk(l) if c else l, append_cond, res)
+    n_chunks = jax.tree_util.tree_leaves(primals_chunk[chunk_argnums[0]])[0].shape[0]
+    n_rest = jax.tree_util.tree_leaves(primals_rest[chunk_argnums[0]])[0].shape[0]
+
+    if n_chunks > 0:
+        # cotangents, and whatever requested in primals; +2 since 0 is the function, and 1 is cotangents
+        argnums = (1,) + tuple(map(lambda x: x + 2, chunk_argnums))
+        res_chunk = scanmap(
+            __vjp,
+            scan_fun=scan_fun,
+            argnums=argnums,
+        )(fun, cotangents_chunk, *primals_chunk)
+    if n_rest > 0:
+        res_rest = __vjp(fun, cotangents_rest, *primals_rest)
+
+    if n_chunks > 0 and n_rest > 0:
+
+        def _f(c, l, r):
+            if c:
+                return _tree_unchunk(l, r)
+            else:
+                return jax.tree_map(jax.lax.add, l, r)
+
+        return _multimap(_f, append_cond, res_chunk, res_rest)
+    elif n_chunks > 0:
+
+        def _f(c, l):
+            if c:
+                return _tree_unchunk(l)
+            else:
+                return l
+
+        return _multimap(_f, append_cond, res_chunk)
+    else:
+        return res_rest
 
 
 def _gen_append_cond_vjp(primals, nondiff_argnums, chunk_argnums):

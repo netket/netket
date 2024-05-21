@@ -14,7 +14,7 @@ pytestmark = common.skipif_distributed
 
 
 @pytest.mark.parametrize("jit", [False, True])
-@pytest.mark.parametrize("chunk_size", [None, 16, 8192, 1000000])
+@pytest.mark.parametrize("chunk_size", [None, 16, 123, 8192, 1000000])
 @pytest.mark.parametrize(
     "return_forward", [False] if config.netket_experimental_sharding else [False, True]
 )
