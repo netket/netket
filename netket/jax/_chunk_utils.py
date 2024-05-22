@@ -57,7 +57,7 @@ def _chunk_size(x):
 
 def __chunk(x, chunk_size):
     x_chunks, x_rest = _chunk(x, chunk_size)
-    n_rest = jax.tree.reduce(max, jax.tree.map(lambda x: x.size, x_rest))
+    n_rest = jax.tree_util.tree_reduce(max, jax.tree_util.tree_map(lambda x: x.size, x_rest))
     if n_rest != 0:
         raise ValueError(
             "The first dimension of x must be divisible by chunk_size."
