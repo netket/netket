@@ -20,11 +20,11 @@ import numba
 from netket.utils.types import DType
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
-from ._fermion_operator_2nd_utils import _is_diag_term, OperatorDict
-from ._fermion_operator_2nd_base import FermionOperator2ndBase
+from .utils import _is_diag_term, OperatorDict
+from .base import FermionOperator2ndBase
 
 if TYPE_CHECKING:
-    from ._fermion_operator_2nd_jax import FermionOperator2ndJax
+    from .jax import FermionOperator2ndJax
 
 
 class FermionOperator2nd(FermionOperator2ndBase):
@@ -41,8 +41,8 @@ class FermionOperator2nd(FermionOperator2ndBase):
         function transformation and pass the results to the jax-transformed functions.
 
         To use this operator inside of a jax function transformation, convert it to a
-        jax operator (class:`netket.experimental.operator.FermionOperator2ndJax`) by using
-        :meth:`netket.experimental.operator.FermionOperator2nd.to_jax_operator()`.
+        jax operator (class:`netket.operator.FermionOperator2ndJax`) by using
+        :meth:`netket.operator.FermionOperator2nd.to_jax_operator()`.
 
     When using native (experimental) sharding, or when working with GPUs,
     we reccomend using the Jax implementations of the operators for potentially
@@ -75,9 +75,9 @@ class FermionOperator2nd(FermionOperator2ndBase):
     def to_jax_operator(self) -> "FermionOperator2ndJax":  # noqa: F821
         """
         Returns the jax version of this operator, which is an
-        instance of :class:`netket.experimental.operator.FermionOperator2ndJax`.
+        instance of :class:`netket.operator.FermionOperator2ndJax`.
         """
-        from ._fermion_operator_2nd_jax import FermionOperator2ndJax
+        from .jax import FermionOperator2ndJax
 
         new_op = FermionOperator2ndJax(
             self.hilbert, cutoff=self._cutoff, dtype=self.dtype

@@ -15,12 +15,33 @@
 
 __all__ = ["FermionOperator2nd", "FermionOperator2ndJax"]
 
-from ._fermion_operator_2nd_numba import FermionOperator2nd
-from ._fermion_operator_2nd_jax import FermionOperator2ndJax
-
-from . import fermion
 from .pyscf import from_pyscf_molecule
 
-from netket.utils import _auto_export
 
+from . import fermion
+
+from netket.operator import FermionOperator2nd as _deprecated_FermionOperator2nd
+from netket.operator import FermionOperator2ndJax as _deprecated_FermionOperator2ndJax
+
+_deprecations = {
+    # June 2024, NetKet 3.13
+    "FermionOperator2nd": (
+        "netket.experimental.operator.FermionOperator2nd is deprecated: use "
+        "netket.operator.FermionOperator2nd (netket >= 3.13)",
+        _deprecated_FermionOperator2nd,
+    ),
+    "FermionOperator2ndJax": (
+        "netket.experimental.operator.FermionOperator2ndJax is deprecated: use "
+        "netket.operator.FermionOperator2ndJax (netket >= 3.13)",
+        _deprecated_FermionOperator2ndJax,
+    ),
+}
+
+
+from netket.utils import _auto_export
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _auto_export(__name__)
+
+del _deprecation_getattr, _auto_export

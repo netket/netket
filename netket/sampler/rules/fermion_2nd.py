@@ -8,7 +8,7 @@ import numpy as np
 from netket.sampler.rules import ExchangeRule
 from netket.graph import AbstractGraph
 from netket.graph import disjoint_union
-from netket.experimental.hilbert import SpinOrbitalFermions
+from netket.hilbert import SpinOrbitalFermions
 from netket.jax.sharding import sharding_decorator
 
 
