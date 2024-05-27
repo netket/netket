@@ -161,6 +161,11 @@ class AbstractVariationalDriver(abc.ABC):
                 **modified in-place** adding new keys.
             step: the current step number.
         """
+        # Always log the acceptance.
+        if hasattr(self.state, "sampler_state"):
+            acceptance = getattr(self.state.sampler_state, "acceptance")
+            if acceptance is not None:
+                log_dict["acceptance"] = acceptance
 
     def reset(self):
         """
