@@ -17,6 +17,8 @@ def _unchunk(x):
 @_treeify
 def _chunk(x, chunk_size=None):
     # chunk_size=None -> add just a dummy chunk dimension, same as np.expand_dims(x, 0)
+    if x.ndim == 0:
+        raise ValueError("x cannot be chunked as it has 0 dimensions.")
     n = x.shape[0]
     if chunk_size is None:
         chunk_size = n
