@@ -163,7 +163,7 @@ class AbstractVariationalDriver(abc.ABC):
         """
         # Always log the acceptance.
         if hasattr(self.state, "sampler_state"):
-            acceptance = getattr(self.state.sampler_state, "acceptance")
+            acceptance = getattr(self.state.sampler_state, "acceptance", None)
             if acceptance is not None:
                 log_dict["acceptance"] = acceptance
 
