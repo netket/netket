@@ -5,12 +5,13 @@
 
 ## NetKet 3.13 (⚙️ In development)
 
-### New Features
-* {class}`netket.sampler.rules.ExchangeRule` now only proposes exchanges where the local degrees of freedom changes [#18XX](https://github.com/netket/netket/issues/18XX).
 
 ### Deprecations
 
 * Following the discovery and fix of the Parallel Tempering bugs, {class}`netket.experimental.sampler.MetropolisPt` and related samplers have been stabilised, so they should be constructed with {class}`netket.sampler.ParallelTemperingSampler` [#1803](https://github.com/netket/netket/issues/1803).
+
+### Improvements
+* {class}`netket.sampler.rules.ExchangeRule` now only proposes exchanges where the local degrees of freedom changes [#1815](https://github.com/netket/netket/issues/1815).
 
 
 ### Improvements
