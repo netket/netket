@@ -13,7 +13,10 @@ from netket.jax.sharding import sharding_decorator
 def _eval_fun_in_chunks(vmapped_fun, chunk_size, argnums, *args, **kwargs):
     # split inputs
     args_chunks, args_rest = zip(
-        *[_chunk(a) if i in argnums else (a, a) for i, a in enumerate(args)]
+        *[
+            _chunk(a, chunk_size=chunk_size) if i in argnums else (a, a)
+            for i, a in enumerate(args)
+        ]
     )
 
     n_chunks = jax.tree_util.tree_leaves(args_chunks[argnums[0]])[0].shape[0]
