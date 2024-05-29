@@ -401,6 +401,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         return loggers
 
     def _log_additional_data(self, log_dict, step):
+        super()._log_additional_data(log_dict, step)
         log_dict["t"] = self.t
 
     @property
