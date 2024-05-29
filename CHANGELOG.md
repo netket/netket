@@ -5,15 +5,15 @@
 
 ## NetKet 3.13 (⚙️ In development)
 
+
 ### Deprecations
 
 * Following the discovery and fix of the Parallel Tempering bugs, {class}`netket.experimental.sampler.MetropolisPt` and related samplers have been stabilised, so they should be constructed with {class}`netket.sampler.ParallelTemperingSampler` [#1803](https://github.com/netket/netket/issues/1803).
 
-
 ### Improvements
 
 * Drivers now always log Monte Carlo acceptance if you are using a Monte Carlo sampler [#1816](https://github.com/netket/netket/issues/1816).
-
+* {class}`netket.sampler.rules.ExchangeRule` now only proposes exchanges where the local degrees of freedom changes [#1815](https://github.com/netket/netket/issues/1815).
 
 ### Bug Fixes
 
