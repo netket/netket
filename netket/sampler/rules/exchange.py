@@ -161,8 +161,12 @@ def compute_clusters(graph: AbstractGraph, d_max: int):
 
 @jax.jit
 def _compute_different_clusters_mask(clusters, σ):
-    # mask the clusters to include only feasible moves (occ -> unocc, or the inverse)
-    hoppable_clusters_mask = ~jnp.isclose(
-        σ[..., clusters[:, 0]], σ[..., clusters[:, 1]]
-    )
+    # mask the clusters to include only moves
+    # where the dof changes
+    if jnp.issubdtype(σ, jnp.bool) or jnp.issubdtype(σ, jnp.integer):
+        hoppable_clusters_mask = σ[..., clusters[:, 0]] != σ[..., clusters[:, 1]]
+    else:
+        hoppable_clusters_mask = ~jnp.isclose(
+            σ[..., clusters[:, 0]], σ[..., clusters[:, 1]]
+        )
     return hoppable_clusters_mask
