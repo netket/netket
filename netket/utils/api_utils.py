@@ -15,7 +15,6 @@
 import functools
 import inspect
 
-from functools import partial
 
 _KEYWORD_ONLY = inspect.Parameter.KEYWORD_ONLY
 _POSITIONAL_OR_KEYWORD = inspect.Parameter.POSITIONAL_OR_KEYWORD
@@ -43,7 +42,7 @@ def partial_from_kwargs(func):
     ]
     has_varkw = any(par.kind == _VAR_KEYWORD for par in sig.parameters.values())
 
-    if not (len(kwargs_only) > 0 or haw_varkw):
+    if not (len(kwargs_only) > 0 or has_varkw):
         raise ValueError(
             """
                          Cannot decorate with `partial_from_kwargs` a function without keyword-only arguments.
@@ -67,10 +66,8 @@ def partial_from_kwargs(func):
                 for kwarg in kwargs:
                     if kwarg not in kwargs_only:
                         raise TypeError(
-                            (
-                                f"Unexpected keyword argument '{kwarg}' when calling"
-                                f"{func}. Valid arguments are {kwargs_only}."
-                            )
+                            f"Unexpected keyword argument '{kwarg}' when calling"
+                            f"{func}. Valid arguments are {kwargs_only}."
                         )
 
             return functools.partial(func, **kwargs)
