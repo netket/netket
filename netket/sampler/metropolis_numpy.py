@@ -191,7 +191,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 random_uniform,
             )
 
-        state.n_steps_proc += sampler.sweep_size * sampler.n_chains
+        state.n_steps_proc += sampler.sweep_size * sampler.n_chains_per_rank
         state.n_accepted_proc += accepted
 
         return state, state.σ
@@ -204,14 +204,15 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         chain_length: int,
     ) -> tuple[jnp.ndarray, MetropolisNumpySamplerState]:
         samples = np.empty(
-            (chain_length, sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype
+            (chain_length, sampler.n_chains_per_rank, sampler.hilbert.size),
+            dtype=sampler.dtype,
         )
 
         for i in range(chain_length):
             state, σ = sampler.sample_next(machine, parameters, state)
             samples[i] = σ
 
-        # make it (n_chains, n_samples_per_chain) as expected by netket.stats.statistics
+        # make it (n_chains_per_rank, n_samples_per_chain, hi.size) as expected by netket.stats.statistics
         samples = np.swapaxes(samples, 0, 1)
 
         return samples, state

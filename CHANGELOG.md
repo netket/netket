@@ -1,11 +1,8 @@
 ```{currentmodule} netket
 ```
 
-# Change Log
-
-## NetKet 3.13 (⚙️ In development)
-
-### Bug Fixes
+## NetKet 3.12.1 (Thursday 30 May)
+* This release fixes a bug in {class}`netket.sampler.MetropolisSamplerNumpy` that prevented it from working when using MPI [#1818](https://github.com/netket/netket/issues/1818).
 
 
 ## NetKet 3.12 (💫 13 May 2024)
