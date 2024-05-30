@@ -15,7 +15,9 @@
 * Drivers now always log Monte Carlo acceptance if you are using a Monte Carlo sampler [#1816](https://github.com/netket/netket/issues/1816).
 * {class}`netket.sampler.rules.ExchangeRule` now only proposes exchanges where the local degrees of freedom changes [#1815](https://github.com/netket/netket/issues/1815).
 
-### Bug Fixes
+
+## NetKet 3.12.1 (Thursday 30 May)
+* This release fixes a bug in {class}`netket.sampler.MetropolisSamplerNumpy` that prevented it from working when using MPI [#1818](https://github.com/netket/netket/issues/1818).
 
 
 ## NetKet 3.12 (💫 13 May 2024)
