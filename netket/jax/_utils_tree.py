@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import reduce
+from functools import reduce, partial
 from typing import Callable
 
 
@@ -110,7 +110,7 @@ def tree_conj(t: PyTree) -> PyTree:
 @jax.jit
 def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     r"""
-    compute the dot product of two pytrees
+    Computes the dot product of two pytrees
 
     Args:
         a, b: pytrees with the same treedef
@@ -124,6 +124,34 @@ def tree_dot(a: PyTree, b: PyTree) -> Scalar:
             jax.numpy.sum, jax.tree_util.tree_map(jax.numpy.multiply, a, b)
         ),
     )
+
+
+@partial(jax.jit, static_argnames="ord")
+def tree_norm(a: PyTree, ord: int = 2) -> Scalar:
+    r"""
+    Compute the norm of a pytree, intended as a 1D vector of values.
+
+    Equivalent to :code:`jnp.linalg.norm(nk.jax.tree_ravel(a)[0], ord)`.
+
+    Args:
+        a: A pytree, interpreted as a vector
+        ord: Specify the vector L norm to be computed. Defaults to L=2.
+
+    Returns:
+        A scalar.
+    """
+    sum_norm = jax.tree_util.tree_reduce(
+        jax.numpy.add,
+        jax.tree_util.tree_map(
+            jax.numpy.sum, jax.tree_util.tree_map(lambda x: jnp.abs(x) ** ord, a)
+        ),
+    )
+    if ord == 2:
+        return jnp.sqrt(sum_norm)
+    elif ord == 1:
+        return sum_norm
+    else:
+        return jnp.power(sum_norm, 1 / ord)
 
 
 @jax.jit

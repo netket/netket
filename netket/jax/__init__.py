@@ -31,6 +31,7 @@ from ._utils_tree import (
     tree_ishomogeneous,
     tree_conj,
     tree_dot,
+    tree_norm,
     tree_cast,
     tree_axpy,
     tree_to_real,
