@@ -16,6 +16,7 @@
 
 * Drivers now always log Monte Carlo acceptance if you are using a Monte Carlo sampler [#1816](https://github.com/netket/netket/issues/1816).
 * {class}`netket.sampler.rules.ExchangeRule` now only proposes exchanges where the local degrees of freedom changes [#1815](https://github.com/netket/netket/issues/1815).
+* All solvers within `netket.optimizer.solver` now automatically return a partial capturing keyword arguments such as `rtol` and `rcond` if called with only the keyword arguments. This can be used to more easily set those optimizer options when constructing the solver to be passed to SR or other algorithms [#1817](https://github.com/netket/netket/issues/1817).
 
 
 ## NetKet 3.12.1 (Thursday 30 May)
