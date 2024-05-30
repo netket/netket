@@ -19,15 +19,14 @@ import jax
 from jax import numpy as jnp
 from flax import struct
 
-from netket.utils.types import PyTree, Array
+from netket.utils.types import Array, PyTree, Scalar
 from netket.utils import mpi, timing
-import netket.jax as nkjax
+from netket import jax as nkjax
 from netket.nn import split_array_mpi
 
 from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
-from .qgt_jacobian_pytree_logic import mat_vec
 from .qgt_jacobian_common import (
     sanitize_diag_shift,
     to_shift_offset,
@@ -307,3 +306,51 @@ class QGTJacobianPyTreeT(LinearOperator):
             f"QGTJacobianPyTree(diag_shift={self.diag_shift}, "
             f"scale={self.scale}, mode={self.mode})"
         )
+
+
+#################################################
+#####           QGT internal Logic          #####
+#################################################
+
+
+def _jvp(oks: PyTree, v: PyTree) -> Array:
+    """
+    Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
+    """
+    td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
+    t = jax.tree_util.tree_map(td, oks, v)
+    return jax.tree_util.tree_reduce(jnp.add, t)
+
+
+def _vjp(oks: PyTree, w: Array) -> PyTree:
+    """
+    Compute the vector-matrix product between the vector w and the pytree jacobian oks
+    """
+    res = jax.tree_util.tree_map(lambda x: jnp.tensordot(w, x, axes=w.ndim), oks)
+    return jax.tree_util.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
+
+
+def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
+    """
+    Compute ⟨O† O⟩v = ∑ₗ ⟨Oₖᴴ Oₗ⟩ vₗ
+    """
+    res = nkjax.tree_conj(_vjp(oks, _jvp(oks, v).conjugate()))
+    return nkjax.tree_cast(res, v)
+
+
+def mat_vec(v: PyTree, centered_oks: PyTree, diag_shift: Scalar) -> PyTree:
+    """
+    Compute (S + δ) v = 1/n ⟨ΔO† ΔO⟩v + δ v = ∑ₗ 1/n ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
+
+    Only compatible with R→R, R→C, and holomorphic C→C
+    for C→R, R&C→R, R&C→C and general C→C the parameters for generating ΔOⱼₖ should be converted to R,
+    and thus also the v passed to this function as well as the output are expected to be of this form
+
+    Args:
+        v: pytree representing the vector v compatible with centered_oks
+        centered_oks: pytree of gradients 1/√n ΔOⱼₖ
+        diag_shift: a scalar diagonal shift δ
+    Returns:
+        a pytree corresponding to the sr matrix-vector product (S + δ) v
+    """
+    return nkjax.tree_axpy(diag_shift, v, _mat_vec(v, centered_oks))
