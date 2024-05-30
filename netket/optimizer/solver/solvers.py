@@ -18,7 +18,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 
 from netket.jax import tree_ravel
-from netket.utils.partial import partial_from_kwargs
+from netket.utils.api_utils import partial_from_kwargs
 
 
 @partial_from_kwargs

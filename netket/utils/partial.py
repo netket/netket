@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import sys
-import functools
-import inspect
 
 from functools import partial
 
@@ -74,29 +72,3 @@ class HashablePartial(partial):
 #    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
 #    lambda args, _: StaticPartial(args[0], *args[1], **args[2]),
 # )
-
-
-def partial_from_kwargs(func):
-    """ """
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        # Get the function signature
-        sig = inspect.signature(func)
-
-        # Validate kwargs
-        for kwarg in kwargs:
-            if kwarg not in sig.parameters:
-                raise TypeError(
-                    f"Unexpected keyword argument '{kwarg}' when calling"
-                    f"{func}. Valid arguments are {sig.parameters}"
-                )
-
-        # If less than the minimum number of mandatory positional arguments are provided, return a partial function
-        if not args:
-            return functools.partial(func, **kwargs)
-
-        # Otherwise, call the function as usual
-        return func(*args, **kwargs)
-
-    return wrapper
