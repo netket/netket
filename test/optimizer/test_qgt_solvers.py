@@ -16,6 +16,8 @@ import pytest
 
 from functools import partial
 
+import numpy as np
+
 import jax
 import jax.flatten_util
 from jax.nn.initializers import normal
@@ -159,3 +161,16 @@ def test_solver_kwargs_partial_api(solver):
     assert isinstance(solver_partial, partial)
     assert len(solver_partial.args) == 0
     assert solver_partial.keywords == {"x0": None}
+
+
+@pytest.mark.parametrize(
+    "solver",
+    [pytest.param(solver, id=name) for name, solver in solvers.items()],
+)
+def test_solver_dense_api(solver):
+    A = jax.random.normal(jax.random.key(1), (10, 10))
+    A = A @ A.conj().T
+    b = jax.random.normal(jax.random.key(2), (10,))
+
+    x, _ = solver(A, b)
+    np.testing.assert_allclose(A @ x, b)
