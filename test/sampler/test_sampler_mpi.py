@@ -12,23 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flax
 from jax import numpy as jnp
 
 from .. import common
 
 import numpy as np
-import pytest
-from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
 import jax
-from jax.nn.initializers import normal
 
 import netket as nk
-from netket.hilbert import DiscreteHilbert, Particle
-from netket.utils import array_in, mpi
-from netket.jax.sharding import device_count_per_rank
-
-from netket import experimental as nkx
+from netket.utils import mpi
 
 
 pytestmark = common.onlyif_mpi
