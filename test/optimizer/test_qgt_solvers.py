@@ -147,3 +147,15 @@ def test_qgt_explicit_chunk_size(SType):
     vs = nk.vqs.MCState(sa, ma, n_samples=16 * 8, n_discard_per_chain=100)
 
     SType(vs, chunk_size=16 * 4)
+
+
+@pytest.mark.parametrize(
+    "solver",
+    [pytest.param(solver, id=name) for name, solver in solvers.items()],
+)
+def test_solver_kwargs_partial_api(solver):
+    # create the partial interface
+    solver_partial = solver(x0=None)
+    assert isinstance(solver_partial, partial)
+    assert len(solver_partial.args) == 0
+    assert solver_partial.keywords == {"x0": None}
