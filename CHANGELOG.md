@@ -5,6 +5,8 @@
 
 ## NetKet 3.13 (⚙️ In development)
 
+### New Features
+* Added the function {func}`netket.jax.tree_norm` to compute the L-p norm of a PyTree, interpreted as a vector of values, without concatenating or ravelling the leaves [#1819](https://github.com/netket/netket/issues/1819).
 
 ### Deprecations
 
