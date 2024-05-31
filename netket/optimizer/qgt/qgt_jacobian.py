@@ -23,7 +23,6 @@ from netket.nn import split_array_mpi
 
 from .qgt_jacobian_dense import QGTJacobianDenseT
 from .qgt_jacobian_pytree import QGTJacobianPyTreeT
-
 from .qgt_jacobian_common import (
     sanitize_diag_shift,
     to_shift_offset,
@@ -202,8 +201,8 @@ def QGTJacobianDense(
         vstate.parameters,
         vstate.model_state,
         samples,
-        dense=True,
         pdf=pdf,
+        dense=True,
         mode=mode,
         holomorphic=holomorphic,
         diag_shift=diag_shift,
@@ -215,7 +214,7 @@ def QGTJacobianDense(
 
 @partial_from_kwargs
 def QGTJacobianPyTree(
-    vstate=None,
+    vstate,
     *,
     mode: Optional[str] = None,
     holomorphic: Optional[bool] = None,
