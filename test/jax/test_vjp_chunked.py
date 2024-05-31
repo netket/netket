@@ -17,10 +17,17 @@ pytestmark = common.skipif_distributed
 @pytest.mark.parametrize("return_forward", [False, True])
 @pytest.mark.parametrize("chunk_argnums", [1, (1,)])
 @pytest.mark.parametrize("nondiff_argnums", [1, (1,)])
-def test_vjp_chunked(chunk_size, jit, return_forward, chunk_argnums, nondiff_argnums):
+@pytest.mark.parametrize("has_aux", [False, True])
+def test_vjp_chunked(
+    chunk_size, jit, return_forward, chunk_argnums, nondiff_argnums, has_aux
+):
     @partial(jax.vmap, in_axes=(None, 0))
     def f(p, x):
-        return jax.lax.log(p.dot(jax.lax.sin(x)))
+        res = jax.lax.log(p.dot(jax.lax.sin(x)))
+        if has_aux:
+            aux = {"u": res, "v": jax.lax.cos(res)}
+            return res, aux
+        return res
 
     k = jax.random.split(jax.random.PRNGKey(123), 4)
     p = jax.random.uniform(k[0], shape=(8,))
@@ -35,8 +42,9 @@ def test_vjp_chunked(chunk_size, jit, return_forward, chunk_argnums, nondiff_arg
         chunk_size=chunk_size,
         nondiff_argnums=nondiff_argnums,
         return_forward=return_forward,
+        has_aux=has_aux,
     )
-    y_expected, vjp_fun = jax.vjp(f, p, X)
+    y_expected, vjp_fun, *aux_expected = jax.vjp(f, p, X, has_aux=has_aux)
 
     if jit:
         vjp_fun_chunked = jax.jit(vjp_fun_chunked)
@@ -45,9 +53,13 @@ def test_vjp_chunked(chunk_size, jit, return_forward, chunk_argnums, nondiff_arg
     res_expected = vjp_fun(w)[:1]
 
     if return_forward:
-        y, res = vjp_fun_chunked(w)
+        y, res, *aux = vjp_fun_chunked(w)
         np.testing.assert_allclose(y, y_expected)
     else:
         res = vjp_fun_chunked(w)
-
+        if has_aux:
+            res, *aux = res
+        else:
+            aux = []
+    jax.tree_util.tree_map(np.testing.assert_allclose, aux, aux_expected)
     np.testing.assert_allclose(res, res_expected)

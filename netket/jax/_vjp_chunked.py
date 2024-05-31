@@ -19,7 +19,7 @@ def _trash_tuple_elements(t, nums=()):
     return tuple(r for i, r in enumerate(t) if i not in nums)
 
 
-def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
+def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False, has_aux=False):
     # we pass a closure to vjp, capturing the nondiff_argnums
     # this is necessary to avoid errors when using integer arguments
     # resulting in float0 tangents, which nkvjp tries to conjugate, resulting in an error
@@ -38,11 +38,14 @@ def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
         )
         return fun(*args)
 
-    y, vjp_fun = nkvjp(
-        partial(_fun, nondiff_argnums, nondiff_args), *diff_args, conjugate=conjugate
+    y, vjp_fun, *aux = nkvjp(
+        partial(_fun, nondiff_argnums, nondiff_args),
+        *diff_args,
+        conjugate=conjugate,
+        has_aux=has_aux,
     )
     res = vjp_fun(cotangents)
-    return y, res
+    return y, res, *aux
 
 
 def __vjp_fun_chunked(
@@ -55,8 +58,13 @@ def __vjp_fun_chunked(
     conjugate,
     _vjp,
     _append_cond_fun,
+    has_aux,
 ):
     append_cond = _append_cond_fun(primals, nondiff_argnums, chunk_argnums)
+
+    if has_aux:
+        append_cond = append_cond + (True,)
+
     scan_fun = partial(scan_append_reduce, append_cond=append_cond)
     primals_chunk, primals_rest = zip(
         *[
@@ -65,7 +73,9 @@ def __vjp_fun_chunked(
         ]
     )
     cotangents_chunk, cotangents_rest = _tree_chunk(cotangents, chunk_size)
-    __vjp = partial(_vjp, nondiff_argnums=nondiff_argnums, conjugate=conjugate)
+    __vjp = partial(
+        _vjp, nondiff_argnums=nondiff_argnums, conjugate=conjugate, has_aux=has_aux
+    )
 
     n_chunks = jax.tree_util.tree_leaves(primals_chunk[chunk_argnums[0]])[0].shape[0]
     n_rest = jax.tree_util.tree_leaves(primals_rest[chunk_argnums[0]])[0].shape[0]
@@ -114,7 +124,7 @@ _gen_append_cond_value_vjp = compose(lambda t: (True, t), _gen_append_cond_vjp)
 
 _vjp_fun_chunked = partial(
     __vjp_fun_chunked,
-    _vjp=compose(lambda yr: yr[1], _vjp),
+    _vjp=compose(lambda yr: yr[1] if len(yr) == 2 else yr[1:], _vjp),
     _append_cond_fun=_gen_append_cond_vjp,
 )
 _value_and_vjp_fun_chunked = partial(
@@ -150,17 +160,15 @@ def _vjp_chunked(
 ):
     assert chunk_size is not None
 
-    if has_aux:
-        raise NotImplementedError
-    else:
-        return HashablePartial(
-            _value_and_vjp_fun_chunked if return_forward else _vjp_fun_chunked,
-            fun,
-            chunk_argnums=chunk_argnums,
-            nondiff_argnums=nondiff_argnums,
-            chunk_size=chunk_size,
-            conjugate=conjugate,
-        )
+    return HashablePartial(
+        _value_and_vjp_fun_chunked if return_forward else _vjp_fun_chunked,
+        fun,
+        chunk_argnums=chunk_argnums,
+        nondiff_argnums=nondiff_argnums,
+        chunk_size=chunk_size,
+        conjugate=conjugate,
+        has_aux=has_aux,
+    )
 
 
 T = TypeVar("T")
@@ -322,11 +330,21 @@ def vjp_chunked(
                 return_forward=return_forward,
                 conjugate=conjugate,
             )
+
+            reduction_op_tree = (red_ops,)
+            if has_aux:
+                reduction_op_tree = (*reduction_op_tree, False)
+            if return_forward:
+                reduction_op_tree = (False, *reduction_op_tree)
+            if len(reduction_op_tree) == 1:  # not (has_aux or return_forward)
+                # reduction_op_tree = red_ops
+                (reduction_op_tree,) = reduction_op_tree
+
             vjp_fun_sh = Partial(
                 sharding_decorator(
                     _vjpc,
                     sharded_args_tree=(sharded_args, True),
-                    reduction_op_tree=(False, red_ops) if return_forward else red_ops,
+                    reduction_op_tree=reduction_op_tree,
                 ),
                 primals,
             )
@@ -341,8 +359,7 @@ def vjp_chunked(
     chunk_size = check_chunk_size(chunk_argnums, chunk_size, *primals)
 
     if chunk_size is None:
-        y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
-        if return_forward:
+        y, vjp_fun, *aux = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
 
             def __vjp_fun_retfwd(y, vjp_fun, cotangents):
                 res = vjp_fun(cotangents)
@@ -356,8 +373,10 @@ def vjp_chunked(
                 res = vjp_fun(cotangents)
                 res = _trash_tuple_elements(res, nondiff_argnums)
                 return res
+            else:
+                return r
 
-            return Partial(__vjp_fun, vjp_fun)
+        return Partial(__vjp_fun, (y,) if return_forward else (), aux, vjp_fun)
     else:
         _vjpc = _vjp_chunked(
             fun,
