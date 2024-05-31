@@ -6,7 +6,6 @@ import numpy as np
 from functools import partial
 
 from netket.jax.sharding import distribute_to_devices_along_axis
-from netket import config
 
 from .. import common
 
