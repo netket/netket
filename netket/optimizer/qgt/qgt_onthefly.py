@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from typing import Callable, Optional, Union
-from functools import partial
 import warnings
 
 import jax
@@ -21,15 +20,15 @@ from jax import numpy as jnp
 from flax import struct
 
 import netket.jax as nkjax
-from netket.utils import timing
+from netket.utils import timing, HashablePartial
 from netket.utils.types import PyTree
-
+from netket.utils.api_utils import partial_from_kwargs
+from netket.nn import split_array_mpi
 from netket.errors import (
     IllegalHolomorphicDeclarationForRealParametersError,
     NonHolomorphicQGTOnTheFlyDenseRepresentationError,
     HolomorphicUndeclaredWarning,
 )
-from netket.nn import split_array_mpi
 
 from .common import check_valid_vector_type
 from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
@@ -37,9 +36,9 @@ from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-@timing.timed
+@partial_from_kwargs
 def QGTOnTheFly(
-    vstate=None, *, chunk_size=None, holomorphic: Optional[bool] = None, **kwargs
+    vstate, *, chunk_size=None, holomorphic: Optional[bool] = None, **kwargs
 ) -> "QGTOnTheFlyT":
     """
     Lazy representation of an S Matrix computed by performing 2 jvp
@@ -57,11 +56,6 @@ def QGTOnTheFly(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
-    if vstate is None:
-        return partial(
-            QGTOnTheFly, chunk_size=chunk_size, holomorphic=holomorphic, **kwargs
-        )
-
     if kwargs.pop("diag_scale", None) is not None:
         raise NotImplementedError(
             "\n`diag_scale` argument is not yet supported by QGTOnTheFly."
@@ -78,31 +72,66 @@ def QGTOnTheFly(
         pdf = split_array_mpi(vstate.probability_distribution())
     else:
         samples = vstate.samples
-        if samples.ndim >= 3:
-            # use jit so that we can do it on global shared array
-            samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
         pdf = None
 
-    if chunk_size is None and hasattr(vstate, "chunk_size"):
-        chunk_size = vstate.chunk_size
+    if chunk_size is None:
+        chunk_size = getattr(vstate, "chunk_size", None)
+
+    return QGTOnTheFly_DefaultConstructor(
+        vstate._apply_fun,
+        vstate.parameters,
+        vstate.model_state,
+        samples,
+        pdf=pdf,
+        chunk_size=chunk_size,
+        holomorphic=holomorphic**kwargs,
+    )
+
+
+@timing.timed
+def QGTOnTheFly_DefaultConstructor(
+    apply_fun,
+    parameters,
+    model_state,
+    samples,
+    pdf=None,
+    *,
+    chunk_size: Optional[int] = None,
+    holomorphic: Optional[bool] = None,
+    **kwargs,
+) -> "QGTOnTheFlyT":
+    """ """
+    if pdf is not None:
+        if not pdf.shape == samples.shape[:-1]:
+            raise ValueError(
+                "The shape of pdf must match the shape of the samples, "
+                f"instead you provided (pdf.shape={pdf.shape}) != "
+                f"(samples.shape={samples.shape[:-1]})"
+            )
+        if pdf.ndim >= 2:
+            pdf = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(pdf, 0, 2)
+
+    # The code does not support an extra batch dimension
+    if samples.ndim >= 3:
+        # use jit so that we can do it on global shared array
+        samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
 
     n_samples_per_rank = samples.shape[0] // nkjax.sharding.device_count_per_rank()
-
     if chunk_size is None or chunk_size >= n_samples_per_rank:
         mv_factory = mat_vec_factory
         chunking = False
     else:
-        mv_factory = partial(mat_vec_chunked_factory, chunk_size=chunk_size)
+        mv_factory = HashablePartial(mat_vec_chunked_factory, chunk_size=chunk_size)
         chunking = True
 
     # check if holomorphic or not
     if holomorphic:
-        if nkjax.tree_leaf_isreal(vstate.parameters):
+        if nkjax.tree_leaf_isreal(parameters):
             raise IllegalHolomorphicDeclarationForRealParametersError()
         else:
             mode = "holomorphic"
     else:
-        if not nkjax.tree_leaf_iscomplex(vstate.parameters):
+        if not nkjax.tree_leaf_iscomplex(parameters):
             mode = "real"
         else:
             if holomorphic is None:
@@ -110,23 +139,23 @@ def QGTOnTheFly(
             mode = "complex"
 
     nkjax.jacobian_default_mode(
-        vstate._apply_fun,
-        vstate.parameters,
-        vstate.model_state,
+        apply_fun,
+        parameters,
+        model_state,
         samples,
         holomorphic=holomorphic,
     )
 
     mat_vec = mv_factory(
-        forward_fn=vstate._apply_fun,
-        params=vstate.parameters,
-        model_state=vstate.model_state,
+        forward_fn=apply_fun,
+        params=parameters,
+        model_state=model_state,
         samples=samples,
         pdf=pdf,
     )
     return QGTOnTheFlyT(
         _mat_vec=mat_vec,
-        _params=vstate.parameters,
+        _params=parameters,
         _chunking=chunking,
         _mode=mode,
         **kwargs,
