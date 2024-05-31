@@ -19,8 +19,7 @@ import jax
 
 import netket.jax as nkjax
 
-from .qgt_jacobian_dense import QGTJacobianDense
-from .qgt_jacobian_pytree import QGTJacobianPyTree
+from .qgt_jacobian import QGTJacobianDense, QGTJacobianPyTree
 from .qgt_onthefly import QGTOnTheFly
 
 from .. import solver as nk_solver_module
