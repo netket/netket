@@ -7,6 +7,8 @@ from jax.api_util import argnums_partial
 
 from jax.extend import linear_util as lu
 
+from ._utils_tree import compose
+
 _tree_add = partial(jax.tree_util.tree_map, jax.lax.add)
 _tree_zeros_like = partial(
     jax.tree_util.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype)
@@ -27,7 +29,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
     Args:
         f: a function that takes elements of the leading dimension of x
         x: a pytree where each leaf array has the same leading dimension
-        append_cond: a bool (if f returns just one result) or a tuple of bools (if f returns multiple values)
+        append_cond_tree: a bool (if f returns just one result) or a tuple/pytree of bools (if f returns multiple values)
             which indicates whether the individual result should be appended or reduced
         op: a function to (pairwise) reduce the specified results. Defaults to a sum.
         zero_fun: a function which prepares the zero element of op for a given input shape/dtype tree. Defaults to zeros.
@@ -59,6 +61,11 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
         mean = s/N
         var = s2/N - mean**2
     """
+
+    append_cond_tree = append_cond
+    append_cond, out_treedef = jax.tree_util.tree_flatten(append_cond_tree)
+    f_flat = compose(out_treedef.flatten_up_to, f)
+
     # TODO: different op for each result
 
     x0 = jax.tree_util.tree_map(lambda x: x[0], x)
@@ -66,12 +73,14 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
     # special code path if there is only one element
     # to avoid having to rely on xla/llvm to optimize the overhead away
     if jax.tree_util.tree_leaves(x)[0].shape[0] == 1:
-        return _multimap(
-            lambda c, x: jax.tree_util.tree_map(partial(jnp.expand_dims, axis=0), x)
-            if c
-            else x,
-            append_cond,
-            f(x0),
+        return out_treedef.unflatten(
+            _multimap(
+                lambda c, x: jax.tree_util.tree_map(partial(jnp.expand_dims, axis=0), x)
+                if c
+                else x,
+                append_cond,
+                f_flat(x0),
+            )
         )
 
     # the original idea was to use pytrees, however for now just operate on the return value tuple
@@ -79,19 +88,19 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
     _get_op_part = partial(_multimap, lambda c, x: x if not c else None, append_cond)
     _tree_select = partial(_multimap, lambda c, t1, t2: t1 if c else t2, append_cond)
 
-    carry_init = True, _get_op_part(zero_fun(jax.eval_shape(f, x0)))
+    carry_init = True, _get_op_part(zero_fun(jax.eval_shape(f_flat, x0)))
 
     def f_(carry, x):
         is_first, y_carry = carry
-        y = f(x)
+        y = f_flat(x)
         y_op = _get_op_part(y)
         y_append = _get_append_part(y)
         y_reduce = op(y_carry, y_op)
         return (False, y_reduce), y_append
 
     (_, res_op), res_append = jax.lax.scan(f_, carry_init, x, unroll=1)
-    # reconstruct the result from the reduced and appended parts in the two trees
-    return _tree_select(res_append, res_op)
+    # reconstruct the result from the reduced and appended parts in the two trees and unflatten
+    return out_treedef.unflatten(_tree_select(res_append, res_op))
 
 
 scan_append = partial(scan_append_reduce, append_cond=True)
