@@ -9,9 +9,6 @@ from netket.utils import HashablePartial
 from netket.utils import config
 from netket.jax.sharding import sharding_decorator
 
-from ._utils_tree import compose
-from ._scanmap import scanmap, scan_append_reduce, _multimap
-from ._vjp import vjp as nkvjp
 from ._chunk_utils import _chunk as _tree_chunk, _unchunk as _tree_unchunk
 
 
@@ -45,7 +42,7 @@ def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
         partial(_fun, nondiff_argnums, nondiff_args), *diff_args, conjugate=conjugate
     )
     res = vjp_fun(cotangents)
-    return (y,) + res
+    return y, res
 
 
 def __vjp_fun_chunked(
@@ -92,7 +89,7 @@ def __vjp_fun_chunked(
             else:
                 return jax.tree_map(jax.lax.add, l, r)
 
-        return _multimap(_f, append_cond, res_chunk, res_rest)
+        return jax.tree_util.tree_map(_f, append_cond, res_chunk, res_rest)
     elif n_chunks > 0:
 
         def _f(c, l):
@@ -101,7 +98,7 @@ def __vjp_fun_chunked(
             else:
                 return l
 
-        return _multimap(_f, append_cond, res_chunk)
+        return jax.tree_util.tree_map(_f, append_cond, res_chunk)
     elif n_rest > 0:
         return res_rest
     else:
@@ -113,16 +110,15 @@ def _gen_append_cond_vjp(primals, nondiff_argnums, chunk_argnums):
     return tuple(map(lambda i: i in chunk_argnums, diff_argnums))
 
 
-_gen_append_cond_value_vjp = compose(lambda t: (True,) + t, _gen_append_cond_vjp)
+_gen_append_cond_value_vjp = compose(lambda t: (True, t), _gen_append_cond_vjp)
 
 _vjp_fun_chunked = partial(
     __vjp_fun_chunked,
-    _vjp=compose(lambda yr: yr[1:], _vjp),
+    _vjp=compose(lambda yr: yr[1], _vjp),
     _append_cond_fun=_gen_append_cond_vjp,
 )
-_value_and_vjp_fun_chunked = compose(
-    lambda yr: (yr[0], yr[1:]),
-    partial(__vjp_fun_chunked, _vjp=_vjp, _append_cond_fun=_gen_append_cond_value_vjp),
+_value_and_vjp_fun_chunked = partial(
+    __vjp_fun_chunked, _vjp=_vjp, _append_cond_fun=_gen_append_cond_value_vjp
 )
 
 
@@ -305,7 +301,9 @@ def vjp_chunked(
             set(range(len(primals))).difference(sharded_argnums)
         )
         out_args = _gen_append_cond_vjp(primals, nondiff_argnums, non_sharded_argnums)
-        red_ops = tuple(jax.lax.psum if c else False for c in out_args)
+        red_ops = jax.tree_util.tree_map(
+            lambda c: jax.lax.psum if c else False, out_args
+        )
 
         # check the chunk_size is not larger than the shard per device
         chunk_size = sharding_decorator(
