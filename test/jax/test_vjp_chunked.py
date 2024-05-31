@@ -15,9 +15,7 @@ pytestmark = common.skipif_distributed
 
 @pytest.mark.parametrize("jit", [False, True])
 @pytest.mark.parametrize("chunk_size", [None, 16, 123, 8192, 1000000])
-@pytest.mark.parametrize(
-    "return_forward", [False] if config.netket_experimental_sharding else [False, True]
-)
+@pytest.mark.parametrize("return_forward", [False, True])
 @pytest.mark.parametrize("chunk_argnums", [1, (1,)])
 @pytest.mark.parametrize("nondiff_argnums", [1, (1,)])
 def test_vjp_chunked(chunk_size, jit, return_forward, chunk_argnums, nondiff_argnums):

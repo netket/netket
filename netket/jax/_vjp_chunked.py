@@ -294,10 +294,7 @@ def vjp_chunked(
     ############################################################################
     # sharding
 
-    if config.netket_experimental_sharding and chunk_size is not None:  # type: ignore
-        if return_forward:
-            raise NotImplementedError
-
+    if config.netket_experimental_sharding and chunk_size is not None:
         # assume the chunk_argnums are also sharded
         # later we might introduce an extra arg for it
         sharded_argnums = chunk_argnums
@@ -331,7 +328,7 @@ def vjp_chunked(
                 sharding_decorator(
                     _vjpc,
                     sharded_args_tree=(sharded_args, True),
-                    reduction_op_tree=red_ops,
+                    reduction_op_tree=(False, red_ops) if return_forward else red_ops,
                 ),
                 primals,
             )
