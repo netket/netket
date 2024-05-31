@@ -176,11 +176,8 @@ def QGTJacobianDense(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
-    if mode is not None and holomorphic is not None:
-        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
     if rescale_shift is not None and diag_scale is not None:
         raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
-
     diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     # TODO: Find a better way to handle this case
@@ -260,11 +257,8 @@ def QGTJacobianPyTree(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
-    if mode is not None and holomorphic is not None:
-        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
     if rescale_shift is not None and diag_scale is not None:
         raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
-
     diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     # TODO: Find a better way to handle this case
