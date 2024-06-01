@@ -20,6 +20,7 @@ import numpy as np
 
 from flax.core import FrozenDict
 
+
 from .dispatch import dispatch
 from .numbers import is_scalar
 from .types import Array, DType
@@ -92,7 +93,13 @@ class History:
             values = []
             iters = []
         elif iters is None:
-            iters = 0
+            if isinstance(values, dict):
+                values = values.copy()
+                if "iters" in values:
+                    iters = values["iters"]
+                    del values["iters"]
+            if iters is None:
+                iters = 0
 
         if is_scalar(iters):
             iters = np.array([iters], dtype=iter_dtype)
