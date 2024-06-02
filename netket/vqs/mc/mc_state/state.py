@@ -393,9 +393,7 @@ class MCState(VariationalState):
             n_discard_per_chain = 0
 
         self._n_discard_per_chain = (
-            int(n_discard_per_chain)
-            if n_discard_per_chain is not None
-            else 5
+            int(n_discard_per_chain) if n_discard_per_chain is not None else 5
         )
 
     @property
