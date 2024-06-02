@@ -84,7 +84,8 @@ def QGTOnTheFly(
         samples,
         pdf=pdf,
         chunk_size=chunk_size,
-        holomorphic=holomorphic**kwargs,
+        holomorphic=holomorphic,
+        **kwargs,
     )
 
 
