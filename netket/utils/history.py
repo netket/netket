@@ -36,6 +36,13 @@ def raise_if_len_not_match(length, expected_length, string):
         )
 
 
+def maybecopy(maybe_arr):
+    if isinstance(maybe_arr, np.ndarray):
+        return maybe_arr.copy()
+    else:
+        return maybe_arr
+
+
 class History:
     """
     A class to store a time-series of arbitrary data.
@@ -77,7 +84,8 @@ class History:
             values: a type/container of types containing the value at the first
                 iteration, or an iterable/container of iterables
                 containing the values at all iterations (in the latter, values
-                must also be specified).
+                must also be specified). It may also be the dictionary obtained 
+                from another History object, when converted to dictionary.
             iters: an optional iterable of iterations at which values correspond.
                 If unspecified, assumes that values are logged at only one iteration.
             dtype: If no values or iters are passed, uses this dtype to store data
@@ -93,8 +101,9 @@ class History:
             values = []
             iters = []
         elif iters is None:
+            # If it's a dictionary, copy it
             if isinstance(values, dict):
-                values = values.copy()
+                values = {k: maybecopy(v) for k, v in values.items()}
                 if "iters" in values:
                     iters = values["iters"]
                     del values["iters"]
