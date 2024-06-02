@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Callable
+
 import functools
 import inspect
 
@@ -21,14 +23,23 @@ _POSITIONAL_OR_KEYWORD = inspect.Parameter.POSITIONAL_OR_KEYWORD
 _VAR_KEYWORD = inspect.Parameter.VAR_KEYWORD
 
 
-def partial_from_kwargs(func):
+def partial_from_kwargs(
+    func: Callable = None, *, exclusive_arg_names: tuple[tuple[str, ...], ...] = None
+):
     """
     Wraps the decorated function such that if only the keyword arguments are specified
     a partial object wrapping the specified keyword arguments is returned.
 
     Args:
-        a function with keyword only arguments.
+        fun: a function with keyword only arguments.
+        exclusive_arg_names: a list of tuples of strings, where each tuple contains the names of
+            arguments that are mutually exclusive. If any of the arguments in the tuple are specified
+            together, an error is raised.
     """
+    if func is None:
+        return functools.partial(
+            partial_from_kwargs, exclusive_arg_names=exclusive_arg_names
+        )
 
     # Get the functions's Keyword only arguments and keyword maybe arguments
     sig = inspect.signature(func)
@@ -45,13 +56,27 @@ def partial_from_kwargs(func):
     if not (len(kwargs_only) > 0 or has_varkw):
         raise ValueError(
             """
-                         Cannot decorate with `partial_from_kwargs` a function without keyword-only arguments.
+            Cannot decorate with `partial_from_kwargs` a function without keyword-only arguments.
 
-                         partial_from_kwargs allows to create a partial when keyword only arguments are passed,
-                         but non-keyword only arguments are not treated. If no keyword only arguments are present,
-                         then this decorator would do nothing.
-                         """
+            partial_from_kwargs allows to create a partial when keyword only arguments are passed,
+            but non-keyword only arguments are not treated. If no keyword only arguments are present,
+            then this decorator would do nothing.
+            """
         )
+
+    # Construct a dictionary of invalid kwargs for every key. This is used to raise an early error.
+    kwargs_exclusion_list = {}
+    if exclusive_arg_names is not None:
+        # Make it a list of tuples
+        if isinstance(exclusive_arg_names[0], str):
+            exclusive_arg_names = [exclusive_arg_names]
+        for exclusion_set in exclusive_arg_names:
+            exclusion_set = set(exclusion_set)
+            for arg in exclusion_set:
+                kwargs_exclusion_list[arg] = kwargs_exclusion_list.get(
+                    arg, set()
+                ).union(exclusion_set - {arg})
+        print(kwargs_exclusion_list)
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -68,6 +93,14 @@ def partial_from_kwargs(func):
                         raise TypeError(
                             f"Unexpected keyword argument '{kwarg}' when calling"
                             f"{func}. Valid arguments are {kwargs_only}."
+                        )
+
+            # check that arguments are not mutually exclusive
+            for kwarg in kwargs:
+                if kwarg in kwargs_exclusion_list:
+                    if any(arg in kwargs for arg in kwargs_exclusion_list[kwarg]):
+                        raise ValueError(
+                            f"Cannot specify both {kwarg} and {kwargs_exclusion_list[kwarg]} together."
                         )
 
             return functools.partial(func, **kwargs)

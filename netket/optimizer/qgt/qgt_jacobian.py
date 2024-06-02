@@ -128,7 +128,9 @@ def QGTJacobian_DefaultConstructor(
     )
 
 
-@partial_from_kwargs
+@partial_from_kwargs(
+    exclusive_arg_names=(("rescale_shift", "diag_scale"), ("mode", "holomorphic"))
+)
 def QGTJacobianDense(
     vstate,
     *,
@@ -209,7 +211,9 @@ def QGTJacobianDense(
     )
 
 
-@partial_from_kwargs
+@partial_from_kwargs(
+    exclusive_arg_names=(("rescale_shift", "diag_scale"), ("mode", "holomorphic"))
+)
 def QGTJacobianPyTree(
     vstate,
     *,
