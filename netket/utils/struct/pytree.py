@@ -126,9 +126,11 @@ class Pytree(metaclass=PytreeMeta):
         class_vars = vars(cls)
         setter_descriptors = set()
         static_fields = _inherited_static_fields(cls)
+        noserialize_fields = _inherited_noserialize_fields(cls)
 
         # add special static fields
         static_fields.add("_pytree__node_fields")
+        noserialize_fields.add("_pytree__node_fields")
 
         # new
         data_fields = _inherited_data_fields(cls)
@@ -145,6 +147,11 @@ class Pytree(metaclass=PytreeMeta):
                 "pytree_node", True
             ):
                 data_fields.add(field)
+
+            if isinstance(value, dataclasses.Field) and not value.metadata.get(
+                "serialize", True
+            ):
+                noserialize_fields.add(field)
 
             # add setter descriptors
             if hasattr(value, "__set__"):
@@ -189,11 +196,13 @@ class Pytree(metaclass=PytreeMeta):
         cached_prop_fields = tuple(_cache_name(f) for f in cached_prop_fields)
 
         static_fields = tuple(sorted(static_fields))
+        noserialize_fields = tuple(sorted(noserialize_fields))
 
         # init class variables
         cls._pytree__initializing = False
         cls._pytree__class_is_mutable = mutable
         cls._pytree__static_fields = static_fields
+        cls._pytree__noserialize_fields = noserialize_fields
         cls._pytree__setter_descriptors = frozenset(setter_descriptors)
 
         # new
@@ -234,8 +243,8 @@ class Pytree(metaclass=PytreeMeta):
 
         serialization.register_serialization_state(
             cls,
-            partial(cls._to_flax_state_dict, cls._pytree__static_fields),
-            partial(cls._from_flax_state_dict, cls._pytree__static_fields),
+            partial(cls._to_flax_state_dict, cls._pytree__noserialize_fields),
+            partial(cls._from_flax_state_dict, cls._pytree__noserialize_fields),
         )
 
     def __pre_init__(self, *args, **kwargs):
@@ -320,21 +329,21 @@ class Pytree(metaclass=PytreeMeta):
 
     @classmethod
     def _to_flax_state_dict(
-        cls, static_field_names: tuple[str, ...], pytree: "Pytree"
+        cls, noserialize_field_names: tuple[str, ...], pytree: "Pytree"
     ) -> dict[str, tp.Any]:
         from flax import serialization
 
         state_dict = {
             name: serialization.to_state_dict(getattr(pytree, name))
             for name in pytree.__dict__
-            if name not in static_field_names
+            if name not in noserialize_field_names
         }
         return state_dict
 
     @classmethod
     def _from_flax_state_dict(
         cls,
-        static_field_names: tuple[str, ...],
+        noserialize_field_names: tuple[str, ...],
         pytree: P,
         state: dict[str, tp.Any],
     ) -> P:
@@ -344,7 +353,7 @@ class Pytree(metaclass=PytreeMeta):
         state = state.copy()  # copy the state so we can pop the restored fields.
         updates = {}
         for name in pytree.__dict__:
-            if name in static_field_names:
+            if name in noserialize_field_names:
                 continue
             if name not in state:
                 raise ValueError(
@@ -433,6 +442,23 @@ def _inherited_static_fields(cls: type) -> set[str]:
                     if not field.metadata.get("pytree_node", True):
                         static_fields.add(field.name)
     return static_fields
+
+
+def _inherited_noserialize_fields(cls: type) -> set[str]:
+    """
+    Returns the set of noserialize fields of base classes
+    of the input class
+    """
+    noserialize_fields = set()
+    for parent_class in cls.mro():
+        if parent_class is not cls and parent_class is not Pytree:
+            if issubclass(parent_class, Pytree):
+                noserialize_fields.update(parent_class._pytree__noserialize_fields)
+            elif dataclasses.is_dataclass(parent_class):
+                for field in dataclasses.fields(parent_class):
+                    if not field.metadata.get("serialize", True):
+                        noserialize_fields.add(field.name)
+    return noserialize_fields
 
 
 def _inherited_data_fields(cls: type) -> set[str]:
