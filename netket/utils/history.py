@@ -84,7 +84,7 @@ class History:
             values: a type/container of types containing the value at the first
                 iteration, or an iterable/container of iterables
                 containing the values at all iterations (in the latter, values
-                must also be specified). It may also be the dictionary obtained 
+                must also be specified). It may also be the dictionary obtained
                 from another History object, when converted to dictionary.
             iters: an optional iterable of iterations at which values correspond.
                 If unspecified, assumes that values are logged at only one iteration.
