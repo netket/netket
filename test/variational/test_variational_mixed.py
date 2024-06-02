@@ -132,7 +132,7 @@ def test_n_samples_api(vstate, _device_count):
     check_consistent(vstate, _device_count)
 
     vstate.n_discard_per_chain = None
-    assert vstate.n_discard_per_chain == vstate.n_samples // 10
+    assert vstate.n_discard_per_chain == 5
 
     vstate.n_samples = 3
     check_consistent(vstate, _device_count)
