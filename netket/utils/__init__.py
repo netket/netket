@@ -60,7 +60,6 @@ _hide_submodules(
         "float",
         "dispatch",
         "errors",
-        "plum",
         "timing",
         "display",
     ],
