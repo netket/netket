@@ -162,8 +162,8 @@ class MCState(VariationalState):
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
-            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=0 for exact sampler,
-                and n_samples/10 for approximate sampler).
+            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=5, except for
+                'direct' samplers where it is 0).
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
             mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
@@ -395,7 +395,7 @@ class MCState(VariationalState):
         self._n_discard_per_chain = (
             int(n_discard_per_chain)
             if n_discard_per_chain is not None
-            else self.n_samples // 10
+            else 5
         )
 
     @property
