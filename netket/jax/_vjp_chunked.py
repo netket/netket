@@ -13,7 +13,6 @@ from netket.utils import HashablePartial
 from netket.utils import config
 from netket.jax.sharding import sharding_decorator
 
-from ._scanmap import _multimap
 from ._chunk_utils import _chunk as _tree_chunk, _unchunk as _tree_unchunk
 
 
@@ -24,7 +23,7 @@ def _trash_tuple_elements(t, nums=()):
     return tuple(r for i, r in enumerate(t) if i not in nums)
 
 
-def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
+def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False, has_aux=False):
     # we pass a closure to vjp, capturing the nondiff_argnums
     # this is necessary to avoid errors when using integer arguments
     # resulting in float0 tangents, which nkvjp tries to conjugate, resulting in an error
@@ -43,11 +42,14 @@ def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
         )
         return fun(*args)
 
-    y, vjp_fun = nkvjp(
-        partial(_fun, nondiff_argnums, nondiff_args), *diff_args, conjugate=conjugate
+    y, vjp_fun, *aux = nkvjp(
+        partial(_fun, nondiff_argnums, nondiff_args),
+        *diff_args,
+        conjugate=conjugate,
+        has_aux=has_aux,
     )
     res = vjp_fun(cotangents)
-    return (y,) + res
+    return y, res, *aux
 
 
 def __vjp_fun_chunked(
@@ -60,23 +62,61 @@ def __vjp_fun_chunked(
     conjugate,
     _vjp,
     _append_cond_fun,
+    has_aux,
 ):
     append_cond = _append_cond_fun(primals, nondiff_argnums, chunk_argnums)
-    scan_fun = partial(scan_append_reduce, append_cond=append_cond)
-    primals = tuple(
-        _tree_chunk(p, chunk_size) if i in chunk_argnums else p
-        for i, p in enumerate(primals)
-    )
-    cotangents = _tree_chunk(cotangents, chunk_size)
-    # cotangents, and whatever requested in primals; +2 since 0 is the function, and 1 is cotangents
-    argnums = (1,) + tuple(map(lambda x: x + 2, chunk_argnums))
-    res = scanmap(
-        partial(_vjp, nondiff_argnums=nondiff_argnums, conjugate=conjugate),
-        scan_fun=scan_fun,
-        argnums=argnums,
-    )(fun, cotangents, *primals)
 
-    return _multimap(lambda c, l: _tree_unchunk(l) if c else l, append_cond, res)
+    if has_aux:
+        append_cond = append_cond + (True,)
+
+    scan_fun = partial(scan_append_reduce, append_cond=append_cond)
+    primals_chunk, primals_rest = zip(
+        *[
+            _tree_chunk(p, chunk_size) if i in chunk_argnums else (p, p)
+            for i, p in enumerate(primals)
+        ]
+    )
+    cotangents_chunk, cotangents_rest = _tree_chunk(cotangents, chunk_size)
+    __vjp = partial(
+        _vjp, nondiff_argnums=nondiff_argnums, conjugate=conjugate, has_aux=has_aux
+    )
+
+    n_chunks = jax.tree_util.tree_leaves(primals_chunk[chunk_argnums[0]])[0].shape[0]
+    n_rest = jax.tree_util.tree_leaves(primals_rest[chunk_argnums[0]])[0].shape[0]
+
+    if n_chunks > 0:
+        # cotangents, and whatever requested in primals; +2 since 0 is the function, and 1 is cotangents
+        argnums = (1,) + tuple(map(lambda x: x + 2, chunk_argnums))
+        res_chunk = scanmap(
+            __vjp,
+            scan_fun=scan_fun,
+            argnums=argnums,
+        )(fun, cotangents_chunk, *primals_chunk)
+    if n_rest > 0:
+        res_rest = __vjp(fun, cotangents_rest, *primals_rest)
+
+    if n_chunks > 0 and n_rest > 0:
+
+        def _f(c, l, r):
+            if c:
+                return _tree_unchunk(l, r)
+            else:
+                return jax.tree_map(jax.lax.add, l, r)
+
+        return jax.tree_util.tree_map(_f, append_cond, res_chunk, res_rest)
+    elif n_chunks > 0:
+
+        def _f(c, l):
+            if c:
+                return _tree_unchunk(l)
+            else:
+                return l
+
+        return jax.tree_util.tree_map(_f, append_cond, res_chunk)
+    elif n_rest > 0:
+        return res_rest
+    else:
+        return __vjp(fun, cotangents, *primals)
 
 
 def _gen_append_cond_vjp(primals, nondiff_argnums, chunk_argnums):
@@ -84,16 +124,15 @@ def _gen_append_cond_vjp(primals, nondiff_argnums, chunk_argnums):
     return tuple(map(lambda i: i in chunk_argnums, diff_argnums))
 
 
-_gen_append_cond_value_vjp = compose(lambda t: (True,) + t, _gen_append_cond_vjp)
+_gen_append_cond_value_vjp = compose(lambda t: (True, t), _gen_append_cond_vjp)
 
 _vjp_fun_chunked = partial(
     __vjp_fun_chunked,
-    _vjp=compose(lambda yr: yr[1:], _vjp),
+    _vjp=compose(lambda yr: yr[1] if len(yr) == 2 else yr[1:], _vjp),
     _append_cond_fun=_gen_append_cond_vjp,
 )
-_value_and_vjp_fun_chunked = compose(
-    lambda yr: (yr[0], yr[1:]),
-    partial(__vjp_fun_chunked, _vjp=_vjp, _append_cond_fun=_gen_append_cond_value_vjp),
+_value_and_vjp_fun_chunked = partial(
+    __vjp_fun_chunked, _vjp=_vjp, _append_cond_fun=_gen_append_cond_value_vjp
 )
 
 
@@ -125,17 +164,15 @@ def _vjp_chunked(
 ):
     assert chunk_size is not None
 
-    if has_aux:
-        raise NotImplementedError
-    else:
-        return HashablePartial(
-            _value_and_vjp_fun_chunked if return_forward else _vjp_fun_chunked,
-            fun,
-            chunk_argnums=chunk_argnums,
-            nondiff_argnums=nondiff_argnums,
-            chunk_size=chunk_size,
-            conjugate=conjugate,
-        )
+    return HashablePartial(
+        _value_and_vjp_fun_chunked if return_forward else _vjp_fun_chunked,
+        fun,
+        chunk_argnums=chunk_argnums,
+        nondiff_argnums=nondiff_argnums,
+        chunk_size=chunk_size,
+        conjugate=conjugate,
+        has_aux=has_aux,
+    )
 
 
 @partial(
@@ -236,9 +273,6 @@ def vjp_chunked(
     # sharding
 
     if config.netket_experimental_sharding and chunk_size is not None:
-        if return_forward:
-            raise NotImplementedError
-
         # assume the chunk_argnums are also sharded
         # later we might introduce an extra arg for it
         sharded_argnums = chunk_argnums
@@ -249,7 +283,9 @@ def vjp_chunked(
             set(range(len(primals))).difference(sharded_argnums)
         )
         out_args = _gen_append_cond_vjp(primals, nondiff_argnums, non_sharded_argnums)
-        red_ops = tuple(jax.lax.psum if c else False for c in out_args)
+        red_ops = jax.tree_util.tree_map(
+            lambda c: jax.lax.psum if c else False, out_args
+        )
 
         # check the chunk_size is not larger than the shard per device
         chunk_size = sharding_decorator(
@@ -268,11 +304,21 @@ def vjp_chunked(
                 return_forward=return_forward,
                 conjugate=conjugate,
             )
+
+            reduction_op_tree = (red_ops,)
+            if has_aux:
+                reduction_op_tree = (*reduction_op_tree, False)
+            if return_forward:
+                reduction_op_tree = (False, *reduction_op_tree)
+            if len(reduction_op_tree) == 1:  # not (has_aux or return_forward)
+                # reduction_op_tree = red_ops
+                (reduction_op_tree,) = reduction_op_tree
+
             vjp_fun_sh = Partial(
                 sharding_decorator(
                     _vjpc,
                     sharded_args_tree=(sharded_args, True),
-                    reduction_op_tree=red_ops,
+                    reduction_op_tree=reduction_op_tree,
                 ),
                 primals,
             )
@@ -287,23 +333,18 @@ def vjp_chunked(
     chunk_size = check_chunk_size(chunk_argnums, chunk_size, *primals)
 
     if chunk_size is None:
-        y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
-        if return_forward:
+        y, vjp_fun, *aux = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
 
-            def __vjp_fun(y, vjp_fun, cotangents):
-                res = vjp_fun(cotangents)
-                res = _trash_tuple_elements(res, nondiff_argnums)
-                return y, res
-
-            return Partial(__vjp_fun, y, vjp_fun)
-        else:
-
-            def __vjp_fun(vjp_fun, cotangents):
-                res = vjp_fun(cotangents)
-                res = _trash_tuple_elements(res, nondiff_argnums)
+        def __vjp_fun(y, aux, vjp_fun, cotangents):
+            res = vjp_fun(cotangents)
+            res = _trash_tuple_elements(res, nondiff_argnums)
+            r = *y, res, *aux
+            if len(r) == 1:  # has_aux == False and return_forward == False
                 return res
+            else:
+                return r
 
-            return Partial(__vjp_fun, vjp_fun)
+        return Partial(__vjp_fun, (y,) if return_forward else (), aux, vjp_fun)
     else:
         _vjpc = _vjp_chunked(
             fun,
