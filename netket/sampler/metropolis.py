@@ -242,6 +242,8 @@ class MetropolisSampler(Sampler):
     of sites in the Hilbert space."""
     n_chains: int = struct.field(pytree_node=False)
     """Total number of independent chains across all MPI ranks and/or devices."""
+    chunk_size: Optional[int] = struct.field(pytree_node=False, default=None)
+    """Chunk size for evaluating wave functions."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
@@ -255,6 +257,7 @@ class MetropolisSampler(Sampler):
         reset_chains: bool = False,
         n_chains: Optional[int] = None,
         n_chains_per_rank: Optional[int] = None,
+        chunk_size: Optional[int] = None,
         machine_pow: int = 2,
         dtype: DType = float,
     ):
@@ -274,6 +277,7 @@ class MetropolisSampler(Sampler):
                                If netket_experimental_sharding is enabled this is interpreted as the number
                                of independent chains on every jax device, and the n_chains_per_rank
                                property of the sampler will return the total number of chains on all devices.
+            chunk_size: Chunk size for evaluating the ansatz while sampling. Must divide n_chains_per_rank.
             sweep_size: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
@@ -316,6 +320,12 @@ class MetropolisSampler(Sampler):
             device_count(),
             "rank",
         )
+
+        if chunk_size is not None and n_chains_per_rank % chunk_size != 0:
+            raise ValueError(
+                f"Chunk size must divide number of chains per rank, {self.n_chains_per_rank}"
+            )
+        self.chunk_size = chunk_size
 
         super().__init__(
             hilbert=hilbert,
@@ -421,6 +431,15 @@ class MetropolisSampler(Sampler):
         itself, because `sample_next` contains some common logic.
         """
 
+        if sampler.chunk_size is None:
+            def apply_machine(σ):
+                return machine.apply(parameters, σ)
+        else:
+            def apply_machine(σ):
+                σ = σ.reshape(-1, sampler.chunk_size, σ.shape[-1])
+                f = lambda s: machine.apply(parameters, s)
+                return jax.lax.map(f, σ).ravel()
+
         def loop_body(i, s):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
             s["key"], key1, key2 = jax.random.split(s["key"], 3)
@@ -434,7 +453,7 @@ class MetropolisSampler(Sampler):
                 sampler.dtype,
                 f"{sampler.rule}.transition",
             )
-            proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
+            proposal_log_prob = sampler.machine_pow * apply_machine(σp).real
             _assert_good_log_prob_shape(proposal_log_prob, sampler.n_batches, machine)
 
             uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
@@ -460,7 +479,7 @@ class MetropolisSampler(Sampler):
         s = {
             "key": rng,
             "σ": state.σ,
-            "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
+            "log_prob": sampler.machine_pow * apply_machine(state.σ).real,
             # for logging
             "accepted": state.n_accepted_proc,
         }
