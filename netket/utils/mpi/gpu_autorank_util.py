@@ -42,9 +42,9 @@ def autoset_default_gpu(COMM: Optional["mpi4py.MPI.Intracomm"], verbose: bool = 
     code does not run.
     """
     devices = jax.devices()
-    if len(devices) > 1 and any(d.device_kind == "gpu" for d in devices):
+    if len(devices) > 1 and any(d.platform == "gpu" for d in devices):
         local_rank = get_local_rank(COMM)
-        jax.config.set("jax_default_device", devices[local_rank])
+        jax.config.update("jax_default_device", devices[local_rank])
         logger = logging.getLogger()
         logger.info(
             f"Determined that rank {COMM.Get_rank()} will be using GPU[{local_rank}/{len(devices)}]"
