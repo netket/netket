@@ -33,7 +33,7 @@ from netket import stats as nkstats
 from netket.utils import mpi
 from netket.optimizer.qgt import (
     qgt_onthefly_logic,
-    qgt_jacobian_pytree_logic,
+    qgt_jacobian_pytree,
     qgt_jacobian_common,
 )
 from netket.jax.sharding import distribute_to_devices_along_axis, device_count_per_rank
@@ -349,7 +349,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
 def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
-    mv = qgt_jacobian_pytree_logic._mat_vec
+    mv = qgt_jacobian_pytree._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         jacobian_fun = nkjax.compose(
@@ -390,7 +390,7 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     def apply_fun(params, samples):
         return e.f(params["params"], samples)
 
-    mv = qgt_jacobian_pytree_logic.mat_vec
+    mv = qgt_jacobian_pytree.mat_vec
 
     homogeneous = pardtype is not None
 
@@ -444,7 +444,7 @@ def e_offset(n_samp, outdtype, pardtype, holomorphic, offset, seed=123):
 @pytest.mark.parametrize("offset", [0.0, 0.1])
 def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
     e = e_offset
-    mv = qgt_jacobian_pytree_logic._mat_vec
+    mv = qgt_jacobian_pytree._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         jacobian_fun = nkjax.compose(
