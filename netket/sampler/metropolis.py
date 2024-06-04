@@ -432,9 +432,12 @@ class MetropolisSampler(Sampler):
         """
 
         if sampler.chunk_size is None:
+
             def apply_machine(σ):
                 return machine.apply(parameters, σ)
+
         else:
+
             def apply_machine(σ):
                 σ = σ.reshape(-1, sampler.chunk_size, σ.shape[-1])
                 f = lambda s: machine.apply(parameters, s)
