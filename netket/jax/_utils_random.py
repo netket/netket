@@ -17,7 +17,7 @@ from typing import Optional
 
 import jax
 
-from netket.utils import random_seed, mpi
+from netket.utils import random_seed, mpi, config
 from netket.utils.mpi import MPI_jax_comm
 from netket.utils.types import PRNGKeyT, SeedT
 
@@ -36,10 +36,20 @@ def PRNGKey(
     else:
         key = seed
 
-    key = jax.tree_util.tree_map(
-        lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
-    )
+    if config.netket_experimental_sharding:
+        # TODO: use stable jax function
+        from jax.experimental import multihost_utils
 
+        dtype = key.dtype
+        key = multihost_utils.broadcast_one_to_all(
+            key, is_source=jax.process_index() == root
+        )
+        # TODO :Return PRNGKey as well?
+        key = jax.random.wrap_key_data(key.astype(dtype))
+    else:
+        key = jax.tree_util.tree_map(
+            lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
+        )
     return key
 
 
@@ -87,14 +97,19 @@ def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     Returns:
         A PRNGKey depending on rank number and key.
     """
+    if not config.netket_experimental_sharding:
+        # Maybe add error/warning if in_key is not the same
+        # on all MPI nodes?
+        keys = jax.random.split(key, mpi.n_nodes)
 
-    # Maybe add error/warning if in_key is not the same
-    # on all MPI nodes?
-    keys = jax.random.split(key, mpi.n_nodes)
+        keys = jax.tree_util.tree_map(
+            lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys
+        )
 
-    keys = jax.tree_util.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
-
-    return keys[mpi.rank]
+        return keys[mpi.rank]
+    else:
+        # TODO: is this what we want?
+        return key
 
 
 def batch_choice(key, a, p):
