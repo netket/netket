@@ -64,8 +64,14 @@ samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
 
 samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi)
+samplers["Metropolis(Local): Spin-chunked"] = nk.sampler.MetropolisLocal(
+    hi, chunk_size=8
+)
 
 samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(hi)
+samplers["MetropolisNumpy(Local): Spin-chunked"] = nk.sampler.MetropolisLocalNumpy(
+    hi, chunk_size=8
+)
 # samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(hib_u)
 # samplers["MetropolisNumpy(Local): Doubled-Spin"] = nk.sampler.MetropolisLocalNumpy(
 #    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2))
@@ -507,6 +513,13 @@ def test_throwing(model_and_weights):
 
         sampler.sample(ma, w, seed=SAMPLER_SEED)
 
+    # Shouldn't accept chunk sizes that don't divide n_samples_per_rank
+    with pytest.raises(ValueError):
+        sampler = nk.sampler.MetropolisLocal(hi, chunk_size=5)
+
+    with pytest.raises(ValueError):
+        sampler = nk.sampler.MetropolisLocalNumpy(hi, chunk_size=5)
+
 
 def test_setup_throwing_tensorrule():
     # TensorHilbert sampler
@@ -631,3 +644,36 @@ def test_hamiltonian_jax_sampler_isleaf():
         # If this fails, it is either because the operator is not a leaf ot the rule, or because jax changed
         # some internals and the flattening does not return identical arrays anymore.
         assert found
+
+
+# we've got chunked samplers for these two
+@pytest.mark.parametrize(
+    "sampler_type", ["MetropolisNumpy(Local): Spin", "Metropolis(Local): Spin"]
+)
+def test_chunking_invariant(model_and_weights, sampler_type):
+    sa = samplers[sampler_type]
+    sa_ch = samplers[sampler_type + "-chunked"]
+
+    ma, w = model_and_weights(hi, sa)
+
+    sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
+    sampler_state = sa.reset(ma, w, state=sampler_state)
+    samples, sampler_state = sa.sample(
+        ma,
+        w,
+        state=sampler_state,
+        chain_length=10,
+    )
+
+    ma, w = model_and_weights(hi, sa_ch)
+
+    sampler_state = sa_ch.init_state(ma, w, seed=SAMPLER_SEED)
+    sampler_state = sa_ch.reset(ma, w, state=sampler_state)
+    samples_ch, sampler_state = sa_ch.sample(
+        ma,
+        w,
+        state=sampler_state,
+        chain_length=10,
+    )
+
+    np.testing.assert_allclose(samples, samples_ch)
