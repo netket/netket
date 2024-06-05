@@ -652,8 +652,7 @@ def test_hamiltonian_jax_sampler_isleaf():
 )
 def test_chunking_invariant(model_and_weights, sampler_type):
     sa = samplers[sampler_type]
-    sa_ch = samplers[sampler_type + "-chunked"]
-
+    hi = sa.hilbert
     ma, w = model_and_weights(hi, sa)
 
     sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
@@ -665,11 +664,13 @@ def test_chunking_invariant(model_and_weights, sampler_type):
         chain_length=10,
     )
 
-    ma, w = model_and_weights(hi, sa_ch)
+    sa = samplers[sampler_type + "-chunked"]
+    hi = sa.hilbert
+    ma, w = model_and_weights(hi, sa)
 
-    sampler_state = sa_ch.init_state(ma, w, seed=SAMPLER_SEED)
-    sampler_state = sa_ch.reset(ma, w, state=sampler_state)
-    samples_ch, sampler_state = sa_ch.sample(
+    sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
+    sampler_state = sa.reset(ma, w, state=sampler_state)
+    samples_ch, sampler_state = sa.sample(
         ma,
         w,
         state=sampler_state,
