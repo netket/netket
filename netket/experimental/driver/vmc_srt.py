@@ -90,6 +90,11 @@ def SRt(
             matrix_side
         )  # * shift diagonal regularization
         aus_vector = solver_fn(matrix, dv)
+        # some solvers return a tuple, some others do not.
+        # We check and try to support both
+        if isinstance(aus_vector, tuple):
+            aus_vector, _ = aus_vector
+
         aus_vector = aus_vector.reshape(mpi.n_nodes, -1)
         aus_vector, token = mpi.mpi_scatter_jax(aus_vector, token=token)
     else:
