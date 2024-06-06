@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 from .mpi import n_nodes, MPI, MPI_py_comm, MPI_jax_comm
@@ -271,11 +272,16 @@ def mpi_bcast_jax(x, *, token=None, root, comm=MPI_jax_comm):
         return mpi4jax.bcast(x, token=token, root=root, comm=comm)
 
 
-def mpi_allgather(x, *, token=None, comm=MPI_py_comm):
+def mpi_allgather(x, *, comm=MPI_py_comm):
     if n_nodes == 1:
-        return x, token
+        return x
     else:
-        return comm.allgather(x)
+        if isinstance(x, (np.ndarray, jax.Array)):
+            out = np.empty((n_nodes,) + x.shape, dtype=x.dtype)
+            comm.Allgather(np.asarray(x), out)
+            return out
+        else:
+            return comm.allgather(x)
 
 
 def mpi_gather_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
