@@ -39,6 +39,7 @@ from netket.jax.sharding import (
     device_count,
     with_samples_sharding_constraint,
 )
+from netket.jax import apply_chunked
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
@@ -431,18 +432,9 @@ class MetropolisSampler(Sampler):
         If you subclass `MetropolisSampler`, you should override this and not `sample_next`
         itself, because `sample_next` contains some common logic.
         """
-
-        if sampler.chunk_size is None:
-
-            def apply_machine(σ):
-                return machine.apply(parameters, σ)
-
-        else:
-
-            def apply_machine(σ):
-                σ = σ.reshape(-1, sampler.chunk_size, σ.shape[-1])
-                f = lambda s: machine.apply(parameters, s)
-                return jax.lax.map(f, σ).ravel()
+        apply_machine = apply_chunked(
+            machine.apply, in_axes=(None, 0), chunk_size=sampler.chunk_size
+        )
 
         def loop_body(i, s):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
@@ -457,7 +449,7 @@ class MetropolisSampler(Sampler):
                 sampler.dtype,
                 f"{sampler.rule}.transition",
             )
-            proposal_log_prob = sampler.machine_pow * apply_machine(σp).real
+            proposal_log_prob = sampler.machine_pow * apply_machine(parameters, σp).real
             _assert_good_log_prob_shape(proposal_log_prob, sampler.n_batches, machine)
 
             uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
@@ -483,7 +475,7 @@ class MetropolisSampler(Sampler):
         s = {
             "key": rng,
             "σ": state.σ,
-            "log_prob": sampler.machine_pow * apply_machine(state.σ).real,
+            "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
             # for logging
             "accepted": state.n_accepted_proc,
         }

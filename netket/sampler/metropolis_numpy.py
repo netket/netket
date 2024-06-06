@@ -89,12 +89,10 @@ class MetropolisNumpySamplerState:
 
 @partial(jax.jit, static_argnums=(0, 3))
 def apply_model(machine, pars, weights, chunk_size):
-    if chunk_size is None:
-        return machine.apply(pars, weights)
-    else:
-        weights = weights.reshape(-1, chunk_size, weights.shape[-1])
-        f = lambda s: machine.apply(pars, s)
-        return jax.lax.map(f, weights).ravel()
+    chunked = nkjax.apply_chunked(
+        machine.apply, in_axes=(None, 0), chunk_size=chunk_size
+    )
+    return chunked(pars, weights)
 
 
 class MetropolisSamplerNumpy(MetropolisSampler):
