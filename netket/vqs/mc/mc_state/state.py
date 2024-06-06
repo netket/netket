@@ -752,11 +752,18 @@ def local_estimators(
 
 # serialization
 def serialize_MCState(vstate):
+    # Necessary for correctly syncronising samples without serialising
+    # the samples themselves
+    if vstate._samples is not None:
+        sampler_state = vstate._sampler_state_previous
+    else:
+        sampler_state = vstate.sampler_state
+
     state_dict = {
         "variables": serialization.to_state_dict(
             sharding.extract_replicated(vstate.variables)
         ),
-        "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
+        "sampler_state": serialization.to_state_dict(sampler_state),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
         "chunk_size": vstate.chunk_size,
