@@ -17,7 +17,7 @@ from typing import Optional
 
 import jax
 
-from netket.utils import random_seed, mpi
+from netket.utils import random_seed, mpi, config
 from netket.utils.mpi import MPI_jax_comm
 from netket.utils.types import PRNGKeyT, SeedT
 
@@ -30,16 +30,29 @@ def PRNGKey(
     The same seed will be distributed to all processes.
     """
     if seed is None:
-        key = jax.random.PRNGKey(random_seed())
-    elif isinstance(seed, int):
+        seed = random_seed()
+
+    if isinstance(seed, int):
+        # We can't sync the PRNGKey, so we can only sinc integer seeds
+        # see https://github.com/google/jax/pull/16511
+        if config.netket_experimental_sharding and jax.process_count() > 1:
+            # TODO: use stable jax function
+            from jax.experimental import multihost_utils
+
+            seed = int(
+                multihost_utils.broadcast_one_to_all(
+                    seed, is_source=jax.process_index() == root
+                ).item()
+            )
+
         key = jax.random.PRNGKey(seed)
     else:
         key = seed
 
-    key = jax.tree_util.tree_map(
-        lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
-    )
-
+    if not config.netket_experimental_sharding:
+        key = jax.tree_util.tree_map(
+            lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
+        )
     return key
 
 
