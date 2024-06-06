@@ -35,7 +35,7 @@ def PRNGKey(
     if isinstance(seed, int):
         # We can't sync the PRNGKey, so we can only sinc integer seeds
         # see https://github.com/google/jax/pull/16511
-        if config.netket_experimental_sharding:
+        if config.netket_experimental_sharding and jax.process_count() > 1:
             # TODO: use stable jax function
             from jax.experimental import multihost_utils
 
