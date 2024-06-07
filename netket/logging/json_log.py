@@ -208,7 +208,7 @@ class JsonLog(RuntimeLog):
             if self._steps_notflushed_write > 0:
                 self.flush()
         if hasattr(self, "_steps_notflushed_pars"):
-            if self._steps_notflushed_pars > 0:
+            if self._steps_notflushed_pars > 0 and self._save_params:
                 self.flush()
 
     def __repr__(self):
