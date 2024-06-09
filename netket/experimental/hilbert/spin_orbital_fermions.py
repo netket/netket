@@ -20,10 +20,16 @@ import numpy as np
 from fractions import Fraction
 
 from netket.hilbert.fock import Fock
-from netket.hilbert.tensor_hilbert_discrete import TensorDiscreteHilbert
 from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.utils.dispatch import dispatch
 from netket.utils import StaticRange
+
+
+from netket.hilbert.index.constraints import (
+    DiscreteHilbertConstraint,
+    SumOnPartitionConstraint,
+    ExtraConstraint,
+)
 
 
 class SpinOrbitalFermions(HomogeneousHilbert):
@@ -48,6 +54,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         *,
         n_fermions: Optional[int] = None,
         n_fermions_per_spin: Optional[tuple[int, ...]] = None,
+        constraint: DiscreteHilbertConstraint = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
@@ -71,6 +78,8 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 subsector. This automatically enforces a global population constraint. Only one
                 between **n_fermions** and **n_fermions_per_spin** can be specified. The length
                 of the iterable should be :math:`2S+1`.
+            constraint: An extra constraint for the Hilbert space, defined according to the
+                constraint API.
 
         Returns:
             A SpinOrbitalFermions object
@@ -114,7 +123,12 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 )
 
             n_fermions_per_spin = (n_fermions,)
-            hilbert = Fock(n_max=1, N=n_orbitals, n_particles=n_fermions)
+
+            # To construct the constraint, as we are lazy, in the case of no multiple spin
+            # subspectors, we take the constraint of a Fock space with nmax=1
+            occupation_constraint = Fock(
+                n_max=1, N=n_orbitals, n_particles=n_fermions
+            ).constraint
         else:
             if n_fermions_per_spin is not None and n_fermions is not None:
                 raise ValueError(
@@ -143,40 +157,41 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                         f"expected."
                     )
                 n_fermions = sum(n_fermions_per_spin)
-                spin_hilberts = [
-                    Fock(n_max=1, N=n_orbitals, n_particles=Nf)
-                    for Nf in n_fermions_per_spin
-                ]
-                hilbert = TensorDiscreteHilbert(*spin_hilberts)
+
+                # This is a special constraint on the subsectors of the hilbert space.
+                # Equivalent to taking the kronecker product of the individual fock spaces.
+                occupation_constraint = SumOnPartitionConstraint(
+                    sum_values=tuple(n_fermions_per_spin),
+                    sizes=tuple(n_orbitals for _ in n_fermions_per_spin),
+                )
             else:
                 # fixed fermion number but multiple spins subspaces
                 # global or no constraint
                 n_fermions_per_spin = tuple(None for _ in range(spin_size))
-                hilbert = Fock(n_max=1, N=total_size, n_particles=n_fermions)
+                occupation_constraint = Fock(
+                    n_max=1, N=total_size, n_particles=n_fermions
+                ).constraint
 
-        self._fock = hilbert
+        # Wrap the extra user provided cosntraint around our
+        # occupation constraint of the populations.
+        if constraint is not None:
+            constraint = ExtraConstraint(
+                base_constraint=occupation_constraint,
+                extra_constraint=constraint,
+            )
+        else:
+            constraint = occupation_constraint
+
         """Internal representation of this Hilbert space (Fock or TensorHilbert)."""
         # local states are the occupation numbers (0, 1)
         local_states = StaticRange(0.0, 1.0, 2, dtype=np.int8)
 
         # we use the constraints from the Fock spaces, and override `constrained`
-        super().__init__(local_states, N=total_size, constraint_fn=None)
+        super().__init__(local_states, N=total_size, constraint=constraint)
         self._s = s
         self._n_fermions = n_fermions
         self._n_fermions_per_subsector: tuple[Optional[int], ...] = n_fermions_per_spin
         self._n_orbitals = n_orbitals
-
-    @property
-    def _numbers_to_states(self):
-        return self._fock._numbers_to_states
-
-    @property
-    def _states_to_numbers(self):
-        return self._fock._states_to_numbers
-
-    @property
-    def all_states(self):
-        return self._fock.all_states
 
     @property
     def n_fermions(self) -> Optional[int]:
@@ -209,12 +224,6 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         return self._s
 
     @property
-    def size(self) -> int:
-        """Size of the hilbert space. In case the fermions have spin `s`, the size is
-        (2*s+1)*n_orbitals"""
-        return self._fock.size
-
-    @property
     def _attrs(self):
         return (self.spin, self.n_fermions, self.n_orbitals)
 
@@ -228,20 +237,6 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         only a subset of the total unconstrained space is populated.
         """
         return self._n_fermions is not None
-
-    @property
-    def is_finite(self) -> bool:
-        """True if the hilbert space can be indexed by a single
-        32-bit unsigned integer.
-        """
-        return self._fock.is_finite
-
-    @property
-    def n_states(self) -> int:
-        """
-        Total size of the hilbert space, if indexable.
-        """
-        return self._fock.n_states
 
     @property
     def _n_spin_states(self) -> int:
@@ -280,9 +275,6 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                     )
             return (sz + int(2 * self.spin)) // 2
 
-    def states_to_local_indices(self, x):
-        return self._fock.states_to_local_indices(x)
-
     def _get_index(self, orb: int, sz: Optional[float] = None):
         """go from (site, spin_projection) indices to index in the hilbert space"""
         if orb >= self.n_orbitals:
@@ -302,11 +294,6 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             _str += f", n_fermions_per_spin={self.n_fermions_per_spin}"
         _str += ")"
         return _str
-
-    @property
-    def is_indexable(self) -> bool:
-        """Whether the space can be indexed with an integer"""
-        return self._fock.is_indexable
 
 
 @dispatch
