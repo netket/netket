@@ -15,6 +15,7 @@
 import jax.numpy as jnp
 
 from netket.utils.dispatch import parametric
+from netket.utils.types import Array, DType
 
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
@@ -142,6 +143,9 @@ class DoubledHilbert(DiscreteHilbert):
 
     def states_to_local_indices(self, x):
         return self.physical.states_to_local_indices(x)
+
+    def local_indices_to_states(self, x: Array, dtype: DType = None):
+        return self.physical.local_indices_to_states(x, dtype=dtype)
 
     def __repr__(self):
         return f"DoubledHilbert({self.physical})"

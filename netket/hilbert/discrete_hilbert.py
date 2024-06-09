@@ -24,7 +24,7 @@ import jax.numpy as jnp
 
 from equinox import error_if
 
-from netket.utils.types import Array
+from netket.utils.types import Array, DType
 
 from .abstract_hilbert import AbstractHilbert
 from .index import is_indexable
@@ -35,6 +35,17 @@ class DiscreteHilbert(AbstractHilbert):
 
     This class defines the common interface that can be used to
     interact with hilbert spaces on lattices.
+
+    The local degrees of freedom are discrete and numerable, therefore they can always be
+    converted to and from integers using the methods `states_to_local_indices` and
+    `local_indices_to_states`.
+    This can be used to simplify the implementation of operators that might act on the
+    hilbert space, to avoid reimplementing the logic for different values of the local
+    degrees of freedom.
+
+    If the Hilbert space is small enough, individual states can be converted to and from
+    integers labelling all the basis states. This is done using the methods `numbers_to_states`
+    and `states_to_numbers`.
     """
 
     def __init__(self, shape: tuple[int, ...]):
@@ -235,6 +246,30 @@ class DiscreteHilbert(AbstractHilbert):
             "states_to_local_indices(self, x) is not "
             f"implemented for Hilbert space {self} of type {type(self)}"
         )
+
+    def local_indices_to_states(self, x: Array, dtype: DType = None):
+        r"""
+        Converts a tensor of integers to the corresponding local_values in
+        this hilbert space.
+
+        Equivalent to
+
+        .. code::py
+
+            hilbert.local_states[x]
+
+        The input last dimension must match the size of this Hilbert space.
+        This function can be jax-jitted.
+
+        Args:
+            x: a tensor with integer dtype and whose last dimension matches
+                the size of this Hilbert space.
+
+        Returns:
+            a tensor with the same shape as the input, and values corresponding
+            to the local_state indexed by the input tensor `x`.
+        """
+        raise NotImplementedError()
 
     @property
     def is_indexable(self) -> bool:
