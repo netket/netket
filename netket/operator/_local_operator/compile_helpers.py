@@ -60,17 +60,12 @@ def pack_internals(
         # maximum number of sites any operator is acting on
         max_acting_on_sz = np.max(acting_size)
 
-        # max local hilbert size of all sites acted on by any operator
-        max_local_hilbert_size = max(
-            [max(map(hilbert.size_at_index, aon)) for aon in op_acting_on]
-        )
         # maximum size of any operator (maximum size of the matrix / prod of local hilbert spaces)
         max_op_size = max(map(lambda x: x.shape[0], operators))
         # maximum number of off-diagonal nonzeros of any operator
         max_op_size_offdiag = np.max(op_n_conns_offdiag)
     else:
         max_acting_on_sz = 0
-        max_local_hilbert_size = 0
         max_op_size = 0
         max_op_size_offdiag = 0
 
@@ -81,12 +76,6 @@ def pack_internals(
 
     ###
     # allocate empty arrays which are filled below
-
-    # array which will be storing the local states
-    # of each site each operator is acting on
-    local_states = np.full(
-        (n_operators, max_acting_on_sz, max_local_hilbert_size), np.nan
-    )
 
     # array storing the basis for each site each operator is acting on
     # The basis is an integer used to map (indices of) local states on sites
@@ -120,12 +109,6 @@ def pack_internals(
 
         n_local_states_per_site = np.asarray([hilbert.size_at_index(i) for i in aon])
 
-        ## add an operator to local_states
-        for j, site in enumerate(aon):
-            local_states[i, j, : hilbert.shape[site]] = np.asarray(
-                hilbert.states_at_index(site)
-            )
-
         # compute the basis of each site of this operator
         # i.e. the product of the number of local states of all sites before it
         ba = 1
@@ -146,7 +129,6 @@ def pack_internals(
                 indices,
                 indptr,
                 aon_size,
-                local_states[i],
                 n_local_states_per_site,
                 mel_cutoff,
                 diag_mels[i],
@@ -159,7 +141,6 @@ def pack_internals(
             _append_matrix(
                 op,
                 aon_size,
-                local_states[i],
                 n_local_states_per_site,
                 mel_cutoff,
                 diag_mels[i],
@@ -184,7 +165,6 @@ def pack_internals(
         "mels": mels,
         "x_prime": x_prime,
         "n_conns": n_conns,
-        "local_states": local_states,
         "basis": basis,
         "nonzero_diagonal": nonzero_diagonal,
         "max_conn_size": max_conn_size,
@@ -242,7 +222,6 @@ def pack_internals_jax(
 def _append_matrix(
     operator,
     acting_size,
-    local_states_per_site,
     hilb_size_per_site,
     epsilon,
     diag_mels,
@@ -273,7 +252,6 @@ def _append_matrix(
                 _number_to_state(
                     j,
                     hilb_size_per_site,
-                    local_states_per_site[:acting_size, :],
                     x_prime[i, k_conn, :acting_size],
                 )
                 n_conns[i] += 1  # k_conn=k_conn+1
@@ -285,7 +263,6 @@ def _append_matrix_sparse(
     indices,
     indptr,
     acting_size,
-    local_states_per_site,
     hilb_size_per_site,
     epsilon,
     diag_mels,
@@ -316,22 +293,21 @@ def _append_matrix_sparse(
                 _number_to_state(
                     j,
                     hilb_size_per_site,
-                    local_states_per_site[:acting_size, :],
                     x_prime[i, k_conn, :acting_size],
                 )
                 n_conns[i] += 1
 
 
 @numba.jit(nopython=True)
-def _number_to_state(number, hilbert_size_per_site, local_states_per_site, out):
-    out[:] = local_states_per_site[:, 0]
+def _number_to_state(number, hilbert_size_per_site, out):
+    out[:] = 0
     size = out.shape[0]
 
     ip = number
     k = size - 1
     while ip > 0:
         local_size = hilbert_size_per_site[k]
-        out[k] = local_states_per_site[k, ip % local_size]
+        out[k] = ip % local_size
         ip = ip // local_size
         k -= 1
 

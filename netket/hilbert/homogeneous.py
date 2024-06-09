@@ -148,6 +148,31 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         return self._local_states.states_to_numbers(x, dtype=np.int32)
 
+    def local_indices_to_states(self, x: Array, dtype=None):
+        r"""
+        Converts a tensor of integers to the corresponding local_values in
+        this hilbert space.
+
+        Equivalent to
+
+        .. code::py
+
+            hilbert.local_states[x]
+
+        The input last dimension must match the size of this Hilbert space.
+        This function can be jax-jitted.
+
+        Args:
+            x: a tensor with integer dtype and whose last dimension matches
+                the size of this Hilbert space.
+
+        Returns:
+            a tensor with the same shape as the input, and values corresponding
+            to the local_state indexed by the input tensor `x`.
+
+        """
+        return self._local_states.numbers_to_states(x, dtype=dtype)
+
     @property
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""
@@ -176,6 +201,11 @@ class HomogeneousHilbert(DiscreteHilbert):
         if self.is_finite:
             start = self._local_states.start
             end = start + self._local_states.step * self._local_states.length
+            if self._local_states.step < 0:
+                start, end = end, start
+                start = start - self._local_states.step
+                end = end - self._local_states.step
+
             states = error_if(
                 states,
                 (states < start).any() | (states >= end).any(),
