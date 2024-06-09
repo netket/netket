@@ -392,6 +392,7 @@ def test_hilbert_indexing_jax_array(hi: DiscreteHilbert):
 def _states_to_local_indices_jit(hilb, x):
     return hilb.states_to_local_indices(x)
 
+
 @partial(jax.jit, static_argnums=0)
 def _local_indices_to_states_jit(hilb, x):
     return hilb.local_indices_to_states(x)
@@ -421,7 +422,9 @@ def test_local_indices_to_states(hi):
 
     np.testing.assert_allclose(y, y_jit)
 
-    np.testing.assert_allclose(x, hi.local_indices_to_states(hi.states_to_local_indices(x)))
+    np.testing.assert_allclose(
+        x, hi.local_indices_to_states(hi.states_to_local_indices(x))
+    )
 
     # check that the index is correct
     for s in range(hi.size):
