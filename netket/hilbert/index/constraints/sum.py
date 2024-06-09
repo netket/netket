@@ -11,12 +11,15 @@ from netket.utils.types import Scalar, Array
 from ..base import HilbertIndex, is_indexable
 from ..unconstrained import LookupTableHilbertIndex
 from ..uniform_tensor import UniformTensorProductHilbertIndex
-
-from .base import optimalConstrainedHilbertindex, ConstrainedHilbertIndex
+from .base import (
+    optimalConstrainedHilbertindex,
+    ConstrainedHilbertIndex,
+    DiscreteHilbertConstraint,
+)
 
 
 @struct.dataclass
-class SumConstraint:
+class SumConstraint(DiscreteHilbertConstraint):
     """
     Constraint of an Hilbert space enforcing a total sum of all the values in the degrees of freedom.
 

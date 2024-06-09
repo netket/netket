@@ -693,6 +693,28 @@ class UnoptimalSRtWarning(NetketWarning):
         )
 
 
+class InvalidConstraintInterface(NetketError):
+    """Error thrown when a constraint for an Homogeneous
+    Hilbert space does not conform to the expected interface.
+
+    A custom Constraint must respect the :class:`netket.hilbert.DiscreteHilbertConstraint`
+    interface by inheriting that class and by having a jax-jittable :code:`__call__` method.
+
+    If you see this error, your constraint might just be a function without inheriting from this
+    class, or it does not have a jittable call method.
+
+    See the class documentation of :class:`netket.hilbert.DiscreteHilbertConstraint` for
+    some examples.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """Your custom constraint does not respect the constraint interface.
+            Look at the documentation online to learn more.
+            """
+        )
+
+
 #################################################
 # Functions to throw errors                     #
 #################################################

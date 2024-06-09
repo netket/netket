@@ -1,2 +1,6 @@
-from .base import optimalConstrainedHilbertindex, ConstrainedHilbertIndex
+from .base import (
+    optimalConstrainedHilbertindex,
+    ConstrainedHilbertIndex,
+    DiscreteHilbertConstraint,
+)
 from .sum import SumConstraint
