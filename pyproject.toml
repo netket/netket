@@ -50,7 +50,7 @@ dependencies = [
 [project.optional-dependencies]
 mpi = [
     "mpi4py>=3.0.1, <4",
-    "mpi4jax>=0.3.9, <0.5"
+    "mpi4jax>=0.3.9, <0.6"
     ]
 pyscf = [
     "sparse>=0.12.0",
