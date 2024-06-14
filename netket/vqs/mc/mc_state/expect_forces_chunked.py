@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable
+from typing import Callable, Union
 import warnings
 
 import jax
@@ -52,7 +52,7 @@ def expect_and_forces_chunking_unspecified(  # noqa: F811
 def expect_and_forces_fallback(  # noqa: F811
     vstate: MCState,
     operator: AbstractObservable,
-    chunk_size: Any,
+    chunk_size: Union[int, tuple],
     *args,
     **kwargs,
 ):
@@ -63,23 +63,37 @@ def expect_and_forces_fallback(  # noqa: F811
         stacklevel=2,
     )
 
-    return expect_and_forces(vstate, operator, None, *args, **kwargs)
+    # chunk size
+    if isinstance(chunk_size, int):
+        chunk_size = None
+
+    # if chunk size is a tuple (for forward and backward)
+    # convert to single chunk size
+    if isinstance(chunk_size, tuple):
+        chunk_size = chunk_size[0]
+
+    return expect_and_forces(vstate, operator, chunk_size, *args, **kwargs)
 
 
 @expect_and_forces.dispatch
 def expect_and_forces_impl(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
-    chunk_size: int,
+    chunk_size: tuple[int, ...],
     *,
     mutable: CollectionFilter = False,
 ) -> tuple[Stats, PyTree]:
+    print(chunk_size)
+    print(1, mutable)
+    chunk_size, grad_chunk_size = chunk_size
+
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
 
     Ō, Ō_grad, new_model_state = forces_expect_hermitian_chunked(
         chunk_size,
+        grad_chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
         mutable,
@@ -95,9 +109,10 @@ def expect_and_forces_impl(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
 def forces_expect_hermitian_chunked(
     chunk_size: int,
+    grad_chunk_size: int,
     local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
     mutable: CollectionFilter,
@@ -133,7 +148,7 @@ def forces_expect_hermitian_chunked(
             parameters,
             σ,
             conjugate=True,
-            chunk_size=chunk_size,
+            chunk_size=grad_chunk_size,
             chunk_argnums=1,
             nondiff_argnums=1,
         )
