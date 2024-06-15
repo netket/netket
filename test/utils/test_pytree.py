@@ -254,6 +254,33 @@ class TestPytree:
 
         assert leaves1 == leaves2
 
+    def test_default(self):
+        class Foo(Pytree):
+            a: int
+            b: int = static_field(default=2)
+            c: int = static_field(default_factory=lambda: "ciao")
+
+            def __init__(self, a, b=None):
+                self.a = a
+                if b is not None:
+                    self.b = b
+
+        module = Foo(a=1)
+        assert module.a == 1
+        assert module.b == 2
+        assert module.c == "ciao"
+
+        module = Foo(a=1, b=3)
+        assert module.a == 1
+        assert module.b == 3
+        assert module.c == "ciao"
+
+        @jax.jit
+        def f(m: Foo):
+            return m.a + m.b
+
+        assert f(module) == 4
+
 
 class TestMutablePytree:
     def test_pytree(self):
