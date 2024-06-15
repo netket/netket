@@ -36,13 +36,17 @@ class IdentityPreconditioner(struct.Pytree):
     """
     A preconditioner that does not transform the gradient.
     """
-    def __call__(self,     vstate: VariationalState,
+
+    def __call__(
+        self,
+        vstate: VariationalState,
         gradient: PyTree,
         step: Optional[Scalar] = 0,
         *args,
         **kwargs,
     ) -> PyTree:
         return gradient
+
 
 # For backward compatibility reasons
 identity_preconditioner = IdentityPreconditioner()
