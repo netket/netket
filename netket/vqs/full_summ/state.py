@@ -350,8 +350,9 @@ def deserialize_FullSumState(vstate, state_dict):
     new_vstate = copy.copy(vstate)
     new_vstate.reset()
 
-    new_vstate.variables = serialization.from_state_dict(
-        vstate.variables, state_dict["variables"]
+    new_vstate.variables = jax.tree_util.tree_map(
+        jnp.asarray,
+        serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
     return new_vstate
 
