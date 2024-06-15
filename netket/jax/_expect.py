@@ -72,21 +72,21 @@ def expect(
         >>> import netket as nk
         >>> import jax
         >>> import jax.numpy as jnp
-
+        >>>
         >>> hi = nk.hilbert.Spin(s=0.5, N=20)
         >>> graph = nk.graph.Chain(length=20)
         >>> H = nk.operator.IsingJax(hi, graph, h=1.0)
         >>> vstate = nk.vqs.MCState(sampler=nk.sampler.MetropolisLocal(hi, n_chains_per_rank=16), model=nk.models.RBM(alpha=1, param_dtype=complex), n_samples=100000)
-
+        >>>
         >>> afun = vstate._apply_fun
         >>> pars = vstate.parameters
         >>> model_state = vstate.model_state
         >>> log_pdf = lambda params, σ: 2 * afun({"params": params, **model_state}, σ).real
-
+        >>>
         >>> σ = vstate.samples
         >>> σ = σ.reshape(-1, σ.shape[-1])
         >>> σp, mels = H.get_conn_padded(σ)
-
+        >>>
         >>> def expect(pars, σ, σp, mels, model_state):
         >>>
         >>>     def expected_fun(pars, σ, σp, mels):
@@ -95,9 +95,9 @@ def expect(
         >>>         logpsi_σp = afun(W, σp)
         >>>         logHpsi_σ = jax.scipy.special.logsumexp(logpsi_σp, b=mels, axis=1)
         >>>         return jnp.exp(logHpsi_σ - logpsi_σ)
-
+        >>>
         >>>     return nk.jax.expect(log_pdf, expected_fun, pars, σ, σp, mels)[0]
-
+        >>>
         >>> E, E_vjp_fun = nk.jax.vjp(expect, pars, σ, σp, mels, model_state)
         >>> grad = E_vjp_fun(jnp.ones_like(E))[0]
         >>> grad = jax.tree_util.tree_map(lambda x: nk.utils.mpi.mpi_sum_jax(x)[0], grad)
