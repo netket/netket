@@ -39,6 +39,7 @@ from netket.jax.sharding import (
     device_count,
     with_samples_sharding_constraint,
 )
+from netket.jax import apply_chunked
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
@@ -242,6 +243,8 @@ class MetropolisSampler(Sampler):
     of sites in the Hilbert space."""
     n_chains: int = struct.field(pytree_node=False)
     """Total number of independent chains across all MPI ranks and/or devices."""
+    chunk_size: Optional[int] = struct.field(pytree_node=False, default=None)
+    """Chunk size for evaluating wave functions."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
@@ -255,6 +258,7 @@ class MetropolisSampler(Sampler):
         reset_chains: bool = False,
         n_chains: Optional[int] = None,
         n_chains_per_rank: Optional[int] = None,
+        chunk_size: Optional[int] = None,
         machine_pow: int = 2,
         dtype: DType = float,
     ):
@@ -274,6 +278,7 @@ class MetropolisSampler(Sampler):
                                If netket_experimental_sharding is enabled this is interpreted as the number
                                of independent chains on every jax device, and the n_chains_per_rank
                                property of the sampler will return the total number of chains on all devices.
+            chunk_size: Chunk size for evaluating the ansatz while sampling. Must divide n_chains_per_rank.
             sweep_size: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
@@ -316,6 +321,13 @@ class MetropolisSampler(Sampler):
             device_count(),
             "rank",
         )
+        n_chains_per_rank = n_chains // device_count()
+
+        if chunk_size is not None and n_chains_per_rank % chunk_size != 0:
+            raise ValueError(
+                f"Chunk size must divide number of chains per rank, {n_chains_per_rank}"
+            )
+        self.chunk_size = chunk_size
 
         super().__init__(
             hilbert=hilbert,
@@ -420,6 +432,9 @@ class MetropolisSampler(Sampler):
         If you subclass `MetropolisSampler`, you should override this and not `sample_next`
         itself, because `sample_next` contains some common logic.
         """
+        apply_machine = apply_chunked(
+            machine.apply, in_axes=(None, 0), chunk_size=sampler.chunk_size
+        )
 
         def loop_body(i, s):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
@@ -434,7 +449,7 @@ class MetropolisSampler(Sampler):
                 sampler.dtype,
                 f"{sampler.rule}.transition",
             )
-            proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
+            proposal_log_prob = sampler.machine_pow * apply_machine(parameters, σp).real
             _assert_good_log_prob_shape(proposal_log_prob, sampler.n_batches, machine)
 
             uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
@@ -460,7 +475,7 @@ class MetropolisSampler(Sampler):
         s = {
             "key": rng,
             "σ": state.σ,
-            "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
+            "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
             # for logging
             "accepted": state.n_accepted_proc,
         }

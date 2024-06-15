@@ -87,9 +87,12 @@ class MetropolisNumpySamplerState:
         return f"MetropolisNumpySamplerState({acc_string}rng state={self.rng})"
 
 
-@partial(jax.jit, static_argnums=0)
-def apply_model(machine, pars, weights):
-    return machine.apply(pars, weights)
+@partial(jax.jit, static_argnums=(0, 3))
+def apply_model(machine, pars, weights, chunk_size):
+    chunked = nkjax.apply_chunked(
+        machine.apply, in_axes=(None, 0), chunk_size=chunk_size
+    )
+    return chunked(pars, weights)
 
 
 class MetropolisSamplerNumpy(MetropolisSampler):
@@ -152,7 +155,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             )
 
         state.rule_state = sampler.rule.reset(sampler, machine, parameters, state)
-        state.log_values = np.copy(apply_model(machine, parameters, state.σ))
+        state.log_values = np.copy(
+            apply_model(machine, parameters, state.σ, sampler.chunk_size)
+        )
 
         state._accepted_samples = 0
         state._total_samples = 0
@@ -176,7 +181,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             # σp, log_prob_correction =
             sampler.rule.transition(sampler, machine, parameters, state, state.rng, σ)
 
-            log_values_1 = np.asarray(apply_model(machine, parameters, σ1))
+            log_values_1 = np.asarray(
+                apply_model(machine, parameters, σ1, sampler.chunk_size)
+            )
 
             random_uniform = rgen.uniform(0, 1, size=σ.shape[0])
 

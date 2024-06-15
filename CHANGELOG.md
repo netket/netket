@@ -8,6 +8,7 @@
 ### New Features
 * Added the function {func}`netket.jax.tree_norm` to compute the L-p norm of a PyTree, interpreted as a vector of values, without concatenating or ravelling the leaves [#1819](https://github.com/netket/netket/issues/1819).
 * The default value of `n_discard_per_chain` has been changed to 5, which is a more reasonable number in most cases. It might be low for some applications.
+* The sampler {class}`netket.sampler.MetropolisSampler` and all its derivatives now support chunking for the evaluation of the wavefunction at every Metropolis step [#1828](https://github.com/netket/netket/issues/1828).
 
 ### Deprecations
 
