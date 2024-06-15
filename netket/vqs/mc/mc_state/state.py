@@ -777,9 +777,10 @@ def deserialize_MCState(vstate, state_dict):
     new_vstate = copy.copy(vstate)
     new_vstate.reset()
 
-    new_vstate.variables = serialization.from_state_dict(
+    new_vstate.variables = jax.tree_util.tree_map(
+        jnp.asarray, serialization.from_state_dict(
         vstate.variables, state_dict["variables"]
-    )
+    ))
     new_vstate.sampler_state = serialization.from_state_dict(
         vstate.sampler_state, state_dict["sampler_state"]
     )
