@@ -60,6 +60,48 @@ def expect(
 
     where again, the expectation values are comptued using the sample average.
 
+    NOTE: When using this function together with MPI, you have to pay particular attention. This is because inside the function `f` that is differentiated
+    a mean over the MPI ranks (`mpi_mean(term1 + term2, axis=0)`) appears. Therefore, when doing the backward pass this results in a division of the outputs
+    from the previous steps by a factor equal to the number of MPI ranks, and so the final gradient on each MPI rank is rescaled as well.
+    To cope with this, it is important to sum over the ranks the gradient computed after AD, for example using the function `nk.utils.mpi.mpi_sum_jax`.
+    See the following example for more details.
+
+    Example:
+        Compute the energy gradient using `nk.jax.expect` on more MPI ranks.
+
+        >>> import netket as nk
+        >>> import jax
+        >>> import jax.numpy as jnp
+
+        >>> hi = nk.hilbert.Spin(s=0.5, N=20)
+        >>> graph = nk.graph.Chain(length=20)
+        >>> H = nk.operator.IsingJax(hi, graph, h=1.0)
+        >>> vstate = nk.vqs.MCState(sampler=nk.sampler.MetropolisLocal(hi, n_chains_per_rank=16), model=nk.models.RBM(alpha=1, param_dtype=complex), n_samples=100000)
+
+        >>> afun = vstate._apply_fun
+        >>> pars = vstate.parameters
+        >>> model_state = vstate.model_state
+        >>> log_pdf = lambda params, σ: 2 * afun({"params": params, **model_state}, σ).real
+
+        >>> σ = vstate.samples
+        >>> σ = σ.reshape(-1, σ.shape[-1])
+        >>> σp, mels = H.get_conn_padded(σ)
+
+        >>> def expect(pars, σ, σp, mels, model_state):
+        >>>
+        >>>     def expected_fun(pars, σ, σp, mels):
+        >>>         W = {"params": pars, **model_state}
+        >>>         logpsi_σ = afun(W, σ)
+        >>>         logpsi_σp = afun(W, σp)
+        >>>         logHpsi_σ = jax.scipy.special.logsumexp(logpsi_σp, b=mels, axis=1)
+        >>>         return jnp.exp(logHpsi_σ - logpsi_σ)
+
+        >>>     return nk.jax.expect(log_pdf, expected_fun, pars, σ, σp, mels)[0]
+
+        >>> E, E_vjp_fun = nk.jax.vjp(expect, pars, σ, σp, mels, model_state)
+        >>> grad = E_vjp_fun(jnp.ones_like(E))[0]
+        >>> grad = jax.tree_util.tree_map(lambda x: nk.utils.mpi.mpi_sum_jax(x)[0], grad)
+
     Args:
         log_pdf: The log-pdf function from which the samples are drawn. This should output real values, and have a signature
             :code:`log_pdf(pars, σ) -> jnp.ndarray`.
