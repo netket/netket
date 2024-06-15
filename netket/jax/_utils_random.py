@@ -53,6 +53,10 @@ def PRNGKey(
         key = jax.tree_util.tree_map(
             lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
         )
+    else:
+        from . import sharding
+
+        key = sharding.replicate(key)
     return key
 
 

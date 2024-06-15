@@ -35,6 +35,7 @@ from jax.sharding import (
 from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
 
+from netket.utils.types import PyTree
 from netket.utils import config, mpi
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
@@ -261,6 +262,27 @@ def extract_replicated(t):
             return x
 
     return jax.tree_util.tree_map(_extract_replicated, t)
+
+
+def replicate(t: PyTree) -> PyTree:
+    """
+    Replicates on all devices a locally accessible array.
+
+    The opposite operation is ``netket.jax.sharding.extract_replicated``.
+
+    Args:
+        t: a jax Array (or a pytree of jax Arrays)
+
+    Returns:
+        A globally replicated jax Array.
+    """
+    if config.netket_experimental_sharding:
+        sharding = PositionalSharding(jax.devices())
+        t2 = jax.device_put(t, sharding.replicate())
+        print(jax.tree.map(lambda x, y: (x.shape, y.shape), t, t2))
+    else:
+        t2 = t
+    return t2
 
 
 def gather(x):
