@@ -59,11 +59,13 @@ def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
 
 
 def to_shift_offset(diag_shift, diag_scale):
-    if diag_scale == 0.0:
-        return diag_shift, None
+    if not isinstance(diag_scale, jax.Array):
+        if diag_scale == 0.0:
+            return diag_shift, None
+        else:
+            return diag_scale, diag_shift / diag_scale
     else:
         return diag_scale, diag_shift / diag_scale
-
 
 @partial(jax.jit, static_argnames="ndims")
 def rescale(centered_oks, offset, *, ndims: int = 1):
