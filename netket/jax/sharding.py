@@ -283,13 +283,17 @@ def gather(x):
     elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
         # x.sharding.device_set has arbitrary order
         # Hardcode all devices until I figure out a way to deduce the order from x
-        out_shardings = PositionalSharding(jax.devices()).replicate()
+        out_shardings = (
+            PositionalSharding(jax.devices()).replicate().reshape((1,) * x.ndim)
+        )
+        # TODO support gspmdsharding in numba wrapper and use this
         # out_shardings = x.sharding.get_replicated(jax.devices())
     elif isinstance(x.sharding, PositionalSharding):
         out_shardings = x.sharding.replicate()
     else:
         raise NotImplementedError(
-            f"Gather is only compatible with PositionalSharding, but array has {x.sharding} Please open a feature request."
+            "Gather is only compatible with PositionalSharding and GSPMDSharding,"
+            f" but array has {x.sharding}. Please open a feature request."
         )
     return jax.jit(_identity, out_shardings=out_shardings)(x)
     # TODO support gspmdsharding in numba wrapper and use this
