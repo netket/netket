@@ -1,7 +1,15 @@
 ```{currentmodule} netket
 ```
 
-## NetKet 3.12.1 (Thursday 30 May)
+## NetKet 3.12.2 (15 June 2024)
+Bugfix release for several internal utilities.
+
+* The ``NETKET_MPI_AUTODETECT_LOCAL_GPU=1`` environment variable to autoselect local GPUs when running under MPI has had a bug fixed that prevented it from working correctly.
+* A bug where running with ``NETKET_EXPERIMENTAL_SHARDING=1`` seeds where not correctly syncronised across different processes has been fixed [#1829](https://github.com/netket/netket/issues/1829).
+* Support jax 0.4.29
+
+
+## NetKet 3.12.1 (Thursday 30 May 2024)
 * This release fixes a bug in {class}`netket.sampler.MetropolisSamplerNumpy` that prevented it from working when using MPI [#1818](https://github.com/netket/netket/issues/1818).
 
 
