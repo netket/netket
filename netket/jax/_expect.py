@@ -60,11 +60,13 @@ def expect(
 
     where again, the expectation values are comptued using the sample average.
 
-    NOTE: When using this function together with MPI, you have to pay particular attention. This is because inside the function `f` that is differentiated
-    a mean over the MPI ranks (`mpi_mean(term1 + term2, axis=0)`) appears. Therefore, when doing the backward pass this results in a division of the outputs
-    from the previous steps by a factor equal to the number of MPI ranks, and so the final gradient on each MPI rank is rescaled as well.
-    To cope with this, it is important to sum over the ranks the gradient computed after AD, for example using the function `nk.utils.mpi.mpi_sum_jax`.
-    See the following example for more details.
+    .. note::
+    
+        When using this function together with MPI, you have to pay particular attention. This is because inside the function `f` that is differentiated
+        a mean over the MPI ranks (`mpi_mean(term1 + term2, axis=0)`) appears. Therefore, when doing the backward pass this results in a division of the outputs
+        from the previous steps by a factor equal to the number of MPI ranks, and so the final gradient on each MPI rank is rescaled as well.
+        To cope with this, it is important to sum over the ranks the gradient computed after AD, for example using the function `nk.utils.mpi.mpi_sum_jax`.
+        See the following example for more details.
 
     Example:
         Compute the energy gradient using `nk.jax.expect` on more MPI ranks.
