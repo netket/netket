@@ -61,7 +61,7 @@ def expect(
     where again, the expectation values are comptued using the sample average.
 
     .. note::
-    
+
         When using this function together with MPI, you have to pay particular attention. This is because inside the function `f` that is differentiated
         a mean over the MPI ranks (`mpi_mean(term1 + term2, axis=0)`) appears. Therefore, when doing the backward pass this results in a division of the outputs
         from the previous steps by a factor equal to the number of MPI ranks, and so the final gradient on each MPI rank is rescaled as well.
