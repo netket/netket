@@ -87,20 +87,28 @@ def expect(
         >>>
         >>> σ = vstate.samples
         >>> σ = σ.reshape(-1, σ.shape[-1])
-        >>> σp, mels = H.get_conn_padded(σ)
         >>>
-        >>> def expect(pars, σ, σp, mels, model_state):
+        >>> # The function that we want to differentiate wrt pars and σ
+        >>> # Note that we do not want to compute the gradient wrt model_state, so
+        >>> # we capture it inside of this function.
+        >>> def expect(pars, σ):
+        ...
+        ...     # The log probability distribution we have generated samples σ from.
+        ...     def log_pdf(pars, σ):
+        ...         W = {"params": pars, **model_state}
+        ...         return 2 * afun(W, σ).real
+        ...
+        ...     def expected_fun(pars, σ):
+        ...         W = {"params": pars, **model_state}
+        ...         # Get connected samples
+        ...         σp, mels = H.get_conn_padded(σ)
+        ...         logpsi_σ = afun(W, σ)
+        ...         logpsi_σp = afun(W, σp)
+        ...         logHpsi_σ = jax.scipy.special.logsumexp(logpsi_σp, b=mels, axis=1)
+        ...         return jnp.exp(logHpsi_σ - logpsi_σ)
+        ...     return nk.jax.expect(log_pdf, expected_fun, pars, σ)[0]
         >>>
-        >>>     def expected_fun(pars, σ, σp, mels):
-        >>>         W = {"params": pars, **model_state}
-        >>>         logpsi_σ = afun(W, σ)
-        >>>         logpsi_σp = afun(W, σp)
-        >>>         logHpsi_σ = jax.scipy.special.logsumexp(logpsi_σp, b=mels, axis=1)
-        >>>         return jnp.exp(logHpsi_σ - logpsi_σ)
-        >>>
-        >>>     return nk.jax.expect(log_pdf, expected_fun, pars, σ, σp, mels)[0]
-        >>>
-        >>> E, E_vjp_fun = nk.jax.vjp(expect, pars, σ, σp, mels, model_state)
+        >>> E, E_vjp_fun = nk.jax.vjp(expect, pars, σ)
         >>> grad = E_vjp_fun(jnp.ones_like(E))[0]
         >>> grad = jax.tree_util.tree_map(lambda x: nk.utils.mpi.mpi_sum_jax(x)[0], grad)
 
