@@ -189,4 +189,5 @@ This module contains various observables that can be computed starting from vari
    :nosignatures:
 
    observable.Renyi2EntanglementEntropy
+   observable.VarianceOperator
 ```
