@@ -127,6 +127,9 @@ hilberts["SpinOrbitalFermions (n_fermions=list)"] = nkx.hilbert.SpinOrbitalFermi
 hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
     5, s=1 / 2, n_fermions_per_spin=(2, 0)
 )
+hilberts["SpinOrbitalFermions (higherspin)"] = nkx.hilbert.SpinOrbitalFermions(
+    3, s=3 / 2, n_fermions_per_spin=(2, 1, 2, 1)
+)
 
 # Continuous space
 # no pbc

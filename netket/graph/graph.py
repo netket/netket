@@ -261,8 +261,24 @@ def DoubledGraph(graph: AbstractGraph) -> Graph:
     return Graph(n_nodes=dnodes, edges=dedges)
 
 
-def disjoint_union(graph_1: Graph, graph_2: Graph) -> Graph:
+def disjoint_union(*graphs: tuple[Graph, ...]) -> Graph:
     """
-    Returns the disjoint union of two graphs.
+    Returns the ordered disjoint union of the input graphs.
+
+    The ordering of the nodes is the same as the input order, so if
+    the I-th input graph has :math:`n_i` nodes, the first `[0, n_1[` nodes
+    will correspond to the first graph, the nodes between :math:`[n_1, n_1+n2[`
+    will correspond to the second graph, and so on and so forth.
+
+    Args:
+       *graphs: A variable number of NetKet graphs (or lattices).
+
+    Output:
+        A NetKet Graph object.
     """
-    return Graph.from_igraph(igraph.disjoint_union([graph_1._igraph, graph_2._igraph]))
+    if len(graphs) == 0:
+        raise ValueError("Must provide at least one graph")
+    elif len(graphs) == 1:
+        return graphs[0]
+    else:
+        return Graph.from_igraph(igraph.disjoint_union([g._igraph for g in graphs]))

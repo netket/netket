@@ -63,21 +63,21 @@ class Slater2nd(nn.Module):
     Assume we introduce a set of orbitals :math:`\phi_\mu(r, s)` with orbital index :math:`\mu`.
 
     - **Generalized Hartree-Fock** (:code:`generalized = True`) is the most general case
-      where we impose no restrictions. In particular, we do not restrict the orbitals
-      to have definite spin or orbital quantum numbers.
-      The total number of parameters is :math:`n_{\mathrm{M}} \times n_{\mathrm{f}}`. Hence,
-      any fermion can occupy any of the fermionic modes.
+    where we impose no restrictions. In particular, we do not restrict the orbitals
+    to have definite spin or orbital quantum numbers.
+    The total number of parameters is :math:`n_{\mathrm{M}} \times n_{\mathrm{f}}`. Hence,
+    any fermion can occupy any of the fermionic modes.
     - **Hartree-Fock (Spin-Conserving)** (:code:`[generalized=False,] restricted=True/False`).
-      Most physical Hamiltonians are spin conserving, and hence we can impose it also on the
-      wave-function. In this case, we separate the orbital index :math:`\mu \to (l, \alpha)` into
-      a spin and spatial orbital part: :math:`\phi_\mu(r, s)=\varphi_{l,\alpha}(r) \chi_{\alpha}(s)`.
-      Here, :math:`l` and :math:`\alpha` indicate the orbital and spin quantum numbers associated
-      with the orbital, and :math:`(r, s)` are the position vector and spin quantum number at which
-      we aim to evaluate the orbital (i.e. properties of a given fermion). Furthermore,
-      :math:`\varphi_{l,\alpha}(r)` is the spatial orbital at position :math:`r`, and and
-      :math:`\chi_\alpha(s)` the spin part.
+    Most physical Hamiltonians are spin conserving, and hence we can impose it also on the
+    wave-function. In this case, we separate the orbital index :math:`\mu \to (l, \alpha)` into
+    a spin and spatial orbital part: :math:`\phi_\mu(r, s)=\varphi_{l,\alpha}(r) \chi_{\alpha}(s)`.
+    Here, :math:`l` and :math:`\alpha` indicate the orbital and spin quantum numbers associated
+    with the orbital, and :math:`(r, s)` are the position vector and spin quantum number at which
+    we aim to evaluate the orbital (i.e. properties of a given fermion). Furthermore,
+    :math:`\varphi_{l,\alpha}(r)` is the spatial orbital at position :math:`r`, and and
+    :math:`\chi_\alpha(s)` the spin part.
 
-      - **Unrestricted Hartree Fock (UHF)** (:code:`[generalized=False,] restricted=False`),
+    - **Unrestricted Hartree Fock (UHF)** (:code:`[generalized=False,] restricted=False`),
         the orbitals can have a different spatial
         orbital :math:`\varphi` for different spin states. Since e.g. the up
         spin fermions cannot occupy the down spin orbitals and vice versa, the Slater matrix becomes block
@@ -85,7 +85,7 @@ class Slater2nd(nn.Module):
         The total number of parameters is :math:`n_{\mathrm{S}} \times n_{\mathrm{L}} \times n_{\textrm{f, s}}`. For
         more information, see
         `Wikipedia: Unrestricted Hartree-Fock <https://en.wikipedia.org/wiki/Unrestricted_Hartree%E2%80%93Fock>`_
-      - **Restricted Hartree-Fock (RHF)** (:code:`[generalized=False, restricted=True]`), which assumes
+    - **Restricted Hartree-Fock (RHF)** (:code:`[generalized=False, restricted=True]`), which assumes
         that different spin states have the same spatial orbitals
         in :math:`\phi_\mu(r, s)=\varphi_l(r) \chi_\alpha(s)`, and hence :math:`\varphi_l` only depends
         on the spatial orbital index :math:`l`. The number of
@@ -109,10 +109,10 @@ class Slater2nd(nn.Module):
     This flag is ignored if :code:`generalized=True`.
 
     - If restricted, only one set of orbitals are parametrised, and they are
-      used for all spin subsectors. This only works if every spin subsector
-      holds the same number of fermions.
+    used for all spin subsectors. This only works if every spin subsector
+    holds the same number of fermions.
     - If unrestricted, a different set of orbitals are parametrised and used
-      for each spin subsector.
+    for each spin subsector.
     """
 
     kernel_init: NNInitFunc = default_kernel_init
@@ -188,6 +188,8 @@ class Slater2nd(nn.Module):
                 f"Dimension mismatch. Expected samples with {self.hilbert.size} "
                 f"degrees of freedom, but got a sample of shape {n.shape} ({n.shape[-1]} dof)."
             )
+        if not jnp.issubdtype(n, int):
+            n = jnp.isclose(n, 1)
 
         @partial(jnp.vectorize, signature="(n)->()")
         def log_sd(n):
@@ -204,6 +206,8 @@ class Slater2nd(nn.Module):
                 for i, (n_fermions_i, M_i) in enumerate(
                     zip(self.hilbert.n_fermions_per_spin, self.orbitals)
                 ):
+                    if n_fermions_i == 0:
+                        continue
                     # convert global orbital positions to spin-sector-local positions
                     R_i = (
                         R[i_start : i_start + n_fermions_i]
@@ -213,7 +217,7 @@ class Slater2nd(nn.Module):
                     A_i = M_i[R_i]
 
                     log_det_sum = log_det_sum + nkjax.logdet_cmplx(A_i)
-                    i_start = n_fermions_i
+                    i_start += n_fermions_i
 
             return log_det_sum
 
@@ -248,10 +252,10 @@ class MultiSlater2nd(nn.Module):
     This flag is ignored if :code:`generalized=True`.
 
     - If restricted, only one set of orbitals are parametrised, and they are
-      used for all spin subsectors. This only works if every spin subsector
-      holds the same number of fermions.
+    used for all spin subsectors. This only works if every spin subsector
+    holds the same number of fermions.
     - If unrestricted, a different set of orbitals are parametrised and used
-      for each spin subsector.
+    for each spin subsector.
     """
 
     kernel_init: NNInitFunc = default_kernel_init

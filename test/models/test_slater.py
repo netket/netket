@@ -62,6 +62,21 @@ def test_Slater2nd():
         x2 = jnp.array([1, 1, 0, 0, 1, 1])  # (0,1,1) (1,1,0)
         np.testing.assert_allclose(ma.apply(pars, x1), ma.apply(pars, x2))
 
+        # higher spin check
+        hi = nkx.hilbert.SpinOrbitalFermions(2, s=1.5, n_fermions_per_spin=(1, 1, 1, 1))
+        ma = slater_class(hi, restricted=True, param_dtype=jnp.float32)
+
+        pars = ma.init(k, hi.all_states())
+        out0 = ma.apply(pars, hi.numbers_to_states(0))
+        assert out0.shape == ()
+
+        out1 = ma.apply(pars, hi.numbers_to_states([0, 1, 2]))
+        assert out1.shape == (3,)
+
+        out1 = ma.apply(pars, hi.random_state(k, (2, 3), dtype=jnp.float32))
+        assert out1.shape == (2, 3)
+        assert out1.dtype == jnp.complex64
+
         hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 2))
         ma = slater_class(hi, restricted=False, param_dtype=jnp.float32)
 

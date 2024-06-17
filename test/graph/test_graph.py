@@ -706,6 +706,10 @@ def test_union():
         assert ug.n_nodes == graph1.n_nodes + graph.n_nodes
         assert ug.n_edges == graph1.n_edges + graph.n_edges
 
+    # also test multiple graphs
+    ug = nk.graph.disjoint_union(*graphs)
+    assert ug.n_nodes == sum(g.n_nodes for g in graphs)
+
 
 def test_graph_conversions():
     igraph = ig.Graph.Star(6)
