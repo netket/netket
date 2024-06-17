@@ -43,9 +43,5 @@ class VarianceOperator(AbstractOperator):
             return o.op == self.op and o.op2 == self.op2
         return False
 
-    @property
-    def is_hermitian(self):
-        return True
-
     def __repr__(self):
         return f"VarianceOperator(op={self.op})"
