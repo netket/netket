@@ -35,6 +35,7 @@ from netket.optimizer.qgt import (
     qgt_jacobian_pytree,
     qgt_jacobian_common,
 )
+import netket as nk
 from netket.jax.sharding import distribute_to_devices_along_axis, device_count_per_rank
 
 from .. import common
@@ -483,6 +484,77 @@ def test_qgt_onthefly_dense_nonholo_error():
     with pytest.raises(nk.errors.NonHolomorphicQGTOnTheFlyDenseRepresentationError):
         qgt = nk.optimizer.qgt.QGTOnTheFly(vs, holomorphic=False)
         qgt.to_dense()
+
+
+@common.named_parametrize("dense", [False, True])
+def test_qgt_jacobian_imaginary(dense):
+    g = nk.graph.Hypercube(length=6, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
+
+    ma = nk.models.RBM(alpha=1, param_dtype=complex)
+
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+    vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
+
+    E, F = vs.expect_and_grad(ha)
+
+    if dense:
+        qgt = nk.optimizer.qgt.QGTJacobianDense(diag_shift=0.00)
+    else:
+        qgt = nk.optimizer.qgt.QGTJacobianPyTree(diag_shift=0.00)
+
+    Sr = qgt(vs, mode="complex")
+    Si = qgt(vs, mode="imag")
+    Sh = qgt(vs, mode="holomorphic")
+
+    solver = nk.optimizer.solver.pinv
+
+    xr, _ = Sr.solve(solver, F)
+    xi, _ = Si.solve(solver, F)
+    xh, _ = Sh.solve(solver, F)
+
+    xrd, _ = nk.jax.tree_ravel(xr)
+    xid, _ = nk.jax.tree_ravel(xi)
+    xhd, _ = nk.jax.tree_ravel(xh)
+
+    np.testing.assert_allclose(Sr @ xrd, Si @ xid, rtol=1e-5)
+
+    shd = Sh.to_dense()
+    srd = Sr.to_dense()
+    sid = Si.to_dense()
+    n = shd.shape[0]
+    np.testing.assert_allclose(srd[:n, :n], shd.real)
+    np.testing.assert_allclose(srd[n:, :n], shd.imag, atol=1e-16)
+    np.testing.assert_allclose(srd[:n, n:], -shd.imag, atol=1e-16)
+    np.testing.assert_allclose(srd[n:, n:], shd.real, atol=1e-16)
+
+    np.testing.assert_allclose(sid[:n, :n], shd.imag, atol=1e-16)
+    np.testing.assert_allclose(sid[:n, n:], shd.real)
+    np.testing.assert_allclose(sid[n:, :n], -shd.real)
+    np.testing.assert_allclose(sid[n:, n:], shd.imag, atol=1e-16)
+
+
+def test_qgt_jacobian_imaginary_match():
+    g = nk.graph.Hypercube(length=6, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
+
+    ma = nk.models.RBM(alpha=1, param_dtype=complex)
+
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+    vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
+
+    Sd = nk.optimizer.qgt.QGTJacobianDense(vs, diag_shift=0.00, mode="imag")
+    Sp = nk.optimizer.qgt.QGTJacobianPyTree(vs, diag_shift=0.00, mode="imag")
+
+    np.testing.assert_allclose(Sd.to_dense(), Sp.to_dense(), atol=1e-15)
+
+    E, F = vs.expect_and_grad(ha)
+    F, _ = nk.jax.tree_ravel(F)
+    xd = Sd @ F
+    xp = Sp @ F
+    np.testing.assert_allclose(xd, xp, atol=1e-15)
 
 
 # TODO test with MPI
