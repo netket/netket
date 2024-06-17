@@ -16,6 +16,7 @@
 # this file contains a more-or-less 1:1 port of the numba localoperator to jax, using padding where necessary
 
 from functools import partial
+from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
@@ -30,6 +31,9 @@ from .compile_helpers import pack_internals_jax
 
 from .._pauli_strings import PauliStringsJax
 from .._discrete_operator_jax import DiscreteJaxOperator
+
+if TYPE_CHECKING:
+    from .numba import LocalOperator
 
 
 @partial(jax.vmap, in_axes=(0, None, None))  # samples

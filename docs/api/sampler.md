@@ -16,7 +16,7 @@
 
 ## Abstract Classes
 
-Below you find a list of all abstract classes defined in this module, from which you can inherit if you want to define new hilbert spaces.
+Below you find a list of all abstract classes defined in this module, from which you can inherit if you want to define new samplers spaces.
 
 ```{eval-rst}
 .. currentmodule:: netket.sampler
@@ -29,7 +29,6 @@ Below you find a list of all abstract classes defined in this module, from which
    Sampler
    SamplerState
    MetropolisSamplerState
-   MetropolisRule
 ```
 ## List of Samplers
 
@@ -79,7 +78,7 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
 This is an equivalent list of shorthands that allow to construct a {class}`~netket.sampler.ParallelTemperingSampler` with a corresponding rule.
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.sampler
 
 .. autosummary::
    :toctree: _generated/samplers
