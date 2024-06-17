@@ -59,6 +59,9 @@ hi_fermion = nk.experimental.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2
 hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
     g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
 )
+hi_fermion_spin_higher = nk.experimental.hilbert.SpinOrbitalFermions(
+    g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
+)
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
@@ -103,6 +106,11 @@ samplers[
     "Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"
 ] = nkx.sampler.MetropolisParticleExchange(
     hi_fermion_spin, graph=g, exchange_spins=False
+)
+samplers[
+    "Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"
+] = nkx.sampler.MetropolisParticleExchange(
+    hi_fermion_spin_higher, graph=g, exchange_spins=False
 )
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
@@ -589,6 +597,22 @@ def test_fermions_spin_exchange():
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(hi_fermion_spin.size))
+
+    hi_fermion_spin_higher = nk.experimental.hilbert.SpinOrbitalFermions(
+        g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
+    )
+
+    sampler = nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin_higher, graph=g, exchange_spins=True
+    )
+    nodes = np.unique(sampler.rule.clusters)
+    assert np.allclose(nodes, np.arange(g.n_nodes))
+
+    sampler = nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin_higher, graph=g, exchange_spins=False
+    )
+    nodes = np.unique(sampler.rule.clusters)
+    assert np.allclose(nodes, np.arange(hi_fermion_spin_higher.size))
 
 
 def test_multiplerules_pt(model_and_weights):

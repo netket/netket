@@ -261,8 +261,13 @@ def DoubledGraph(graph: AbstractGraph) -> Graph:
     return Graph(n_nodes=dnodes, edges=dedges)
 
 
-def disjoint_union(graph_1: Graph, graph_2: Graph) -> Graph:
+def disjoint_union(*graphs) -> Graph:
     """
-    Returns the disjoint union of two graphs.
+    Returns the disjoint union of multiple graphs.
     """
-    return Graph.from_igraph(igraph.disjoint_union([graph_1._igraph, graph_2._igraph]))
+    if len(graphs) == 0:
+        raise ValueError("Must provide at least one graph")
+    elif len(graphs) == 1:
+        return graphs[0]
+    else:
+        return Graph.from_igraph(igraph.disjoint_union([g._igraph for g in graphs]))
