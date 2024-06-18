@@ -12,7 +12,7 @@ sys.path.append(str(pathlib.PosixPath(os.getcwd()) / "sphinx_extensions"))
 # -- Project information -----------------------------------------------------
 
 project = "NetKet"
-copyright = "2019-2021, The Netket authors - All rights reserved"
+copyright = "2019-2024, The Netket authors - All rights reserved"
 
 # The full version, including alpha/beta/rc tags
 release = nk.__version__
@@ -34,12 +34,15 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.graphviz",
     "custom_inheritance_diagram.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
     "flax_module.fmodule",
 ]
+
+# For sphinx.ext.linkcode
+from link_to_source import linkcode_resolve
 
 # inheritance_graph_attrs = dict(rankdir="TB", size='""')
 # graphviz_output_format = 'svg'
