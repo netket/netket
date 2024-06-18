@@ -190,10 +190,25 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
         The sum of the respective leaves of the two pytrees x and y
         where the leaves of x are first scaled with a.
     """
+    ax = tree_ax(a, x)
+    return jax.tree_util.tree_map(lambda ax_, y_: ax_ + y_, ax, y)
+
+
+@jax.jit
+def tree_ax(a: Scalar, x: PyTree) -> PyTree:
+    r"""
+    compute a * x + y
+
+    Args:
+      a: scalar
+      x: pytree
+    Returns:
+        The pytree x scaled by a
+    """
     if is_scalar(a):
-        return jax.tree_util.tree_map(lambda x_, y_: a * x_ + y_, x, y)
+        return jax.tree_util.tree_map(lambda x_, y_: a * x_, x)
     else:
-        return jax.tree_util.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
+        return jax.tree_util.tree_map(lambda a_, x_, y_: a_ * x_, a, x)
 
 
 class RealImagTuple(tuple):
