@@ -104,7 +104,7 @@ def linkcode_resolve(domain, info):
         filename = strip_leading_path(file)
         f_line = inspect.getsourcelines(obj)[1]
 
-        res = f"https://github.com/netket/netket/blob/main/{filename}"
+        res = f"https://github.com/netket/netket/blob/master/{filename}"
         if f_line is not None:
             res = f"{res}#L{f_line}"
 
