@@ -18,7 +18,7 @@ def strip_leading_path(target_path, root="../../"):
     # if it's installed in site-packages, strip from there...
     # this happens on readthedocs
     if "site-packages" in relative_path:
-        relative_path = relative_path.split("site-packages/").split()[-1]
+        relative_path = relative_path.split("site-packages/")[-1]
 
     # Remove leading '../' from the relative path
     normalized_path = os.path.normpath(relative_path)
