@@ -169,7 +169,8 @@ class InheritanceGraph:
         )
         if not self.class_info:
             msg = "No classes found for inheritance diagram of {class_names}"
-            #raise InheritanceException(msg)
+            print(msg)
+            # raise InheritanceException(msg)
 
     def _import_classes(self, class_names: list[str], currmodule: str) -> list[Any]:
         """Import a list of classes."""
