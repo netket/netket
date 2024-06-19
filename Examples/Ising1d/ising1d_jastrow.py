@@ -48,6 +48,6 @@ gs.run(
     out="test",
     # stop if variance is essentially zero (= reached eigenstate)
     callback=nk.callbacks.EarlyStopping(
-        monitor="variance", baseline=1e-12, patience=np.infty
+        monitor="variance", baseline=1e-12, patience=np.inf
     ),
 )
