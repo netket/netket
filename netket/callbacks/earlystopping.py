@@ -78,7 +78,7 @@ class EarlyStopping(struct.Pytree, mutable=True):
         self.baseline = baseline
         self.monitor = monitor
 
-        self._best_val = np.infty
+        self._best_val = np.inf
         self._best_iter = 0
         self._best_patience_counter = 0
 

@@ -488,7 +488,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         del concrete
 
         # if operator is real dtype, then just return a copy
-        if not np.issubdtype(self.dtype, np.complex_):
+        if not np.issubdtype(self.dtype, np.complexfloating):
             return self.copy()
         else:
             new = type(self)(self.hilbert, dtype=self.dtype, cutoff=self._cutoff)
