@@ -791,3 +791,11 @@ def test_hilbert_numbers_to_states_jit(hi: DiscreteHilbert):
         states0 = hi.numbers_to_states(numbers0)
         states1 = _numbers_to_states_jit(hi, numbers0)
         np.testing.assert_allclose(states0, states1)
+
+
+def test_doubled_hilbert_indexable():
+    # make an indexable hilbert space
+    hi = nkx.hilbert.SpinOrbitalFermions(16, s=1 / 2, n_fermions=1)
+    hid = DoubledHilbert(hi)
+    assert hi.is_indexable  # just to verify this is indeed still the case
+    assert hid.is_indexable  # then this must hold as well

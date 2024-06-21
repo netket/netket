@@ -19,6 +19,7 @@ from netket.utils.types import Array, DType
 
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
+from .index import is_indexable
 
 
 @parametric
@@ -63,6 +64,12 @@ class DoubledHilbert(DiscreteHilbert):
     @property
     def is_finite(self):
         return self.physical.is_finite
+
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        n = self.physical.n_states
+        return self.physical.is_indexable and is_indexable([n, n])
 
     @property
     def local_size(self):
