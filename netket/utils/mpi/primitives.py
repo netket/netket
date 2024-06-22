@@ -217,8 +217,8 @@ def mpi_all_jax(x, *, token=None, comm=MPI_jax_comm):
 
 def mpi_max(x, *, comm=MPI_py_comm):
     """
-    Computes the elementwise logical OR of an array or a scalar across all MPI
-    processes, effectively equivalent to an elementwise any
+    Computes the elementwise logical MAX of an array or a scalar across all MPI
+    processes.
 
     Args:
         a: The input array, which will usually be overwritten in place.
@@ -226,6 +226,12 @@ def mpi_max(x, *, comm=MPI_py_comm):
     Returns:
         out: The reduced array.
     """
+
+    if np.iscomplexobj(x):
+        raise ValueError(
+            f'mpi_max is not compatible with complex types (got {x.dtype if hasattr(x, "dtype") else type(x)}).'
+        )
+
     ar = np.asarray(x)
 
     if n_nodes > 1:
@@ -236,8 +242,8 @@ def mpi_max(x, *, comm=MPI_py_comm):
 
 def mpi_max_jax(x, *, token=None, comm=MPI_jax_comm):
     """
-    Computes the elementwise logical OR of an array or a scalar across all MPI
-    processes, effectively equivalent to an elementwise any
+    Computes the elementwise MAX of an array or a scalar across all MPI
+    processes.
 
     Args:
         a: The input array.
@@ -247,6 +253,10 @@ def mpi_max_jax(x, *, token=None, comm=MPI_jax_comm):
         out: The reduced array.
         token: an output token
     """
+    if np.iscomplexobj(x):
+        raise ValueError(
+            f'mpi_max_jax is not compatible with complex types (got {x.dtype if hasattr(x, "dtype") else type(x)}).'
+        )
     if n_nodes == 1:
         return x, token
     else:
