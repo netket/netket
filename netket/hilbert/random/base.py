@@ -23,7 +23,9 @@ import numpy as np
 from netket.utils.dispatch import dispatch
 from netket.jax.sharding import sharding_decorator
 
-Dim = Union[tuple[int], tuple[int, int], tuple[int, int, int]]
+Dim = Union[
+    tuple[int], tuple[int, int], tuple[int, int, int], tuple[int, int, int, int]
+]
 
 
 @dispatch
@@ -86,17 +88,6 @@ def random_state(hilb, key, size: int, *, dtype):  # noqa: F811
         """
         )
     )
-
-
-@dispatch
-def random_state(hilb, key, size: None, *, dtype):  # noqa: F811
-    return random_state(hilb, key, 1, dtype=dtype)[0]
-
-
-@dispatch
-def random_state(hilb, key, size: Dim, *, dtype):  # noqa: F811
-    n = int(np.prod(size))
-    return random_state(hilb, key, n, dtype=dtype).reshape(*size, -1)
 
 
 def flip_state(hilb, key, state, indices):
