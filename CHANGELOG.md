@@ -9,6 +9,8 @@
 * Added the function {func}`netket.jax.tree_norm` to compute the L-p norm of a PyTree, interpreted as a vector of values, without concatenating or ravelling the leaves [#1819](https://github.com/netket/netket/issues/1819).
 * The default value of `n_discard_per_chain` has been changed to 5, which is a more reasonable number in most cases. It might be low for some applications.
 * The sampler {class}`netket.sampler.MetropolisSampler` and all its derivatives now support chunking for the evaluation of the wavefunction at every Metropolis step [#1828](https://github.com/netket/netket/issues/1828).
+* Add a new function {meth}`netket.hilbert.DiscreteHilbert.local_indices_to_states` to convert integer indices to local configurations [#1833](https://github.com/netket/netket/issues/1833).
+* Support NetKet's own linear solvers in {class}`netket.experimental.driver.VMC_SRt` [#1830](https://github.com/netket/netket/issues/1830).
 
 ### Deprecations
 
@@ -19,9 +21,36 @@
 * Drivers now always log Monte Carlo acceptance if you are using a Monte Carlo sampler [#1816](https://github.com/netket/netket/issues/1816).
 * {class}`netket.sampler.rules.ExchangeRule` now only proposes exchanges where the local degrees of freedom changes [#1815](https://github.com/netket/netket/issues/1815).
 * All solvers within `netket.optimizer.solver` now automatically return a partial capturing keyword arguments such as `rtol` and `rcond` if called with only the keyword arguments. This can be used to more easily set those optimizer options when constructing the solver to be passed to SR or other algorithms [#1817](https://github.com/netket/netket/issues/1817).
+* Unify the initialisation logic of {class}`netket.optimizer.qgt.QGTJacobianDense` and {class}`netket.optimizer.qgt.QGTJacobianPyTree`, providing a single entry point for defining the QGT constructors for custom variational states [#1320](https://github.com/netket/netket/pull/1320).
+* Fix serialisation of {class}`netket.sampler.SamplerState` RNG seed, which now will be correct under MPI and Sharding [#1823](https://github.com/netket/netket/issues/1823).
+* Ensure that {class}`netket.hilbert.DoubledSpace` is indexable in more situations when wrapping constrained Hilbert spaces [#1846](https://github.com/netket/netket/pull/1846).
+* Make the identity preconditioner an (empty) PyTree instead of a function [#1836](https://github.com/netket/netket/pull/1836).
+* Improve several aspects of the fermions API when working with systems that have Spin-1 or greater fermions [#1844](https://github.com/netket/netket/pull/1844).
+* Greatly improve the documentation of {func}`netket.jax.expect` and provide examples of how to use it when running with multiple MPI nodes [#1356](https://github.com/netket/netket/pull/1356).
 
 
-## NetKet 3.12.1 (Thursday 30 May)
+### Bug Fixes
+
+* When deserializing a variational state with flax, convert all arrays to {class}`jax.Array` instead of returning numpy arrays [#1842](https://github.com/netket/netket/issues/1842).
+* Fix internal issue with {class}`netket.utils.struct.Pytree` not inizializing default fields correctly [#1837](https://github.com/netket/netket/issues/1837).
+* Fix issue with {class}`netket.logging.JsonLog` raising an error at the end of a program because of a wrongly defined `__del__` method [#2dd40cf](https://github.com/netket/netket/commit/2dd40cf99caaa6e4dd43a235c62e2580ac54ded6)
+
+
+## NetKet 3.12.3 (25 June 2024)
+
+* Preliminary support for NumPy 2.0 [70e7801](https://github.com/netket/netket/commit/70e7801976db8c4ac160734d202c40f0834a649c).
+* Address function redefinition warning raised by recent Plum versions [#1848](https://github.com/netket/netket/issues/1848).
+* Fix a bug that prevented non-scalar `diag_scale` values to be specified for QGTJacobian` [742d231](https://github.com/netket/netket/commit/742d231f891a7a7f823c5e59f06251ed73baaaef).
+
+
+## NetKet 3.12.2 (15 June 2024)
+
+* Support jax 0.4.29
+* The `NETKET_MPI_AUTODETECT_LOCAL_GPU=1` environment variable to autoselect local GPUs when running under MPI has had a bug fixed that prevented it from working correctly [](https://github.com/netket/netket/commit/966cae8ce37bb8915811bb5a012b01cbb1531ba8).
+* A bug where running with `NETKET_EXPERIMENTAL_SHARDING=1 seeds where not correctly syncronised across different processes has been fixed [#1829](https://github.com/netket/netket/issues/1829).
+
+
+## NetKet 3.12.1 (30 May 2024)
 * This release fixes a bug in {class}`netket.sampler.MetropolisSamplerNumpy` that prevented it from working when using MPI [#1818](https://github.com/netket/netket/issues/1818).
 
 
