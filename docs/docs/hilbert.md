@@ -15,8 +15,8 @@ Classes whose edge is dashed are abstract classes, while the others are concrete
 
 ```{eval-rst}
 .. inheritance-diagram:: netket.hilbert
-	:top-classes: netket.hilbert.AbstractHilbert
-	:parts: 1
+    :top-classes: netket.hilbert.AbstractHilbert
+    :parts: 1
 
 ```
 
@@ -282,6 +282,77 @@ You can freely use {class}`~nk.hilbert.AbstractHilbert` objects inside of {func}
 
 All attributes and methods of Hilbert spaces can be freely used inside of a {func}`jax.jit` block.
 In particular the {meth}`~DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax {func}`jax.random.PRNGKey` object as the first argument.
+
+## Using custom constraints for Discrete Hilbert spaces
+
+Existing Hilbert spaces such as {class}`~nk.hilbert.Spin` or {class}`~nk.hilbert.Fock` support natively a constraint based on the total magnetization or population. However, at times you might want to work with some custom, more complex constraints.
+
+A constraint effectively declares that the Hilbert space you are working with is smaller than the original {class}`~nk.hilbert.Spin` or {class}`~nk.hilbert.Fock`, for example by only considering configurations with a well defined magnetization. Those are often associated to some simmetries.
+
+To work with a custom constraint, you must do 2 things:
+ - Define a custom constraint class, used to specify whether a configuration is valid or not. This must be a callable class inheriting from {class}`~nk.hilbert.DiscreteHilbertConstraint` that if passed a set of configurations will return an array of boolean flags telling netket whether those configurations are valid or not.
+ - You must define a custom {func}`nk.hilbert.random.random_state` dispatch rule specifying how to generate random configurations directly within the subspace. In principle this should return configurations distributed uniformly, but it is not terribly important (this is used to start the samplers, so even if it's a constant it might lead to worse warmup time but it might still work). 
+
+Both those methods should be implemented in such a way to be {func}`jax.jit`-table. If you can't write them in a jax-friendly way, you should call your function using {func}`jax.pure_callback`, which allows jax to call back into python functions.
+
+### Example
+
+In the following example, we will be implementing our own custom SumConstraint
+
+```python
+
+import netket as nk
+import jax; import jax.numpy as jnp
+
+class SumConstraint(nk.hilbert.DiscreteHilbertConstraint):
+    # A simple constraint checking that the total sum of the elements
+    # in the configuration is equal to a given value.
+
+    def __init__(self, total_sum):
+        self.total_sum = total_sum
+
+    def __call__(self, x):
+        # Makes it jax-compatible
+       return jnp.sum(x, axis=-1) == self.total_sum
+
+    def __hash__(self):
+        return hash(("SumConstraint", self.total_sum))
+
+    def __eq__(self, other):
+        if isinstance(other, SumConstraint):
+            return self.total_sum == other.total_sum
+        return False
+
+
+@nk.hilbert.random.random_state.dispatch
+def random_state_sumconstraint(
+        hilb: nk.hilb.Fock, constraint: SumConstraint, key, batches: int, *, dtype=None
+    ):
+    """
+    This function should return a batch of `batches` samples distributed uniformly.
+    If batches is 3, it should return a matrix of size `(3, hilb.size)`
+
+    As it can be very hard to write those functions in jax, a typical trick is to write them in 
+    Numpy and use a pure callback
+    """
+
+    def random_constraints_py(key):
+        # Create a RNG based on the provided key for reproducibility
+        rng = np.random.default_rng(np.array(key))
+        # generate random configurations...
+        # It should be a numpy matrix with shape (batches, hilb.size) and dtype dtype
+        return ...
+
+    return jax.pure_callback(random_constraints_py,
+        jax.ShapeDtypeStruct(hilb.size, dtype),
+        jax.random.key_data(key),
+        )
+    
+
+hi = nk.hilbert.Fock(0.5, 10, constraint=SumConstraint(0))
+``` 
+
+
 
 ### Adapting Hilbert spaces with numpy `states_to_numbers` / `numbers_to_states`
 
