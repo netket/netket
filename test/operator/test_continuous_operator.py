@@ -91,8 +91,8 @@ def test_is_hermitean():
 
 def test_potential_energy():
     x = jnp.zeros((1, 1))
-    energy1 = pot1._expect_kernel(model1, None, x, pot1._pack_arguments())
-    energy2 = pot2._expect_kernel(model1, None, x, pot2._pack_arguments())
+    energy1 = pot1._expect_kernel(model1, None, x)
+    energy2 = pot2._expect_kernel(model1, None, x)
     np.testing.assert_allclose(energy1, v1(x))
     np.testing.assert_allclose(energy2, v2_vec(x))
     with np.testing.assert_raises(NotImplementedError):
@@ -101,34 +101,33 @@ def test_potential_energy():
 
 def test_kinetic_energy():
     x = jnp.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]])
-    energy1 = kin1._expect_kernel(model2, 0.0, x, kin1._pack_arguments())
-    energy2 = kin1._expect_kernel(model3, 1.0 + 1.0j, x, kin1._pack_arguments())
+    energy1 = kin1._expect_kernel(model2, 0.0, x)
+    energy2 = kin1._expect_kernel(model3, 1.0 + 1.0j, x )
     kinen1 = kinexact(x) / kin1.mass
     kinen2 = kinexact2(1.0 + 1.0j, x) / kin1.mass
     np.testing.assert_allclose(energy1, kinen1)
     np.testing.assert_allclose(energy2, kinen2)
-    np.testing.assert_allclose(kin1.mass * kin1._pack_arguments(), 1.0)
     np.testing.assert_equal("KineticEnergy(m=20.0)", repr(kin1))
 
 
 def test_sumoperator():
     x = jnp.array([[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]])
-    potenergy = pottot._expect_kernel(model2, 0.0, x, pottot._pack_arguments())
-    energy10p52 = pot10p52._expect_kernel(model2, 0.0, x, pot10p52._pack_arguments())
+    potenergy = pottot._expect_kernel(model2, 0.0, x)
+    energy10p52 = pot10p52._expect_kernel(model2, 0.0, x)
 
     np.testing.assert_allclose(potenergy, v1(x) + v2_vec(x))
     np.testing.assert_allclose(energy10p52, v1(x) + 0.5 * v2_vec(x))
 
-    kinenergy = kintot._expect_kernel(model2, 0.0, x, kintot._pack_arguments())
+    kinenergy = kintot._expect_kernel(model2, 0.0, x)
     kinenergyex = kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
     np.testing.assert_allclose(kinenergy, kinenergyex)
 
-    kinen10p52 = kin10p52._expect_kernel(model2, 0.0, x, kin10p52._pack_arguments())
+    kinen10p52 = kin10p52._expect_kernel(model2, 0.0, x)
     kinenergy10p52ex = kinexact(x) / kin1.mass + 0.5 * kinexact(x) / kin2.mass
     np.testing.assert_allclose(kinen10p52, kinenergy10p52ex)
 
-    enertot = etot._expect_kernel(model2, 0.0, x, etot._pack_arguments())
-    enertot2 = etot2._expect_kernel(model2, 0.0, x, etot2._pack_arguments())
+    enertot = etot._expect_kernel(model2, 0.0, x)
+    enertot2 = etot2._expect_kernel(model2, 0.0, x)
     enerexact = v1(x) + v2_vec(x) + kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
     np.testing.assert_allclose(enertot, enerexact)
     np.testing.assert_allclose(enertot2, enerexact)
@@ -151,19 +150,19 @@ def test_dtype(dtype_op, dtype_x):
     assert pot.dtype == dtype_op
     assert pot.coefficient.dtype == dtype_op
 
-    energy = pot1._expect_kernel(model3, 0.0, x, pot._pack_arguments())
+    energy = pot1._expect_kernel(model3, 0.0, x)
     assert energy.dtype == dtype_energy
 
     kin = netket.operator.KineticEnergy(hilb, mass=1.0, dtype=dtype_op)
     assert kin.dtype == dtype_op
     assert kin.mass.dtype == dtype_op
 
-    energy = kin._expect_kernel(model3, 0.0, x, kin._pack_arguments())
+    energy = kin._expect_kernel(model3, 0.0, x)
     assert energy.dtype == dtype_energy
 
     etot = pot + kin
     assert etot.dtype == dtype_op
     assert etot.coefficients.dtype == dtype_op
 
-    energy = etot._expect_kernel(model3, 0.0, x, etot._pack_arguments())
+    energy = etot._expect_kernel(model3, 0.0, x)
     assert energy.dtype == dtype_energy
