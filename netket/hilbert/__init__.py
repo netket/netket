@@ -14,7 +14,7 @@
 
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
-from .homogeneous import HomogeneousHilbert
+from .homogeneous import HomogeneousHilbert, DiscreteHilbertConstraint
 
 from .continuous_hilbert import ContinuousHilbert
 

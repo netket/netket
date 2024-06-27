@@ -75,9 +75,7 @@ Those classes cannot be directly instantiated, but you can inherit from one of t
 
 ```
 
-### Random submodule
-
-When defining a new Hilbert space, you must define how to uniformly sample the basis elements of that Hilbert space by defining some dispatch rules for those functions.
+### Constraints
 
 ```{eval-rst}
 .. currentmodule:: netket.hilbert
@@ -87,7 +85,22 @@ When defining a new Hilbert space, you must define how to uniformly sample the b
    :template: class
    :nosignatures:
 
+   DiscreteHilbertConstraint
+```
+
+### Random submodule
+
+When defining a new Hilbert space, you must define how to uniformly sample the basis elements of that Hilbert space by defining some dispatch rules for those functions.
+
+```{eval-rst}
+.. currentmodule:: netket.hilbert
+
+.. autosummary::
+   :toctree: _generated/hilbert
+   :nosignatures:
+
    random.flip_state
    random.random_state
+   index.optimalConstrainedHilbertindex
 ```
 
