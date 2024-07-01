@@ -50,3 +50,7 @@ jobs:
       - name: run tests
         run: |
           ./test_sharding/"${{ matrix.runscript }}"
+
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
