@@ -1,0 +1,52 @@
+name: CI_sharding
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+
+jobs:
+  test_sharding:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: self-hosted
+            python-version: "3.10"
+            mpi: "openmpi"
+            runscript: "run_test_sharding_distributed.sh"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-tags: true
+
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: yezz123/setup-uv@v4
+        with:
+          uv-venv: .venv
+
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        if: matrix.mpi != ''
+        with:
+          mpi: ${{ matrix.mpi }}
+
+      - name: Pip install packages
+        run: |
+          uv pip install jaxlib
+          uv pip install -e ".[dev,extra]"
+
+      - name: run tests
+        run: |
+          ./test_sharding/"${{ matrix.runscript }}"
