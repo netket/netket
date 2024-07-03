@@ -13,6 +13,7 @@
 # limitations under the License.
 from netket.utils.numbers import is_scalar
 from ._discrete_operator import DiscreteOperator
+from ._local_operator import LocalOperator
 
 
 class SpecialHamiltonian(DiscreteOperator):
@@ -30,7 +31,7 @@ class SpecialHamiltonian(DiscreteOperator):
             res = res.__iadd__(other)
             if res is not NotImplemented:
                 return res
-        if is_scalar(other):
+        if is_scalar(other) or type(other) is LocalOperator:
             return self.to_local_operator().__add__(other)
         return self.to_local_operator().__add__(other.to_local_operator())
 
@@ -40,7 +41,7 @@ class SpecialHamiltonian(DiscreteOperator):
             res = res.__isub__(other)
             if res is not NotImplemented:
                 return res
-        if is_scalar(other):
+        if is_scalar(other) or type(other) is LocalOperator:
             return self.to_local_operator().__sub__(other)
         return self.to_local_operator().__sub__(other.to_local_operator())
 
