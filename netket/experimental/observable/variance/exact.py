@@ -89,6 +89,6 @@ def expect_and_grad_inner_fs(
     var, var_vjp_fun = nkjax.vjp(expect_kernel_var, params, conjugate=True)
 
     var_grad = var_vjp_fun(jnp.ones_like(var))[0]
-    var_grad = jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], var_grad)
+    var_grad = jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], var_grad)
 
     return Stats(mean=var, error_of_mean=0.0, variance=0.0), var_grad
