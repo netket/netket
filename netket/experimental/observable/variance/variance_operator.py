@@ -70,7 +70,10 @@ class VarianceOperator(AbstractObservable):
     @property
     def op2(self)-> AbstractOperator:
         """
-        The squared of the opeator for which the variance is to be computed.
+        The squared of the operator for which the variance is to be computed.
+        Depending on the flag `use_Oloc2`, this can be the operator using the local 
+        estimator of `O^2` (True), or the one using the square modulus of the
+        local estimator of `O` (False).
         """
         return self._op2
 
