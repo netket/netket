@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from netket.utils.numbers import is_scalar
 from ._discrete_operator import DiscreteOperator
 
 
@@ -27,46 +27,40 @@ class SpecialHamiltonian(DiscreteOperator):
     def __add__(self, other):
         if type(self) is type(other):
             res = self.copy()
-            res += other
-            return res
-
-        return self.to_local_operator().__add__(other)
+            res = res.__iadd__(other)
+            if res is not NotImplemented:
+                return res
+        if is_scalar(other):
+            return self.to_local_operator().__add__(other)
+        return self.to_local_operator().__add__(other.to_local_operator())
 
     def __sub__(self, other):
         if type(self) is type(other):
             res = self.copy()
-            res -= other
-            return res
-
-        return self.to_local_operator().__sub__(other)
+            res = res.__isub__(other)
+            if res is not NotImplemented:
+                return res
+        if is_scalar(other):
+            return self.to_local_operator().__sub__(other)
+        return self.to_local_operator().__sub__(other.to_local_operator())
 
     def __radd__(self, other):
-        if type(self) is type(other):
-            res = self.copy()
-            res += other
-            return res
-
         return self.to_local_operator().__radd__(other)
 
     def __rsub__(self, other):
-        if type(self) is type(other):
-            res = self.copy()
-            res -= other
-            return res
-
         return self.to_local_operator().__rsub__(other)
 
     def __iadd__(self, other):
         if type(self) is type(other):
-            self._iadd_same_hamiltonian(other)
-            return self
+            res = self._iadd_same_hamiltonian(other)
+            return res
 
         return NotImplemented
 
     def __isub__(self, other):
         if type(self) is type(other):
-            self._isub_same_hamiltonian(other)
-            return self
+            res = self._isub_same_hamiltonian(other)
+            return res
 
         return NotImplemented
 
@@ -80,6 +74,9 @@ class SpecialHamiltonian(DiscreteOperator):
         if hasattr(other, "to_local_operator"):
             other = other.to_local_operator()
         return self.to_local_operator().__matmul__(other)
+
+    def __neg__(self):
+        return -1 * self.to_local_operator()
 
     def _op__rmatmul__(self, other):
         if hasattr(other, "to_local_operator"):

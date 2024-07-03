@@ -17,6 +17,7 @@ hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 operators["Ising 1D"] = nk.operator.Ising(hi, g, h=1.321)
 operators["Ising 1D Jax"] = nk.operator.IsingJax(hi, g, h=1.321)
 
+
 # Heisenberg 1D
 g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
@@ -354,6 +355,24 @@ def test_enforce_float_Ising():
     assert np.issubdtype(op.dtype, np.floating)
     op = nk.operator.IsingJax(hilbert=hi, graph=g, J=1, h=1)
     assert np.issubdtype(op.dtype, np.floating)
+
+
+def test_add_Ising_different_graphs():
+    hi = nk.hilbert.Spin(s=0.5, N=3)
+    g = nk.graph.Graph(edges=[[0, 1], [1, 2]], n_nodes=3)
+    h1 = nk.operator.Ising(hi, g, h=1)
+    g = nk.graph.Graph(edges=[[2, 1], [0, 1]], n_nodes=3)
+    h2 = nk.operator.Ising(hi, g, h=0.5)
+    g = nk.graph.Graph(edges=[[2, 1], [0, 2]], n_nodes=3)
+    h3 = nk.operator.Ising(hi, g, h=0.5)
+
+    h12 = h1 + h2
+    h13 = h1 + h3
+    assert type(h12) == nk.operator.Ising
+    assert type(h13) == nk.operator.LocalOperator
+    np.testing.assert_allclose(h12.to_dense(), h1.to_dense() + h2.to_dense())
+    np.testing.assert_allclose(h13.to_dense(), h1.to_dense() + h3.to_dense())
+    np.testing.assert_allclose((-h1).to_dense(), -h1.to_dense())
 
 
 def test_enforce_float_BoseHubbard():

@@ -317,7 +317,6 @@ class LocalOperatorBase(DiscreteOperator):
             self._reset_caches()
             self._constant += other
             return self
-
         return NotImplemented
 
     def __truediv__(self, other):
