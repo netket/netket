@@ -29,7 +29,7 @@ class SpecialHamiltonian(DiscreteOperator):
         if type(self) is type(other):
             res = self.copy()
             res = res.__iadd__(other)
-            if res is not NotImplemented:
+            if isinstance(res, SpecialHamiltonian):
                 return res
         if is_scalar(other) or type(other) is LocalOperator:
             return self.to_local_operator().__add__(other)
@@ -39,7 +39,7 @@ class SpecialHamiltonian(DiscreteOperator):
         if type(self) is type(other):
             res = self.copy()
             res = res.__isub__(other)
-            if res is not NotImplemented:
+            if isinstance(res, SpecialHamiltonian):
                 return res
         if is_scalar(other) or type(other) is LocalOperator:
             return self.to_local_operator().__sub__(other)
