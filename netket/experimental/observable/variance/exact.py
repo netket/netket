@@ -30,7 +30,7 @@ def expect(vstate: FullSumState, variance_operator: VarianceOperator):
         raise TypeError("Hilbert spaces should match")
 
     operator_mtrx = variance_operator.operator.to_dense()
-    operator2_mtrx = variance_operator.operator_squared.to_dense()
+    operator_squared_mtrx = variance_operator.operator_squared.to_dense()
 
     return expect_and_grad_inner_fs(
         vstate._apply_fun,
