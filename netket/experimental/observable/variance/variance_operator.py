@@ -41,7 +41,7 @@ class VarianceOperator(AbstractObservable):
 
     """
 
-    def __init__(self, op: AbstractOperator, use_Oloc2: bool=False):
+    def __init__(self, operator: AbstractOperator, use_Oloc2: bool=False):
         """
         Constructs the VariationalOperator wrapping an operator such that the gradient will not be computed
         with respect to the expectation value, but with respect to the variance.
@@ -52,30 +52,30 @@ class VarianceOperator(AbstractObservable):
                         If False, uses only the operator `O` for variance computation (defaults to False).
 
         """
-        super().__init__(op.hilbert)
-        self._op = op
+        super().__init__(operator.hilbert)
+        self._operator = operator
 
         if use_Oloc2:
-            self._op2 = nk.operator.Squared(op)
+            self._operator_squared = nk.operator.Squared(operator)
         else:
-            self._op2 = op @ op
+            self._operator_squared = operator @ operator
 
     @property
-    def op(self) -> AbstractOperator:
+    def operator(self) -> AbstractOperator:
         """
-        The opeator for which the variance is to be computed.
+        The operator for which the variance is to be computed.
         """
-        return self._op
+        return self._operator
 
     @property
-    def op2(self)-> AbstractOperator:
+    def operator_squared(self)-> AbstractOperator:
         """
         The squared of the operator for which the variance is to be computed.
         Depending on the flag `use_Oloc2`, this can be the operator using the local 
         estimator of `O^2` (True), or the one using the square modulus of the
         local estimator of `O` (False).
         """
-        return self._op2
+        return self._operator_squared
 
     def __repr__(self):
-        return f"VarianceOperator(op={self.op})"
+        return f"VarianceOperator(op={self.operator})"

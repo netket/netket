@@ -30,15 +30,15 @@ from .variance_operator import VarianceOperator
 
 
 @expect.dispatch
-def expect(vstate: MCState, varop: VarianceOperator, chunk_size: None):
-    if varop.hilbert != vstate.hilbert:
+def expect(vstate: MCState, variance_operator: VarianceOperator, chunk_size: None):
+    if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
-    local_kernel = get_local_kernel(vstate, varop.op)
-    local_kernel2 = get_local_kernel(vstate, varop.op2)
+    local_kernel = get_local_kernel(vstate, variance_operator.operator)
+    local_kernel2 = get_local_kernel(vstate, variance_operator.operator_squared)
 
-    sigma, args = get_local_kernel_arguments(vstate, varop.op)
-    sigma, args2 = get_local_kernel_arguments(vstate, varop.op2)
+    sigma, args = get_local_kernel_arguments(vstate, variance_operator.operator)
+    sigma, args2 = get_local_kernel_arguments(vstate, variance_operator.operator_squared)
 
     return expect_and_grad_inner_mc(
         vstate._apply_fun,
@@ -56,19 +56,19 @@ def expect(vstate: MCState, varop: VarianceOperator, chunk_size: None):
 @expect_and_grad.dispatch
 def expect_and_grad(
     vstate: MCState,
-    varop: VarianceOperator,
+    variance_operator: VarianceOperator,
     chunk_size: None,
     *,
     mutable,
 ):
-    if varop.hilbert != vstate.hilbert:
+    if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
-    local_kernel = get_local_kernel(vstate, varop.op)
-    local_kernel2 = get_local_kernel(vstate, varop.op2)
+    local_kernel = get_local_kernel(vstate, variance_operator.operator)
+    local_kernel2 = get_local_kernel(vstate, variance_operator.operator_squared)
 
-    sigma, args = get_local_kernel_arguments(vstate, varop.op)
-    sigma, args2 = get_local_kernel_arguments(vstate, varop.op2)
+    sigma, args = get_local_kernel_arguments(vstate, variance_operator.operator)
+    sigma, args2 = get_local_kernel_arguments(vstate, variance_operator.operator_squared)
 
     return expect_and_grad_inner_mc(
         vstate._apply_fun,

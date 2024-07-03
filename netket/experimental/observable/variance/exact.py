@@ -25,20 +25,20 @@ from .variance_operator import VarianceOperator
 
 
 @expect.dispatch
-def expect(vstate: FullSumState, varop: VarianceOperator):
-    if varop.hilbert != vstate.hilbert:
+def expect(vstate: FullSumState, variance_operator: VarianceOperator):
+    if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
-    op_mtrx = varop.op.to_dense()
-    op2_mtrx = varop.op2.to_dense()
+    operator_mtrx = variance_operator.operator.to_dense()
+    operator2_mtrx = variance_operator.operator_squared.to_dense()
 
     return expect_and_grad_inner_fs(
         vstate._apply_fun,
         vstate.parameters,
         vstate.model_state,
         vstate._all_states,
-        op_mtrx,
-        op2_mtrx,
+        operator_mtrx,
+        operator_squared_mtrx,
         return_grad=False,
     )
 
@@ -46,30 +46,30 @@ def expect(vstate: FullSumState, varop: VarianceOperator):
 @expect_and_grad.dispatch
 def expect_and_grad(
     vstate: FullSumState,
-    varop: VarianceOperator,
+    variance_operator: VarianceOperator,
     *,
     mutable,
 ):
-    if varop.hilbert != vstate.hilbert:
+    if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
-    op_mtrx = varop.op.to_dense()
-    op2_mtrx = varop.op2.to_dense()
+    operator_mtrx = variance_operator.operator.to_dense()
+    operator_squared_mtrx = variance_operator.operator_squared.to_dense()
 
     return expect_and_grad_inner_fs(
         vstate._apply_fun,
         vstate.parameters,
         vstate.model_state,
         vstate._all_states,
-        op_mtrx,
-        op2_mtrx,
+        operator_mtrx,
+        operator_squared_mtrx,
         return_grad=True,
     )
 
 
 @partial(jax.jit, static_argnames=("afun", "return_grad"))
 def expect_and_grad_inner_fs(
-    afun, params, model_state, sigma, op_mtrx, op2_mtrx, return_grad
+    afun, params, model_state, sigma, operator_mtrx, operator_squared_mtrx, return_grad
 ):
     def expect_kernel_var(params):
         W = {"params": params, **model_state}
@@ -77,8 +77,8 @@ def expect_and_grad_inner_fs(
         state = jnp.exp(afun(W, sigma))
         state = state / jnp.linalg.norm(state)
 
-        O_mean = state.conj() @ (op_mtrx @ state)
-        O2_mean = state.conj() @ (op2_mtrx @ state)
+        O_mean = state.conj() @ (operator_mtrx @ state)
+        O2_mean = state.conj() @ (operator_squared_mtrx @ state)
 
         return O2_mean - O_mean**2
 
