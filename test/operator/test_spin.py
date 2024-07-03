@@ -7,6 +7,7 @@ from numpy.testing import assert_almost_equal
 
 # TODO: once we require np 2.0.0, we can remove this
 from netket.utils import module_version
+
 if module_version(np) >= (2, 0, 0):
     from numpy.exceptions import ComplexWarning
 else:
