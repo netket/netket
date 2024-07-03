@@ -22,12 +22,9 @@ jobs:
         with:
           python-version: "3.10"
 
-      - uses: yezz123/setup-uv@v4
-        with:
-          uv-venv: .venv
-
       - name: Install black
         run: |
+          pip install uv
           uv pip install -v black==23.9.1
 
       - name: Black Code Formatter

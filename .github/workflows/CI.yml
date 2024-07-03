@@ -57,10 +57,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: yezz123/setup-uv@v4
-        with:
-          uv-venv: .venv
-
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
         if: matrix.mpi != ''
@@ -70,6 +66,7 @@ jobs:
       - name: Install packages
         if: ${{ ! matrix.oldest_deps }}
         run: |
+          pip install uv
           uv pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
             uv pip install -e ".[dev,extra,pyscf]"
