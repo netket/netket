@@ -67,13 +67,13 @@ jobs:
         if: ${{ ! matrix.oldest_deps }}
         run: |
           pip install uv
-          uv pip install jaxlib
+          uv pip install --system jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
-            uv pip install -e ".[dev,extra,pyscf]"
+            uv pip install --system -e ".[dev,extra,pyscf]"
           else
-            uv pip install -e ".[dev,mpi]"
+            uv pip install --system -e ".[dev,mpi]"
           fi
-          uv pip install dm-haiku
+          uv pip install --system dm-haiku
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}

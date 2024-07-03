@@ -25,7 +25,7 @@ jobs:
       - name: Install black
         run: |
           pip install uv
-          uv pip install -v black==23.9.1
+          uv pip install --system -v black==23.9.1
 
       - name: Black Code Formatter
         run: black --check --diff --color .
