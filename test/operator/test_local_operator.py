@@ -11,10 +11,16 @@ from netket.operator.boson import (
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 from netket.operator import AbstractOperator, LocalOperator
+from netket.utils import module_version
 
 import pytest
 from pytest import raises
 
+# TODO: once we require np 2.0.0, we can remove this
+if module_version(np) >= (2, 0, 0):
+    from numpy.exceptions import ComplexWarning
+else:
+    from numpy import ComplexWarning
 
 import jax
 
@@ -636,7 +642,7 @@ def test_pauli_strings_conversion():
 
 def test_pauli_strings_conversion_no_warn():
     with warnings.catch_warnings():
-        warnings.filterwarnings("error", category=np.ComplexWarning)
+        warnings.filterwarnings("error", category=ComplexWarning)
         nk.operator.spin.sigmax(nk.hilbert.Spin(0.5, 3), 0).to_pauli_strings()
 
     with pytest.raises(
