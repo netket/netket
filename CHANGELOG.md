@@ -36,11 +36,6 @@
 * Fix issue with {class}`netket.logging.JsonLog` raising an error at the end of a program because of a wrongly defined `__del__` method [#2dd40cf](https://github.com/netket/netket/commit/2dd40cf99caaa6e4dd43a235c62e2580ac54ded6)
 
 
-## NetKet 3.12.4
-
-* Fix bug [#1850](https://github.com/netket/netket/issues/1850) where adding two {class}`netket.operator.Ising` acting on different graphs would yield a wrong operator [#1851](https://github.com/netket/netket/issues/1851).
-
-
 ## NetKet 3.12.3 (25 June 2024)
 
 * Preliminary support for NumPy 2.0 [70e7801](https://github.com/netket/netket/commit/70e7801976db8c4ac160734d202c40f0834a649c).
