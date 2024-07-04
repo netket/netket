@@ -197,12 +197,7 @@ class IsingBase(SpecialHamiltonian):
                 "Cannot add hamiltonians on different hilbert spaces"
             )
 
-        if self._edges.shape[0] != other.edges.shape[0] or np.any(
-            [
-                edge not in np.sort(other._edges, axis=-1).tolist()
-                for edge in np.sort(self._edges, axis=-1).tolist()
-            ]
-        ):
+        if not np.allclose(self.edges, other.edges):
             return NotImplemented
 
         self._h -= other.h

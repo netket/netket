@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from netket.utils.numbers import is_scalar
 
 from ._discrete_operator import DiscreteOperator
-from ._local_operator import LocalOperator
 
 
 class SpecialHamiltonian(DiscreteOperator):
@@ -30,7 +28,7 @@ class SpecialHamiltonian(DiscreteOperator):
         if type(self) is type(other):
             res = self.copy()
             res = res.__iadd__(other)
-            if isinstance(res, SpecialHamiltonian):
+            if res is not NotImplemented:
                 return res
 
         return self.to_local_operator() + other
@@ -39,7 +37,7 @@ class SpecialHamiltonian(DiscreteOperator):
         if type(self) is type(other):
             res = self.copy()
             res = res.__isub__(other)
-            if isinstance(res, SpecialHamiltonian):
+            if res is not NotImplemented:
                 return res
 
         return self.to_local_operator() - other

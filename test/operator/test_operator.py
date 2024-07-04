@@ -361,7 +361,6 @@ def test_add_Ising_different_graphs():
     hi = nk.hilbert.Spin(s=0.5, N=3)
     g = nk.graph.Graph(edges=[[0, 1], [1, 2]], n_nodes=3)
     h1 = nk.operator.Ising(hi, g, h=1)
-    g = nk.graph.Graph(edges=[[2, 1], [0, 1]], n_nodes=3)
     h2 = nk.operator.Ising(hi, g, h=0.5)
     g = nk.graph.Graph(edges=[[2, 1], [0, 2]], n_nodes=3)
     h3 = nk.operator.Ising(hi, g, h=0.5)
