@@ -4,6 +4,10 @@ name: Checks
 # events but only for the master branch
 on: pull_request
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   check:
@@ -22,13 +26,10 @@ jobs:
         with:
           python-version: "3.10"
 
-      - uses: yezz123/setup-uv@v4
-        with:
-          uv-venv: .venv
-
       - name: Install black
         run: |
-          uv pip install -v black==23.9.1
+          pip install uv
+          uv pip install --system -v black==23.9.1
 
       - name: Black Code Formatter
         run: black --check --diff --color .

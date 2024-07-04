@@ -7,6 +7,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'master')}}
+
 jobs:
   test_sharding:
     runs-on: ${{ matrix.os }}
@@ -45,10 +49,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: yezz123/setup-uv@v4
-        with:
-          uv-venv: .venv
-
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
         if: matrix.mpi != ''
@@ -57,8 +57,9 @@ jobs:
 
       - name: Pip install packages
         run: |
-          uv pip install jaxlib
-          uv pip install -e ".[dev,extra]"
+          pip install uv
+          uv pip install --system jaxlib
+          uv pip install --system -e ".[dev,extra]"
 
       - name: run tests
         run: |
