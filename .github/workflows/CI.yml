@@ -7,6 +7,12 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  cancel-in-progress: ${{ !contains(github.ref, 'master')}}
+
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
