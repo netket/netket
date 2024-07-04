@@ -4,7 +4,7 @@ import numpy as np
 
 import pytest
 
-from ...variational.finite_diff import central_diff_grad, same_derivatives
+from ..variational.finite_diff import central_diff_grad, same_derivatives
 
 
 def _setup(useExactSampler=True):
