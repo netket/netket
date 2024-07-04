@@ -32,9 +32,8 @@ class SpecialHamiltonian(DiscreteOperator):
             res = res.__iadd__(other)
             if isinstance(res, SpecialHamiltonian):
                 return res
-        if is_scalar(other) or type(other) is LocalOperator:
-            return self.to_local_operator().__add__(other)
-        return self.to_local_operator().__add__(other.to_local_operator())
+
+        return self.to_local_operator() + other
 
     def __sub__(self, other):
         if type(self) is type(other):
