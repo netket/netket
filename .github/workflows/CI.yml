@@ -25,7 +25,7 @@ jobs:
             doctest: true
             oldest_deps: false
 
-          - os: ubuntu-latest
+          - os: self-hosted
             python-version: "3.12"
             mpi: ""
             main_tests: true
