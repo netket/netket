@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from netket.utils.numbers import is_scalar
+
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 
