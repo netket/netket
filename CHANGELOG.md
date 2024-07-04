@@ -1,6 +1,18 @@
 ```{currentmodule} netket
 ```
 
+## NetKet 3.12.4
+
+* Fix bug [#1850](https://github.com/netket/netket/issues/1850) where adding two {class}`netket.operator.Ising` acting on different graphs would yield a wrong operator [#1851](https://github.com/netket/netket/issues/1851).
+
+
+## NetKet 3.12.3 (25 June 2024)
+
+* Preliminary support for NumPy 2.0 [70e7801](https://github.com/netket/netket/commit/70e7801976db8c4ac160734d202c40f0834a649c).
+* Address function redefinition warning raised by recent Plum versions [#1848](https://github.com/netket/netket/issues/1848).
+* Fix a bug that prevented non-scalar `diag_scale` values to be specified for QGTJacobian` [742d231](https://github.com/netket/netket/commit/742d231f891a7a7f823c5e59f06251ed73baaaef).
+
+
 ## NetKet 3.12.2 (15 June 2024)
 Bugfix release for several internal utilities.
 
