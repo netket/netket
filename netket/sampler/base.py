@@ -57,7 +57,7 @@ class Sampler(struct.Pytree):
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """The Hilbert space to sample."""
 
-    machine_pow: int = struct.field(default=2)
+    machine_pow: float = struct.field(default=2.0)
     """The power to which the machine should be exponentiated to generate the pdf."""
 
     dtype: DType = struct.field(pytree_node=False, default=float)
@@ -67,7 +67,7 @@ class Sampler(struct.Pytree):
         self,
         hilbert: AbstractHilbert,
         *,
-        machine_pow: int = 2,
+        machine_pow: float = 2.0,
         dtype: DType = float,
     ):
         """
@@ -92,10 +92,10 @@ class Sampler(struct.Pytree):
                 "\n"
             )
 
-        if not np.issubdtype(numbers.dtype(machine_pow), np.integer):
-            raise ValueError(
-                f"machine_pow ({self.machine_pow}) must be a positive integer"
-            )
+        if machine_pow.imag != 0.0:
+            raise ValueError(f"machine_pow ({machine_pow}) must be real")
+        if not machine_pow > 0.0:
+            raise ValueError(f"machine_pow ({machine_pow}) must be positive")
 
         self.hilbert = hilbert
         self.machine_pow = machine_pow
