@@ -41,7 +41,7 @@ class VarianceOperator(AbstractObservable):
 
     """
 
-    def __init__(self, operator: AbstractOperator, use_Oloc2: bool=False):
+    def __init__(self, operator: AbstractOperator, use_Oloc2: bool = False):
         """
         Constructs the VariationalOperator wrapping an operator such that the gradient will not be computed
         with respect to the expectation value, but with respect to the variance.
@@ -68,10 +68,10 @@ class VarianceOperator(AbstractObservable):
         return self._operator
 
     @property
-    def operator_squared(self)-> AbstractOperator:
+    def operator_squared(self) -> AbstractOperator:
         """
         The squared of the operator for which the variance is to be computed.
-        Depending on the flag `use_Oloc2`, this can be the operator using the local 
+        Depending on the flag `use_Oloc2`, this can be the operator using the local
         estimator of `O^2` (True), or the one using the square modulus of the
         local estimator of `O` (False).
         """

@@ -38,7 +38,9 @@ def expect(vstate: MCState, variance_operator: VarianceOperator, chunk_size: Non
     local_kernel2 = get_local_kernel(vstate, variance_operator.operator_squared)
 
     sigma, args = get_local_kernel_arguments(vstate, variance_operator.operator)
-    sigma, args2 = get_local_kernel_arguments(vstate, variance_operator.operator_squared)
+    sigma, args2 = get_local_kernel_arguments(
+        vstate, variance_operator.operator_squared
+    )
 
     return expect_and_grad_inner_mc(
         vstate._apply_fun,
@@ -68,7 +70,9 @@ def expect_and_grad(
     local_kernel2 = get_local_kernel(vstate, variance_operator.operator_squared)
 
     sigma, args = get_local_kernel_arguments(vstate, variance_operator.operator)
-    sigma, args2 = get_local_kernel_arguments(vstate, variance_operator.operator_squared)
+    sigma, args2 = get_local_kernel_arguments(
+        vstate, variance_operator.operator_squared
+    )
 
     return expect_and_grad_inner_mc(
         vstate._apply_fun,
