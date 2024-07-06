@@ -44,11 +44,27 @@ def autoset_default_gpu(COMM: Optional["mpi4py.MPI.Intracomm"], verbose: bool = 
     devices = jax.devices()
     if len(devices) > 1 and any(d.platform == "gpu" for d in devices):
         local_rank = get_local_rank(COMM)
-        jax.config.update("jax_default_device", devices[local_rank])
+
         logger = logging.getLogger()
         logger.info(
-            f"Determined that rank {COMM.Get_rank()} will be using GPU[{local_rank}/{len(devices)}]"
+            f"Rank {COMM.Get_rank()}/{COMM.Get_size()} has local rank {local_rank} and "
+            f"will be using GPU[{local_rank}/{len(devices)}]"
         )
+        is_not_ok = local_rank >= len(devices)
+        if any(COMM.allgather(is_not_ok)):
+            print(
+                f"Some local rank is greater than the number of devices per rank ({len(devices)})."
+                "You might have a misconfigured number of rank per nodes (if on SLURM, did you specify"
+                "n_ranks_per_node correctly?)",
+                flush=True,
+            )
+            COMM.Barrier()
+            raise RuntimeError(
+                "Incorrect number of ranks per node: there are too many ranks on"
+                "some nodes and not enough GPUs!"
+            )
+
+        jax.config.update("jax_default_device", devices[local_rank])
 
 
 def get_local_rank(COMM: Optional["mpi4py.MPI.Intracomm"] = None, verbose=False) -> int:
