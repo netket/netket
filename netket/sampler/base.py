@@ -67,7 +67,7 @@ class Sampler(struct.Pytree):
         self,
         hilbert: AbstractHilbert,
         *,
-        machine_pow: float = 2.0,
+        machine_pow: float = 2,
         dtype: DType = float,
     ):
         """
