@@ -112,9 +112,9 @@ See {ref}`this block <warn-mpi-sampling>` to understand how NetKet behaves under
 ````{admonition} CUDA
 :class: warning
 
-If you wish to use multi-GPU setups through MPI, you **must** install jax as `'jax[cuda12_local]'` and cannot use the `'jax[cuda12_pip]'` variant. 
+If you wish to use multi-GPU setups through MPI, you **must** install jax as `'jax[cuda12_local]'` and cannot use the `'jax[cuda12]'` variant. 
 
-This is because `cuda12_pip` installs CUDA through pip, which does not include the nvidia compiler `nvcc`, which in turn it is needed to install `mpi4jax`. If, for any reason, you already have `nvcc` but are using `cuda12_pip`, installation might not fail but you will get an error due to version mismatch of cuda versions at runtime.
+This is because `cuda12` installs CUDA through pip, which does not include the nvidia compiler `nvcc`, which in turn it is needed to install `mpi4jax`. If, for any reason, you already have `nvcc` but are using `cuda12`, installation might not fail but you will get an error due to version mismatch of cuda versions at runtime.
 
 ````
 

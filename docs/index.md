@@ -47,6 +47,7 @@ Guidelines on citation are provided in the [Citation](https://www.netket.org/cit
 
 docs/install
 docs/parallelization
+docs/clusters
 docs/sharp-bits
 ```   
 

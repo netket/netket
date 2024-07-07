@@ -1,9 +1,10 @@
 # Parallelization
 
-NetKet makes use of parallelism in two principal ways:
+When running on many CPUs or GPUs there are the following options to speed up your calculations using NetKet and jax:
 
-- By leveraging the just-in-time compilation of XLA vector-instructions are used on CPU (as well as [multiple threads for certain linear algebra operations](xla_multithread)), and, similarly, calculations are parallelized to run on all available cuda cores on GPU.
-- Explicit parallelization by distributing the markov chains and samples across multiples nodes/devices. This is achieved by using [MPI (with mpi4jax)](mpi), or alternatively by using [native collective communication built into jax](sharding) (still experimental).
+- (Default) NetKet will use only the jax default device `jax.local_devices()[0]`. This corresponds to your first GPU (if present) or your CPU. If running on CPU, NetKet/jax will only marginally benefit from having more than 2 CPU Cores, but you should benchmark.
+- (MPI, Stable) Explicit parallelization by distributing the markov chains and samples across multiples nodes/devices. This is achieved by using [MPI (with mpi4jax)](mpi). When using MPI, netket/jax will only use the jax default device `jax.local_devices()[0]` on every rank, and you must ensure that this corresponds to different devices (either cores or GPUs).
+- (Sharding, Experimental) [native collective communication built into jax](sharding) is an experimental mode of distribution of work that works using some native jax mechanism. This usually is outperformed by MPI, but some particular advanced use-cases might benefit from it. To learn more about it, you should check jax sharding guidelines on their documentation.
 
 (mpi)=
 ## MPI (mpi4jax)
