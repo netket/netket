@@ -28,6 +28,7 @@
 * Improve several aspects of the fermions API when working with systems that have Spin-1 or greater fermions [#1844](https://github.com/netket/netket/pull/1844).
 * Greatly improve the documentation of {func}`netket.jax.expect` and provide examples of how to use it when running with multiple MPI nodes [#1356](https://github.com/netket/netket/pull/1356).
 * Supports Numpy 2.0 [#1852](https://github.com/netket/netket/pull/1852).
+* Supports any positive real power `machine_pow` of the wave function amplitude as probability distribution for Monte Carlo sampling, not just integers [#1854](https://github.com/netket/netket/pull/1854).
 
 
 ### Bug Fixes

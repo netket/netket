@@ -109,8 +109,8 @@ def expect_and_grad_nonhermitian(
     Ō, Ō_grad, new_model_state = _grad_expect_nonherm_kernel(
         local_estimator_fun,
         vstate._apply_fun,
-        vstate.sampler.machine_pow,
         mutable,
+        vstate.sampler.machine_pow,
         vstate.parameters,
         vstate.model_state,
         σ,
@@ -123,12 +123,12 @@ def expect_and_grad_nonhermitian(
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+@partial(jax.jit, static_argnums=(0, 1, 2))
 def _grad_expect_nonherm_kernel(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
-    machine_pow: int,
     mutable: CollectionFilter,
+    machine_pow: float,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,

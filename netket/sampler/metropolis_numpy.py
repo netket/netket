@@ -14,7 +14,7 @@
 
 import math
 from dataclasses import dataclass
-from functools import partial
+from functools import partial, wraps
 
 from typing import Any, Callable
 
@@ -29,7 +29,7 @@ from netket.utils.types import PyTree
 
 import netket.jax as nkjax
 
-from .metropolis import MetropolisSampler
+from .metropolis import MetropolisSampler, MetropolisRule
 
 
 @dataclass
@@ -113,6 +113,12 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
     See :ref:`netket.sampler.MetropolisSampler` for more information.
     """
+
+    @wraps(MetropolisSampler.__init__)
+    def __init__(self, hilbert: AbstractHilbert, rule: MetropolisRule, **kwargs):
+        super().__init__(hilbert, rule, **kwargs)
+        # standard samplers use jax arrays, this must be a numpy array
+        self.machine_pow = np.array(self.machine_pow)
 
     def _init_state(sampler, machine, parameters, key):
         rgen = np.random.default_rng(np.asarray(key))
