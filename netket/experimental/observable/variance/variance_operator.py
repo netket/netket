@@ -20,20 +20,20 @@ from netket.operator._abstract_observable import AbstractObservable
 
 class VarianceOperator(AbstractObservable):
     r"""
-    Observable corresponding to the variance of a an arbitrary quantum operator O:
+    Observable corresponding to the variance of an arbitrary quantum operator `O`:
 
     .. math::
 
         \text{Var} = \frac{\langle \Psi | O^2 | \Psi \rangle}{\langle \Psi | \Psi \rangle} - \bigg( \frac{\langle \Psi | O | \Psi \rangle}{\langle \Psi | \Psi \rangle}\bigg)^2
 
-    It can compute the variance using either the estimator of the squared operator :math:`O^2` (more precise but less efficient, since it requires
+    It can compute the first term using either the estimator of the squared operator :math:`O^2` (more precise but less efficient, since it requires
     the connected configurations and the matrix elements of :math:`O^2`):
 
     .. math::
 
-        \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O^2 | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg] - \bigg(\mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2
+        \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O^2 | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg] - \bigg(\mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2.
 
-    or using the square modulus of the estimator of O (more noisy but more efficient, since it involves only :math:`O`):
+    or using the square modulus of the estimator of `O` (more noisy but more efficient):
 
     .. math::
 
