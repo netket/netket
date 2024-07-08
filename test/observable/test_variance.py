@@ -23,14 +23,13 @@ def _setup(useExactSampler=True):
         )
 
     else:
-        n_discard_per_chain = 1e3
 
         sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains_per_rank=16)
         vs = nk.vqs.MCState(
             sampler=sa,
             model=ma,
             n_samples=n_samples,
-            n_discard_per_chain=n_discard_per_chain,
+            n_discard_per_chain=1e3,
         )
 
     vs_exact = nk.vqs.FullSumState(
