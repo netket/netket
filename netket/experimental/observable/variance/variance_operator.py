@@ -20,37 +20,40 @@ from netket.operator._abstract_observable import AbstractObservable
 
 class VarianceOperator(AbstractObservable):
     r"""
-    Observable corresponding to the variance of an arbitrary quantum operator `O`:
-
-    .. math::
-
-        \text{Var} = \frac{\langle \Psi | O^2 | \Psi \rangle}{\langle \Psi | \Psi \rangle} - \bigg( \frac{\langle \Psi | O | \Psi \rangle}{\langle \Psi | \Psi \rangle}\bigg)^2
-
-    It can compute the first term using either the estimator of the squared operator :math:`O^2` (more precise but less efficient, since it requires
-    the connected configurations and the matrix elements of :math:`O^2`):
-
-    .. math::
-
-        \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O^2 | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg] - \bigg(\mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2.
-
-    or using the square modulus of the estimator of `O` (more noisy but more efficient):
-
-    .. math::
-
-        \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\bigg(\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle} - \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2\bigg]
-
+    Observable computing the variance of a quantum operator :math:`O`.
     """
 
     def __init__(self, operator: AbstractOperator, use_Oloc2: bool = False):
-        """
-        Constructs the VariationalOperator wrapping an operator such that the gradient will not be computed
+        r"""
+            Constructs the observable computing the variance of an arbitrary quantum operator :math:`O` as:
+
+            .. math::
+
+                \text{Var} = \frac{\langle \Psi | O^2 | \Psi \rangle}{\langle \Psi | \Psi \rangle} - \bigg( \frac{\langle \Psi | O | \Psi \rangle}{\langle \Psi | \Psi \rangle}\bigg)^2
+
+            It can compute the first term using either the estimator of the squared operator :math:`O^2` (more precise but less efficient, since it requires
+            the connected configurations and the matrix elements of :math:`O^2`):
+
+            .. math::
+
+                \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O^2 | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg] - \bigg(\mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2.
+
+            or using the square modulus of the estimator of :math:`O` (more noisy but more efficient):
+
+            .. math::
+
+                \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\bigg(\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle} - \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2\bigg]
+
+        This VariationalOperator wraps an operator such that the gradient will not be computed
         with respect to the expectation value, but with respect to the variance.
 
         Args:
-            op: The operator for which the variance is to be computed.
+            operator: The operator for which the variance is to be computed.
             use_Oloc2: If True, uses the local estimator of the squared operator `O^2` for variance computation.
                         If False, uses only the operator `O` for variance computation (defaults to False).
 
+        Returns:
+            Observable computing the variance of `operator`.
         """
         super().__init__(operator.hilbert)
         self._operator = operator
