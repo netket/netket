@@ -23,7 +23,6 @@ def _setup(useExactSampler=True):
         )
 
     else:
-
         sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains_per_rank=16)
         vs = nk.vqs.MCState(
             sampler=sa,
