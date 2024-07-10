@@ -18,12 +18,14 @@ from typing import Optional, Union
 import jax
 import jax.numpy as jnp
 import numpy as np
+from numbers import Number
 
 from jax.tree_util import register_pytree_node_class
 
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.types import DType
+from netket.jax.sharding import sharding_decorator
 
 from ._fermion_operator_2nd_base import FermionOperator2ndBase
 from ._fermion_operator_2nd_utils import _is_diag_term
@@ -40,11 +42,9 @@ def _flip_daggers_split_cast_term_part(term, site_dtype, dagger_dtype):
 
 def prepare_terms_list(
     operators,
-    constant=None,
     site_dtype=np.uint32,
     dagger_dtype=np.int8,
     weight_dtype=jnp.float64,
-    cutoff=0,
 ):
     # return xp s.t. <x|O|xp> != 0
     # see https://github.com/netket/netket/issues/1385
@@ -63,15 +63,6 @@ def prepare_terms_list(
         w = jnp.array(list(d.values()), dtype=weight_dtype)
         t = np.array(list(d.keys()), dtype=int)
         res.append((w, *term_dagger_split_fn(t, site_dtype, dagger_dtype)))
-    if constant is not None and np.abs(constant) > cutoff:
-        res.append(
-            (
-                jnp.array(constant, dtype=weight_dtype).reshape((1,)),
-                *term_dagger_split_fn(
-                    np.zeros((1, 0), dtype=int), site_dtype, dagger_dtype
-                ),
-            )
-        )
     return res
 
 
@@ -481,8 +472,14 @@ def get_conn_padded_jax(
     n_nonzero = nonzero_mask.sum(axis=-1)
     _nonzero_fn = partial(jnp.where, size=max_conn_size, fill_value=-1)
     (i_nonzero,) = jnp.vectorize(_nonzero_fn, signature="(i)->(j)")(nonzero_mask)
-    xp_u = jnp.take_along_axis(xp_padded, i_nonzero[..., None], axis=-2)
-    mels_u = jnp.take_along_axis(mels_padded, i_nonzero, axis=-1)
+    # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
+    # (True, True) means that both arguments are sharded across devices.
+    xp_u = sharding_decorator(partial(jnp.take_along_axis, axis=-2), (True, True))(
+        xp_padded, i_nonzero[..., None]
+    )
+    mels_u = sharding_decorator(partial(jnp.take_along_axis, axis=-1), (True, True))(
+        mels_padded, i_nonzero
+    )
 
     # TODO here would be the place to remove / merge repeated mels
     #
@@ -531,11 +528,14 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         hilbert: AbstractHilbert,
         terms: Union[list[str], list[list[list[int]]]] = None,
         weights: Optional[list[Union[float, complex]]] = None,
-        constant: Union[float, complex] = 0.0,
+        constant: Number = 0,
+        cutoff: float = 1e-10,
         dtype: DType = None,
         _mode: str = "scan",
     ):
-        super().__init__(hilbert, terms, weights, constant, dtype)
+        super().__init__(
+            hilbert, terms, weights, constant=constant, cutoff=cutoff, dtype=dtype
+        )
         self._mode = _mode
 
     @property
@@ -578,7 +578,6 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
 
             self._terms_list_diag = prepare_terms_list(
                 diag_operators,
-                self._constant,
                 site_dtype=np.uint32,
                 dagger_dtype=jnp.bool_,
                 weight_dtype=self._dtype,
@@ -605,7 +604,6 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         metadata = {
             "hilbert": self.hilbert,
             "operators": self._operators,
-            "constant": self._constant,
             "dtype": self.dtype,
             "max_conn_size": self._max_conn_size,
         }
@@ -614,10 +612,9 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     @classmethod
     def tree_unflatten(cls, metadata, data):
         hi = metadata["hilbert"]
-        constant = metadata["constant"]
         dtype = metadata["dtype"]
 
-        op = cls(hi, [], [], constant=constant, dtype=dtype)
+        op = cls(hi, [], [], dtype=dtype)
 
         op._operators = metadata["operators"]
         op._max_conn_size = metadata["max_conn_size"]
@@ -632,9 +629,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         """
         from ._fermion_operator_2nd_numba import FermionOperator2nd
 
-        new_op = FermionOperator2nd(
-            self.hilbert, constant=self._constant, dtype=self.dtype
-        )
+        new_op = FermionOperator2nd(self.hilbert, cutoff=self._cutoff, dtype=self.dtype)
         new_op._operators = self._operators.copy()
         return new_op
 

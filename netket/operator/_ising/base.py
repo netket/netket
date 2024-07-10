@@ -16,11 +16,11 @@ from typing import Optional, Union
 
 import numpy as np
 
-import jax
 from jax import numpy as jnp
 
 from netket.graph import AbstractGraph
 from netket.hilbert import AbstractHilbert
+from netket.jax import canonicalize_dtypes
 from netket.utils.numbers import dtype as _dtype
 from netket.utils.types import Array, DType
 
@@ -42,7 +42,7 @@ class IsingBase(SpecialHamiltonian):
         graph: Union[AbstractGraph, Array],
         h: float,
         J: float,
-        dtype: DType,
+        dtype: Optional[DType],
     ):
         r"""
         Constructs the Ising Operator from an hilbert space and a
@@ -66,10 +66,7 @@ class IsingBase(SpecialHamiltonian):
         """
         super().__init__(hilbert)
 
-        if dtype is None:
-            dtype = jnp.promote_types(_dtype(h), _dtype(J))
-            # Fallback to float32 when float64 is disabled in JAX
-            dtype = jax.dtypes.canonicalize_dtype(dtype)
+        dtype = canonicalize_dtypes(float, h, J, dtype=dtype)
 
         if isinstance(graph, AbstractGraph):
             if graph.n_nodes != hilbert.size:
@@ -187,9 +184,12 @@ class IsingBase(SpecialHamiltonian):
             raise NotImplementedError(
                 "Cannot add hamiltonians on different hilbert spaces"
             )
+        if not np.allclose(self.edges, other.edges):
+            return NotImplemented
 
         self._h += other.h
         self._J += other.J
+        return self
 
     def _isub_same_hamiltonian(self, other):
         if self.hilbert != other.hilbert:
@@ -197,8 +197,12 @@ class IsingBase(SpecialHamiltonian):
                 "Cannot add hamiltonians on different hilbert spaces"
             )
 
+        if not np.allclose(self.edges, other.edges):
+            return NotImplemented
+
         self._h -= other.h
         self._J -= other.J
+        return self
 
     def __repr__(self):
         return (

@@ -15,9 +15,11 @@
 import pytest
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 import netket as nk
+from netket.utils import array_in
 
 
 def test_deduced_hilbert_pauli():
@@ -30,13 +32,13 @@ def test_deduced_hilbert_pauli():
 
 def test_pauli_tensorhilbert():
     hi = nk.hilbert.Spin(0.5, 2, total_sz=0) * nk.hilbert.Spin(0.5, 1)
-    op = nk.operator.PauliStrings(hi, ["XXI", "YZX", "IZX"], [0.1, 0.2, -1.4])
+    op = nk.operator.PauliStrings(hi, ["XXI", "YYY", "IZX"], [0.1, 0.2, -1.4])
     assert op.hilbert.size == 3
     s = hi.all_states()
     sp, _ = op.get_conn_padded(s)
     sp = sp.reshape(-1, 3)
     for _s in sp:
-        assert _s in s
+        assert array_in(_s, s)
 
 
 @pytest.mark.parametrize(
@@ -310,24 +312,110 @@ def test_pauli_problem():
     x1 = nk.operator.PauliStringsJax("XII")
     x2 = nk.operator.PauliStringsJax("IXI")
     x3 = x1 @ x2
-    assert x1.weights.dtype == jnp.float32
-    assert x2.weights.dtype == jnp.float32
-    assert x3.weights.dtype == jnp.float32
+    dtype = jax.dtypes.canonicalize_dtype(float)
+    assert x1.weights.dtype == dtype
+    assert x2.weights.dtype == dtype
+    assert x3.weights.dtype == dtype
 
-    assert (x1 + x1 @ x2).weights.dtype == jnp.float32
+    assert (x1 + x1 @ x2).weights.dtype == dtype
 
 
-def test_pauliY_promotion_to_complex():
+def test_pauliY_dtype():
     ham = nk.operator.PauliStrings("XXX", dtype=np.float32)
     assert ham.dtype == np.float32
-    ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
-    assert ham.dtype == np.complex64
-    ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+    ham = nk.operator.PauliStrings("XYY", dtype=np.float32)
+    assert ham.dtype == np.float32
+    ham = nk.operator.PauliStrings(["XXX", "XYY"], dtype=np.float32)
+    assert ham.dtype == np.float32
+
+    ham = nk.operator.PauliStrings("XXY", dtype=np.complex64)
     assert ham.dtype == np.complex64
     ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.complex64)
     assert ham.dtype == np.complex64
+
+    ham = nk.operator.PauliStrings("XXX", [1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings("XYY", [1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings(["XXX", "XYY"], [1, 1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XXX", [1j], dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XYY", [1j], dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings(["XXX", "XYY"], [1, 1j], dtype=np.float32)
 
 
 def test_pauli_empty_constructor_error():
     with pytest.raises(ValueError, match=r".*the hilbert space must be specified.*"):
         nk.operator.PauliStrings([])
+
+
+operators_to_test = [
+    pytest.param(nk.operator.PauliStrings("X", dtype=np.float32), id="X"),
+    pytest.param(nk.operator.PauliStrings("Z", dtype=np.complex64), id="Z_complex"),
+    pytest.param(nk.operator.PauliStrings("Y", dtype=np.complex64), id="Y"),
+    pytest.param(nk.operator.PauliStrings("X", [1j], dtype=np.complex64), id="X_1j"),
+]
+
+
+@pytest.mark.parametrize("b", operators_to_test)
+@pytest.mark.parametrize("a", operators_to_test)
+def test_pauli_inplace(a, b):
+    if a.dtype == np.float32 and b.dtype == np.complex64:
+        with pytest.raises(TypeError):
+            a += b
+    else:
+        a1 = a.copy()
+        a1 += b
+        assert a1.dtype == a.dtype
+        np.testing.assert_allclose(a1.to_dense(), (a + b).to_dense())
+
+    # Currently DiscreteOperator does not implement __imatmul__,
+    # so imatmul will call __matmul__ and may change dtype
+    a1 = a.copy()
+    a1 @= b
+    np.testing.assert_allclose(a1.to_dense(), (a @ b).to_dense())
+
+
+@pytest.mark.parametrize("cutoff", [1.0e-3, 0.0, None])
+@pytest.mark.parametrize("Op", [nk.operator.PauliStrings, nk.operator.PauliStringsJax])
+def test_cutoff(Op, cutoff):
+    coeff = 1.0e-5
+    hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=4)
+    if cutoff is not None:
+        ha = Op(hi, ["XXII", "YYII"], [1.0, 1.0 + coeff], cutoff=cutoff)
+    else:
+        # cutoff=None is not yet part of the public API
+        ha = Op(hi, ["XXII", "YYII"], [1.0, 1.0 + coeff], cutoff=0)
+        ha._cutoff = None
+    # numba n_conn does not support a single sample, so we add a dummy axis here
+    x = jnp.array([-1, -1, 1, 1])[None]
+    n_conn = ha.n_conn(x)
+    xp, mels = ha.get_conn_padded(x)
+    np.testing.assert_equal(ha.max_conn_size, 1)
+    if cutoff is not None and np.abs(coeff) < cutoff:
+        np.testing.assert_array_equal(n_conn, np.array([0]))
+        np.testing.assert_array_equal(mels, 0.0)
+        np.testing.assert_array_equal(xp, x[None])
+    else:
+        np.testing.assert_array_equal(n_conn, np.array([1]))
+        np.testing.assert_allclose(mels, -coeff)
+        np.testing.assert_array_equal(xp, np.array([[[1, 1, 1, 1]]]))
+
+
+@pytest.mark.parametrize("Op", [nk.operator.PauliStrings, nk.operator.PauliStringsJax])
+def test_cutoff_constrained(Op):
+    hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=4)
+    ha = Op(hi, ["XXII", "YYII"], [1, 1], cutoff=0, dtype=int)
+    x = jnp.array([-1, -1, 1, 1])
+    xp, mels = ha.get_conn_padded(x)
+    np.testing.assert_array_equal(mels, 0)
+    np.testing.assert_array_equal(xp, x[None])

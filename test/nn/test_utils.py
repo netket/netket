@@ -158,32 +158,3 @@ def test_binary_encoding(hilbert_shape):
         assert total_bits == encoded_with_hilbert.size
         desired_state = sum(_state_to_binary_list(random_state, bits_per_site), [])
         np.testing.assert_allclose(encoded_with_hilbert, desired_state)
-
-
-@pytest.mark.parametrize(
-    "hilbert",
-    [
-        pytest.param(h, id=f"{h}")
-        for h in [
-            nk.hilbert.Spin(0.5, 3),
-            nk.hilbert.Spin(0.5, 4, total_sz=0.0),
-            nk.hilbert.Spin(0.5, 3) * nk.hilbert.Fock(3),
-        ]
-    ],
-)
-def test_states_to_numbers(hilbert):
-    s = hilbert.numbers_to_states(np.arange(hilbert.n_states))
-
-    i = nk.nn.states_to_numbers(hilbert, s)
-    np.testing.assert_allclose(i, np.arange(hilbert.n_states))
-
-    i = jax.jit(lambda x: nk.nn.states_to_numbers(hilbert, x))(s)
-    np.testing.assert_allclose(i, np.arange(hilbert.n_states))
-
-    i = jax.jit(jax.vmap(lambda x: nk.nn.states_to_numbers(hilbert, x)))(s)
-    np.testing.assert_allclose(i, np.arange(hilbert.n_states))
-
-
-def test_states_to_numbers_fails():
-    with pytest.raises(ValueError):
-        nk.nn.states_to_numbers(nk.hilbert.Particle(3, 2, True), 1.0)

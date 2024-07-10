@@ -51,17 +51,19 @@ jax.tree_util.register_pytree_node(
 )
 
 
-def field(pytree_node=True, serialize=True, cache=False, **kwargs):
+def field(pytree_node=True, serialize=None, cache=False, **kwargs):
     """Mark a field of a dataclass or PyTree to be:
 
     Args:
         pytree_node: a leaf node in the pytree representation of this dataclass.
             If False this must be hashable
         serialize: If True the node is included in the serialization.
-            In general you should not specify this.
+            In general you should not specify this. (Defaults to value of pytree_node)
         cache: If True this node is a cache and will be reset every time
             fields are modified.
     """
+    if serialize is None:
+        serialize = pytree_node
     return dataclasses.field(
         metadata={"pytree_node": pytree_node, "serialize": serialize, "cache": cache},
         **kwargs,

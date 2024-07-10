@@ -142,10 +142,7 @@ class FullSumState(VariationalState):
             self._model = wrap_afun(apply_fun)
 
         else:
-            raise ValueError(
-                "Must either pass the model or apply_fun, otherwise how do you think we"
-                "gonna evaluate the model?"
-            )
+            raise ValueError("Must either pass the model or apply_fun.")
 
         self.mutable = mutable
         self.training_kwargs = flax.core.freeze(training_kwargs)
@@ -222,8 +219,8 @@ class FullSumState(VariationalState):
             self._chunk_size = None
             return
 
-        if chunk_size <= 0:
-            raise ValueError("Chunk size must be a positive integer. ")
+        if not isinstance(chunk_size, int) or chunk_size <= 0:
+            raise ValueError("Chunk size must be a positive INTEGER. ")
 
         if not _is_power_of_two(chunk_size):
             warnings.warn(
@@ -353,8 +350,9 @@ def deserialize_FullSumState(vstate, state_dict):
     new_vstate = copy.copy(vstate)
     new_vstate.reset()
 
-    new_vstate.variables = serialization.from_state_dict(
-        vstate.variables, state_dict["variables"]
+    new_vstate.variables = jax.tree_util.tree_map(
+        jnp.asarray,
+        serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
     return new_vstate
 

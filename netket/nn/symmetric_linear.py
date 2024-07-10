@@ -22,24 +22,15 @@ from jax.nn.initializers import zeros, lecun_normal
 from flax.linen.module import Module, compact
 from flax.linen.dtypes import promote_dtype
 
-from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
+from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils.group import PermutationGroup
 from collections.abc import Sequence
 from netket.graph import Graph, Lattice
+from netket.errors import SymmModuleInvalidInputShape
 
 # All layers defined here have kernels of shape [out_features, in_features, n_symm]
 default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)
-
-
-def symm_input_warning(x_shape, new_x_shape, name):
-    warn_deprecation(
-        f"{len(x_shape)}-dimensional input to {name} layer is deprecated.\n"
-        f"Input shape {x_shape} has been reshaped to {new_x_shape}, where "
-        "the middle dimension encodes different input channels.\n"
-        "Please provide a 3-dimensional input.\nThis warning will become an "
-        "error in the future."
-    )
 
 
 class DenseSymmMatrix(Module):
@@ -84,18 +75,11 @@ class DenseSymmMatrix(Module):
         Returns:
           The transformed input.
         """
-        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
-
-        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
+        # ensure input dimensions (batch, in_features,n_sites)
         if x.ndim < 3:
-            old_shape = x.shape
-            if x.ndim == 1:
-                x = jnp.expand_dims(x, (0, 1))
-            elif x.ndim == 2:
-                x = jnp.expand_dims(x, 1)
-            symm_input_warning(old_shape, x.shape, "DenseSymm")
+            raise SymmModuleInvalidInputShape("DenseSymmMatrix", x)
 
-        in_features = x.shape[1]
+        in_features = x.shape[-2]
 
         if self.use_bias:
             bias = self.param(
@@ -175,7 +159,8 @@ class DenseSymmFFT(Module):
         sg = np.asarray(self.space_group)
 
         self.n_cells = np.prod(np.asarray(self.shape))
-        self.n_point = len(sg) // self.n_cells
+        self.n_symm = len(sg)
+        self.n_point = self.n_symm // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         if self.mask is not None:
@@ -196,19 +181,14 @@ class DenseSymmFFT(Module):
         dimensions (-2: features, -1: group elements)
         """
 
-        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
-        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
+        # ensure input dimensions (batch, in_features,n_sites)
         if x.ndim < 3:
-            old_shape = x.shape
-            if x.ndim == 1:
-                x = jnp.expand_dims(x, (0, 1))
-            elif x.ndim == 2:
-                x = jnp.expand_dims(x, 1)
-            symm_input_warning(old_shape, x.shape, "DenseSymm")
+            raise SymmModuleInvalidInputShape("DenseSymmMatrix", x)
 
-        in_features = x.shape[1]
+        in_features = x.shape[-2]
+        batch_shape = x.shape[:-2]
 
-        x = x.reshape(*x.shape[:-1], self.n_cells, self.sites_per_cell)
+        x = x.reshape(-1, in_features, self.n_cells, self.sites_per_cell)
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
@@ -263,10 +243,11 @@ class DenseSymmFFT(Module):
         x = x.reshape(*x.shape[:3], *self.shape)
 
         x = jnp.fft.ifftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
-        x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
+        x = x.transpose(0, 1, 3, 2)
+        x = x.reshape(*batch_shape, self.features, self.n_symm)
 
         if self.use_bias:
-            x += jnp.expand_dims(bias, (0, 2))
+            x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
             return x
@@ -279,13 +260,13 @@ class DenseEquivariantFFT(Module):
 
     The group convolution can be written in terms of translational convolutions with
     symmetry transformed filters as described in
-    `Cohen et. al <http://proceedings.mlr.press/v48/cohenc16.pdf>_
+    `Cohen et. al <http://proceedings.mlr.press/v48/cohenc16.pdf>_`
 
     The translational convolutions are then implemented with Fast Fourier Transforms.
     """
 
     product_table: HashableArray
-    """ product table for space group"""
+    """Product table for space group."""
     features: int
     """The number of output features. Will be the second dimension of the output."""
     shape: tuple
@@ -309,8 +290,9 @@ class DenseEquivariantFFT(Module):
     def setup(self):
         pt = np.asarray(self.product_table)
 
+        self.n_symm = len(pt)
         self.n_cells = np.prod(np.asarray(self.shape))
-        self.n_point = len(pt) // self.n_cells
+        self.n_point = self.n_symm // self.n_cells
         if self.mask is not None:
             (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
@@ -329,8 +311,9 @@ class DenseEquivariantFFT(Module):
         dimensions (-2: features, -1: group elements)
         """
         in_features = x.shape[-2]
+        batch_shape = x.shape[:-2]
 
-        x = x.reshape(*x.shape[:-1], self.n_cells, self.n_point)
+        x = x.reshape(-1, in_features, self.n_cells, self.n_point)
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
@@ -384,10 +367,10 @@ class DenseEquivariantFFT(Module):
 
         x = jnp.fft.ifftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
         x = x.transpose(0, 1, 3, 2)
-        x = x.reshape(*x.shape[:2], -1)
+        x = x.reshape(*batch_shape, self.features, self.n_symm)
 
         if self.use_bias:
-            x += jnp.expand_dims(bias, (0, 2))
+            x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
             return x
@@ -528,6 +511,8 @@ class DenseEquivariantIrrep(Module):
         dimensions (-2: features, -1: group elements)
         """
         in_features = x.shape[-2]
+        batch_shape = x.shape[:-2]
+        x = x.reshape(-1, in_features, self.n_symm)
 
         if self.use_bias:
             bias = self.param(
@@ -570,10 +555,10 @@ class DenseEquivariantIrrep(Module):
             for i in range(len(x))
         )
 
-        x = self.inverse_ft(x)
+        x = self.inverse_ft(x).reshape(*batch_shape, self.features, self.n_symm)
 
         if self.use_bias:
-            x += jnp.expand_dims(bias, (0, 2))
+            x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
             return x
@@ -586,9 +571,7 @@ class DenseEquivariantMatrix(Module):
     by multiplying by the full kernel matrix"""
 
     product_table: HashableArray
-    """Flattened product table generated by PermutationGroup.product_table().ravel()
-    that specifies the product of the group with its involution, or the
-    PermutationGroup object itself"""
+    """Product table for the space group."""
     features: int
     """The number of symmetry-reduced output features. The full output size
     is n_symm*features."""
@@ -667,15 +650,12 @@ class DenseEquivariantMatrix(Module):
             precision=self.precision,
         )
 
-        x = x.reshape(-1, self.features, self.n_symm)
-
         if self.use_bias:
             x += jnp.expand_dims(bias, 1)
 
         return x
 
 
-@deprecate_dtype
 def DenseSymm(
     symmetries, point_group=None, mode="auto", shape=None, mask=None, **kwargs
 ):
@@ -756,7 +736,6 @@ def DenseSymm(
         )
 
 
-@deprecate_dtype
 def DenseEquivariant(
     symmetries,
     features: Optional[int] = None,

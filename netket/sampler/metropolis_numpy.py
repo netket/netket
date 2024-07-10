@@ -14,7 +14,7 @@
 
 import math
 from dataclasses import dataclass
-from functools import partial
+from functools import partial, wraps
 
 from typing import Any, Callable
 
@@ -29,7 +29,7 @@ from netket.utils.types import PyTree
 
 import netket.jax as nkjax
 
-from .metropolis import MetropolisSampler
+from .metropolis import MetropolisSampler, MetropolisRule
 
 
 @dataclass
@@ -80,18 +80,19 @@ class MetropolisNumpySamplerState:
 
     def __repr__(self):
         if self.n_steps > 0:
-            acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_steps, self.acceptance * 100
-            )
+            acc_string = f"# accepted = {self.n_accepted}/{self.n_steps} ({self.acceptance * 100}%), "
         else:
             acc_string = ""
 
         return f"MetropolisNumpySamplerState({acc_string}rng state={self.rng})"
 
 
-@partial(jax.jit, static_argnums=0)
-def apply_model(machine, pars, weights):
-    return machine.apply(pars, weights)
+@partial(jax.jit, static_argnums=(0, 3))
+def apply_model(machine, pars, weights, chunk_size):
+    chunked = nkjax.apply_chunked(
+        machine.apply, in_axes=(None, 0), chunk_size=chunk_size
+    )
+    return chunked(pars, weights)
 
 
 class MetropolisSamplerNumpy(MetropolisSampler):
@@ -112,6 +113,12 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
     See :ref:`netket.sampler.MetropolisSampler` for more information.
     """
+
+    @wraps(MetropolisSampler.__init__)
+    def __init__(self, hilbert: AbstractHilbert, rule: MetropolisRule, **kwargs):
+        super().__init__(hilbert, rule, **kwargs)
+        # standard samplers use jax arrays, this must be a numpy array
+        self.machine_pow = np.array(self.machine_pow)
 
     def _init_state(sampler, machine, parameters, key):
         rgen = np.random.default_rng(np.asarray(key))
@@ -154,7 +161,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             )
 
         state.rule_state = sampler.rule.reset(sampler, machine, parameters, state)
-        state.log_values = np.copy(apply_model(machine, parameters, state.σ))
+        state.log_values = np.copy(
+            apply_model(machine, parameters, state.σ, sampler.chunk_size)
+        )
 
         state._accepted_samples = 0
         state._total_samples = 0
@@ -178,7 +187,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             # σp, log_prob_correction =
             sampler.rule.transition(sampler, machine, parameters, state, state.rng, σ)
 
-            log_values_1 = np.asarray(apply_model(machine, parameters, σ1))
+            log_values_1 = np.asarray(
+                apply_model(machine, parameters, σ1, sampler.chunk_size)
+            )
 
             random_uniform = rgen.uniform(0, 1, size=σ.shape[0])
 
@@ -193,7 +204,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 random_uniform,
             )
 
-        state.n_steps_proc += sampler.sweep_size * sampler.n_chains
+        state.n_steps_proc += sampler.sweep_size * sampler.n_chains_per_rank
         state.n_accepted_proc += accepted
 
         return state, state.σ
@@ -206,14 +217,15 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         chain_length: int,
     ) -> tuple[jnp.ndarray, MetropolisNumpySamplerState]:
         samples = np.empty(
-            (chain_length, sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype
+            (chain_length, sampler.n_chains_per_rank, sampler.hilbert.size),
+            dtype=sampler.dtype,
         )
 
         for i in range(chain_length):
             state, σ = sampler.sample_next(machine, parameters, state)
             samples[i] = σ
 
-        # make it (n_chains, n_samples_per_chain) as expected by netket.stats.statistics
+        # make it (n_chains_per_rank, n_samples_per_chain, hi.size) as expected by netket.stats.statistics
         samples = np.swapaxes(samples, 0, 1)
 
         return samples, state

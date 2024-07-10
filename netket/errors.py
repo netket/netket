@@ -351,6 +351,49 @@ class JaxOperatorSetupDuringTracingError(NetketError):
         )
 
 
+class JaxOperatorNotConvertibleToNumba(NetketError):
+    """Illegal attempt to convert to the Numba format a Jax operator that had been flattened
+    and unflattened.
+
+    This probably happened because you passed a Jax operator to a jax function transformation
+    or jitted function and then tried to re-convert it to the numba format like in the example
+    below:
+
+    .. code-block:: python
+
+        import netket as nk
+
+        hi = nk.hilbert.Spin(0.5, 2)
+
+        op = nk.operator.spin.sigmax(hi, 0)
+        op = op.to_jax_operator()
+
+        @jax.jit
+        def test(op):
+            op.to_numba_operator()
+
+        test(op)
+
+    Unfortunately, once an operator is flattened with {ref}`jax.tree_util.tree_flatten`, which
+    happens at all jax-function transformation boundaries, it usually cannot be converted back to
+    the original numba form.
+
+    This happens for performance reasons, and we might reconsider. If it is a problem for you, do
+    open an issue.
+
+    """
+
+    def __init__(self, operator):
+        super().__init__(
+            "\n"
+            "Illegal attempt to convert to the Numba format a Jax operator that had been flattened "
+            "and unflattened."
+            "\n\n"
+            "Jax-based operators cannot be flattened or passed to a jax function and then be "
+            "converted to their numba format."
+        )
+
+
 #################################################
 # Jacobian and QGT errors                       #
 #################################################
@@ -507,7 +550,7 @@ class HolomorphicUndeclaredWarning(NetketWarning):
         )
 
 
-class RealQGTComplexDomainError(Exception):
+class RealQGTComplexDomainError(NetketError):
     """
     This error is raised when you apply the Quantum Geometric Tensor of a
     non-holomorphic function to a complex-valued vector, because the
@@ -544,7 +587,7 @@ class RealQGTComplexDomainError(Exception):
        >>> _, vec = vstate.expect_and_grad(nk.operator.spin.sigmax(vstate.hilbert, 1))
        >>> G = nk.optimizer.qgt.QGTOnTheFly(vstate, holomorphic=False)
        >>>
-       >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+       >>> vec_real = jax.tree.map(lambda x: x.real, vec)
        >>> sol = G@vec_real
 
    Or, if you used the QGT in a linear solver, try using:
@@ -558,7 +601,7 @@ class RealQGTComplexDomainError(Exception):
        >>> _, vec = vstate.expect_and_grad(nk.operator.spin.sigmax(vstate.hilbert, 1))
        >>>
        >>> G = nk.optimizer.qgt.QGTOnTheFly(vstate, holomorphic=False)
-       >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+       >>> vec_real = jax.tree.map(lambda x: x.real, vec)
        >>>
        >>> linear_solver = jax.scipy.sparse.linalg.cg
        >>> solution, info = G.solve(linear_solver, vec_real)
@@ -581,20 +624,48 @@ class RealQGTComplexDomainError(Exception):
 
             .. code:: python
 
-               >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+               >>> vec_real = jax.tree_util.tree_map(lambda x: x.real, vec)
                >>> G@vec_real
 
             If you used the QGT in a linear solver, try using:
 
             .. code:: python
 
-               >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+               >>> vec_real = jax.tree_util.tree_map(lambda x: x.real, vec)
                >>> G.solve(linear_solver, vec_real)
 
             to fix this error.
 
             Be careful whether you need the real or imaginary part
             of the vector in your equations!
+            """
+        )
+
+
+class SymmModuleInvalidInputShape(NetketError):
+    """
+    This error when you attempt to use a module with an input having a wrong number
+    of dimensions.
+
+    In particular, Simmetric layers require inputs with 3 dimensions :math:`(B, C, L)`:
+        - Batch dimension, which should be 1 if only 1 sample is considered
+        - Channel or Features dimension, which should encode multiple features, usually
+            originated from previous layers. If this is the first simmetric layer, you
+            can set this dimension to 1
+        - Length, which should span the physical degrees of freedom.
+    """
+
+    def __init__(self, name, x):
+        super().__init__(
+            """
+            Input to DenseSymmFFT has {x.ndim =} but 3 are required.
+
+            The input format is (B,C,L), aka (batches, features/channels, length). If
+            you have a single sample, simply use `jnp.atleast_3d(x)` before calling
+            this module.
+
+            If this is the first layer in a network, you usually need to set the channel
+            dimension to 1.
             """
         )
 

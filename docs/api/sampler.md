@@ -16,7 +16,7 @@
 
 ## Abstract Classes
 
-Below you find a list of all abstract classes defined in this module, from which you can inherit if you want to define new hilbert spaces.
+Below you find a list of all abstract classes defined in this module, from which you can inherit if you want to define new samplers spaces.
 
 ```{eval-rst}
 .. currentmodule:: netket.sampler
@@ -29,7 +29,6 @@ Below you find a list of all abstract classes defined in this module, from which
    Sampler
    SamplerState
    MetropolisSamplerState
-   MetropolisRule
 ```
 ## List of Samplers
 
@@ -56,22 +55,10 @@ This is because it is not possible to implement all transition rules in Jax.
    ExactSampler
    MetropolisSampler
    MetropolisSamplerNumpy
+   ParallelTemperingSampler
    ARDirectSampler
 
 ```
-
-```{eval-rst}
-.. currentmodule:: netket
-
-.. autosummary::
-   :toctree: _generated/samplers
-   :template: class
-   :nosignatures:
-
-   experimental.sampler.MetropolisPtSampler
-
-```
-
 
 This is a list of shorthands that allow to construct a {class}`~netket.sampler.MetropolisSampler` with a corresponding rule.
 
@@ -88,16 +75,19 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
    MetropolisAdjustedLangevin
 ```
 
+This is an equivalent list of shorthands that allow to construct a {class}`~netket.sampler.ParallelTemperingSampler` with a corresponding rule.
+
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.sampler
 
 .. autosummary::
    :toctree: _generated/samplers
    :template: class
    :nosignatures:
 
-   experimental.sampler.MetropolisLocalPt
-   experimental.sampler.MetropolisExchangePt
+   ParallelTemperingLocal
+   ParallelTemperingExchange
+   ParallelTemperingHamiltonian
 ```
 
 
@@ -150,4 +140,38 @@ Those structure hold the state of the sampler.
 
   SamplerState
   MetropolisSamplerState
+```
+
+### Experimental
+
+They are experimental, meaning that we could change them at some point, and we actively seeking for feedback and opinions on their usage and APIs.
+
+```{eval-rst}
+.. currentmodule:: netket.experimental.sampler
+
+```
+
+### Particle-specific samplers
+
+The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class}`netket.experimental.hilbert.SpinOrbitalFermions`).
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   MetropolisParticleExchange
+```
+
+And the corresponding rules
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   rules.ParticleExchangeRule
 ```

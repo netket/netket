@@ -112,7 +112,7 @@ def vstate(request, model, chunk_size):
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
 
-    k = jax.random.PRNGKey(3)
+    k = jax.random.PRNGKey(123)
     k1, k2 = jax.random.split(k)
 
     vstate = nk.vqs.MCState(
@@ -166,7 +166,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     x, _ = S.solve(solver, vstate.parameters)
 
     rtol, atol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.param_dtype)]
-    jax.tree_map(
+    jax.tree_util.tree_map(
         partial(testing.assert_allclose, rtol=rtol, atol=atol),
         S @ x,
         vstate.parameters,
@@ -186,7 +186,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all, _ = S.solve(solver, vstate.parameters)
 
-            jax.tree_map(
+            jax.tree_util.tree_map(
                 lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
                 x,
                 x_all,
@@ -204,7 +204,7 @@ def test_qgt_solve_with_x0(qgt, vstate):
         return
 
     solver = jax.scipy.sparse.linalg.gmres
-    x0 = jax.tree_map(jnp.zeros_like, vstate.parameters)
+    x0 = jax.tree_util.tree_map(jnp.zeros_like, vstate.parameters)
 
     S = qgt(vstate)
     x, _ = S.solve(solver, vstate.parameters, x0=x0)
@@ -225,7 +225,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 
     S = qgt(vstate)
     rng = nkjax.PRNGSeq(0)
-    y = jax.tree_map(
+    y = jax.tree_util.tree_map(
         lambda x: 0.001 * jax.random.normal(rng.next(), x.shape, dtype=x.dtype),
         vstate.parameters,
     )
@@ -234,14 +234,14 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     def check_same_dtype(x, y):
         assert x.dtype == y.dtype
 
-    jax.tree_map(check_same_dtype, x, y)
+    jax.tree_util.tree_map(check_same_dtype, x, y)
 
     # test multiplication by dense gives same result...
     y_dense, unravel = nk.jax.tree_ravel(y)
     x_dense = S @ y_dense
     x_dense_unravelled = unravel(x_dense)
 
-    jax.tree_map(
+    jax.tree_util.tree_map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
         x,
         x_dense_unravelled,
@@ -261,7 +261,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all = S @ y
 
-            jax.tree_map(
+            jax.tree_util.tree_map(
                 lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
                 x,
                 x_all,
@@ -337,17 +337,17 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     if isinstance(S, (QGTJacobianPyTreeT, QGTJacobianDenseT)):
         # extract the necessary shape for the diag_shift
         if S.mode == "complex":
-            t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0, 0], S.O))
+            t = jax.eval_shape(partial(jax.tree_util.tree_map, lambda x: x[0, 0], S.O))
         else:
-            t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0], S.O))
+            t = jax.eval_shape(partial(jax.tree_util.tree_map, lambda x: x[0], S.O))
     else:
         t = v
-    diag_shift_tree = jax.tree_map(
+    diag_shift_tree = jax.tree_util.tree_map(
         lambda x: diag_shift * jnp.ones(x.shape, dtype=x.dtype), t
     )
     S = S.replace(diag_shift=diag_shift_tree)
     res = S @ v
-    jax.tree_map(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
+    jax.tree_util.tree_map(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
 
 
 @common.skipif_mpi
@@ -364,3 +364,43 @@ def test_qgt_holomorphic_real_pars_throws():
         vstate.quantum_geometric_tensor(qgt.QGTJacobianDense(holomorphic=True))
 
     return vstate
+
+
+def test_qgt_onthefly_correct_chunking_selection():
+    # construct a vstate
+    N = 5
+    hi = nk.hilbert.Spin(1 / 2, N)
+    vstate = nk.vqs.MCState(
+        nk.sampler.MetropolisLocal(hi, n_chains=16),
+        nk.models.RBM(alpha=1),
+        n_samples=16 * 4,
+    )
+
+    from netket.optimizer.qgt.qgt_onthefly_logic import _mat_vec
+
+    # in standard version
+    if not nk.config.netket_experimental_sharding:
+        # check is the non chunked code
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is _mat_vec
+
+        # this just check it's not the unchunked code. We only have 2 implementations
+        # so that's enough.
+        vstate.chunk_size = vstate.n_samples // (2 * nk.jax.sharding.device_count())
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is not _mat_vec
+    # in sharding version
+    else:
+        # check is the non chunked code
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is _mat_vec
+
+        # check is still non chunked
+        vstate.chunk_size = vstate.n_samples / len(jax.devices())
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is _mat_vec
+
+        # check is chunked
+        vstate.chunk_size = vstate.n_samples / (2 * len(jax.devices()))
+        QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
+        assert QGT._mat_vec.func is not _mat_vec

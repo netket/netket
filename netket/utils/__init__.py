@@ -26,8 +26,10 @@ from . import numbers
 from . import types
 from . import float
 from . import optional_deps
+from . import timing
+from . import display
 
-from .array import HashableArray
+from .array import HashableArray, array_in
 from .partial import HashablePartial
 from .jax import get_afun_if_module, wrap_afun, wrap_to_support_scalar
 from .seed import random_seed
@@ -39,7 +41,6 @@ from .deprecation import (
     warn_deprecation,
     deprecated,
     deprecated_new_name,
-    deprecate_dtype,
 )
 
 from .model_frameworks import maybe_wrap_module
@@ -48,8 +49,18 @@ from .history import History, accum_in_tree, accum_histories_in_tree
 
 from . import mpi
 
+from .static_range import StaticRange
+
 _hide_submodules(
     __name__,
     remove_self=False,
-    ignore=["numbers", "types", "float", "dispatch", "errors", "plum"],
+    ignore=[
+        "numbers",
+        "types",
+        "float",
+        "dispatch",
+        "errors",
+        "timing",
+        "display",
+    ],
 )

@@ -28,7 +28,7 @@ from netket.hilbert import AbstractHilbert, ContinuousHilbert
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree, DType
 
-from netket.utils.deprecation import deprecated, warn_deprecation
+from netket.utils.deprecation import warn_deprecation
 from netket.utils import struct
 
 from netket.utils.config_flags import config
@@ -36,8 +36,10 @@ from netket.jax.sharding import (
     extract_replicated,
     gather,
     distribute_to_devices_along_axis,
-    device_count_per_rank,
+    device_count,
+    with_samples_sharding_constraint,
 )
+from netket.jax import apply_chunked
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
@@ -68,7 +70,9 @@ class MetropolisSamplerState(SamplerState):
         self.rng = rng
         self.rule_state = rule_state
 
-        self.n_accepted_proc = jnp.zeros(σ.shape[0], dtype=int)
+        self.n_accepted_proc = with_samples_sharding_constraint(
+            jnp.zeros(σ.shape[0], dtype=int)
+        )
         self.n_steps_proc = jnp.zeros((), dtype=int)
         super().__init__()
 
@@ -98,9 +102,7 @@ class MetropolisSamplerState(SamplerState):
 
     def __repr__(self):
         if self.n_steps > 0:
-            acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_steps, self.acceptance * 100
-            )
+            acc_string = f"# accepted = {self.n_accepted}/{self.n_steps} ({self.acceptance * 100}%), "
         else:
             acc_string = ""
 
@@ -188,13 +190,13 @@ def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
 
 
 def _round_n_chains_to_next_multiple(
-    n_chains, n_chains_per_whatever, n_whatever, whatever_str, default
+    n_chains, n_chains_per_whatever, n_whatever, whatever_str
 ):
     # small helper function to round the number of chains to the next multiple of [whatever]
     # here [whatever] can be e.g. mpi ranks or jax devices
-    if n_chains is None and n_chains_per_whatever is None:
-        n_chains_per_whatever = default
-    elif n_chains is not None and n_chains_per_whatever is not None:
+    # if n_chains is None and n_chains_per_whatever is None:
+    #    n_chains_per_whatever = default
+    if n_chains is not None and n_chains_per_whatever is not None:
         raise ValueError(
             f"Cannot specify both `n_chains` and `n_chains_per_{whatever_str}`"
         )
@@ -240,7 +242,9 @@ class MetropolisSampler(Sampler):
     """Number of sweeps for each step along the chain. Defaults to the number
     of sites in the Hilbert space."""
     n_chains: int = struct.field(pytree_node=False)
-    """Number of independent chains on every MPI rank."""
+    """Total number of independent chains across all MPI ranks and/or devices."""
+    chunk_size: Optional[int] = struct.field(pytree_node=False, default=None)
+    """Chunk size for evaluating wave functions."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
@@ -254,7 +258,7 @@ class MetropolisSampler(Sampler):
         reset_chains: bool = False,
         n_chains: Optional[int] = None,
         n_chains_per_rank: Optional[int] = None,
-        n_chains_per_rank_or_device: Optional[int] = None,
+        chunk_size: Optional[int] = None,
         machine_pow: int = 2,
         dtype: DType = float,
     ):
@@ -270,7 +274,11 @@ class MetropolisSampler(Sampler):
                 if MPI is enabled and `n_chains` is specified, then every MPI rank will run
                 `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
-            n_chains_per_rank_or_device: Number of independent chains on every MPI rank / jax device (default = 16).
+            n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+                               If netket_experimental_sharding is enabled this is interpreted as the number
+                               of independent chains on every jax device, and the n_chains_per_rank
+                               property of the sampler will return the total number of chains on all devices.
+            chunk_size: Chunk size for evaluating the ansatz while sampling. Must divide n_chains_per_rank.
             sweep_size: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
@@ -291,30 +299,6 @@ class MetropolisSampler(Sampler):
         if not isinstance(reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
 
-        if n_chains_per_rank is not None:
-            warn_deprecation(
-                "Specifying `n_chains_per_rank` when constructing the Sampler is deprecated. Please use `n_chains_per_rank_or_device` instead."
-            )
-            if n_chains_per_rank_or_device is None:
-                n_chains_per_rank_or_device = n_chains_per_rank
-            else:
-                raise ValueError(
-                    "Cannot specify both `n_chains_per_rank_or_device` and `n_chains_per_rank`"
-                )
-
-        # TODO set it to a few hundred if on GPU?
-        default_n_chains_per_rank_or_device = 16
-
-        # we assume either mpi.n_nodes=1 or nk.jax.sharding.device_count_per_rank()=1
-        n_ranks_or_devices = mpi.n_nodes * device_count_per_rank()
-        n_chains = _round_n_chains_to_next_multiple(
-            n_chains,
-            n_chains_per_rank_or_device,
-            n_ranks_or_devices,
-            "rank_or_device",
-            default_n_chains_per_rank_or_device,
-        )
-
         if n_sweeps is not None:
             warn_deprecation(
                 "Specifying `n_sweeps` when constructing sampler is deprecated. Please use `sweep_size` instead."
@@ -326,6 +310,25 @@ class MetropolisSampler(Sampler):
         if sweep_size is None:
             sweep_size = hilbert.size
 
+        # Default n_chains per rank, if unset
+        if n_chains is None and n_chains_per_rank is None:
+            # TODO set it to a few hundred if on GPU?
+            n_chains_per_rank = 16
+
+        n_chains = _round_n_chains_to_next_multiple(
+            n_chains,
+            n_chains_per_rank,
+            device_count(),
+            "rank",
+        )
+        n_chains_per_rank = n_chains // device_count()
+
+        if chunk_size is not None and n_chains_per_rank % chunk_size != 0:
+            raise ValueError(
+                f"Chunk size must divide number of chains per rank, {n_chains_per_rank}"
+            )
+        self.chunk_size = chunk_size
+
         super().__init__(
             hilbert=hilbert,
             machine_pow=machine_pow,
@@ -336,7 +339,6 @@ class MetropolisSampler(Sampler):
         self.reset_chains = reset_chains
         self.rule = rule
         self.sweep_size = sweep_size
-        self.n_chains = n_chains
 
     @property
     def n_sweeps(self):
@@ -374,51 +376,42 @@ class MetropolisSampler(Sampler):
 
         return sampler._sample_next(wrap_afun(machine), parameters, state)
 
-    def _init_state(sampler, machine, params, key):
-        key_state, key_rule = jax.random.split(key, 2)
-        rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
-        σ = jnp.zeros(
-            (sampler.n_chains_per_rank, sampler.hilbert.size), dtype=sampler.dtype
-        )
-
-        if config.netket_experimental_sharding and jax.device_count() > 1:
-            # TODO If we end up rewriting the hilbert spaces in jax then we can avoid
-            # this and instead jit the random state with the correct out_shardings
-            σ = distribute_to_devices_along_axis(σ)
+    @partial(jax.jit, static_argnums=1)
+    def _init_state(sampler, machine, parameters, key):
+        key_state, key_rule = jax.random.split(key)
+        rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
+        σ = jnp.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
+        σ = with_samples_sharding_constraint(σ)
         state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
-
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
         if not sampler.reset_chains:
-            key_state, rng = jax.random.split(key_state)
-            σ = sampler.rule.random_state(sampler, machine, params, state, rng)
-            if config.netket_experimental_sharding and jax.device_count() > 1:
-                σ = distribute_to_devices_along_axis(σ)
+            key_state, rng = jax.jit(jax.random.split)(key_state)
+            σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
             _assert_good_sample_shape(
                 σ,
-                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                (sampler.n_batches, sampler.hilbert.size),
                 sampler.dtype,
                 f"{sampler.rule}.random_state",
             )
+            σ = with_samples_sharding_constraint(σ)
             state = state.replace(σ=σ, rng=key_state)
-
         return state
 
+    @partial(jax.jit, static_argnums=1)
     def _reset(sampler, machine, parameters, state):
-        new_rng, rng = jax.jit(jax.random.split)(
-            state.rng
-        )  # use jit so that we can do it on global shared array
+        rng = state.rng
 
         if sampler.reset_chains:
+            rng, key = jax.random.split(state.rng)
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
-            if config.netket_experimental_sharding and jax.device_count() > 1:
-                σ = distribute_to_devices_along_axis(σ)
             _assert_good_sample_shape(
                 σ,
-                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                (sampler.n_batches, sampler.hilbert.size),
                 sampler.dtype,
                 f"{sampler.rule}.random_state",
             )
+            σ = with_samples_sharding_constraint(σ)
         else:
             σ = state.σ
 
@@ -426,7 +419,7 @@ class MetropolisSampler(Sampler):
 
         return state.replace(
             σ=σ,
-            rng=new_rng,
+            rng=rng,
             rule_state=rule_state,
             n_steps_proc=jnp.zeros_like(state.n_steps_proc),
             n_accepted_proc=jnp.zeros_like(state.n_accepted_proc),
@@ -439,6 +432,9 @@ class MetropolisSampler(Sampler):
         If you subclass `MetropolisSampler`, you should override this and not `sample_next`
         itself, because `sample_next` contains some common logic.
         """
+        apply_machine = apply_chunked(
+            machine.apply, in_axes=(None, 0), chunk_size=sampler.chunk_size
+        )
 
         def loop_body(i, s):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
@@ -449,16 +445,14 @@ class MetropolisSampler(Sampler):
             )
             _assert_good_sample_shape(
                 σp,
-                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                (sampler.n_batches, sampler.hilbert.size),
                 sampler.dtype,
                 f"{sampler.rule}.transition",
             )
-            proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
-            _assert_good_log_prob_shape(
-                proposal_log_prob, sampler.n_chains_per_rank, machine
-            )
+            proposal_log_prob = sampler.machine_pow * apply_machine(parameters, σp).real
+            _assert_good_log_prob_shape(proposal_log_prob, sampler.n_batches, machine)
 
-            uniform = jax.random.uniform(key2, shape=(sampler.n_chains_per_rank,))
+            uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
             if log_prob_correction is not None:
                 do_accept = uniform < jnp.exp(
                     proposal_log_prob - s["log_prob"] + log_prob_correction
@@ -481,7 +475,7 @@ class MetropolisSampler(Sampler):
         s = {
             "key": rng,
             "σ": state.σ,
-            "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
+            "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
             # for logging
             "accepted": state.n_accepted_proc,
         }
@@ -491,8 +485,7 @@ class MetropolisSampler(Sampler):
             rng=new_rng,
             σ=s["σ"],
             n_accepted_proc=s["accepted"],
-            n_steps_proc=state.n_steps_proc
-            + sampler.sweep_size * sampler.n_chains_per_rank,
+            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches,
         )
 
         return new_state, new_state.σ
@@ -548,32 +541,6 @@ class MetropolisSampler(Sampler):
             + f"machine_power = {sampler.machine_pow}, "
             + f"dtype = {sampler.dtype})"
         )
-
-
-@deprecated(
-    "The module function `sample_next` is deprecated in favor of the class method `sample_next`."
-)
-def sample_next(
-    sampler: MetropolisSampler,
-    machine: Union[Callable, nn.Module],
-    parameters: PyTree,
-    state: Optional[SamplerState] = None,
-) -> tuple[SamplerState, jnp.ndarray]:
-    """
-    Samples the next state in the Markov chain.
-
-    Args:
-        sampler: The Metropolis sampler.
-        machine: A Flax module or callable with the forward pass of the log-pdf.
-            If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler. If not specified, then initialize and reset it.
-
-    Returns:
-        state: The new state of the sampler.
-        σ: The next batch of samples.
-    """
-    return sampler.sample_next(machine, parameters, state)
 
 
 def MetropolisLocal(hilbert, **kwargs) -> MetropolisSampler:
@@ -717,7 +684,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
        >>> # Construct a MetropolisHamiltonian Sampler
        >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRuleNumba(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+       MetropolisSampler(rule = HamiltonianRuleNumba(operator=Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
     """
     from .rules import HamiltonianRule
 

@@ -27,10 +27,11 @@ def test_Jastrow(dtype):
     ma = nk.models.Jastrow(param_dtype=dtype)
     _ = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
 
+    vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
+
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
         nk.optimizer.Sgd(0.1),
-        nk.sampler.MetropolisLocal(hi),
-        ma,
+        variational_state=vs,
     )
     vmc.advance(1)

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import numba
 
@@ -20,6 +22,9 @@ from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingEr
 
 from ._fermion_operator_2nd_utils import _is_diag_term, OperatorDict
 from ._fermion_operator_2nd_base import FermionOperator2ndBase
+
+if TYPE_CHECKING:
+    from ._fermion_operator_2nd_jax import FermionOperator2ndJax
 
 
 class FermionOperator2nd(FermionOperator2ndBase):
@@ -57,12 +62,10 @@ class FermionOperator2nd(FermionOperator2ndBase):
                 self._diag_idxs,
                 self._off_diag_idxs,
                 self._term_split_idxs,
-                _collected_constant,
             ) = out
-            self._constant += _collected_constant
 
             self._max_conn_size = 0
-            if not _isclose(self._constant, 0) or len(self._diag_idxs) > 0:
+            if len(self._diag_idxs) > 0:
                 self._max_conn_size += 1
             # the following could be reduced further
             self._max_conn_size += len(self._off_diag_idxs)
@@ -77,7 +80,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
         from ._fermion_operator_2nd_jax import FermionOperator2ndJax
 
         new_op = FermionOperator2ndJax(
-            self.hilbert, constant=self._constant, dtype=self.dtype
+            self.hilbert, cutoff=self._cutoff, dtype=self.dtype
         )
         new_op._operators = self._operators.copy()
         return new_op
@@ -91,8 +94,8 @@ class FermionOperator2nd(FermionOperator2ndBase):
         _diag_idxs = self._diag_idxs
         _off_diag_idxs = self._off_diag_idxs
         _term_split_idxs = self._term_split_idxs
+        _cutoff = self._cutoff
 
-        _constant = self._constant
         fun = self._flattened_kernel
 
         def gccf_fun(x, sections):
@@ -106,7 +109,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
                 _diag_idxs,
                 _off_diag_idxs,
                 _term_split_idxs,
-                _constant,
+                _cutoff,
             )
 
         return numba.jit(nopython=True)(gccf_fun)
@@ -154,7 +157,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
             self._diag_idxs,
             self._off_diag_idxs,
             self._term_split_idxs,
-            self._constant,
+            self._cutoff,
             pad,
         )
 
@@ -170,7 +173,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
         diag_idxs,
         off_diag_idxs,
         term_split_idxs,
-        constant,
+        cutoff,
         pad=False,
     ):
         x_prime = np.empty((x.shape[0] * max_conn, x.shape[1]), dtype=x.dtype)
@@ -180,8 +183,6 @@ class FermionOperator2nd(FermionOperator2ndBase):
         term_split_idxs = term_split_idxs[:-1]
         orb_idxs_list = np.split(orb_idxs, term_split_idxs)
         daggers_list = np.split(daggers, term_split_idxs)
-
-        has_constant = not _isclose(constant, 0.0)
 
         # loop over the batch dimension
         n_c = 0
@@ -193,11 +194,6 @@ class FermionOperator2nd(FermionOperator2ndBase):
                 x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
 
             non_zero_diag = False
-            if has_constant:
-                non_zero_diag = True
-                x_prime[n_c, :] = np.copy(xb)
-                mels[n_c] += constant
-
             # first do the diagonal terms, they all generate just 1 term
             for term_idx in diag_idxs:
                 mel = weights[term_idx]
@@ -206,7 +202,9 @@ class FermionOperator2nd(FermionOperator2ndBase):
                 for orb_idx, dagger in zip(
                     orb_idxs_list[term_idx], daggers_list[term_idx]
                 ):
-                    _, mel, op_has_xp = _apply_operator(xt, orb_idx, dagger, mel)
+                    _, mel, op_has_xp = _apply_operator(
+                        xt, orb_idx, dagger, mel, cutoff
+                    )
                     if not op_has_xp:
                         has_xp = False
                         continue
@@ -228,7 +226,9 @@ class FermionOperator2nd(FermionOperator2ndBase):
                 for orb_idx, dagger in zip(
                     orb_idxs_list[term_idx], daggers_list[term_idx]
                 ):
-                    xt, mel, op_has_xp = _apply_operator(xt, orb_idx, dagger, mel)
+                    xt, mel, op_has_xp = _apply_operator(
+                        xt, orb_idx, dagger, mel, cutoff
+                    )
                     if not op_has_xp:  # detect zeros
                         has_xp = False
                         continue
@@ -264,15 +264,11 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
     off_diag_idxs = []
     # below connect the second type to the first type (used to split single-fermion lists)
     term_split_idxs = []
-    constants = []
 
     term_counter = 0
     single_op_counter = 0
     for term, weight in operators.items():
-        if len(term) == 0:
-            constants.append(weight)
-            continue
-        if not all(len(t) == 2 for t in term):  # pragma: no cover
+        if len(term) > 0 and not all(len(t) == 2 for t in term):  # pragma: no cover
             raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
 
         # fill some info about the term
@@ -297,12 +293,9 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
     orb_idxs = np.array(orb_idxs, dtype=np.intp)
     daggers = np.array(daggers, dtype=bool)
     weights = np.array(weights, dtype=dtype)
-    # term_ends = np.array(term_ends, dtype=bool)
-    # herm_term = np.array(herm_term, dtype=bool)
     diag_idxs = np.array(diag_idxs, dtype=np.intp)
     off_diag_idxs = np.array(off_diag_idxs, dtype=np.intp)
     term_split_idxs = np.array(term_split_idxs, dtype=np.intp)
-    constant = sum(constants)
 
     return (
         orb_idxs,
@@ -311,18 +304,17 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
         diag_idxs,
         off_diag_idxs,
         term_split_idxs,
-        constant,
     )
 
 
 @numba.jit(nopython=True)
-def _isclose(a, b, cutoff=1e-6):  # pragma: no cover
+def _isclose(a, b, cutoff):  # pragma: no cover
     return np.abs(a - b) < cutoff
 
 
 @numba.jit(nopython=True)
 def _is_empty(site):  # pragma: no cover
-    return _isclose(site, 0)
+    return _isclose(site, 0, 1e-10)
 
 
 @numba.jit(nopython=True)
@@ -331,7 +323,7 @@ def _flip(site):  # pragma: no cover
 
 
 @numba.jit(nopython=True)
-def _apply_operator(xt, orb_idx, dagger, mel):  # pragma: no cover
+def _apply_operator(xt, orb_idx, dagger, mel, cutoff):  # pragma: no cover
     has_xp = True
     empty_site = _is_empty(xt[orb_idx])
     if dagger:
@@ -346,6 +338,6 @@ def _apply_operator(xt, orb_idx, dagger, mel):  # pragma: no cover
         else:
             mel *= (-1) ** np.sum(xt[:orb_idx])  # jordan wigner sign
             xt[orb_idx] = _flip(xt[orb_idx])
-    if _isclose(mel, 0):
+    if _isclose(mel, 0, cutoff):
         has_xp = False
     return xt, mel, has_xp

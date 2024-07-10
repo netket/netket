@@ -24,6 +24,7 @@ from itertools import product
 from numbers import Number
 
 from netket import jax as nkjax
+from netket.jax import canonicalize_dtypes
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import dtype as _dtype, is_scalar
 
@@ -100,20 +101,23 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
         )
 
     weights = _standardize_matrix_input_type(weights)
-
-    # If we asked for a specific dtype, enforce it.
-    if dtype is None:
-        dtype = jnp.promote_types(np.float32, _dtype(weights))
-    # Fallback to float32 when float64 is disabled in JAX
-    dtype = jnp.empty((), dtype=dtype).dtype
-
     operators = np.asarray(operators, dtype=str)
 
-    # If real dtype but there is a 'Y' in the string, upconvert
-    # the dtype to complex
+    operators, weights = _reduce_pauli_string(operators, weights)
+
+    # When there is an odd number of 'Y' in any string, the whole operator must be complex
+    op_is_complex = any(s.count("Y") % 2 == 1 for s in operators)
+
+    dtype = canonicalize_dtypes(
+        complex if op_is_complex else float, weights, dtype=dtype
+    )
+
     if not nkjax.is_complex_dtype(dtype):
-        if np.any(np.char.find(operators, "Y") != -1):
-            dtype = nkjax.dtype_complex(dtype)
+        if op_is_complex:
+            raise TypeError("Cannot specify real dtype with an odd number of Y")
+
+        if nkjax.is_complex_dtype(weights.dtype):
+            raise TypeError("Cannot specify real dtype with complex weights")
 
     weights = cast_operator_matrix_dtype(weights, dtype=dtype)
 
@@ -141,7 +145,9 @@ class PauliStringsBase(DiscreteOperator):
            hilbert: A hilbert space, optional (is no ``AbstractHilbert`` is passed, default is Qubit)
            operators (list(string)): A list of Pauli operators in string format, e.g. ['IXX', 'XZI'].
            weights: A list of amplitudes of the corresponding Pauli operator.
-           cutoff (float): a cutoff to remove small matrix elements
+           cutoff (float): a cutoff to remove small matrix elements (default = 1e-10)
+           dtype: The datatype to use for the matrix elements. Defaults to double precision if
+                available.
 
         Examples:
            Constructs a new ``PauliStrings`` operator X_0*X_1 + 3.*Z_0*Z_1 with both construction schemes.
@@ -312,8 +318,8 @@ class PauliStringsBase(DiscreteOperator):
         if not isinstance(other, PauliStringsBase):
             return NotImplemented
         op = self.copy(
-            dtype=np.promote_types(self.dtype, _dtype(other)),
-            cutoff=max(self._cutoff, other._cutoff),
+            dtype=jnp.promote_types(self.dtype, _dtype(other)),
+            cutoff=min(self._cutoff, other._cutoff),
         )
         return op._op_imatmul_(other)
 
@@ -415,6 +421,7 @@ class PauliStringsBase(DiscreteOperator):
 
             self._operators = operators
             self._weights = weights
+            self._cutoff = min(self._cutoff, other._cutoff)
             self._reset_caches()
             return self
 
@@ -580,7 +587,7 @@ def _matmul(op_arr1, w_arr1, op_arr2, w_arr2, *, dtype):
         weights.append(w)
     # so here we recast to the desired dtype
     operators, weights = np.array(operators), np.array(weights)
-    # explicit real part ot avoid warning
+    # explicit real part to avoid warning
     if not nkjax.is_complex_dtype(dtype):
         weights = weights.real
     weights = weights.astype(dtype)

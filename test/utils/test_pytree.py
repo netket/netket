@@ -42,7 +42,7 @@ class TestPytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 
@@ -66,7 +66,7 @@ class TestPytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 
@@ -229,7 +229,7 @@ class TestPytree:
 
         pytree = A(a=1)
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
 
     @pytest.mark.parametrize("dynamic_nodes", [True, False])
     def test_deterministic_order(self, dynamic_nodes):
@@ -254,6 +254,33 @@ class TestPytree:
 
         assert leaves1 == leaves2
 
+    def test_default(self):
+        class Foo(Pytree):
+            a: int
+            b: int = static_field(default=2)
+            c: int = static_field(default_factory=lambda: "ciao")
+
+            def __init__(self, a, b=None):
+                self.a = a
+                if b is not None:
+                    self.b = b
+
+        module = Foo(a=1)
+        assert module.a == 1
+        assert module.b == 2
+        assert module.c == "ciao"
+
+        module = Foo(a=1, b=3)
+        assert module.a == 1
+        assert module.b == 3
+        assert module.c == "ciao"
+
+        @jax.jit
+        def f(m: Foo):
+            return m.a + m.b
+
+        assert f(module) == 4
+
 
 class TestMutablePytree:
     def test_pytree(self):
@@ -270,7 +297,7 @@ class TestMutablePytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 
@@ -297,7 +324,7 @@ class TestMutablePytree:
             foo.y = 2
 
     def test_pytree_dataclass(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
 
             @dataclass
             class _Foo(Pytree, mutable=True):
@@ -314,7 +341,7 @@ class TestMutablePytree:
         leaves = jax.tree_util.tree_leaves(pytree)
         assert leaves == [3]
 
-        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        pytree = jax.tree_util.tree_map(lambda x: x * 2, pytree)
         assert pytree.x == 2
         assert pytree.y == 6
 

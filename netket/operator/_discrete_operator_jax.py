@@ -15,10 +15,13 @@
 import abc
 
 import numpy as np
+from scipy import sparse
+
 import jax.numpy as jnp
-from jax.experimental.sparse import JAXSparse, BCOO
+from jax.experimental.sparse import JAXSparse, BCOO, BCSR
 
 from netket.operator import AbstractOperator, DiscreteOperator
+from netket.utils.optional_deps import import_optional_dependency
 
 
 class DiscreteJaxOperator(DiscreteOperator):
@@ -34,10 +37,9 @@ class DiscreteJaxOperator(DiscreteOperator):
     arguments, and they will not trigger recompilation if
     only the coefficients have changed.
 
-    Some operators, such as :class:`netket.operator.Ising` or
-    :class:`netket.operator.PauliStrings` can be converted to
+    Most operators can be converted to
     their jax-enabled counterparts by calling the method
-    :meth:`~netket.operator.PauliStrings.to_jax_operator`.
+    :meth:`~netket.operator.DiscreteJaxOperator.to_jax_operator`.
     Not all operators support this conversion, but as
     :class:`netket.operator.PauliStrings` are flexible, if you
     can convert or write your hamiltonian as a sum of pauli
@@ -205,7 +207,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
         j = self.hilbert.states_to_numbers(xp).ravel()
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        return BCOO((a, ij), shape=(n, n))
+        return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
@@ -220,12 +222,33 @@ class DiscreteJaxOperator(DiscreteOperator):
         """
         return self.to_sparse().todense()
 
+    def to_qobj(self):  # -> "qutip.Qobj"
+        r"""Convert the operator to a qutip's Qobj.
+
+        Returns:
+            A :class:`qutip.Qobj` object.
+        """
+        qutip = import_optional_dependency("qutip", descr="to_qobj")
+
+        # QuTiP does not like jax sparse matrices, so we convert to scipy sparse
+        # by hand
+        sparse_mat_jax = self.to_sparse()
+        sparse_mat_scipy = sparse.csr_matrix(
+            (
+                sparse_mat_jax.data,
+                sparse_mat_jax.indices,
+                sparse_mat_jax.indptr,
+            ),
+            shape=sparse_mat_jax.shape,
+        )
+        return qutip.Qobj(
+            sparse_mat_scipy, dims=[list(self.hilbert.shape), list(self.hilbert.shape)]
+        )
+
     def __matmul__(self, other):
-        if (
-            isinstance(other, np.ndarray)
-            or isinstance(other, jnp.ndarray)
-            or isinstance(other, JAXSparse)
-        ):
+        if isinstance(other, JAXSparse):
+            return self.apply(other.todense())
+        elif isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
             return self._op__matmul__(other)

@@ -47,17 +47,19 @@ The Quantum State Reconstruction algorithm performs an approximate tomographic r
 (experimental-sampler-api)=
 ## Samplers
 
-This module contains the Metropolis Parallel Tempered sampler.
-This sampler is experimental because we believe it to be correct, but our tests
-fail. We believe it to be a false negative: possibly the implementation of the
-sampler is correct, but the test is too tight.
-Until we will have verified this hypothesis and updated the tests in order not
-to fail, we provide the current implementation as-is, in the hope that some
-contributor might take up that work.
+They are experimental, meaning that we could change them at some point, and we actively seeking for feedback and opinions on their usage and APIs.
 
-The other experimental sampler is MetropolisSamplerPmap, which makes use of {func}`jax.pmap`
+```{eval-rst}
+.. currentmodule:: netket.experimental
+
+```
+
+### Parallel tempering samplers
+
+An experimental sampler is MetropolisSamplerPmap, which makes use of {func}`jax.pmap`
 to use different GPUs/CPUs without having to use MPI. It should scale much better over
 several CPUs, but you have to start jax with a specific environment variable.
+
 
 ```{eval-rst}
 .. autosummary::
@@ -65,11 +67,32 @@ several CPUs, but you have to start jax with a specific environment variable.
    :template: class
    :nosignatures:
 
-   sampler.MetropolisPtSampler
-   sampler.MetropolisLocalPt
-   sampler.MetropolisExchangePt
-
    sampler.MetropolisSamplerPmap
+```
+
+### Particle-specific samplers
+
+The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class}`netket.experimental.hilbert.SpinOrbitalFermions`).
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   sampler.MetropolisParticleExchange
+```
+
+And the corresponding rules
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   sampler.rules.ParticleExchangeRule
 ```
 
 (experimental-logging-api)=

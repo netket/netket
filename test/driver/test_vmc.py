@@ -5,18 +5,19 @@ from pytest import approx, raises
 
 import numpy as np
 import jax
-import jax.numpy as jnp
 import netket as nk
 
 from contextlib import redirect_stderr
 import tempfile
 import re
 
+from ..variational.finite_diff import central_diff_grad
+
 from .. import common
 
 pytestmark = common.skipif_mpi
 
-SEED = 214748364
+SEED = 21478364
 
 
 def _setup_vmc(dtype=np.float32, sr=True):
@@ -69,22 +70,6 @@ def test_reset():
     assert driver.step_count == 0
 
 
-def test_vmc_construction_vstate():
-    ha, sx, ma, sa, driver = _setup_vmc()
-
-    op = nk.optimizer.Sgd(learning_rate=0.05)
-
-    driver = nk.VMC(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
-
-    driver.run(1)
-
-    assert driver.step_count == 1
-
-    with raises(TypeError):
-        ha2 = nk.operator.LocalOperator(ha.hilbert * ha.hilbert)
-        driver = nk.VMC(ha2, op, variational_state=driver.state)
-
-
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 
@@ -105,7 +90,7 @@ def test_vmc_functions():
     def check_shape(a, b):
         assert a.shape == b.shape
 
-    jax.tree_map(check_shape, grads, ma.parameters)
+    jax.tree_util.tree_map(check_shape, grads, ma.parameters)
     grads, _ = nk.jax.tree_ravel(grads)
 
     assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
@@ -151,26 +136,6 @@ def _energy(par, vstate, H):
     vstate.parameters = par
     psi = vstate.to_array()
     return np.real(psi.conj() @ H @ psi)
-
-
-def central_diff_grad(func, x, eps, *args):
-    grad = np.zeros(len(x), dtype=x.dtype)
-    epsd = np.zeros(len(x), dtype=x.dtype)
-    epsd[0] = eps
-    for i in range(len(x)):
-        assert not np.any(np.isnan(x + epsd))
-        grad_r = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
-        if jnp.iscomplexobj(x):
-            grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
-            grad[i] = 0.5 * grad_r + 0.5j * grad_i
-        else:
-            # grad_i = 0.0
-            grad[i] = grad_r
-
-        assert not np.isnan(grad[i])
-        grad[i] /= eps
-        epsd = np.roll(epsd, 1)
-    return grad
 
 
 def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):

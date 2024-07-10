@@ -10,7 +10,6 @@ from jax.nn.initializers import (
     lecun_normal,
 )
 
-from netket.utils import deprecate_dtype
 from netket.hilbert import ContinuousHilbert
 import netket.nn as nknn
 
@@ -97,7 +96,6 @@ def _process_features_rho(features_input):
         )
 
 
-@deprecate_dtype
 class DeepSetRelDistance(nn.Module):
     r"""Implements an equivariant version of the DeepSets architecture
     given by (https://arxiv.org/abs/1703.06114)

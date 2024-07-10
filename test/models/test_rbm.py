@@ -47,11 +47,12 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     for val in vals[1:]:
         np.testing.assert_allclose(val, vals[0])
 
+    vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
+
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
         nk.optimizer.Sgd(0.1),
-        nk.sampler.MetropolisLocal(hi),
-        ma,
+        variational_state=vs,
     )
     vmc.advance(1)
 
@@ -107,18 +108,11 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
     )
     _ = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 
+    vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
+
     vmc = nk.VMC(
         nk.operator.BoseHubbard(hi, g, U=1.0),
         nk.optimizer.Sgd(0.1),
-        nk.sampler.MetropolisLocal(hi),
-        ma,
+        variational_state=vs,
     )
     vmc.advance(1)
-
-
-def test_deprecated_dtype():
-    with pytest.warns(FutureWarning):
-        module = nk.models.RBM(dtype=complex)
-
-    with pytest.warns(FutureWarning):
-        assert module.dtype == module.param_dtype

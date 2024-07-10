@@ -203,11 +203,13 @@ def operator_from_arrays(
         if isinstance(n_electrons, tuple):
             assert len(n_electrons) == 2
             hi = SpinOrbitalFermions(
-                n_orbitals=tij_sparse.shape[0] // 2, s=1 / 2, n_fermions=n_electrons
+                n_orbitals=tij_sparse.shape[0] // 2,
+                s=1 / 2,
+                n_fermions_per_spin=n_electrons,
             )
         else:
             hi = SpinOrbitalFermions(
-                n_orbitals=tij_sparse.shape[0], n_fermions=n_electrons
+                n_orbitals=tij_sparse.shape[0], n_fermions_per_spin=n_electrons
             )
     terms, weights, constant = arrays_to_terms(
         const, tij_sparse, vijkl_sparse, term_conj2=term_conj2, term_conj4=term_conj4

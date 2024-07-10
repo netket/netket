@@ -21,7 +21,6 @@ import jax.numpy as jnp
 
 from netket import jax as nkjax
 from netket.driver import AbstractVariationalDriver
-from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator
 from netket.vqs import VariationalState
 from netket.optimizer import (
@@ -269,7 +268,7 @@ class QSR(AbstractVariationalDriver):
 
             # gather gradient
             # grad <- grad - grad_cv + E[grad_cv]
-            self._grad_pos = jax.tree_map(
+            self._grad_pos = jax.tree_util.tree_map(
                 lambda x, y, Ey: x - y + Ey,
                 self._grad_pos,
                 self._grad_pos_cv,
@@ -282,7 +281,7 @@ class QSR(AbstractVariationalDriver):
 
         # restore the square in prob = |psi|^2
         if not self.mixed_states:
-            self._loss_grad = jax.tree_map(lambda x: x * 2.0, self._loss_grad)
+            self._loss_grad = jax.tree_util.tree_map(lambda x: x * 2.0, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._loss_grad = tree_cast(self._loss_grad, self.state.parameters)
@@ -514,14 +513,3 @@ class QSR(AbstractVariationalDriver):
             + f"\n  step_count = {self.step_count},"
             + f"\n  state = {self.state})"
         )
-
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("Optimizer   ", self._optimizer),
-                ("SR solver   ", self.sr),
-                ("State       ", self.state),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])

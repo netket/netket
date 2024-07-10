@@ -12,30 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional
 from collections.abc import Iterator
 from textwrap import dedent
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 
-from netket.utils.types import Array
-from netket.utils.numbers import is_scalar
-from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
+import jax
+import jax.numpy as jnp
+
+from equinox import error_if
+
+from netket.utils.types import Array, DType
 
 from .abstract_hilbert import AbstractHilbert
-
-max_states = np.iinfo(np.int32).max
-"""int: Maximum number of states that can be indexed"""
-
-
-def _is_indexable(shape):
-    """
-    Returns whether a discrete Hilbert space of shape `shape` is
-    indexable (i.e., its total number of states is below the maximum).
-    """
-    log_max = np.log(max_states)
-    return np.sum(np.log(shape)) <= log_max
+from .index import is_indexable
 
 
 class DiscreteHilbert(AbstractHilbert):
@@ -43,6 +35,17 @@ class DiscreteHilbert(AbstractHilbert):
 
     This class defines the common interface that can be used to
     interact with hilbert spaces on lattices.
+
+    The local degrees of freedom are discrete and numerable, therefore they can always be
+    converted to and from integers using the methods `states_to_local_indices` and
+    `local_indices_to_states`.
+    This can be used to simplify the implementation of operators that might act on the
+    hilbert space, to avoid reimplementing the logic for different values of the local
+    degrees of freedom.
+
+    If the Hilbert space is small enough, individual states can be converted to and from
+    integers labelling all the basis states. This is done using the methods `numbers_to_states`
+    and `states_to_numbers`.
     """
 
     def __init__(self, shape: tuple[int, ...]):
@@ -132,9 +135,8 @@ class DiscreteHilbert(AbstractHilbert):
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def numbers_to_states(
-        self, numbers: Union[int, np.ndarray], out: Optional[np.ndarray] = None
-    ) -> np.ndarray:
+    @partial(jax.jit, static_argnums=0)
+    def numbers_to_states(self, numbers: Array) -> Array:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n.
 
@@ -142,30 +144,33 @@ class DiscreteHilbert(AbstractHilbert):
         :code:`numbers[k]=Index(states[k])`.
         Throws an exception iff the space is not indexable.
 
+        This function validates the inputs by checking that the numbers provided
+        are smaller than the Hilbert space size, and throws an error if that
+        condition is not met. When called from within a `jax.jit` context, this
+        uses {func}`equinox.error_if` to throw runtime errors.
+
         Args:
             numbers (numpy.array): Batch of input numbers to be converted into arrays of
                 quantum numbers.
-            out: Optional Array of quantum numbers corresponding to numbers.
         """
 
-        numbers = concrete_or_error(
-            np.asarray, numbers, HilbertIndexingDuringTracingError
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
+
+        numbers = jnp.asarray(numbers, dtype=np.int32)
+
+        numbers = error_if(
+            numbers,
+            (numbers >= self.n_states).any() | (numbers < 0).any(),
+            "Numbers outside the range of allowed states.",
         )
 
-        if out is None:
-            out = np.empty((np.atleast_1d(numbers).shape[0], self.size))
+        return self._numbers_to_states(numbers.ravel()).reshape(
+            (*numbers.shape, self.size)
+        )
 
-        if np.any(numbers >= self.n_states):
-            raise ValueError("numbers outside the range of allowed states")
-
-        if is_scalar(numbers):
-            return self._numbers_to_states(np.atleast_1d(numbers), out=out)[0, :]
-        else:
-            return self._numbers_to_states(numbers, out=out)
-
-    def states_to_numbers(
-        self, states: np.ndarray, out: Optional[np.ndarray] = None
-    ) -> Union[int, np.ndarray]:
+    @partial(jax.jit, static_argnums=0)
+    def states_to_numbers(self, states: Array) -> Array:
         r"""Returns the basis state number corresponding to given quantum states.
 
         The states are given in a batch, such that states[k] has shape (hilbert.size).
@@ -173,28 +178,23 @@ class DiscreteHilbert(AbstractHilbert):
 
         Args:
             states: Batch of states to be converted into the corresponding integers.
-            out: Array of integers such that out[k]=Index(states[k]).
-                 If None, memory is allocated.
 
         Returns:
-            numpy.darray: Array of integers corresponding to out.
+            numpy.darray: Array of integers corresponding to states.
         """
+
         if states.shape[-1] != self.size:
             raise ValueError(
                 f"Size of this state ({states.shape[-1]}) not"
                 f"corresponding to this hilbert space {self.size}"
             )
 
-        states = concrete_or_error(
-            np.asarray, states, HilbertIndexingDuringTracingError
-        )
+        states_r = jnp.reshape(states, (-1, states.shape[-1]))
 
-        states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
 
-        if out is None:
-            out = np.empty(states_r.shape[:-1], dtype=np.int64)
-
-        out = self._states_to_numbers(states_r, out=out.reshape(-1))
+        out = self._states_to_numbers(states_r)
 
         if states.ndim == 1:
             return out[0]
@@ -211,21 +211,19 @@ class DiscreteHilbert(AbstractHilbert):
         for i in range(self.n_states):
             yield self.numbers_to_states(i).reshape(-1)
 
-    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
+    @partial(jax.jit, static_argnums=0)
+    def all_states(self) -> Array:
         r"""Returns all valid states of the Hilbert space.
 
         Throws an exception if the space is not indexable.
-
-        Args:
-            out: an optional pre-allocated output array
 
         Returns:
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
-        numbers = np.arange(0, self.n_states, dtype=np.int64)
 
-        return self.numbers_to_states(numbers, out)
+        numbers = jnp.arange(0, self.n_states, dtype=np.int32)
+        return self.numbers_to_states(numbers)
 
     def states_to_local_indices(self, x: Array):
         r"""Returns a tensor with the same shape of `x`, where all local
@@ -249,12 +247,36 @@ class DiscreteHilbert(AbstractHilbert):
             f"implemented for Hilbert space {self} of type {type(self)}"
         )
 
+    def local_indices_to_states(self, x: Array, dtype: DType = None):
+        r"""
+        Converts a tensor of integers to the corresponding local_values in
+        this hilbert space.
+
+        Equivalent to
+
+        .. code::py
+
+            hilbert.local_states[x]
+
+        The input last dimension must match the size of this Hilbert space.
+        This function can be jax-jitted.
+
+        Args:
+            x: a tensor with integer dtype and whose last dimension matches
+                the size of this Hilbert space.
+
+        Returns:
+            a tensor with the same shape as the input, and values corresponding
+            to the local_state indexed by the input tensor `x`.
+        """
+        raise NotImplementedError()
+
     @property
     def is_indexable(self) -> bool:
         """Whether the space can be indexed with an integer"""
         if not self.is_finite:
             return False
-        return _is_indexable(self.shape)
+        return is_indexable(self.shape)
 
     def __mul__(self, other: "DiscreteHilbert"):
         if type(self) == type(other):

@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2024 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,104 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-from numba.experimental import jitclass
-from numba import int64, float64
+
+import jax
+import jax.numpy as jnp
 
 
-spec = [
-    ("_local_states", float64[:]),
-    ("_local_size", int64),
-    ("_size", int64),
-    ("_basis", int64[:]),
-]
+from netket.utils.types import Array
+from netket.utils import HashableArray, struct
+from netket.jax import sort, searchsorted
+
+from .base import HilbertIndex, is_indexable
 
 
-@jitclass(spec)
-class UnconstrainedHilbertIndex:
-    def __init__(self, local_states, size):
-        self._local_states = np.sort(local_states).astype(np.float64)
-        self._local_size = len(self._local_states)
-        self._size = size
+class LookupTableHilbertIndex(HilbertIndex):
+    """Index states according to a pre-defined array containing all possible states.
 
-        self._basis = np.zeros(size, dtype=np.int64)
-        ba = 1
-        for s in range(size):
-            self._basis[s] = ba
-            ba *= self._local_size
+    Does lookup (states_to_numbers) in log time in the number of states,
+    and indexing (numbers_to_states) in constant time.
 
-    def _local_state_number(self, x):
-        return np.searchsorted(self.local_states, x)
+    The pre-defined array is sorted internally in ascending order (lexicographically).
+    Lookup of states not in all_states results in undefined behaviour.
+    """
+
+    _all_states: HashableArray = struct.field(pytree_node=False)
+
+    def __init__(self, all_states: Array):
+        self._all_states = HashableArray(all_states)
 
     @property
-    def size(self) -> int:
-        return self._size
+    def n_states(self) -> int:
+        return self.all_states().shape[0]
+
+    @jax.jit
+    def numbers_to_states(self, numbers: Array) -> Array:
+        return self.all_states()[numbers]
+
+    @jax.jit
+    def states_to_numbers(self, states: Array) -> Array:
+        return searchsorted(self.all_states(), states)
+
+    @jax.jit
+    def all_states(self) -> Array:
+        with jax.ensure_compile_time_eval():
+            # unpack HashableArray,
+            # ensure the states are sorted
+            res = sort(jnp.asarray(self._all_states))
+        return res
 
     @property
-    def n_states(self):
-        return self._local_size**self._size
-
-    @property
-    def local_states(self):
-        return self._local_states
-
-    @property
-    def local_size(self) -> int:
-        return self._local_size
-
-    def number_to_state(self, number, out=None):
-        if out is None:
-            out = np.empty(self._size)
-        # else:
-        #     assert out.size == self._size
-
-        out.fill(self._local_states[0])
-
-        ip = number
-        k = self._size - 1
-        while ip > 0:
-            out[k] = self._local_states[ip % self._local_size]
-            ip = ip // self._local_size
-            k -= 1
-
-        return out
-
-    def states_to_numbers(self, states, out=None):
-        if states.ndim != 2:
-            raise RuntimeError("Invalid input shape, expecting a 2d array.")
-
-        if out is None:
-            out = np.empty(states.shape[0], np.int64)
-        # else:
-        #     assert out.size == states.shape[0]
-
-        for i in range(states.shape[0]):
-            out[i] = 0
-            for j in range(self._size):
-                out[i] += (
-                    self._local_state_number(states[i, self._size - j - 1])
-                    * self._basis[j]
-                )
-        return out
-
-    def numbers_to_states(self, numbers, out=None):
-        if numbers.ndim != 1:
-            raise RuntimeError("Invalid input shape, expecting a 1d array.")
-
-        if out is None:
-            out = np.empty((numbers.shape[0], self._size))
-        # else:
-        #     assert out.shape == (numbers.shape[0], self._size)
-
-        for i, n in enumerate(numbers):
-            out[i] = self.number_to_state(n)
-
-        return out
-
-    def all_states(self, out=None):
-        if out is None:
-            out = np.empty((self.n_states, self._size))
-
-        for i in range(self.n_states):
-            self.number_to_state(i, out[i])
-        return out
+    def is_indexable(self) -> bool:
+        return is_indexable(self.n_states)

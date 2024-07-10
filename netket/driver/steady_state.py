@@ -24,8 +24,8 @@ from netket.optimizer import (
     _DeprecatedPreconditionerSignature,
 )
 from netket.jax import tree_cast
+from netket.utils.types import Optimizer
 
-from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
@@ -36,12 +36,11 @@ class SteadyState(AbstractVariationalDriver):
 
     def __init__(
         self,
-        lindbladian,
-        optimizer,
-        *args,
-        variational_state: MCMixedState = None,
+        lindbladian: AbstractSuperOperator,
+        optimizer: Optimizer,
+        *,
+        variational_state: MCMixedState,
         preconditioner: PreconditionerT = identity_preconditioner,
-        **kwargs,
     ):
         """
         Initializes the driver class.
@@ -56,9 +55,6 @@ class SteadyState(AbstractVariationalDriver):
                 included with NetKet is Stochastic Reconfiguration. By default, no preconditioner
                 is used and the bare gradient is passed to the optimizer.
         """
-        if variational_state is None:
-            variational_state = MCMixedState(*args, **kwargs)
-
         if not isinstance(lindbladian, AbstractSuperOperator):
             raise TypeError("The first argument must be a super-operator")
 
@@ -142,14 +138,3 @@ class SteadyState(AbstractVariationalDriver):
             + f"\n  step_count = {self.step_count},"
             + f"\n  state = {self.state})"
         )
-
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("Lindbladian ", self._lind),
-                ("Optimizer   ", self._optimizer),
-                ("SR solver   ", self.sr),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])

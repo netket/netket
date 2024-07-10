@@ -199,7 +199,8 @@ class HDF5Log(AbstractLog):
             self._writer.flush()
 
     def __del__(self):
-        self.flush()
+        if hasattr(self, "_writer"):
+            self.flush()
 
     def __repr__(self):
         _str = f"HDF5Log('{self._file_name}', mode={self._file_mode}"

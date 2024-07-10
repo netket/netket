@@ -29,9 +29,12 @@ from netket.hilbert import (
     Spin,
 )
 import netket.experimental as nkx
+from netket.utils import StaticRange
 
 import jax
 import jax.numpy as jnp
+from jax._src.lib import xla_extension
+
 
 from .. import common
 
@@ -69,7 +72,7 @@ hilberts["Fock * Fock (non-indexable)"] = Fock(n_max=4, N=40) * Fock(n_max=7, N=
 hilberts["Qubit"] = nk.hilbert.Qubit(100)
 
 # Custom Hilbert
-hilberts["Custom Hilbert"] = CustomHilbert(local_states=[-1232, 132, 0], N=70)
+hilberts["Custom Hilbert"] = CustomHilbert(local_states=StaticRange(-153, 44, 3), N=70)
 
 # Heisenberg 1d
 hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, N=20)
@@ -94,7 +97,9 @@ hilberts["Fock Small"] = Fock(n_max=3, N=5)
 hilberts["Qubit Small"] = Qubit(N=1)
 
 # Custom Hilbert
-hilberts["Custom Hilbert Small"] = CustomHilbert(local_states=[-1232, 132, 0], N=5)
+hilberts["Custom Hilbert Small"] = CustomHilbert(
+    local_states=StaticRange(-123, 10, 3), N=5
+)
 
 # Custom Hilbert
 hilberts["DoubledHilbert[Spin]"] = DoubledHilbert(Spin(0.5, N=5))
@@ -106,7 +111,7 @@ hilberts["DoubledHilbert[Spin(total_sz=0.5)]"] = DoubledHilbert(
 hilberts["DoubledHilbert[Fock]"] = DoubledHilbert(Spin(0.5, N=5))
 
 hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
-    CustomHilbert(local_states=[-1232, 132, 0], N=5)
+    CustomHilbert(local_states=StaticRange(-123, 10, 3), N=5)
 )
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
@@ -121,6 +126,9 @@ hilberts["SpinOrbitalFermions (n_fermions=list)"] = nkx.hilbert.SpinOrbitalFermi
 )
 hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
     5, s=1 / 2, n_fermions_per_spin=(2, 0)
+)
+hilberts["SpinOrbitalFermions (higherspin)"] = nkx.hilbert.SpinOrbitalFermions(
+    3, s=3 / 2, n_fermions_per_spin=(2, 1, 2, 1)
 )
 
 # Continuous space
@@ -329,7 +337,7 @@ def test_flip_state_fock_infinite():
 def test_hilbert_index_discrete(hi: DiscreteHilbert):
     assert isinstance(hi.constrained, bool)
 
-    log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
+    log_max_states = np.log(nk.hilbert.index.max_states)
 
     if hi.is_indexable:
         local_sizes = [hi.size_at_index(i) for i in range(hi.size)]
@@ -348,12 +356,20 @@ def test_hilbert_index_discrete(hi: DiscreteHilbert):
             hi.numbers_to_states(np.asarray(range(n_few))), few_states
         )
 
+        few_states_n = np.asarray(range(n_few)).reshape(1, -1)
+        np.testing.assert_allclose(
+            hi.numbers_to_states(few_states_n), few_states.reshape(1, -1, hi.size)
+        )
+
     else:
         assert not hi.is_indexable
-
         with pytest.raises(RuntimeError):
             hi.n_states
+        with pytest.raises(RuntimeError):
+            hi.all_states()
 
+
+def test_hilbert_index_discrete_large_errors():
     # Check that a large hilbert space raises error when constructing matrices
     g = nk.graph.Hypercube(length=100, n_dim=1)
     op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
@@ -380,6 +396,11 @@ def _states_to_local_indices_jit(hilb, x):
     return hilb.states_to_local_indices(x)
 
 
+@partial(jax.jit, static_argnums=0)
+def _local_indices_to_states_jit(hilb, x):
+    return hilb.local_indices_to_states(x)
+
+
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_states_to_local_indices(hi):
     x = hi.random_state(jax.random.PRNGKey(3), (200))
@@ -387,6 +408,26 @@ def test_states_to_local_indices(hi):
     idxs_jit = _states_to_local_indices_jit(hi, x)
 
     np.testing.assert_allclose(idxs, idxs_jit)
+
+    # check that the index is correct
+    for s in range(hi.size):
+        local_states = np.asarray(hi.states_at_index(s))
+        np.testing.assert_allclose(local_states[idxs[..., s]], x[..., s])
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_local_indices_to_states(hi):
+    x = hi.random_state(jax.random.PRNGKey(3), (200))
+    idxs = hi.states_to_local_indices(x)
+
+    y = hi.local_indices_to_states(idxs)
+    y_jit = _local_indices_to_states_jit(hi, idxs)
+
+    np.testing.assert_allclose(y, y_jit)
+
+    np.testing.assert_allclose(
+        x, hi.local_indices_to_states(hi.states_to_local_indices(x))
+    )
 
     # check that the index is correct
     for s in range(hi.size):
@@ -424,11 +465,12 @@ def test_inhomogeneous_fock():
 
     for i in range(0, 40):
         assert hi.size_at_index(i) == 8
-        assert hi.states_at_index(i) == list(range(8))
+        # np.states_at_index(i) is a StaticRange
+        np.testing.assert_array_equal(hi.states_at_index(i), np.arange(8))
 
     for i in range(40, 80):
         assert hi.size_at_index(i) == 3
-        assert hi.states_at_index(i) == list(range(3))
+        np.testing.assert_array_equal(hi.states_at_index(i), np.arange(3))
 
 
 def test_fermions():
@@ -468,7 +510,8 @@ def test_fermion_fails():
     # TODO: change to TypeError in 3.12
     # with pytest.raises(TypeError):
     with pytest.raises(ValueError):
-        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
+        with pytest.warns(DeprecationWarning):
+            _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
     # TODO: Test the hard error in 3.12
     # with pytest.raises(TypeError):
     with pytest.warns(DeprecationWarning):
@@ -496,15 +539,15 @@ def test_fermions_states():
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=2)
     assert hi.size == 10
     assert hi.constrained
-    np.testing.assert_equal(hi.all_states().sum(axis=-1), 2)
+    np.testing.assert_array_equal(hi.all_states().sum(axis=-1), 2)
     # distribute 2 fermions over (2*number of orbitals)
     assert hi.n_states == int(scipy.special.comb(2 * 5, 2))
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
     assert hi.size == 10
     assert hi.constrained
-    np.testing.assert_equal(hi.all_states()[:, :5].sum(axis=-1), 2)
-    np.testing.assert_equal(hi.all_states()[:, 5:].sum(axis=-1), 1)
+    np.testing.assert_array_equal(hi.all_states()[:, :5].sum(axis=-1), 2)
+    np.testing.assert_array_equal(hi.all_states()[:, 5:].sum(axis=-1), 1)
     # product of all_states for -1/2 spin block and states for 1/2 block
     assert hi.n_states == int(scipy.special.comb(5, 2) * scipy.special.comb(5, 1))
 
@@ -687,25 +730,6 @@ def test_constrained_eq_hash():
     assert hash(hi1) != hash(hi2)
 
 
-@pytest.mark.parametrize("hi", discrete_hilbert_params)
-def test_hilbert_numba_throws(hi):
-    """Check that get conn throws an error"""
-    from netket.errors import HilbertIndexingDuringTracingError
-
-    @partial(jax.jit, static_argnums=0)
-    def numbers_to_states(hi, s):
-        return hi.numbers_to_states(s)
-
-    @partial(jax.jit, static_argnums=0)
-    def states_to_numbers(hi, s):
-        return hi.states_to_numbers(s)
-
-    with pytest.raises(HilbertIndexingDuringTracingError):
-        numbers_to_states(hi, 1)
-    with pytest.raises(HilbertIndexingDuringTracingError):
-        states_to_numbers(hi, jnp.zeros((hi.size,)))()
-
-
 def test_particle_alternative_constructors():
     hi1 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf), pbc=False)
     hi2 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf))
@@ -722,3 +746,56 @@ def test_particle_alternative_constructors():
 
     with pytest.raises(ValueError, match=r".*must be specified.*"):
         nk.hilbert.Particle(N=5, L=3)
+
+
+def test_hilbert_states_outside_range_errors():
+    hi = nk.hilbert.Fock(3, 2, 4)
+
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: Numbers outside the range of allowed states.
+        hi.numbers_to_states(-1)
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: Numbers outside the range of allowed states.
+        hi.numbers_to_states(10000)
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: States outside the range of allowed states.
+        hi.states_to_numbers(jnp.array([0, 4]))
+    with pytest.raises(xla_extension.XlaRuntimeError):
+        # XlaRuntimeError: States do not fulfill constraint.
+        hi.states_to_numbers(jnp.array([0, 3]))
+
+
+@partial(jax.jit, static_argnums=0)
+def _states_to_numbers_jit(hi, states):
+    return hi.states_to_numbers(states)
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_hilbert_states_to_numbers_jit(hi: DiscreteHilbert):
+    if hi.is_indexable:
+        numbers0 = jnp.arange(min(10, hi.n_states))
+        states0 = hi.numbers_to_states(numbers0)
+        numbers1 = _states_to_numbers_jit(hi, states0)
+        np.testing.assert_allclose(numbers0, numbers1)
+
+
+@partial(jax.jit, static_argnums=0)
+def _numbers_to_states_jit(hi, numbers):
+    return hi.numbers_to_states(numbers)
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_hilbert_numbers_to_states_jit(hi: DiscreteHilbert):
+    if hi.is_indexable:
+        numbers0 = jnp.arange(min(10, hi.n_states))
+        states0 = hi.numbers_to_states(numbers0)
+        states1 = _numbers_to_states_jit(hi, numbers0)
+        np.testing.assert_allclose(states0, states1)
+
+
+def test_doubled_hilbert_indexable():
+    # make an indexable hilbert space
+    hi = nkx.hilbert.SpinOrbitalFermions(16, s=1 / 2, n_fermions=1)
+    hid = DoubledHilbert(hi)
+    assert hi.is_indexable  # just to verify this is indeed still the case
+    assert hid.is_indexable  # then this must hold as well

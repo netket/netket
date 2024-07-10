@@ -5,6 +5,14 @@ import netket as nk
 import numpy as np
 from numpy.testing import assert_almost_equal
 
+# TODO: once we require np 2.0.0, we can remove this
+from netket.utils import module_version
+
+if module_version(np) >= (2, 0, 0):
+    from numpy.exceptions import ComplexWarning
+else:
+    from numpy import ComplexWarning
+
 herm_operators = {}
 generic_operators = {}
 
@@ -41,11 +49,11 @@ def test_pauli_algebra(S):
 def test_sigmay_is_complex():
     hi = nk.hilbert.Spin(1 // 2) ** 3
 
-    with pytest.warns(np.ComplexWarning):
+    with pytest.warns(ComplexWarning):
         sy = spin.sigmay(hi, 0, dtype=np.float64)
         assert sy.dtype == np.complex128
 
-    with pytest.warns(np.ComplexWarning):
+    with pytest.warns(ComplexWarning):
         sy = spin.sigmay(hi, 0, dtype=np.float32)
         assert sy.dtype == np.complex64
 

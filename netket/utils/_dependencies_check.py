@@ -20,7 +20,6 @@ silently or unexpectedly.
 
 from textwrap import dedent
 
-from .config_flags import config
 
 from .version_check import module_version, version_string
 
@@ -52,18 +51,9 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_nam
     )
 
 
-if not module_version("jax") >= (0, 4, 3):  # pragma: no cover
+if not module_version("jax") >= (0, 4, 16):  # pragma: no cover
     cur_version = version_string("jax")
-    raise ImportError(create_msg("jax", cur_version, "0.4.3"))
-
-if config.netket_experimental_sharding:
-    if not module_version("jax") >= (0, 4, 16):  # pragma: no cover
-        cur_version = version_string("jax")
-        extra = """Reason: The experimental sharding mode requires a very
-                   recent jax version. Please update to at least 0.4.16
-                   """
-
-        raise ImportError(create_msg("jax", cur_version, "0.4.16", extra))
+    raise ImportError(create_msg("jax", cur_version, "0.4.16"))
 
 
 if not module_version("optax") >= (0, 1, 3):  # pragma: no cover
@@ -82,10 +72,9 @@ if not module_version("flax") >= (0, 6, 5):  # pragma: no cover
                """
     raise ImportError(create_msg("flax", cur_version, "0.6.5", extra))
 
-# TODO: Uncomment and bump version once we unvendor plum.
-# if not module_version("plum") >= (2, 2, 2):  # pragma: no cover
-#     raise ImportError(
-#         create_msg(
-#             "plum", version_string("plum"), "2.2.2", pip_pkg_name="plum-dispatch"
-#         )
-#     )
+if not module_version("plum") >= (2, 4, 0):  # pragma: no cover
+    raise ImportError(
+        create_msg(
+            "plum", version_string("plum"), "2.4.0", pip_pkg_name="plum-dispatch"
+        )
+    )

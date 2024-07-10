@@ -15,56 +15,19 @@
 import abc
 from typing import Optional, Union, Callable
 from collections.abc import Iterator
-import warnings
 
-import numpy as np
-from flax import linen as nn
+import jax
 from jax import numpy as jnp
+from flax import linen as nn
+
 
 from netket import jax as nkjax
+from netket.jax import sharding
+from netket import config
 from netket.hilbert import AbstractHilbert
-from netket.utils import get_afun_if_module, mpi, numbers, struct, wrap_afun
-from netket.utils.deprecation import deprecated
+from netket.utils import get_afun_if_module, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
-
-
-def compute_n_chains(
-    n_chains_per_rank: Optional[int] = None, n_chains: Optional[int] = None, default=1
-) -> int:
-    """
-    Compute the number of chains per rank given either n_chains_per_rank
-    and n_chains
-    """
-    if n_chains_per_rank is not None and n_chains is not None:
-        raise ValueError("Cannot specify both `n_chains` and `n_chains_per_rank`")
-    elif n_chains is not None:
-        n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-        if mpi.n_nodes > 1 and mpi.rank == 0:
-            if n_chains_per_rank * mpi.n_nodes != n_chains:
-                warnings.warn(
-                    f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
-                    f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
-                    f"To directly control the number of chains on every rank, specify "
-                    f"`n_chains_per_rank` when constructing the sampler. "
-                    f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                    f"that is a multiple of the number of MPI ranks.",
-                    category=UserWarning,
-                    stacklevel=2,
-                )
-    elif n_chains_per_rank is not None:
-        pass
-    else:
-        # Default value
-        n_chains_per_rank = default
-
-    if not n_chains_per_rank > 0:
-        raise TypeError(
-            "n_chains_per_rank must be a positive integer, but "
-            f"you specified {n_chains_per_rank}"
-        )
-
-    return n_chains_per_rank * mpi.n_nodes
 
 
 class SamplerState(struct.Pytree):
@@ -94,7 +57,7 @@ class Sampler(struct.Pytree):
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """The Hilbert space to sample."""
 
-    machine_pow: int = struct.field(default=2)
+    machine_pow: float = struct.field(default=2.0)
     """The power to which the machine should be exponentiated to generate the pdf."""
 
     dtype: DType = struct.field(pytree_node=False, default=float)
@@ -104,7 +67,7 @@ class Sampler(struct.Pytree):
         self,
         hilbert: AbstractHilbert,
         *,
-        machine_pow: int = 2,
+        machine_pow: float = 2,
         dtype: DType = float,
     ):
         """
@@ -129,10 +92,19 @@ class Sampler(struct.Pytree):
                 "\n"
             )
 
-        if not np.issubdtype(numbers.dtype(machine_pow), np.integer):
-            raise ValueError(
-                f"machine_pow ({self.machine_pow}) must be a positive integer"
-            )
+        machine_pow = jnp.array(machine_pow)
+
+        if jnp.issubdtype(machine_pow, jnp.complexfloating):
+            raise ValueError(f"machine_pow ({machine_pow}) must be real")
+
+        # Below we want to check that machine_pow is positive, but in a way
+        # that works also for samplers constructed inside a jit-context.
+        # To make this work, we could use equinox.error_if, but we assume users
+        # are smart enough and we only check if we are outside of jit
+        if not isinstance(machine_pow, jax.core.Tracer):
+            if machine_pow < 0:
+                raise ValueError(f"machine_pow ({machine_pow}) must be positive")
+        # else: equinox.error_if(machine_pow, machine_pow<0, ...)
 
         self.hilbert = hilbert
         self.machine_pow = machine_pow
@@ -141,11 +113,23 @@ class Sampler(struct.Pytree):
     @property
     def n_chains_per_rank(self) -> int:
         """
-        The total number of independent chains per MPI rank.
+        The total number of independent chains per MPI rank (or jax device
+        if you set `NETKET_EXPERIMENTAL_SHARDING=1`).
 
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
+        If you are not distributing the calculation among different MPI ranks
+        or jax devices, this is equal to :attr:`~Sampler.n_chains`.
+
+        In general this is equal to
+
+        .. code:: python
+
+            from netket.jax import sharding
+            sampler.n_chains // sharding.device_count()
+
         """
-        res, remainder = divmod(self.n_chains, mpi.n_nodes)
+        n_devices = sharding.device_count()
+        res, remainder = divmod(self.n_chains, n_devices)
+
         if remainder != 0:
             raise RuntimeError(
                 "The number of chains is not a multiple of the number of mpi ranks"
@@ -155,20 +139,38 @@ class Sampler(struct.Pytree):
     @property
     def n_chains(self) -> int:
         """
-        The total number of independent chains per MPI rank.
+        The total number of independent chains.
 
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
+        This is at least equal to the total number of MPI ranks/jax devices that
+        are used to distribute the calculation.
         """
-        return mpi.n_nodes
+        # This is the default number of chains, intended for generic non-mcmc
+        # samplers which don't have a concept of chains.
+        # We assume there is 1 dummy chain per mpi rank / jax device.
+        # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
+        return sharding.device_count()
 
     @property
     def n_batches(self) -> int:
         r"""
-        The batch size of the configuration $\sigma$ used by this sampler.
+        The batch size of the configuration $\sigma$ used by this sampler on this
+        jax process.
 
-        In general, it is equivalent to :attr:`~Sampler.n_chains_per_rank`.
+        This is used to determine the shape of the batches generated in a single process.
+        This is needed because when using MPI, every process must create a batch of chains
+        of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
+        mode we must declare the full shape on every jax process, therefore this returns
+        :attr:`~Sampler.n_chains`.
+
+        Usage of this flag is required to support both MPI and sharding.
+
+        Samplers may override this to have a larger batch size, for example to
+        propagate multiple replicas (in the case of parallel tempering).
         """
-        return self.n_chains_per_rank
+        if config.netket_experimental_sharding:
+            return self.n_chains
+        else:
+            return self.n_chains_per_rank
 
     @property
     def is_exact(self) -> bool:
@@ -362,123 +364,3 @@ class Sampler(struct.Pytree):
         If you subclass `Sampler`, you should override this and not `reset`
         itself, because `reset` contains some common logic.
         """
-
-
-@deprecated(
-    "The module function `sampler_state` is deprecated in favor of the class method `init_state`."
-)
-def sampler_state(
-    sampler: Sampler,
-    machine: Union[Callable, nn.Module],
-    parameters: PyTree,
-    seed: Optional[SeedT] = None,
-) -> SamplerState:
-    """
-    Creates the structure holding the state of the sampler.
-
-    If you want reproducible samples, you should specify `seed`, otherwise the state
-    will be initialised randomly.
-
-    If running across several MPI processes, all `sampler_state`s are guaranteed to be
-    in a different (but deterministic) state.
-    This is achieved by first reducing (summing) the seed provided to every MPI rank,
-    then generating `n_rank` seeds starting from the reduced one, and every rank is
-    initialized with one of those seeds.
-
-    The resulting state is guaranteed to be a frozen Python dataclass (in particular,
-    a Flax dataclass), and it can be serialized using Flax serialization methods.
-
-    Args:
-        sampler: The Monte Carlo sampler.
-        machine: A Flax module or callable with the forward pass of the log-pdf.
-            If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
-        parameters: The PyTree of parameters of the model.
-        seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
-
-    Returns:
-        The structure holding the state of the sampler. In general you should not expect
-        it to be in a valid state, and should reset it before use.
-    """
-    return sampler.init_state(machine, parameters, seed)
-
-
-@deprecated(
-    "The module function `reset` is deprecated in favor of the class method `reset`."
-)
-def reset(
-    sampler: Sampler,
-    machine: Union[Callable, nn.Module],
-    parameters: PyTree,
-    state: Optional[SamplerState] = None,
-) -> SamplerState:
-    """
-    Resets the state of the sampler. To be used every time the parameters are changed.
-
-    Args:
-        sampler: The Monte Carlo sampler.
-        machine: A Flax module or callable with the forward pass of the log-pdf.
-            If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler. If not specified, it will be constructed
-            by calling :code:`sampler.init_state(machine, parameters)` with a random seed.
-
-    Returns:
-        A valid sampler state.
-    """
-    return sampler.reset(machine, parameters, state)
-
-
-@deprecated(
-    "The module function `sample` is deprecated in favor of the class method `sample`."
-)
-def sample(
-    sampler: Sampler,
-    machine: Union[Callable, nn.Module],
-    parameters: PyTree,
-    *,
-    state: Optional[SamplerState] = None,
-    chain_length: int = 1,
-) -> tuple[jnp.ndarray, SamplerState]:
-    """
-    Samples `chain_length` batches of samples along the chains.
-
-    Arguments:
-        sampler: The Monte Carlo sampler.
-        machine: A Flax module or callable with the forward pass of the log-pdf.
-            If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler. If not specified, then initialize and reset it.
-        chain_length: The length of the chains (default = 1).
-
-    Returns:
-        σ: The generated batches of samples.
-        state: The new state of the sampler.
-    """
-    return sampler.sample(machine, parameters, state=state, chain_length=chain_length)
-
-
-@deprecated(
-    "The module function `samples` is deprecated in favor of the class method `samples`."
-)
-def samples(
-    sampler: Sampler,
-    machine: Union[Callable, nn.Module],
-    parameters: PyTree,
-    *,
-    state: Optional[SamplerState] = None,
-    chain_length: int = 1,
-) -> Iterator[jnp.ndarray]:
-    """
-    Returns a generator sampling `chain_length` batches of samples along the chains.
-
-    Arguments:
-        sampler: The Monte Carlo sampler.
-        machine: A Flax module or callable with the forward pass of the log-pdf.
-            If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler. If not specified, then initialize and reset it.
-        chain_length: The length of the chains (default = 1).
-    """
-    yield from sampler.samples(
-        machine, parameters, state=state, chain_length=chain_length
-    )

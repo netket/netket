@@ -15,10 +15,6 @@
 from .base import (
     Sampler,
     SamplerState,
-    sampler_state,
-    reset,
-    sample,
-    samples,
 )
 
 from .exact import ExactSampler
@@ -32,7 +28,13 @@ from .metropolis import (
     MetropolisHamiltonian,
     MetropolisGaussian,
     MetropolisAdjustedLangevin,
-    sample_next,
+)
+
+from .metropolis_pt import (
+    ParallelTemperingSampler,
+    ParallelTemperingLocal,
+    ParallelTemperingExchange,
+    ParallelTemperingHamiltonian,
 )
 
 from .metropolis_numpy import (

@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
+import jax.numpy as jnp
 
 from netket.utils.dispatch import parametric
+from netket.utils.types import Array, DType
 
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
+from .index import is_indexable
 
 
 @parametric
@@ -62,6 +64,12 @@ class DoubledHilbert(DiscreteHilbert):
     @property
     def is_finite(self):
         return self.physical.is_finite
+
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        n = self.physical.n_states
+        return self.physical.is_indexable and is_indexable([n, n])
 
     @property
     def local_size(self):
@@ -110,7 +118,7 @@ class DoubledHilbert(DiscreteHilbert):
     def n_states(self):
         return self.physical.n_states**2
 
-    def _numbers_to_states(self, numbers, out):
+    def _numbers_to_states(self, numbers):
         # !!! WARNING
         # This code assumes that states are stored in a MSB
         # (Most Significant Bit) format.
@@ -122,32 +130,29 @@ class DoubledHilbert(DiscreteHilbert):
         # 2 -> [0,0,1,0]
         # etc...
 
-        n = self.physical.size
         dim = self.physical.n_states
-        left, right = np.divmod(numbers, dim)
+        left, right = jnp.divmod(numbers, dim)
 
-        self.physical.numbers_to_states(left, out=out[:, 0:n])
-        self.physical.numbers_to_states(right, out=out[:, n : 2 * n])
+        out_l = self.physical.numbers_to_states(left)
+        out_r = self.physical.numbers_to_states(right)
+        return jnp.concatenate([out_l, out_r], axis=-1)
 
-        return out
-
-    def _states_to_numbers(self, states, out):
+    def _states_to_numbers(self, states):
         # !!! WARNING
         # See note above in numbers_to_states
 
         n = self.physical.size
         dim = self.physical.n_states
 
-        self.physical._states_to_numbers(states[:, 0:n], out=out)
-        _out_l = out * dim
-
-        self.physical._states_to_numbers(states[:, n : 2 * n], out=out)
-        out += _out_l
-
-        return out
+        _out_l = self.physical._states_to_numbers(states[:, 0:n])
+        _out_r = self.physical._states_to_numbers(states[:, n : 2 * n])
+        return _out_l * dim + _out_r
 
     def states_to_local_indices(self, x):
         return self.physical.states_to_local_indices(x)
+
+    def local_indices_to_states(self, x: Array, dtype: DType = None):
+        return self.physical.local_indices_to_states(x, dtype=dtype)
 
     def __repr__(self):
         return f"DoubledHilbert({self.physical})"

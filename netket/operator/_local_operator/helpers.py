@@ -12,19 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import functools
 import numbers
 
 import numpy as np
-import jax
 
 from scipy import sparse
 from scipy.sparse import spmatrix
 
 from netket.hilbert import AbstractHilbert, Fock
+from netket.jax import canonicalize_dtypes
 from netket.utils.types import DType, Array
-from netket.utils.numbers import dtype as _dtype
 
 
 def cast_operator_matrix_dtype(matrix: Array, dtype: DType):
@@ -118,14 +115,7 @@ def canonicalize_input(
     # operators = [np.asarray(operator) for operator in operators]
     operators = [_standardize_matrix_input_type(op) for op in operators]
 
-    # If we asked for a specific dtype, enforce it.
-    if dtype is None:
-        dtype = np.promote_types(np.float32, _dtype(constant))
-        dtype = functools.reduce(
-            lambda dt, op: np.promote_types(dt, op.dtype), operators, dtype
-        )
-    # Fallback to float32 when float64 is disabled in JAX
-    dtype = jax.dtypes.canonicalize_dtype(dtype)
+    dtype = canonicalize_dtypes(float, *operators, constant, dtype=dtype)
 
     canonicalized_operators = []
     canonicalized_acting_on = []

@@ -75,6 +75,26 @@ Point1ChildConstructor = partial(Point1Child, z=3)
 Point1Child2Constructor = partial(Point1Child2, z=3)
 
 
+class TestPT(struct.Pytree):
+    x: int
+
+    def __init__(self, x):
+        self.x = x
+
+    @struct.property_cached
+    def y(self) -> int:
+        return self.x
+
+
+@struct.dataclass
+class TestDC:
+    x: int
+
+    @struct.property_cached
+    def y(self) -> int:
+        return self.x
+
+
 @pytest.mark.parametrize(
     "PointT", [Point0, Point1, Point1ChildConstructor, Point1Child2Constructor]
 )
@@ -100,7 +120,7 @@ def test_pytree_nodes(PointT):
     p = PointT(x=1, y=2, meta={"abc": True})
     leaves = jax.tree_util.tree_leaves(p)
     assert leaves == [1, 2]
-    new_p = jax.tree_map(lambda x: x + x, p)
+    new_p = jax.tree_util.tree_map(lambda x: x + x, p)
     assert new_p == PointT(x=2, y=4, meta={"abc": True})
 
 
@@ -109,7 +129,7 @@ def test_pytree_nodes_inheritance():
     _ = Point1Child(1, 2, {"abc": True}, 3)
     leaves = jax.tree_util.tree_leaves(p)
     assert leaves == [1, 2, 3]
-    new_p = jax.tree_map(lambda x: x + x, p)
+    new_p = jax.tree_util.tree_map(lambda x: x + x, p)
     assert new_p == Point1Child(x=2, y=4, z=6, meta={"abc": True})
 
 
@@ -138,6 +158,14 @@ def test_cached_property_inheritance():
     assert p.__cached_node_cache is struct.Uninitialized
     p._precompute_cached_properties()
     assert p.__cached_node_cache == 4
+
+
+@pytest.mark.parametrize("TestT", [TestDC, TestPT])
+def test_cached_property_reset(TestT):
+    t1 = TestT(1)
+    assert t1.y == 1
+    t2 = t1.replace(x=2)
+    assert t2.y == 2
 
 
 def test_pre_init_property():
@@ -209,3 +237,94 @@ def test_cached_pytreenode_properties():
     res, p3 = compute(p2)
     assert res == 6.0 * 3
     assert p3.__cached_node_cache == 6.0
+
+
+def test_mixed_inheritance():
+    class A(struct.Pytree):
+        a: int = None
+
+        def __init__(self, a=None):
+            self.a = a
+
+    @struct.dataclass
+    class B(A):
+        b: int = -1
+
+    @struct.dataclass
+    class C(B):
+        c: int = -2
+
+        def goo(self):
+            return self.c
+
+    b = B(2)
+    assert b.a == 2
+    assert b.b == -1
+    b = B(b=2)
+    assert b.a is None
+    assert b.b == 2
+    b = B(2, 3)
+    assert b.a == 2
+    assert b.b == 3
+    b = B(2, b=3)
+    assert b.a == 2
+    assert b.b == 3
+    b = B(a=2, b=3)
+    assert b.a == 2
+    assert b.b == 3
+
+    c = C(2)
+    assert c.a == 2
+    assert c.b == -1
+    assert c.c == -2
+    c = C(b=2)
+    assert c.a is None
+    assert c.b == 2
+    assert c.c == -2
+    c = C(c=2)
+    assert c.a is None
+    assert c.b == -1
+    assert c.c == 2
+    c = C(2, 3)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == -2
+    c = C(2, 3, 4)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == 4
+    c = C(2, b=3)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == -2
+    c = C(a=2, b=3)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == -2
+    c = C(2, c=4)
+    assert c.a == 2
+    assert c.b == -1
+    assert c.c == 4
+    c = C(a=2, b=3, c=4)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == 4
+
+
+def test_mixed_inheritance_no_base_init():
+    class A(struct.Pytree):
+        a: int = None
+
+    @struct.dataclass
+    class B(A):
+        b: int = -1
+
+    b = B()
+    assert b.a is None
+    assert b.b == -1
+    b = B(2)
+    assert b.a is None
+    assert b.b == 2
+    b = B(b=2)
+    assert b.a is None
+    assert b.b == 2

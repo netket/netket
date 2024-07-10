@@ -12,4 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import LocalOperator
+from .base import LocalOperatorBase
+from .numba import LocalOperator
+from .jax import LocalOperatorJax

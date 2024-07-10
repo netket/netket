@@ -73,25 +73,6 @@ To check whether MPI support is enabled, check the flags
 True
 ```
 
-### Installation on Windows
-**WARNING:** Windows support is **experimental**, and you should expect suboptimal performance.
-
-We suggest to use Windows Subsystem for Linux (WSL), on which you can install NetKet following the same instructions as above, and CUDA and MPI work as intended.
-
-However, if you just want to quickly get started with NetKet, it is also possible to install it natively on Windows. First, download an unofficial build of `jax` from [cloudhan/jax-windows-builder](https://github.com/cloudhan/jax-windows-builder):
-```sh
-pip install --upgrade pip
-pip install "jax[cpu]===0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
-```
-Alternatively, you may specify a version with CUDA support.
-
-Then install NetKet as usual:
-```sh
-pip install --upgrade netket
-```
-
-If you want MPI support, please follow the discussion in [mpi4jax](https://github.com/mpi4jax/mpi4jax/issues/24).
-
 ## Getting Started
 
 To get started with NetKet, we recommend you give a look at our [tutorials page](https://netket.readthedocs.io/en/latest/tutorials/gs-ising.html), by running them on your computer or on [Google Colaboratory](https://colab.research.google.com).

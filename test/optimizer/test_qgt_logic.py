@@ -33,7 +33,7 @@ from netket import stats as nkstats
 from netket.utils import mpi
 from netket.optimizer.qgt import (
     qgt_onthefly_logic,
-    qgt_jacobian_pytree_logic,
+    qgt_jacobian_pytree,
     qgt_jacobian_common,
 )
 from netket.jax.sharding import distribute_to_devices_along_axis, device_count_per_rank
@@ -62,7 +62,7 @@ def toreal(x):
 
 
 def tree_toreal(x):
-    return jax.tree_map(toreal, x)
+    return jax.tree_util.tree_map(toreal, x)
 
 
 def tree_toreal_flat(x):
@@ -93,7 +93,9 @@ def assert_tree_allclose(t1, t2, rtol=None, atol=0):
                 rtol = 1e-6
         np.testing.assert_allclose(x, y, rtol, atol)
 
-    jax.tree_map(lambda x, y: assert_allclose(x, y, rtol=rtol, atol=atol), t1, t2)
+    jax.tree_util.tree_map(
+        lambda x, y: assert_allclose(x, y, rtol=rtol, atol=atol), t1, t2
+    )
 
 
 def tree_samedtypes(t1, t2):
@@ -101,7 +103,7 @@ def tree_samedtypes(t1, t2):
         assert x.dtype == y.dtype
         assert x.weak_type == y.weak_type
 
-    jax.tree_map(_same_dtypes, t1, t2)
+    jax.tree_util.tree_map(_same_dtypes, t1, t2)
 
 
 def random_split_like_tree(rng_key, target=None, treedef=None):
@@ -113,7 +115,7 @@ def random_split_like_tree(rng_key, target=None, treedef=None):
 
 def tree_random_normal_like(rng_key, target):
     keys_tree = random_split_like_tree(rng_key, target)
-    return jax.tree_map(
+    return jax.tree_util.tree_map(
         lambda l, k: jax.random.normal(k, l.shape, l.dtype),
         target,
         keys_tree,
@@ -132,13 +134,13 @@ def astype_unsafe(x, dtype):
 
 
 def tree_subtract_mean(tree):
-    return jax.tree_map(lambda x: nkstats.subtract_mean(x, axis=0), tree)
+    return jax.tree_util.tree_map(lambda x: nkstats.subtract_mean(x, axis=0), tree)
 
 
 def divide_by_sqrt_n_samp(oks, samples):
     n_samp = samples.shape[0] * mpi.n_nodes  # MPI
     sqrt_n = math.sqrt(n_samp)  # enforce weak type
-    return jax.tree_map(lambda x: x / sqrt_n, oks)
+    return jax.tree_util.tree_map(lambda x: x / sqrt_n, oks)
 
 
 class Example:
@@ -171,7 +173,7 @@ class Example:
         if pardtype is None:  # mixed precision as above
             pass
         else:
-            self.target = jax.tree_map(
+            self.target = jax.tree_util.tree_map(
                 lambda x: astype_unsafe(x, pardtype),
                 self.target,
             )
@@ -347,7 +349,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
 def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
-    mv = qgt_jacobian_pytree_logic._mat_vec
+    mv = qgt_jacobian_pytree._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         jacobian_fun = nkjax.compose(
@@ -388,7 +390,7 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     def apply_fun(params, samples):
         return e.f(params["params"], samples)
 
-    mv = qgt_jacobian_pytree_logic.mat_vec
+    mv = qgt_jacobian_pytree.mat_vec
 
     homogeneous = pardtype is not None
 
@@ -442,7 +444,7 @@ def e_offset(n_samp, outdtype, pardtype, holomorphic, offset, seed=123):
 @pytest.mark.parametrize("offset", [0.0, 0.1])
 def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
     e = e_offset
-    mv = qgt_jacobian_pytree_logic._mat_vec
+    mv = qgt_jacobian_pytree._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         jacobian_fun = nkjax.compose(
@@ -496,8 +498,7 @@ def test_sanitize_diag_shift(inputs, expected):
 
     if expected == "error":
         with pytest.raises(ValueError):
-            with ctx:
-                qgt_jacobian_common.sanitize_diag_shift(*inputs)
+            qgt_jacobian_common.sanitize_diag_shift(*inputs)
     else:
         with ctx:
             output = qgt_jacobian_common.sanitize_diag_shift(*inputs)

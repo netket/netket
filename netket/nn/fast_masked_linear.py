@@ -30,10 +30,8 @@ from netket.nn.masked_linear import (
     wrap_kernel_init,
 )
 from netket.utils.types import Array, DType, NNInitFunc
-from netket.utils import deprecate_dtype
 
 
-@deprecate_dtype
 class FastMaskedDense1D(nn.Module):
     """
     1D linear transformation module with mask for fast autoregressive NN.
@@ -116,8 +114,7 @@ class FastMaskedDense1D(nn.Module):
             "cache", "inputs", zeros, None, (batch, size, in_features), inputs.dtype
         )
 
-        initializing = self.is_mutable_collection("params")
-        if not initializing:
+        if not self.is_initializing():
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
             _cache.value = jnp.where(
@@ -125,6 +122,7 @@ class FastMaskedDense1D(nn.Module):
                 _cache.value.at[:, index - self.exclusive, :].set(inputs),
                 _cache.value,
             )
+
         cache = _cache.value
 
         cache_i = cache[:, :size_i, :]
@@ -163,7 +161,6 @@ class FastMaskedDense1D(nn.Module):
         return MaskedDense1D.__call__(self, inputs)
 
 
-@deprecate_dtype
 class FastMaskedConv1D(nn.Module):
     """
     1D convolution module with mask for fast autoregressive NN.
@@ -244,8 +241,7 @@ class FastMaskedConv1D(nn.Module):
             inputs.dtype,
         )
 
-        initializing = self.is_mutable_collection("params")
-        if not initializing:
+        if not self.is_initializing():
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
             _cache.value = jnp.where(
@@ -297,7 +293,6 @@ class FastMaskedConv1D(nn.Module):
         return MaskedConv1D.__call__(self, inputs)
 
 
-@deprecate_dtype
 class FastMaskedConv2D(nn.Module):
     """
     2D convolution module with mask for fast autoregressive NN.
@@ -393,8 +388,7 @@ class FastMaskedConv2D(nn.Module):
             inputs.dtype,
         )
 
-        initializing = self.is_mutable_collection("params")
-        if not initializing:
+        if not self.is_initializing():
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
 

@@ -222,36 +222,6 @@ def test_lattice_site_lookup():
         pos = g.position_from_basis_coords([[2]])
 
 
-def test_lattice_old_interface():
-    with pytest.warns(FutureWarning):
-        _ = Lattice(basis_vectors=[[1.0]], atoms_coord=[[0.0], [0.5]], extent=[4])
-
-    def check_alternative(method, alternative):
-        with pytest.warns(FutureWarning):
-            result = method()
-        np.testing.assert_almost_equal(alternative(), result)
-
-    for g in graphs + symmetric_graphs:
-        if not isinstance(g, Lattice):
-            continue
-        check_alternative(lambda: g.atom_label(0), lambda: g.basis_coords[0, -1])
-        check_alternative(lambda: g.site_to_vector(0), lambda: g.basis_coords[0, :-1])
-        check_alternative(lambda: g.site_to_coord(0), lambda: g.positions[0])
-
-        *cell1, label1 = g.basis_coords[1]
-        check_alternative(
-            lambda: g.vector_to_site(cell1),
-            lambda: g.id_from_basis_coords([*cell1, 0]),
-        )
-        check_alternative(
-            lambda: g.vector_to_coord(cell1, label1),
-            lambda: g.position_from_basis_coords([*cell1, label1]),
-        )
-
-        check_alternative(lambda: g.coordinates, lambda: g.positions)
-        check_alternative(lambda: g.atoms_coord, lambda: g.site_offsets)
-
-
 @pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
 def test_lattice_symmetry(i, name):
     graph = symmetric_graphs[i]
@@ -735,6 +705,10 @@ def test_union():
 
         assert ug.n_nodes == graph1.n_nodes + graph.n_nodes
         assert ug.n_edges == graph1.n_edges + graph.n_edges
+
+    # also test multiple graphs
+    ug = nk.graph.disjoint_union(*graphs)
+    assert ug.n_nodes == sum(g.n_nodes for g in graphs)
 
 
 def test_graph_conversions():

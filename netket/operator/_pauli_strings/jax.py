@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
 
@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 # (3.) apply Z (pick up -1. if site is up/1) -- if it is Y or Z
 
 
-# TODO implement cutoff
 # TODO special case for the diagonal
 # TODO eventually also implement _ising_conn_states_jax with indexing instead of mask
 # TODO eventually add version with sparse jax arrays (achieving the same as indexing)
@@ -110,6 +109,10 @@ def pack_internals(operators, weights, cutoff=0):
         # sort b_z_check in ascending order, for better locality
         b_z_check = list(sorted(b_z_check))
 
+        # If there is an even number of Y in a string, the weight should be real
+        if np.isreal(b_weight):
+            b_weight = b_weight.real
+
         append(b_to_change, (b_weight, b_z_check))
     return acting
 
@@ -151,20 +154,6 @@ def pack_internals_jax(
 
     Returns a dictionary with all the data fields
     """
-
-    # Check if there are Y operators in the strings, and in that
-    # case uppromote float to complex
-    # Should never happen because we check in init...
-    if not jnp.issubdtype(weight_dtype, jnp.complexfloating):
-        # this checks if there is an Y in one of the strings
-        if np.any(np.char.find(operators, "Y") != -1):
-            # weight_dtype = jnp.promote_types(jnp.complex64, weight_dtype)
-            raise TypeError(
-                "Found PauliStringsJax with real dtype but with Y paulis.\n"
-                "This should not be happening.\n"
-                "Please open an issue on the netket repository.\n"
-            )
-
     # index_dtype needs to be signed (we use -1 for padding)
 
     _check_mode(mode)
@@ -280,12 +269,31 @@ def _pauli_strings_mels_jax(local_states, z_data, x):
 
 
 @jax.jit
-def _pauli_strings_kernel_jax(local_states, x_flip_masks_all, z_data, x):
+def _pauli_strings_kernel_jax(local_states, x_flip_masks_all, z_data, x, cutoff=None):
+    mels = _pauli_strings_mels_jax(local_states, z_data, x)
+    if cutoff is not None:
+        nonzero_mels_mask = jnp.abs(mels) > cutoff
+        mels = jax.lax.select(nonzero_mels_mask, mels, jnp.zeros_like(mels))
+        # only flip if corresponding mel is nonzero
+        x_flip_masks_all = x_flip_masks_all & nonzero_mels_mask[..., None]
+    else:
+        nonzero_mels_mask = None
     # can re-use function from Ising
     x_prime = _ising_conn_states_jax(x[..., None, :], x_flip_masks_all, local_states)
-    mels = _pauli_strings_mels_jax(local_states, z_data, x)
-    # TODO do we want a cutoff?
-    return x_prime, mels
+    # TODO we could optionally move nonzeros to front here
+    return x_prime, mels, nonzero_mels_mask
+
+
+@jax.jit
+def _pauli_strings_n_conn_jax(local_states, x_flip_masks_all, z_data, x, cutoff=None):
+    _, _, nonzero_mels_mask = _pauli_strings_kernel_jax(
+        local_states, x_flip_masks_all, z_data, x, cutoff
+    )
+    if nonzero_mels_mask is not None:
+        return nonzero_mels_mask.sum(axis=-1, dtype=np.int32)
+    else:
+        max_conn_size = x_flip_masks_all.shape[0]
+        return jnp.full(x.shape[:-1], max_conn_size, dtype=np.int32)
 
 
 @register_pytree_node_class
@@ -301,8 +309,8 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         operators: Union[None, str, list[str]] = None,
         weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
-        cutoff: float = 0.0,
-        dtype: DType = None,
+        cutoff: float = 1.0e-10,
+        dtype: Optional[DType] = None,
         _mode: str = "index",
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
@@ -324,10 +332,6 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
                     "yet supported by PauliStrings."
                 )
 
-        if cutoff > 0:
-            raise NotImplementedError(
-                "nonzero cuttof is not yet implemented in PauliStringsJax"
-            )
         # private variable for setting the mode
         # currently there are two modes:
         # index: indexes into the vector to flip qubits and compute the sign
@@ -398,17 +402,25 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         self._initialized = False
 
     def n_conn(self, x):
-        # TODO implement it once we have cutoff
-        return jnp.full(x.shape[:-1], self.max_conn_size, dtype=np.int32)
-
-    def get_conn_padded(self, x):
         self._setup()
-        return _pauli_strings_kernel_jax(
+        return _pauli_strings_n_conn_jax(
             self._hi_local_states,
             self._x_flip_masks_stacked,
             self._z_data,
             x,
+            cutoff=self._cutoff,
         )
+
+    def get_conn_padded(self, x):
+        self._setup()
+        xp, mels, _ = _pauli_strings_kernel_jax(
+            self._hi_local_states,
+            self._x_flip_masks_stacked,
+            self._z_data,
+            x,
+            cutoff=self._cutoff,
+        )
+        return xp, mels
 
     def tree_flatten(self):
         self._setup()

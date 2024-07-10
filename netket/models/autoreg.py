@@ -27,7 +27,6 @@ from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
 from netket.nn import activation as nkactivation
 from netket.utils.types import Array, DType, NNInitFunc
-from netket.utils import deprecate_dtype
 
 
 class AbstractARNN(nn.Module):
@@ -262,7 +261,6 @@ def _get_feature_list(model: ARNNSequential) -> Sequence[int]:
     return features
 
 
-@deprecate_dtype
 class ARNNDense(ARNNSequential):
     """Autoregressive neural network with dense layers."""
 
@@ -302,7 +300,6 @@ class ARNNDense(ARNNSequential):
         ]
 
 
-@deprecate_dtype
 class ARNNConv1D(ARNNSequential):
     """Autoregressive neural network with 1D convolution layers."""
 

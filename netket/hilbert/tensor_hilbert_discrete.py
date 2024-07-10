@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import numpy as np
 import jax.numpy as jnp
 
-from .discrete_hilbert import DiscreteHilbert, _is_indexable
+from .index import is_indexable
+from .discrete_hilbert import DiscreteHilbert
 from .tensor_hilbert import TensorHilbert
 
 
@@ -58,18 +60,31 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
             )
 
         shape = np.concatenate([hi.shape for hi in hilb_spaces])
-
+        self._initialized = False
         super().__init__(hilb_spaces, shape=shape)
 
-        # pre-compute indexing data iff the tensor space is still indexable
-        if all(hi.is_indexable for hi in hilb_spaces) and _is_indexable(shape):
-            self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
-            self._ns_states_r = np.flip(self._ns_states)
-            self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
-            self._cum_ns_states_r = np.flip(
-                np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
-            )
-            self._n_states = np.prod(self._ns_states)
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        return all(hi.is_indexable for hi in self._hilbert_spaces) and is_indexable(
+            list(hi.n_states for hi in self._hilbert_spaces)
+        )
+
+    def _setup(self):
+        if not self._initialized:
+            if self.is_indexable:
+                self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
+                self._ns_states_r = np.flip(self._ns_states).tolist()
+                self._cum_ns_states = np.concatenate(
+                    [[0], np.cumprod(self._ns_states)]
+                ).tolist()
+                self._cum_ns_states_r = np.flip(
+                    np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
+                ).tolist()
+                self._n_states = int(np.prod(self._ns_states))
+                self._initialized = True
+            else:
+                raise RuntimeError("The hilbert space is too large to be indexed.")
 
     @property
     def is_finite(self):
@@ -98,11 +113,10 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
 
     @property
     def n_states(self) -> int:
-        if not self.is_indexable:
-            raise RuntimeError("The hilbert space is too large to be indexed.")
+        self._setup()
         return self._n_states
 
-    def _numbers_to_states(self, numbers, out):
+    def _numbers_to_states(self, numbers):
         # !!! WARNING
         # This code assumes that states are stored in a MSB
         # (Most Significant Bit) format.
@@ -114,61 +128,54 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         # 2 -> [0,0,1,0]
         # etc...
 
+        self._setup()
         rem = numbers
+        tmp = []
         for i, dim in enumerate(self._ns_states_r):
-            rem, loc_numbers = np.divmod(rem, dim)
+            rem, loc_numbers = jnp.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
-            self._hilbert_spaces[hi_i].numbers_to_states(
-                loc_numbers, out=out[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]]
-            )
+            tmp.append(self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers))
 
+        out = jnp.empty((numbers.size, self.size), dtype=jnp.result_type(*tmp))
+        for i, dim in enumerate(self._ns_states_r):
+            hi_i = self._n_hilbert_spaces - (i + 1)
+            out = out.at[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]].set(tmp[i])
         return out
 
-    def _states_to_numbers(self, states, out):
-        out[:] = 0
-
-        temp = out.copy()
-
+    def _states_to_numbers(self, states):
         # !!! WARNING
         # See note above in numbers_to_states
-
+        self._setup()
+        out = 0
         for i, dim in enumerate(self._cum_ns_states_r):
-            self._hilbert_spaces[i].states_to_numbers(
-                states[:, self._cum_indices[i] : self._cum_sizes[i]], out=temp
+            temp = self._hilbert_spaces[i].states_to_numbers(
+                states[:, self._cum_indices[i] : self._cum_sizes[i]]
             )
-            out += temp * dim
-
+            out = out + temp * dim
         return out
 
     def states_to_local_indices(self, x):
-        out = jnp.empty_like(x, dtype=jnp.int32)
+        tmp = []
         for i, hilb_i in enumerate(self._hilbert_spaces):
-            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(
+            tmp.append(
                 hilb_i.states_to_local_indices(
                     x[..., self._cum_indices[i] : self._cum_sizes[i]]
                 )
             )
+        out = jnp.empty(x.shape, dtype=jnp.result_type(*tmp))
+        for i, _ in enumerate(self._hilbert_spaces):
+            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(tmp[i])
         return out
 
-    def __mul__(self, other):
-        if not isinstance(other, DiscreteHilbert):
-            return NotImplemented
-
-        spaces_l = self._hilbert_spaces[:-1]
-        space_center_l = self._hilbert_spaces[-1]
-
-        if isinstance(other, TensorDiscreteHilbert):
-            space_center_r = other._hilbert_spaces[0]
-            spaces_r = other._hilbert_spaces[1:]
-        else:
-            space_center_r = other
-            spaces_r = tuple()
-
-        # Attempt to 'merge' the two spaces at the interface.
-        spaces_center = space_center_l * space_center_r
-        if isinstance(spaces_center, TensorDiscreteHilbert):
-            spaces_center = (space_center_l, space_center_r)
-        else:
-            spaces_center = (spaces_center,)
-
-        return TensorDiscreteHilbert(*spaces_l, *spaces_center, *spaces_r)
+    def local_indices_to_states(self, x, dtype=None):
+        tmp = []
+        for i, hilb_i in enumerate(self._hilbert_spaces):
+            tmp.append(
+                hilb_i.local_indices_to_states(
+                    x[..., self._cum_indices[i] : self._cum_sizes[i]]
+                )
+            )
+        out = jnp.empty(x.shape, dtype=jnp.result_type(*tmp))
+        for i, _ in enumerate(self._hilbert_spaces):
+            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(tmp[i])
+        return out

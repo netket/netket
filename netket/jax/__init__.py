@@ -19,6 +19,7 @@ from ._utils_dtype import (
     dtype_complex,
     dtype_real,
     maybe_promote_to_complex,
+    canonicalize_dtypes,
 )
 
 from ._utils_tree import (
@@ -30,6 +31,7 @@ from ._utils_tree import (
     tree_ishomogeneous,
     tree_conj,
     tree_dot,
+    tree_norm,
     tree_cast,
     tree_axpy,
     tree_to_real,
@@ -47,8 +49,6 @@ from ._utils_random import (
 from ._vjp import vjp
 from ._grad import grad, value_and_grad
 
-from ._expect import expect
-
 from ._chunk_utils import chunk, unchunk
 from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
 from ._vjp_chunked import vjp_chunked
@@ -58,9 +58,13 @@ from ._math import logsumexp_cplx, logdet_cmplx
 
 from ._jacobian import jacobian, jacobian_default_mode
 
+from ._sort import sort, searchsorted
+
+from ._expect import expect
+
 # internal sharding utilities
 from . import sharding
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
+_hide_submodules(__name__, ignore="sharding")

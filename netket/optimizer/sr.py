@@ -16,17 +16,15 @@ from typing import Callable, Optional
 
 import jax
 
-from dataclasses import dataclass
-
 from netket.vqs import VariationalState
 from netket.utils.types import Scalar, ScalarOrSchedule
+from netket.utils import struct
 
 from .qgt import QGTAuto
 from .preconditioner import AbstractLinearPreconditioner
 
 
-@dataclass
-class SR(AbstractLinearPreconditioner):
+class SR(AbstractLinearPreconditioner, mutable=True):
     r"""
     Stochastic Reconfiguration or Natural Gradient preconditioner for the gradient.
 
@@ -63,18 +61,18 @@ class SR(AbstractLinearPreconditioner):
 
     """
 
-    diag_shift: ScalarOrSchedule = 0.01
+    diag_shift: ScalarOrSchedule = struct.field(serialize=False, default=0.01)
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
        `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
-    diag_scale: Optional[ScalarOrSchedule] = None
+    diag_scale: Optional[ScalarOrSchedule] = struct.field(serialize=False, default=None)
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
        `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
-    qgt_constructor: Callable = None
+    qgt_constructor: Callable = struct.static_field(default=None)
     """The Quantum Geometric Tensor type or a constructor."""
 
-    qgt_kwargs: dict = None
+    qgt_kwargs: dict = struct.field(serialize=False, default=None)
     """The keyword arguments to be passed to the Geometric Tensor constructor."""
 
     def __init__(

@@ -45,13 +45,31 @@ At the time of writing, installing a GPU version of jaxlib is as simple as runni
 
 ```bash
 pip install --upgrade pip
-pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 ```
 
 Where the jaxlib version must correspond to the version of the existing CUDA installation you want to use. 
 Refer to jax documentation to learn more about matching cuda versions with python wheels.
 
+````{admonition} CUDA
+:class: warning
 
+Jax supports two ways to install the cuda-version: `cuda12_pip` and `cuda12_local`. The `_local` version will use the CUDA version installed by the user/cluster admins and pick it up through the `LD_LIBRARY_PATH`. You will need to have installed cuda, cudnn and some other dependencies. 
+If you chose this approach, it is your responsability to ensure that the CUDA version is correct and all dependencies are present.
+**This approach is required if you wish to use MPI**.
+
+`_pip`, instead, will install a special CUDA version through `pip` in the current environment, and ignore the CUDA version that is installed system-wide. This approach is usually much simpler to use but **is not compatible with MPI on GPUS**. 
+
+Do note that if you install the `_pip` version, to switch to the `_local` version you must uninstall all nvidia-related dependencies. To do so, the simplest way is to simply delete the environment and start from scratch. If you don't want to do so, you may try to use the following command, but it might not work perfectly
+
+```bash
+pip freeze | grep nvidia-cuda | xargs pip uninstall -y
+```
+````
+
+
+
+(install_mpi)=
 ## MPI
 
 NetKet (due to Jax) only uses 1 or 2 CPU cores or 1 GPU by default at once unless you work on huge systems with mastodontic neural-networks. 
@@ -90,6 +108,16 @@ pip install --upgrade "netket[mpi]"
 
 Subsequently, NetKet will exploit MPI-level parallelism for the Monte-Carlo sampling.
 See {ref}`this block <warn-mpi-sampling>` to understand how NetKet behaves under MPI.
+
+````{admonition} CUDA
+:class: warning
+
+If you wish to use multi-GPU setups through MPI, you **must** install jax as `'jax[cuda12_local]'` and cannot use the `'jax[cuda12]'` variant. 
+
+This is because `cuda12` installs CUDA through pip, which does not include the nvidia compiler `nvcc`, which in turn it is needed to install `mpi4jax`. If, for any reason, you already have `nvcc` but are using `cuda12`, installation might not fail but you will get an error due to version mismatch of cuda versions at runtime.
+
+````
+
 
 (conda)=
 ## Conda
@@ -174,6 +202,8 @@ See the [Operators](operator.md) documentation for more information.
 ma = nk.models.RBM(alpha=1, param_dtype=float)
 
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+
+vstate = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 ```
 
 Then, one must chose the model to use as a Neural Quantum State. Netket provides
@@ -196,6 +226,9 @@ Samples don't need double precision at all, so it makes sense to use the lower
 precision, but you have to be careful with the dtype of your model in order
 not to reduce the precision.
 
+Having defined the model and the sampler, we construct a [Monte Carlo Variational State](varstate.md) which encapsulates both the parameterized state and the way to probe it (e.g. using a specific sampler to estimate the relevant observables).
+NetKet also supports other types of variational states, such as the Full Summation state, which compute quantities without sampling.
+
 ```python
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.01)
@@ -205,7 +238,7 @@ You can then chose an optimizer from the [optimizer](netket_optimizer_api) submo
 
 ```python
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard_per_chain=100)
+gs = nk.VMC(ha, op, variational_state=vstate)
 
 gs.run(n_iter=300, out=None)
 ```
@@ -213,7 +246,7 @@ gs.run(n_iter=300, out=None)
 Once you have all the pieces together, you can construct a variational monte
 carlo optimisation driver by passing the constructor the hamiltonian and the
 optimizer (which must always be the first two arguments), and then the
-sampler, machine and various options.
+variational state and various options.
 
 Once that is done, you can run the simulation by calling the {meth}`~nk.driver.VMC.run` method in the driver, specifying the output loggers and the number of iterations in
 the optimisation.

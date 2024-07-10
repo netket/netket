@@ -53,7 +53,7 @@ def test_lindblad_form():
     hnh_mat = ha.to_sparse()
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
-        hnh_mat -= 0.5j * j_mat.H * j_mat
+        hnh_mat -= 0.5j * j_mat.T.conj() * j_mat
 
     # Compute the left and right product with identity
     lind_mat = -1j * sparse.kron(hnh_mat, idmat) + 1j * sparse.kron(
@@ -127,10 +127,9 @@ dtypes = dtypes_r + dtypes_c
 @pytest.mark.parametrize("dtype", dtypes)
 def test_dtype(dtype):
     if not nk.jax.is_complex_dtype(dtype):
-        with pytest.warns(np.ComplexWarning):
+        with pytest.raises(TypeError):
             lind = nk.operator.LocalLiouvillian(ha, j_ops, dtype=dtype)
-            dtype_c = nk.jax.dtype_complex(dtype)
-
+        return
     else:
         lind = nk.operator.LocalLiouvillian(ha, j_ops, dtype=dtype)
         dtype_c = dtype

@@ -41,3 +41,14 @@ def pytest_addoption(parser):
         default=0.2,
         help="rate of running a test for ARNN",
     )
+
+
+@pytest.fixture
+def _device_count(request):
+    """
+    Fixture returning the number of MPI nodes detected by NetKet
+    """
+
+    from netket.jax import sharding
+
+    return sharding.device_count()

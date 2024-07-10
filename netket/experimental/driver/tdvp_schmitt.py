@@ -20,12 +20,12 @@ import jax
 import jax.numpy as jnp
 
 from netket import stats
-from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator
 from netket.optimizer.qgt import QGTJacobianDense
 from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 from netket.jax import tree_cast
+from netket.utils import timing
 
 from netket.experimental.dynamics import RKIntegratorConfig
 
@@ -108,7 +108,7 @@ class TDVPSchmitt(TDVPBaseDriver):
         integrator: RKIntegratorConfig,
         *,
         t0: float = 0.0,
-        propagation_type="real",
+        propagation_type: str = "real",
         holomorphic: Optional[bool] = None,
         diag_shift: float = 0.0,
         diag_scale: Optional[float] = None,
@@ -184,17 +184,6 @@ class TDVPSchmitt(TDVPBaseDriver):
             operator, variational_state, integrator, t0=t0, error_norm=error_norm
         )
 
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("generator     ", self._generator_repr),
-                ("integrator    ", self._integrator),
-                ("state         ", self.state),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])
-
 
 # Copyright notice:
 # The function `_impl` below includes lines copied from the jVMC repository
@@ -202,6 +191,7 @@ class TDVPSchmitt(TDVPBaseDriver):
 # MIT License, Copyright (c) 2021 Markus Schmitt
 
 
+@timing.timed
 @partial(jax.jit, static_argnames=("n_samples"))
 def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_atol):
     E = stats.statistics(E_loc)
@@ -292,7 +282,7 @@ def odefun_schmitt(state: MCState, self: TDVPSchmitt, t, w, *, stage=0):  # noqa
 
 @partial(jax.jit, static_argnums=(3, 4))
 def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
-    forces = jax.tree_map(
+    forces = jax.tree_util.tree_map(
         lambda x, target: loss_grad_factor * x,
         forces,
         parameters,

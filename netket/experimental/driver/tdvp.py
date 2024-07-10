@@ -18,7 +18,6 @@ from functools import partial
 import jax
 
 import netket as nk
-from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -58,7 +57,7 @@ class TDVP(TDVPBaseDriver):
         integrator: RKIntegratorConfig,
         *,
         t0: float = 0.0,
-        propagation_type="real",
+        propagation_type: str = "real",
         qgt: LinearOperator = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
@@ -125,18 +124,6 @@ class TDVP(TDVPBaseDriver):
             operator, variational_state, integrator, t0=t0, error_norm=error_norm
         )
 
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("generator     ", self._generator_repr),
-                ("integrator    ", self._integrator),
-                ("linear solver ", self.linear_solver),
-                ("state         ", self.state),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])
-
 
 @odefun.dispatch
 def odefun_tdvp(  # noqa: F811
@@ -175,7 +162,7 @@ def odefun_tdvp(  # noqa: F811
 
 @partial(jax.jit, static_argnums=(3, 4))
 def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
-    forces = jax.tree_map(
+    forces = jax.tree_util.tree_map(
         lambda x, target: loss_grad_factor * x,
         forces,
         parameters,

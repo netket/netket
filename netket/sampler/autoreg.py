@@ -22,7 +22,6 @@ from netket import jax as nkjax
 from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.sampler import Sampler, SamplerState
-from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT, DType
 
 
@@ -57,9 +56,6 @@ class ARDirectSampler(Sampler):
         hilbert: DiscreteHilbert,
         machine_pow: None = None,
         dtype: DType = float,
-        *,
-        n_chains=None,
-        n_chains_per_rank=None,
     ):
         """
         Construct an autoregressive direct sampler.
@@ -71,10 +67,6 @@ class ARDirectSampler(Sampler):
         Note:
             `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
         """
-        if n_chains is not None or n_chains_per_rank is not None:
-            warn_deprecation(
-                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
-            )
 
         if machine_pow is not None:
             raise ValueError(
@@ -88,7 +80,9 @@ class ARDirectSampler(Sampler):
                 "touch with us. We are interested!)"
             )
 
-        return super().__init__(hilbert, machine_pow=2, dtype=dtype)
+        super().__init__(hilbert, machine_pow=2, dtype=dtype)
+        # ensure machine_pow is a float, as it can be sometimes used around...
+        self.machine_pow = float(self.machine_pow)
 
     @property
     def is_exact(sampler):
@@ -147,7 +141,7 @@ class ARDirectSampler(Sampler):
         # Initialize a buffer for `σ` before generating a batch of samples
         # The result should not depend on its initial content
         σ = jnp.zeros(
-            (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
+            (sampler.n_batches * chain_length, sampler.hilbert.size),
             dtype=sampler.dtype,
         )
 
@@ -167,7 +161,7 @@ class ARDirectSampler(Sampler):
         indices = jnp.arange(sampler.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
         (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
-        σ = σ.reshape((sampler.n_chains_per_rank, chain_length, sampler.hilbert.size))
+        σ = σ.reshape((sampler.n_batches, chain_length, sampler.hilbert.size))
 
         new_state = state.replace(key=new_key)
         return σ, new_state

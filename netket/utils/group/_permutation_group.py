@@ -73,7 +73,11 @@ class Permutation(Element):
 
 @dispatch
 def product(p: Permutation, x: Array):
-    return x[..., p.permutation]
+    # if p.permutation is a HashableArray and x is a jax Array
+    # direct indexing fails, so we call np.asarray on it to extract the
+    # wrapped array
+    # TODO make indexing work with HashableArray directly
+    return x[..., np.asarray(p.permutation)]
 
 
 @dispatch

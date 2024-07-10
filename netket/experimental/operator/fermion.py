@@ -23,7 +23,8 @@ def destroy(
     hilbert: _AbstractHilbert,
     site: int,
     sz: _Optional[int] = None,
-    dtype: _DType = None,
+    cutoff: float = 1e-10,
+    dtype: _Optional[_DType] = None,
 ):
     """
     Builds the fermion destruction operator :math:`\\hat{a}` acting
@@ -50,7 +51,8 @@ def create(
     hilbert: _AbstractHilbert,
     site: int,
     sz: _Optional[int] = None,
-    dtype: _DType = None,
+    cutoff: float = 1e-10,
+    dtype: _Optional[_DType] = None,
 ):
     """
     Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting
@@ -77,7 +79,8 @@ def number(
     hilbert: _AbstractHilbert,
     site: int,
     sz: _Optional[int] = None,
-    dtype: _DType = None,
+    cutoff: float = 1e-10,
+    dtype: _Optional[_DType] = None,
 ):
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
@@ -133,7 +136,9 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: _Optional[int] = None):
         )
 
 
-def identity(hilbert: _AbstractHilbert, dtype: _DType = None):
+def identity(
+    hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _Optional[_DType] = None
+):
     """
     Builds the :math:`\\mathbb{I}` identity operator.
 
@@ -144,10 +149,12 @@ def identity(hilbert: _AbstractHilbert, dtype: _DType = None):
     Returns:
         An instance of {class}`nk.operator.LocalOperator`.
     """
-    return _FermionOperator2nd(hilbert, [], [], constant=1.0, dtype=dtype)
+    return _FermionOperator2nd(hilbert, constant=1, dtype=dtype, cutoff=cutoff)
 
 
-def zero(hilbert: _AbstractHilbert, dtype: _DType = None):
+def zero(
+    hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _Optional[_DType] = None
+):
     """
     Builds the :math:`0` operator, which has no connected components.
 
@@ -159,4 +166,4 @@ def zero(hilbert: _AbstractHilbert, dtype: _DType = None):
 
     Returns:
         An instance of {class}`nk.operator.LocalOperator`."""
-    return _FermionOperator2nd(hilbert, [], [], constant=0.0, dtype=dtype)
+    return _FermionOperator2nd(hilbert, constant=0, dtype=dtype, cutoff=cutoff)

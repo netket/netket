@@ -14,6 +14,8 @@
 
 import pytest
 import numpy as np
+
+import jax
 import jax.numpy as jnp
 
 from numpy.testing import assert_equal
@@ -61,6 +63,13 @@ def test_HashableArray(numpy):
     assert wa != a
     assert wa != wb
 
+    # check __eq__ does not fail on two arrays w/ different shape
+    wc = HashableArray(a[np.newaxis])
+    assert wc != wa
+    # check __eq__ does not fail on two arrays w/ different dtype
+    wd = HashableArray(a.astype(int))
+    assert wd != wa
+
     assert_equal(wa.wrapped, np.asarray(wa))
     assert_equal(wa.wrapped, jnp.asarray(wa))
     assert wa.wrapped is not wa
@@ -78,6 +87,15 @@ def test_HashableArray(numpy):
     assert wa == wa3
     assert_equal(wa3.wrapped, np.asarray(wa))
     assert_equal(wa3.wrapped, jnp.asarray(wa))
+
+    # Check that it is a leaf object, and not a pytree
+    leafs, _ = jax.tree_util.tree_flatten(wa)
+    assert len(leafs) == 1
+    assert leafs[0] == wa
+
+    # ensure that repr and str work
+    assert isinstance(repr(wa), str)
+    assert isinstance(str(wa), str)
 
 
 def test_Kahan_sum():

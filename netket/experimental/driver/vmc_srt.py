@@ -1,24 +1,41 @@
-from functools import partial
+# Copyright 2023  The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Callable, Optional
+
+from functools import partial
+from textwrap import dedent
+import warnings
 
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
-from netket.driver.vmc import VMC
 
-import netket.jax as nkjax
-import netket.stats as nkstats
-from netket.operator import AbstractOperator
+from netket import jax as nkjax
+from netket import stats as nkstats
+from netket.driver import AbstractVariationalDriver
 from netket.errors import UnoptimalSRtWarning
-import warnings
-
+from netket.jax import sharding
+from netket.operator import AbstractOperator
+from netket.utils import mpi, timing
+from netket.utils.types import ScalarOrSchedule, Optimizer, PyTree
 from netket.vqs import MCState
-from netket.utils import mpi
-from netket.utils.types import ScalarOrSchedule
 
 from jax.flatten_util import ravel_pytree
 
 
+@timing.timed
 @partial(jax.jit, static_argnames=("mode", "solver_fn"))
 def SRt(
     O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure
@@ -33,7 +50,7 @@ def SRt(
     local_energies = local_energies.flatten()
 
     if e_mean is None:
-        e_mean = mpi.mean(local_energies)
+        e_mean = nkstats.mean(local_energies)
     de = jnp.conj(local_energies - e_mean).squeeze()
 
     # * in this case O_L should be padded with zeros
@@ -73,6 +90,11 @@ def SRt(
             matrix_side
         )  # * shift diagonal regularization
         aus_vector = solver_fn(matrix, dv)
+        # some solvers return a tuple, some others do not.
+        # We check and try to support both
+        if isinstance(aus_vector, tuple):
+            aus_vector, _ = aus_vector
+
         aus_vector = aus_vector.reshape(mpi.n_nodes, -1)
         aus_vector, token = mpi.mpi_scatter_jax(aus_vector, token=token)
     else:
@@ -86,7 +108,7 @@ def SRt(
     # To repack the real coefficients in order to get complex updates
     if mode == "complex" and nkjax.tree_leaf_iscomplex(params_structure):
         np = updates.shape[-1] // 2
-        updates = (updates[:np] + 1j * updates[np:]) / 2
+        updates = updates[:np] + 1j * updates[np:]
 
     return -updates
 
@@ -100,7 +122,7 @@ def _flatten_samples(x):
     return x.reshape(-1, x.shape[-1])
 
 
-class VMC_SRt(VMC):
+class VMC_SRt(AbstractVariationalDriver):
     r"""
     Energy minimization using Variational Monte Carlo (VMC) and the kernel
     formulation of Stochastic Reconfiguration (SR). This approach lead to
@@ -128,7 +150,7 @@ class VMC_SRt(VMC):
     def __init__(
         self,
         hamiltonian: AbstractOperator,
-        optimizer,
+        optimizer: Optimizer,
         *,
         diag_shift: ScalarOrSchedule,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
@@ -152,16 +174,27 @@ class VMC_SRt(VMC):
             variational_state: The :class:`netket.vqs.MCState` to be optimised. Other
                 variational states are not supported.
         """
-        super().__init__(hamiltonian, optimizer, variational_state=variational_state)
+        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
-        if self.state.n_parameters % mpi.n_nodes != 0:
+        if variational_state.hilbert != hamiltonian.hilbert:
+            raise TypeError(
+                dedent(
+                    f"""the variational_state has hilbert space {variational_state.hilbert}
+                    (this is normally defined by the hilbert space in the sampler), but
+                    the hamiltonian has hilbert space {hamiltonian.hilbert}.
+                    The two should match.
+                    """
+                )
+            )
+
+        if self.state.n_parameters % sharding.device_count() != 0:
             raise NotImplementedError(
                 f"""
                 VMC_SRt requires a network with a number of parameters
                 multiple of the number of MPI devices/ranks in use.
 
                 You have a network with {self.state.n_parameters}, but
-                there are {mpi.n_nodes} MPI ranks in use.
+                there are {sharding.device_count()} MPI ranks in use.
 
                 To fix this, either add some 'fake' parameters to your
                 network, or change the number of MPI nodes, or contribute
@@ -177,11 +210,13 @@ class VMC_SRt(VMC):
             )
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
+        self._dp: PyTree = None
+
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
 
-        self._params_structure = jax.tree_map(
+        self._params_structure = jax.tree_util.tree_map(
             lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), self.state.parameters
         )
         if not nkjax.tree_ishomogeneous(self._params_structure):
@@ -249,6 +284,7 @@ class VMC_SRt(VMC):
             mode=self.jacobian_mode,
             dense=True,
             center=True,
+            chunk_size=self.state.chunk_size,
         )  # jacobians is centered
 
         diag_shift = self.diag_shift
@@ -268,3 +304,18 @@ class VMC_SRt(VMC):
         self._dp = self._unravel_params_fn(updates)
 
         return self._dp
+
+    @property
+    def energy(self) -> nkstats.Stats:
+        """
+        Return MCMC statistics for the expectation value of observables in the
+        current state of the driver.
+        """
+        return self._loss_stats
+
+    def __repr__(self):
+        return (
+            "Vmc_SRt("
+            + f"\n  step_count = {self.step_count},"
+            + f"\n  state = {self.state})"
+        )

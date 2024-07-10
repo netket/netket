@@ -73,7 +73,15 @@ class Config:
         self._callbacks = {}
 
     def define(
-        self, name, type, default, *, help, runtime=False, callback=None
+        self,
+        name,
+        type,
+        default,
+        *,
+        help,
+        runtime=False,
+        callback=None,
+        lazy=False,
     ):  # noqa: W0613
         """
         Defines a new flag
@@ -86,6 +94,7 @@ class Config:
             runtime: whether the flag can be modified at runtime
             callback: an optional callback function taking the value as argument
                 that is executed when the flag is changed
+            lazy: do not call the callback at init.
         """
         if name in self._values:
             raise KeyError(f"Flag {name} already defined.")
@@ -95,7 +104,7 @@ class Config:
         self._values[name] = get_env(name, type, default)
         self._callbacks[name] = callback
 
-        if callback is not None:
+        if callback is not None and not lazy:
             callback(self._values[name])
 
         @property
@@ -355,4 +364,31 @@ config.define(
         """
     ),
     runtime=True,
+)
+
+
+def _recompute_default_device(val):
+    if val is False:
+        import jax
+
+        jax.config.update("jax_default_device", None)
+    else:
+        from netket.utils.mpi.gpu_autorank_util import autoset_default_gpu
+
+        autoset_default_gpu()
+
+
+config.define(
+    "NETKET_MPI_AUTODETECT_LOCAL_GPU",
+    bool,
+    default=False,
+    runtime=True,
+    callback=_recompute_default_device,
+    lazy=True,
+    help=dedent(
+        """
+        If there are more than 1 device per MPI rank, and if they are GPU devices,
+        Set the default device by querying the local MPI rank.
+        """
+    ),
 )

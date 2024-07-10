@@ -15,11 +15,10 @@
 from typing import Callable, Optional, Any
 
 import abc
-from dataclasses import dataclass
 from textwrap import dedent
 
 from netket.utils.types import PyTree, Scalar
-from netket.utils import warn_deprecation
+from netket.utils import warn_deprecation, timing, struct
 from netket.vqs import VariationalState
 
 from .linear_operator import LinearOperator, SolverT
@@ -33,14 +32,27 @@ LHSConstructorT = Callable[[VariationalState, Optional[Scalar]], LinearOperator]
 """Signature for the constructor of a LinerOperator"""
 
 
-def identity_preconditioner(
-    vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = 0
-) -> PyTree:
-    return gradient
+class IdentityPreconditioner(struct.Pytree):
+    """
+    A preconditioner that does not transform the gradient.
+    """
+
+    def __call__(
+        self,
+        vstate: VariationalState,
+        gradient: PyTree,
+        step: Optional[Scalar] = 0,
+        *args,
+        **kwargs,
+    ) -> PyTree:
+        return gradient
 
 
-@dataclass
-class AbstractLinearPreconditioner:
+# For backward compatibility reasons
+identity_preconditioner = IdentityPreconditioner()
+
+
+class AbstractLinearPreconditioner(struct.Pytree, mutable=True):
     """Base class for a Linear Preconditioner solving a system :math:`Sx = F`.
 
     A LinearPreconditioner modifies the gradient :math:`F` in such a way that the new
@@ -62,7 +74,7 @@ class AbstractLinearPreconditioner:
 
     """
 
-    solver: SolverT
+    solver: SolverT = struct.field(serialize=False)
     """Function used to solve the linear system."""
 
     solver_restart: bool = False
@@ -72,18 +84,34 @@ class AbstractLinearPreconditioner:
     x0: Optional[PyTree] = None
     """Solution of the last linear system solved."""
 
-    info: Any = None
+    info: Any = struct.field(serialize=False, default=None)
     """Additional information returned by the solver when solving the last linear system."""
 
-    _lhs: LinearOperator = None
+    _lhs: LinearOperator = struct.field(serialize=False, default=None)
     """LHS of the last linear system solved."""
 
     def __init__(self, solver, *, solver_restart=False):
+        """
+        Constructs the structure holding the parameters for using the
+        linear preconditioner.
+
+        Args:
+            solver: A callable that solves a linear system of equations.
+            solver_restart: If False uses the last solution of the linear
+                system as a starting point for the solution of the next
+                (default=False).
+        """
         self.solver = solver
         self.solver_restart = solver_restart
 
+    @timing.timed
     def __call__(
-        self, vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = None
+        self,
+        vstate: VariationalState,
+        gradient: PyTree,
+        step: Optional[Scalar] = None,
+        *args,
+        **kwargs,
     ) -> PyTree:
         self._lhs = self.lhs_constructor(vstate, step)
 
@@ -109,8 +137,7 @@ class AbstractLinearPreconditioner:
 
 
 # This exists for backward compatibility
-@dataclass
-class LinearPreconditioner(AbstractLinearPreconditioner):
+class LinearPreconditioner(AbstractLinearPreconditioner, mutable=True):
     lhs_constructor: LHSConstructorT
     """Constructor of the LHS of the linear system starting from the variational state."""
 

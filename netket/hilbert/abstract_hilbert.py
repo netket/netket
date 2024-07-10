@@ -20,9 +20,6 @@ from collections.abc import Iterable
 import jax.numpy as jnp
 import numpy as np
 
-max_states = np.iinfo(np.int32).max
-"""int: Maximum number of states that can be indexed"""
-
 
 class AbstractHilbert(abc.ABC):
     """Abstract class for NetKet hilbert objects.
@@ -129,9 +126,9 @@ class AbstractHilbert(abc.ABC):
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
-        from .tensor_hilbert import TensorGenericHilbert
+        from .tensor_hilbert import TensorHilbert
 
-        return TensorGenericHilbert(other, self)
+        return TensorHilbert(other, self)
 
     def _mul_sametype_(self, other: "AbstractHilbert") -> "AbstractHilbert":
         """This function can be implemented by subclasses to

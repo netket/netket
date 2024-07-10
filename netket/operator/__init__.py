@@ -18,12 +18,12 @@ from ._discrete_operator import DiscreteOperator
 from ._discrete_operator_jax import DiscreteJaxOperator
 
 from ._pauli_strings import PauliStrings, PauliStringsJax
-from ._local_operator import LocalOperator
+from ._local_operator import LocalOperator, LocalOperatorJax
 from ._graph_operator import GraphOperator
 from ._lazy import Adjoint, Transpose, Squared
 from ._heisenberg import Heisenberg
 from ._ising import Ising, IsingJax
-from ._bose_hubbard import BoseHubbard
+from ._bose_hubbard import BoseHubbard, BoseHubbardJax
 
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian

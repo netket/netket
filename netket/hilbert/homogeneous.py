@@ -14,12 +14,21 @@
 
 from typing import Optional, Callable
 
-from numbers import Real
-
 import numpy as np
 
+import jax.numpy as jnp
+
+from equinox import error_if
+
+from netket.utils import StaticRange
+from netket.utils.types import Array
+
 from .discrete_hilbert import DiscreteHilbert
-from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
+from .index import (
+    HilbertIndex,
+    UniformTensorProductHilbertIndex,
+    optimalConstrainedHilbertindex,
+)
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -47,7 +56,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def __init__(
         self,
-        local_states: Optional[list[Real]],
+        local_states: Optional[StaticRange],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
     ):
@@ -59,8 +68,9 @@ class HomogeneousHilbert(DiscreteHilbert):
         This method should only be called from the subclasses `__init__` method.
 
         Args:
-            local_states: Eigenvalues of the states. If the allowed
-                states are an infinite number, None should be passed as an argument.
+            local_states: :class:`~netket.utils.StaticRange` object describing the
+                numbers used to encode the local degree of freedom of this Hilbert
+                Space.
             N: Number of modes in this hilbert space (default 1).
             constraint_fn: A function specifying constraints on the quantum numbers.
                 Given a batch of quantum numbers it should return a vector of bools
@@ -68,22 +78,21 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         assert isinstance(N, int)
 
+        if not (isinstance(local_states, StaticRange) or local_states is None):
+            raise TypeError("local_states must be a StaticRange.")
+
         self._is_finite = local_states is not None
 
         if self._is_finite:
-            self._local_states = np.asarray(local_states)
-            assert self._local_states.ndim == 1
-            self._local_size = self._local_states.shape[0]
-            self._local_states = self._local_states.tolist()
-            self._local_states_frozen = frozenset(self._local_states)
+            self._local_states = local_states
+            self._local_size = len(local_states)
         else:
             self._local_states = None
-            self._local_states_frozen = None
             self._local_size = np.iinfo(np.intp).max
 
         self._constraint_fn = constraint_fn
 
-        self.__hilbert_index = None
+        self._hilbert_index_ = None
 
         shape = tuple(self._local_size for _ in range(N))
         super().__init__(shape=shape)
@@ -105,6 +114,8 @@ class HomogeneousHilbert(DiscreteHilbert):
     def local_states(self) -> Optional[list[float]]:
         r"""A list of discrete local quantum numbers.
         If the local states are infinitely many, None is returned."""
+        if self.is_finite:
+            return list(self._local_states)
         return self._local_states
 
     def states_at_index(self, i: int):
@@ -114,7 +125,53 @@ class HomogeneousHilbert(DiscreteHilbert):
     def n_states(self) -> int:
         r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._hilbert_index.n_states
+
+    def states_to_local_indices(self, x: Array):
+        r"""Returns a tensor with the same shape of `x`, where all local
+        values are converted to indices in the range `0...self.shape[i]`.
+        This function is guaranteed to be jax-jittable.
+
+        For the `Fock` space this returns `x`, but for other hilbert spaces
+        such as `Spin` this returns an array of indices.
+
+        .. warning::
+            This function is experimental. Use at your own risk.
+
+        Args:
+            x: a tensor containing samples from this hilbert space
+
+        Returns:
+            a tensor containing integer indices into the local hilbert
+        """
+        return self._local_states.states_to_numbers(x, dtype=np.int32)
+
+    def local_indices_to_states(self, x: Array, dtype=None):
+        r"""
+        Converts a tensor of integers to the corresponding local_values in
+        this hilbert space.
+
+        Equivalent to
+
+        .. code::py
+
+            hilbert.local_states[x]
+
+        The input last dimension must match the size of this Hilbert space.
+        This function can be jax-jitted.
+
+        Args:
+            x: a tensor with integer dtype and whose last dimension matches
+                the size of this Hilbert space.
+
+        Returns:
+            a tensor with the same shape as the input, and values corresponding
+            to the local_state indexed by the input tensor `x`.
+
+        """
+        return self._local_states.numbers_to_states(x, dtype=dtype)
 
     @property
     def is_finite(self) -> bool:
@@ -123,7 +180,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     @property
     def constrained(self) -> bool:
-        r"""The hilbert space does not contains `prod(hilbert.shape)`
+        r"""The hilbert space does not contain `prod(hilbert.shape)`
         basis states.
 
         Typical constraints are population constraints (such as fixed
@@ -135,60 +192,73 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         return self._constraint_fn is not None
 
-    def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
-        # this is guaranteed
-        # numbers = concrete_or_error(
-        #    np.asarray, numbers, HilbertIndexingDuringTracingError
-        # )
+    def _numbers_to_states(self, numbers: np.ndarray) -> np.ndarray:
+        return self._hilbert_index.numbers_to_states(numbers)
 
-        return self._hilbert_index.numbers_to_states(numbers, out)
+    def _states_to_numbers(self, states: np.ndarray):
+        states = jnp.asarray(states)
 
-    def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
-        # guaranteed
-        # states = concrete_or_error(
-        #    np.asarray, states, HilbertIndexingDuringTracingError
-        # )
+        if self.is_finite:
+            start = self._local_states.start
+            end = start + self._local_states.step * self._local_states.length
+            if self._local_states.step < 0:
+                start, end = end, start
+                start = start - self._local_states.step
+                end = end - self._local_states.step
 
-        self._hilbert_index.states_to_numbers(states, out)
+            states = error_if(
+                states,
+                (states < start).any() | (states >= end).any(),
+                "States outside the range of allowed states.",
+            )
 
-        return out
+        if self.constrained:
+            states = error_if(
+                states,
+                ~self._constraint_fn(states).all(),
+                "States do not fulfill constraint.",
+            )
 
-    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
+        return self._hilbert_index.states_to_numbers(states)
+
+    def all_states(self) -> np.ndarray:
         r"""Returns all valid states of the Hilbert space.
 
         Throws an exception if the space is not indexable.
-
-        Args:
-            out: an optional pre-allocated output array
 
         Returns:
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
-        return self._hilbert_index.all_states(out)
+        if not self.is_indexable:  # includes call to _setup
+            raise RuntimeError("The hilbert space is too large to be indexed.")
+
+        return self._hilbert_index.all_states()
 
     @property
     def _hilbert_index(self) -> HilbertIndex:
         """
-        Returns the `HilbertIndex` object, which is a numba jitclass used to convert
-        integers to states and vice-versa.
+        The `self._hilbert_index` is a lazily constructed object used to index into homogeneous Hilbert spaces.
+
+        This indexing object implements the logic for `number_to_states`, `states_to_numbers` and `n_states`,
+        as well as the handling of constraints if necessary.
         """
-        if self.__hilbert_index is None:
-            if not self.is_indexable:
-                raise RuntimeError("The hilbert space is too large to be indexed.")
-
-            if self.constrained:
-                self.__hilbert_index = ConstrainedHilbertIndex(
-                    np.asarray(self.local_states, dtype=np.float64),
-                    self.size,
-                    self._constraint_fn,
-                )
+        if self._hilbert_index_ is None:
+            if not self.constrained:
+                index = UniformTensorProductHilbertIndex(self._local_states, self.size)
             else:
-                self.__hilbert_index = UnconstrainedHilbertIndex(
-                    np.asarray(self.local_states, dtype=np.float64), self.size
+                index = optimalConstrainedHilbertindex(
+                    self._local_states, self.size, self._constraint_fn
                 )
+            self._hilbert_index_ = index
+        return self._hilbert_index_
 
-        return self.__hilbert_index
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        if not self.is_finite:
+            return False
+        return self._hilbert_index.is_indexable
 
     def __repr__(self):
         constr = f", constrained={self.constrained}" if self.constrained else ""
@@ -201,7 +271,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         return (
             self.size,
             self.local_size,
-            self._local_states_frozen,
+            self._local_states,
             self.constrained,
             self._constraint_fn,
         )

@@ -23,7 +23,6 @@ from jax import numpy as jnp
 from jax.nn.initializers import lecun_normal, zeros
 
 from netket.utils.types import Array, DType, NNInitFunc
-from netket.utils import deprecate_dtype
 
 default_kernel_init = lecun_normal()
 
@@ -49,7 +48,6 @@ def _conv_dimension_numbers(input_shape):
     return lax.ConvDimensionNumbers(lhs_spec, rhs_spec, out_spec)
 
 
-@deprecate_dtype
 class MaskedDense1D(nn.Module):
     """1D linear transformation module with mask for autoregressive NN."""
 
@@ -126,7 +124,6 @@ class MaskedDense1D(nn.Module):
         return y
 
 
-@deprecate_dtype
 class MaskedConv1D(nn.Module):
     """1D convolution module with mask for autoregressive NN."""
 
@@ -227,7 +224,6 @@ class MaskedConv1D(nn.Module):
         return y
 
 
-@deprecate_dtype
 class MaskedConv2D(nn.Module):
     """2D convolution module with mask for autoregressive NN."""
 

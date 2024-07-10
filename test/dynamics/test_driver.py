@@ -102,7 +102,7 @@ def l4_norm(x):
     """
     return jax.tree_util.tree_reduce(
         lambda x, y: x + y,
-        jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 4), x),
+        jax.tree_util.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 4), x),
     ) ** (1.0 / 4.0)
 
 
@@ -249,12 +249,6 @@ def test_repr_and_info():
         qgt=nk.optimizer.qgt.QGTOnTheFly(holomorphic=True),
     )
     assert "TDVP" in str(driver)
-
-    info = driver.info()
-    assert "TDVP" in info
-    assert "generator" in info
-    assert "integrator" in info
-    assert "RK23" in info
 
 
 def test_run_twice():

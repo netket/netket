@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Optional, Union
 from collections.abc import Sequence
 
 import numpy as np
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert
+from netket.utils.types import DType
 
 from ._graph_operator import GraphOperator
 
@@ -33,7 +34,8 @@ class Heisenberg(GraphOperator):
         hilbert: AbstractHilbert,
         graph: AbstractGraph,
         J: Union[float, Sequence[float]] = 1.0,
-        sign_rule=None,
+        sign_rule: Union[None, bool, Sequence[bool]] = None,
+        dtype: Optional[DType] = None,
         *,
         acting_on_subspace: Union[None, list[int], int] = None,
     ):
@@ -54,6 +56,7 @@ class Heisenberg(GraphOperator):
                 bipartite, False otherwise.
                 If a sequence of coupling strengths is passed, defaults to False
                 and a matching sequence of sign_rule must be specified to override it
+            dtype: Data type of the matrix elements.
             acting_on_subspace: Specifies the mapping between nodes of the graph and
                 Hilbert space sites, so that graph node :code:`i ∈ [0, ..., graph.n_nodes - 1]`,
                 corresponds to :code:`acting_on_subspace[i] ∈ [0, ..., hilbert.n_sites]`.
@@ -125,6 +128,7 @@ class Heisenberg(GraphOperator):
             graph,
             bond_ops=bond_ops,
             bond_ops_colors=bond_ops_colors,
+            dtype=dtype,
             acting_on_subspace=acting_on_subspace,
         )
 

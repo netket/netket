@@ -84,23 +84,6 @@ def test_raise_n_iter():
         driver.run("prova", 12)
 
 
-def test_steadystate_construction_vstate():
-    lind, vs, driver = _setup_ss()
-
-    sa = vs.sampler
-    op = nk.optimizer.Sgd(learning_rate=0.05)
-
-    driver = nk.SteadyState(lind, op, sa, nk.models.NDM(), n_samples=1008, seed=SEED)
-
-    driver.run(1)
-
-    assert driver.step_count == 1
-
-    with raises(TypeError):
-        ha2 = nk.operator.LocalOperator(lind.hilbert_physical)
-        driver = nk.SteadyState(ha2, op, variational_state=driver.state)
-
-
 def test_no_preconditioner_api():
     lind, vs, driver = _setup_ss()
 

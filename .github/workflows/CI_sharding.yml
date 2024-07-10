@@ -1,4 +1,4 @@
-name: CI
+name: CI_sharding
 
 on:
   pull_request:
@@ -6,6 +6,10 @@ on:
   push:
     branches:
       - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'master')}}
 
 jobs:
   test_sharding:
@@ -16,29 +20,47 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: "3.10"
-            runscript: "run_test_sharding.sh"
+            mpi: ""
+            runscript: "run_test_sharding_1cpu.sh"
 
           - os: ubuntu-latest
             python-version: "3.10"
+            mpi: ""
+            runscript: "run_test_sharding_2cpu.sh"
+
+          # - os: self-hosted
+          #   python-version: "3.10"
+          #   mpi: "openmpi"
+          #   runscript: "run_test_sharding_distributed.sh"
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            mpi: ""
             runscript: "run_standard_tests_with_sharding.sh"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
+          fetch-tags: true
 
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        if: matrix.mpi != ''
+        with:
+          mpi: ${{ matrix.mpi }}
+
       - name: Pip install packages
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install wheel
-          pip install jaxlib
-          pip install -e ".[dev,extra]"
+          pip install uv
+          uv pip install --system jaxlib
+          uv pip install --system -e ".[dev,extra]"
 
-      - name: run tests on 2 cpus
+      - name: run tests
         run: |
           ./test_sharding/"${{ matrix.runscript }}"

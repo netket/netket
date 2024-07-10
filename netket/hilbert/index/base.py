@@ -12,37 +12,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Protocol, Optional
+import numpy as np
 
-from netket.utils.types import Array
+from netket.utils import struct
+from typing import Union
+from netket.utils.types import Array, Scalar
+
+max_states = np.iinfo(np.int32).max
+"""int: Maximum number of states that can be indexed"""
 
 
-class HilbertIndex(Protocol):
+def is_indexable(shape: Union[tuple[Scalar], Scalar]) -> bool:
+    """
+    Returns whether a discrete Hilbert space of shape `shape` is
+    indexable (i.e., its total number of states is below the maximum).
+    """
+    # cast to float to avoid
+    # TypeError: loop of ufunc does not support argument 0 of type int which has no callable log method
+    # when shape contains ints larger than the max int64
+    shape = np.asarray(shape, dtype=np.float64)
+    log_max = np.log(max_states)
+    return np.sum(np.log(shape)) <= log_max
+
+
+class HilbertIndex(struct.Pytree):
     @property
     def n_states(self) -> int:
         """Returns the size of the hilbert space."""
+        return NotImplemented  # pragma: no cover
 
-    def states_to_numbers(self, states: Array, out: Optional[Array] = None) -> Array:
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the index can be indexed with an integer"""
+        return NotImplemented  # pragma: no cover
+
+    def states_to_numbers(self, states: Array) -> Array:
         """Given a Batch of N states of size M, returns an array
-        of np.int32 or np.int64 integers used to numerate those states.
-
-        If out is not None the returned array should be out and it should
-        contain the result. We are planning to deprecate `out` but this
-        has not happened yet.
+        of np.int32 integers used to numerate those states.
         """
+        raise NotImplementedError  # pragma: no cover
 
-    def numbers_to_states(self, numbers: Array, out: Optional[Array] = None) -> Array:
+    def numbers_to_states(self, numbers: Array) -> Array:
         """Given a list of N integers, returns a batch of N states of size M
         of corresponding to those states. This function is the inverse
         of `states_to_numbers`.
-
-        If out is not None the returned array should be out and it should
-        contain the result. We are planning to deprecate `out` but this
-        has not happened yet.
         """
+        raise NotImplementedError  # pragma: no cover
 
-    def all_states(self, out: Optional[Array] = None) -> Array:
+    def all_states(self) -> Array:
         """Should behave as `self.numbers_to_states(range(self.n_states))`
         but might be optimised for iterating across the full hilbert
         space.
         """
+        raise NotImplementedError  # pragma: no cover

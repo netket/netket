@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Optional, Union
 
 from netket.utils.types import DType
 
@@ -53,7 +53,7 @@ class GraphOperator(LocalOperator):
         site_ops=[],
         bond_ops=[],
         bond_ops_colors=[],
-        dtype: DType = None,
+        dtype: Optional[DType] = None,
         *,
         acting_on_subspace: Union[None, list[int], int] = None,
     ):
@@ -79,7 +79,7 @@ class GraphOperator(LocalOperator):
              specified, the user must give a list of site operators.
          bond_ops_colors: A list of edge colors, specifying the color each
              bond operator acts on. The default is an empty list.
-         dtype: Data type type of the matrix elements.
+         dtype: Data type of the matrix elements.
          acting_on_subspace: Specifies the mapping between nodes of the graph and
             Hilbert space sites, so that graph node :code:`i ∈ [0, ..., graph.n_nodes]`,
             corresponds to :code:`acting_on_subspace[i] ∈ [0, ..., hilbert.n_sites]`.
@@ -96,7 +96,7 @@ class GraphOperator(LocalOperator):
          ... [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15],
          ... [15, 16], [16, 17], [17, 18], [18, 19], [19, 0]]
          >>> g = nk.graph.Graph(edges=edges)
-         >>> hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
+         >>> hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
          >>> op = nk.operator.GraphOperator(
          ... hi, site_ops=[sigmax], bond_ops=[mszsz], graph=g)
          >>> print(op)
@@ -162,6 +162,15 @@ class GraphOperator(LocalOperator):
         the constructor.
         """
         return self._acting_on_subspace
+
+    def copy(self, *, dtype: Optional[DType] = None):
+        """Returns a copy of the operator, while optionally changing the dtype
+        of the operator.
+
+        Args:
+            dtype: optional dtype
+        """
+        return super().copy(dtype=dtype, _cls=LocalOperator)
 
     def __repr__(self):
         ao = self.acting_on

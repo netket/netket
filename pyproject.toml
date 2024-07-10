@@ -31,31 +31,26 @@ dynamic = ["version"]
 
 requires-python = ">=3.9"
 dependencies = [
-    "numpy~=1.20",
+    "numpy>=1.20,<3.0",
     "scipy>=1.5.3, <2",
     "tqdm>=4.60, <5",
-    "numba>=0.52, <0.59",
-    "igraph>=0.10.0, <0.12.0",
-    "jax>=0.4.3, <0.5",
-    "jaxlib>=0.4.3, <0.5",
-    "flax>=0.7.1, <0.8",
-    "orjson>=3.4, <4",
-    "optax>=0.1.3, <0.2",
-    "numba4jax>=0.0.10.post1, <0.1",
-    # vendored plum dependencies.
-    # TODO: Remove once we unvendor plum 
-    "beartype>=0.16.2",
-    "typing-extensions; python_version<='3.10'",
     "rich>=10.0",
-    # TODO: Reinsert once we unvedor it and bump
-    # version
-    # "plum-dispatch>=2.2.2, <3",
+    "numba>=0.52, <0.61",
+    "igraph>=0.10.0, <0.12.0",
+    "jax>=0.4.16, <0.5",
+    "jaxlib>=0.4.16, <0.5",
+    "equinox>=0.11.3, <0.12",
+    "flax>=0.7.1, <0.9",
+    "orjson>=3.4, <4",
+    "optax>=0.1.3, <0.3",
+    "numba4jax>=0.0.10.post1, <0.1",
+    "plum-dispatch>=2.4, <3",
 ]
 
 [project.optional-dependencies]
 mpi = [
     "mpi4py>=3.0.1, <4",
-    "mpi4jax>=0.3.9, <0.5"
+    "mpi4jax>=0.3.9, <0.6"
     ]
 pyscf = [
     "sparse>=0.12.0",
@@ -77,21 +72,20 @@ dev = [
     "coverage>=5",
     "pre-commit>=2.7",
     "black==23.9.1",
-    "ruff==0.1.0",
+    "ruff==0.4.2",
+    "qutip>=5",
     "wheel",
     "build",
-    # TODO remove vendoring plum
-    "IPython",
 ]
 docs = [
-    "Sphinx>=7.0,<7.3",
+    "Sphinx>=7.0,<7.4",
     "sphinx-design>=0.4.0",
-    "sphinx-autodoc-typehints~=1.22",
+    "sphinx-autodoc-typehints>=1.22,<3.0",
     "sphinxcontrib-fulltoc~=1.2.0",
     "sphinxcontrib-jsmath~=1.0.1",
-    "myst-parser>=2.0.0,<2.1.0",
-    "myst-nb~=1.0.0",
-    "sphinx-book-theme~=1.1.0rc1",
+    "myst-parser>=2.0.0,<3.1.0",
+    "myst-nb>=1.0,<1.2",
+    "sphinx-book-theme~=1.1.0",
 ]
 
 [project.urls]
@@ -160,16 +154,17 @@ testpaths = [
 
 [tool.ruff]
 target-version = "py39"
+line-length = 88
+exclude = ["Examples/Legacy", "docs/conf.py"]
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "D410", "UP"]
 fixable = ["E", "F", "W", "D", "UP"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]
-line-length = 88
-exclude = ["Examples/Legacy", "docs/conf.py"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402","F401"]
 "netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
 "docs/sphinx_extensions/*" = ["UP", "D"]
-"netket/utils/plum/*" = ["UP"]

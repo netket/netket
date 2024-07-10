@@ -43,9 +43,15 @@ from flax import serialization
 
 import jax
 
-from .utils import _set_new_attribute, _create_fn, get_class_globals
+from .utils import (
+    _set_new_attribute,
+    _create_fn,
+    get_class_globals,
+    maximum_positional_args,
+    keyword_arg_names,
+)
 from .fields import _cache_name, Uninitialized, field, CachedProperty
-from .pytree import Pytree
+from .pytree import Pytree, DATACLASS_USER_INIT_N_ARGS
 
 try:
     from dataclasses import _FIELDS
@@ -342,9 +348,14 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
 
     if is_pytree:
         if not (clz._pytree__class_is_mutable ^ _frozen):
-            raise ValueError(
+            raise TypeError(
                 f"Inheriting from a mutable={clz._pytree__class_is_mutable} but _frozen={_frozen}"
             )
+        if clz._pytree__class_dynamic_nodes:
+            raise TypeError(
+                "dynamic nodes Pytrees are incompatible with the dataclass decorator."
+            )
+
         # let the base class handle the frozeness
         _frozen = False
 
@@ -405,6 +416,46 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
     # if it's an 'auto-style PyTree', use standard dataclass-logic
     # and do not register it with jax/flax
     if is_pytree:
+        # This is used in the `__pre_init__` of Pytrees to identify
+        # the last user-defined __init__ method, which will reside in
+        # the top-most non-dataclass class.
+        for clz in data_clz.__mro__:
+            if clz == Pytree:
+                n_args_max = 0
+                break
+            if not hasattr(clz, "__dataclass_params__"):
+                if "__init__" in clz.__dict__:
+                    n_args_max = maximum_positional_args(clz.__init__) - 1
+                    break
+        setattr(data_clz, DATACLASS_USER_INIT_N_ARGS, n_args_max)
+
+        # Forbid fields with same name as keyword arguments in the pytree below
+        pytree_arg_names = keyword_arg_names(clz.__init__)
+        _data_clz_fields = getattr(data_clz, _FIELDS)
+        args_not_ok = [nm for nm in pytree_arg_names if nm in _data_clz_fields]
+        if len(args_not_ok) > 0:
+            raise ValueError(
+                f"""
+                You cannot declare a dataclass with an attribute having the
+                same name as an argument to the `__init__` function of the
+                Pytree it inherits from.
+
+                Pytree {clz = } has the following argument names used in its
+                __init__ method: {pytree_arg_names}, and you cannot use them
+                as attributes or fields of this dataclass.
+
+                In your definition of the dataclass {data_clz = }, which inherits
+                from the pytree above, you have the following illegally named fields:
+                    {args_not_ok}
+
+                Rename them to a valid name to make this error disappear!
+
+                ====================================================================
+                Note: this is experimental functionality. If you believe this should
+                work, please open a bug report on the NetKet repository.
+                """
+            )
+
         return data_clz
 
     # flax stuff: identify states

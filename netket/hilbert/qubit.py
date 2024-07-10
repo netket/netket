@@ -16,6 +16,8 @@ from typing import Optional, Union
 
 import numpy as np
 
+from netket.utils import StaticRange
+
 from .homogeneous import HomogeneousHilbert
 
 
@@ -36,10 +38,7 @@ class Qubit(HomogeneousHilbert):
             >>> print(hi.size)
             100
         """
-        super().__init__([0.0, 1.0], N)
-
-    def states_to_local_indices(self, x):
-        return x.astype(np.int32)
+        super().__init__(StaticRange(0, 1, 2, dtype=np.int8), N)
 
     def __pow__(self, n):
         return Qubit(self.size * n)

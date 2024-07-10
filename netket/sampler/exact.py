@@ -22,7 +22,6 @@ from jax import numpy as jnp
 from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
-from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT, DType
 
 from .base import Sampler, SamplerState
@@ -57,9 +56,6 @@ class ExactSampler(Sampler):
         hilbert: DiscreteHilbert,
         machine_pow: int = 2,
         dtype: DType = float,
-        *,
-        n_chains=None,
-        n_chains_per_rank=None,
     ):
         """
         Construct an exact sampler.
@@ -69,11 +65,6 @@ class ExactSampler(Sampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
-        if n_chains is not None or n_chains_per_rank is not None:
-            warn_deprecation(
-                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
-            )
-
         super().__init__(hilbert, machine_pow=machine_pow, dtype=dtype)
 
     @property
@@ -112,37 +103,21 @@ class ExactSampler(Sampler):
         numbers = jax.random.choice(
             rng,
             sampler.hilbert.n_states,
-            shape=(chain_length * sampler.n_chains_per_rank,),
+            shape=(
+                sampler.n_batches,
+                chain_length,
+            ),
             replace=True,
             p=state.pdf,
         )
 
-        # We use a host-callback to convert integers labelling states to
-        # valid state-arrays because that code is written with numba and
-        # we have not yet converted it to jax.
-        #
-        # For future investigators:
-        # this will lead to a crash if numbers_to_state throws.
-        # it throws if we feed it nans!
-        samples = jax.pure_callback(
-            lambda numbers: sampler.hilbert.numbers_to_states(numbers).astype(
-                sampler.dtype
-            ),
-            jax.ShapeDtypeStruct(
-                (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
-                sampler.dtype,
-            ),
-            numbers,
-        )
-        samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-            sampler.n_chains_per_rank, chain_length, sampler.hilbert.size
-        )
+        samples = sampler.hilbert.numbers_to_states(numbers).astype(sampler.dtype)
 
         # TODO run the part above in parallel
         if config.netket_experimental_sharding:
             samples = jax.lax.with_sharding_constraint(
                 samples,
-                jax.sharding.PositionalSharding(jax.devices()).reshape(1, -1, 1),
+                jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1, 1),
             )
 
         return samples, state.replace(rng=new_rng)

@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import abc
 from typing import Callable, Optional
 from collections.abc import Hashable
 
+from netket.jax import canonicalize_dtypes
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
@@ -28,16 +30,17 @@ class ContinuousOperator(AbstractOperator):
     `ContinuousOperator` and implement its interface.
     """
 
-    def __init__(self, hilbert: AbstractHilbert, dtype: DType = float):
+    def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = None):
         r"""
         Constructs the continuous operator acting on the given hilbert space and
         with a certain data type.
 
         Args:
             hilbert: The underlying Hilbert space on which the operator is defined
-            dtype: Data type of the matrix elements. Defaults to `np.float64`
+            dtype: Data type of the operator, which is used to infer the dtype of
+                expectation values
         """
-
+        dtype = canonicalize_dtypes(float, dtype=dtype)
         self._dtype = dtype
         self._hash = None
         super().__init__(hilbert)

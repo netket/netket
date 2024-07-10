@@ -34,6 +34,10 @@ if TYPE_CHECKING:
 
 @register_pytree_node_class
 class IsingJax(IsingBase, DiscreteJaxOperator):
+    """
+    Jax-compatible version of :class:`netket.operator.Ising`.
+    """
+
     @wraps(IsingBase.__init__)
     def __init__(
         self,
@@ -82,18 +86,27 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
             self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
         )
 
+    def to_local_operator(self):
+        # The hamiltonian
+        ha = super().to_local_operator()
+
+        return ha.to_jax_operator()
+
     def tree_flatten(self):
         data = (self.h, self.J, self.edges)
-        metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
+        metadata = {"hilbert": self.hilbert}
         return data, metadata
 
     @classmethod
     def tree_unflatten(cls, metadata, data):
         h, J, edges = data
         hi = metadata["hilbert"]
-        dtype = metadata["dtype"]
 
-        return cls(hi, h=h, J=J, graph=edges, dtype=dtype)
+        res = cls(hi, h=1.0, graph=[(0, 0)])
+        res._h = h
+        res._J = J
+        res._edges = edges
+        return res
 
 
 def _ising_mels_jax(x, edges, h, J):
@@ -102,13 +115,7 @@ def _ising_mels_jax(x, edges, h, J):
         max_conn_size = 1
     else:
         max_conn_size = x.shape[-1] + 1
-    mels = jnp.zeros(
-        (
-            *batch_dims,
-            max_conn_size,
-        ),
-        dtype=J.dtype,
-    )
+    mels = jnp.zeros((*batch_dims, max_conn_size), dtype=J.dtype)
 
     same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
     mels = mels.at[..., 0].set(J * (2 * same_spins - 1).sum(axis=-1))
