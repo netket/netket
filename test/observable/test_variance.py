@@ -6,6 +6,7 @@ import pytest
 
 from ..variational.finite_diff import central_diff_grad, same_derivatives
 
+seed=1234
 
 def _setup(useExactSampler=True):
     N = 3
@@ -20,6 +21,7 @@ def _setup(useExactSampler=True):
             sampler=sa,
             model=ma,
             n_samples=n_samples,
+            seed=seed,
         )
 
     else:
@@ -29,11 +31,13 @@ def _setup(useExactSampler=True):
             model=ma,
             n_samples=n_samples,
             n_discard_per_chain=1e3,
+            seed=seed,
         )
 
     vs_exact = nk.vqs.FullSumState(
         hilbert=hi,
         model=ma,
+        seed=seed,
     )
 
     H = nk.operator.IsingJax(hi, graph=nk.graph.Chain(N), h=1, J=-1)
