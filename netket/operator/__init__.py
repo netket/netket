@@ -23,7 +23,7 @@ from ._graph_operator import GraphOperator
 from ._lazy import Adjoint, Transpose, Squared
 from ._heisenberg import Heisenberg
 from ._ising import Ising, IsingJax
-from ._bose_hubbard import BoseHubbard
+from ._bose_hubbard import BoseHubbard, BoseHubbardJax
 
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian

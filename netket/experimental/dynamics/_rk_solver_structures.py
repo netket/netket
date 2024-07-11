@@ -104,7 +104,7 @@ def euclidean_norm(x: Union[PyTree, Array]):
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
                 lambda x, y: x + y,
-                jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
+                jax.tree_util.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
             )
         )
 
@@ -119,7 +119,7 @@ def maximum_norm(x: Union[PyTree, Array]):
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
                 jnp.maximum,
-                jax.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
+                jax.tree_util.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
             )
         )
 
@@ -153,14 +153,7 @@ class RungeKuttaState:
             last_norm = f"{self.last_norm}"
             accepted = f"{SolverFlags.INFO_STEP_ACCEPTED}"
 
-        return "RKState(step_no(total)={}({}), t={}, dt={}{}{})".format(
-            self.step_no,
-            self.step_no_total,
-            self.t.value,
-            dt,
-            last_norm,
-            accepted,
-        )
+        return f"RKState(step_no(total)={self.step_no}({self.step_no_total}), t={self.t.value}, dt={dt}{last_norm}{accepted})"
 
     @property
     def accepted(self):

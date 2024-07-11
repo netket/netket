@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import numpy as np
 import jax.numpy as jnp
 
@@ -131,7 +132,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         rem = numbers
         tmp = []
         for i, dim in enumerate(self._ns_states_r):
-            rem, loc_numbers = np.divmod(rem, dim)
+            rem, loc_numbers = jnp.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
             tmp.append(self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers))
 
@@ -158,6 +159,19 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         for i, hilb_i in enumerate(self._hilbert_spaces):
             tmp.append(
                 hilb_i.states_to_local_indices(
+                    x[..., self._cum_indices[i] : self._cum_sizes[i]]
+                )
+            )
+        out = jnp.empty(x.shape, dtype=jnp.result_type(*tmp))
+        for i, _ in enumerate(self._hilbert_spaces):
+            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(tmp[i])
+        return out
+
+    def local_indices_to_states(self, x, dtype=None):
+        tmp = []
+        for i, hilb_i in enumerate(self._hilbert_spaces):
+            tmp.append(
+                hilb_i.local_indices_to_states(
                     x[..., self._cum_indices[i] : self._cum_sizes[i]]
                 )
             )

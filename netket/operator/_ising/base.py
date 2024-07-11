@@ -184,9 +184,12 @@ class IsingBase(SpecialHamiltonian):
             raise NotImplementedError(
                 "Cannot add hamiltonians on different hilbert spaces"
             )
+        if not np.allclose(self.edges, other.edges):
+            return NotImplemented
 
         self._h += other.h
         self._J += other.J
+        return self
 
     def _isub_same_hamiltonian(self, other):
         if self.hilbert != other.hilbert:
@@ -194,8 +197,12 @@ class IsingBase(SpecialHamiltonian):
                 "Cannot add hamiltonians on different hilbert spaces"
             )
 
+        if not np.allclose(self.edges, other.edges):
+            return NotImplemented
+
         self._h -= other.h
         self._J -= other.J
+        return self
 
     def __repr__(self):
         return (

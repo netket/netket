@@ -50,8 +50,10 @@ Below you find a list of all concrete Operators that you can create on {class}`~
    :nosignatures:
 
    BoseHubbard
+   BoseHubbardJax
    GraphOperator
    LocalOperator
+   LocalOperatorJax
    Ising
    IsingJax
    Heisenberg

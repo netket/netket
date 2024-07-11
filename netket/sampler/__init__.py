@@ -28,7 +28,13 @@ from .metropolis import (
     MetropolisHamiltonian,
     MetropolisGaussian,
     MetropolisAdjustedLangevin,
-    sample_next,
+)
+
+from .metropolis_pt import (
+    ParallelTemperingSampler,
+    ParallelTemperingLocal,
+    ParallelTemperingExchange,
+    ParallelTemperingHamiltonian,
 )
 
 from .metropolis_numpy import (

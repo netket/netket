@@ -28,13 +28,14 @@ from netket.driver import AbstractVariationalDriver
 from netket.errors import UnoptimalSRtWarning
 from netket.jax import sharding
 from netket.operator import AbstractOperator
-from netket.utils import mpi
+from netket.utils import mpi, timing
 from netket.utils.types import ScalarOrSchedule, Optimizer, PyTree
 from netket.vqs import MCState
 
 from jax.flatten_util import ravel_pytree
 
 
+@timing.timed
 @partial(jax.jit, static_argnames=("mode", "solver_fn"))
 def SRt(
     O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure
@@ -49,7 +50,7 @@ def SRt(
     local_energies = local_energies.flatten()
 
     if e_mean is None:
-        e_mean = mpi.mean(local_energies)
+        e_mean = nkstats.mean(local_energies)
     de = jnp.conj(local_energies - e_mean).squeeze()
 
     # * in this case O_L should be padded with zeros
@@ -89,6 +90,11 @@ def SRt(
             matrix_side
         )  # * shift diagonal regularization
         aus_vector = solver_fn(matrix, dv)
+        # some solvers return a tuple, some others do not.
+        # We check and try to support both
+        if isinstance(aus_vector, tuple):
+            aus_vector, _ = aus_vector
+
         aus_vector = aus_vector.reshape(mpi.n_nodes, -1)
         aus_vector, token = mpi.mpi_scatter_jax(aus_vector, token=token)
     else:
@@ -102,7 +108,7 @@ def SRt(
     # To repack the real coefficients in order to get complex updates
     if mode == "complex" and nkjax.tree_leaf_iscomplex(params_structure):
         np = updates.shape[-1] // 2
-        updates = (updates[:np] + 1j * updates[np:]) / 2
+        updates = updates[:np] + 1j * updates[np:]
 
     return -updates
 
@@ -210,7 +216,7 @@ class VMC_SRt(AbstractVariationalDriver):
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
 
-        self._params_structure = jax.tree_map(
+        self._params_structure = jax.tree_util.tree_map(
             lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), self.state.parameters
         )
         if not nkjax.tree_ishomogeneous(self._params_structure):
@@ -278,6 +284,7 @@ class VMC_SRt(AbstractVariationalDriver):
             mode=self.jacobian_mode,
             dense=True,
             center=True,
+            chunk_size=self.state.chunk_size,
         )  # jacobians is centered
 
         diag_shift = self.diag_shift

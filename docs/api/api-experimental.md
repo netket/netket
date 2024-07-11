@@ -56,15 +56,7 @@ They are experimental, meaning that we could change them at some point, and we a
 
 ### Parallel tempering samplers
 
-This module contains the Metropolis Parallel Tempered sampler.
-This sampler is experimental because we believe it to be correct, but our tests
-fail. We believe it to be a false negative: possibly the implementation of the
-sampler is correct, but the test is too tight.
-Until we will have verified this hypothesis and updated the tests in order not
-to fail, we provide the current implementation as-is, in the hope that some
-contributor might take up that work.
-
-The other experimental sampler is MetropolisSamplerPmap, which makes use of {func}`jax.pmap`
+An experimental sampler is MetropolisSamplerPmap, which makes use of {func}`jax.pmap`
 to use different GPUs/CPUs without having to use MPI. It should scale much better over
 several CPUs, but you have to start jax with a specific environment variable.
 
@@ -74,10 +66,6 @@ several CPUs, but you have to start jax with a specific environment variable.
    :toctree: _generated/samplers
    :template: class
    :nosignatures:
-
-   sampler.MetropolisPtSampler
-   sampler.MetropolisLocalPt
-   sampler.MetropolisExchangePt
 
    sampler.MetropolisSamplerPmap
 ```

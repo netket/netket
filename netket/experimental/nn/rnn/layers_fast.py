@@ -75,8 +75,7 @@ class FastRNNLayer(RNNLayer):
         hidden = self._extract_hidden(outputs, index, prev_neighbors)
         cell_mem, hidden = self.cell(inputs, cell_mem, hidden)
 
-        initializing = self.is_mutable_collection("params")
-        if not initializing:
+        if not self.is_initializing():
             _cell_mem.value = cell_mem
             _outputs.value = outputs.at[:, index, :].set(hidden)
 

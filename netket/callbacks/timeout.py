@@ -18,9 +18,7 @@ import time
 from netket.utils import struct
 
 
-# Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
-@struct.dataclass(_frozen=False)
-class Timeout:
+class Timeout(struct.Pytree, mutable=True):
     """A simple callback to stop NetKet after some time has passed.
 
     This callback monitors whether a driver has been training for more
@@ -30,19 +28,26 @@ class Timeout:
     timeout: float
     """Number of seconds to wait before the training will be stopped."""
 
-    _init_time: Optional[float] = None
+    # caches
+    _init_time: Optional[float]
     """
     Internal field storing the time at which the first iteration has been
     performed.
     """
 
-    def __post_init__(self):
-        if not self.timeout > 0:
-            raise ValueError("`timeout` must be larger than 0.")
+    def __init__(self, timeout: float):
+        """
+        Stops the optimisation after a certain time itnerval.
 
-    def reset(self):
-        """Resets the initial time of the training"""
-        self.__init_time = None
+        Args:
+            timeout: number of seconds after which the optimisation will
+                be stopped.
+        """
+        if not timeout > 0:
+            raise ValueError("`timeout` must be larger than 0.")
+        self.timeout = timeout
+
+        self._init_time = None
 
     def __call__(self, step, log_data, driver):
         """

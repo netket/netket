@@ -20,12 +20,16 @@ def _eval_fun_in_chunks(vmapped_fun, chunk_size, argnums, *args, **kwargs):
     else:
         # split inputs
         def _get_chunks(x):
-            x_chunks = jax.tree_map(lambda x_: x_[: n_elements - n_rest, ...], x)
+            x_chunks = jax.tree_util.tree_map(
+                lambda x_: x_[: n_elements - n_rest, ...], x
+            )
             x_chunks = _chunk(x_chunks, chunk_size)
             return x_chunks
 
         def _get_rest(x):
-            x_rest = jax.tree_map(lambda x_: x_[n_elements - n_rest :, ...], x)
+            x_rest = jax.tree_util.tree_map(
+                lambda x_: x_[n_elements - n_rest :, ...], x
+            )
             return x_rest
 
         args_chunks = [
@@ -41,7 +45,9 @@ def _eval_fun_in_chunks(vmapped_fun, chunk_size, argnums, *args, **kwargs):
             y = y_chunks
         else:
             y_rest = vmapped_fun(*args_rest, **kwargs)
-            y = jax.tree_map(lambda y1, y2: jnp.concatenate((y1, y2)), y_chunks, y_rest)
+            y = jax.tree_util.tree_map(
+                lambda y1, y2: jnp.concatenate((y1, y2)), y_chunks, y_rest
+            )
     return y
 
 

@@ -14,7 +14,12 @@ def version_tuple(verstr: str):
         i = len(verstr) + 1
 
     verstr = verstr[:i].rstrip(".")
-    return tuple(int(v) for v in verstr.split("."))[:3]
+    vertupl = tuple(int(v) for v in verstr.split("."))[:3]
+
+    # Ensure that we have (major, minor, patch)
+    while len(vertupl) < 3:
+        vertupl = vertupl + (0,)
+    return vertupl
 
 
 def module_version(module: Union[str, ModuleType]) -> tuple[int, ...]:

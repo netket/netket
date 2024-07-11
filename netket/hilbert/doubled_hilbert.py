@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
+import jax.numpy as jnp
 
 from netket.utils.dispatch import parametric
+from netket.utils.types import Array, DType
 
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
+from .index import is_indexable
 
 
 @parametric
@@ -62,6 +64,12 @@ class DoubledHilbert(DiscreteHilbert):
     @property
     def is_finite(self):
         return self.physical.is_finite
+
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        n = self.physical.n_states
+        return self.physical.is_indexable and is_indexable([n, n])
 
     @property
     def local_size(self):
@@ -123,11 +131,11 @@ class DoubledHilbert(DiscreteHilbert):
         # etc...
 
         dim = self.physical.n_states
-        left, right = np.divmod(numbers, dim)
+        left, right = jnp.divmod(numbers, dim)
 
         out_l = self.physical.numbers_to_states(left)
         out_r = self.physical.numbers_to_states(right)
-        return np.concatenate([out_l, out_r], axis=-1)
+        return jnp.concatenate([out_l, out_r], axis=-1)
 
     def _states_to_numbers(self, states):
         # !!! WARNING
@@ -142,6 +150,9 @@ class DoubledHilbert(DiscreteHilbert):
 
     def states_to_local_indices(self, x):
         return self.physical.states_to_local_indices(x)
+
+    def local_indices_to_states(self, x: Array, dtype: DType = None):
+        return self.physical.local_indices_to_states(x, dtype=dtype)
 
     def __repr__(self):
         return f"DoubledHilbert({self.physical})"

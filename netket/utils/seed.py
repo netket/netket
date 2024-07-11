@@ -19,4 +19,4 @@ def random_seed():
     """
     generates a random seed
     """
-    return np.random.default_rng().integers(0, 1 << 32)
+    return int(np.random.default_rng().integers(0, 1 << 32))

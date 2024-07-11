@@ -160,10 +160,16 @@ class LocalOperatorBase(DiscreteOperator):
 
     @property
     def n_operators(self) -> int:
+        """The total number of operators that were summed upon to build this operator.
+
+        This excludes an optional identity term that is tracked by
+        :attr:`netket.operator.LocalOperator.constant`.
+        """
         return len(self._operators_dict)
 
     @property
     def dtype(self) -> DType:
+        """DType of the matrix elements of this operator."""
         return self._dtype
 
     @property
@@ -197,12 +203,20 @@ class LocalOperatorBase(DiscreteOperator):
 
     @property
     def constant(self) -> numbers.Number:
+        """
+        A constant multiplying the identity added to the diagonal of the operator.
+        """
         return self._constant
 
-    def to_pauli_strings(self) -> "PauliStrings":  # noqa: F821
+    def to_pauli_strings(self, **kwargs) -> "PauliStrings":  # noqa: F821
         """Convert to PauliStrings object"""
         return local_operators_to_pauli_strings(
-            self.hilbert, self.operators, self.acting_on, self.constant, self.dtype
+            self.hilbert,
+            self.operators,
+            self.acting_on,
+            self.constant,
+            self.dtype,
+            **kwargs,
         )
 
     def copy(self, *, dtype: Optional[DType] = None, _cls=None):
@@ -303,7 +317,6 @@ class LocalOperatorBase(DiscreteOperator):
             self._reset_caches()
             self._constant += other
             return self
-
         return NotImplemented
 
     def __truediv__(self, other):

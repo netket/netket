@@ -1,6 +1,7 @@
 import dataclasses
 import inspect
 import typing as tp
+from typing import Any, Callable
 from abc import ABCMeta
 from copy import copy
 from functools import partial
@@ -20,6 +21,10 @@ store the topmost non-dataclass class in a mro.
 """
 
 
+def identity(x):
+    return x
+
+
 class PytreeMeta(ABCMeta):
     """
     Metaclass for PyTrees, takes care of initializing and turning
@@ -28,13 +33,25 @@ class PytreeMeta(ABCMeta):
 
     def __call__(cls: type[P], *args: tp.Any, **kwargs: tp.Any) -> P:
         obj: P = cls.__new__(cls, *args, **kwargs)
+
+        # set things before init
+        vars_dict = vars(obj)
+
+        # Set 'default' values
+        for field in obj._pytree__cachedprop_fields:
+            vars_dict[field] = Uninitialized
+
+        for field, default_fn in cls._pytree__default_setters.items():
+            if field not in vars_dict:
+                vars_dict[field] = default_fn()
+
         obj.__dict__["_pytree__initializing"] = True
         try:
             obj.__init__(*args, **kwargs)
         finally:
             del obj.__dict__["_pytree__initializing"]
 
-        vars_dict = vars(obj)
+        # set things after init
         if obj._pytree__class_dynamic_nodes:
             vars_dict["_pytree__node_fields"] = tuple(
                 sorted(
@@ -45,9 +62,6 @@ class PytreeMeta(ABCMeta):
             )
         else:
             vars_dict["_pytree__node_fields"] = cls._pytree__data_fields
-
-        for field in obj._pytree__cachedprop_fields:
-            vars_dict[field] = Uninitialized
 
         return obj
 
@@ -126,12 +140,15 @@ class Pytree(metaclass=PytreeMeta):
         class_vars = vars(cls)
         setter_descriptors = set()
         static_fields = _inherited_static_fields(cls)
+        noserialize_fields = _inherited_noserialize_fields(cls)
 
-        # add special static fields
+        # add special static fields that are in the instance, not in the class
         static_fields.add("_pytree__node_fields")
+        noserialize_fields.add("_pytree__node_fields")
 
         # new
         data_fields = _inherited_data_fields(cls)
+        default_setters = _inherited_defaults_setters(cls)  # _pytree__default_setters
         cached_prop_fields = set()
 
         for field, value in class_vars.items():
@@ -145,6 +162,18 @@ class Pytree(metaclass=PytreeMeta):
                 "pytree_node", True
             ):
                 data_fields.add(field)
+
+            if isinstance(value, dataclasses.Field) and not value.metadata.get(
+                "serialize", True
+            ):
+                noserialize_fields.add(field)
+
+            # default setters
+            if isinstance(value, dataclasses.Field):
+                if value.default is not dataclasses.MISSING:
+                    default_setters[field] = partial(identity, value.default)
+                elif value.default_factory is not dataclasses.MISSING:
+                    default_setters[field] = value.default_factory
 
             # add setter descriptors
             if hasattr(value, "__set__"):
@@ -187,14 +216,18 @@ class Pytree(metaclass=PytreeMeta):
         data_fields = tuple(sorted(data_fields))
         cached_prop_fields = tuple(sorted(cached_prop_fields))
         cached_prop_fields = tuple(_cache_name(f) for f in cached_prop_fields)
+        default_setters = MappingProxyType(default_setters)
 
         static_fields = tuple(sorted(static_fields))
+        noserialize_fields = tuple(sorted(noserialize_fields))
 
         # init class variables
         cls._pytree__initializing = False
         cls._pytree__class_is_mutable = mutable
         cls._pytree__static_fields = static_fields
+        cls._pytree__noserialize_fields = noserialize_fields
         cls._pytree__setter_descriptors = frozenset(setter_descriptors)
+        cls._pytree__default_setters = default_setters
 
         # new
         cls._pytree__class_dynamic_nodes = dynamic_nodes
@@ -234,8 +267,8 @@ class Pytree(metaclass=PytreeMeta):
 
         serialization.register_serialization_state(
             cls,
-            partial(cls._to_flax_state_dict, cls._pytree__static_fields),
-            partial(cls._from_flax_state_dict, cls._pytree__static_fields),
+            partial(cls._to_flax_state_dict, cls._pytree__noserialize_fields),
+            partial(cls._from_flax_state_dict, cls._pytree__noserialize_fields),
         )
 
     def __pre_init__(self, *args, **kwargs):
@@ -320,21 +353,21 @@ class Pytree(metaclass=PytreeMeta):
 
     @classmethod
     def _to_flax_state_dict(
-        cls, static_field_names: tuple[str, ...], pytree: "Pytree"
+        cls, noserialize_field_names: tuple[str, ...], pytree: "Pytree"
     ) -> dict[str, tp.Any]:
         from flax import serialization
 
         state_dict = {
             name: serialization.to_state_dict(getattr(pytree, name))
             for name in pytree.__dict__
-            if name not in static_field_names
+            if name not in noserialize_field_names
         }
         return state_dict
 
     @classmethod
     def _from_flax_state_dict(
         cls,
-        static_field_names: tuple[str, ...],
+        noserialize_field_names: tuple[str, ...],
         pytree: P,
         state: dict[str, tp.Any],
     ) -> P:
@@ -344,7 +377,7 @@ class Pytree(metaclass=PytreeMeta):
         state = state.copy()  # copy the state so we can pop the restored fields.
         updates = {}
         for name in pytree.__dict__:
-            if name in static_field_names:
+            if name in noserialize_field_names:
                 continue
             if name not in state:
                 raise ValueError(
@@ -372,17 +405,22 @@ class Pytree(metaclass=PytreeMeta):
         type as the original object.
         """
         if dataclasses.is_dataclass(self):
-            return dataclasses.replace(self, **kwargs)
+            pytree = dataclasses.replace(self, **kwargs)
+        else:
+            unknown_keys = set(kwargs) - set(vars(self))
+            if unknown_keys:
+                raise ValueError(
+                    f"Trying to replace unknown fields {unknown_keys} "
+                    f"for '{type(self).__name__}'"
+                )
 
-        unknown_keys = set(kwargs) - set(vars(self))
-        if unknown_keys:
-            raise ValueError(
-                f"Trying to replace unknown fields {unknown_keys} "
-                f"for '{type(self).__name__}'"
-            )
+            pytree = copy(self)
+            pytree.__dict__.update(kwargs)
 
-        pytree = copy(self)
-        pytree.__dict__.update(kwargs)
+        # Reset cached properties
+        for fname in pytree._pytree__cachedprop_fields:
+            setattr(pytree, fname, Uninitialized)
+
         return pytree
 
     if not tp.TYPE_CHECKING:
@@ -430,6 +468,23 @@ def _inherited_static_fields(cls: type) -> set[str]:
     return static_fields
 
 
+def _inherited_noserialize_fields(cls: type) -> set[str]:
+    """
+    Returns the set of noserialize fields of base classes
+    of the input class
+    """
+    noserialize_fields = set()
+    for parent_class in cls.mro():
+        if parent_class is not cls and parent_class is not Pytree:
+            if issubclass(parent_class, Pytree):
+                noserialize_fields.update(parent_class._pytree__noserialize_fields)
+            elif dataclasses.is_dataclass(parent_class):
+                for field in dataclasses.fields(parent_class):
+                    if not field.metadata.get("serialize", True):
+                        noserialize_fields.add(field.name)
+    return noserialize_fields
+
+
 def _inherited_data_fields(cls: type) -> set[str]:
     """
     Returns the set of data fields of base classes
@@ -465,3 +520,23 @@ def _inherited_cachedproperty_fields(cls: type) -> set[str]:
                     if isinstance(field, CachedProperty):
                         cachedproperty_fields.add(field.name)
     return cachedproperty_fields
+
+
+def _inherited_defaults_setters(cls: type) -> set[Callable[[], Any]]:
+    """
+    Returns the set of default setters of base classes
+    of the input class.
+    """
+    default_setters = {}
+    for parent_class in cls.mro():
+        if parent_class is not cls and parent_class is not Pytree:
+            if issubclass(parent_class, Pytree):
+                default_setters.update(parent_class._pytree__default_setters)
+            elif dataclasses.is_dataclass(parent_class):
+                for field in dataclasses.fields(parent_class):
+                    if field.default is not dataclasses.MISSING:
+                        default_setters[field.name] = lambda: field.default
+                    elif field.default_factory is not dataclasses.MISSING:
+                        default_setters[field.name] = field.default_factory
+
+    return default_setters

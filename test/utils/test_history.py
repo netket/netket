@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import netket as nk
-
 import numpy as np
 import jax
 import jax.numpy as jnp
 from dataclasses import dataclass
 
 import flax
+
+import netket as nk
 
 from .. import common
 
@@ -74,7 +74,7 @@ def test_accum_mvhistory():
     def assert_len(x):
         assert len(x) == L
 
-    jax.tree_map(assert_len, tree)
+    jax.tree_util.tree_map(assert_len, tree)
 
     # check compound master type
     np.testing.assert_allclose(np.array(tree["compound"]), np.arange(10) * 10)
@@ -112,3 +112,21 @@ def test_append():
     # test that repr does not fail
     repr(a1)
     repr(a2)
+
+
+def test_construct_from_dict():
+    tree = nk.utils.History(create_mock_data_iter(0))
+    a2 = nk.utils.History(create_mock_data_iter(1), iters=1)
+    tree.append(a2)
+
+    new_tree = nk.utils.History(tree.to_dict())
+    assert len(new_tree) == len(tree)
+    assert set(new_tree.keys()) == set(tree.keys())
+    np.testing.assert_allclose(new_tree.iters, tree.iters)
+    for key in tree.keys():
+        np.testing.assert_equal(new_tree[key], tree[key])
+
+    tree.append(new_tree)
+    assert len(tree.iters) == len(new_tree.iters) * 2
+    for key in tree.keys():
+        len(tree[key]) == len(new_tree[key]) * 2

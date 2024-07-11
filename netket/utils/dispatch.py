@@ -14,7 +14,7 @@
 
 from typing import Literal, Union
 
-from .plum import dispatch, parametric, convert  # noqa: F401
+from plum import dispatch, parametric, convert  # noqa: F401
 
 
 # Todo: deprecated in netket 3.10/august 2023 . To eventually remove.

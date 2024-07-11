@@ -16,16 +16,16 @@ import abc
 from typing import Optional, Union, Callable
 from collections.abc import Iterator
 
-import numpy as np
+import jax
+from jax import numpy as jnp
 from flax import linen as nn
 
-from jax import numpy as jnp
 
 from netket import jax as nkjax
 from netket.jax import sharding
 from netket import config
 from netket.hilbert import AbstractHilbert
-from netket.utils import get_afun_if_module, numbers, struct, wrap_afun
+from netket.utils import get_afun_if_module, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
 
@@ -57,7 +57,7 @@ class Sampler(struct.Pytree):
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """The Hilbert space to sample."""
 
-    machine_pow: int = struct.field(default=2)
+    machine_pow: float = struct.field(default=2.0)
     """The power to which the machine should be exponentiated to generate the pdf."""
 
     dtype: DType = struct.field(pytree_node=False, default=float)
@@ -67,7 +67,7 @@ class Sampler(struct.Pytree):
         self,
         hilbert: AbstractHilbert,
         *,
-        machine_pow: int = 2,
+        machine_pow: float = 2,
         dtype: DType = float,
     ):
         """
@@ -92,10 +92,19 @@ class Sampler(struct.Pytree):
                 "\n"
             )
 
-        if not np.issubdtype(numbers.dtype(machine_pow), np.integer):
-            raise ValueError(
-                f"machine_pow ({self.machine_pow}) must be a positive integer"
-            )
+        machine_pow = jnp.array(machine_pow)
+
+        if jnp.issubdtype(machine_pow, jnp.complexfloating):
+            raise ValueError(f"machine_pow ({machine_pow}) must be real")
+
+        # Below we want to check that machine_pow is positive, but in a way
+        # that works also for samplers constructed inside a jit-context.
+        # To make this work, we could use equinox.error_if, but we assume users
+        # are smart enough and we only check if we are outside of jit
+        if not isinstance(machine_pow, jax.core.Tracer):
+            if machine_pow < 0:
+                raise ValueError(f"machine_pow ({machine_pow}) must be positive")
+        # else: equinox.error_if(machine_pow, machine_pow<0, ...)
 
         self.hilbert = hilbert
         self.machine_pow = machine_pow
@@ -114,9 +123,8 @@ class Sampler(struct.Pytree):
 
         .. code:: python
 
-        from netket.jax import sharding
-        sharding.device_count()
-        sampler.n_chains // sharding.device_count()
+            from netket.jax import sharding
+            sampler.n_chains // sharding.device_count()
 
         """
         n_devices = sharding.device_count()

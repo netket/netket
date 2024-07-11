@@ -114,8 +114,7 @@ class FastMaskedDense1D(nn.Module):
             "cache", "inputs", zeros, None, (batch, size, in_features), inputs.dtype
         )
 
-        initializing = self.is_mutable_collection("params")
-        if not initializing:
+        if not self.is_initializing():
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
             _cache.value = jnp.where(
@@ -123,6 +122,7 @@ class FastMaskedDense1D(nn.Module):
                 _cache.value.at[:, index - self.exclusive, :].set(inputs),
                 _cache.value,
             )
+
         cache = _cache.value
 
         cache_i = cache[:, :size_i, :]
@@ -241,8 +241,7 @@ class FastMaskedConv1D(nn.Module):
             inputs.dtype,
         )
 
-        initializing = self.is_mutable_collection("params")
-        if not initializing:
+        if not self.is_initializing():
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
             _cache.value = jnp.where(
@@ -389,8 +388,7 @@ class FastMaskedConv2D(nn.Module):
             inputs.dtype,
         )
 
-        initializing = self.is_mutable_collection("params")
-        if not initializing:
+        if not self.is_initializing():
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
 

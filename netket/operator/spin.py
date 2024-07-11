@@ -84,6 +84,12 @@ def sigmay(
     """
     import numpy as np
     import netket.jax as nkjax
+    from netket.utils import module_version
+
+    if module_version(np) >= (2, 0, 0):
+        from numpy.exceptions import ComplexWarning
+    else:
+        from numpy import ComplexWarning
 
     if not nkjax.is_complex_dtype(dtype):
         import jax.numpy as jnp
@@ -93,7 +99,7 @@ def sigmay(
         dtype = jnp.promote_types(complex, old_dtype)
         if old_dtype is not None:
             warnings.warn(
-                np.ComplexWarning(
+                ComplexWarning(
                     f"A complex dtype is required (dtype={old_dtype} specified). "
                     f"Promoting to dtype={dtype}."
                 ),

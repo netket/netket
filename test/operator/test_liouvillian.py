@@ -53,7 +53,7 @@ def test_lindblad_form():
     hnh_mat = ha.to_sparse()
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
-        hnh_mat -= 0.5j * j_mat.H * j_mat
+        hnh_mat -= 0.5j * j_mat.T.conj() * j_mat
 
     # Compute the left and right product with identity
     lind_mat = -1j * sparse.kron(hnh_mat, idmat) + 1j * sparse.kron(

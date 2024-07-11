@@ -39,13 +39,15 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
 
     try:
         if isinstance(target, RealImagTuple):
-            jax.tree_map(check, x, target.real, target.imag)
+            jax.tree_util.tree_map(check, x, target.real, target.imag)
         else:
-            jax.tree_map(check, x, target)
+            jax.tree_util.tree_map(check, x, target)
     except ValueError:
         # catches jax tree map errors
-        pars_struct = jax.tree_map(lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), x)
-        vec_struct = jax.tree_map(
+        pars_struct = jax.tree_util.tree_map(
+            lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), x
+        )
+        vec_struct = jax.tree_util.tree_map(
             lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), target
         )
 

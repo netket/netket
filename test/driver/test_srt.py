@@ -122,7 +122,7 @@ def test_SRt_vs_linear_solver_complexpars():
     gs.run(n_iter=n_iters, out=logger_sr)
 
     # check same parameters
-    jax.tree_map(
+    jax.tree_util.tree_map(
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
@@ -153,7 +153,7 @@ def test_SRt_vs_linear_solver():
     gs.run(n_iter=n_iters, out=logger_sr)
 
     # check same parameters
-    jax.tree_map(
+    jax.tree_util.tree_map(
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
@@ -189,7 +189,7 @@ def test_SRt_real_vs_complex():
     gs.run(n_iter=n_iters, out=logger_real)
 
     # check same parameters
-    jax.tree_map(
+    jax.tree_util.tree_map(
         np.testing.assert_allclose, vstate_complex.parameters, vstate_real.parameters
     )
 
@@ -239,5 +239,20 @@ def test_SRt_schedules():
         opt,
         variational_state=vstate_srt,
         diag_shift=optax.linear_schedule(0.1, 0.001, 100),
+    )
+    gs.run(5)
+
+
+def test_SRt_supports_netket_solvers():
+    """
+    nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
+    """
+    H, opt, vstate_srt = _setup()
+    gs = VMC_SRt(
+        H,
+        opt,
+        variational_state=vstate_srt,
+        diag_shift=optax.linear_schedule(0.1, 0.001, 100),
+        linear_solver_fn=nk.optimizer.solver.pinv_smooth,
     )
     gs.run(5)

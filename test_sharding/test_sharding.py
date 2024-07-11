@@ -66,6 +66,28 @@ def test_sampling():
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
+def test_pt():
+    vs, _, ha = _setup(8)
+    hi = ha.hilbert
+
+    sa = nkx.sampler.MetropolisPtSampler(
+        hi,
+        rule=nk.sampler.rules.HamiltonianRule(ha),
+        n_replicas=4,
+        sweep_size=hi.size * 4,
+    )
+    vs.sampler = sa
+
+    samples = vs.sample(chain_length=10)
+
+    assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
+    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
+    assert samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
 def test_expect():
     vs, _, ha = _setup(16)
     E = vs.expect(ha)
@@ -92,12 +114,8 @@ def test_grad():
 
 @pytest.mark.parametrize(
     "Op",
-    [pytest.param(nk.operator.Ising, id="numba")]
-    if jax.process_count() < 2
-    else []
-    + [
-        pytest.param(nk.operator.IsingJax, id="jax"),
-    ],
+    ([pytest.param(nk.operator.Ising, id="numba")] if jax.process_count() < 2 else [])
+    + [pytest.param(nk.operator.IsingJax, id="jax")],
 )
 @pytest.mark.parametrize(
     "qgt",
@@ -177,12 +195,8 @@ def test_qgt_onthefly():
 
 @pytest.mark.parametrize(
     "Op",
-    [pytest.param(nk.operator.Ising, id="numba")]
-    if jax.process_count() < 2
-    else []
-    + [
-        pytest.param(nk.operator.IsingJax, id="jax"),
-    ],
+    ([pytest.param(nk.operator.Ising, id="numba")] if jax.process_count() < 2 else [])
+    + [pytest.param(nk.operator.IsingJax, id="jax")],
 )
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
@@ -337,7 +351,9 @@ def test_serialization():
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
-@pytest.mark.parametrize("ode_jit", [False, True])
+@pytest.mark.parametrize(
+    "ode_jit", [False]
+)  # odejit is broken since jax 0.4.27, True])
 def test_timeevolution(ode_jit):
     nk.config.update("netket_experimental_disable_ode_jit", not ode_jit)
     L = 8

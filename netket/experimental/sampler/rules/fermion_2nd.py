@@ -1,5 +1,3 @@
-import jax
-import jax.numpy as jnp
 from typing import Optional
 import numpy as np
 
@@ -69,51 +67,5 @@ class ParticleExchangeRule(ExchangeRule):
                 )
         super().__init__(clusters=clusters, graph=graph, d_max=d_max)
 
-    def transition(rule, sampler, machine, parameters, state, key, σ):
-        n_chains = σ.shape[0]
-
-        # compute a mask for the clusters that can be hopped
-        hoppable_clusters = _compute_hoppable_clusters_mask(rule.clusters, σ)
-
-        keys = jnp.asarray(jax.random.split(key, n_chains))
-
-        def _update_sample(key, σ, hoppable_clusters):
-            # pick a random cluster, taking into account the mask
-            n_conn = hoppable_clusters.sum(axis=-1)
-            cluster = jax.random.choice(
-                key,
-                a=jnp.arange(rule.clusters.shape[0]),
-                p=hoppable_clusters,
-                replace=True,
-            )
-
-            # sites to be exchanged
-            si = rule.clusters[cluster, 0]
-            sj = rule.clusters[cluster, 1]
-
-            σp = σ.at[si].set(σ[sj])
-            σp = σp.at[sj].set(σ[si])
-
-            # compute the number of connected sites
-            hoppable_clusters_proposed = _compute_hoppable_clusters_mask(
-                rule.clusters, σp
-            )
-            n_conn_proposed = hoppable_clusters_proposed.sum(axis=-1)
-            log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
-            return σp, log_prob_corr
-
-        return jax.vmap(_update_sample, in_axes=(0, 0, 0), out_axes=0)(
-            keys, σ, hoppable_clusters
-        )
-
     def __repr__(self):
         return f"ParticleExchangeRule(# of clusters: {len(self.clusters)})"
-
-
-@jax.jit
-def _compute_hoppable_clusters_mask(clusters, σ):
-    # mask the clusters to include only feasible moves (occ -> unocc, or the inverse)
-    hoppable_clusters_mask = ~jnp.isclose(
-        σ[..., clusters[:, 0]], σ[..., clusters[:, 1]]
-    )
-    return hoppable_clusters_mask

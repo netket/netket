@@ -50,7 +50,7 @@ def _jacobian_cplx(
     params: PyTree,
     samples: Array,
     *,
-    _build_fn: Callable = partial(jax.tree_map, jax.lax.complex),
+    _build_fn: Callable = partial(jax.tree_util.tree_map, jax.lax.complex),
 ) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→C, backpropagates 1 and -1j
@@ -85,7 +85,7 @@ def stack_jacobian_tuple(ok_re_im):
         centered_oks_re_im : a tuple (ΔOᵣ, ΔOᵢ) of two PyTrees representing the real and imag part of ΔOⱼₖ
     """
     re, im = ok_re_im
-    return jax.tree_map(lambda re, im: jnp.stack([re, im], axis=0), re, im)
+    return jax.tree_util.tree_map(lambda re, im: jnp.stack([re, im], axis=0), re, im)
 
 
 jacobian_real_holo_fun = jacobian_real_holo

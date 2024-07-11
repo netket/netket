@@ -15,12 +15,17 @@
 from textwrap import dedent
 from typing import Union
 
+from functools import partial
+
 import jax
 import numpy as np
 
 from netket.utils.dispatch import dispatch
+from netket.jax.sharding import sharding_decorator
 
-Dim = Union[tuple[int], tuple[int, int], tuple[int, int, int]]
+Dim = Union[
+    tuple[int], tuple[int, int], tuple[int, int, int], tuple[int, int, int, int]
+]
 
 
 @dispatch
@@ -85,17 +90,6 @@ def random_state(hilb, key, size: int, *, dtype):  # noqa: F811
     )
 
 
-@dispatch
-def random_state(hilb, key, size: None, *, dtype):  # noqa: F811
-    return random_state(hilb, key, 1, dtype=dtype)[0]
-
-
-@dispatch
-def random_state(hilb, key, size: Dim, *, dtype):  # noqa: F811
-    n = int(np.prod(size))
-    return random_state(hilb, key, n, dtype=dtype).reshape(*size, -1)
-
-
 def flip_state(hilb, key, state, indices):
     r"""
     Given a state `σ` and an index `i`, randomly flips `σ[i]` so that
@@ -122,7 +116,9 @@ def flip_state_scalar(hilb, key, state, indx):
     return new_state.reshape(-1), old_val.reshape()
 
 
+# we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
 @dispatch
+@partial(sharding_decorator, sharded_args_tree=(False, "key", True, True))
 def flip_state_batch(hilb, key, states, indxs):
     keys = jax.random.split(key, states.shape[0])
     res = jax.vmap(flip_state_scalar, in_axes=(None, 0, 0, 0), out_axes=0)(

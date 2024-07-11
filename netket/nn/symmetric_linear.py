@@ -260,7 +260,7 @@ class DenseEquivariantFFT(Module):
 
     The group convolution can be written in terms of translational convolutions with
     symmetry transformed filters as described in
-    `Cohen et. al <http://proceedings.mlr.press/v48/cohenc16.pdf>_
+    `Cohen et. al <http://proceedings.mlr.press/v48/cohenc16.pdf>_`
 
     The translational convolutions are then implemented with Fast Fourier Transforms.
     """

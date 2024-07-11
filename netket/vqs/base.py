@@ -133,7 +133,7 @@ class VariationalState(abc.ABC):
                 dtype=par.dtype,
             )
 
-        self.parameters = jax.tree_map(new_pars, self.parameters)
+        self.parameters = jax.tree_util.tree_map(new_pars, self.parameters)
 
     def reset(self):
         r"""Resets the internal cache of th variational state.

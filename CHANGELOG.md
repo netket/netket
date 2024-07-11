@@ -3,34 +3,120 @@
 
 # Change Log
 
-## NetKet 3.12 (⚙️ In development)
+## NetKet 3.13 (⚙️ In development)
 
 ### New Features
-* Discrete Hilbert spaces now use a special {class}`nk.utils.StaticRange` object to store the local values that label the local degree of freedom. This special object is jax friendly and can be converted to arrays, and allows for easy conversion from the local degrees of freedom to integers that can be used to index into arrays, and back. While those objects are not really used internally yet, in the future they will be used to simplify the implementations of operators and other objects [#1732](https://github.com/netket/netket/issues/1732).
-
-
-### Breaking Changes
-* The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) deprecated in the last release has been removed completely [#1722](https://github.com/netket/netket/issues/1722).
-* The Homogeneous Hilbert spaces now must store the list of valid local values for the states with a {class}`nk.utils.StaticRange` objects instead of list of floats. The constructors have been updated accordingly. {class}`~nk.utils.StaticRange` is a range-like object that is jax-compatible and from now on should be used to index into local hilbert spaces [#1732](https://github.com/netket/netket/issues/1732).
+* Added the function {func}`netket.jax.tree_norm` to compute the L-p norm of a PyTree, interpreted as a vector of values, without concatenating or ravelling the leaves [#1819](https://github.com/netket/netket/issues/1819).
+* The default value of `n_discard_per_chain` has been changed to 5, which is a more reasonable number in most cases. It might be low for some applications.
+* The sampler {class}`netket.sampler.MetropolisSampler` and all its derivatives now support chunking for the evaluation of the wavefunction at every Metropolis step [#1828](https://github.com/netket/netket/issues/1828).
+* Add a new function {meth}`netket.hilbert.DiscreteHilbert.local_indices_to_states` to convert integer indices to local configurations [#1833](https://github.com/netket/netket/issues/1833).
+* Support NetKet's own linear solvers in {class}`netket.experimental.driver.VMC_SRt` [#1830](https://github.com/netket/netket/issues/1830).
 
 ### Deprecations
 
+* Following the discovery and fix of the Parallel Tempering bugs, {class}`netket.experimental.sampler.MetropolisPt` and related samplers have been stabilised, so they should be constructed with {class}`netket.sampler.ParallelTemperingSampler` [#1803](https://github.com/netket/netket/issues/1803).
+
 ### Improvements
-* Rewrite the code for generating random states of `netket.hilbert.Fock` and `netket.hilbert.Spin` in Jax and jit the `init` and `reset` functions of `netket.sampler.MetropolisSampler` for better performance and improved compatibility with sharding [#1721](https://github.com/netket/netket/pull/1721).
 
-* Rewrite `netket.hilbert.index` used by `HomogeneousHilbert` (including `Spin` and `Fock`) so that larger spaces with a sum constraint can be indexed. This can be useful for `netket.sampler.Exactsampler`, `netket.vqs.FullSumState` as well as for ED calculations [#1720](https://github.com/netket/netket/pull/1720).
-
-### Internal changes
+* Drivers now always log Monte Carlo acceptance if you are using a Monte Carlo sampler [#1816](https://github.com/netket/netket/issues/1816).
+* {class}`netket.sampler.rules.ExchangeRule` now only proposes exchanges where the local degrees of freedom changes [#1815](https://github.com/netket/netket/issues/1815).
+* All solvers within `netket.optimizer.solver` now automatically return a partial capturing keyword arguments such as `rtol` and `rcond` if called with only the keyword arguments. This can be used to more easily set those optimizer options when constructing the solver to be passed to SR or other algorithms [#1817](https://github.com/netket/netket/issues/1817).
+* Unify the initialisation logic of {class}`netket.optimizer.qgt.QGTJacobianDense` and {class}`netket.optimizer.qgt.QGTJacobianPyTree`, providing a single entry point for defining the QGT constructors for custom variational states [#1320](https://github.com/netket/netket/pull/1320).
+* Fix serialisation of {class}`netket.sampler.SamplerState` RNG seed, which now will be correct under MPI and Sharding [#1823](https://github.com/netket/netket/issues/1823).
+* Ensure that {class}`netket.hilbert.DoubledSpace` is indexable in more situations when wrapping constrained Hilbert spaces [#1846](https://github.com/netket/netket/pull/1846).
+* Make the identity preconditioner an (empty) PyTree instead of a function [#1836](https://github.com/netket/netket/pull/1836).
+* Improve several aspects of the fermions API when working with systems that have Spin-1 or greater fermions [#1844](https://github.com/netket/netket/pull/1844).
+* Greatly improve the documentation of {func}`netket.jax.expect` and provide examples of how to use it when running with multiple MPI nodes [#1356](https://github.com/netket/netket/pull/1356).
+* Supports Numpy 2.0 [#1852](https://github.com/netket/netket/pull/1852).
+* Supports any positive real power `machine_pow` of the wave function amplitude as probability distribution for Monte Carlo sampling, not just integers [#1854](https://github.com/netket/netket/pull/1854).
 
 
 ### Bug Fixes
 
+* When deserializing a variational state with flax, convert all arrays to {class}`jax.Array` instead of returning numpy arrays [#1842](https://github.com/netket/netket/issues/1842).
+* Fix internal issue with {class}`netket.utils.struct.Pytree` not inizializing default fields correctly [#1837](https://github.com/netket/netket/issues/1837).
+* Fix issue with {class}`netket.logging.JsonLog` raising an error at the end of a program because of a wrongly defined `__del__` method [#2dd40cf](https://github.com/netket/netket/commit/2dd40cf99caaa6e4dd43a235c62e2580ac54ded6)
+
+
+## NetKet 3.12.4
+
+* Fix bug [#1850](https://github.com/netket/netket/issues/1850) where adding two {class}`netket.operator.Ising` acting on different graphs would yield a wrong operator [#1851](https://github.com/netket/netket/issues/1851).
+
+
+## NetKet 3.12.3 (25 June 2024)
+
+* Preliminary support for NumPy 2.0 [70e7801](https://github.com/netket/netket/commit/70e7801976db8c4ac160734d202c40f0834a649c).
+* Address function redefinition warning raised by recent Plum versions [#1848](https://github.com/netket/netket/issues/1848).
+* Fix a bug that prevented non-scalar `diag_scale` values to be specified for QGTJacobian` [742d231](https://github.com/netket/netket/commit/742d231f891a7a7f823c5e59f06251ed73baaaef).
+
+
+## NetKet 3.12.2 (15 June 2024)
+
+* Support jax 0.4.29
+* The `NETKET_MPI_AUTODETECT_LOCAL_GPU=1` environment variable to autoselect local GPUs when running under MPI has had a bug fixed that prevented it from working correctly [](https://github.com/netket/netket/commit/966cae8ce37bb8915811bb5a012b01cbb1531ba8).
+* A bug where running with `NETKET_EXPERIMENTAL_SHARDING=1 seeds where not correctly syncronised across different processes has been fixed [#1829](https://github.com/netket/netket/issues/1829).
+
+
+## NetKet 3.12.1 (30 May 2024)
+* This release fixes a bug in {class}`netket.sampler.MetropolisSamplerNumpy` that prevented it from working when using MPI [#1818](https://github.com/netket/netket/issues/1818).
+
+
+## NetKet 3.12 (💫 13 May 2024)
+
+### New Features
+* Discrete Hilbert spaces now use a special {class}`nk.utils.StaticRange` object to store the local values that label the local degree of freedom. This special object is jax friendly and can be converted to arrays, and allows for easy conversion from the local degrees of freedom to integers that can be used to index into arrays, and back. While those objects are not really used internally yet, in the future they will be used to simplify the implementations of operators and other objects [#1732](https://github.com/netket/netket/issues/1732).
+* Some utilities to time execution of training loop are now provided, that can be used to coarsely see what part of the algorithm is dominating the training cost. To use it, pass `driver.run(..., timeit=True)` to all drivers when running them.
+* Added several new tensor network ansatze to the `nk.models.tensor_networks` namespace. Those also replace previous tensor network implementations, that were de-facto broken [#1745](https://github.com/netket/netket/issues/1745).
+* Add jax implementation of Bose Hubbard Operator, named {class}`netket.operator.BoseHubbardJax` and split numba implementation in a separate class [#1773](https://github.com/netket/netket/issues/1773).
+* NetKet now automatically sets the visible GPUs when running under MPI with GPUs, by enumerating local GPUs and setting `jax_default_device` according to some local rank. This behaviour should allow users to not have to specify `CUDA_VISIBLE_DEVICES` and local mpi ranks on their scripts. This behaviour is only activated when running using MPI, and not used when using experimental sharding mode. To disable this functionality, set `NETKET_MPI_AUTODETECT_LOCAL_GPU=0` [#1757](https://github.com/netket/netket/issues/1757).
+* {class}`netket.experimental.models.Slater2nd` now implements also the generalized hartree fock, as well as the restricted and unrestricted HF of before [#1765](https://github.com/netket/netket/issues/1765).
+* A new variational state computing the sum of multiple slater determinants has been added, named {class}`nk.experimental.models.MultiSlater2nd`. This state has the same options of {class}`~netket.experimental.models.Slater2nd` [#1765](https://github.com/netket/netket/issues/1765).
+* Support for `jax>=0.4.27` [#1801](https://github.com/netket/netket/issues/1801).
+
+### Breaking Changes
+* The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) deprecated in the last release has been removed completely [#1722](https://github.com/netket/netket/issues/1722).
+* The Homogeneous Hilbert spaces now must store the list of valid local values for the states with a {class}`nk.utils.StaticRange` objects instead of list of floats. The constructors have been updated accordingly. {class}`~nk.utils.StaticRange` is a range-like object that is jax-compatible and from now on should be used to index into local hilbert spaces [#1732](https://github.com/netket/netket/issues/1732).
+* The `numbers_to_states` and `states_to_numbers` methods of {class}`netket.hilbert.DiscreteHilbert` must now be jax jittable. Custom Hilbert spaces using non-jittable functions have to be adapted by including a {func}`jax.pure_callback` in the `numbers_to_states`/`states_to_numbers` member functions [#1748](https://github.com/netket/netket/issues/1748).
+* {attr}`~netket.vqs.MCState.chunk_size` must be set to an integer and will error immediately otherwise. This might break some code, but in general should give more informative error messages overall [#1798](https://github.com/netket/netket/issues/1798).
+
+### Deprecations
+* The method {func}`netket.nn.states_to_numbers` is now deprecated. Please use {meth}`~DiscreteHilbert.numbers_to_states` directly.
+
+### Improvements
+* Rewrite the code for generating random states of `netket.hilbert.Fock` and `netket.hilbert.Spin` in Jax and jit the `init` and `reset` functions of `netket.sampler.MetropolisSampler` for better performance and improved compatibility with sharding [#1721](https://github.com/netket/netket/pull/1721).
+* Rewrite `netket.hilbert.index` used by `HomogeneousHilbert` (including `Spin` and `Fock`) so that larger spaces with a sum constraint can be indexed. This can be useful for `netket.sampler.Exactsampler`, `netket.vqs.FullSumState` as well as for ED calculations [#1720](https://github.com/netket/netket/pull/1720).
+* Duplicating a `netket.vqs.MCState` now leads to perfectly deterministic, identical samples between two different copies of the same `MCState` even if the sampler is changed. Previously, duplicating an `MCState` and changing the sampler on two copies of the same state would lead to some completely random seed being used and therefore different samples to be generated. This change is needed to eventually achieve proper checkpointing of our calculations [#1778](https://github.com/netket/netket/pull/1778).
+* The methods converting Jax Operators to another kind (such as LocalOperators to PauliOperators) will return the Jax version of those operators if available [#1781](https://github.com/netket/netket/pull/1781).
+* Parallel Tempering samplers {class}`netket.experimental.sampler.MetropolisPt` now accept a distribution (`lin` or `log`) for the distribution of the temperatures, or a custom array [#1786](https://github.com/netket/netket/pull/1786).
+
+### Finalized Deprecations
+* Removed module function `netket.sampler.sample_next` that was deprecated in NetKet 3.3 (December 2021) [#17XX](https://github.com/netket/netket/pull/17XX).
+
+### Internal changes
+* Initialize the MetropolisSamplerState in a way that avoids recompilation when using sharding [#1776](https://github.com/netket/netket/pull/1776).
+* Wrap several functions in the samplers and operators with a `shard_map` to avoid unnecessary collective communication when doing batched indexing of sharded arrays [#1777](https://github.com/netket/netket/pull/1777).
+* Callbacks are now Pytree and can be flattened/unflatted and serialized with flax [#1666](https://github.com/netket/netket/pull/1666).
+
+### Bug Fixes
+* Fixed the gradient of variational states w.r.t. complex parameters which was missing a factor of 2. The learning rate needs to be halved to reproduce simulations made with previous versions of NetKet [#1785](https://github.com/netket/netket/pull/1785).
+* Fixed the bug [#1791](https://github.com/netket/netket/pull/1791). where MetropolisHamiltonian with jax operators was leaking tracers and crashing [#1792](https://github.com/netket/netket/pull/1792).
+* The bug in Parallel Tempering samplers was found and they have now been fixed. In short, usages until now were most likely returning garbage samples, but not anymore! [#1769](https://github.com/netket/netket/pull/1769).
+
+
+## NetKet 3.11.3 (🐟 2 April 2024)
+
+Bugfix release addressing the following issues:
+* Fixes a bug where the conjugate of a fermionic operator was the conjugate-transpose, and the hermitian transpose `.H` was the identity. This could break code relying on complex-valued fermionic operators [#1743](https://github.com/netket/netket/pull/1743).
+* Fixed a bug when converting jax operators to qutip format [#1749](https://github.com/netket/netket/pull/1749).
+* Fixed an internal bug of `netket.utils.struct.Pytree`, where the cached properties's cache was not cleared when `replace` was used to copy and modify the Pytree [#1750](https://github.com/netket/netket/pull/1750).
+* Update upper bound on optax to `optax<0.3`, following the release of `optax` 0.2 [#1751](https://github.com/netket/netket/pull/1751).
+* Support QuTiP 5, released in march 2024 [#1762](https://github.com/netket/netket/pull/1762).
 
 
 ## NetKet 3.11.2 (27 february 2024)
 
 Bugfix release to solve the following issues:
-* Fix error thrown in repr method of error thrown in TDVP integrators. 
+* Fix error thrown in repr method of error thrown in TDVP integrators.
 * Fix repr error of {class}`nk.sampler.rules.MultipleRules` [#1729](https://github.com/netket/netket/pull/1729).
 * Solve an issue with RK Integrators that could not be initialised with integer `t0` initial time if `dt` was a float, as well as a wrong `repr` method leading to uncomprehensible stacktraces [#1736](https://github.com/netket/netket/pull/1736).
 

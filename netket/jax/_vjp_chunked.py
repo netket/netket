@@ -3,17 +3,13 @@ from functools import partial
 import jax
 from jax.tree_util import Partial
 
-from netket.jax import (
-    compose,
-    scanmap,
-    scan_append_reduce,
-    vjp as nkvjp,
-)
 from netket.utils import HashablePartial
 from netket.utils import config
 from netket.jax.sharding import sharding_decorator
 
-from ._scanmap import _multimap
+from ._utils_tree import compose
+from ._scanmap import scanmap, scan_append_reduce, _multimap
+from ._vjp import vjp as nkvjp
 from ._chunk_utils import _chunk as _tree_chunk, _unchunk as _tree_unchunk
 
 
@@ -222,9 +218,7 @@ def vjp_chunked(
 
     if not all(map(lambda x: (0 <= x) and (x < len(primals)), chunk_argnums)):
         raise ValueError(
-            "chunk_argnums must index primals. Got chunk_argnums={} but len(primals)={}".format(
-                chunk_argnums, len(primals)
-            )
+            f"chunk_argnums must index primals. Got chunk_argnums={chunk_argnums} but len(primals)={len(primals)}"
         )
         # TODO also check they are unique?
 

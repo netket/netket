@@ -12,33 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
-
 from collections import deque
 
 import numpy as np
 
+from netket.utils import struct
 
-@dataclass
-class ConvergenceStopping:
+
+class ConvergenceStopping(struct.Pytree, mutable=True):
     """A simple callback to stop the optimisation if the loss gets below a certain threshold.
     based on `driver._loss_name`."""
 
     target: float
     """Target value for the monitored quantity. Training will stop if the driver hits the baseline."""
-    monitor: str = "mean"
+    monitor: str
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
 
-    smoothing_window: int = 10
+    smoothing_window: int
     """
     The loss is smoothed over the last `smoothing_window` iterations to reduce statistical fluctuations
     """
-    patience: int = 10
+    patience: int
     """
     The loss must be consistently below this value for this number of iterations in order to stop the optimisation.
     """
 
-    def __post_init__(self):
+    # caches
+    _loss_window: deque
+    _patience_counter: int
+
+    def __init__(
+        self,
+        target: float,
+        monitor: str = "mean",
+        *,
+        smoothing_window: int = 10,
+        patience: int = 10,
+    ):
+        self.target = target
+        self.monitor = monitor
+        self.smoothing_window = smoothing_window
+        self.patience = patience
+
         self._loss_window: deque = deque([], maxlen=self.smoothing_window)
         self._patience_counter: int = 0
 

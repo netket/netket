@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 
 from netket.jax import tree_ravel
+from netket.utils.api_utils import partial_from_kwargs
 
 
-def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
+@partial_from_kwargs
+def pinv_smooth(A, b, *, rcond: float = 1e-14, rcond_smooth: float = 1e-14, x0=None):
     r"""
     Solve the linear system by building a pseudo-inverse from the
     eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
@@ -49,6 +53,12 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
         :obj:`~netket.optimizer.solver.pinv`.
 
 
+    .. note::
+
+        If you pass only keyword arguments, this solver will directly create
+        a partial capturing them.
+
+
     Args:
         A: LinearOperator (matrix)
         b: vector or Pytree
@@ -62,7 +72,8 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     """
     del x0
 
-    A = A.to_dense()
+    if not isinstance(A, jax.Array):
+        A = A.to_dense()
     b, unravel = tree_ravel(b)
 
     Σ, U = jnp.linalg.eigh(A)
@@ -80,7 +91,8 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     return unravel(x), None
 
 
-def pinv(A, b, rcond=1e-12, x0=None):
+@partial_from_kwargs
+def pinv(A, b, *, rcond: float = 1e-12, x0=None):
     """
     Solve the linear system using jax's implementation of the
     pseudo-inverse.
@@ -102,6 +114,11 @@ def pinv(A, b, rcond=1e-12, x0=None):
         :obj:`~netket.optimizer.solver.pinv`.
 
 
+    .. note::
+
+        If you pass only keyword arguments, this solver will directly create
+        a partial capturing them.
+
     The diagonal shift on the matrix can be 0 and the
     **rcond** variable can be used to truncate small
     eigenvalues.
@@ -113,22 +130,28 @@ def pinv(A, b, rcond=1e-12, x0=None):
     """
     del x0
 
-    A = A.to_dense()
+    if not isinstance(A, jax.Array):
+        A = A.to_dense()
     b, unravel = tree_ravel(b)
 
-    x, residuals, rank, s = jnp.linalg.lstsq(A, b, rcond=rcond)
     A_inv = jnp.linalg.pinv(A, rcond=rcond, hermitian=True)
     x = jnp.dot(A_inv, b)
 
     return unravel(x), None
 
 
-def svd(A, b, rcond=None, x0=None):
+@partial_from_kwargs
+def svd(A, b, *, rcond=None, x0=None):
     """
     Solve the linear system using Singular Value Decomposition.
     The diagonal shift on the matrix should be 0.
 
     Internally uses :func:`jax.numpy.linalg.lstsq`.
+
+    .. note::
+
+        If you pass only keyword arguments, this solver will directly create
+        a partial capturing them.
 
     Args:
         A: the matrix A in Ax=b
@@ -137,7 +160,8 @@ def svd(A, b, rcond=None, x0=None):
     """
     del x0
 
-    A = A.to_dense()
+    if not isinstance(A, jax.Array):
+        A = A.to_dense()
     b, unravel = tree_ravel(b)
 
     x, residuals, rank, s = jnp.linalg.lstsq(A, b, rcond=rcond)
@@ -145,12 +169,18 @@ def svd(A, b, rcond=None, x0=None):
     return unravel(x), (residuals, rank, s)
 
 
-def cholesky(A, b, lower=False, x0=None):
+@partial_from_kwargs
+def cholesky(A, b, *, lower=False, x0=None):
     """
     Solve the linear system using a Cholesky Factorisation.
     The diagonal shift on the matrix should be 0.
 
     Internally uses :func:`jax.numpy.linalg.cho_solve`.
+
+    .. note::
+
+        If you pass only keyword arguments, this solver will directly create
+        a partial capturing them.
 
     Args:
         A: the matrix A in Ax=b
@@ -161,7 +191,8 @@ def cholesky(A, b, lower=False, x0=None):
 
     del x0
 
-    A = A.to_dense()
+    if not isinstance(A, jax.Array):
+        A = A.to_dense()
     b, unravel = tree_ravel(b)
 
     c, low = jsp.linalg.cho_factor(A, lower=lower)
@@ -169,12 +200,18 @@ def cholesky(A, b, lower=False, x0=None):
     return unravel(x), None
 
 
-def LU(A, b, trans=0, x0=None):
+@partial_from_kwargs
+def LU(A, b, *, trans=0, x0=None):
     """
     Solve the linear system using a LU Factorisation.
     The diagonal shift on the matrix should be 0.
 
     Internally uses :func:`jax.numpy.linalg.lu_solve`.
+
+    .. note::
+
+        If you pass only keyword arguments, this solver will directly create
+        a partial capturing them.
 
     Args:
         A: the matrix A in Ax=b
@@ -185,7 +222,8 @@ def LU(A, b, trans=0, x0=None):
 
     del x0
 
-    A = A.to_dense()
+    if not isinstance(A, jax.Array):
+        A = A.to_dense()
     b, unravel = tree_ravel(b)
 
     lu, piv = jsp.linalg.lu_factor(A)
@@ -195,12 +233,18 @@ def LU(A, b, trans=0, x0=None):
 
 # I believe this internally uses a smarter/more efficient way to
 # do cholesky
-def solve(A, b, assume_a="pos", x0=None):
+@partial_from_kwargs
+def solve(A, b, *, assume_a="pos", x0=None):
     """
     Solve the linear system.
     The diagonal shift on the matrix should be 0.
 
     Internally uses :func:`jax.numpy.solve`.
+
+    .. note::
+
+        If you pass only keyword arguments, this solver will directly create
+        a partial capturing them.
 
     Args:
         A: the matrix A in Ax=b
@@ -210,7 +254,8 @@ def solve(A, b, assume_a="pos", x0=None):
     """
     del x0
 
-    A = A.to_dense()
+    if not isinstance(A, jax.Array):
+        A = A.to_dense()
     b, unravel = tree_ravel(b)
 
     x = jsp.linalg.solve(A, b, assume_a="pos")

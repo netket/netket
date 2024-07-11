@@ -20,6 +20,7 @@ All functions in here are not part of the public API, internal, and may change w
 import math
 from functools import partial, wraps
 import warnings
+import contextlib
 
 import numpy as np
 
@@ -32,6 +33,7 @@ from jax.sharding import (
     PositionalSharding,
 )
 from jax.experimental.shard_map import shard_map
+from jax.util import safe_zip
 
 from netket.utils import config, mpi
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
@@ -116,7 +118,7 @@ def replicate_sharding_decorator_for_get_conn_padded(f):
                 n_conn_max = int(jax.jit(lambda x: x.max())(n_conn))
                 xp_dev = []
                 mels_dev = []
-                for (xp, mels), s in zip(xp_mels_np, x.addressable_shards):
+                for (xp, mels), s in safe_zip(xp_mels_np, x.addressable_shards):
                     npad = n_conn_max - mels.shape[-1]
                     if npad > 0:
                         mels = np.pad(
@@ -144,7 +146,8 @@ def replicate_sharding_decorator_for_get_conn_padded(f):
                 )
                 return xp, mels
             elif isinstance(x, jax.Array):  # and len(x.devices()) == 1; single device
-                return jax.device_put(f(self, x), device=x.device())
+                (device,) = x.devices()
+                return jax.device_put(f(self, x), device=device)
             else:
                 return f(self, x)
 
@@ -257,7 +260,7 @@ def extract_replicated(t):
         else:
             return x
 
-    return jax.tree_map(_extract_replicated, t)
+    return jax.tree_util.tree_map(_extract_replicated, t)
 
 
 def gather(x):
@@ -280,20 +283,52 @@ def gather(x):
     elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
         # x.sharding.device_set has arbitrary order
         # Hardcode all devices until I figure out a way to deduce the order from x
-        out_shardings = PositionalSharding(jax.devices()).replicate()
+        out_shardings = (
+            PositionalSharding(jax.devices()).replicate().reshape((1,) * x.ndim)
+        )
+        # TODO support gspmdsharding in numba wrapper and use this
         # out_shardings = x.sharding.get_replicated(jax.devices())
     elif isinstance(x.sharding, PositionalSharding):
         out_shardings = x.sharding.replicate()
     else:
         raise NotImplementedError(
-            f"Gather is only compatible with PositionalSharding, but array has {x.sharding} Please open a feature request."
+            "Gather is only compatible with PositionalSharding and GSPMDSharding,"
+            f" but array has {x.sharding}. Please open a feature request."
         )
     return jax.jit(_identity, out_shardings=out_shardings)(x)
     # TODO support gspmdsharding in numba wrapper and use this
     # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
-def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
+SHARD_MAP_STACK_LEVEL: int = 0
+"""
+A counter used to keep track of how many levels deep we are in shard_map.
+
+This should not be modified directly, but controlled through the context manager
+_increase_SHARD_MAP_STACK_LEVEL.
+"""
+
+
+@contextlib.contextmanager
+def _increase_SHARD_MAP_STACK_LEVEL():
+    """
+    A context manager used by `sharding_decorator` to keep track of how many nested
+    sharded function calls we are in.
+
+    In pratice, this is used to ensure that only the outermost function is sharded, and following
+    calls are not sharded.
+    """
+    global SHARD_MAP_STACK_LEVEL
+    try:
+        SHARD_MAP_STACK_LEVEL += 1
+        yield
+    except Exception as e:
+        raise e
+    finally:
+        SHARD_MAP_STACK_LEVEL -= 1
+
+
+def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
     """
     A decorator which wraps a function so that it is evaluated on every shard of the distributed arguments,
     and the output is either returned sharded, or can be reduced with a collective operation.
@@ -308,12 +343,18 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
     .. note:
         if `netket.config.netket_experimental_sharding=False` it returns the unchanged original function
 
+    .. note:
+        If nested functions are decorated with this decorator, only the outermost one is sharded and the internal
+        ones are ignored.
+
     Args:
         f: a function
         sharded_args_tree: a tuple / tuple of pyrtrees of length of the number of args in f
             containing True/False indicating that each input in the argumens of f is:
                 True: sharded on axis 0 (True)
                 False: assumed to be replicated
+                'key': A single jax.random.key. It is split across devices so that the function executed on every device is passed a different key.
+                       If the argument is already a sharded array of keys use True instead.
             the args of f are flattened according to sharded_args_tree, so if an arg is a pytree a single True/False is assumed the whole tree
         reduction_op_tree: a tuple/pyrtree of reduction_op, where for each output:
             reduction_op is e.g. jax.lax.psum if it is to be reduced, then f_wrapped returns a replicated array
@@ -448,7 +489,6 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
         obj_wrapped = Partial(partial(lambda x: x, obj))
         y4 = jax.jit(sharding_decorator(looped_computation4, sharded_args_tree=(True, False)))(x, obj_wrapped)
     """
-
     if config.netket_experimental_sharding:
         if not isinstance(sharded_args_tree, tuple):
             sharded_args_tree = (sharded_args_tree,)
@@ -456,28 +496,47 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
         reduction_op, out_treedef = jax.tree_util.tree_flatten(reduction_op_tree)
 
         @wraps(f)
-        def _fun(*args):
-            args = args_treedef.flatten_up_to(args)
+        def _fun(*args_orig):
+            global SHARD_MAP_STACK_LEVEL
+            # Jax 0.4.28 does not support nested shard_map calls, so we bail out eaerly
+            # if we are already inside of a shard map call
+            if SHARD_MAP_STACK_LEVEL > 0:
+                return f(*args_orig)
 
-            _sele = lambda cond, xs: tuple(x for c, x in zip(cond, xs) if c)
+            args = args_treedef.flatten_up_to(args_orig)
+
+            _sele = lambda cond, xs: tuple(x for c, x in safe_zip(cond, xs) if c)
             _not = lambda t: tuple(not x for x in t)
             _sele2 = lambda cond, x, y: tuple(x if c else y for c in cond)
+
+            # PRNGKey treatment 1/2
+            args = tuple(
+                jax.random.split(a, jax.device_count()) if c == "key" else a
+                for a, c in safe_zip(args, sharded_args)
+            )
 
             # workaround for shard_map not supporting non-array args part 1/2
             nonarray_args = tuple(not hasattr(a, "dtype") for a in args)
             args = tuple(
                 Partial(partial(lambda x: x, a)) if c else a
-                for a, c in zip(args, nonarray_args)
+                for a, c in safe_zip(args, nonarray_args)
             )
 
             mesh = Mesh(jax.devices(), axis_names=("i"))
             in_specs = _sele2(sharded_args, P("i"), P())
             out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P("i")))
 
-            @partial(shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
+            @partial(
+                shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs, **kwargs
+            )
             def _f(*args):
                 # workaround for shard_map not supporting non-array args part 2/2
-                args = tuple(a() if c else a for a, c in zip(args, nonarray_args))
+                args = tuple(a() if c else a for a, c in safe_zip(args, nonarray_args))
+
+                # PRNGKey treatment 2/2
+                args = tuple(
+                    a[0] if c == "key" else a for a, c in safe_zip(args, sharded_args)
+                )
 
                 res = f(*args_treedef.unflatten(args))
 
@@ -490,17 +549,24 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
                     if o is True:
                         return lambda x: Partial(partial(lambda x: x, x))
                     else:
-                        return partial(jax.tree_map, partial(o, axis_name="i"))
+                        return partial(
+                            jax.tree_util.tree_map, partial(o, axis_name="i")
+                        )
 
                 reductions = [_sele_op(o) for o in reduction_op]
                 res = out_treedef.flatten_up_to(res)
-                res = [f(r) for f, r in zip(reductions, res)]
+                res = [f(r) for f, r in safe_zip(reductions, res)]
                 res = out_treedef.unflatten(res)
                 return res
 
-            res = _f(*args)
+            # We are sure that, so far, we have SHARD_MAP_STACK_LEVEL=0, so we can
+            # safely call a @shard_map decorated function. The context manager
+            # makes sure we only shard the outermost call.
+            with _increase_SHARD_MAP_STACK_LEVEL():
+                res = _f(*args)
+
             res = out_treedef.flatten_up_to(res)
-            res = [a() if c is True else a for a, c in zip(res, reduction_op)]
+            res = [a() if c is True else a for a, c in safe_zip(res, reduction_op)]
             res = out_treedef.unflatten(res)
             return res
 

@@ -34,6 +34,7 @@ from netket.utils import (
     maybe_wrap_module,
     wrap_afun,
     wrap_to_support_scalar,
+    timing,
 )
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
@@ -161,8 +162,8 @@ class MCState(VariationalState):
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
-            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=0 for exact sampler,
-                and n_samples/10 for approximate sampler).
+            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=5, except for
+                'direct' samplers where it is 0).
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
             mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
@@ -240,7 +241,7 @@ class MCState(VariationalState):
             key, key2 = jax.random.split(nkjax.PRNGKey(seed), 2)
             sampler_seed = key2
 
-        self._sampler_seed = sampler_seed
+        self._sampler_seed = nkjax.PRNGKey(sampler_seed)
         self.sampler = sampler
 
         if n_samples is not None:
@@ -274,12 +275,22 @@ class MCState(VariationalState):
 
     @property
     def model(self) -> Optional[Any]:
-        """Returns the model definition of this variational state.
-
-        This field is optional, and is set to `None` if the variational state has
-        been initialized using a custom function.
-        """
+        """Returns the model definition of this variational state."""
         return self._model
+
+    @property
+    def _sampler_model(self):
+        """Returns the model definition used for sampling this variational state.
+        Equal to `.model`.
+        """
+        return self.model
+
+    @property
+    def _sampler_variables(self):
+        """Returns the variables used for sampling this variational state.
+        Equal to `.variables`
+        """
+        return self.variables
 
     @property
     def sampler(self) -> Sampler:
@@ -290,10 +301,10 @@ class MCState(VariationalState):
     def sampler(self, sampler: Sampler):
         if not isinstance(sampler, Sampler):
             raise TypeError(
-                "The sampler should be a subtype of netket.sampler.Sampler, but {} is not.".format(
-                    type(sampler)
-                )
+                f"The sampler should be a subtype of netket.sampler.Sampler, but {type(sampler)} is not."
             )
+
+        self._sampler_seed, seed = jax.random.split(self._sampler_seed, 2)
 
         # Save the old `n_samples` before the new `sampler` is set.
         # `_chain_length == 0` means that this `MCState` is being constructed.
@@ -302,7 +313,7 @@ class MCState(VariationalState):
 
         self._sampler = sampler
         self.sampler_state = self.sampler.init_state(
-            self.model, self.variables, seed=self._sampler_seed
+            self._sampler_model, self._sampler_variables, seed=seed
         )
         self._sampler_state_previous = self.sampler_state
 
@@ -369,9 +380,7 @@ class MCState(VariationalState):
     def n_discard_per_chain(self, n_discard_per_chain: Optional[int]):
         if n_discard_per_chain is not None and n_discard_per_chain < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard_per_chain={}".format(
-                    n_discard_per_chain
-                )
+                f"Invalid number of discarded samples: n_discard_per_chain={n_discard_per_chain}"
             )
 
         # don't discard if the sampler is exact
@@ -384,9 +393,7 @@ class MCState(VariationalState):
             n_discard_per_chain = 0
 
         self._n_discard_per_chain = (
-            int(n_discard_per_chain)
-            if n_discard_per_chain is not None
-            else self.n_samples // 10
+            int(n_discard_per_chain) if n_discard_per_chain is not None else 5
         )
 
     @property
@@ -420,8 +427,8 @@ class MCState(VariationalState):
             self._chunk_size = None
             return
 
-        if chunk_size <= 0:
-            raise ValueError("Chunk size must be a positive integer. ")
+        if not isinstance(chunk_size, int) or chunk_size <= 0:
+            raise ValueError("Chunk size must be a positive INTEGER. ")
 
         if not _is_power_of_two(chunk_size):
             warnings.warn(
@@ -440,6 +447,7 @@ class MCState(VariationalState):
         """
         self._samples = None
 
+    @timing.timed
     def sample(
         self,
         *,
@@ -477,20 +485,21 @@ class MCState(VariationalState):
         self._sampler_state_previous = self.sampler_state
 
         self.sampler_state = self.sampler.reset(
-            self.model, self.variables, self.sampler_state
+            self._sampler_model, self._sampler_variables, self.sampler_state
         )
 
         if self.n_discard_per_chain > 0:
-            _, self.sampler_state = self.sampler.sample(
-                self.model,
-                self.variables,
-                state=self.sampler_state,
-                chain_length=n_discard_per_chain,
-            )
+            with timing.timed_scope("sampling n_discarded samples"):
+                _, self.sampler_state = self.sampler.sample(
+                    self.model,
+                    self.variables,
+                    state=self.sampler_state,
+                    chain_length=n_discard_per_chain,
+                )
 
         self._samples, self.sampler_state = self.sampler.sample(
-            self.model,
-            self.variables,
+            self._sampler_model,
+            self._sampler_variables,
             state=self.sampler_state,
             chain_length=chain_length,
         )
@@ -530,6 +539,7 @@ class MCState(VariationalState):
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
+    @timing.timed
     def local_estimators(
         self, op: AbstractOperator, *, chunk_size: Optional[int] = None
     ):
@@ -557,6 +567,7 @@ class MCState(VariationalState):
         return local_estimators(self, op, chunk_size=chunk_size)
 
     # override to use chunks
+    @timing.timed
     def expect(self, O: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator
         :math:`O` or generic observable.
@@ -576,6 +587,7 @@ class MCState(VariationalState):
         return expect(self, O, self.chunk_size)
 
     # override to use chunks
+    @timing.timed
     def expect_and_grad(
         self,
         O: AbstractOperator,
@@ -616,6 +628,7 @@ class MCState(VariationalState):
         )
 
     # override to use chunks
+    @timing.timed
     def expect_and_forces(
         self,
         O: AbstractOperator,
@@ -739,11 +752,18 @@ def local_estimators(
 
 # serialization
 def serialize_MCState(vstate):
+    # Necessary for correctly syncronising samples without serialising
+    # the samples themselves
+    if vstate._samples is not None:
+        sampler_state = vstate._sampler_state_previous
+    else:
+        sampler_state = vstate.sampler_state
+
     state_dict = {
         "variables": serialization.to_state_dict(
             sharding.extract_replicated(vstate.variables)
         ),
-        "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
+        "sampler_state": serialization.to_state_dict(sampler_state),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
         "chunk_size": vstate.chunk_size,
@@ -757,8 +777,9 @@ def deserialize_MCState(vstate, state_dict):
     new_vstate = copy.copy(vstate)
     new_vstate.reset()
 
-    new_vstate.variables = serialization.from_state_dict(
-        vstate.variables, state_dict["variables"]
+    new_vstate.variables = jax.tree_util.tree_map(
+        jnp.asarray,
+        serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
     new_vstate.sampler_state = serialization.from_state_dict(
         vstate.sampler_state, state_dict["sampler_state"]

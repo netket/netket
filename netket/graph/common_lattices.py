@@ -508,7 +508,7 @@ def KitaevHoneycomb(
     Example:
         Construct a Kitaev honeycomb lattice with 3 × 3 unit cells:
 
-        >>> from netket.graph import Honeycomb
+        >>> from netket.graph import KitaevHoneycomb
         >>> g = KitaevHoneycomb(extent=[3, 3])
         >>> print(g.n_nodes)
         18
