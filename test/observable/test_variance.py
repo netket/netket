@@ -6,7 +6,8 @@ import pytest
 
 from ..variational.finite_diff import central_diff_grad, same_derivatives
 
-seed=1234
+seed = 1234
+
 
 def _setup(useExactSampler=True):
     N = 3
