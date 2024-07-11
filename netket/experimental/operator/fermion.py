@@ -151,9 +151,7 @@ def identity(
     return _FermionOperator2nd(hilbert, constant=1, dtype=dtype, cutoff=cutoff)
 
 
-def zero(
-    hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _DType | None = None
-):
+def zero(hilbert: _AbstractHilbert, cutoff: float = 1e-10, dtype: _DType | None = None):
     """
     Builds the :math:`0` operator, which has no connected components.
 

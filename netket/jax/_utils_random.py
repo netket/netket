@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-
 import jax
 
 from netket.utils import random_seed, mpi, config
