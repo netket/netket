@@ -57,9 +57,7 @@ def _build_rotation(
     return localop
 
 
-def _canonicalize_bases_type(
-    Us: list[BaseType] | np.ndarray
-) -> list[AbstractOperator]:
+def _canonicalize_bases_type(Us: list[BaseType] | np.ndarray) -> list[AbstractOperator]:
     r"""
     Check if the given bases are valid for the quantum state reconstruction driver.
 

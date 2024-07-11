@@ -22,9 +22,7 @@ from netket.utils.mpi import MPI_jax_comm
 from netket.utils.types import PRNGKeyT, SeedT
 
 
-def PRNGKey(
-    seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm
-) -> PRNGKeyT:
+def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.

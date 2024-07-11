@@ -411,9 +411,7 @@ class Lattice(Graph):
         return comparable_periodic(frac_positions, self.pbc)
 
     @staticmethod
-    def _get_id_from_dict(
-        dict: dict[HashableArray, int], key: Array
-    ) -> int | Array:
+    def _get_id_from_dict(dict: dict[HashableArray, int], key: Array) -> int | Array:
         try:
             if key.ndim == 1:
                 return dict[HashableArray(key)]
@@ -558,9 +556,7 @@ class Lattice(Graph):
         """
         return self.space_group_builder(point_group).point_group
 
-    def rotation_group(
-        self, point_group: PointGroup | None = None
-    ) -> PermutationGroup:
+    def rotation_group(self, point_group: PointGroup | None = None) -> PermutationGroup:
         """
         Returns the action of rotations (i.e. symmetries with determinant +1) in
         `point_group` on the sites of `self` as a `PermutationGroup`.

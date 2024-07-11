@@ -104,10 +104,7 @@ class QSR(AbstractVariationalDriver):
         preconditioner: PreconditionerT | None = identity_preconditioner,
         seed: int | None = None,
         batch_sample_replace: bool | None = True,
-        control_variate_update_freq: None | (
-                int |
-                str
-        ) = None,
+        control_variate_update_freq: None | (int | str) = None,
         chunk_size: int | None = None,
     ):
         r"""Initializes the QSR driver class.

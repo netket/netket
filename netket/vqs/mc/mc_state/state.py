@@ -541,9 +541,7 @@ class MCState(VariationalState):
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
     @timing.timed
-    def local_estimators(
-        self, op: AbstractOperator, *, chunk_size: int | None = None
-    ):
+    def local_estimators(self, op: AbstractOperator, *, chunk_size: int | None = None):
         r"""
         Compute the local estimators for the operator :code:`op` (also known as local energies
         when :code:`op` is the Hamiltonian) at the current configuration samples :code:`self.samples`.
@@ -726,9 +724,7 @@ def _local_estimators_kernel(kernel, apply_fun, shape, variables, samples, extra
     return O_loc.reshape(shape)
 
 
-def local_estimators(
-    state: MCState, op: AbstractOperator, *, chunk_size: int | None
-):
+def local_estimators(state: MCState, op: AbstractOperator, *, chunk_size: int | None):
     s, extra_args = get_local_kernel_arguments(state, op)
 
     shape = s.shape

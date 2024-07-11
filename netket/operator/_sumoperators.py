@@ -117,9 +117,7 @@ class SumOperator(ContinuousOperator):
         return self._coefficients
 
     @staticmethod
-    def _expect_kernel(
-        logpsi: Callable, params: PyTree, x: Array, data: PyTree | None
-    ):
+    def _expect_kernel(logpsi: Callable, params: PyTree, x: Array, data: PyTree | None):
         result = [
             data.coeffs[i] * op._expect_kernel(logpsi, params, x, op_data)
             for i, (op, op_data) in enumerate(zip(data.ops, data.op_data))

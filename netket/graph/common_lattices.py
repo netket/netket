@@ -483,9 +483,7 @@ def Kagome(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
     )
 
 
-def KitaevHoneycomb(
-    extent, *, pbc: bool | Sequence[bool] = True, **kwargs
-) -> Lattice:
+def KitaevHoneycomb(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
     r"""Constructs a honeycomb lattice of a given spatial extent.
 
     Nearest-neighbour edges are coloured according to direction
