@@ -25,24 +25,24 @@ class VarianceOperator(AbstractObservable):
 
     def __init__(self, operator: AbstractOperator, use_Oloc2: bool = False):
         r"""
-            Constructs the observable computing the variance of an arbitrary quantum operator :math:`O` as:
+        Constructs the observable computing the variance of an arbitrary quantum operator :math:`O` as:
 
-            .. math::
+        .. math::
 
-                \text{Var} = \frac{\langle \Psi | O^2 | \Psi \rangle}{\langle \Psi | \Psi \rangle} - \bigg( \frac{\langle \Psi | O | \Psi \rangle}{\langle \Psi | \Psi \rangle}\bigg)^2
+            \text{Var} = \frac{\langle \Psi | O^2 | \Psi \rangle}{\langle \Psi | \Psi \rangle} - \bigg( \frac{\langle \Psi | O | \Psi \rangle}{\langle \Psi | \Psi \rangle}\bigg)^2
 
-            It can compute the first term using either the estimator of the squared operator :math:`O^2` (more precise but less efficient, since it requires
-            the connected configurations and the matrix elements of :math:`O^2`):
+        It can compute the first term using either the estimator of the squared operator :math:`O^2` (more precise but less efficient, since it requires
+        the connected configurations and the matrix elements of :math:`O^2`):
 
-            .. math::
+        .. math::
 
-                \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O^2 | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg] - \bigg(\mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2.
+            \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O^2 | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg] - \bigg(\mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2.
 
-            or using the square modulus of the estimator of :math:`O` (more noisy but more efficient):
+        or using the square modulus of the estimator of :math:`O` (more noisy but more efficient):
 
-            .. math::
+        .. math::
 
-                \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\bigg(\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle} - \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2\bigg]
+            \text{Var} = \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\bigg(\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle} - \mathbb{E}_{\sigma \sim |\Psi(\sigma)|^2}\bigg[\frac{\langle \sigma | O | \Psi \rangle}{\langle \sigma | \Psi \rangle}\bigg]\bigg)^2\bigg]
 
         This VariationalOperator wraps an operator such that the gradient will not be computed
         with respect to the expectation value, but with respect to the variance.
