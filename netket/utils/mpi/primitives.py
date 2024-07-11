@@ -12,11 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import wraps
+
 import numpy as np
 import jax
 import jax.numpy as jnp
 
 from .mpi import n_nodes, MPI, MPI_py_comm, MPI_jax_comm
+
+
+def promote_to_pytree(f):
+    """
+    Decorator for an mpi4jax function to make it work with pytrees.
+
+    Args:
+        f: A function that takes an array and an optional token argument,
+            and returns an array and a token.
+
+    Returns:
+        A function that takes a pytree and an optional token argument,
+    """
+
+    @wraps(f)
+    def f_pytree(pytree, *args, token=None, **kwargs):
+        pytree_flat, pytree_struct = jax.tree_util.tree_flatten(pytree)
+        output_flat = []
+        for arr in pytree_flat:
+            output, token = f(arr, *args, token=token, **kwargs)
+            output_flat.append(output)
+
+        output_pytree = jax.tree_util.tree_unflatten(pytree_struct, output_flat)
+        return output_pytree, token
+
+    return f_pytree
 
 
 def mpi_sum(x, *, comm=MPI_py_comm):
@@ -39,14 +67,19 @@ def mpi_sum(x, *, comm=MPI_py_comm):
     return ar
 
 
+@promote_to_pytree
 def mpi_sum_jax(x, *, token=None, comm=MPI_jax_comm):
     """
     Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -81,14 +114,19 @@ def mpi_prod(x, *, comm=MPI_py_comm):
     return ar
 
 
+@promote_to_pytree
 def mpi_prod_jax(x, *, token=None, comm=MPI_jax_comm):
     """
     Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -118,13 +156,18 @@ def mpi_mean(x, *, comm=MPI_py_comm):
     return mpi_sum(x, comm=comm) / n_nodes
 
 
+@promote_to_pytree
 def mpi_mean_jax(x, *, token=None, comm=MPI_jax_comm):
     """
     Computes the elementwise mean of an array or a scalar across all MPI processes
     of a jax array.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -154,13 +197,19 @@ def mpi_any(x, *, comm=MPI_py_comm):
     return ar
 
 
+@promote_to_pytree
 def mpi_any_jax(x, *, token=None, comm=MPI_jax_comm):
     """
     Computes the elementwise logical OR of an array or a scalar across all MPI
     processes, effectively equivalent to an elementwise any
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -194,13 +243,18 @@ def mpi_all(x, *, comm=MPI_py_comm):
     return ar
 
 
+@promote_to_pytree
 def mpi_all_jax(x, *, token=None, comm=MPI_jax_comm):
     """
     Computes the elementwise logical AND of an array or a scalar across all MPI
     processes.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -234,6 +288,7 @@ def mpi_max(x, *, comm=MPI_py_comm):
     return ar
 
 
+@promote_to_pytree
 def mpi_max_jax(x, *, token=None, comm=MPI_jax_comm):
     """
     Computes the elementwise logical OR of an array or a scalar across all MPI
@@ -262,6 +317,7 @@ def mpi_bcast(x, *, root, comm=MPI_py_comm):
         return comm.bcast(x, root=root)
 
 
+@promote_to_pytree
 def mpi_bcast_jax(x, *, token=None, root, comm=MPI_jax_comm):
     if n_nodes == 1:
         assert root == 0
@@ -284,6 +340,7 @@ def mpi_allgather(x, *, comm=MPI_py_comm):
             return comm.allgather(x)
 
 
+@promote_to_pytree
 def mpi_gather_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
     if n_nodes == 1:
         return jnp.expand_dims(x, 0), token
@@ -293,6 +350,7 @@ def mpi_gather_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
         return mpi4jax.gather(x, token=token, root=root, comm=comm)
 
 
+@promote_to_pytree
 def mpi_allgather_jax(x, *, token=None, comm=MPI_jax_comm):
     if n_nodes == 1:
         return jnp.expand_dims(x, 0), token
@@ -302,6 +360,7 @@ def mpi_allgather_jax(x, *, token=None, comm=MPI_jax_comm):
         return mpi4jax.allgather(x, token=token, comm=comm)
 
 
+@promote_to_pytree
 def mpi_scatter_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
     if n_nodes == 1:
         if x.shape[0] != 1:
@@ -313,6 +372,7 @@ def mpi_scatter_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
         return mpi4jax.scatter(x, root=root, token=token, comm=comm)
 
 
+@promote_to_pytree
 def mpi_alltoall_jax(x, *, token=None, comm=MPI_jax_comm):
     if n_nodes == 1:
         return x, token
@@ -322,6 +382,7 @@ def mpi_alltoall_jax(x, *, token=None, comm=MPI_jax_comm):
         return mpi4jax.alltoall(x, token=token, comm=comm)
 
 
+@promote_to_pytree
 def mpi_reduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
     if n_nodes == 1:
         return x, token
@@ -331,6 +392,7 @@ def mpi_reduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
         return mpi4jax.reduce(x, op=MPI.SUM, root=root, token=token, comm=comm)
 
 
+@promote_to_pytree
 def mpi_allreduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
     if n_nodes == 1:
         return x, token
