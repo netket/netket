@@ -160,6 +160,7 @@ def _grad_expect_nonherm_kernel(
         expect_closure_pars, parameters, has_aux=True, conjugate=True
     )
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))[0]
+    Ō_pars_grad, _ = mpi.mpi_sum_jax(Ō_pars_grad)
 
     if is_mutable:
         raise NotImplementedError(
@@ -170,6 +171,6 @@ def _grad_expect_nonherm_kernel(
 
     return (
         Ō_stats,
-        jax.tree_util.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
+        Ō_pars_grad,
         new_model_state,
     )
