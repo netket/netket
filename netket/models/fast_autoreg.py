@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from math import sqrt
-from typing import Any, Union
+from typing import Any
 from collections.abc import Callable
 
 from jax import numpy as jnp

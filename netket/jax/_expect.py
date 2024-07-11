@@ -14,7 +14,6 @@
 
 # The score function (REINFORCE) gradient estimator of an expectation
 
-from typing import Optional, Union
 from collections.abc import Callable
 from functools import partial
 

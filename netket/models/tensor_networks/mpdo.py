@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.Mon
 
-from typing import Optional
 
 from flax import linen as nn
 import jax

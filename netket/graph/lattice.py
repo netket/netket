@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from math import pi
 
 from netket.utils.types import Array
-from typing import Union, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from collections.abc import Callable
 from collections.abc import Sequence
 import warnings

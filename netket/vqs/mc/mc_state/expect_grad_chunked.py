@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union
+from typing import Any
 import warnings
 
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401

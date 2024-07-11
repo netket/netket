@@ -16,7 +16,6 @@
 # pylint: disable=function-redefined
 
 import itertools
-from typing import Optional
 
 import numpy as np
 

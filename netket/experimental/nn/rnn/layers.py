@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype

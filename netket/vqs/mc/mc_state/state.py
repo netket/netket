@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Callable
 
 import numpy as np

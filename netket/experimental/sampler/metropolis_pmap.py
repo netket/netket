@@ -14,7 +14,6 @@
 
 import warnings
 
-from typing import Union
 from collections.abc import Callable
 from functools import partial
 

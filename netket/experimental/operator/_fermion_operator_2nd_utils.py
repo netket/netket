@@ -1,4 +1,3 @@
-from typing import Optional
 
 import re
 from collections import defaultdict

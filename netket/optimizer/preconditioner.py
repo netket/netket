@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Any
+from typing import Any
 from collections.abc import Callable
 
 import abc
@@ -26,10 +26,10 @@ from .linear_operator import LinearOperator, SolverT
 
 # Generic signature of a preconditioner function/object
 
-PreconditionerT = Callable[[VariationalState, PyTree, Optional[Scalar]], PyTree]
+PreconditionerT = Callable[[VariationalState, PyTree, Scalar | None], PyTree]
 """Signature for Gradient preconditioners supported by NetKet drivers."""
 
-LHSConstructorT = Callable[[VariationalState, Optional[Scalar]], LinearOperator]
+LHSConstructorT = Callable[[VariationalState, Scalar | None], LinearOperator]
 """Signature for the constructor of a LinerOperator"""
 
 

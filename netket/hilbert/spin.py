@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from fractions import Fraction
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 

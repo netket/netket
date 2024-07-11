@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Union
 from collections.abc import Callable
 from collections.abc import Iterator
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import re
-from typing import Union, Optional
+from typing import Union
 from collections.abc import Iterable
 from netket.utils.types import DType, Array
 

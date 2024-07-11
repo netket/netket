@@ -14,7 +14,6 @@
 
 import abc
 
-from typing import Optional, Union
 from collections.abc import Iterable
 
 import jax.numpy as jnp

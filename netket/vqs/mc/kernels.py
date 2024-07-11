@@ -16,7 +16,6 @@
 This module implements some common kernels used by MCState and MCMixedState.
 """
 
-from typing import Optional
 from collections.abc import Callable
 from functools import partial
 

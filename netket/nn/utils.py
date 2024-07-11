@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Optional
 from collections.abc import Callable
 
 import jax

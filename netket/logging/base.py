@@ -14,7 +14,7 @@
 
 import abc
 
-from typing import Any, Optional
+from typing import Any
 
 
 from netket.vqs import VariationalState

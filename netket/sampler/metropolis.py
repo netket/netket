@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Optional, Union
+from typing import Any
 from collections.abc import Callable
 from textwrap import dedent
 

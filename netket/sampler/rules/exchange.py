@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from functools import partial
 from netket.jax.sharding import sharding_decorator
 import jax

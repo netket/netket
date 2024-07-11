@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from functools import partial, lru_cache
-from typing import Optional
 from collections.abc import Callable
 
 import jax

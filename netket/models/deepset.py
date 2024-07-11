@@ -1,4 +1,3 @@
-from typing import Union, Optional
 from collections.abc import Callable
 
 import jax

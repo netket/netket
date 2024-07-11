@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from math import sqrt
-from typing import Optional
 
 import numpy as np
 

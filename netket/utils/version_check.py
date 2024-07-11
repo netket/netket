@@ -1,4 +1,3 @@
-from typing import Union
 from types import ModuleType
 
 import importlib

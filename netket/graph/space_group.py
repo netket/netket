@@ -18,7 +18,6 @@
 import numpy as np
 from functools import reduce
 from math import pi
-from typing import Optional
 from collections.abc import Iterable, Sequence
 
 from .lattice import Lattice

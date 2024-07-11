@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from functools import wraps
 
 import numpy as np

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp

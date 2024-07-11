@@ -20,7 +20,6 @@ from collections.abc import Callable
 import jax
 import jax.numpy as jnp
 
-from typing import Union
 from netket.utils.types import Array
 from netket.utils import struct, StaticRange
 from netket.utils.dispatch import dispatch

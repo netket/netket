@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import math
-from typing import Union
 
 import jax
 import numpy as np

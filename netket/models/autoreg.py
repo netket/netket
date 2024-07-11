@@ -14,7 +14,7 @@
 
 import abc
 from math import sqrt
-from typing import Any, Union
+from typing import Any
 from collections.abc import Callable
 from collections.abc import Sequence
 

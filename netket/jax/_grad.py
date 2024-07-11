@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union
+from typing import Any
 from collections.abc import Callable
 from collections.abc import Sequence
 import operator

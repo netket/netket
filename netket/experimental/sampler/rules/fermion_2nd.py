@@ -1,4 +1,3 @@
-from typing import Optional
 import numpy as np
 
 from netket.sampler.rules import ExchangeRule

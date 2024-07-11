@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from itertools import permutations
-from typing import Union
 from collections.abc import Sequence
 import numpy as np
 

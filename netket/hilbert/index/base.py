@@ -15,7 +15,6 @@
 import numpy as np
 
 from netket.utils import struct
-from typing import Union
 from netket.utils.types import Array, Scalar
 
 max_states = np.iinfo(np.int32).max
