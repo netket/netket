@@ -145,4 +145,6 @@ def forces_expect_hermitian_chunked(
         (jnp.conjugate(O_loc) / n_samples),
     )[0]
 
-    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
+    Ō_grad, _ = mpi.mpi_sum_jax(Ō_grad)
+
+    return Ō, Ō_grad, new_model_state
