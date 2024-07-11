@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .variance_operator import VarianceOperator
+from .variance_operator import VarianceObservable
 
 from . import expect
 from . import exact

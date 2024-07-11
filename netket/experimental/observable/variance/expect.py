@@ -26,11 +26,11 @@ from netket.vqs import (
 import netket.jax as nkjax
 from netket.utils import mpi
 
-from .variance_operator import VarianceOperator
+from .variance_operator import VarianceObservable
 
 
 @expect.dispatch
-def expect(vstate: MCState, variance_operator: VarianceOperator, chunk_size: None):
+def expect(vstate: MCState, variance_operator: VarianceObservable, chunk_size: None):
     if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
@@ -58,7 +58,7 @@ def expect(vstate: MCState, variance_operator: VarianceOperator, chunk_size: Non
 @expect_and_grad.dispatch
 def expect_and_grad(
     vstate: MCState,
-    variance_operator: VarianceOperator,
+    variance_operator: VarianceObservable,
     chunk_size: None,
     *,
     mutable,

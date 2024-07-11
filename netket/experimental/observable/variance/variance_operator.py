@@ -18,7 +18,7 @@ from netket.operator import AbstractOperator
 from netket.operator._abstract_observable import AbstractObservable
 
 
-class VarianceOperator(AbstractObservable):
+class VarianceObservable(AbstractObservable):
     r"""
     Observable computing the variance of a quantum operator :math:`O`.
     """
@@ -81,4 +81,4 @@ class VarianceOperator(AbstractObservable):
         return self._operator_squared
 
     def __repr__(self):
-        return f"VarianceOperator(op={self.operator})"
+        return f"VarianceObservable(op={self.operator})"
