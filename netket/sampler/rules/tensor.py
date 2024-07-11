@@ -66,7 +66,7 @@ class TensorRule(MetropolisRule):
                 "which is constructed as a product of different Hilbert spaces."
             )
 
-        if not isinstance(rules, (tuple, list)) or not all(
+        if not isinstance(rules, tuple | list) or not all(
             isinstance(r, MetropolisRule) for r in rules
         ):
             raise TypeError(

@@ -63,7 +63,7 @@ class MultipleRules(MetropolisRule):
                 f"{jnp.sum(probabilities)}."
             )
 
-        if not isinstance(rules, (tuple, list)) or not all(
+        if not isinstance(rules, tuple | list) or not all(
             isinstance(r, MetropolisRule) for r in rules
         ):
             raise TypeError(
