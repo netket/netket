@@ -20,7 +20,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python-version: "3.9"
+            python-version: "3.10"
             mpi: ""
             doctest: true
             oldest_deps: false
@@ -32,20 +32,17 @@ jobs:
             oldest_deps: false
 
           - os: macos-latest
-            python-version: "3.10"
+            python-version: "3.11"
             mpi: "mpich"
             main_tests: true
             oldest_deps: false
 
           - os: macos-latest
-            python-version: "3.10"
+            python-version: "3.11"
             mpi: ""
             main_tests: true
             oldest_deps: false
             env: NUMBA_BOUNDSCHECK=1
-
-        # python-version: [3.9, 3.10, 3.11]
-        # os: [ubuntu-latest, macos-latest]
 
     env:
       MPICH_INTERFACE_HOSTNAME: localhost
