@@ -158,8 +158,8 @@ line-length = 88
 exclude = ["Examples/Legacy", "docs/conf.py"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "D410", "UP"]
-fixable = ["E", "F", "W", "D", "UP"]
+select = ["E", "F", "W", "D410"]
+fixable = ["E", "F", "W", "D"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]
 
