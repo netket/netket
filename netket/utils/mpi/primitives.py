@@ -74,8 +74,12 @@ def mpi_sum_jax(x, *, token=None, comm=MPI_jax_comm):
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -117,8 +121,12 @@ def mpi_prod_jax(x, *, token=None, comm=MPI_jax_comm):
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -154,8 +162,12 @@ def mpi_mean_jax(x, *, token=None, comm=MPI_jax_comm):
     Computes the elementwise mean of an array or a scalar across all MPI processes
     of a jax array.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -191,8 +203,13 @@ def mpi_any_jax(x, *, token=None, comm=MPI_jax_comm):
     Computes the elementwise logical OR of an array or a scalar across all MPI
     processes, effectively equivalent to an elementwise any
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
@@ -232,8 +249,12 @@ def mpi_all_jax(x, *, token=None, comm=MPI_jax_comm):
     Computes the elementwise logical AND of an array or a scalar across all MPI
     processes.
 
+    .. note::
+        This function supports JAX pytrees, in which case the reduction is performed
+        on every leaf of the pytree.
+
     Args:
-        a: The input array.
+        a: The input array or pytree.
         token: An optional token to impose ordering of MPI operations
 
     Returns:
