@@ -22,14 +22,14 @@ def version_tuple(verstr: str):
     return vertupl
 
 
-def module_version(module: Union[str, ModuleType]) -> tuple[int, ...]:
+def module_version(module: str | ModuleType) -> tuple[int, ...]:
     if isinstance(module, str):
         module = importlib.import_module(module)
 
     return version_tuple(module.__version__)
 
 
-def version_string(module: Union[str, ModuleType]) -> str:
+def version_string(module: str | ModuleType) -> str:
     if isinstance(module, str):
         module = importlib.import_module(module)
 

@@ -45,7 +45,7 @@ class QGTJacobianPyTreeT(LinearOperator):
     If scale is not None, O_ij for is normalised to unit norm for each parameter j
     """
 
-    scale: Optional[PyTree] = None
+    scale: PyTree | None = None
     """If not None, contains 2-norm of each column of the gradient matrix,
     i.e., the sqrt of the diagonal elements of the S matrix
     """
@@ -68,7 +68,7 @@ class QGTJacobianPyTreeT(LinearOperator):
     not take apart into real and complex parts the other vector"""
 
     @jax.jit
-    def __matmul__(self, vec: Union[PyTree, Array]) -> Union[PyTree, Array]:
+    def __matmul__(self, vec: PyTree | Array) -> PyTree | Array:
         # Turn vector RHS into PyTree
         if hasattr(vec, "ndim"):
             _, unravel = nkjax.tree_ravel(self._params_structure)
@@ -103,7 +103,7 @@ class QGTJacobianPyTreeT(LinearOperator):
         return result
 
     @jax.jit
-    def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
+    def _solve(self, solve_fun, y: PyTree, *, x0: PyTree | None = None) -> PyTree:
         """
         Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterative solver.
 

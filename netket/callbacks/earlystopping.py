@@ -32,9 +32,9 @@ class EarlyStopping(struct.Pytree, mutable=True):
     This behaves similarly to `min_delta` but is more useful for intensive quantities that
     converge to 0, where absolute tolerances might not be effective.
     """
-    patience: Union[int, float]
+    patience: int | float
     """Number of epochs with no improvement after which training will be stopped."""
-    baseline: Optional[float]
+    baseline: float | None
     """Baseline value for the monitored quantity. Training will stop if the driver hits the baseline."""
     monitor: str
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
@@ -53,8 +53,8 @@ class EarlyStopping(struct.Pytree, mutable=True):
         self,
         min_delta: float = 0.0,
         min_reldelta: float = 0.0,
-        patience: Union[int, float] = 0,
-        baseline: Optional[float] = None,
+        patience: int | float = 0,
+        baseline: float | None = None,
         monitor: str = "mean",
     ):
         """

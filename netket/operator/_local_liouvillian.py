@@ -70,7 +70,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         self,
         ham: DiscreteOperator,
         jump_ops: list[DiscreteOperator] = [],
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         super().__init__(ham.hilbert)
 

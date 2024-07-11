@@ -60,7 +60,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         self,
         σ: jnp.ndarray,
         rng: jnp.ndarray,
-        rule_state: Optional[Any],
+        rule_state: Any | None,
         beta: jnp.ndarray,
     ):
         n_chains, n_replicas = beta.shape
@@ -143,8 +143,8 @@ class ParallelTemperingSampler(MetropolisSampler):
     def __init__(
         self,
         *args,
-        n_replicas: Optional[int] = None,
-        betas: Optional[Union[str, jax.Array]] = "linear",
+        n_replicas: int | None = None,
+        betas: str | jax.Array | None = "linear",
         **kwargs,
     ):
         r"""

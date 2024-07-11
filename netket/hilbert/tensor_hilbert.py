@@ -115,7 +115,7 @@ class TensorHilbert(ABC):
     def _attrs(self):
         return self._hilbert_spaces
 
-    def ptrace(self, sites: Union[int, list]) -> Optional[AbstractHilbert]:
+    def ptrace(self, sites: int | list) -> AbstractHilbert | None:
         if isinstance(sites, int):
             sites = [sites]
 

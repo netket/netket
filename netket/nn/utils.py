@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 
 import jax
 from jax import numpy as jnp
@@ -72,7 +73,7 @@ def to_array(
     *,
     normalize: bool = True,
     allgather: bool = True,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
 ) -> Array:
     """
     Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
@@ -216,7 +217,7 @@ def to_matrix(
     params: PyTree,
     *,
     normalize: bool = True,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
 ) -> Array:
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
@@ -258,7 +259,7 @@ def update_dense_symm(params, names=("dense_symm", "Dense")):
 
 
 def _get_output_idx(
-    shape: tuple[int, ...], max_bits: Optional[int] = None
+    shape: tuple[int, ...], max_bits: int | None = None
 ) -> tuple[tuple[int, ...], int]:
     bits_per_local_occupation = tuple(np.ceil(np.log2(shape)).astype(int))
     if max_bits is None:
@@ -285,7 +286,7 @@ def binary_encoding(
     hilbert: DiscreteHilbert,
     x: Array,
     *,
-    max_bits: Optional[int] = None,
+    max_bits: int | None = None,
 ) -> Array:
     """
     Encodes the array `x` into a set of binary-encoded variables described by

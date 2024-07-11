@@ -58,7 +58,7 @@ def _maybe_item(x):
 class Stats:
     """A dict-compatible pytree containing the result of the statistics function."""
 
-    mean: Union[float, complex] = _NaN
+    mean: float | complex = _NaN
     """The mean value."""
     error_of_mean: float = _NaN
     """Estimate of the error of the mean."""

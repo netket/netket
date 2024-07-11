@@ -95,7 +95,7 @@ class SymmExpSum(nn.Module):
 
     """
 
-    character_id: Optional[int] = None
+    character_id: int | None = None
     """The # identifying the target character in the character table of
     the symmetry group. By default the characters are taken to be all
     `1`, giving the homogeneous state.

@@ -42,7 +42,7 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         V: float = 0.0,
         J: float = 1.0,
         mu: float = 0.0,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         U, V, J, mu = jax.tree_util.tree_map(jnp.asarray, (U, V, J, mu))
         super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)

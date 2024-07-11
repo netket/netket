@@ -40,7 +40,7 @@ class MetropolisRule(struct.Pytree):
         machine: nn.Module,
         params: PyTree,
         key: PRNGKeyT,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """
         Initialises the optional internal state of the Metropolis sampler transition
         rule.
@@ -66,7 +66,7 @@ class MetropolisRule(struct.Pytree):
         machine: nn.Module,
         params: PyTree,
         sampler_state: "sampler.SamplerState",  # noqa: F821
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """
         Resets the internal state of the Metropolis Sampler Transition Rule.
 
@@ -93,7 +93,7 @@ class MetropolisRule(struct.Pytree):
         sampler_state: "sampler.SamplerState",  # noqa: F821
         key: PRNGKeyT,
         σ: jnp.ndarray,
-    ) -> tuple[jnp.ndarray, Optional[jnp.ndarray]]:
+    ) -> tuple[jnp.ndarray, jnp.ndarray | None]:
         r"""
         Proposes a new configuration set of configurations $\sigma'$ starting from the current
         chain configurations :math:`\sigma`.

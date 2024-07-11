@@ -86,7 +86,7 @@ class MultipleRules(MetropolisRule):
         machine: nn.Module,
         params: PyTree,
         key: PRNGKeyT,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         N = len(self.probabilities)
         keys = jax.random.split(key, N)
         return tuple(
@@ -100,7 +100,7 @@ class MultipleRules(MetropolisRule):
         machine: nn.Module,
         params: PyTree,
         sampler_state: "sampler.SamplerState",  # noqa: F821
-    ) -> Optional[Any]:
+    ) -> Any | None:
         rule_states = []
         for i in range(len(self.probabilities)):
             # construct temporary sampler and rule state with correct sub-hilbert and

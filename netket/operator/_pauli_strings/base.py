@@ -130,11 +130,11 @@ class PauliStringsBase(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[None, str, list[str]] = None,
-        weights: Union[None, float, complex, list[Union[float, complex]]] = None,
+        operators: None | str | list[str] = None,
+        weights: None | float | complex | list[float | complex] = None,
         *,
         cutoff: float = 1.0e-10,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
@@ -207,7 +207,7 @@ class PauliStringsBase(DiscreteOperator):
         hilbert: AbstractHilbert,
         of_qubit_operator=None,  # : "openfermion.ops.QubitOperator" type
         *,
-        n_qubits: Optional[int] = None,
+        n_qubits: int | None = None,
     ) -> "PauliStringsBase":
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
@@ -283,7 +283,7 @@ class PauliStringsBase(DiscreteOperator):
         )
         return s
 
-    def copy(self, *, dtype: Optional[DType] = None, cutoff=None):
+    def copy(self, *, dtype: DType | None = None, cutoff=None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 

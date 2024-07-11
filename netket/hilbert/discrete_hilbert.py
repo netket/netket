@@ -122,7 +122,7 @@ class DiscreteHilbert(AbstractHilbert):
         """
         return self.shape[i]  # pragma: no cover
 
-    def states_at_index(self, i: int) -> Optional[list[float]]:
+    def states_at_index(self, i: int) -> list[float] | None:
         r"""A list of discrete local quantum numbers at the site i.
 
         If the local states are infinitely many, None is returned.

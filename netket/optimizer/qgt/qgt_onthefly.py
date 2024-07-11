@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union
+from typing import Optional, Union
+from collections.abc import Callable
 import warnings
 
 import jax
@@ -38,7 +39,7 @@ from ..linear_operator import LinearOperator, Uninitialized
 
 @partial_from_kwargs
 def QGTOnTheFly(
-    vstate, *, chunk_size=None, holomorphic: Optional[bool] = None, **kwargs
+    vstate, *, chunk_size=None, holomorphic: bool | None = None, **kwargs
 ) -> "QGTOnTheFlyT":
     """
     Lazy representation of an S Matrix computed by performing 2 jvp
@@ -97,8 +98,8 @@ def QGTOnTheFly_DefaultConstructor(
     samples,
     pdf=None,
     *,
-    chunk_size: Optional[int] = None,
-    holomorphic: Optional[bool] = None,
+    chunk_size: int | None = None,
+    holomorphic: bool | None = None,
     **kwargs,
 ) -> "QGTOnTheFlyT":
     """ """
@@ -200,7 +201,7 @@ class QGTOnTheFlyT(LinearOperator):
     def __matmul__(self, y):
         return onthefly_mat_treevec(self, y)
 
-    def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs) -> PyTree:
+    def _solve(self, solve_fun, y: PyTree, *, x0: PyTree | None, **kwargs) -> PyTree:
         return _solve(self, solve_fun, y, x0=x0)
 
     def to_dense(self) -> jnp.ndarray:
@@ -228,8 +229,8 @@ class QGTOnTheFlyT(LinearOperator):
 
 @jax.jit
 def onthefly_mat_treevec(
-    S: QGTOnTheFly, vec: Union[PyTree, jnp.ndarray]
-) -> Union[PyTree, jnp.ndarray]:
+    S: QGTOnTheFly, vec: PyTree | jnp.ndarray
+) -> PyTree | jnp.ndarray:
     """
     Perform the lazy mat-vec product, where vec is either a tree with the same structure as
     params or a ravelled vector
@@ -267,7 +268,7 @@ def onthefly_mat_treevec(
 
 @jax.jit
 def _solve(
-    self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
+    self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: PyTree | None, **kwargs
 ) -> PyTree:
     check_valid_vector_type(self._params, y)
 

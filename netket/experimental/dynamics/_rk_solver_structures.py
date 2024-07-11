@@ -14,7 +14,8 @@
 
 from enum import IntFlag, auto
 from functools import partial, wraps
-from typing import Callable, Optional, Union
+from typing import Optional, Union
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -94,7 +95,7 @@ def set_flag_jax(condition, flags, flag):
     )
 
 
-def euclidean_norm(x: Union[PyTree, Array]):
+def euclidean_norm(x: PyTree | Array):
     """
     Computes the Euclidean L2 norm of the Array or PyTree intended as a flattened array
     """
@@ -109,7 +110,7 @@ def euclidean_norm(x: Union[PyTree, Array]):
         )
 
 
-def maximum_norm(x: Union[PyTree, Array]):
+def maximum_norm(x: PyTree | Array):
     """
     Computes the maximum norm of the Array or PyTree intended as a flattened array
     """
@@ -136,9 +137,9 @@ class RungeKuttaState:
     """Solution at current time."""
     dt: float
     """Current step size."""
-    last_norm: Optional[float] = None
+    last_norm: float | None = None
     """Solution norm at previous time step."""
-    last_scaled_error: Optional[float] = None
+    last_scaled_error: float | None = None
     """Error of the TDVP integrator at the last time step."""
     flags: SolverFlags = SolverFlags.INFO_STEP_ACCEPTED
     """Flags containing information on the solver state."""
@@ -193,7 +194,7 @@ def general_time_step_adaptive(
     atol: float,
     rtol: float,
     norm_fn: Callable,
-    max_dt: Optional[float],
+    max_dt: float | None,
     dt_limits: LimitsType,
 ):
     flags = SolverFlags(0)
@@ -282,7 +283,7 @@ def general_time_step_fixed(
     tableau: rkt.TableauRKExplicit,
     f: Callable,
     rk_state: RungeKuttaState,
-    max_dt: Optional[float],
+    max_dt: float | None,
 ):
     if max_dt is None:
         actual_dt = rk_state.dt
@@ -315,7 +316,7 @@ class RungeKuttaIntegrator:
 
     atol: float = 0.0
     rtol: float = 1e-7
-    dt_limits: Optional[LimitsType] = None
+    dt_limits: LimitsType | None = None
 
     def __post_init__(self):
         if self.use_adaptive and not self.tableau.data.is_adaptive:

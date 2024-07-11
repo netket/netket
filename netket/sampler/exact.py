@@ -75,7 +75,7 @@ class ExactSampler(Sampler):
         sampler,
         machine: nn.Module,
         parameters: PyTree,
-        seed: Optional[SeedT] = None,
+        seed: SeedT | None = None,
     ):
         pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
         return ExactSamplerState(pdf=pdf, rng=seed)

@@ -59,7 +59,7 @@ def get_class_globals(clz):
     return globals
 
 
-def maximum_positional_args(fun) -> Union[int, float]:
+def maximum_positional_args(fun) -> int | float:
     """
     Given a function, returns an integer that represents the maximum number
     of position or infinity.

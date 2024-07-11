@@ -66,8 +66,8 @@ class ExchangeRule(MetropolisRule):
     def __init__(
         self,
         *,
-        clusters: Optional[list[tuple[int, int]]] = None,
-        graph: Optional[AbstractGraph] = None,
+        clusters: list[tuple[int, int]] | None = None,
+        graph: AbstractGraph | None = None,
         d_max: int = 1,
     ):
         r"""

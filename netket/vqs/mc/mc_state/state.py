@@ -14,7 +14,8 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+from collections.abc import Callable
 
 import numpy as np
 
@@ -105,7 +106,7 @@ class MCState(VariationalState):
 
     # model: Any
     # """The model"""
-    model_state: Optional[PyTree]
+    model_state: PyTree | None
     """An Optional PyTree encoding a mutable state of the model that is not trained."""
 
     _sampler: Sampler
@@ -124,7 +125,7 @@ class MCState(VariationalState):
     _n_discard_per_chain: int = 0
     """Number of samples discarded at the beginning of every Markov chain."""
 
-    _samples: Optional[jnp.ndarray] = None
+    _samples: jnp.ndarray | None = None
     """Cached samples obtained with the last sampling."""
 
     _init_fun: Callable = None
@@ -132,22 +133,22 @@ class MCState(VariationalState):
     _apply_fun: Callable = None
     """The function used to evaluate the model."""
 
-    _chunk_size: Optional[int] = None
+    _chunk_size: int | None = None
 
     def __init__(
         self,
         sampler: Sampler,
         model=None,
         *,
-        n_samples: Optional[int] = None,
-        n_samples_per_rank: Optional[int] = None,
-        n_discard_per_chain: Optional[int] = None,
-        chunk_size: Optional[int] = None,
-        variables: Optional[PyTree] = None,
-        init_fun: Optional[NNInitFunc] = None,
-        apply_fun: Optional[Callable] = None,
-        seed: Optional[SeedT] = None,
-        sampler_seed: Optional[SeedT] = None,
+        n_samples: int | None = None,
+        n_samples_per_rank: int | None = None,
+        n_discard_per_chain: int | None = None,
+        chunk_size: int | None = None,
+        variables: PyTree | None = None,
+        init_fun: NNInitFunc | None = None,
+        apply_fun: Callable | None = None,
+        seed: SeedT | None = None,
+        sampler_seed: SeedT | None = None,
         mutable: CollectionFilter = False,
         training_kwargs: dict = {},
     ):
@@ -274,7 +275,7 @@ class MCState(VariationalState):
         self.variables = variables
 
     @property
-    def model(self) -> Optional[Any]:
+    def model(self) -> Any | None:
         """Returns the model definition of this variational state."""
         return self._model
 
@@ -377,7 +378,7 @@ class MCState(VariationalState):
         return self._n_discard_per_chain
 
     @n_discard_per_chain.setter
-    def n_discard_per_chain(self, n_discard_per_chain: Optional[int]):
+    def n_discard_per_chain(self, n_discard_per_chain: int | None):
         if n_discard_per_chain is not None and n_discard_per_chain < 0:
             raise ValueError(
                 f"Invalid number of discarded samples: n_discard_per_chain={n_discard_per_chain}"
@@ -421,7 +422,7 @@ class MCState(VariationalState):
         return self._chunk_size
 
     @chunk_size.setter
-    def chunk_size(self, chunk_size: Optional[int]):
+    def chunk_size(self, chunk_size: int | None):
         # disable chunks if it is None
         if chunk_size is None:
             self._chunk_size = None
@@ -451,9 +452,9 @@ class MCState(VariationalState):
     def sample(
         self,
         *,
-        chain_length: Optional[int] = None,
-        n_samples: Optional[int] = None,
-        n_discard_per_chain: Optional[int] = None,
+        chain_length: int | None = None,
+        n_samples: int | None = None,
+        n_discard_per_chain: int | None = None,
     ) -> jnp.ndarray:
         """
         Sample a certain number of configurations.
@@ -541,7 +542,7 @@ class MCState(VariationalState):
 
     @timing.timed
     def local_estimators(
-        self, op: AbstractOperator, *, chunk_size: Optional[int] = None
+        self, op: AbstractOperator, *, chunk_size: int | None = None
     ):
         r"""
         Compute the local estimators for the operator :code:`op` (also known as local energies
@@ -592,7 +593,7 @@ class MCState(VariationalState):
         self,
         O: AbstractOperator,
         *,
-        mutable: Optional[CollectionFilter] = None,
+        mutable: CollectionFilter | None = None,
         **kwargs,
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient
@@ -633,7 +634,7 @@ class MCState(VariationalState):
         self,
         O: AbstractOperator,
         *,
-        mutable: Optional[CollectionFilter] = None,
+        mutable: CollectionFilter | None = None,
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and the corresponding force
         vector for a given operator O.
@@ -671,7 +672,7 @@ class MCState(VariationalState):
         return expect_and_forces(self, O, self.chunk_size, mutable=mutable)
 
     def quantum_geometric_tensor(
-        self, qgt_T: Optional[LinearOperator] = None
+        self, qgt_T: LinearOperator | None = None
     ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
@@ -726,7 +727,7 @@ def _local_estimators_kernel(kernel, apply_fun, shape, variables, samples, extra
 
 
 def local_estimators(
-    state: MCState, op: AbstractOperator, *, chunk_size: Optional[int]
+    state: MCState, op: AbstractOperator, *, chunk_size: int | None
 ):
     s, extra_args = get_local_kernel_arguments(state, op)
 

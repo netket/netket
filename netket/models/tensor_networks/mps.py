@@ -42,7 +42,7 @@ class MPSPeriodic(nn.Module):
     """Hilbert space on which the state is defined."""
     bond_dim: int
     """Bond dimension of the MPS tensors. See formula above."""
-    symperiod: Optional[int] = None
+    symperiod: int | None = None
     """
     Periodicity in the chain of MPS tensors.
     The chain of MPS tensors is constructed as a sequence of identical

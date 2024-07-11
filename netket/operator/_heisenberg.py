@@ -33,11 +33,11 @@ class Heisenberg(GraphOperator):
         self,
         hilbert: AbstractHilbert,
         graph: AbstractGraph,
-        J: Union[float, Sequence[float]] = 1.0,
-        sign_rule: Union[None, bool, Sequence[bool]] = None,
-        dtype: Optional[DType] = None,
+        J: float | Sequence[float] = 1.0,
+        sign_rule: None | bool | Sequence[bool] = None,
+        dtype: DType | None = None,
         *,
-        acting_on_subspace: Union[None, list[int], int] = None,
+        acting_on_subspace: None | list[int] | int = None,
     ):
         """
         Constructs an Heisenberg operator given a hilbert space and a graph providing the

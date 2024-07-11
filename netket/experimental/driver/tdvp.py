@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Union
+from typing import Union
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -61,7 +62,7 @@ class TDVP(TDVPBaseDriver):
         qgt: LinearOperator = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
-        error_norm: Union[str, Callable] = "euclidean",
+        error_norm: str | Callable = "euclidean",
     ):
         r"""
         Initializes the time evolution driver.
@@ -127,7 +128,7 @@ class TDVP(TDVPBaseDriver):
 
 @odefun.dispatch
 def odefun_tdvp(  # noqa: F811
-    state: Union[MCState, FullSumState], driver: TDVP, t, w, *, stage=0
+    state: MCState | FullSumState, driver: TDVP, t, w, *, stage=0
 ):
     # pylint: disable=protected-access
 

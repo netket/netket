@@ -78,7 +78,7 @@ def get_local_rank(COMM: Optional["mpi4py.MPI.Intracomm"] = None, verbose=False)
         return get_local_rank_from_mpi4py(COMM, verbose=verbose)
 
 
-def get_local_rank_from_env() -> Optional[int]:
+def get_local_rank_from_env() -> int | None:
     """
     Correct local rank from env variables set by some MPI implementations
     (notably OpenMPI)
@@ -108,7 +108,7 @@ def get_local_rank_from_env() -> Optional[int]:
 
 def get_local_rank_from_mpi4py(
     COMM: "mpi4py.MPI.Intracomm", verbose: bool = False
-) -> Optional[int]:
+) -> int | None:
     """
     Uses MPI4PY and a list of hostnames to find the correct local rank.
     """

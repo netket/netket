@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Union, Optional
+from typing import Union, Optional
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -43,25 +44,25 @@ class MLP(nn.Module):
     """
     output_dim: int = 1
     """The output dimension"""
-    hidden_dims: Optional[Union[int, tuple[int, ...]]] = None
+    hidden_dims: int | tuple[int, ...] | None = None
     """The size of the hidden layers, excluding the output layer."""
-    hidden_dims_alpha: Optional[Union[int, tuple[int, ...]]] = None
+    hidden_dims_alpha: int | tuple[int, ...] | None = None
     """The size of the hidden layers provided as number of times the input size.
     One must choose to either specify this or the hidden_dims keyword argument"""
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
-    hidden_activations: Optional[Union[Callable, tuple[Callable, ...]]] = nknn.gelu
+    hidden_activations: Callable | tuple[Callable, ...] | None = nknn.gelu
     """The nonlinear activation function after each hidden layer.
     Can be provided as a single activation,
     where the same activation will be used for every layer."""
-    output_activation: Optional[Callable] = None
+    output_activation: Callable | None = None
     """The nonlinear activation at the output layer.
     If None is provided, the output layer will be essentially linear."""
     use_hidden_bias: bool = True
     """If True uses a bias in the hidden layer."""
     use_output_bias: bool = True
     """If True adds a bias to the output layer."""
-    precision: Optional[jax.lax.Precision] = None
+    precision: jax.lax.Precision | None = None
     """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""

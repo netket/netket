@@ -16,7 +16,8 @@
 This module implements some common kernels used by MCState and MCMixedState.
 """
 
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -100,7 +101,7 @@ def local_value_kernel_chunked(
     σ: Array,
     args: PyTree,
     *,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
 ):
     """
     local_value kernel for MCState and generic operators
@@ -128,7 +129,7 @@ def local_value_squared_kernel_chunked(
     σ: Array,
     args: PyTree,
     *,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
 ):
     """
     local_value kernel for MCState and Squared (generic) operators
@@ -147,7 +148,7 @@ def local_value_op_op_cost_chunked(
     σ: Array,
     args: PyTree,
     *,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
 ):
     """
     local_value kernel for MCMixedState and generic operators
@@ -178,7 +179,7 @@ def local_value_kernel_jax_chunked(
     σ: Array,
     O: DiscreteJaxOperator,
     *,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
 ):
     """
     local_value kernel for MCState and jaxcoompatible operators

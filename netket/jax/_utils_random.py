@@ -23,7 +23,7 @@ from netket.utils.types import PRNGKeyT, SeedT
 
 
 def PRNGKey(
-    seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm
+    seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm
 ) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
@@ -61,7 +61,7 @@ class PRNGSeq:
     A sequence of PRNG keys generated based on an initial key.
     """
 
-    def __init__(self, base_key: Optional[SeedT] = None):
+    def __init__(self, base_key: SeedT | None = None):
         if base_key is None:
             base_key = PRNGKey()
         elif isinstance(base_key, int):

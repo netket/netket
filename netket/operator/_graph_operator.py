@@ -53,9 +53,9 @@ class GraphOperator(LocalOperator):
         site_ops=[],
         bond_ops=[],
         bond_ops_colors=[],
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
         *,
-        acting_on_subspace: Union[None, list[int], int] = None,
+        acting_on_subspace: None | list[int] | int = None,
     ):
         r"""
         A graph-based quantum operator. In its simplest terms, this is the sum of
@@ -163,7 +163,7 @@ class GraphOperator(LocalOperator):
         """
         return self._acting_on_subspace
 
-    def copy(self, *, dtype: Optional[DType] = None):
+    def copy(self, *, dtype: DType | None = None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 

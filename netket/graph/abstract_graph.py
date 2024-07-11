@@ -37,7 +37,7 @@ class AbstractGraph(abc.ABC):
 
     @abc.abstractmethod
     def edges(
-        self, return_color: bool = False, filter_color: Optional[int] = None
+        self, return_color: bool = False, filter_color: int | None = None
     ) -> EdgeSequence:
         r"""Returns the sequence of edges of the graph.
 

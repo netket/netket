@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Union, Callable
+from typing import Optional, Union
+from collections.abc import Callable
 from collections.abc import Iterator
 
 import jax
@@ -182,7 +183,7 @@ class Sampler(struct.Pytree):
         """
         return False
 
-    def log_pdf(self, model: Union[Callable, nn.Module]) -> Callable:
+    def log_pdf(self, model: Callable | nn.Module) -> Callable:
         """
         Returns a closure with the log-pdf function encoded by this sampler.
 
@@ -206,9 +207,9 @@ class Sampler(struct.Pytree):
 
     def init_state(
         sampler,
-        machine: Union[Callable, nn.Module],
+        machine: Callable | nn.Module,
         parameters: PyTree,
-        seed: Optional[SeedT] = None,
+        seed: SeedT | None = None,
     ) -> SamplerState:
         """
         Creates the structure holding the state of the sampler.
@@ -242,9 +243,9 @@ class Sampler(struct.Pytree):
 
     def reset(
         sampler,
-        machine: Union[Callable, nn.Module],
+        machine: Callable | nn.Module,
         parameters: PyTree,
-        state: Optional[SamplerState] = None,
+        state: SamplerState | None = None,
     ) -> SamplerState:
         """
         Resets the state of the sampler. To be used every time the parameters are changed.
@@ -266,10 +267,10 @@ class Sampler(struct.Pytree):
 
     def sample(
         sampler,
-        machine: Union[Callable, nn.Module],
+        machine: Callable | nn.Module,
         parameters: PyTree,
         *,
-        state: Optional[SamplerState] = None,
+        state: SamplerState | None = None,
         chain_length: int = 1,
     ) -> tuple[jnp.ndarray, SamplerState]:
         """
@@ -295,10 +296,10 @@ class Sampler(struct.Pytree):
 
     def samples(
         sampler,
-        machine: Union[Callable, nn.Module],
+        machine: Callable | nn.Module,
         parameters: PyTree,
         *,
-        state: Optional[SamplerState] = None,
+        state: SamplerState | None = None,
         chain_length: int = 1,
     ) -> Iterator[jnp.ndarray]:
         """

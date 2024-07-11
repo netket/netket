@@ -34,7 +34,7 @@ class AbstractLog(abc.ABC):
         self,
         step: int,
         item: dict[str, Any],
-        variational_state: Optional[VariationalState] = None,
+        variational_state: VariationalState | None = None,
     ):
         """
         Logs at a given integer step a dictionary of data, optionally
@@ -49,7 +49,7 @@ class AbstractLog(abc.ABC):
         """
 
     @abc.abstractmethod
-    def flush(self, variational_state: Optional[VariationalState] = None):
+    def flush(self, variational_state: VariationalState | None = None):
         """
         Flushes the data that is stored internally to disk/network.
 

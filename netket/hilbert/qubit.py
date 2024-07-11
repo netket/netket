@@ -47,7 +47,7 @@ class Qubit(HomogeneousHilbert):
         assert type(self) == type(other)
         return Qubit(self.size + other.size)
 
-    def ptrace(self, sites: Union[int, list]) -> Optional["Qubit"]:
+    def ptrace(self, sites: int | list) -> Optional["Qubit"]:
         if isinstance(sites, int):
             sites = [sites]
 

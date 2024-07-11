@@ -103,7 +103,7 @@ class VMC(AbstractVariationalDriver):
         return self._preconditioner
 
     @preconditioner.setter
-    def preconditioner(self, val: Optional[PreconditionerT]):
+    def preconditioner(self, val: PreconditionerT | None):
         if val is None:
             val = identity_preconditioner
 

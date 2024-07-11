@@ -282,7 +282,7 @@ def _convert_terms_to_spin_blocks(
 def _canonicalize_input(
     terms: OperatorTermsList,
     weights: OperatorWeightsList,
-    dtype: Optional[DType],
+    dtype: DType | None,
     cutoff: float,
     constant: Number = 0,
 ) -> tuple[OperatorDict, Number, DType]:

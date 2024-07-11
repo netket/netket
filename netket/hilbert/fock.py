@@ -34,9 +34,9 @@ class Fock(HomogeneousHilbert):
 
     def __init__(
         self,
-        n_max: Optional[int] = None,
+        n_max: int | None = None,
         N: int = 1,
-        n_particles: Optional[int] = None,
+        n_particles: int | None = None,
     ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites
@@ -99,13 +99,13 @@ class Fock(HomogeneousHilbert):
         super().__init__(local_states, N, constraints)
 
     @property
-    def n_max(self) -> Optional[int]:
+    def n_max(self) -> int | None:
         r"""The maximum number of bosons per site, or None
         if the number is unconstrained."""
         return self._n_max
 
     @property
-    def n_particles(self) -> Optional[int]:
+    def n_particles(self) -> int | None:
         r"""The total number of particles, or None
         if the number is unconstrained."""
         return self._n_particles
@@ -124,7 +124,7 @@ class Fock(HomogeneousHilbert):
 
         return NotImplemented
 
-    def ptrace(self, sites: Union[int, list]) -> Optional["Fock"]:
+    def ptrace(self, sites: int | list) -> Optional["Fock"]:
         if isinstance(sites, int):
             sites = [sites]
 

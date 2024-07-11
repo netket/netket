@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 
 import jax
 from jax import numpy as jnp
@@ -42,10 +43,10 @@ from .state import MCState
 def expect_and_grad_default_formula(
     vstate: MCState,
     Ô: AbstractOperator,
-    chunk_size: Optional[int],
+    chunk_size: int | None,
     *args,
     mutable: CollectionFilter = False,
-    use_covariance: Optional[bool] = None,
+    use_covariance: bool | None = None,
 ) -> tuple[Stats, PyTree]:
     if use_covariance is None:
         use_covariance = Ô.is_hermitian
@@ -69,10 +70,10 @@ def expect_and_grad_default_formula(
 def expect_and_grad_squared_op(
     vstate: MCState,
     Ô: Squared,
-    chunk_size: Optional[int],
+    chunk_size: int | None,
     *args,
     mutable: CollectionFilter = False,
-    use_covariance: Optional[bool] = None,
+    use_covariance: bool | None = None,
 ) -> tuple[Stats, PyTree]:
     if use_covariance is not None:
         raise ValueError(

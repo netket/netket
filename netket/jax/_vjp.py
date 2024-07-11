@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Any, Union
+from typing import Any, Union
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -64,7 +65,7 @@ def vjp_fun_cc(out_dtype, conjugate, _vjp_fun, ȳ):
 
 def vjp_cc(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
+) -> tuple[Any, Callable] | tuple[Any, Callable, Any]:
     if has_aux:
         out, _vjp_fun, aux = jax.vjp(fun, *primals, has_aux=True)
     else:
@@ -94,7 +95,7 @@ def vjp_fun_rr(primals_out_dtype, conjugate, _vjp_fun, ȳ):
 
 def vjp_rr(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
+) -> tuple[Any, Callable] | tuple[Any, Callable, Any]:
     if has_aux:
         primals_out, _vjp_fun, aux = jax.vjp(fun, *primals, has_aux=True)
     else:
@@ -135,7 +136,7 @@ def vjp_fun_rc(vals_r_dtype, vals_j_dtype, conjugate, vjp_r_fun, vjp_j_fun, ȳ)
 
 def vjp_rc(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
+) -> tuple[Any, Callable] | tuple[Any, Callable, Any]:
     if has_aux:
 
         def real_fun(*primals):
@@ -173,7 +174,7 @@ def vjp_rc(
 # This function dispatches to the right
 def vjp(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
+) -> tuple[Any, Callable] | tuple[Any, Callable, Any]:
     # output dtype
     out_shape = eval_shape(fun, *primals, has_aux=has_aux)
 

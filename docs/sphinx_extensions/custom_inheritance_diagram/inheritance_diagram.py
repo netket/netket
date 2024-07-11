@@ -371,7 +371,7 @@ class InheritanceGraph:
                     this_node_attrs["style"] = '"dashed"'
 
             res.append(
-                '  "%s" [%s];\n' % (name, self._format_node_attrs(this_node_attrs))
+                '  "{}" [{}];\n'.format(name, self._format_node_attrs(this_node_attrs))
             )
 
             # Write the edges

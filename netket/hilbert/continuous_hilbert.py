@@ -27,7 +27,7 @@ class ContinuousHilbert(AbstractHilbert):
     in continuous space.
     """
 
-    def __init__(self, domain: tuple[float, ...], pbc: Union[bool, tuple[bool, ...]]):
+    def __init__(self, domain: tuple[float, ...], pbc: bool | tuple[bool, ...]):
         """
         Constructs new ``Particles`` given specifications of the continuous
         space they are defined in.

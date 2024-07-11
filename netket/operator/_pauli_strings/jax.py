@@ -306,11 +306,11 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[None, str, list[str]] = None,
-        weights: Union[None, float, complex, list[Union[float, complex]]] = None,
+        operators: None | str | list[str] = None,
+        weights: None | float | complex | list[float | complex] = None,
         *,
         cutoff: float = 1.0e-10,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
         _mode: str = "index",
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)

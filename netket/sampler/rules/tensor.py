@@ -89,7 +89,7 @@ class TensorRule(MetropolisRule):
         machine: nn.Module,
         params: PyTree,
         key: PRNGKeyT,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         N = self.hilbert._n_hilbert_spaces
         keys = jax.random.split(key, N)
         return tuple(
@@ -108,7 +108,7 @@ class TensorRule(MetropolisRule):
         machine: nn.Module,
         params: PyTree,
         sampler_state: "sampler.SamplerState",  # noqa: F821
-    ) -> Optional[Any]:
+    ) -> Any | None:
         rule_states = []
         for i in range(self.hilbert._n_hilbert_spaces):
             # construct temporary sampler and rule state with correct sub-hilbert and

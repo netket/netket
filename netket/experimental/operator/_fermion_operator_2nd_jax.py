@@ -526,8 +526,8 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        terms: Union[list[str], list[list[list[int]]]] = None,
-        weights: Optional[list[Union[float, complex]]] = None,
+        terms: list[str] | list[list[list[int]]] = None,
+        weights: list[float | complex] | None = None,
         constant: Number = 0,
         cutoff: float = 1e-10,
         dtype: DType = None,

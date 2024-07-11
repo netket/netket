@@ -22,11 +22,11 @@ class Particle(ContinuousHilbert):
 
     def __init__(
         self,
-        N: Union[int, tuple[int, ...]],
-        L: Optional[tuple[float, ...]] = None,
-        pbc: Optional[Union[bool, tuple[bool, ...]]] = None,
+        N: int | tuple[int, ...],
+        L: tuple[float, ...] | None = None,
+        pbc: bool | tuple[bool, ...] | None = None,
         *,
-        D: Optional[int] = None,
+        D: int | None = None,
     ):
         """
         Constructs new ``Particles`` given specifications

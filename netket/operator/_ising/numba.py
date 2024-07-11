@@ -45,7 +45,7 @@ class Ising(IsingBase):
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         r"""
         Constructs the Ising Operator from an hilbert space and a

@@ -25,14 +25,14 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
 
     monitor: str
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
-    patience: Union[int, float]
+    patience: int | float
     """Number of epochs with invalid loss after which training will be stopped."""
 
     # caches
     _last_valid_iter: int
     """Last valid iteration, to check against patience"""
 
-    def __init__(self, monitor: str = "mean", patience: Union[int, float] = 0):
+    def __init__(self, monitor: str = "mean", patience: int | float = 0):
         """
         Construct a callback stopping theoptimisation when the monitored quantity
         becaomes invalid for at least `patience` steps.

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 
 import jax
 
@@ -65,7 +66,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
        `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
-    diag_scale: Optional[ScalarOrSchedule] = struct.field(serialize=False, default=None)
+    diag_scale: ScalarOrSchedule | None = struct.field(serialize=False, default=None)
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
        `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
@@ -77,11 +78,11 @@ class SR(AbstractLinearPreconditioner, mutable=True):
 
     def __init__(
         self,
-        qgt: Optional[Callable] = None,
+        qgt: Callable | None = None,
         solver: Callable = jax.scipy.sparse.linalg.cg,
         *,
         diag_shift: ScalarOrSchedule = 0.01,
-        diag_scale: Optional[ScalarOrSchedule] = None,
+        diag_scale: ScalarOrSchedule | None = None,
         solver_restart: bool = False,
         **kwargs,
     ):
@@ -123,7 +124,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         self.diag_scale = diag_scale
         super().__init__(solver, solver_restart=solver_restart)
 
-    def lhs_constructor(self, vstate: VariationalState, step: Optional[Scalar] = None):
+    def lhs_constructor(self, vstate: VariationalState, step: Scalar | None = None):
         """
         This method does things
         """

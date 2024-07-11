@@ -39,13 +39,13 @@ def QGTJacobian_DefaultConstructor(
     pdf=None,
     *,
     dense: bool,
-    mode: Optional[str] = None,
-    holomorphic: Optional[bool] = None,
+    mode: str | None = None,
+    holomorphic: bool | None = None,
     diag_shift: float = 0.0,
     diag_scale: float = 0.0,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
     **kwargs,
-) -> Union[QGTJacobianDenseT, QGTJacobianPyTreeT]:
+) -> QGTJacobianDenseT | QGTJacobianPyTreeT:
     """
     Construct a :class:`QGTJacobianDenseT` or :class:`QGTJacobianPyTreeT`
     starting from the definition of a variational state.
@@ -134,12 +134,12 @@ def QGTJacobian_DefaultConstructor(
 def QGTJacobianDense(
     vstate,
     *,
-    mode: Optional[str] = None,
-    holomorphic: Optional[bool] = None,
+    mode: str | None = None,
+    holomorphic: bool | None = None,
     diag_shift=None,
     diag_scale=None,
     rescale_shift=None,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianDenseT:
     """
@@ -217,12 +217,12 @@ def QGTJacobianDense(
 def QGTJacobianPyTree(
     vstate,
     *,
-    mode: Optional[str] = None,
-    holomorphic: Optional[bool] = None,
+    mode: str | None = None,
+    holomorphic: bool | None = None,
     diag_shift=None,
     diag_scale=None,
     rescale_shift=None,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianPyTreeT:
     """

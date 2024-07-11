@@ -82,7 +82,7 @@ class VariationalState(abc.ABC):
         self.reset()
 
     @property
-    def model_state(self) -> Optional[PyTree]:
+    def model_state(self) -> PyTree | None:
         r"""The optional pytree with the mutable state of the model."""
         return fcore.copy(self._model_state, {})
 
@@ -103,7 +103,7 @@ class VariationalState(abc.ABC):
         self.model_state, self.parameters = fcore.pop(var, "params")
 
     def init_parameters(
-        self, init_fun: Optional[NNInitFunc] = None, *, seed: Optional[PRNGKeyT] = None
+        self, init_fun: NNInitFunc | None = None, *, seed: PRNGKeyT | None = None
     ):
         r"""
         Re-initializes all the parameters with the provided initialization function,
@@ -162,8 +162,8 @@ class VariationalState(abc.ABC):
         self,
         Ô,
         *,
-        use_covariance: Optional[bool] = None,
-        mutable: Optional[CollectionFilter] = None,
+        use_covariance: bool | None = None,
+        mutable: CollectionFilter | None = None,
     ) -> PyTree:
         r"""Estimates the gradient of the quantum expectation value of a given operator O.
 
@@ -182,7 +182,7 @@ class VariationalState(abc.ABC):
         self,
         O: AbstractOperator,
         *,
-        mutable: Optional[CollectionFilter] = None,
+        mutable: CollectionFilter | None = None,
         **kwargs,
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient
@@ -215,7 +215,7 @@ class VariationalState(abc.ABC):
         self,
         O: AbstractOperator,
         *,
-        mutable: Optional[CollectionFilter] = None,
+        mutable: CollectionFilter | None = None,
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and the corresponding force
         vector for a given operator O.

@@ -55,7 +55,7 @@ class HashableArray:
                 wrapped.flags.writeable = False
 
         self._wrapped: np.array = wrapped
-        self._hash: Optional[int] = None
+        self._hash: int | None = None
 
     @property
     def wrapped(self):

@@ -29,7 +29,7 @@ from ._semigroup import Element
 
 
 class Permutation(Element):
-    def __init__(self, permutation: Array, name: Optional[str] = None):
+    def __init__(self, permutation: Array, name: str | None = None):
         r"""
         Creates a `Permutation` from an array of preimages of :code:`range(N)`.
 

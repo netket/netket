@@ -14,7 +14,8 @@
 
 import warnings
 
-from typing import Callable, Union
+from typing import Union
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -180,7 +181,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
 
     def _sample_chain(
         self,
-        machine: Union[Callable, nn.Module],
+        machine: Callable | nn.Module,
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,

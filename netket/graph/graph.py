@@ -35,8 +35,8 @@ class Graph(AbstractGraph):
     # ------------------------------------------------------------------------
     def __init__(
         self,
-        edges: Union[Sequence[Edge], Sequence[ColoredEdge]],
-        n_nodes: Optional[int] = None,
+        edges: Sequence[Edge] | Sequence[ColoredEdge],
+        n_nodes: int | None = None,
     ):
         """
         Construct the a graph starting from a list of edges and optionally a given
@@ -155,7 +155,7 @@ class Graph(AbstractGraph):
         color=None,
         *,
         return_color: bool = False,
-        filter_color: Optional[int] = None,
+        filter_color: int | None = None,
     ) -> EdgeSequence:
         if color is not None:
             warn_deprecation(

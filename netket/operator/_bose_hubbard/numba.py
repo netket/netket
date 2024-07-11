@@ -47,7 +47,7 @@ class BoseHubbard(BoseHubbardBase):
         V: float = 0.0,
         J: float = 1.0,
         mu: float = 0.0,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         r"""
         Constructs a new BoseHubbard operator given a hilbert space, a graph
