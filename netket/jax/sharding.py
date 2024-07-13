@@ -164,7 +164,7 @@ def _prepare_mask(n, n_pad):
 
 
 def distribute_to_devices_along_axis(
-    inp_data, axis=0, pad=False, pad_value=None, devices=jax.devices()
+    inp_data, axis=0, pad=False, pad_value=None, devices=None
 ):
     """
     Distribute a local array equally along an axis to multiple jax devices devices
@@ -188,6 +188,9 @@ def distribute_to_devices_along_axis(
         mask: a mask indicating wether a given element is part of the original data (True) of of the padding (False)
               only returned if pad=True
     """
+    if devices is None:
+        devices = jax.devices()
+
     if config.netket_experimental_sharding:
         if pad:
             n = inp_data.shape[0]
