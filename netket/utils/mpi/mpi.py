@@ -75,7 +75,7 @@ except ImportError:
     MPI = FakeMPI()
 
     # Try to detect if we are running under MPI and warn that mpi4py is not installed
-    if config.netket_mpi_warning:
+    if config.netket_mpi_warning and not config.netket_experimental_sharding:
         _MPI_ENV_VARIABLES = [
             "OMPI_COMM_WORLD_SIZE",
             "I_MPI_HYDRA_HOST_FILE",
