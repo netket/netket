@@ -21,14 +21,6 @@ def _setup(L, alpha=1, reset_chains=False):
     return vs, g, ha
 
 
-# @pytest.mark.skipif(
-#     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-# )
-# def test_setup():
-#     # make sure that the tests are running with >1 devices
-#     assert jax.device_count() > 1
-
-
 def _check_correct_sharding(x, replicated=False):
     if jax.device_count() > 1:
         s = PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
@@ -293,26 +285,28 @@ def test_autoreg():
     [
         pytest.param(
             (
-                nk.logging.RuntimeLog(),
+                lambda _: nk.logging.RuntimeLog(),
                 lambda logger: logger.serialize("_test_runtimelog.json"),
             ),
             id="RuntimeLog",
         ),
         pytest.param(
             (
-                nk.logging.JsonLog("_test_jsonlog", save_params_every=1, write_every=1),
+                lambda path: nk.logging.JsonLog(
+                    path, save_params_every=1, write_every=1
+                ),
                 lambda logger: None,
             ),
             id="JsonLog",
         ),
         pytest.param(
-            (nk.logging.StateLog("_test_statelog", save_every=1), lambda logger: None),
+            (lambda path: nk.logging.StateLog(path, save_every=1), lambda logger: None),
             id="StateLog",
         ),
         pytest.param(
             (
-                nkx.logging.HDF5Log(
-                    "_test_hdf5log", save_params=True, save_params_every=1
+                lambda path: nkx.logging.HDF5Log(
+                    path, save_params=True, save_params_every=1
                 ),
                 lambda logger: None,
             ),
@@ -320,9 +314,10 @@ def test_autoreg():
         ),
     ],
 )
-def test_loggers(logger):
+def test_loggers(tmp_path, logger):
     vs, _, ha = _setup(12)
     logger, out_fun = logger
+    logger = logger(str(tmp_path))
     opt = nk.optimizer.Sgd(learning_rate=0.05)
     gs = nk.VMC(ha, opt, variational_state=vs)
     gs.run(10, out=logger)
