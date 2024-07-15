@@ -21,15 +21,23 @@ from scipy.sparse import issparse
 
 from netket.operator import PauliStrings
 
-# Pauli Matrices: shape (2, 2)
-I = jnp.eye(2)
-X = jnp.array([[0, 1], [1, 0]])
-Y = jnp.array([[0, -1j], [1j, 0]])
-Z = jnp.array([[1, 0], [0, -1]])
 
-# stacked pauli matrices: shape (4, 2, 2)
-pauli_basis = jnp.stack([I, X, Y, Z], axis=0)
+_pauli_basis = None
 pauli_basis_str = list("IXYZ")
+
+
+def _get_pauli_basis():
+    global _pauli_basis
+    if _pauli_basis is None:
+        # Pauli Matrices: shape (2, 2)
+        I = jnp.eye(2)
+        X = jnp.array([[0, 1], [1, 0]])
+        Y = jnp.array([[0, -1j], [1j, 0]])
+        Z = jnp.array([[1, 0], [0, -1]])
+
+        # stacked pauli matrices: shape (4, 2, 2)
+        _pauli_basis = jnp.stack([I, X, Y, Z], axis=0)
+    return _pauli_basis
 
 
 @jax.jit
@@ -72,14 +80,14 @@ def _get_basis_till_n(n=1):
         The key represents the size of those matrices.
     """
     if n == 1:
-        return {n: pauli_basis}
+        return {n: _get_pauli_basis()}
     else:
         lower_bases = _get_basis_till_n(n=n - 1)
         # extract the basis for n-1, which is (4**(n-1), 2ⁿ, 2ⁿ) tensor
         nm1_bases = lower_bases[n - 1]
 
         # compute the (4,4ⁿ⁻¹, 4, 4)
-        tp = _tensor_product(pauli_basis, nm1_bases)
+        tp = _tensor_product(_get_pauli_basis(), nm1_bases)
 
         # reshape everything to a single set of bases (4ⁿ, ...)
         tp = tp.reshape(-1, *tp.shape[-2:])
