@@ -19,7 +19,7 @@ import jax
 import scipy.integrate as sci
 
 from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
-from netket.experimental.dynamics._rk_tableau import (
+from netket.experimental.dynamics._rk_tableau_definitions import (
     bt_feuler,
     bt_heun,
     bt_midpoint,
