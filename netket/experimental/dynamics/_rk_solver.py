@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import _rk_tableau as rkt
 from ._rk_solver_structures import RKIntegratorConfig
 
 args_fixed_dt_docstring = """
@@ -80,6 +79,8 @@ def Euler(dt):
     The canonical first-order forward Euler method. Fixed timestep only.
 
     """
+    from . import _rk_tableau_definitions as rkt
+
     return RKIntegratorConfig(dt, tableau=rkt.bt_feuler)
 
 
@@ -89,6 +90,8 @@ def Midpoint(dt):
     The second order midpoint method. Fixed timestep only.
 
     """
+    from . import _rk_tableau_definitions as rkt
+
     return RKIntegratorConfig(dt, tableau=rkt.bt_midpoint)
 
 
@@ -98,6 +101,8 @@ def Heun(dt):
     The second order Heun's method. Fixed timestep only.
 
     """
+    from . import _rk_tableau_definitions as rkt
+
     return RKIntegratorConfig(dt, tableau=rkt.bt_heun)
 
 
@@ -107,6 +112,8 @@ def RK4(dt):
     The canonical Runge-Kutta Order 4 method. Fixed timestep only.
 
     """
+    from . import _rk_tableau_definitions as rkt
+
     return RKIntegratorConfig(dt, tableau=rkt.bt_rk4)
 
 
@@ -117,6 +124,8 @@ def RK12(dt, **kwargs):
     Also known as Heun-Euler method.
 
     """
+    from . import _rk_tableau_definitions as rkt
+
     return RKIntegratorConfig(dt, tableau=rkt.bt_rk12, **kwargs)
 
 
@@ -127,6 +136,8 @@ def RK23(dt, **kwargs):
     using the Bogacki–Shampine coefficients
 
     """
+    from . import _rk_tableau_definitions as rkt
+
     return RKIntegratorConfig(dt, tableau=rkt.bt_rk23, **kwargs)
 
 
@@ -136,4 +147,6 @@ def RK45(dt, **kwargs):
     Dormand-Prince's 5/4 Runge-Kutta method. (free 4th order interpolant).
 
     """
+    from . import _rk_tableau_definitions as rkt
+
     return RKIntegratorConfig(dt, tableau=rkt.bt_rk4_dopri, **kwargs)
