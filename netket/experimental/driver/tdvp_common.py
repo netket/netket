@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 from collections.abc import Sequence
 import warnings
 
@@ -63,7 +63,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         integrator: RKIntegratorConfig,
         *,
         t0: float = 0.0,
-        error_norm: Union[str, Callable] = "qgt",
+        error_norm: str | Callable = "qgt",
     ):
         r"""
         Initializes the time evolution driver.
@@ -156,7 +156,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         return self._error_norm
 
     @error_norm.setter
-    def error_norm(self, error_norm: Union[str, Callable]):
+    def error_norm(self, error_norm: str | Callable):
         if isinstance(error_norm, Callable):
             self._error_norm = error_norm
         elif error_norm == "euclidean":
@@ -195,7 +195,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         for _ in self.iter(T):
             pass
 
-    def iter(self, T: float, *, tstops: Optional[Sequence[float]] = None):
+    def iter(self, T: float, *, tstops: Sequence[float] | None = None):
         """
         Returns a generator which advances the time evolution for an interval
         of length :code:`T`, stopping at :code:`tstops`.
@@ -215,8 +215,8 @@ class TDVPBaseDriver(AbstractVariationalDriver):
     def _iter(
         self,
         T: float,
-        tstops: Optional[Sequence[float]] = None,
-        callback: Optional[Callable] = None,
+        tstops: Sequence[float] | None = None,
+        callback: Callable | None = None,
     ):
         """
         Implementation of :code:`iter`. This method accepts and additional `callback` object, which

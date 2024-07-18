@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from math import sqrt
-from typing import Optional
 
 import numpy as np
 
@@ -23,9 +22,9 @@ from netket.utils.types import Array
 
 
 def check_reorder_idx(
-    reorder_idx: Optional[HashableArray],
-    inv_reorder_idx: Optional[HashableArray],
-    prev_neighbors: Optional[HashableArray],
+    reorder_idx: HashableArray | None,
+    inv_reorder_idx: HashableArray | None,
+    prev_neighbors: HashableArray | None,
 ):
     """
     Check that the reordering indices determining the autoregressive order of an
@@ -84,9 +83,9 @@ def check_reorder_idx(
 
 def ensure_prev_neighbors(
     *,
-    reorder_idx: Optional[HashableArray] = None,
-    inv_reorder_idx: Optional[HashableArray] = None,
-    prev_neighbors: Optional[HashableArray] = None,
+    reorder_idx: HashableArray | None = None,
+    inv_reorder_idx: HashableArray | None = None,
+    prev_neighbors: HashableArray | None = None,
     graph: AbstractGraph = None,
     check: bool = False,
 ) -> tuple[HashableArray, HashableArray, HashableArray]:

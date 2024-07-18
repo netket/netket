@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Any
+from typing import Any
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class PureRBM(nn.Module):
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
+    alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
@@ -100,7 +100,7 @@ class MixedRBM(nn.Module):
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
+    alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
@@ -159,11 +159,11 @@ class NDM(nn.Module):
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
+    alpha: float | int = 1
     """The feature density for the pure-part of the ansatz.
     Number of features equal to alpha * input.shape[-1]
     """
-    beta: Union[float, int] = 1
+    beta: float | int = 1
     """The feature density for the mixed-part of the ansatz.
     Number of features equal to beta * input.shape[-1]
     """

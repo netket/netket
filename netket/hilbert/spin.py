@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from fractions import Fraction
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -59,7 +59,7 @@ class Spin(HomogeneousHilbert):
         self,
         s: float,
         N: int = 1,
-        total_sz: Optional[float] = None,
+        total_sz: float | None = None,
     ):
         r"""Hilbert space obtained as tensor product of local spin states.
 
@@ -110,7 +110,7 @@ class Spin(HomogeneousHilbert):
 
         return NotImplemented
 
-    def ptrace(self, sites: Union[int, list]) -> Optional["Spin"]:
+    def ptrace(self, sites: int | list) -> Optional["Spin"]:
         if isinstance(sites, int):
             sites = [sites]
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Callable, Optional
+from collections.abc import Callable
 from collections.abc import Hashable
 
 from netket.jax import canonicalize_dtypes
@@ -30,7 +30,7 @@ class ContinuousOperator(AbstractOperator):
     `ContinuousOperator` and implement its interface.
     """
 
-    def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = None):
+    def __init__(self, hilbert: AbstractHilbert, dtype: DType | None = None):
         r"""
         Constructs the continuous operator acting on the given hilbert space and
         with a certain data type.
@@ -51,7 +51,7 @@ class ContinuousOperator(AbstractOperator):
 
     @abc.abstractmethod
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, data: PyTree | None
     ):
         r"""This method defines the action of the local operator on a given quantum state
         `logpsi` for a given configuration `x`.
@@ -69,7 +69,7 @@ class ContinuousOperator(AbstractOperator):
         """
 
     @abc.abstractmethod
-    def _pack_arguments(self) -> Optional[PyTree]:
+    def _pack_arguments(self) -> PyTree | None:
         r"""This methods should return a PyTree that will be passed as the `data` argument
         to the `_expect_kernel`. The PyTree should be composed of jax arrays or hashable
         objects.

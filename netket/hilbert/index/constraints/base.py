@@ -15,12 +15,11 @@
 import numpy as np
 
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
 
-from typing import Union
 from netket.utils.types import Array
 from netket.utils import struct, StaticRange
 from netket.utils.dispatch import dispatch
@@ -73,7 +72,7 @@ class ConstrainedHilbertIndex(HilbertIndex):
         return self.unconstrained_index.size
 
     @property
-    def local_states(self) -> Union[Array, StaticRange]:
+    def local_states(self) -> Array | StaticRange:
         return self.unconstrained_index.local_states
 
     @property

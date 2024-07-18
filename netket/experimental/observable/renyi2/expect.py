@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
 from functools import partial
 
 import jax.numpy as jnp
@@ -27,9 +26,7 @@ from .S2_operator import Renyi2EntanglementEntropy
 
 
 @expect.dispatch
-def Renyi2(
-    vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: Union[int, None]
-):
+def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | None):
     if op.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 

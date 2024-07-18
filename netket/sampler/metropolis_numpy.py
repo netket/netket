@@ -16,7 +16,8 @@ import math
 from dataclasses import dataclass
 from functools import partial, wraps
 
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import numpy as np
 from numba import jit

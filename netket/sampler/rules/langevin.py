@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 import jax
 import jax.numpy as jnp
@@ -40,10 +39,10 @@ class LangevinRule(MetropolisRule):
 
     dt: float
     """Time step in the Langevin dynamics."""
-    chunk_size: Optional[int] = struct.field(pytree_node=False)
+    chunk_size: int | None = struct.field(pytree_node=False)
     """Chunk size for computing gradients of the ansatz."""
 
-    def __init__(self, dt: float = 0.001, chunk_size: Optional[int] = None):
+    def __init__(self, dt: float = 0.001, chunk_size: int | None = None):
         """
         Constructs the Langevin Hastings proposal rule.
 

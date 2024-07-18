@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, IO
+from typing import IO
 from pathlib import Path
 
 import jax
@@ -59,7 +59,7 @@ class RuntimeLog(AbstractLog):
     def flush(self, variational_state=None):
         pass
 
-    def serialize(self, path: Union[str, Path, IO]):
+    def serialize(self, path: str | Path | IO):
         r"""
         Serialize the content of :py:attr:`~netket.logging.RuntimeLog.data` to a file.
 

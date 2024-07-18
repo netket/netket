@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional
+from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -66,7 +66,7 @@ class TensorRule(MetropolisRule):
                 "which is constructed as a product of different Hilbert spaces."
             )
 
-        if not isinstance(rules, (tuple, list)) or not all(
+        if not isinstance(rules, tuple | list) or not all(
             isinstance(r, MetropolisRule) for r in rules
         ):
             raise TypeError(
@@ -89,7 +89,7 @@ class TensorRule(MetropolisRule):
         machine: nn.Module,
         params: PyTree,
         key: PRNGKeyT,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         N = self.hilbert._n_hilbert_spaces
         keys = jax.random.split(key, N)
         return tuple(
@@ -108,7 +108,7 @@ class TensorRule(MetropolisRule):
         machine: nn.Module,
         params: PyTree,
         sampler_state: "sampler.SamplerState",  # noqa: F821
-    ) -> Optional[Any]:
+    ) -> Any | None:
         rule_states = []
         for i in range(self.hilbert._n_hilbert_spaces):
             # construct temporary sampler and rule state with correct sub-hilbert and

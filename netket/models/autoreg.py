@@ -14,7 +14,8 @@
 
 import abc
 from math import sqrt
-from typing import Any, Callable, Union
+from typing import Any
+from collections.abc import Callable
 from collections.abc import Sequence
 
 import jax
@@ -266,7 +267,7 @@ class ARNNDense(ARNNSequential):
 
     layers: int
     """number of layers."""
-    features: Union[tuple[int, ...], int]
+    features: tuple[int, ...] | int
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     activation: Callable[[Array], Array] = nkactivation.reim_selu
@@ -305,7 +306,7 @@ class ARNNConv1D(ARNNSequential):
 
     layers: int
     """number of layers."""
-    features: Union[tuple[int, ...], int]
+    features: tuple[int, ...] | int
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     kernel_size: int
@@ -350,7 +351,7 @@ class ARNNConv2D(ARNNSequential):
 
     layers: int
     """number of layers."""
-    features: Union[tuple[int, ...], int]
+    features: tuple[int, ...] | int
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     kernel_size: tuple[int, int]

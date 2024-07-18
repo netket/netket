@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Any, Union
+from typing import Any
+from collections.abc import Callable
 from collections.abc import Sequence
 import operator
 
@@ -25,7 +26,7 @@ from ._utils_tree import tree_leaf_iscomplex, eval_shape
 map = safe_map
 
 
-def _ensure_index(x: Any) -> Union[int, tuple[int, ...]]:
+def _ensure_index(x: Any) -> int | tuple[int, ...]:
     """Ensure x is either an index or a tuple of indices."""
     try:
         return operator.index(x)
@@ -35,7 +36,7 @@ def _ensure_index(x: Any) -> Union[int, tuple[int, ...]]:
 
 def grad(
     fun: Callable,
-    argnums: Union[int, Sequence[int]] = 0,
+    argnums: int | Sequence[int] = 0,
     has_aux: bool = False,
     allow_int: bool = False,
 ) -> Callable:
@@ -92,7 +93,7 @@ def grad(
 
 def value_and_grad(
     fun: Callable,
-    argnums: Union[int, Sequence[int]] = 0,
+    argnums: int | Sequence[int] = 0,
     has_aux: bool = False,
     allow_int: bool = False,
 ) -> Callable[..., tuple[Any, Any]]:

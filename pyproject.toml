@@ -29,7 +29,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.20,<3.0",
     "scipy>=1.5.3, <2",
@@ -108,7 +108,7 @@ version-file = "netket/_version.py"
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38', 'py39']
+target-version = ['py310', 'py311', 'py312']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -153,13 +153,13 @@ testpaths = [
 ]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 88
 exclude = ["Examples/Legacy", "docs/conf.py"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "D410", "UP"]
-fixable = ["E", "F", "W", "D", "UP"]
+select = ["E", "F", "W", "D410"]
+fixable = ["E", "F", "W", "D"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]
 

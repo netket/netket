@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Any
+from typing import Any
+from collections.abc import Callable
 
 import abc
 from textwrap import dedent
@@ -25,10 +26,10 @@ from .linear_operator import LinearOperator, SolverT
 
 # Generic signature of a preconditioner function/object
 
-PreconditionerT = Callable[[VariationalState, PyTree, Optional[Scalar]], PyTree]
+PreconditionerT = Callable[[VariationalState, PyTree, Scalar | None], PyTree]
 """Signature for Gradient preconditioners supported by NetKet drivers."""
 
-LHSConstructorT = Callable[[VariationalState, Optional[Scalar]], LinearOperator]
+LHSConstructorT = Callable[[VariationalState, Scalar | None], LinearOperator]
 """Signature for the constructor of a LinerOperator"""
 
 
@@ -41,7 +42,7 @@ class IdentityPreconditioner(struct.Pytree):
         self,
         vstate: VariationalState,
         gradient: PyTree,
-        step: Optional[Scalar] = 0,
+        step: Scalar | None = 0,
         *args,
         **kwargs,
     ) -> PyTree:
@@ -81,7 +82,7 @@ class AbstractLinearPreconditioner(struct.Pytree, mutable=True):
     """If False uses the last solution of the linear system as a starting point for the solution
     of the next."""
 
-    x0: Optional[PyTree] = None
+    x0: PyTree | None = None
     """Solution of the last linear system solved."""
 
     info: Any = struct.field(serialize=False, default=None)
@@ -109,7 +110,7 @@ class AbstractLinearPreconditioner(struct.Pytree, mutable=True):
         self,
         vstate: VariationalState,
         gradient: PyTree,
-        step: Optional[Scalar] = None,
+        step: Scalar | None = None,
         *args,
         **kwargs,
     ) -> PyTree:
@@ -121,7 +122,7 @@ class AbstractLinearPreconditioner(struct.Pytree, mutable=True):
         return self.x0
 
     @abc.abstractmethod
-    def lhs_constructor(self, vstate: VariationalState, step: Optional[Scalar] = None):
+    def lhs_constructor(self, vstate: VariationalState, step: Scalar | None = None):
         """
         This method should construct the left hand side of the linear system,
         which should be a linear operator.
@@ -152,7 +153,7 @@ class LinearPreconditioner(AbstractLinearPreconditioner, mutable=True):
         self.solver = solver
         self.solver_restart = solver_restart
 
-    def lhs_constructor(self, vstate: VariationalState, step: Optional[Scalar] = None):
+    def lhs_constructor(self, vstate: VariationalState, step: Scalar | None = None):
         """
         This method does things
         """

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
 
 import jax
 from jax import numpy as jnp
@@ -46,7 +45,7 @@ class QGTJacobianDenseT(LinearOperator):
     If scale is not None, columns normalised to unit norm
     """
 
-    scale: Optional[jnp.ndarray] = None
+    scale: jnp.ndarray | None = None
     """If not None, contains 2-norm of each column of the gradient matrix,
     i.e., the sqrt of the diagonal elements of the S matrix
     """
@@ -68,7 +67,7 @@ class QGTJacobianDenseT(LinearOperator):
     _params_structure: PyTree = struct.field(pytree_node=False, default=Uninitialized)
 
     @jax.jit
-    def __matmul__(self, vec: Union[PyTree, jnp.ndarray]) -> Union[PyTree, jnp.ndarray]:
+    def __matmul__(self, vec: PyTree | jnp.ndarray) -> PyTree | jnp.ndarray:
         if not hasattr(vec, "ndim") and not self._in_solve:
             check_valid_vector_type(self._params_structure, vec)
 
@@ -87,7 +86,7 @@ class QGTJacobianDenseT(LinearOperator):
         return reassemble(result)
 
     @jax.jit
-    def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
+    def _solve(self, solve_fun, y: PyTree, *, x0: PyTree | None = None) -> PyTree:
         if not hasattr(y, "ndim"):
             check_valid_vector_type(self._params_structure, y)
 

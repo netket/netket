@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Any, Optional
+from typing import Any
 from functools import partial
 from numbers import Number
 
@@ -63,10 +63,10 @@ class History:
     def __init__(
         self,
         values: Any = None,
-        iters: Optional[Union[list, Array]] = None,
-        dtype: Optional[DType] = None,
-        iter_dtype: Optional[DType] = None,
-        main_value_name: Optional[str] = None,
+        iters: list | Array | None = None,
+        dtype: DType | None = None,
+        iter_dtype: DType | None = None,
+        main_value_name: str | None = None,
     ):
         """
         Creates a new History object.
@@ -217,7 +217,7 @@ class History:
     def keys(self) -> list:
         return self._keys
 
-    def append(self, val: Any, it: Optional[Number] = None):
+    def append(self, val: Any, it: Number | None = None):
         """
         Append another value to this history object.
 
@@ -384,7 +384,7 @@ def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
             accum_in_tree(fun, _accum, _tree, **kwargs)
             for _accum, _tree in zip(tree_accum, tree)
         )
-    elif isinstance(tree, (dict, FrozenDict)):
+    elif isinstance(tree, dict | FrozenDict):
         if tree_accum is None:
             tree_accum = {}
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 
@@ -27,7 +27,7 @@ BaseType = Union[AbstractOperator, np.ndarray, str]
 
 
 def _build_rotation(
-    hi: Spin, basis: Union[list, str], dtype: Optional[DType] = np.complex64
+    hi: Spin, basis: list | str, dtype: DType | None = np.complex64
 ) -> AbstractOperator:
     r"""
     Construct basis rotation operators from a Pauli string of "X", "Y", "Z" and "I".
@@ -57,9 +57,7 @@ def _build_rotation(
     return localop
 
 
-def _canonicalize_bases_type(
-    Us: Union[list[BaseType], np.ndarray]
-) -> list[AbstractOperator]:
+def _canonicalize_bases_type(Us: list[BaseType] | np.ndarray) -> list[AbstractOperator]:
     r"""
     Check if the given bases are valid for the quantum state reconstruction driver.
 
@@ -100,8 +98,8 @@ def _canonicalize_bases_type(
 
 def _convert_data(
     sigma_s: np.ndarray,
-    Us: Union[list[BaseType], np.ndarray],
-    mixed_state_target: Optional[bool] = False,
+    Us: list[BaseType] | np.ndarray,
+    mixed_state_target: bool | None = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     r"""
     Convert sampled states and rotation operators to a more direct computational format.
@@ -197,7 +195,7 @@ def _compose_sampled_data(
     secs: np.ndarray,
     MAX_LEN: int,
     sampled_indices: np.ndarray,
-    min_padding_factor: Optional[int] = 128,
+    min_padding_factor: int | None = 128,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     r"""
     Given the sampled indices, select the corresponding data from sigma_p, mels and secs.

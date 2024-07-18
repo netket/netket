@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
+from collections.abc import Callable
 from collections.abc import Iterable
 
 import abc
@@ -242,8 +242,8 @@ class AbstractVariationalDriver(abc.ABC):
     def run(
         self,
         n_iter: int,
-        out: Optional[Iterable[AbstractLog]] = (),
-        obs: Optional[dict[str, AbstractObservable]] = None,
+        out: Iterable[AbstractLog] | None = (),
+        obs: dict[str, AbstractObservable] | None = None,
         step_size: int = 1,
         show_progress: bool = True,
         save_params_every: int = 50,  # for default logger

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
-
 
 import jax
 
@@ -22,9 +20,7 @@ from netket.utils.mpi import MPI_jax_comm
 from netket.utils.types import PRNGKeyT, SeedT
 
 
-def PRNGKey(
-    seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm
-) -> PRNGKeyT:
+def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -61,7 +57,7 @@ class PRNGSeq:
     A sequence of PRNG keys generated based on an initial key.
     """
 
-    def __init__(self, base_key: Optional[SeedT] = None):
+    def __init__(self, base_key: SeedT | None = None):
         if base_key is None:
             base_key = PRNGKey()
         elif isinstance(base_key, int):

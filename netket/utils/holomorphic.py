@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -27,7 +27,7 @@ def is_probably_holomorphic(
     apply_fun: Callable[[PyTree, Array], Array],
     parameters: PyTree,
     samples: Array,
-    model_state: Optional[PyTree] = None,
+    model_state: PyTree | None = None,
 ) -> bool:
     r"""
     Check if a function :math:`\psi` is likely to be holomorphic almost

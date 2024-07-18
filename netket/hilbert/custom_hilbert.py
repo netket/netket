@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Callable
+from collections.abc import Callable
 
 
 from netket.utils import StaticRange
@@ -25,9 +25,9 @@ class CustomHilbert(HomogeneousHilbert):
 
     def __init__(
         self,
-        local_states: Optional[StaticRange],
+        local_states: StaticRange | None,
         N: int = 1,
-        constraint_fn: Optional[Callable] = None,
+        constraint_fn: Callable | None = None,
     ):
         r"""
         Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and

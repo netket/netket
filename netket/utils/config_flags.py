@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
 
 import os
 import sys
@@ -44,7 +43,7 @@ def int_env(varname: str, default: int) -> int:
     return int(os.getenv(varname, default))
 
 
-def get_env(varname: str, type, default: Union[int, bool]) -> Union[int, bool]:
+def get_env(varname: str, type, default: int | bool) -> int | bool:
     if type is int:
         return int_env(varname, default)
     elif type is bool:

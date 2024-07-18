@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Callable, Union
+from collections.abc import Callable
 from functools import partial
 
 import numpy as np
@@ -58,8 +58,8 @@ class KineticEnergy(ContinuousOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        mass: Union[float, list[float]],
-        dtype: Optional[DType] = None,
+        mass: float | list[float],
+        dtype: DType | None = None,
     ):
         r"""Args:
         hilbert: The underlying Hilbert space on which the operator is defined
@@ -83,7 +83,7 @@ class KineticEnergy(ContinuousOperator):
         return self._is_hermitian
 
     def _expect_kernel_single(
-        self, logpsi: Callable, params: PyTree, x: Array, inverse_mass: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, inverse_mass: PyTree | None
     ):
         def logpsi_x(x):
             return logpsi(params, x)
@@ -97,7 +97,7 @@ class KineticEnergy(ContinuousOperator):
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, coefficient: PyTree | None
     ):
         return self._expect_kernel_single(logpsi, params, x, coefficient)
 

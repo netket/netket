@@ -14,7 +14,8 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 import jax
 from jax import numpy as jnp
@@ -62,7 +63,7 @@ class FullSumState(VariationalState):
     the parameters.
     """
 
-    model_state: Optional[PyTree]
+    model_state: PyTree | None
     """An Optional PyTree encoding a mutable state of the model that is not trained."""
 
     _init_fun: Callable = None
@@ -70,18 +71,18 @@ class FullSumState(VariationalState):
     _apply_fun: Callable = None
     """The function used to evaluate the model"""
 
-    _chunk_size: Optional[int] = None
+    _chunk_size: int | None = None
 
     def __init__(
         self,
         hilbert: AbstractHilbert,
         model=None,
         *,
-        chunk_size: Optional[int] = None,
-        variables: Optional[PyTree] = None,
+        chunk_size: int | None = None,
+        variables: PyTree | None = None,
         init_fun: NNInitFunc = None,
-        apply_fun: Optional[Callable] = None,
-        seed: Optional[SeedT] = None,
+        apply_fun: Callable | None = None,
+        seed: SeedT | None = None,
         mutable: CollectionFilter = False,
         training_kwargs: dict = {},
         dtype=float,
@@ -213,7 +214,7 @@ class FullSumState(VariationalState):
         return self._chunk_size
 
     @chunk_size.setter
-    def chunk_size(self, chunk_size: Optional[int]):
+    def chunk_size(self, chunk_size: int | None):
         # disable chunks if it is None
         if chunk_size is None:
             self._chunk_size = None
@@ -241,7 +242,7 @@ class FullSumState(VariationalState):
         self._pdf = None
 
     @property
-    def model(self) -> Optional[Any]:
+    def model(self) -> Any | None:
         """Returns the model definition of this variational state.
 
         This field is optional, and is set to `None` if the variational state has
@@ -268,7 +269,7 @@ class FullSumState(VariationalState):
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
     def quantum_geometric_tensor(
-        self, qgt_T: Optional[LinearOperator] = None
+        self, qgt_T: LinearOperator | None = None
     ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector

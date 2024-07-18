@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 from collections.abc import Hashable, Iterable
 
 from netket.utils.numbers import is_scalar
@@ -66,8 +66,8 @@ class SumOperator(ContinuousOperator):
     def __init__(
         self,
         *operators: tuple[ContinuousOperator, ...],
-        coefficients: Union[float, Iterable[float]] = 1.0,
-        dtype: Optional[DType] = None,
+        coefficients: float | Iterable[float] = 1.0,
+        dtype: DType | None = None,
     ):
         r"""
         Returns the action of a sum of local operators.
@@ -116,9 +116,7 @@ class SumOperator(ContinuousOperator):
         return self._coefficients
 
     @staticmethod
-    def _expect_kernel(
-        logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
-    ):
+    def _expect_kernel(logpsi: Callable, params: PyTree, x: Array, data: PyTree | None):
         result = [
             data.coeffs[i] * op._expect_kernel(logpsi, params, x, op_data)
             for i, (op, op_data) in enumerate(zip(data.ops, data.op_data))

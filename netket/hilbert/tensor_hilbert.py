@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
 from collections.abc import Iterable
 
 from abc import ABC
@@ -115,7 +114,7 @@ class TensorHilbert(ABC):
     def _attrs(self):
         return self._hilbert_spaces
 
-    def ptrace(self, sites: Union[int, list]) -> Optional[AbstractHilbert]:
+    def ptrace(self, sites: int | list) -> AbstractHilbert | None:
         if isinstance(sites, int):
             sites = [sites]
 

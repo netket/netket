@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 import numpy as np
 import numba
@@ -70,7 +69,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         self,
         ham: DiscreteOperator,
         jump_ops: list[DiscreteOperator] = [],
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         super().__init__(ham.hilbert)
 

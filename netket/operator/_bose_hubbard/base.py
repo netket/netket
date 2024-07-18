@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from functools import reduce
 
 import numpy as np
@@ -43,7 +42,7 @@ class BoseHubbardBase(SpecialHamiltonian):
         V: float = 0.0,
         J: float = 1.0,
         mu: float = 0.0,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         r"""
         Constructs a new BoseHubbard operator given a hilbert space, a graph
@@ -157,7 +156,7 @@ class BoseHubbardBase(SpecialHamiltonian):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         return self._max_conn
 
-    def copy(self, *, dtype: Optional[DType] = None):
+    def copy(self, *, dtype: DType | None = None):
         if dtype is None:
             dtype = self.dtype
 

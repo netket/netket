@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Any
+from typing import Any
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class RBM(nn.Module):
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
+    alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
@@ -103,7 +103,7 @@ class RBMModPhase(nn.Module):
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
+    alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
@@ -156,7 +156,7 @@ class RBMMultiVal(nn.Module):
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
+    alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
@@ -205,7 +205,7 @@ class RBMMultiVal(nn.Module):
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :func:`netket.nn.DenseSymm` layer internally."""
 
-    symmetries: Union[HashableArray, PermutationGroup]
+    symmetries: HashableArray | PermutationGroup
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
@@ -213,7 +213,7 @@ class RBMSymm(nn.Module):
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
+    alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""

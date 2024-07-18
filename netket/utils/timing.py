@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Callable
+from collections.abc import Callable
 
 import time
 import inspect
@@ -196,7 +196,7 @@ def timed_scope(name: str = None, force: bool = False):
         yield None
 
 
-def timed(fun: Callable = None, name: Optional[str] = None):
+def timed(fun: Callable = None, name: str | None = None):
     """
     Marks the decorated function to be timed individually in
     NetKet timing scopes.

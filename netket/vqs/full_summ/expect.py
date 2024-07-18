@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, lru_cache
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import jax
 from jax import numpy as jnp
@@ -71,7 +71,7 @@ def expect_and_grad_fullsum(
     Ô: DiscreteOperator,
     *args,
     mutable: CollectionFilter = False,
-    use_covariance: Optional[bool] = None,
+    use_covariance: bool | None = None,
     **kwargs,
 ) -> tuple[Stats, PyTree]:
     if use_covariance is None:

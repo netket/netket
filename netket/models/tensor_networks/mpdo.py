@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.Mon
 
-from typing import Optional
 
 from flax import linen as nn
 import jax
@@ -56,7 +55,7 @@ class MPDOPeriodic(nn.Module):
     """Bond dimension of the MPDO tensors. See formula above."""
     kraus_dim: int = 2
     """The local Kraus dimension of the MPDO tensors. See formula above."""
-    symperiod: Optional[bool] = None
+    symperiod: bool | None = None
     """
     Periodicity in the chain of MPDO tensors.
     The chain of MPDO tensors is constructed as a sequence of identical

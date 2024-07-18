@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -64,7 +64,7 @@ class TableauRKExplicit:
     a: jax.numpy.ndarray
     b: jax.numpy.ndarray
     c: jax.numpy.ndarray
-    c_error: Optional[jax.numpy.ndarray]
+    c_error: jax.numpy.ndarray | None
     """Coefficients for error estimation."""
 
     @property

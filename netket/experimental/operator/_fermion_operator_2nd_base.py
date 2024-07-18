@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional
 
 import numpy as np
 
@@ -53,11 +52,11 @@ class FermionOperator2ndBase(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        terms: Union[list[str], list[list[list[int]]]] = None,
-        weights: Optional[list[Union[float, complex]]] = None,
+        terms: list[str] | list[list[list[int]]] = None,
+        weights: list[float | complex] | None = None,
         constant: Number = 0,
         cutoff: float = 1e-10,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         r"""
         Constructs a fermion operator given the single terms (set of
@@ -146,7 +145,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         hilbert: AbstractHilbert,
         of_fermion_operator=None,  # : "openfermion.ops.FermionOperator" type
         *,
-        n_orbitals: Optional[int] = None,
+        n_orbitals: int | None = None,
         convert_spin_blocks: bool = False,
         cutoff: float = 1e-10,
         dtype: DType = None,
@@ -279,7 +278,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         """
         return self._cutoff
 
-    def copy(self, *, dtype: Optional[DType] = None, cutoff=None):
+    def copy(self, *, dtype: DType | None = None, cutoff=None):
         """
         Creates a deep copy of this operator, potentially changing the dtype of the
         operator and internal arrays.

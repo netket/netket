@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from collections.abc import Iterable
 import warnings
 
@@ -44,10 +43,10 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     def __init__(
         self,
         n_orbitals: int,
-        s: Optional[float] = None,
+        s: float | None = None,
         *,
-        n_fermions: Optional[int] = None,
-        n_fermions_per_spin: Optional[tuple[int, ...]] = None,
+        n_fermions: int | None = None,
+        n_fermions_per_spin: tuple[int, ...] | None = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
@@ -163,7 +162,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         super().__init__(local_states, N=total_size, constraint_fn=None)
         self._s = s
         self._n_fermions = n_fermions
-        self._n_fermions_per_subsector: tuple[Optional[int], ...] = n_fermions_per_spin
+        self._n_fermions_per_subsector: tuple[int | None, ...] = n_fermions_per_spin
         self._n_orbitals = n_orbitals
 
     @property
@@ -179,12 +178,12 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         return self._fock.all_states
 
     @property
-    def n_fermions(self) -> Optional[int]:
+    def n_fermions(self) -> int | None:
         """The total number of fermions. None if unspecified."""
         return self._n_fermions
 
     @property
-    def n_fermions_per_spin(self) -> tuple[Optional[int], ...]:
+    def n_fermions_per_spin(self) -> tuple[int | None, ...]:
         """Tuple identifying the per-subsector population constraint.
 
         This tuple has length 1 for spinless fermions and length 2s+1 for spinful fermions.
@@ -252,7 +251,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             )
         return round(2 * self.spin + 1)
 
-    def _spin_index(self, sz: Optional[int]) -> int:
+    def _spin_index(self, sz: int | None) -> int:
         """Return the index of the Fock block corresponding to the sz projection"""
         if self.spin is None:
             if sz is not None or not np.isclose(sz, 0):
@@ -283,7 +282,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     def states_to_local_indices(self, x):
         return self._fock.states_to_local_indices(x)
 
-    def _get_index(self, orb: int, sz: Optional[float] = None):
+    def _get_index(self, orb: int, sz: float | None = None):
         """go from (site, spin_projection) indices to index in the hilbert space"""
         if orb >= self.n_orbitals:
             raise IndexError("requested orbital index outside of the hilbert space")

@@ -1,4 +1,3 @@
-from typing import Optional
 import numpy as np
 
 from netket.sampler.rules import ExchangeRule
@@ -21,8 +20,8 @@ class ParticleExchangeRule(ExchangeRule):
         self,
         hilbert,
         *,
-        clusters: Optional[list[tuple[int, int]]] = None,
-        graph: Optional[AbstractGraph] = None,
+        clusters: list[tuple[int, int]] | None = None,
+        graph: AbstractGraph | None = None,
         d_max: int = 1,
         exchange_spins: bool = False,
     ):

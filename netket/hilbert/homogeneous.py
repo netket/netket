@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -56,9 +56,9 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def __init__(
         self,
-        local_states: Optional[StaticRange],
+        local_states: StaticRange | None,
         N: int = 1,
-        constraint_fn: Optional[Callable] = None,
+        constraint_fn: Callable | None = None,
     ):
         r"""
         Constructs a new :class:`~netket.hilbert.HomogeneousHilbert` given a list of
@@ -111,7 +111,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self.local_size
 
     @property
-    def local_states(self) -> Optional[list[float]]:
+    def local_states(self) -> list[float] | None:
         r"""A list of discrete local quantum numbers.
         If the local states are infinitely many, None is returned."""
         if self.is_finite:

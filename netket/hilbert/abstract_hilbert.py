@@ -14,7 +14,6 @@
 
 import abc
 
-from typing import Optional, Union
 from collections.abc import Iterable
 
 import jax.numpy as jnp
@@ -48,7 +47,7 @@ class AbstractHilbert(abc.ABC):
     def random_state(
         self,
         key=None,
-        size: Optional[int] = None,
+        size: int | None = None,
         dtype=np.float32,
     ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
@@ -82,7 +81,7 @@ class AbstractHilbert(abc.ABC):
 
         return random.random_state(self, key, size, dtype=dtype)
 
-    def ptrace(self, sites: Union[int, Iterable]) -> "AbstractHilbert":
+    def ptrace(self, sites: int | Iterable) -> "AbstractHilbert":
         """Returns the hilbert space without the selected sites.
 
         Not all hilbert spaces support this operation.

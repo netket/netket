@@ -332,7 +332,7 @@ def mpi_allgather(x, *, comm=MPI_py_comm):
     if n_nodes == 1:
         return x
     else:
-        if isinstance(x, (np.ndarray, jax.Array)):
+        if isinstance(x, np.ndarray | jax.Array):
             out = np.empty((n_nodes,) + x.shape, dtype=x.dtype)
             comm.Allgather(np.asarray(x), out)
             return out

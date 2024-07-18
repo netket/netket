@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 import jax
 from jax import numpy as jnp
@@ -50,12 +49,12 @@ class MCMixedState(VariationalMixedState, MCState):
         sampler,
         model=None,
         *,
-        sampler_diag: Optional[Sampler] = None,
-        n_samples_diag: Optional[int] = None,
-        n_samples_per_rank_diag: Optional[int] = None,
-        n_discard_per_chain_diag: Optional[int] = None,
+        sampler_diag: Sampler | None = None,
+        n_samples_diag: int | None = None,
+        n_samples_per_rank_diag: int | None = None,
+        n_discard_per_chain_diag: int | None = None,
         seed=None,
-        sampler_seed: Optional[int] = None,
+        sampler_seed: int | None = None,
         variables=None,
         **kwargs,
     ):
@@ -186,7 +185,7 @@ class MCMixedState(VariationalMixedState, MCState):
         return self.diagonal.n_discard_per_chain
 
     @n_discard_per_chain_diag.setter
-    def n_discard_per_chain_diag(self, n_discard_per_chain: Optional[int]):
+    def n_discard_per_chain_diag(self, n_discard_per_chain: int | None):
         self.diagonal.n_discard_per_chain = n_discard_per_chain
 
     @MCState.parameters.setter

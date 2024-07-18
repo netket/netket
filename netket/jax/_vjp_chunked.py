@@ -207,7 +207,7 @@ def vjp_chunked(
                       111.95590131, 109.17531467, 108.97138052, 106.89249739],            dtype=float64),)
     """
 
-    if not isinstance(primals, (tuple, list)):
+    if not isinstance(primals, tuple | list):
         raise TypeError(
             "primal arguments to vjp_chunked must be a tuple or list; "
             f"found {type(primals).__name__}."

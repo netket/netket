@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 from flax import linen as nn
 import jax
@@ -42,7 +41,7 @@ class MPSPeriodic(nn.Module):
     """Hilbert space on which the state is defined."""
     bond_dim: int
     """Bond dimension of the MPS tensors. See formula above."""
-    symperiod: Optional[int] = None
+    symperiod: int | None = None
     """
     Periodicity in the chain of MPS tensors.
     The chain of MPS tensors is constructed as a sequence of identical

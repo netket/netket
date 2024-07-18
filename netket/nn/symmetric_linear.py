@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import jax.numpy as jnp
@@ -45,7 +45,7 @@ class DenseSymmMatrix(Module):
     """The number of output features. Will be the second dimension of the output."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray] = None
+    mask: HashableArray | None = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
         kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used"""
@@ -142,7 +142,7 @@ class DenseSymmFFT(Module):
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray] = None
+    mask: HashableArray | None = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
         kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used"""
@@ -273,7 +273,7 @@ class DenseEquivariantFFT(Module):
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray] = None
+    mask: HashableArray | None = None
     """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
         used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
@@ -412,7 +412,7 @@ class DenseEquivariantIrrep(Module):
     """The number of output features. Will be the second dimension of the output."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray] = None
+    mask: HashableArray | None = None
     """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
         used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
@@ -577,7 +577,7 @@ class DenseEquivariantMatrix(Module):
     is n_symm*features."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray] = None
+    mask: HashableArray | None = None
     """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
         used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
@@ -738,7 +738,7 @@ def DenseSymm(
 
 def DenseEquivariant(
     symmetries,
-    features: Optional[int] = None,
+    features: int | None = None,
     mode="auto",
     shape=None,
     point_group=None,

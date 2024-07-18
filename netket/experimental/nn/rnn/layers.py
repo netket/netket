@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
@@ -31,15 +30,15 @@ class RNNLayer(nn.Module):
     """cell to update the hidden memory at each site, such as LSTM or GRU."""
     exclusive: bool
     """True if an output element does not depend on the input element at the same index."""
-    reorder_idx: Optional[HashableArray] = None
+    reorder_idx: HashableArray | None = None
     """indices to transform the inputs from unordered to ordered.
     See :meth:`netket.models.AbstractARNN.reorder` for details.
     """
-    inv_reorder_idx: Optional[HashableArray] = None
+    inv_reorder_idx: HashableArray | None = None
     """indices to transform the inputs from ordered to unordered.
     See :meth:`netket.models.AbstractARNN.reorder` for details.
     """
-    prev_neighbors: Optional[HashableArray] = None
+    prev_neighbors: HashableArray | None = None
     """previous neighbors of each site."""
     unroll: int = 1
     """how many steps to unroll in the recurrent loop. Trades compile time for

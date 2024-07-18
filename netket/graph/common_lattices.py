@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from itertools import permutations
-from typing import Union
 from collections.abc import Sequence
 import numpy as np
 
@@ -71,7 +70,7 @@ def _grid_point_group(
 def Grid(
     extent: Sequence[int],
     *,
-    pbc: Union[bool, Sequence[bool]] = True,
+    pbc: bool | Sequence[bool] = True,
     color_edges: bool = False,
     **kwargs,
 ) -> Lattice:
@@ -218,7 +217,7 @@ def Chain(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
 
 
 def BCC(
-    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
+    extent: Sequence[int], *, pbc: bool | Sequence[bool] = True, **kwargs
 ) -> Lattice:
     """Constructs a BCC lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed
@@ -253,7 +252,7 @@ def BCC(
 
 
 def FCC(
-    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
+    extent: Sequence[int], *, pbc: bool | Sequence[bool] = True, **kwargs
 ) -> Lattice:
     """Constructs an FCC lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed
@@ -288,7 +287,7 @@ def FCC(
 
 
 def Diamond(
-    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
+    extent: Sequence[int], *, pbc: bool | Sequence[bool] = True, **kwargs
 ) -> Lattice:
     """Constructs a diamond lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
@@ -331,7 +330,7 @@ def Diamond(
 
 
 def Pyrochlore(
-    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
+    extent: Sequence[int], *, pbc: bool | Sequence[bool] = True, **kwargs
 ) -> Lattice:
     """Constructs a pyrochlore lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
@@ -374,7 +373,7 @@ def Pyrochlore(
 
 
 def _hexagonal_general(
-    extent, *, site_offsets=None, pbc: Union[bool, Sequence[bool]] = True, **kwargs
+    extent, *, site_offsets=None, pbc: bool | Sequence[bool] = True, **kwargs
 ) -> Lattice:
     basis = [[1, 0], [0.5, 0.75**0.5]]
     # determine if full point group is realised by the simulation box
@@ -389,7 +388,7 @@ def _hexagonal_general(
     )
 
 
-def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Lattice:
+def Triangular(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
     r"""Constructs a triangular lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed
     Sites are returned at the Bravais lattice points.
@@ -417,7 +416,7 @@ def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> 
     return _hexagonal_general(extent, site_offsets=None, pbc=pbc, **kwargs)
 
 
-def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Lattice:
+def Honeycomb(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
     r"""Constructs a honeycomb lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 2b Wyckoff positions.
@@ -450,7 +449,7 @@ def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> L
     )
 
 
-def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Lattice:
+def Kagome(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
     r"""Constructs a kagome lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 3c Wyckoff positions.
@@ -483,9 +482,7 @@ def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Latt
     )
 
 
-def KitaevHoneycomb(
-    extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
-) -> Lattice:
+def KitaevHoneycomb(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
     r"""Constructs a honeycomb lattice of a given spatial extent.
 
     Nearest-neighbour edges are coloured according to direction

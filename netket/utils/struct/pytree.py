@@ -1,7 +1,8 @@
 import dataclasses
 import inspect
 import typing as tp
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 from abc import ABCMeta
 from copy import copy
 from functools import partial

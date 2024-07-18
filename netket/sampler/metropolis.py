@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any
+from collections.abc import Callable
 from textwrap import dedent
 
 import numpy as np
@@ -57,7 +58,7 @@ class MetropolisSamplerState(SamplerState):
     """Current batch of configurations in the Markov chain."""
     rng: jnp.ndarray
     """State of the random number generator (key, in jax terms)."""
-    rule_state: Optional[Any]
+    rule_state: Any | None
     """Optional state of the transition rule."""
 
     n_steps_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=int))
@@ -65,7 +66,7 @@ class MetropolisSamplerState(SamplerState):
     n_accepted_proc: jnp.ndarray
     """Number of accepted transitions among the chains in this process since the last reset."""
 
-    def __init__(self, σ: jnp.ndarray, rng: jnp.ndarray, rule_state: Optional[Any]):
+    def __init__(self, σ: jnp.ndarray, rng: jnp.ndarray, rule_state: Any | None):
         self.σ = σ
         self.rng = rng
         self.rule_state = rule_state
@@ -243,7 +244,7 @@ class MetropolisSampler(Sampler):
     of sites in the Hilbert space."""
     n_chains: int = struct.field(pytree_node=False)
     """Total number of independent chains across all MPI ranks and/or devices."""
-    chunk_size: Optional[int] = struct.field(pytree_node=False, default=None)
+    chunk_size: int | None = struct.field(pytree_node=False, default=None)
     """Chunk size for evaluating wave functions."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
@@ -256,9 +257,9 @@ class MetropolisSampler(Sampler):
         n_sweeps: int = None,
         sweep_size: int = None,
         reset_chains: bool = False,
-        n_chains: Optional[int] = None,
-        n_chains_per_rank: Optional[int] = None,
-        chunk_size: Optional[int] = None,
+        n_chains: int | None = None,
+        n_chains_per_rank: int | None = None,
+        chunk_size: int | None = None,
         machine_pow: int = 2,
         dtype: DType = float,
     ):
@@ -349,9 +350,9 @@ class MetropolisSampler(Sampler):
 
     def sample_next(
         sampler,
-        machine: Union[Callable, nn.Module],
+        machine: Callable | nn.Module,
         parameters: PyTree,
-        state: Optional[SamplerState] = None,
+        state: SamplerState | None = None,
     ) -> tuple[SamplerState, jnp.ndarray]:
         """
         Samples the next state in the Markov chain.

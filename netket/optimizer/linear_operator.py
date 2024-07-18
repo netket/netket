@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Any
+from typing import Any
+from collections.abc import Callable
 
 import jax
 from jax import numpy as jnp
@@ -72,7 +73,7 @@ class LinearOperator:
     # PUBLIC API: METHOD TO EXTEND Optionally IF YOU WANT TO DEFINE A NEW S object with
     # custom logic
     def _solve(
-        self, solve_fun: SolverT, y: PyTree, *, x0: Optional[PyTree] = None, **kwargs
+        self, solve_fun: SolverT, y: PyTree, *, x0: PyTree | None = None, **kwargs
     ) -> PyTree:
         # dont pass x0 if it's unset.
         # some solvers might not need/require it.
@@ -84,7 +85,7 @@ class LinearOperator:
     # PUBLIC API: Extend _solve
     @timing.timed
     def solve(
-        self, solve_fun: SolverT, y: PyTree, *, x0: Optional[PyTree] = None, **kwargs
+        self, solve_fun: SolverT, y: PyTree, *, x0: PyTree | None = None, **kwargs
     ) -> PyTree:
         """
         Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterative solver.

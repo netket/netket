@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
 from collections.abc import Iterable
 
 from jax import numpy as jnp
@@ -55,18 +54,18 @@ class FastRNN(FastARNNSequential):
 
     layers: int
     """number of layers."""
-    features: Union[Iterable[int], int]
+    features: Iterable[int] | int
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
-    reorder_idx: Optional[HashableArray] = None
+    reorder_idx: HashableArray | None = None
     """indices to transform the inputs from unordered to ordered.
     See :meth:`netket.models.AbstractARNN.reorder` for details."""
-    inv_reorder_idx: Optional[HashableArray] = None
+    inv_reorder_idx: HashableArray | None = None
     """indices to transform the inputs from ordered to unordered.
     See :meth:`netket.models.AbstractARNN.reorder` for details."""
-    prev_neighbors: Optional[HashableArray] = None
+    prev_neighbors: HashableArray | None = None
     """previous neighbors of each site."""
-    graph: Optional[AbstractGraph] = None
+    graph: AbstractGraph | None = None
     """graph of the physical system."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""

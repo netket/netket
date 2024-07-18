@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from functools import wraps
 
 import numpy as np
@@ -97,11 +97,11 @@ class PauliStrings(PauliStringsBase):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[None, str, list[str]] = None,
-        weights: Union[None, float, complex, list[Union[float, complex]]] = None,
+        operators: None | str | list[str] = None,
+        weights: None | float | complex | list[float | complex] = None,
         *,
         cutoff: float = 1.0e-10,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
 

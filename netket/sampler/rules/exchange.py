@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from functools import partial
 from netket.jax.sharding import sharding_decorator
 import jax
@@ -66,8 +65,8 @@ class ExchangeRule(MetropolisRule):
     def __init__(
         self,
         *,
-        clusters: Optional[list[tuple[int, int]]] = None,
-        graph: Optional[AbstractGraph] = None,
+        clusters: list[tuple[int, int]] | None = None,
+        graph: AbstractGraph | None = None,
         d_max: int = 1,
     ):
         r"""

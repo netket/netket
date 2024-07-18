@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING
 
 import numbers
 
@@ -63,10 +63,10 @@ class LocalOperatorBase(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[list[Array], Array] = [],
-        acting_on: Union[list[int], list[list[int]]] = [],
+        operators: list[Array] | Array = [],
+        acting_on: list[int] | list[list[int]] = [],
         constant: numbers.Number = 0,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
         *,
         mel_cutoff: float = 1.0e-10,
     ):
@@ -219,7 +219,7 @@ class LocalOperatorBase(DiscreteOperator):
             **kwargs,
         )
 
-    def copy(self, *, dtype: Optional[DType] = None, _cls=None):
+    def copy(self, *, dtype: DType | None = None, _cls=None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 

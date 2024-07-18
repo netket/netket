@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Union
 import warnings
 
 import numpy as np
@@ -96,21 +96,16 @@ class QSR(AbstractVariationalDriver):
 
     def __init__(
         self,
-        training_data: Union[RawQuantumDataset, tuple[list, list]],
+        training_data: RawQuantumDataset | tuple[list, list],
         training_batch_size: int,
         optimizer,
         *,
         variational_state: VariationalState,
-        preconditioner: Optional[PreconditionerT] = identity_preconditioner,
-        seed: Optional[int] = None,
-        batch_sample_replace: Optional[bool] = True,
-        control_variate_update_freq: Optional[
-            Union[
-                int,
-                str,
-            ]
-        ] = None,
-        chunk_size: Optional[int] = None,
+        preconditioner: PreconditionerT | None = identity_preconditioner,
+        seed: int | None = None,
+        batch_sample_replace: bool | None = True,
+        control_variate_update_freq: None | (int | str) = None,
+        chunk_size: int | None = None,
     ):
         r"""Initializes the QSR driver class.
 
@@ -295,7 +290,7 @@ class QSR(AbstractVariationalDriver):
 
         return self._dp
 
-    def nll(self, return_stats: Optional[bool] = True):
+    def nll(self, return_stats: bool | None = True):
         r"""
         Compute the Negative-Log-Likelihood over a batch of data.
 
@@ -335,7 +330,7 @@ class QSR(AbstractVariationalDriver):
             return statistics(jnp.real(log_n - ce))
         return jnp.real(log_n - ce)
 
-    def nll_whole_training_set(self, return_stats: Optional[bool] = True):
+    def nll_whole_training_set(self, return_stats: bool | None = True):
         r"""
         Compute the Negative-Log-Likelihood over the whole training set.
 
@@ -394,8 +389,8 @@ class QSR(AbstractVariationalDriver):
     def entropy(
         self,
         target_state: Array,
-        n_shots: Optional[int] = 1,
-        no_cache: Optional[bool] = False,
+        n_shots: int | None = 1,
+        no_cache: bool | None = False,
     ) -> float:
         r"""
         Compute the average entropy of the probability distributions
@@ -430,7 +425,7 @@ class QSR(AbstractVariationalDriver):
         self._entropy = np.mean(entropy_list)
         return self._entropy
 
-    def KL(self, target_state: Optional[Array] = None, n_shots: Optional[int] = None):
+    def KL(self, target_state: Array | None = None, n_shots: int | None = None):
         r"""
         Compute average KL divergence loss over a batch of data.
 
@@ -450,7 +445,7 @@ class QSR(AbstractVariationalDriver):
         )
 
     def KL_whole_training_set(
-        self, target_state: Optional[Array] = None, n_shots: Optional[int] = None
+        self, target_state: Array | None = None, n_shots: int | None = None
     ):
         r"""
         Compute average KL divergence loss over the whole training set.
@@ -472,7 +467,7 @@ class QSR(AbstractVariationalDriver):
         )
 
     def KL_exact(
-        self, target_state: Optional[Array] = None, n_shots: Optional[int] = 1
+        self, target_state: Array | None = None, n_shots: int | None = 1
     ) -> float:
         r"""
         Compute the average KL divergence loss between the variational state and the target state.

@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -61,7 +61,7 @@ def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwar
 
 def _chunk_vmapped_function(
     vmapped_fun: Callable,
-    chunk_size: Optional[int],
+    chunk_size: int | None,
     argnums=0,
     axis_0_is_sharded=False,
 ) -> Callable:
@@ -97,7 +97,7 @@ def apply_chunked(
     f: Callable,
     in_axes=0,
     *,
-    chunk_size: Optional[int],
+    chunk_size: int | None,
     axis_0_is_sharded=config.netket_experimental_sharding,
 ) -> Callable:
     """
@@ -141,7 +141,7 @@ def vmap_chunked(
     f: Callable,
     in_axes=0,
     *,
-    chunk_size: Optional[int],
+    chunk_size: int | None,
     axis_0_is_sharded=config.netket_experimental_sharding,
 ) -> Callable:
     """

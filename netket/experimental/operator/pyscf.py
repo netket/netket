@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 
 import numpy as np
 
@@ -293,7 +292,7 @@ def TV_from_pyscf_molecule(
 
 def from_pyscf_molecule(
     molecule,  # type: pyscf.gto.mole.Mole  # noqa: F821
-    mo_coeff: Optional[np.ndarray] = None,
+    mo_coeff: np.ndarray | None = None,
     *,
     cutoff: float = 1e-11,
     implementation: DiscreteOperator = FermionOperator2nd,

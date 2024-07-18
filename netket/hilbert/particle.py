@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Union
 import numpy as np
 from .continuous_hilbert import ContinuousHilbert
 
@@ -22,11 +21,11 @@ class Particle(ContinuousHilbert):
 
     def __init__(
         self,
-        N: Union[int, tuple[int, ...]],
-        L: Optional[tuple[float, ...]] = None,
-        pbc: Optional[Union[bool, tuple[bool, ...]]] = None,
+        N: int | tuple[int, ...],
+        L: tuple[float, ...] | None = None,
+        pbc: bool | tuple[bool, ...] | None = None,
         *,
-        D: Optional[int] = None,
+        D: int | None = None,
     ):
         """
         Constructs new ``Particles`` given specifications

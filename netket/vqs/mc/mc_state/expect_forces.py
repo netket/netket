@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 import jax
 from jax import numpy as jnp

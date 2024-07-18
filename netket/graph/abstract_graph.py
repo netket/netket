@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Union, Optional
+from typing import Union
 from collections.abc import Iterator, Sequence
 
 
@@ -37,7 +37,7 @@ class AbstractGraph(abc.ABC):
 
     @abc.abstractmethod
     def edges(
-        self, return_color: bool = False, filter_color: Optional[int] = None
+        self, return_color: bool = False, filter_color: int | None = None
     ) -> EdgeSequence:
         r"""Returns the sequence of edges of the graph.
 

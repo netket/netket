@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Union, Optional
+from collections.abc import Callable
 
 from functools import partial
 
@@ -109,10 +109,10 @@ class TDVPSchmitt(TDVPBaseDriver):
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
-        holomorphic: Optional[bool] = None,
+        holomorphic: bool | None = None,
         diag_shift: float = 0.0,
-        diag_scale: Optional[float] = None,
-        error_norm: Union[str, Callable] = "qgt",
+        diag_scale: float | None = None,
+        error_norm: str | Callable = "qgt",
         rcond: float = 1e-14,
         rcond_smooth: float = 1e-8,
         snr_atol: float = 1,

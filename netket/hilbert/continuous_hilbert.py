@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -27,7 +26,7 @@ class ContinuousHilbert(AbstractHilbert):
     in continuous space.
     """
 
-    def __init__(self, domain: tuple[float, ...], pbc: Union[bool, tuple[bool, ...]]):
+    def __init__(self, domain: tuple[float, ...], pbc: bool | tuple[bool, ...]):
         """
         Constructs new ``Particles`` given specifications of the continuous
         space they are defined in.

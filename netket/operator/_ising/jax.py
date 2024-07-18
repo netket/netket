@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
@@ -45,7 +45,7 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         if len(hilbert.local_states) != 2:
             raise ValueError(

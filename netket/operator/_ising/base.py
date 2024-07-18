@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
 
 import numpy as np
 
@@ -39,10 +38,10 @@ class IsingBase(SpecialHamiltonian):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        graph: Union[AbstractGraph, Array],
+        graph: AbstractGraph | Array,
         h: float,
         J: float,
-        dtype: Optional[DType],
+        dtype: DType | None,
     ):
         r"""
         Constructs the Ising Operator from an hilbert space and a
@@ -154,7 +153,7 @@ class IsingBase(SpecialHamiltonian):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         return self.hilbert.size + 1
 
-    def copy(self, *, dtype: Optional[DType] = None):
+    def copy(self, *, dtype: DType | None = None):
         if dtype is None:
             dtype = self.dtype
 

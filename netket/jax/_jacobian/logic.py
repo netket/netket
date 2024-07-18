@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from functools import partial
 import math
 
@@ -48,11 +47,11 @@ def jacobian(
     apply_fun: Callable,
     params: PyTree,
     samples: Array,
-    model_state: Optional[PyTree] = None,
+    model_state: PyTree | None = None,
     *,
     mode: str,
     pdf: Array = None,
-    chunk_size: Optional[int] = None,
+    chunk_size: int | None = None,
     center: bool = False,
     dense: bool = False,
     _sqrt_rescale: bool = False,

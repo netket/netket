@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional
+from collections.abc import Callable
 from collections.abc import Hashable
 
 from netket.utils.types import DType, PyTree, Array
@@ -50,7 +50,7 @@ class PotentialEnergy(ContinuousOperator):
         hilbert: AbstractHilbert,
         afun: Callable,
         coefficient: float = 1.0,
-        dtype: Optional[DType] = None,
+        dtype: DType | None = None,
     ):
         r"""
         Args:
@@ -77,7 +77,7 @@ class PotentialEnergy(ContinuousOperator):
 
     @staticmethod
     def _expect_kernel(
-        logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        logpsi: Callable, params: PyTree, x: Array, data: PyTree | None
     ) -> Array:
         return data.coefficient * jax.vmap(data.potential_fun, in_axes=(0,))(x)
 

@@ -1,4 +1,4 @@
-from typing import Callable, Union, Optional
+from collections.abc import Callable
 
 import jax
 from jax import numpy as jnp
@@ -12,7 +12,7 @@ from jax.nn.initializers import (
 from .mlp import MLP
 
 
-def _process_features(features) -> tuple[Optional[tuple[int, ...]], Optional[int]]:
+def _process_features(features) -> tuple[tuple[int, ...] | None, int | None]:
     """
     Convert some inputs to a consistent format of features.
     Returns hidden dimensions and output dimensions of the MLP separately.
@@ -42,12 +42,12 @@ class DeepSetMLP(nn.Module):
 
     """
 
-    features_phi: Optional[Union[int, tuple[int, ...]]] = None
+    features_phi: int | tuple[int, ...] | None = None
     """
     Number of features in each layer for phi network.
     When features_phi is None, no phi network is created.
     """
-    features_rho: Optional[Union[int, tuple[int, ...]]] = None
+    features_rho: int | tuple[int, ...] | None = None
     """
     Number of features in each layer for rho network.
     Should include final dimension of the network.
@@ -57,9 +57,9 @@ class DeepSetMLP(nn.Module):
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
 
-    hidden_activation: Optional[Callable] = jax.nn.gelu
+    hidden_activation: Callable | None = jax.nn.gelu
     """The nonlinear activation function between hidden layers."""
-    output_activation: Optional[Callable] = None
+    output_activation: Callable | None = None
     """The nonlinear activation function at the output layer."""
 
     pooling: Callable = jnp.sum
@@ -72,7 +72,7 @@ class DeepSetMLP(nn.Module):
     """Initializer for the Dense layer matrix"""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias"""
-    precision: Optional[jax.lax.Precision] = None
+    precision: jax.lax.Precision | None = None
     """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     def setup(self):

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from functools import partial
 from textwrap import dedent
@@ -154,7 +154,7 @@ class VMC_SRt(AbstractVariationalDriver):
         *,
         diag_shift: ScalarOrSchedule,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
-        jacobian_mode: Optional[str] = None,
+        jacobian_mode: str | None = None,
         variational_state: MCState = None,
     ):
         """
@@ -242,7 +242,7 @@ class VMC_SRt(AbstractVariationalDriver):
         return self._jacobian_mode
 
     @jacobian_mode.setter
-    def jacobian_mode(self, mode: Optional[str]):
+    def jacobian_mode(self, mode: str | None):
         if mode is None:
             mode = nkjax.jacobian_default_mode(
                 self.state._apply_fun,

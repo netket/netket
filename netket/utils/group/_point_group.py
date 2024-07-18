@@ -18,7 +18,6 @@
 import itertools
 from functools import partial
 from math import pi
-from typing import Optional
 
 import numpy as np
 from scipy.linalg import schur
@@ -54,7 +53,7 @@ class PGSymmetry(Element):
     structure [[W,w],[0,1]].
     """
 
-    def __pre_init__(self, W: Array, w: Optional[Array] = None) -> tuple[tuple, dict]:
+    def __pre_init__(self, W: Array, w: Array | None = None) -> tuple[tuple, dict]:
         W = np.asarray(W)
         if W.ndim != 2 or W.shape[0] != W.shape[1]:
             raise ValueError("W must be a 2D square matrix")
@@ -187,7 +186,7 @@ def _origin_trans(W: Array, w: Array) -> tuple[Array, Array]:
     return origin.real, trans.real
 
 
-def _2D_name(W: Array, w: Optional[Array]) -> str:
+def _2D_name(W: Array, w: Array | None) -> str:
     if W.shape != (2, 2):
         raise ValueError("This function names 2D symmetries")
 
@@ -223,7 +222,7 @@ def _2D_name(W: Array, w: Optional[Array]) -> str:
         raise ValueError("W must be an orthogonal matrix")
 
 
-def _3D_name(W: Array, w: Optional[Array] = None) -> str:
+def _3D_name(W: Array, w: Array | None = None) -> str:
     if W.shape != (3, 3):
         raise ValueError("This function names 3D symmetries")
 
@@ -372,7 +371,7 @@ class PointGroup(FiniteGroup):
     ndim: int
     """Dimensionality of point group operations."""
 
-    unit_cell: Optional[Array] = None
+    unit_cell: Array | None = None
     """Lattice vectors of the unit cell on which the point group acts.
     It is used to match non-symmorphic symmetries modulo lattice translations."""
 

@@ -18,7 +18,6 @@
 import numpy as np
 from functools import reduce
 from math import pi
-from typing import Optional
 from collections.abc import Iterable, Sequence
 
 from .lattice import Lattice
@@ -169,7 +168,7 @@ class SpaceGroupBuilder:
         )
 
     def translation_group(
-        self, axes: Optional[Union[int, Sequence[int]]] = None
+        self, axes: Union[int, Sequence[int]] | None = None
     ) -> PermutationGroup:
         """
         The group of valid translations of `self.lattice` as a `PermutationGroup`

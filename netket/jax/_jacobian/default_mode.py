@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
+from collections.abc import Callable
 from functools import partial
 import warnings
 
@@ -60,10 +60,10 @@ HolomorphicMode = JacobianMode("holomorphic")
 def jacobian_default_mode(
     apply_fun: Callable[[PyTree, Array], Array],
     pars: PyTree,
-    model_state: Optional[PyTree],
+    model_state: PyTree | None,
     samples: Array,
     *,
-    holomorphic: Optional[bool] = None,
+    holomorphic: bool | None = None,
     warn: bool = True,
 ) -> JacobianMode:
     """
