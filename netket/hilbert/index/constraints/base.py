@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-
 from functools import partial
 from typing import Callable
+import abc
+
+import numpy as np
 
 import jax
 import jax.numpy as jnp
@@ -27,6 +28,98 @@ from netket.utils.dispatch import dispatch
 
 from ..base import HilbertIndex
 from ..uniform_tensor import UniformTensorProductHilbertIndex
+
+
+class DiscreteHilbertConstraint(struct.Pytree):
+    r"""
+    Protocol to define an Abstract Constraint for a discete Hilbert space.
+
+    To define a customized constraint, you must subclass this class and at least implement the
+    :code:`__call__` method. The :code:`__call__` method should take as input a matrix encoding a batch of
+    configurations, and return a vector of booleans specifying whether they are valid configurations
+    or not.
+
+    The :code:`__call__` method must be :code:`jax.jit`-able. If you cannot make it jax-jittable, you can implement
+    it in numba/python and wrap it into a :func:`jax.pure_callback` to make it compatible with jax.
+
+    The callback should be hashable and comparable with itself, which means it must implement :code:`__hash__` and :code:`__eq__`.
+    By default, the :code:`__hash__` method is implemented by the `id` of the object, which is unique for each object,
+    which will work but might lead to more recompilations in jax. If you can, you should implement a custom :code:`__hash__`
+
+    Example:
+
+        The following example shows a class that implements a simple constraint checking that the total sum of the
+        elements in the configuration is equal to a given value. The example shows how to implement the :code:`__call__` method
+        and the :code:`__hash__` and :code:`__eq__` methods.
+
+        .. code-block:: python
+
+            import netket as nk
+            import jax; import jax.numpy as jnp
+
+            class SumConstraint(nk.hilbert.DiscreteHilbertConstraint):
+                # A simple constraint checking that the total sum of the elements
+                # in the configuration is equal to a given value.
+
+                def __init__(self, total_sum):
+                    self.total_sum = total_sum
+
+                def __call__(self, x):
+                    # Makes it jax-compatible
+                   return jnp.sum(x, axis=-1) == self.total_sum
+
+                def __hash__(self):
+                    return hash(("SumConstraint", self.total_sum))
+
+                def __eq__(self, other):
+                    if isinstance(other, SumConstraint):
+                        return self.total_sum == other.total_sum
+                    return False
+
+    Example:
+
+        The following example shows how to implement the same function as above, but using a pure python function and
+        a :func:`jax.pure_callback` to make it compatible with jax.
+
+        .. code-block:: python
+
+            import netket as nk
+            import jax; import jax.numpy as jnp
+
+            class SumConstraintPy(nk.hilbert.DiscreteHilbertConstraint):
+                # A simple constraint checking that the total sum of the elements
+                # in the configuration is equal to a given value.
+
+                def __init__(self, total_sum):
+                    self.total_sum = total_sum
+
+                def __call__(self, x):
+                    return jax.pure_callback(self._call_py, result_shape_dtypes=(jax.ShapeDtypeStruct(x.shape[:-1], bool), x, vectorized=True)
+
+                def _call_py(self, x):
+                    # Not Jax compatible
+                    return np.sum(x, axis=-1) == self.total_sum
+
+                def __hash__(self):
+                    return hash(("SumConstraint", self.total_sum))
+
+                def __eq__(self, other):
+                    if isinstance(other, SumConstraint):
+                        return self.total_sum == other.total_sum
+                    return False
+
+    """
+
+    @abc.abstractmethod
+    def __call__(self, x: jax.Array) -> jax.Array:
+        """
+        This function should take as input a matrix encoding a batch of configurations,
+        and return a vector of booleans specifying whether they are valid configurations of
+        the Hilbert space or not.
+
+        Args:
+            x: 2D matrix.
+        """
 
 
 @dispatch.abstract
@@ -56,7 +149,7 @@ class ConstrainedHilbertIndex(HilbertIndex):
     """
 
     unconstrained_index: HilbertIndex
-    constraint_fun: Callable[[Array], Array] = struct.field(pytree_node=False)
+    constraint_fun: DiscreteHilbertConstraint = struct.field(pytree_node=False)
 
     @property
     def _bare_numbers(self) -> Array:

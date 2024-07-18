@@ -76,7 +76,7 @@ class CustomHilbert(HomogeneousHilbert):
             >>> print(hi.size)
             100
         """
-        super().__init__(local_states, N, constraint_fn)
+        super().__init__(local_states, N, constraint_fn=constraint_fn)
 
     def _mul_sametype_(self, other):
         assert type(self) == type(other)
