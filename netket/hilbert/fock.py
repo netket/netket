@@ -114,7 +114,7 @@ class Fock(HomogeneousHilbert):
         return NotImplemented
 
     def _mul_sametype_(self, other: "Fock") -> "Fock":
-        assert type(self) == type(other)
+        assert type(self) is type(other)
         if self.n_max == other.n_max:
             if self._n_particles is None and other._n_particles is None:
                 return Fock(self.n_max, N=self.size + other.size)

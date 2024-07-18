@@ -109,7 +109,7 @@ class AbstractHilbert(abc.ABC):
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
-        if type(self) == type(other):
+        if type(self) is type(other):
             res = self._mul_sametype_(other)
             if res is not NotImplemented:
                 return res

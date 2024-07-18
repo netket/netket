@@ -98,7 +98,7 @@ class Spin(HomogeneousHilbert):
         return NotImplemented
 
     def _mul_sametype_(self, other):
-        assert type(self) == type(other)
+        assert type(self) is type(other)
         if self._s == other._s:
             if not self.constrained and not other.constrained:
                 return Spin(s=self._s, N=self.size + other.size)

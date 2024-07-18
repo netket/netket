@@ -44,7 +44,7 @@ class Qubit(HomogeneousHilbert):
         return Qubit(self.size * n)
 
     def _mul_sametype_(self, other):
-        assert type(self) == type(other)
+        assert type(self) is type(other)
         return Qubit(self.size + other.size)
 
     def ptrace(self, sites: int | list) -> Optional["Qubit"]:
