@@ -251,7 +251,7 @@ def TV_from_pyscf_molecule(
 
         >>> from pyscf import gto, scf, lo
         >>> import netket as nk
-        ... import netket.experimental as nkx
+        >>> import netket.experimental as nkx
         >>>
         >>> geometry = [("Li", (0.0, 0.0, -1.5109 / 2)), ("H", (0.0, 0.0, 1.5109 / 2))]
         >>> mol = gto.M(atom=geometry, basis="STO-3G")
@@ -308,7 +308,7 @@ def from_pyscf_molecule(
 
         >>> from pyscf import gto, scf, fci
         >>> import netket as nk
-        ... import netket.experimental as nkx
+        >>> import netket.experimental as nkx
         >>>
         >>> bond_length = 1.5109
         >>> geometry = [
@@ -335,7 +335,7 @@ def from_pyscf_molecule(
 
         >>> from pyscf import gto, scf, lo
         >>> import netket as nk
-        ... import netket.experimental as nkx
+        >>> import netket.experimental as nkx
         >>>
         >>> bond_length = 1.5109
         >>> geometry = [
