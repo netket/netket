@@ -351,8 +351,8 @@ def test_add_Ising_different_graphs():
 
     h12 = h1 + h2
     h13 = h1 + h3
-    assert isinstance(type(h12), nk.operator.Ising)
-    assert isinstance(type(h13), nk.operator.LocalOperator)
+    assert isinstance(h12, nk.operator.Ising)
+    assert isinstance(h13, nk.operator.LocalOperator)
     np.testing.assert_allclose(h12.to_dense(), h1.to_dense() + h2.to_dense())
     np.testing.assert_allclose(h13.to_dense(), h1.to_dense() + h3.to_dense())
     np.testing.assert_allclose((-h1).to_dense(), -h1.to_dense())
