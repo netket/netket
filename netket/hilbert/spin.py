@@ -21,7 +21,7 @@ from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
 
-from .index.constraints import SumConstraint
+from .index.constraints import DiscreteHilbertConstraint, SumConstraint
 
 
 def _check_total_sz(total_sz, S, size):
@@ -59,7 +59,9 @@ class Spin(HomogeneousHilbert):
         self,
         s: float,
         N: int = 1,
+        *,
         total_sz: Optional[float] = None,
+        constraint: Optional[DiscreteHilbertConstraint] = None,
     ):
         r"""Hilbert space obtained as tensor product of local spin states.
 
@@ -68,6 +70,9 @@ class Spin(HomogeneousHilbert):
            N: Number of sites (default=1)
            total_sz: If given, constrains the total spin of system to a particular
                 value.
+          constraint: A custom constraint on the allowed configurations. This argument
+                cannot be specified at the same time as :code:`total_sz`. The constraint
+                must be a subclass of :class:`~netket.hilbert.DiscreteHilbertConstraint`.
 
         Examples:
            Simple spin hilbert space.
@@ -87,14 +92,17 @@ class Spin(HomogeneousHilbert):
 
         _check_total_sz(total_sz, s, N)
         if total_sz is not None:
-            constraints = SumConstraint(round(2 * total_sz))
-        else:
-            constraints = None
+            if constraint is not None:
+                raise ValueError(
+                    "Cannot specify at the same time a total magnetization "
+                    "constraint and a `custom_constraint."
+                )
+            constraint = SumConstraint(round(2 * total_sz))
 
         self._total_sz = total_sz
         self._s = s
 
-        super().__init__(local_states, N, constraints)
+        super().__init__(local_states, N, constraint=constraint)
 
     def __pow__(self, n):
         if not self.constrained:
@@ -120,10 +128,8 @@ class Spin(HomogeneousHilbert):
                     f"Site {site} not in this hilbert space of site {self.size}"
                 )
 
-        if self._total_sz is not None:
-            raise TypeError(
-                "Cannot take the partial trace with a total magnetization constraint."
-            )
+        if self.constrained:
+            raise TypeError("Cannot take the partial trace with a constraint.")
 
         Nsites = len(sites)
 
@@ -133,8 +139,13 @@ class Spin(HomogeneousHilbert):
             return Spin(s=self._s, N=self.size - Nsites)
 
     def __repr__(self):
-        total_sz = f", total_sz={self._total_sz}" if self._total_sz is not None else ""
-        return f"Spin(s={Fraction(self._s)}{total_sz}, N={self.size})"
+        if self._total_sz is not None:
+            constraint = f", total_sz={self._total_sz}"
+        elif self.constrained:
+            constraint = f", {self._constraint}"
+        else:
+            constraint = ""
+        return f"Spin(s={Fraction(self._s)}, N={self.size}{constraint})"
 
     @property
     def _attrs(self):
