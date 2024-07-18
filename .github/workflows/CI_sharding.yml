@@ -58,7 +58,6 @@ jobs:
       - name: Pip install packages
         run: |
           pip install uv
-          uv pip install --system jaxlib
           uv pip install --system -e ".[dev,extra]"
 
       - name: run tests

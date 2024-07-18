@@ -39,13 +39,13 @@ To get help, please open an issue pasting the output of `python -m netket.tools.
 
 ## GPU support
 
-If you want to run NetKet on a GPU, you must install a GPU-compatible {code}`jaxlib`, which is only supported on Linux and requires `CUDA>=11` and `cuDNN>=8.2`.
+If you want to run NetKet on a GPU, you must install a GPU-compatible {code}`jaxlib`, which is only supported on Linux and requires `CUDA>=12` and `cuDNN>=9.0`.
 We advise you to look at the instructions on [jax repository](https://github.com/google/jax#pip-installation-gpu-cuda) because they change from time to time.
 At the time of writing, installing a GPU version of jaxlib is as simple as running the following command, assuming you have very recent versions of `CUDA` and `cuDNN`.
 
 ```bash
 pip install --upgrade pip
-pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip install --upgrade "jax[cuda12]"
 ```
 
 Where the jaxlib version must correspond to the version of the existing CUDA installation you want to use. 
@@ -125,19 +125,16 @@ This is because `cuda12` installs CUDA through pip, which does not include the n
 Conda is a great package manager as long as it works. 
 But when it does not, it's a pain.
 
-To install NetKet using conda, simply run
+NetKet is not supported if installed through Conda. 
+You should install it through `pip` and that's it.
+
+Running the well-known command below
 
 ```bash
 conda install -c conda-forge netket
 ```
 
-This will also install the conda MPI compilers and the MPI-related dependencies. 
-This often creates problems if you also have a system MPI. 
-Moreover, you should never use conda's MPI on a supercomputing cluster.
-
-In general, we advise against using conda or conda environments to install NetKet unless someone is pointing a gun at you.
-If you don't want to die from that bullet, but would rather loose your mental sanity fighting conda, do expect weird setup errors.
-
+will apaprently work, but we are no longer supporting the netket version installed through it so weird errors might appear.
 
 ## Introduction
 

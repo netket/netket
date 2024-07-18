@@ -72,7 +72,6 @@ jobs:
         if: ${{ ! matrix.oldest_deps }}
         run: |
           pip install uv
-          uv pip install --system jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
             uv pip install --system -e ".[dev,extra,pyscf]"
           else
