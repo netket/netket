@@ -23,8 +23,11 @@ from tqdm.auto import tqdm
 
 import jax
 
+from flax import serialization
+
 from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
+from netket import stats as nkstats
 from netket.utils import mpi, timing
 from netket.utils.types import Optimizer, PyTree
 from netket.vqs import VariationalState
@@ -85,6 +88,7 @@ class AbstractVariationalDriver(abc.ABC):
         variational_state: VariationalState,
         optimizer: Optimizer,
         minimized_quantity_name: str = "loss",
+        checkpointer=None,
     ):
         """
         Initializes a variational optimization driver.
@@ -108,6 +112,10 @@ class AbstractVariationalDriver(abc.ABC):
 
         self._variational_state = variational_state
         self.optimizer = optimizer
+
+        self._checkpoint_mgr = checkpointer
+        if checkpointer is not None and self._loss_stats is not None:
+            self._loss_stats = nkstats.Stats()
 
     def _forward_and_backward(self) -> PyTree:  # pragma: no cover
         """
@@ -194,6 +202,7 @@ class AbstractVariationalDriver(abc.ABC):
     @optimizer.setter
     def optimizer(self, optimizer):
         self._optimizer = optimizer
+        self._optimizer_state = None
         if optimizer is not None:
             self._optimizer_state = optimizer.init(self.state.parameters)
 
@@ -355,6 +364,8 @@ class AbstractVariationalDriver(abc.ABC):
                         if mpi.mpi_any(callback_stop):
                             break
 
+                    self.checkpoint()
+
                     # Reset the timing of tqdm after the first step, to ignore compilation time
                     if first_step:
                         first_step = False
@@ -377,7 +388,62 @@ class AbstractVariationalDriver(abc.ABC):
             if self._is_root:
                 print(timer)
 
+        self.checkpoint(sync=True)
+
         return loggers
+
+    def checkpoint(self, *, sync: bool = False):
+        if self._checkpoint_mgr is None:
+            return
+
+        import orbax.checkpoint as ocp
+
+        state = self._checkpoint_state()
+        state_leafs, _ = jax.tree_util.tree_flatten(state)
+        self._checkpoint_mgr.save(
+            self.step_count, args=ocp.args.PyTreeSave(state_leafs)
+        )
+
+        if sync:
+            self._checkpoint_mgr.wait_until_finished()
+
+    def restore_checkpoint(self, step=None):
+        if step is None:
+            step = self._checkpoint_mgr.latest_step()
+        import orbax.checkpoint as ocp
+
+        target_state = self._checkpoint_state()
+        target_state_leafs, target_state_treedef = jax.tree_util.tree_flatten(
+            target_state
+        )
+        restore_data_leafs = self._checkpoint_mgr.restore(
+            step, args=ocp.args.PyTreeRestore(target_state_leafs)
+        )
+        restore_data = jax.tree_util.tree_unflatten(
+            target_state_treedef, restore_data_leafs
+        )
+
+        vstate = serialization.from_state_dict(
+            self.state, restore_data.pop("_variational_state")
+        )
+        for k, v in vstate.__dict__.items():
+            self.state.__dict__[k] = v
+
+        restore_data["_optimizer_state"] = serialization.from_state_dict(
+            self._optimizer_state, restore_data.pop("_optimizer_state")
+        )
+        for k, v in restore_data.items():
+            self.__dict__[k] = v
+
+    def _checkpoint_state(self) -> dict:
+        state = {
+            "_variational_state": serialization.to_state_dict(self._variational_state),
+            "_optimizer_state": serialization.to_state_dict(self._optimizer_state),
+            "_step_count": self._step_count,
+        }
+        if self._loss_name is not None:
+            state["_loss_stats"]: self._loss_stats
+        return state
 
     def estimate(self, observables):
         """
