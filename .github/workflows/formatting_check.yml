@@ -25,5 +25,5 @@ jobs:
         uses: chartboost/ruff-action@v1
         with:
           version: 0.5.2
-          args: --config pyproject.toml
+          args: --config pyproject.toml check
           src: netket test Examples
