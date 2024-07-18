@@ -14,11 +14,7 @@
 
 from netket.utils.dispatch import dispatch
 
-from netket.operator import (
-    AbstractSuperOperator,
-    DiscreteOperator,
-    Squared,
-)
+from netket.operator import AbstractSuperOperator, DiscreteOperator, Squared
 
 from netket.vqs.mc import kernels, get_local_kernel
 

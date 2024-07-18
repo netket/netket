@@ -314,10 +314,7 @@ class ParallelTemperingSampler(MetropolisSampler):
         )
 
         return ParallelTemperingSamplerState(
-            σ=σ,
-            rng=key_state,
-            rule_state=rule_state,
-            beta=beta,
+            σ=σ, rng=key_state, rule_state=rule_state, beta=beta
         )
 
     @partial(jax.jit, static_argnums=1)
@@ -470,9 +467,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             # swap acceptances
             swapped_n_accepted_per_beta = swap_rows(n_accepted_per_beta, idxs, inn)
             s["n_accepted_per_beta"] = jax.numpy.where(
-                do_swap,
-                swapped_n_accepted_per_beta,
-                n_accepted_per_beta,
+                do_swap, swapped_n_accepted_per_beta, n_accepted_per_beta
             )
 
             # Update statistics to compute diffusion coefficient of replicas

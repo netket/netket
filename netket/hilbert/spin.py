@@ -55,12 +55,7 @@ def _check_total_sz(total_sz, S, size):
 class Spin(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
-    def __init__(
-        self,
-        s: float,
-        N: int = 1,
-        total_sz: float | None = None,
-    ):
+    def __init__(self, s: float, N: int = 1, total_sz: float | None = None):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:

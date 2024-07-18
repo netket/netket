@@ -226,10 +226,7 @@ def _expect_bwd(n_chains, chunk_size, in_axes, log_pdf, expected_fun, residuals,
 
     else:
         if in_axes is None:
-            in_axes = (
-                None,
-                0,
-            ) + tuple(None for _ in cost_args)
+            in_axes = (None, 0) + tuple(None for _ in cost_args)
 
         def chunked_f(ΔL_σ, pars, σ, *cost_args):
             log_p = apply_chunked(log_pdf, chunk_size=chunk_size, in_axes=(None, 0))(

@@ -22,11 +22,7 @@ from netket.nn import split_array_mpi
 
 from .qgt_jacobian_dense import QGTJacobianDenseT
 from .qgt_jacobian_pytree import QGTJacobianPyTreeT
-from .qgt_jacobian_common import (
-    sanitize_diag_shift,
-    to_shift_offset,
-    rescale,
-)
+from .qgt_jacobian_common import sanitize_diag_shift, to_shift_offset, rescale
 
 
 @timing.timed
@@ -70,11 +66,7 @@ def QGTJacobian_DefaultConstructor(
 
     if mode is None:
         mode = nkjax.jacobian_default_mode(
-            apply_fun,
-            parameters,
-            model_state,
-            samples,
-            holomorphic=holomorphic,
+            apply_fun, parameters, model_state, samples, holomorphic=holomorphic
         )
 
     if pdf is not None:

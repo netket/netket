@@ -83,10 +83,7 @@ class LocalOperator(LocalOperatorBase):
         self._setup()
 
         x = concrete_or_error(
-            np.asarray,
-            x,
-            NumbaOperatorGetConnDuringTracingError,
-            self,
+            np.asarray, x, NumbaOperatorGetConnDuringTracingError, self
         )
 
         return self._get_conn_flattened_kernel(
@@ -283,10 +280,7 @@ class LocalOperator(LocalOperatorBase):
         self._setup()
 
         x = concrete_or_error(
-            np.asarray,
-            x,
-            NumbaOperatorGetConnDuringTracingError,
-            self,
+            np.asarray, x, NumbaOperatorGetConnDuringTracingError, self
         )
 
         return self._get_conn_filtered_kernel(

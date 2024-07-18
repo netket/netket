@@ -130,10 +130,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self._integrator_constructor = integrator
 
         self._integrator = integrator(
-            self._odefun,
-            t0,
-            self.state.parameters,
-            norm=self.error_norm,
+            self._odefun, t0, self.state.parameters, norm=self.error_norm
         )
 
     @property
@@ -329,10 +326,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         t_end = np.asarray(self.t + T)
 
         with tqdm(
-            total=t_end,
-            disable=not show_progress,
-            unit_scale=True,
-            dynamic_ncols=True,
+            total=t_end, disable=not show_progress, unit_scale=True, dynamic_ncols=True
         ) as pbar:
             first_step = True
 
@@ -347,11 +341,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
 
                 pbar.n = min(np.asarray(self._integrator.t), t_end)
                 self._postfix["n"] = self.step_count
-                self._postfix.update(
-                    {
-                        self._loss_name: str(self._loss_stats),
-                    }
-                )
+                self._postfix.update({self._loss_name: str(self._loss_stats)})
 
                 pbar.set_postfix(self._postfix)
                 pbar.refresh()
@@ -365,11 +355,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                     self._postfix = {"n": self.step_count}
                     # if the cost-function is defined then report it in the progress bar
                     if self._loss_stats is not None:
-                        self._postfix.update(
-                            {
-                                self._loss_name: str(self._loss_stats),
-                            }
-                        )
+                        self._postfix.update({self._loss_name: str(self._loss_stats)})
                         log_data[self._loss_name] = self._loss_stats
                     pbar.set_postfix(self._postfix)
 
@@ -489,8 +475,7 @@ def odefun_host_callback(state, driver, *args, **kwargs):
         return odefun(state, driver, *args, **kwargs)
 
     result_shape = jax.tree_util.tree_map(
-        lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
-        state.parameters,
+        lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), state.parameters
     )
 
     return jax.pure_callback(

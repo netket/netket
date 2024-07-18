@@ -111,13 +111,7 @@ def check_chunk_size(chunk_argnums, chunk_size, *primals):
 
 
 def _vjp_chunked(
-    fun,
-    has_aux,
-    chunk_argnums,
-    chunk_size,
-    nondiff_argnums,
-    return_forward,
-    conjugate,
+    fun, has_aux, chunk_argnums, chunk_size, nondiff_argnums, return_forward, conjugate
 ):
     assert chunk_size is not None
 

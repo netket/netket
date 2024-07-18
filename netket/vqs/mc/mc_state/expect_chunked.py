@@ -37,11 +37,7 @@ from netket.operator._abstract_observable import AbstractObservable
 
 from netket.vqs import expect
 
-from netket.vqs.mc import (
-    kernels,
-    get_local_kernel,
-    get_local_kernel_arguments,
-)
+from netket.vqs.mc import kernels, get_local_kernel, get_local_kernel_arguments
 
 from .state import MCState
 

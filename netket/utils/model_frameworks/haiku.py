@@ -104,7 +104,5 @@ def register_serialization_functions():
             return haiku.data_structures.to_immutable_dict(flat_mapping)
 
         serialization.register_serialization_state(
-            FlatMappingType,
-            serialize_flat_mapping,
-            deserialize_flat_mapping,
+            FlatMappingType, serialize_flat_mapping, deserialize_flat_mapping
         )

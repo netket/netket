@@ -27,12 +27,7 @@ from netket.utils.types import Array, Union
 from netket.utils.float import prune_zeros
 from netket.utils.dispatch import dispatch
 
-from netket.utils.group import (
-    Identity,
-    PointGroup,
-    Permutation,
-    PermutationGroup,
-)
+from netket.utils.group import Identity, PointGroup, Permutation, PermutationGroup
 
 
 class Translation(Permutation):

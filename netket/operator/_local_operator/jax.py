@@ -348,6 +348,4 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
     def to_pauli_strings(self) -> "PauliStringsJax":  # noqa: F821
         """Convert to PauliStrings object"""
-        return super().to_pauli_strings(
-            cls=PauliStringsJax,
-        )
+        return super().to_pauli_strings(cls=PauliStringsJax)

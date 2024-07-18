@@ -318,10 +318,7 @@ class MetropolisSampler(Sampler):
             n_chains_per_rank = 16
 
         n_chains = _round_n_chains_to_next_multiple(
-            n_chains,
-            n_chains_per_rank,
-            device_count(),
-            "rank",
+            n_chains, n_chains_per_rank, device_count(), "rank"
         )
         n_chains_per_rank = n_chains // device_count()
 
@@ -331,11 +328,7 @@ class MetropolisSampler(Sampler):
             )
         self.chunk_size = chunk_size
 
-        super().__init__(
-            hilbert=hilbert,
-            machine_pow=machine_pow,
-            dtype=dtype,
-        )
+        super().__init__(hilbert=hilbert, machine_pow=machine_pow, dtype=dtype)
 
         self.n_chains = n_chains
         self.reset_chains = reset_chains

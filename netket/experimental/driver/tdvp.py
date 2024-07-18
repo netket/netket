@@ -21,12 +21,7 @@ import netket as nk
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
-from netket.vqs import (
-    VariationalState,
-    VariationalMixedState,
-    MCState,
-    FullSumState,
-)
+from netket.vqs import VariationalState, VariationalMixedState, MCState, FullSumState
 from netket.jax import tree_cast
 
 from netket.experimental.dynamics import RKIntegratorConfig
@@ -136,9 +131,7 @@ def odefun_tdvp(  # noqa: F811
 
     op_t = driver.generator(t)
 
-    driver._loss_stats, driver._loss_forces = state.expect_and_forces(
-        op_t,
-    )
+    driver._loss_stats, driver._loss_forces = state.expect_and_forces(op_t)
     driver._loss_grad = _map_parameters(
         driver._loss_forces,
         state.parameters,
@@ -163,9 +156,7 @@ def odefun_tdvp(  # noqa: F811
 @partial(jax.jit, static_argnums=(3, 4))
 def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
     forces = jax.tree_util.tree_map(
-        lambda x, target: loss_grad_factor * x,
-        forces,
-        parameters,
+        lambda x, target: loss_grad_factor * x, forces, parameters
     )
 
     forces = tree_cast(forces, parameters)

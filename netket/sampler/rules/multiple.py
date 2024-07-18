@@ -128,10 +128,7 @@ class MultipleRules(MetropolisRule):
             log_prob_corrs.append(log_prob_corr_i)
 
         indices = jax.random.choice(
-            keys[-1],
-            N,
-            shape=(sampler.n_batches,),
-            p=self.probabilities,
+            keys[-1], N, shape=(sampler.n_batches,), p=self.probabilities
         )
 
         # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing

@@ -77,10 +77,7 @@ class LSTMCell(RNNCell):
             self.param_dtype,
         )
         bias = self.param(
-            "bias",
-            self.bias_init,
-            (self.features * 4,),
-            self.param_dtype,
+            "bias", self.bias_init, (self.features * 4,), self.param_dtype
         )
 
         in_cat, kernel, bias = promote_dtype(in_cat, kernel, bias, dtype=None)
@@ -124,10 +121,7 @@ class GRU1DCell(RNNCell):
             self.param_dtype,
         )
         rz_bias = self.param(
-            "rz_bias",
-            self.bias_init,
-            (self.features * 2,),
-            self.param_dtype,
+            "rz_bias", self.bias_init, (self.features * 2,), self.param_dtype
         )
         n_kernel = self.param(
             "n_kernel",
@@ -135,12 +129,7 @@ class GRU1DCell(RNNCell):
             (in_features + hid_features, self.features),
             self.param_dtype,
         )
-        n_bias = self.param(
-            "n_bias",
-            self.bias_init,
-            (self.features),
-            self.param_dtype,
-        )
+        n_bias = self.param("n_bias", self.bias_init, (self.features), self.param_dtype)
 
         in_cat, rz_kernel, rz_bias, n_kernel, n_bias = promote_dtype(
             in_cat, rz_kernel, rz_bias, n_kernel, n_bias, dtype=None

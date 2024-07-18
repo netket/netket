@@ -27,11 +27,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.tree_util import Partial
-from jax.sharding import (
-    Mesh,
-    PartitionSpec as P,
-    PositionalSharding,
-)
+from jax.sharding import Mesh, PartitionSpec as P, PositionalSharding
 from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
 
@@ -100,14 +96,7 @@ def replicate_sharding_decorator_for_get_conn_padded(f):
                     xp, mels = f(self, s.data)
                     xp_mels_np.append((xp, mels))
                     n_conn_dev.append(
-                        jax.device_put(
-                            np.array(
-                                [
-                                    mels.shape[-1],
-                                ]
-                            ),
-                            s.device,
-                        )
+                        jax.device_put(np.array([mels.shape[-1]]), s.device)
                     )
                 # numba might pad every x differently, so here we pad all to the common max over devices and all processes
                 n_conn = jax.make_array_from_single_device_arrays(
@@ -201,9 +190,7 @@ def distribute_to_devices_along_axis(
             if pad_value is not None and n_pad > 0:
                 inp_data = inp_data.at[-n_pad:].set(pad_value)
 
-        shape = [
-            1,
-        ] * inp_data.ndim
+        shape = [1] * inp_data.ndim
         shape[axis] = -1
         sharding = PositionalSharding(devices).reshape(shape)
         out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)

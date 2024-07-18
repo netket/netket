@@ -84,15 +84,11 @@ def test_gcnn(mode, complex_output):
     )
 
     vs = nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi, n_chains=2, sweep_size=2),
-        ma,
-        n_samples=8,
+        nk.sampler.MetropolisLocal(hi, n_chains=2, sweep_size=2), ma, n_samples=8
     )
 
     vmc = nk.VMC(
-        nk.operator.Ising(hi, g, h=1.0),
-        nk.optimizer.Sgd(0.1),
-        variational_state=vs,
+        nk.operator.Ising(hi, g, h=1.0), nk.optimizer.Sgd(0.1), variational_state=vs
     )
     vmc.advance(1)
 
@@ -107,27 +103,15 @@ def test_gcnn_mask():
     hidden_mask = np.concatenate((np.zeros(4), np.ones(4)), 0)
 
     ma1 = nk.models.GCNN(
-        symmetries=g,
-        layers=2,
-        features=2,
-        input_mask=None,
-        hidden_mask=None,
+        symmetries=g, layers=2, features=2, input_mask=None, hidden_mask=None
     )
 
     ma2 = nk.models.GCNN(
-        symmetries=g,
-        layers=2,
-        features=2,
-        input_mask=input_mask,
-        hidden_mask=None,
+        symmetries=g, layers=2, features=2, input_mask=input_mask, hidden_mask=None
     )
 
     ma3 = nk.models.GCNN(
-        symmetries=g,
-        layers=2,
-        features=2,
-        input_mask=None,
-        hidden_mask=hidden_mask,
+        symmetries=g, layers=2, features=2, input_mask=None, hidden_mask=hidden_mask
     )
 
     vstate1 = nk.vqs.MCState(sampler=sa, model=ma1)
@@ -151,23 +135,13 @@ def test_GCNN_creation(mode):
     perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
 
     # Init with graph
-    check_init(
-        lambda: nk.models.GCNN(
-            symmetries=g,
-            mode=mode,
-            layers=2,
-            features=4,
-        )
-    )
+    check_init(lambda: nk.models.GCNN(symmetries=g, mode=mode, layers=2, features=4))
 
     # init with space_group
     if mode == "irreps":
         check_init(
             lambda: nk.models.GCNN(
-                symmetries=space_group,
-                mode=mode,
-                layers=2,
-                features=4,
+                symmetries=space_group, mode=mode, layers=2, features=4
             )
         )
     else:
@@ -204,13 +178,7 @@ def test_GCNN_creation(mode):
 
     # forget irreps/product table
     with pytest.raises(ValueError):
-        check_init(
-            lambda: nk.models.GCNN(
-                symmetries=perms[0],
-                layers=2,
-                features=4,
-            )
-        )
+        check_init(lambda: nk.models.GCNN(symmetries=perms[0], layers=2, features=4))
 
     # need to specify shape
     if mode == "fft":

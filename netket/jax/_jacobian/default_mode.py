@@ -124,9 +124,7 @@ def jacobian_default_mode(
             if not leaf_isreal:
                 if holomorphic is None and warn:
                     warnings.warn(
-                        HolomorphicUndeclaredWarning(),
-                        UserWarning,
-                        stacklevel=2,
+                        HolomorphicUndeclaredWarning(), UserWarning, stacklevel=2
                     )
                 mode = ComplexMode
             else:

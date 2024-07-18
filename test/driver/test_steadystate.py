@@ -78,9 +78,7 @@ def test_estimate():
 
 def test_raise_n_iter():
     lind, _, driver = _setup_ss()
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         driver.run("prova", 12)
 
 

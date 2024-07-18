@@ -45,10 +45,7 @@ class AbstractHilbert(abc.ABC):
         raise NotImplementedError()  # pragma: no cover
 
     def random_state(
-        self,
-        key=None,
-        size: int | None = None,
-        dtype=np.float32,
+        self, key=None, size: int | None = None, dtype=np.float32
     ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
         Runs as :code:`random_state(self, key, size=None, dtype=np.float32)` by default.

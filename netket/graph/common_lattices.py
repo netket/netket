@@ -442,10 +442,7 @@ def Honeycomb(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice
         18
     """
     return _hexagonal_general(
-        extent,
-        site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]],
-        pbc=pbc,
-        **kwargs,
+        extent, site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]], pbc=pbc, **kwargs
     )
 
 

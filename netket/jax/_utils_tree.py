@@ -212,9 +212,7 @@ class RealImagTuple(tuple):
 
 
 register_pytree_node(
-    RealImagTuple,
-    lambda xs: (xs, None),
-    lambda _, xs: RealImagTuple(xs),
+    RealImagTuple, lambda xs: (xs, None), lambda _, xs: RealImagTuple(xs)
 )
 
 

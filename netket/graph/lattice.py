@@ -189,16 +189,11 @@ class Lattice(Graph):
             >>> from netket.graph import Lattice
             >>> # Hexagonal lattice basis
             >>> sqrt3 = np.sqrt(3.0)
-            >>> basis = np.array([
-            ...     [1.0, 0.0],
-            ...     [0.5, sqrt3 / 2.0],
-            ... ])
+            >>> basis = np.array([[1.0, 0.0], [0.5, sqrt3 / 2.0]])
             >>> # Kagome unit cell
-            >>> cell = np.array([
-            ...     basis[0] / 2.0,
-            ...     basis[1] / 2.0,
-            ...     (basis[0]+basis[1])/2.0
-            ... ])
+            >>> cell = np.array(
+            ...     [basis[0] / 2.0, basis[1] / 2.0, (basis[0] + basis[1]) / 2.0]
+            ... )
             >>> g = Lattice(basis_vectors=basis, site_offsets=cell, extent=[3, 3])
             >>> print(g.n_nodes)
             27
@@ -221,16 +216,11 @@ class Lattice(Graph):
 
             >>> import numpy as np
             >>> from netket.graph import Lattice
-            >>> basis = np.array([
-            ...     [1.0,0.0],
-            ...     [0.0,0.5],
-            ... ])
-            >>> custom_edges = [
-            ...     (0, 0, [1.0,0.0], 0),
-            ...     (0, 0, [0.0,0.5], 1),
-            ... ]
-            >>> g = Lattice(basis_vectors=basis, pbc=False, extent=[4,6],
-            ...     custom_edges=custom_edges)
+            >>> basis = np.array([[1.0, 0.0], [0.0, 0.5]])
+            >>> custom_edges = [(0, 0, [1.0, 0.0], 0), (0, 0, [0.0, 0.5], 1)]
+            >>> g = Lattice(
+            ...     basis_vectors=basis, pbc=False, extent=[4, 6], custom_edges=custom_edges
+            ... )
             >>> print(g.n_nodes)
             24
             >>> print(len(g.edges(filter_color=0)))
@@ -243,8 +233,7 @@ class Lattice(Graph):
         self._ndim = self._basis_vectors.shape[1]
 
         self._site_offsets, site_pos_fractional = self._clean_site_offsets(
-            site_offsets,
-            self._basis_vectors,
+            site_offsets, self._basis_vectors
         )
         self._pbc = self._clean_pbc(pbc, self._ndim)
 
@@ -256,9 +245,7 @@ class Lattice(Graph):
 
         # Generate sites
         self._sites, self._basis_coords, self._positions = _create_sites(
-            self._basis_vectors,
-            self._extent,
-            self._site_offsets,
+            self._basis_vectors, self._extent, self._site_offsets
         )
         self._basis_coord_to_site = {
             HashableArray(p.basis_coord): p.id for p in self._sites

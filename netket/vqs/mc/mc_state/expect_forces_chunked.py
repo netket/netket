@@ -29,10 +29,7 @@ from netket.utils import mpi
 from netket.utils.types import PyTree
 
 from netket.vqs import expect_and_forces
-from netket.vqs.mc import (
-    get_local_kernel,
-    get_local_kernel_arguments,
-)
+from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
 
 from .state import MCState
 
@@ -40,9 +37,7 @@ from .state import MCState
 # If batch_size is unspecified, set it to None
 @expect_and_forces.dispatch
 def expect_and_forces_chunking_unspecified(  # noqa: F811
-    vstate: MCState,
-    operator: AbstractObservable,
-    **kwargs,
+    vstate: MCState, operator: AbstractObservable, **kwargs
 ):
     return expect_and_forces(vstate, operator, None, **kwargs)
 
@@ -50,11 +45,7 @@ def expect_and_forces_chunking_unspecified(  # noqa: F811
 # if no implementation exists for batched, run the code unbatched
 @expect_and_forces.dispatch(precedence=-10)
 def expect_and_forces_fallback(  # noqa: F811
-    vstate: MCState,
-    operator: AbstractObservable,
-    chunk_size: Any,
-    *args,
-    **kwargs,
+    vstate: MCState, operator: AbstractObservable, chunk_size: Any, *args, **kwargs
 ):
     warnings.warn(
         f"Ignoring chunk_size={chunk_size} for expect_and_forces method with signature "
@@ -141,9 +132,7 @@ def forces_expect_hermitian_chunked(
     else:
         raise NotImplementedError
 
-    Ō_grad = vjp_fun_chunked(
-        (jnp.conjugate(O_loc) / n_samples),
-    )[0]
+    Ō_grad = vjp_fun_chunked((jnp.conjugate(O_loc) / n_samples))[0]
 
     Ō_grad, _ = mpi.mpi_sum_jax(Ō_grad)
 

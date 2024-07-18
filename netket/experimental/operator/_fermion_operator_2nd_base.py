@@ -506,10 +506,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         `Normal ordering documentation <https://en.wikipedia.org/wiki/Normal_order#Fermions>`_
         """
         terms, weights = _normal_ordering(self.terms, self.weights)
-        new = type(self)(
-            self.hilbert,
-            dtype=self.dtype,
-        )
+        new = type(self)(self.hilbert, dtype=self.dtype)
         new._operators, _ = _canonicalize_input(
             terms, weights, self.dtype, self._cutoff
         )
@@ -524,10 +521,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         In this ordering, we make sure to account for the anti-commutation of operators.
         """
         terms, weights = _pair_ordering(self.terms, self.weights)
-        new = type(self)(
-            self.hilbert,
-            dtype=self.dtype,
-        )
+        new = type(self)(self.hilbert, dtype=self.dtype)
         new._operators, _ = _canonicalize_input(
             terms, weights, self.dtype, self._cutoff
         )

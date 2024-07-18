@@ -18,12 +18,7 @@ from functools import partial
 from netket.stats import subtract_mean
 from netket.utils import mpi
 from netket.jax import tree_conj, tree_axpy
-from netket.jax import (
-    scanmap,
-    scan_reduce,
-    scan_append,
-    chunk,
-)
+from netket.jax import scanmap, scan_reduce, scan_append, chunk
 from netket.jax.sharding import sharding_decorator
 
 # Stochastic Reconfiguration with jvp and vjp

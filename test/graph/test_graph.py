@@ -726,23 +726,13 @@ def test_graph_conversions():
 
     igraph = ig.Graph()
     igraph.add_vertices(3)
-    igraph.add_edges(
-        [(0, 1), (1, 2)],
-        attributes={
-            "color": ["red", "blue"],
-        },
-    )
+    igraph.add_edges([(0, 1), (1, 2)], attributes={"color": ["red", "blue"]})
     with pytest.raises(ValueError, match="not all colors are integers"):
         _ = Graph.from_igraph(igraph)
 
     igraph = ig.Graph()
     igraph.add_vertices(3)
-    igraph.add_edges(
-        [(0, 1), (1, 2)],
-        attributes={
-            "color": [0, 1],
-        },
-    )
+    igraph.add_edges([(0, 1), (1, 2)], attributes={"color": [0, 1]})
     g = Graph.from_igraph(igraph)
     assert g.edges(filter_color=0) == [(0, 1)]
     assert g.edges(filter_color=1) == [(1, 2)]

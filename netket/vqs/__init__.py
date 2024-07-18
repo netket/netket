@@ -32,7 +32,7 @@ _deprecations = {
     "ExactState": (
         "netket.vqs.ExactState is deprecated: use netket.vqs.FullSumState (netket >= 3.12)",
         FullSumState,
-    ),
+    )
 }
 
 from netket.utils import _hide_submodules

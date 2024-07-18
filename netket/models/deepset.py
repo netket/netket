@@ -4,11 +4,7 @@ import jax
 from jax import numpy as jnp
 from flax import linen as nn
 from netket.utils.types import NNInitFunc, DType
-from jax.nn.initializers import (
-    zeros,
-    ones,
-    lecun_normal,
-)
+from jax.nn.initializers import zeros, ones, lecun_normal
 
 from netket.hilbert import ContinuousHilbert
 import netket.nn as nknn
@@ -90,10 +86,7 @@ def _process_features_rho(features_input):
     else:
         if not hasattr(features_input, "__len__"):
             raise ValueError("features_rho must be a sequence of integers")
-        return (
-            *tuple(features_input),
-            1,
-        )
+        return (*tuple(features_input), 1)
 
 
 class DeepSetRelDistance(nn.Module):

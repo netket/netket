@@ -40,10 +40,7 @@ def _flip_daggers_split_cast_term_part(term, site_dtype, dagger_dtype):
 
 
 def prepare_terms_list(
-    operators,
-    site_dtype=np.uint32,
-    dagger_dtype=np.int8,
-    weight_dtype=jnp.float64,
+    operators, site_dtype=np.uint32, dagger_dtype=np.int8, weight_dtype=jnp.float64
 ):
     # return xp s.t. <x|O|xp> != 0
     # see https://github.com/netket/netket/issues/1385
@@ -596,10 +593,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
 
     def tree_flatten(self):
         self._setup()
-        data = (
-            self._terms_list_diag,
-            self._terms_list_offdiag,
-        )
+        data = (self._terms_list_diag, self._terms_list_offdiag)
         metadata = {
             "hilbert": self.hilbert,
             "operators": self._operators,

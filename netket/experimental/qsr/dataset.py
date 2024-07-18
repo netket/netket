@@ -365,11 +365,7 @@ class ProcessedQuantumDataset:
     def subsample(self, batch_size, *, rng, batch_sample_replace: bool = True):
         # sample training data for pos grad
         sampled_indices = np.sort(
-            rng.choice(
-                self.size,
-                size=(batch_size,),
-                replace=batch_sample_replace,
-            )
+            rng.choice(self.size, size=(batch_size,), replace=batch_sample_replace)
         )
 
         return self[sampled_indices]
@@ -393,11 +389,7 @@ class ProcessedQuantumDataset:
             )
 
         sigma_p, mels, secs, maxlen = _compose_sampled_data(
-            self.sigma_p,
-            self.mels,
-            self.secs,
-            self.max_len,
-            idx,
+            self.sigma_p, self.mels, self.secs, self.max_len, idx
         )
 
         return ProcessedQuantumDataset(

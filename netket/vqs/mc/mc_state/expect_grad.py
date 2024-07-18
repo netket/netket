@@ -25,10 +25,7 @@ from netket.stats import Stats
 from netket.utils import mpi, dispatch
 from netket.utils.types import PyTree
 
-from netket.operator import (
-    AbstractOperator,
-    Squared,
-)
+from netket.operator import AbstractOperator, Squared
 
 from netket.vqs import expect_and_grad, expect_and_forces
 
@@ -84,11 +81,7 @@ def expect_and_grad_squared_op(
 
 @dispatch.dispatch
 def expect_and_grad_nonhermitian(
-    vstate: MCState,
-    Ô,
-    chunk_size: None,
-    *,
-    mutable: CollectionFilter = False,
+    vstate: MCState, Ô, chunk_size: None, *, mutable: CollectionFilter = False
 ):
     if not isinstance(Ô, Squared) and not config.netket_experimental:
         raise RuntimeError(
@@ -169,8 +162,4 @@ def _grad_expect_nonherm_kernel(
         )
     new_model_state = None
 
-    return (
-        Ō_stats,
-        Ō_pars_grad,
-        new_model_state,
-    )
+    return (Ō_stats, Ō_pars_grad, new_model_state)

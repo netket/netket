@@ -100,13 +100,7 @@ class TableauRKExplicit:
         else:
             return self.order[1]
 
-    def _compute_slopes(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
+    def _compute_slopes(self, f: Callable, t: float, dt: float, y_t: Array):
         """Computes the intermediate slopes k_l."""
         times = t + self.c * dt
 
@@ -130,13 +124,7 @@ class TableauRKExplicit:
 
         return k
 
-    def step(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
+    def step(self, f: Callable, t: float, dt: float, y_t: Array):
         """Perform one fixed-size RK step from `t` to `t + dt`."""
         k = self._compute_slopes(f, t, dt, y_t)
 
@@ -151,13 +139,7 @@ class TableauRKExplicit:
 
         return y_tp1
 
-    def step_with_error(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
+    def step_with_error(self, f: Callable, t: float, dt: float, y_t: Array):
         """
         Perform one fixed-size RK step from `t` to `t + dt` and additionally return the
         error vector provided by the adaptive solver.

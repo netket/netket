@@ -40,10 +40,7 @@ from .activation import (
     reim,
 )
 
-from .symmetric_linear import (
-    DenseSymm,
-    DenseEquivariant,
-)
+from .symmetric_linear import DenseSymm, DenseEquivariant
 
 from .masked_linear import MaskedDense1D, MaskedConv1D, MaskedConv2D
 from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedConv2D

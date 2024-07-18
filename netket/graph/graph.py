@@ -33,9 +33,7 @@ class Graph(AbstractGraph):
     # Initialization
     # ------------------------------------------------------------------------
     def __init__(
-        self,
-        edges: Sequence[Edge] | Sequence[ColoredEdge],
-        n_nodes: int | None = None,
+        self, edges: Sequence[Edge] | Sequence[ColoredEdge], n_nodes: int | None = None
     ):
         """
         Construct the a graph starting from a list of edges and optionally a given
@@ -150,11 +148,7 @@ class Graph(AbstractGraph):
         return range(self._igraph.vcount())
 
     def edges(
-        self,
-        color=None,
-        *,
-        return_color: bool = False,
-        filter_color: int | None = None,
+        self, color=None, *, return_color: bool = False, filter_color: int | None = None
     ) -> EdgeSequence:
         if color is not None:
             warn_deprecation(

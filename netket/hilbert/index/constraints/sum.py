@@ -96,9 +96,7 @@ class SumConstrainedHilbertIndex(HilbertIndex):
             return jnp.zeros((1, self.size), dtype=jnp.int32)
         with jax.ensure_compile_time_eval():
             c = jnp.repeat(
-                jnp.eye(self.size, dtype=jnp.int32),
-                np.array(self.shape) - 1,
-                axis=0,
+                jnp.eye(self.size, dtype=jnp.int32), np.array(self.shape) - 1, axis=0
             )
             combs = jnp.array(
                 list(itertools.combinations(np.arange(len(c)), self.n_particles))

@@ -100,16 +100,7 @@ def number(
         The resulting FermionOperator2nd
     """
     idx = _get_index(hilbert, site, sz)
-    return _FermionOperator2nd(
-        hilbert,
-        (
-            (
-                (idx, 1),
-                (idx, 0),
-            ),
-        ),
-        dtype=dtype,
-    )
+    return _FermionOperator2nd(hilbert, (((idx, 1), (idx, 0)),), dtype=dtype)
 
 
 def _get_index(hilbert: _AbstractHilbert, site: int, sz: int | None = None):

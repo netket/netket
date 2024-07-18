@@ -395,6 +395,4 @@ def random(n, seed, cplx=False):
 
 @dispatch
 def product(A: FiniteGroup, B: FiniteGroup):
-    return FiniteGroup(
-        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
-    )
+    return FiniteGroup(elems=[a @ b for a, b in itertools.product(A.elems, B.elems)])

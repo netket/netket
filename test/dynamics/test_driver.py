@@ -75,7 +75,7 @@ all_integrators = fixed_step_integrators + adaptive_step_integrators
 nqs_models = [
     pytest.param(
         nk.models.RBM(alpha=1, param_dtype=np.complex128), id="RBM(complex128)"
-    ),
+    )
 ]
 
 
@@ -130,12 +130,7 @@ def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit
 def test_one_adaptive_schmitt(integrator, error_norm):
     with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", True):
         ha, vstate, _ = _setup_system(L=2)
-        te = nkx.driver.TDVPSchmitt(
-            ha,
-            vstate,
-            integrator,
-            error_norm=error_norm,
-        )
+        te = nkx.driver.TDVPSchmitt(ha, vstate, integrator, error_norm=error_norm)
         te.run(T=0.01, callback=_stop_after_one_step)
         assert te.t > 0.0
 
@@ -196,12 +191,7 @@ def test_dt_bounds():
 def test_stop_times(integrator):
     def make_driver():
         ha, vstate, _ = _setup_system(L=2)
-        return nkx.TDVP(
-            ha,
-            vstate,
-            integrator,
-            propagation_type="imag",
-        )
+        return nkx.TDVP(ha, vstate, integrator, propagation_type="imag")
 
     driver = make_driver()
     ts = []
@@ -267,11 +257,7 @@ def test_run_twice():
 
 def test_change_integrator():
     ha, vstate, _ = _setup_system(L=2)
-    driver = nkx.TDVP(
-        ha,
-        vstate,
-        nkx.dynamics.RK23(dt=0.01, adaptive=False),
-    )
+    driver = nkx.TDVP(ha, vstate, nkx.dynamics.RK23(dt=0.01, adaptive=False))
     driver.run(0.03)
     np.testing.assert_allclose(driver.t, 0.03)
 
@@ -286,11 +272,7 @@ def test_change_integrator():
 
 def test_change_norm():
     ha, vstate, _ = _setup_system(L=2)
-    driver = nkx.TDVP(
-        ha,
-        vstate,
-        nkx.dynamics.RK23(dt=0.01, adaptive=False),
-    )
+    driver = nkx.TDVP(ha, vstate, nkx.dynamics.RK23(dt=0.01, adaptive=False))
     driver.run(0.03)
 
     def norm(x):

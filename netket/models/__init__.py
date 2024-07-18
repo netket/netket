@@ -21,13 +21,7 @@ from .jastrow import Jastrow
 from .gaussian import Gaussian
 from .deepset import DeepSetRelDistance, DeepSetMLP
 from .ndm import NDM
-from .autoreg import (
-    AbstractARNN,
-    ARNNSequential,
-    ARNNDense,
-    ARNNConv1D,
-    ARNNConv2D,
-)
+from .autoreg import AbstractARNN, ARNNSequential, ARNNDense, ARNNConv1D, ARNNConv2D
 from .fast_autoreg import (
     FastARNNSequential,
     FastARNNDense,

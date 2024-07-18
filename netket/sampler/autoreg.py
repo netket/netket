@@ -52,10 +52,7 @@ class ARDirectSampler(Sampler):
     """
 
     def __init__(
-        self,
-        hilbert: DiscreteHilbert,
-        machine_pow: None = None,
-        dtype: DType = float,
+        self, hilbert: DiscreteHilbert, machine_pow: None = None, dtype: DType = float
     ):
         """
         Construct an autoregressive direct sampler.
@@ -120,11 +117,7 @@ class ARDirectSampler(Sampler):
             new_key, key = jax.random.split(key)
 
             p, mutables = model.apply(
-                variables,
-                σ,
-                index,
-                method=model.conditional,
-                mutable=["cache"],
+                variables, σ, index, method=model.conditional, mutable=["cache"]
             )
             cache = mutables.get("cache")
 

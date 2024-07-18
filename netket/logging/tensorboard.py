@@ -115,11 +115,7 @@ class TensorBoardLog(AbstractLog):
         >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/
     """
 
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, *args, **kwargs):
         self._init_args = args
         """Store the args for the lazily initialized SummaryWriter's constructor."""
         self._init_kwargs = kwargs

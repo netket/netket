@@ -140,11 +140,7 @@ def QGTOnTheFly_DefaultConstructor(
             mode = "complex"
 
     nkjax.jacobian_default_mode(
-        apply_fun,
-        parameters,
-        model_state,
-        samples,
-        holomorphic=holomorphic,
+        apply_fun, parameters, model_state, samples, holomorphic=holomorphic
     )
 
     mat_vec = mv_factory(
@@ -155,11 +151,7 @@ def QGTOnTheFly_DefaultConstructor(
         pdf=pdf,
     )
     return QGTOnTheFlyT(
-        _mat_vec=mat_vec,
-        _params=parameters,
-        _chunking=chunking,
-        _mode=mode,
-        **kwargs,
+        _mat_vec=mat_vec, _params=parameters, _chunking=chunking, _mode=mode, **kwargs
     )
 
 

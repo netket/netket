@@ -146,10 +146,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
             diag_scale = diag_scale(step)
 
         return self.qgt_constructor(
-            vstate,
-            diag_shift=diag_shift,
-            diag_scale=diag_scale,
-            **self.qgt_kwargs,
+            vstate, diag_shift=diag_shift, diag_scale=diag_scale, **self.qgt_kwargs
         )
 
     def __repr__(self):

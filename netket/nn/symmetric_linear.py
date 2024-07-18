@@ -500,7 +500,7 @@ class DenseEquivariantIrrep(Module):
         are replaced by a single dimension of length `n_symm`
         """
         return jnp.asarray(
-            jnp.tensordot(self.assemble(inputs), self.inverse, axes=1),
+            jnp.tensordot(self.assemble(inputs), self.inverse, axes=1)
             # Irrep matrices might be complex, so `result` might be complex
             # even if the inputs are real
         )

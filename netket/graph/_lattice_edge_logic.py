@@ -99,14 +99,7 @@ def get_naive_edges(positions, cutoff, order):
     return [sorted(list(zip(row[ii == k], col[ii == k]))) for k in range(order)]
 
 
-def get_nn_edges(
-    basis_vectors,
-    extent,
-    site_offsets,
-    pbc,
-    distance_atol,
-    order,
-):
+def get_nn_edges(basis_vectors, extent, site_offsets, pbc, distance_atol, order):
     """For :code:`order == k`, generates all edges between up to :math:`k`-nearest
     neighbor sites (measured by their Euclidean distance). Edges are colored by length
     with colors between 0 and `order - 1` in order of increasing length."""

@@ -37,9 +37,7 @@ def ignore_chunk_warning(vstate, operator, chunk_size, name=""):
 # If chunk size is unspecified, set it to None
 @expect_and_grad.dispatch
 def expect_and_grad_chunking_unspecified(  # noqa: F811
-    vstate: MCState,
-    operator: AbstractObservable,
-    **kwargs,
+    vstate: MCState, operator: AbstractObservable, **kwargs
 ):
     return expect_and_grad(vstate, operator, None, **kwargs)
 
@@ -61,10 +59,7 @@ def expect_and_grad_fallback(  # noqa: F811
 
 @expect_and_grad_nonhermitian.dispatch(precedence=-10)
 def expect_and_grad_nonhermitian_chunk_fallback(
-    vstate: MCState,
-    Ô,
-    chunk_size: Any,
-    **kwargs,
+    vstate: MCState, Ô, chunk_size: Any, **kwargs
 ):
     warnings.warn(
         ignore_chunk_warning(vstate, Ô, chunk_size, name="expect_and_grad_nonhermitian")

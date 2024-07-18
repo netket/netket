@@ -75,9 +75,7 @@ def lanczos_ed(
         # wrap the operator.to_linear_operator() in a scipy.sparse.linalg.LinearOperator
         n = operator.hilbert.n_states
         A = _LinearOperator(
-            (n, n),
-            operator.to_linear_operator().__matmul__,
-            dtype=operator.dtype,
+            (n, n), operator.to_linear_operator().__matmul__, dtype=operator.dtype
         )
     else:
         A = operator.to_sparse()

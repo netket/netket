@@ -33,10 +33,7 @@ class Fock(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local fock basis."""
 
     def __init__(
-        self,
-        n_max: int | None = None,
-        N: int = 1,
-        n_particles: int | None = None,
+        self, n_max: int | None = None, N: int = 1, n_particles: int | None = None
     ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites

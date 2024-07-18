@@ -60,10 +60,7 @@ def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwar
 
 
 def _chunk_vmapped_function(
-    vmapped_fun: Callable,
-    chunk_size: int | None,
-    argnums=0,
-    axis_0_is_sharded=False,
+    vmapped_fun: Callable, chunk_size: int | None, argnums=0, axis_0_is_sharded=False
 ) -> Callable:
     """takes a vmapped function and computes it in chunks"""
 

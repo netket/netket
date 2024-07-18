@@ -57,11 +57,7 @@ def expect(vstate: MCState, variance_operator: VarianceObservable, chunk_size: N
 
 @expect_and_grad.dispatch
 def expect_and_grad(
-    vstate: MCState,
-    variance_operator: VarianceObservable,
-    chunk_size: None,
-    *,
-    mutable,
+    vstate: MCState, variance_operator: VarianceObservable, chunk_size: None, *, mutable
 ):
     if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")

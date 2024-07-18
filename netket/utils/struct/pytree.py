@@ -245,23 +245,14 @@ class Pytree(metaclass=PytreeMeta):
         ):
             jax.tree_util.register_pytree_with_keys(
                 cls,
-                partial(
-                    cls._pytree__flatten,
-                    with_key_paths=True,
-                ),
+                partial(cls._pytree__flatten, with_key_paths=True),
                 cls._pytree__unflatten,
-                flatten_func=partial(
-                    cls._pytree__flatten,
-                    with_key_paths=False,
-                ),
+                flatten_func=partial(cls._pytree__flatten, with_key_paths=False),
             )
         else:
             jax.tree_util.register_pytree_with_keys(
                 cls,
-                partial(
-                    cls._pytree__flatten,
-                    with_key_paths=True,
-                ),
+                partial(cls._pytree__flatten, with_key_paths=True),
                 cls._pytree__unflatten,
             )
 
@@ -317,14 +308,8 @@ class Pytree(metaclass=PytreeMeta):
 
     @classmethod
     def _pytree__flatten(
-        cls,
-        pytree: "Pytree",
-        *,
-        with_key_paths: bool,
-    ) -> tuple[
-        tuple[tp.Any, ...],
-        tp.Mapping[str, tp.Any],
-    ]:
+        cls, pytree: "Pytree", *, with_key_paths: bool
+    ) -> tuple[tuple[tp.Any, ...], tp.Mapping[str, tp.Any]]:
         all_vars = vars(pytree).copy()
         static = {k: all_vars.pop(k) for k in pytree._pytree__static_fields}
 

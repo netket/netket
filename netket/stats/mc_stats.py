@@ -36,11 +36,7 @@ def _format_decimal(value, std, var):
             "{0:.{1}f}".format(var, decimals + 1),
         )
     else:
-        return (
-            f"{value:.3e}",
-            f"{std:.3e}",
-            f"{var:.3e}",
-        )
+        return (f"{value:.3e}", f"{std:.3e}", f"{var:.3e}")
 
 
 _NaN = float("NaN")

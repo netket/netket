@@ -180,9 +180,7 @@ class MPSOpen(nn.Module):
         unit_cell_shape = (L - 2, d, D, D)
 
         iden_tensors = jnp.repeat(
-            jnp.eye(D, dtype=self.param_dtype)[jnp.newaxis, :, :],
-            (L - 2) * d,
-            axis=0,
+            jnp.eye(D, dtype=self.param_dtype)[jnp.newaxis, :, :], (L - 2) * d, axis=0
         )
         iden_tensors = iden_tensors.reshape(L - 2, d, D, D)
         self.middle_tensors = (

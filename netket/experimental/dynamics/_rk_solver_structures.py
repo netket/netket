@@ -86,12 +86,7 @@ def set_flag_jax(condition, flags, flag):
         if condition:
             flags |= flag
     """
-    return jax.lax.cond(
-        condition,
-        lambda x: x | flag,
-        lambda x: x,
-        flags,
-    )
+    return jax.lax.cond(condition, lambda x: x | flag, lambda x: x, flags)
 
 
 def euclidean_norm(x: PyTree | Array):
@@ -118,8 +113,7 @@ def maximum_norm(x: PyTree | Array):
     else:
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
-                jnp.maximum,
-                jax.tree_util.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
+                jnp.maximum, jax.tree_util.tree_map(lambda x: jnp.max(jnp.abs(x)), x)
             )
         )
 
@@ -179,9 +173,7 @@ def propose_time_step(
     SAFETY_FACTOR = 0.95
     err_exponent = -1.0 / (1 + error_order)
     return jnp.clip(
-        dt * SAFETY_FACTOR * scaled_error**err_exponent,
-        limits[0],
-        limits[1],
+        dt * SAFETY_FACTOR * scaled_error**err_exponent, limits[0], limits[1]
     )
 
 
@@ -206,12 +198,7 @@ def general_time_step_adaptive(
     y_tp1, y_err = tableau.step_with_error(f, rk_state.t.value, actual_dt, rk_state.y)
 
     scaled_err, norm_y = scaled_error(
-        y_tp1,
-        y_err,
-        atol,
-        rtol,
-        last_norm_y=rk_state.last_norm,
-        norm_fn=norm_fn,
+        y_tp1, y_err, atol, rtol, last_norm_y=rk_state.last_norm, norm_fn=norm_fn
     )
 
     # Propose the next time step, but limited within [0.1 dt, 5 dt] and potential
@@ -258,10 +245,7 @@ def general_time_step_adaptive(
             y=y_tp1,
             t=rk_state.t + actual_dt,
             dt=jax.lax.cond(
-                actual_dt == rk_state.dt,
-                lambda _: next_dt,
-                lambda _: rk_state.dt,
-                None,
+                actual_dt == rk_state.dt, lambda _: next_dt, lambda _: rk_state.dt, None
             ),
             last_norm=norm_y,
             last_scaled_error=scaled_err,
@@ -269,9 +253,7 @@ def general_time_step_adaptive(
         ),
         # step rejected, repeat with lower dt
         lambda _: rk_state.replace(
-            step_no_total=rk_state.step_no_total + 1,
-            dt=next_dt,
-            flags=flags,
+            step_no_total=rk_state.step_no_total + 1, dt=next_dt, flags=flags
         ),
         None,
     )
@@ -366,10 +348,7 @@ class RungeKuttaIntegrator:
 
     def _do_step_fixed(self, rk_state, max_dt=None):
         return general_time_step_fixed(
-            self.tableau.data,
-            self.f,
-            rk_state,
-            max_dt=max_dt,
+            self.tableau.data, self.f, rk_state, max_dt=max_dt
         )
 
     def _do_step_adaptive(self, rk_state, max_dt=None):

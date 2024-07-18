@@ -199,11 +199,7 @@ def _compose_grads(grad_neg, grad_pos):
     Returns:
         The composed gradient.
     """
-    return jax.tree_util.tree_map(
-        lambda x, y: jnp.conj(x - y),
-        grad_neg,
-        grad_pos,
-    )
+    return jax.tree_util.tree_map(lambda x, y: jnp.conj(x - y), grad_neg, grad_pos)
 
 
 # for nll
