@@ -93,7 +93,7 @@ class LocalOperatorBase(DiscreteOperator):
 
            >>> from netket.hilbert import Spin
            >>> from netket.operator import LocalOperator
-           >>> hi = Spin(0.5)**20
+           >>> hi = Spin(0.5) ** 20
            >>> empty_hat = LocalOperator(hi)
            >>> print(len(empty_hat.acting_on))
            0

@@ -24,8 +24,5 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
-        "--mpow",
-        type=str,
-        default="single",
-        help="mpow: single, all, 1,2,3...",
+        "--mpow", type=str, default="single", help="mpow: single, all, 1,2,3..."
     )

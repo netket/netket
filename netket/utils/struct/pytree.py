@@ -88,9 +88,11 @@ class Pytree(metaclass=PytreeMeta):
         >>> class MyPyTree(Pytree):
         ...     a: int = field(pytree_node=False)
         ...     b: jax.Array
+        ...
         ...     def __init__(self, a, b):
         ...         self.a = a
         ...         self.b = b
+        ...
         ...     def __repr__(self):
         ...         return f"MyPyTree(a={self.a}, b={self.b})"
         >>>
@@ -319,7 +321,10 @@ class Pytree(metaclass=PytreeMeta):
         pytree: "Pytree",
         *,
         with_key_paths: bool,
-    ) -> tuple[tuple[tp.Any, ...], tp.Mapping[str, tp.Any],]:
+    ) -> tuple[
+        tuple[tp.Any, ...],
+        tp.Mapping[str, tp.Any],
+    ]:
         all_vars = vars(pytree).copy()
         static = {k: all_vars.pop(k) for k in pytree._pytree__static_fields}
 

@@ -52,11 +52,7 @@ operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
 
 g_sub = nk.graph.Graph(edges=edges[:3])  # edges of first four sites
 operators["Graph Hamiltonian (on subspace)"] = nk.operator.GraphOperator(
-    hi,
-    g_sub,
-    site_ops=[sigmax],
-    bond_ops=[mszsz],
-    acting_on_subspace=4,
+    hi, g_sub, site_ops=[sigmax], bond_ops=[mszsz], acting_on_subspace=4
 )
 
 # Graph Hamiltonian with colored edges
@@ -121,12 +117,12 @@ operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
 )
 
-operators[
-    "FermionOperator2ndJax(_mode=default-scan)"
-] = nkx.operator.FermionOperator2ndJax(
-    hi,
-    terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
-    weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+operators["FermionOperator2ndJax(_mode=default-scan)"] = (
+    nkx.operator.FermionOperator2ndJax(
+        hi,
+        terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
+        weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+    )
 )
 
 operators["FermionOperator2ndJax(_mode=mask)"] = nkx.operator.FermionOperator2ndJax(
@@ -215,8 +211,7 @@ def test_is_hermitian(op):
 
 
 @pytest.mark.parametrize(
-    "op",
-    [pytest.param(op, id=name) for name, op in operators.items()],
+    "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_lazy_hermitian(op):
     if op.is_hermitian:
@@ -275,21 +270,10 @@ def test_get_conn_numpy_closure(op):
 )
 @pytest.mark.parametrize(
     "dtype",
-    [
-        pytest.param(np.float32, id="float32"),
-        pytest.param(np.float64, id="float64"),
-    ],
+    [pytest.param(np.float32, id="float32"), pytest.param(np.float64, id="float64")],
 )
 @pytest.mark.parametrize(
-    "shape",
-    [
-        pytest.param(s, id=f"shape={s}")
-        for s in [
-            (2,),
-            (2, 1),
-            (2, 1, 1),
-        ]
-    ],
+    "shape", [pytest.param(s, id=f"shape={s}") for s in [(2,), (2, 1), (2, 1, 1)]]
 )
 def test_get_conn_padded(op, shape, dtype):
     hi = op.hilbert
@@ -543,8 +527,7 @@ def test_pauli_string_operators_hashable_pytree():
 
 
 @pytest.mark.parametrize(
-    "op",
-    [pytest.param(op, id=name) for name, op in op_finite_size.items()],
+    "op", [pytest.param(op, id=name) for name, op in op_finite_size.items()]
 )
 def test_matmul_sparse_vector(op):
     v = np.zeros((op.hilbert.n_states, 1), dtype=op.dtype)

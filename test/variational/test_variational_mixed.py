@@ -82,24 +82,16 @@ def vstate(request):
 
 
 def test_n_samples_api(vstate, _device_count):
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_samples = -1
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_samples_per_rank = -1
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chain_length = -2
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_discard_per_chain = -1
 
     # Tests for `ExactSampler` with `n_chains == 1`
@@ -151,19 +143,13 @@ def test_n_samples_api(vstate, _device_count):
 
 
 def test_n_samples_diag_api(vstate, _device_count):
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_samples_diag = -1
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chain_length_diag = -2
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_discard_per_chain_diag = -1
 
     # Tests for `ExactSampler` with `n_chains == 1`
@@ -254,14 +240,7 @@ def test_serialization(vstate):
 
 @common.skipif_mpi
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
+    "operator", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_expect_numpysampler_works(vstate, operator):
     sampl = nk.sampler.MetropolisLocalNumpy(vstate.hilbert)
@@ -273,14 +252,7 @@ def test_expect_numpysampler_works(vstate, operator):
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-        if op.is_hermitian
-    ],
+    [pytest.param(op, id=name) for name, op in operators.items() if op.is_hermitian],
 )
 @pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_chunking(vstate, operator, n_chunks):
@@ -358,14 +330,7 @@ def check_consistent_diag(vstate):
 
 @common.skipif_mpi
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in superoperators.items()
-    ],
+    "operator", [pytest.param(op, id=name) for name, op in superoperators.items()]
 )
 def test_expect_exact(vstate, operator):
     # Use lots of samples
@@ -390,14 +355,7 @@ def test_expect_exact(vstate, operator):
 
 @common.skipif_mpi
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in superoperators.items()
-    ],
+    "operator", [pytest.param(op, id=name) for name, op in superoperators.items()]
 )
 def test_grad_finitedifferences(vstate, operator):
     op_sparse = operator.to_sparse()

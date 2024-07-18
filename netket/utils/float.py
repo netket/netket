@@ -76,7 +76,7 @@ def comparable_periodic(
 
     Example:
 
-        >>> comparable_periodic([0.0, 0.3, 0.30000001, 1.3], where = [[True], [False]])
+        >>> comparable_periodic([0.0, 0.3, 0.30000001, 1.3], where=[[True], [False]])
         array([[      0,  997920,  997920,  997920],
                [      0,  997920,  997920, 4324320]])
     """

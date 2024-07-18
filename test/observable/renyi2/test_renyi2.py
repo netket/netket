@@ -17,11 +17,7 @@ def _setup(useExactSampler=True):
 
     if useExactSampler:
         sa = nk.sampler.ExactSampler(hilbert=hi)
-        vs = nk.vqs.MCState(
-            sampler=sa,
-            model=ma,
-            n_samples=n_samples,
-        )
+        vs = nk.vqs.MCState(sampler=sa, model=ma, n_samples=n_samples)
 
     else:
         n_discard_per_chain = 1e3
@@ -34,10 +30,7 @@ def _setup(useExactSampler=True):
             n_discard_per_chain=n_discard_per_chain,
         )
 
-    vs_exact = nk.vqs.FullSumState(
-        hilbert=hi,
-        model=ma,
-    )
+    vs_exact = nk.vqs.FullSumState(hilbert=hi, model=ma)
 
     subsys = [0, 1]
     S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)

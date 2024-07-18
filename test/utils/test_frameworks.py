@@ -41,11 +41,7 @@ def test_haiku_framework():
 
     def apply(x):
         net = hk.Sequential(
-            [
-                hk.Linear(10, with_bias=False),
-                jax.nn.relu,
-                hk.Linear(1, with_bias=False),
-            ]
+            [hk.Linear(10, with_bias=False), jax.nn.relu, hk.Linear(1, with_bias=False)]
         )
         return net(x)[..., 0]
 

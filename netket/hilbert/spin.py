@@ -73,7 +73,7 @@ class Spin(HomogeneousHilbert):
            Simple spin hilbert space.
 
            >>> import netket as nk
-           >>> hi = nk.hilbert.Spin(s=1/2, N=4)
+           >>> hi = nk.hilbert.Spin(s=1 / 2, N=4)
            >>> print(hi.size)
            4
         """

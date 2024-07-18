@@ -42,7 +42,7 @@ class DoubledHilbert(DiscreteHilbert):
             Simple superoperatorial hilbert space for few spins.
 
             >>> import netket as nk
-            >>> g = nk.graph.Hypercube(length=5,n_dim=2,pbc=True)
+            >>> g = nk.graph.Hypercube(length=5, n_dim=2, pbc=True)
             >>> hi = nk.hilbert.Spin(N=3, s=0.5)
             >>> hi2 = nk.hilbert.DoubledHilbert(hi)
             >>> print(hi2.size)

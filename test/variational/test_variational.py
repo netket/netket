@@ -124,24 +124,16 @@ def test_n_samples_api(vstate, _device_count):
     with raises(TypeError, match="should be a subtype"):
         vstate.sampler = 1
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_samples = -1
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_samples_per_rank = -1
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chain_length = -2
 
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.n_discard_per_chain = -1
 
     # Tests for `ExactSampler` with `n_chains == 1`
@@ -202,9 +194,7 @@ def test_chunk_size_api(vstate, _mpi_size):
     vstate.n_samples = 1008
 
     # does not divide n_samples
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         vstate.chunk_size = 100
 
     assert vstate.chunk_size is None
@@ -303,14 +293,7 @@ def test_init_parameters(vstate):
 
 @common.skipif_mpi
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
+    "operator", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_expect_numpysampler_works(vstate, operator):
     sampl = nk.sampler.MetropolisLocalNumpy(vstate.hilbert)
@@ -434,14 +417,7 @@ def test_forces(vstate, operator):
 
 @common.skipif_mpi
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
+    "operator", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_local_estimators(vstate, operator):
     def assert_stats_equal(st1, st2):
@@ -475,14 +451,7 @@ def test_expect_grad_nonhermitian_works(vstate):
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-        if op.is_hermitian
-    ],
+    [pytest.param(op, id=name) for name, op in operators.items() if op.is_hermitian],
 )
 @pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_chunking(vstate, operator, n_chunks):

@@ -78,7 +78,11 @@ def expect(
         >>> hi = nk.hilbert.Spin(s=0.5, N=20)
         >>> graph = nk.graph.Chain(length=20)
         >>> H = nk.operator.IsingJax(hi, graph, h=1.0)
-        >>> vstate = nk.vqs.MCState(sampler=nk.sampler.MetropolisLocal(hi, n_chains_per_rank=16), model=nk.models.RBM(alpha=1, param_dtype=complex), n_samples=100000)
+        >>> vstate = nk.vqs.MCState(
+        ...     sampler=nk.sampler.MetropolisLocal(hi, n_chains_per_rank=16),
+        ...     model=nk.models.RBM(alpha=1, param_dtype=complex),
+        ...     n_samples=100000,
+        ... )
         >>>
         >>> afun = vstate._apply_fun
         >>> pars = vstate.parameters
@@ -92,7 +96,6 @@ def expect(
         >>> # Note that we do not want to compute the gradient wrt model_state, so
         >>> # we capture it inside of this function.
         >>> def expect(pars, σ):
-        ...
         ...     # The log probability distribution we have generated samples σ from.
         ...     def log_pdf(pars, σ):
         ...         W = {"params": pars, **model_state}
@@ -106,6 +109,7 @@ def expect(
         ...         logpsi_σp = afun(W, σp)
         ...         logHpsi_σ = jax.scipy.special.logsumexp(logpsi_σp, b=mels, axis=1)
         ...         return jnp.exp(logHpsi_σ - logpsi_σ)
+        ...
         ...     return nk.jax.expect(log_pdf, expected_fun, pars, σ)[0]
         >>>
         >>> E, E_vjp_fun = nk.jax.vjp(expect, pars, σ)

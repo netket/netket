@@ -37,6 +37,7 @@ class MultipleRules(MetropolisRule):
 
     Each `rule[i]` will be selected with a probability `probabilities[i]`.
     """
+
     rules: tuple[MetropolisRule, ...]
     """List of rules to be selected from."""
     probabilities: jax.Array

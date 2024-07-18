@@ -117,14 +117,8 @@ def test_grad():
         pytest.param(nk.optimizer.qgt.QGTOnTheFly, id="onthefly"),
     ],
 )
-@pytest.mark.parametrize(
-    "chunk_size",
-    [None, 64],
-)
-@pytest.mark.parametrize(
-    "reset_chains",
-    [False, True],
-)
+@pytest.mark.parametrize("chunk_size", [None, 64])
+@pytest.mark.parametrize("reset_chains", [False, True])
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
@@ -212,10 +206,7 @@ def test_operators(Op):
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
-@pytest.mark.parametrize(
-    "chunk_size",
-    [None, 64],
-)
+@pytest.mark.parametrize("chunk_size", [None, 64])
 def test_fullsumstate(chunk_size):
     L = 12
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
@@ -234,10 +225,7 @@ def test_fullsumstate(chunk_size):
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
-@pytest.mark.parametrize(
-    "chunk_size",
-    [None, 64],
-)
+@pytest.mark.parametrize("chunk_size", [None, 64])
 def test_exactsampler(chunk_size):
     L = 12
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
@@ -384,10 +372,6 @@ def test_srt():
     vs.n_samples = 64
     opt = nk.optimizer.Sgd(learning_rate=0.05)
     gs = nkx.driver.VMC_SRt(
-        ha,
-        opt,
-        variational_state=vs,
-        diag_shift=0.1,
-        jacobian_mode="complex",
+        ha, opt, variational_state=vs, diag_shift=0.1, jacobian_mode="complex"
     )
     gs.run(2)

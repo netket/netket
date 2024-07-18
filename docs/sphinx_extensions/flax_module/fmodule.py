@@ -21,6 +21,7 @@ Use directive as follows:
   :class: Dense
 
 """
+
 import inspect
 import importlib
 

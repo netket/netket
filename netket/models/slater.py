@@ -290,9 +290,7 @@ class MultiSlater2nd(nn.Module):
             generalized=self.generalized,
             kernel_init=self.kernel_init,
             param_dtype=self.param_dtype,
-        )(
-            n_bc
-        )
+        )(n_bc)
         # sum the determinants
         log_det_sum = nkjax.logsumexp_cplx(multi_log_det, axis=0)
         return log_det_sum

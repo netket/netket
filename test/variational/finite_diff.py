@@ -88,9 +88,4 @@ def same_log_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     delta_der_log = np.minimum(delta_der_log_mod_1, delta_der_log_mod_2)
 
     # Compare against pi and not 0 because otherwise rtol will fail always
-    np.testing.assert_allclose(
-        delta_der_log + np.pi,
-        np.pi,
-        rtol=rel_eps,
-        atol=abs_eps,
-    )
+    np.testing.assert_allclose(delta_der_log + np.pi, np.pi, rtol=rel_eps, atol=abs_eps)

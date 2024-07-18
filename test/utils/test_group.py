@@ -71,10 +71,7 @@ cubics = [
     group.cubic.Fd3m(),
 ]
 cubics_proper = [True, False, False, True, False, False]
-icosas = [
-    group.icosa.I(),
-    group.icosa.Ih(),
-]
+icosas = [group.icosa.I(), group.icosa.Ih()]
 icosas_proper = [True, False]
 point_groups = planars + uniaxials + screws + biaxials + impropers + cubics + icosas
 proper = (
@@ -86,10 +83,7 @@ proper = (
     + cubics_proper
     + icosas_proper
 )
-perms = [
-    nk.graph.Hypercube(2, n_dim=3).point_group(),
-    nk.graph.Square(4).space_group(),
-]
+perms = [nk.graph.Hypercube(2, n_dim=3).point_group(), nk.graph.Square(4).space_group()]
 groups = point_groups + perms
 
 
@@ -317,10 +311,7 @@ names_nonsymm = [
 @pytest.mark.parametrize("symm,W,w,name", names_nonsymm)
 def test_naming_nonsymm(symm, W, w, name):
     assert_allclose(symm.matrix, W)
-    assert_allclose(
-        symm.translation,
-        w,
-    )
+    assert_allclose(symm.translation, w)
     assert str(symm) == name
 
 

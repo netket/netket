@@ -93,7 +93,10 @@ class FermionOperator2ndBase(DiscreteOperator):
             :math:`(0.5-0.5j)*(a_0^\dagger a_1) + (0.5+0.5j)*(a_2^\dagger a_1)`.
 
             >>> import netket.experimental as nkx
-            >>> terms, weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
+            >>> terms, weights = (
+            ...     (((0, 1), (1, 0)), ((2, 1), (1, 0))),
+            ...     (0.5 - 0.5j, 0.5 + 0.5j),
+            ... )
             >>> hi = nkx.hilbert.SpinOrbitalFermions(3)
             >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
             >>> op

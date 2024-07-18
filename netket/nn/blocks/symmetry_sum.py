@@ -56,7 +56,9 @@ class SymmExpSum(nn.Module):
        >>> # Construct the bare unsymmetrized machine
        >>> machine_no_symm = nk.models.RBM(alpha=2)
        >>> # Symmetrize the RBM over all translations
-       >>> ma = nk.nn.blocks.SymmExpSum(module = machine_no_symm, symm_group=graph.translation_group())
+       >>> ma = nk.nn.blocks.SymmExpSum(
+       ...     module=machine_no_symm, symm_group=graph.translation_group()
+       ... )
 
        If you have a Convolutional NN that is already invariant under translations, you might
        want to only symmetrize over the point-group (mirror symmetry and rotations).
@@ -68,7 +70,9 @@ class SymmExpSum(nn.Module):
        >>> # Construct the bare unsymmetrized machine
        >>> machine_no_symm = nk.models.RBM(alpha=2)
        >>> # Symmetrize the RBM over all translations
-       >>> ma = nk.nn.blocks.SymmExpSum(module = machine_no_symm, symm_group=graph.point_group())
+       >>> ma = nk.nn.blocks.SymmExpSum(
+       ...     module=machine_no_symm, symm_group=graph.point_group()
+       ... )
 
     """
 

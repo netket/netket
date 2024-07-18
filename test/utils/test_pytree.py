@@ -116,12 +116,7 @@ class TestPytree:
 
         state_dict = serialization.to_state_dict(foo)
 
-        assert state_dict == {
-            "bar": {
-                "b": 2,
-            },
-            "c": 3,
-        }
+        assert state_dict == {"bar": {"b": 2}, "c": 3}
 
         state_dict["bar"]["b"] = 5
 

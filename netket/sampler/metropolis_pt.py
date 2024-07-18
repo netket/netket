@@ -610,12 +610,14 @@ def ParallelTemperingExchange(
           Sampling from a RBM machine in a 1D lattice of spin 1/2, using
           nearest-neighbours exchanges.
 
-          >>> import pytest; pytest.skip("EXPERIMENTAL")
+          >>> import pytest
+          ...
+          ... pytest.skip("EXPERIMENTAL")
           >>> import netket as nk
           >>> import netket.sampler.metropolis_pt as mpt
           >>>
-          >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-          >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+          >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
+          >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
           >>>
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = mpt.MetropolisExchangePt(hi, graph=g)
@@ -656,12 +658,14 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
     Examples:
        Sampling from a RBM machine in a 1D lattice of spin 1/2
 
-       >>> import pytest; pytest.skip("EXPERIMENTAL")
+       >>> import pytest
+       ...
+       ... pytest.skip("EXPERIMENTAL")
        >>> import netket as nk
        >>> import netket.sampler.metropolis_pt as mpt
        >>>
-       >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-       >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+       >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
+       >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
        >>>
        >>> # Transverse-field Ising Hamiltonian
        >>> ha = nk.operator.Ising(hilbert=hi, h=1.0, graph=g)

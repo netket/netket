@@ -45,7 +45,7 @@ def sort(x: Array) -> Array:
     Example:
         >>> import jax.numpy as jnp
         >>> from netket.jax import sort
-        >>> x = jnp.array([[1,2,3], [0,2,2], [0,1,2]])
+        >>> x = jnp.array([[1, 2, 3], [0, 2, 2], [0, 1, 2]])
         >>> sort(x)
         Array([[0, 1, 2],
                [0, 2, 2],
@@ -110,8 +110,8 @@ def searchsorted(a: Array, v: Array) -> Array:
     Example:
         >>> import jax.numpy as jnp
         >>> from netket.jax import searchsorted
-        >>> a = jnp.array([[0,1,2], [0,2,2], [1,2,3]])
-        >>> v = jnp.array([[0,2,2]])
+        >>> a = jnp.array([[0, 1, 2], [0, 2, 2], [1, 2, 3]])
+        >>> v = jnp.array([[0, 2, 2]])
         >>> searchsorted(a, v)
         Array([1], dtype=int32)
     """

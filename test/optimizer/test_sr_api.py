@@ -40,16 +40,8 @@ def test_qgt_partial_jacobian_sanitise(qgt):
 @pytest.mark.parametrize(
     "args",
     (
-        {
-            "mode": "real",
-            "diag_shift": 0.03,
-            "diag_scale": 0.02,
-            "chunk_size": 16,
-        },
-        {
-            "holomorphic": True,
-            "diag_scale": 0.03,
-        },
+        {"mode": "real", "diag_shift": 0.03, "diag_scale": 0.02, "chunk_size": 16},
+        {"holomorphic": True, "diag_scale": 0.03},
     ),
 )
 def test_qgt_partial_jacobian(qgt, args):
@@ -76,10 +68,7 @@ def test_diag_shift_schedule(diag_shift):
     # construct a vstate
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
-    vstate = nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        nk.models.RBM(alpha=1),
-    )
+    vstate = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), nk.models.RBM(alpha=1))
     vstate.init_parameters()
     vstate.sample()
 
@@ -126,10 +115,7 @@ def test_qgt_auto_diag_scale_passed():
     # construct a vstate
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
-    vstate = nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        nk.models.RBM(alpha=1),
-    )
+    vstate = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), nk.models.RBM(alpha=1))
     vstate.init_parameters()
     vstate.sample()
 

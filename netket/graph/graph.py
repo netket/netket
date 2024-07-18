@@ -230,7 +230,7 @@ def Edgeless(n_nodes: int) -> Graph:
 
     Example:
         >>> import netket
-        >>> g=netket.graph.Edgeless([0,1,2,3])
+        >>> g = netket.graph.Edgeless([0, 1, 2, 3])
         >>> print(g.n_nodes)
         4
         >>> print(g.n_edges)

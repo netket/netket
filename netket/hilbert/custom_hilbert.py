@@ -70,7 +70,7 @@ class CustomHilbert(HomogeneousHilbert):
             Simple custom hilbert space.
 
             >>> import netket as nk
-            >>> g = nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+            >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
             >>> local_states = nk.utils.StaticRange(start=-2.0, step=1.0, length=4)
             >>> hi = nk.hilbert.CustomHilbert(local_states=local_states, N=100)
             >>> print(hi.size)

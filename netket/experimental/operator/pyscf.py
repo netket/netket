@@ -250,10 +250,11 @@ def TV_from_pyscf_molecule(
         and the Boys orbitals
 
         >>> from pyscf import gto, scf, lo
-        >>> import netket as nk; import netket.experimental as nkx
+        >>> import netket as nk
+        ... import netket.experimental as nkx
         >>>
-        >>> geometry = [('Li', (0., 0., -1.5109/2)), ('H', (0., 0., 1.5109/2))]
-        >>> mol = gto.M(atom=geometry, basis='STO-3G')
+        >>> geometry = [("Li", (0.0, 0.0, -1.5109 / 2)), ("H", (0.0, 0.0, 1.5109 / 2))]
+        >>> mol = gto.M(atom=geometry, basis="STO-3G")
         >>>
         >>> # compute the boys orbitals
         >>> mf = scf.RHF(mol).run()  # doctest:+ELLIPSIS
@@ -306,11 +307,15 @@ def from_pyscf_molecule(
         and the default Hartree-Fock molecular orbitals.
 
         >>> from pyscf import gto, scf, fci
-        >>> import netket as nk; import netket.experimental as nkx
+        >>> import netket as nk
+        ... import netket.experimental as nkx
         >>>
         >>> bond_length = 1.5109
-        >>> geometry = [('Li', (0., 0., -bond_length/2)), ('H', (0., 0., bond_length/2))]
-        >>> mol = gto.M(atom=geometry, basis='STO-3G')
+        >>> geometry = [
+        ...     ("Li", (0.0, 0.0, -bond_length / 2)),
+        ...     ("H", (0.0, 0.0, bond_length / 2)),
+        ... ]
+        >>> mol = gto.M(atom=geometry, basis="STO-3G")
         >>>
         >>> mf = scf.RHF(mol).run()  # doctest:+ELLIPSIS
             converged SCF energy = -7.86338...
@@ -329,11 +334,15 @@ def from_pyscf_molecule(
         and the Boys orbitals using :class:`~pyscf.lo.Boys`.
 
         >>> from pyscf import gto, scf, lo
-        >>> import netket as nk; import netket.experimental as nkx
+        >>> import netket as nk
+        ... import netket.experimental as nkx
         >>>
         >>> bond_length = 1.5109
-        >>> geometry = [('Li', (0., 0., -bond_length/2)), ('H', (0., 0., bond_length/2))]
-        >>> mol = gto.M(atom=geometry, basis='STO-3G')
+        >>> geometry = [
+        ...     ("Li", (0.0, 0.0, -bond_length / 2)),
+        ...     ("H", (0.0, 0.0, bond_length / 2)),
+        ... ]
+        >>> mol = gto.M(atom=geometry, basis="STO-3G")
         >>>
         >>> # compute the boys orbitals
         >>> mf = scf.RHF(mol).run()  # doctest:+ELLIPSIS
