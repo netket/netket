@@ -206,9 +206,9 @@ def tree_ax(a: Scalar | PyTree, x: PyTree) -> PyTree:
         The pytree x scaled by a
     """
     if is_scalar(a):
-        return jax.tree_util.tree_map(lambda x_, y_: a * x_, x)
+        return jax.tree_util.tree_map(lambda x_: a * x_, x)
     else:
-        return jax.tree_util.tree_map(lambda a_, x_, y_: a_ * x_, a, x)
+        return jax.tree_util.tree_map(lambda a_, x_: a_ * x_, a, x)
 
 
 class RealImagTuple(tuple):
