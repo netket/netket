@@ -33,6 +33,7 @@ from ._utils_tree import (
     tree_dot,
     tree_norm,
     tree_cast,
+    tree_ax,
     tree_axpy,
     tree_to_real,
     compose,

@@ -179,21 +179,36 @@ def tree_cast(x: PyTree, target: PyTree) -> PyTree:
 
 
 @jax.jit
-def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
+def tree_axpy(a: Scalar | PyTree, x: PyTree, y: PyTree) -> PyTree:
     r"""
-    compute a * x + y
+    Compute a * x + y
 
     Args:
-      a: scalar
+      a: scalar or pytree
       x, y: pytrees with the same treedef
     Returns:
         The sum of the respective leaves of the two pytrees x and y
         where the leaves of x are first scaled with a.
     """
+    ax = tree_ax(a, x)
+    return jax.tree_util.tree_map(lambda ax_, y_: ax_ + y_, ax, y)
+
+
+@jax.jit
+def tree_ax(a: Scalar | PyTree, x: PyTree) -> PyTree:
+    r"""
+    Compute a * x , where a is a scalar or pytree.
+
+    Args:
+      a: scalar
+      x: pytree
+    Returns:
+        The pytree x scaled by a
+    """
     if is_scalar(a):
-        return jax.tree_util.tree_map(lambda x_, y_: a * x_ + y_, x, y)
+        return jax.tree_util.tree_map(lambda x_: a * x_, x)
     else:
-        return jax.tree_util.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
+        return jax.tree_util.tree_map(lambda a_, x_: a_ * x_, a, x)
 
 
 class RealImagTuple(tuple):
