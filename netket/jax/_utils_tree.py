@@ -179,12 +179,12 @@ def tree_cast(x: PyTree, target: PyTree) -> PyTree:
 
 
 @jax.jit
-def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
+def tree_axpy(a: Scalar | PyTree, x: PyTree, y: PyTree) -> PyTree:
     r"""
-    compute a * x + y
+    Compute a * x + y
 
     Args:
-      a: scalar
+      a: scalar or pytree
       x, y: pytrees with the same treedef
     Returns:
         The sum of the respective leaves of the two pytrees x and y
@@ -195,9 +195,9 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
 
 
 @jax.jit
-def tree_ax(a: Scalar, x: PyTree) -> PyTree:
+def tree_ax(a: Scalar | PyTree, x: PyTree) -> PyTree:
     r"""
-    compute a * x + y
+    Compute a * x , where a is a scalar or pytree.
 
     Args:
       a: scalar
