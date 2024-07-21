@@ -24,7 +24,7 @@ matrix.distributed.scripts = [
     { key = "run-cov", value = "mpirun -np 2 coverage run -m pytest -n 0 {env:HATCH_TEST_ARGS:} {args}", if = ["mpi"] },
     { key = "cov-combine", value = "coverage combine --append", if = ["mpi"] },
 
-    { key = "run", value = "MPITRAMPOLINE_LIB={env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so {env:VIRTUAL_ENV}/MPIWrapper/build/bin/mpiwrapperexec -np 2 pytest -n 0 --jax-distributed-mpi {env:HATCH_TEST_ARGS:} {args}", if = ["sharding"] },
+    { key = "run", value = "MPITRAMPOLINE_LIB=\"{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so\" \"{env:VIRTUAL_ENV}/MPIWrapper/build/bin/mpiwrapperexec\" -np 2 pytest -n 0 --jax-distributed-mpi {env:HATCH_TEST_ARGS:} {args}", if = ["sharding"] },
 ]
 matrix.distributed.env-vars = [
   { key = "NETKET_MPI", value = "0", if = ["nompi", "sharding"] },
