@@ -5,6 +5,9 @@
 
 ## NetKet 3.14 (⚙️ In development)
 
+### Changes
+* Jax operators now use the same `chunk_size` as specified by the user when computing the forward pass. Prior to this change, Jax operators would be chunking the sample axis, but if an operator had a lot of connected elements this would end up increasing the effective sample size [#1875](https://github.com/netket/netket/pull/1875).
+
 
 ## NetKet 3.13 (11 July 2024)
 
