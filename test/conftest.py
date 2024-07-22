@@ -64,7 +64,12 @@ def parse_clearcache(s: str) -> int | Literal["auto", "logical"]:
         else:
             return None
     elif s is not None:
-        return int(s)
+        s = int(s)
+
+    if s == 0:
+        return None
+    else:
+        return s
 
 def pytest_addoption(parser):
     parser.addoption(
