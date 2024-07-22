@@ -5,6 +5,9 @@
 
 ## NetKet 3.14 (⚙️ In development)
 
+### Bug fixes
+* Fix the function {meth}`nk.graph.SpaceGroupBuilder.space_group_irreps` throwing away the imaginary part of point-group characters, which led to incorrect space-group characters in some rare cases. [#1876](https://github.com/netket/netket/pull/1876).
+
 
 ## NetKet 3.13 (11 July 2024)
 
