@@ -59,7 +59,7 @@ def _device_count(request):
 
 def parse_clearcache(s: str) -> int | Literal["auto", "logical"]:
     if s in ("auto", None):
-        if os.environ.get("CI", True):
+        if os.environ.get("CI", False):
             return 200
         else:
             return None
