@@ -80,6 +80,7 @@ graphs = [
 ]
 
 symmetric_graph_names = [
+    "square_rotation_only",
     "square",
     "triangular",
     "honeycomb",
@@ -91,7 +92,13 @@ symmetric_graph_names = [
     "pyrochlore",
 ]
 
+# TODO allow point groups to be changed in these constructors
+square_rotation_only = nk.graph.Square(3)
+square_rotation_only._point_group = nk.utils.group.planar.C(4)
+
 symmetric_graphs = [
+    # Square with rotation group only
+    square_rotation_only,
     # Square
     nk.graph.Square(3),
     # Triangular
@@ -114,19 +121,19 @@ symmetric_graphs = [
     nk.graph.Pyrochlore([3, 3, 3]),
 ]
 
-unit_cells = [9, 9, 9, 9, 9, 27, 27, 27, 27, 27]
+unit_cells = [9, 9, 9, 9, 9, 9, 27, 27, 27, 27, 27]
 
-atoms_per_unit_cell = [1, 1, 2, 3, 2, 1, 1, 1, 2, 4]
+atoms_per_unit_cell = [1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 4]
 
-coordination_number = [4, 6, 3, 4, 3, 6, 8, 12, 4, 6]
+coordination_number = [4, 4, 6, 3, 4, 3, 6, 8, 12, 4, 6]
 
-dimension = [2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
+dimension = [2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
 
-kvec = [(2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
+kvec = [(0, 0, 0), (2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
 
-little_group_size = [2] + [6] * 3 + [1] + [8] * 5
+little_group_size = [4, 2] + [6] * 3 + [1] + [8] * 5
 
-little_group_irreps = [2] + [3] * 3 + [1] + [5] * 5
+little_group_irreps = [4, 2] + [3] * 3 + [1] + [5] * 5
 
 
 def test_next_neighbors():
