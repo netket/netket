@@ -67,6 +67,9 @@ def _jacobian_cplx(
     y, vjp_fun = jax.vjp(
         lambda pars: wrap_to_support_scalar(forward_fn)(pars, samples), params
     )
+    if not jnp.issubdtype(jnp.result_type(y), jnp.complexfloating):
+        raise TypeError("Cannot build the complex jacobian for a real-valued function.")
+
     (gr,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     (gi,) = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
     return _build_fn(gr, gi)
