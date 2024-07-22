@@ -233,7 +233,7 @@ class SpaceGroupBuilder:
         """
         idx = self._little_group_index(k)
         CT = self.little_group(k).character_table()
-        CT_full = np.zeros((CT.shape[0], len(self.point_group_)))
+        CT_full = np.zeros((CT.shape[0], len(self.point_group_)), dtype=CT.dtype)
         CT_full[:, idx] = CT
         return CT_full / idx.size if divide else CT_full
 
