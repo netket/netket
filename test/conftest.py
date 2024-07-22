@@ -37,15 +37,6 @@ def _mpi_comm(request):
     return MPI_py_comm
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--arnn_test_rate",
-        type=float,
-        default=0.2,
-        help="rate of running a test for ARNN",
-    )
-
-
 @pytest.fixture
 def _device_count(request):
     """
