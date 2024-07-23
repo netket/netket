@@ -4,6 +4,7 @@ import os
 import pytest
 import jax
 
+
 @pytest.fixture
 def _mpi_size(request):
     """
@@ -62,6 +63,7 @@ def parse_clearcache(s: str) -> int | Literal["auto", "logical"]:
     else:
         return s
 
+
 def pytest_addoption(parser):
     parser.addoption(
         "--clear-cache-every",
@@ -80,7 +82,8 @@ def pytest_addoption(parser):
     )
 
 
-_n_test_since_reset : int = 0
+_n_test_since_reset: int = 0
+
 
 @pytest.fixture(autouse=True)
 def clear_jax_cache(request):
@@ -90,7 +93,7 @@ def clear_jax_cache(request):
     """
     # Setup: fill with any logic you want
 
-    yield # this is where the testing happens
+    yield  # this is where the testing happens
 
     # Teardown : fill with any logic you want
     clear_cache_every = request.config.getoption("--clear-cache-every")
