@@ -73,7 +73,7 @@ jobs:
 
       - name: Netket tests
         # if Main tests but not MPI
-        if: ${{ matrix.main_tests }} && ${{ matrix.mpi == '' }} 
+        if: ${{ matrix.main_tests  && (matrix.mpi == '') }} 
         run: |
           export NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append --clear-cache-every 200 test
