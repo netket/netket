@@ -92,13 +92,9 @@ symmetric_graph_names = [
     "pyrochlore",
 ]
 
-# TODO allow point groups to be changed in these constructors
-square_rotation_only = nk.graph.Square(3)
-square_rotation_only._point_group = nk.utils.group.planar.C(4)
-
 symmetric_graphs = [
     # Square with rotation group only
-    square_rotation_only,
+    nk.graph.Square(3, point_group=group.planar.C(4)),
     # Square
     nk.graph.Square(3),
     # Triangular
@@ -129,7 +125,7 @@ coordination_number = [4, 4, 6, 3, 4, 3, 6, 8, 12, 4, 6]
 
 dimension = [2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
 
-kvec = [(0, 0), (2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
+kvec = [(pi, pi), (2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
 
 little_group_size = [4, 2] + [6] * 3 + [1] + [8] * 5
 
