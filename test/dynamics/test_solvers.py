@@ -32,7 +32,7 @@ from netket.experimental.dynamics._rk_tableau_definitions import (
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 
 tableaus = {

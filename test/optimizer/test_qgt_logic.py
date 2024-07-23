@@ -40,7 +40,7 @@ from netket.jax.sharding import distribute_to_devices_along_axis, device_count_p
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 # TODO move the transformation and tree utils out of the test
 
