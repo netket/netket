@@ -14,6 +14,7 @@
 
 from itertools import permutations
 from collections.abc import Sequence
+from typing import Optional
 import numpy as np
 
 from .lattice import Lattice
