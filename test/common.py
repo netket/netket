@@ -73,6 +73,17 @@ xfailif_mpi = pytest.mark.xfail(
 at least 2 MPI processes.
 """
 
+skipif_sharding = pytest.mark.skipif(
+    nk.config.netket_experimental_sharding, reason="Only run without MPI"
+)
+"""Use as a decorator to mark a test to be skipped when running under Sharding."""
+
+skipif_distributed = pytest.mark.skipif(
+    nk.utils.mpi.n_nodes > 1 or nk.config.netket_experimental_sharding,
+    reason="Skip if distributed",
+)
+"""Use as a decorator to mark a test to be skipped when running under MPI or Sharding."""
+
 
 class netket_disable_mpi:
     """
