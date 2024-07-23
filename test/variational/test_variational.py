@@ -301,7 +301,7 @@ def test_init_parameters(vstate):
     jax.tree_util.tree_map(_f, pars, pars2)
 
 
-@common.skipif_mpi
+@common.skipif_distributed
 @pytest.mark.parametrize(
     "operator",
     [
