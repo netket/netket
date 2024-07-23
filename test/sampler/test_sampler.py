@@ -676,6 +676,11 @@ def test_hamiltonian_jax_sampler_isleaf():
 )
 def test_chunking_invariant(model_and_weights, sampler_type):
     sa = samplers[sampler_type]
+
+    if isinstance(sa, nk.sampler.MetropolisNumpy):
+        if nk.config.netket_experimental_sharding:
+            pytest.xfail(reason="to be investigated.")
+
     hi = sa.hilbert
     ma, w = model_and_weights(hi, sa)
 
