@@ -72,6 +72,12 @@ def pytest_addoption(parser):
         default="auto",
         help="mpow: single, all, 1,2,3...",
     )
+    parser.addoption(
+        "--arnn_test_rate",
+        type=float,
+        default=0.2,
+        help="rate of running a test for ARNN",
+    )
 
 
 _n_test_since_reset : int = 0
