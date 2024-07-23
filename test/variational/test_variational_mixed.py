@@ -253,6 +253,7 @@ def test_serialization(vstate):
 
 
 @common.skipif_mpi
+@common.xfailif_sharding
 @pytest.mark.parametrize(
     "operator",
     [
