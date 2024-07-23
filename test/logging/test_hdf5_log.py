@@ -10,7 +10,7 @@ from jax import numpy as jnp
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 
 @pytest.fixture()

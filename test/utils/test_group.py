@@ -24,7 +24,7 @@ from itertools import product
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 # Tests for group.py and overrides in subclasses
 
