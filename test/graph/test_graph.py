@@ -94,7 +94,7 @@ symmetric_graph_names = [
 
 symmetric_graphs = [
     # Square with rotation group only
-    nk.graph.Square(4, point_group=group.planar.C(4)),
+    nk.graph.Square(3, point_group=group.planar.C(4)),
     # Square
     nk.graph.Square(3),
     # Triangular
@@ -117,7 +117,7 @@ symmetric_graphs = [
     nk.graph.Pyrochlore([3, 3, 3]),
 ]
 
-unit_cells = [16, 9, 9, 9, 9, 9, 27, 27, 27, 27, 27]
+unit_cells = [9, 9, 9, 9, 9, 9, 27, 27, 27, 27, 27]
 
 atoms_per_unit_cell = [1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 4]
 
@@ -125,7 +125,7 @@ coordination_number = [4, 4, 6, 3, 4, 3, 6, 8, 12, 4, 6]
 
 dimension = [2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
 
-kvec = [(pi, pi), (2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
+kvec = [(0, 0), (2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
 
 little_group_size = [4, 2] + [6] * 3 + [1] + [8] * 5
 
