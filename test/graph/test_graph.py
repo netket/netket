@@ -94,7 +94,7 @@ symmetric_graph_names = [
 
 symmetric_graphs = [
     # Square with rotation group only
-    nk.graph.Square(3, point_group=group.planar.C(4)),
+    nk.graph.Square(4, point_group=group.planar.C(4)),
     # Square
     nk.graph.Square(3),
     # Triangular
