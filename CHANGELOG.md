@@ -8,8 +8,11 @@
 ### Changes
 * Jax operators now use the same `chunk_size` as specified by the user when computing the forward pass. Prior to this change, Jax operators would be chunking the sample axis, but if an operator had a lot of connected elements this would end up increasing the effective sample size [#1875](https://github.com/netket/netket/pull/1875).
 
+### Improvements
+* Specialised lattice constructors like {func}`nk.graph.Grid` now accept a `point_group` argument, overriding the default (usually maximal) point groups [#1879](https://github.com/netket/netket/pull/1879).
+
 ### Bug fixes
-* Fix the function {meth}`nk.graph.SpaceGroupBuilder.space_group_irreps` throwing away the imaginary part of point-group characters, which led to incorrect space-group characters in some rare cases. [#1876](https://github.com/netket/netket/pull/1876).
+* Fix the function {meth}`nk.graph.SpaceGroupBuilder.space_group_irreps` throwing away the imaginary part of point-group characters, which led to incorrect space-group characters in some rare cases [#1876](https://github.com/netket/netket/pull/1876).
 
 
 ## NetKet 3.13 (11 July 2024)

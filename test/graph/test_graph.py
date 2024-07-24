@@ -92,13 +92,9 @@ symmetric_graph_names = [
     "pyrochlore",
 ]
 
-# TODO allow point groups to be changed in these constructors
-square_rotation_only = nk.graph.Square(3)
-square_rotation_only._point_group = nk.utils.group.planar.C(4)
-
 symmetric_graphs = [
     # Square with rotation group only
-    square_rotation_only,
+    nk.graph.Square(3, point_group=group.planar.C(4)),
     # Square
     nk.graph.Square(3),
     # Triangular
