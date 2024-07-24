@@ -14,7 +14,6 @@
 
 from itertools import permutations
 from collections.abc import Sequence
-from typing import Optional
 import numpy as np
 
 from .lattice import Lattice
@@ -73,7 +72,7 @@ def Grid(
     *,
     pbc: bool | Sequence[bool] = True,
     color_edges: bool = False,
-    point_group: Optional[PointGroup] = None,
+    point_group: PointGroup | None = None,
     **kwargs,
 ) -> Lattice:
     """
@@ -226,7 +225,7 @@ def BCC(
     extent: Sequence[int],
     *,
     pbc: bool | Sequence[bool] = True,
-    point_group: Optional[PointGroup] = None,
+    point_group: PointGroup | None = None,
     **kwargs,
 ) -> Lattice:
     """Constructs a BCC lattice of a given spatial extent.
@@ -268,7 +267,7 @@ def FCC(
     extent: Sequence[int],
     *,
     pbc: bool | Sequence[bool] = True,
-    point_group: Optional[PointGroup] = None,
+    point_group: PointGroup | None = None,
     **kwargs,
 ) -> Lattice:
     """Constructs an FCC lattice of a given spatial extent.
@@ -310,7 +309,7 @@ def Diamond(
     extent: Sequence[int],
     *,
     pbc: bool | Sequence[bool] = True,
-    point_group: Optional[PointGroup] = None,
+    point_group: PointGroup | None = None,
     **kwargs,
 ) -> Lattice:
     """Constructs a diamond lattice of a given spatial extent.
@@ -360,7 +359,7 @@ def Pyrochlore(
     extent: Sequence[int],
     *,
     pbc: bool | Sequence[bool] = True,
-    point_group: Optional[PointGroup] = None,
+    point_group: PointGroup | None = None,
     **kwargs,
 ) -> Lattice:
     """Constructs a pyrochlore lattice of a given spatial extent.
@@ -411,7 +410,7 @@ def _hexagonal_general(
     *,
     site_offsets=None,
     pbc: bool | Sequence[bool] = True,
-    point_group: Optional[PointGroup] = None,
+    point_group: PointGroup | None = None,
     **kwargs,
 ) -> Lattice:
     basis = [[1, 0], [0.5, 0.75**0.5]]
@@ -532,7 +531,7 @@ def KitaevHoneycomb(
     extent,
     *,
     pbc: bool | Sequence[bool] = True,
-    point_group: Optional[PointGroup] = None,
+    point_group: PointGroup | None = None,
     **kwargs,
 ) -> Lattice:
     r"""Constructs a honeycomb lattice of a given spatial extent.
