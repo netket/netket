@@ -110,7 +110,9 @@ def test_SRt_vs_linear_solver_complexpars():
 
     H, opt, vstate_srt = _setup(machine=model)
     gs = VMC_SRt(
-        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex"
+        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex",
+        proj_reg=0.0,
+        momentum=0.0,
     )
     logger_srt = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_srt)
@@ -141,7 +143,9 @@ def test_SRt_vs_linear_solver():
 
     H, opt, vstate_srt = _setup()
     gs = VMC_SRt(
-        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex"
+        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex",
+        proj_reg=0.0,
+        momentum=0.0,
     )
     logger_srt = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_srt)
@@ -177,13 +181,17 @@ def test_SRt_real_vs_complex():
         variational_state=vstate_complex,
         diag_shift=0.1,
         jacobian_mode="complex",
+        proj_reg=0.0,
+        momentum=0.0,
     )
     logger_complex = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_complex)
 
     H, opt, vstate_real = _setup(complex=False)
     gs = VMC_SRt(
-        H, opt, variational_state=vstate_real, diag_shift=0.1, jacobian_mode="real"
+        H, opt, variational_state=vstate_real, diag_shift=0.1, jacobian_mode="real",
+        proj_reg=0.0,
+        momentum=0.0,
     )
     logger_real = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_real)
