@@ -375,10 +375,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     def _setup(self, force=False):
         if force or not self._initialized:
             weights = concrete_or_error(
-                np.asarray,
-                self.weights,
-                JaxOperatorSetupDuringTracingError,
-                self,
+                np.asarray, self.weights, JaxOperatorSetupDuringTracingError, self
             )
 
             # Necessary for the tree_flatten in jax.jit, because

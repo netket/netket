@@ -195,11 +195,7 @@ class MaskedConv1D(nn.Module):
         # Zero padding
         y = jnp.pad(
             inputs,
-            (
-                (0, 0),
-                ((kernel_size - (not self.exclusive)) * dilation, 0),
-                (0, 0),
-            ),
+            ((0, 0), ((kernel_size - (not self.exclusive)) * dilation, 0), (0, 0)),
         )
 
         dimension_numbers = _conv_dimension_numbers(inputs.shape)

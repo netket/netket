@@ -22,10 +22,7 @@ from jax.tree_util import Partial
 from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi, timing
 from netket.utils.types import Array, Callable, PyTree
-from netket.jax import (
-    tree_to_real,
-    vmap_chunked,
-)
+from netket.jax import tree_to_real, vmap_chunked
 
 from . import jacobian_dense
 from . import jacobian_pytree
@@ -384,6 +381,5 @@ def _multiply_by_pdf(oks, pdf):
     """
 
     return jax.tree_util.tree_map(
-        lambda x: jax.lax.broadcast_in_dim(pdf, x.shape, (0,)) * x,
-        oks,
+        lambda x: jax.lax.broadcast_in_dim(pdf, x.shape, (0,)) * x, oks
     )

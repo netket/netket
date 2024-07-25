@@ -55,12 +55,7 @@ def _check_total_sz(total_sz, S, size):
 class Spin(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
-    def __init__(
-        self,
-        s: float,
-        N: int = 1,
-        total_sz: float | None = None,
-    ):
+    def __init__(self, s: float, N: int = 1, total_sz: float | None = None):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
@@ -73,7 +68,7 @@ class Spin(HomogeneousHilbert):
            Simple spin hilbert space.
 
            >>> import netket as nk
-           >>> hi = nk.hilbert.Spin(s=1/2, N=4)
+           >>> hi = nk.hilbert.Spin(s=1 / 2, N=4)
            >>> print(hi.size)
            4
         """
@@ -103,7 +98,7 @@ class Spin(HomogeneousHilbert):
         return NotImplemented
 
     def _mul_sametype_(self, other):
-        assert type(self) == type(other)
+        assert type(self) is type(other)
         if self._s == other._s:
             if not self.constrained and not other.constrained:
                 return Spin(s=self._s, N=self.size + other.size)

@@ -25,10 +25,7 @@ def vstate(request):
         visible_bias_init=normal(),
     )
 
-    return nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        ma,
-    )
+    return nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
 
 
 def test_serialize(vstate, tmp_path):

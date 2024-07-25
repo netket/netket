@@ -239,18 +239,9 @@ partial_models += [
 @pytest.mark.parametrize(
     "hilbert",
     [
-        pytest.param(
-            nk.hilbert.Spin(s=1 / 2, N=4),
-            id="spin_1/2",
-        ),
-        pytest.param(
-            nk.hilbert.Spin(s=1, N=4),
-            id="spin_1",
-        ),
-        pytest.param(
-            nk.hilbert.Fock(n_max=3, N=4),
-            id="fock",
-        ),
+        pytest.param(nk.hilbert.Spin(s=1 / 2, N=4), id="spin_1/2"),
+        pytest.param(nk.hilbert.Spin(s=1, N=4), id="spin_1"),
+        pytest.param(nk.hilbert.Fock(n_max=3, N=4), id="fock"),
     ],
 )
 class TestARNN:
@@ -328,11 +319,7 @@ class TestARNN:
         for i in indices:
             variables = {"params": params, "cache": cache}
             p_i, mutables = model2.apply(
-                variables,
-                spins,
-                i,
-                method=model2.conditional,
-                mutable=["cache"],
+                variables, spins, i, method=model2.conditional, mutable=["cache"]
             )
             cache = mutables["cache"]
             p3 = p3.at[:, i, :].set(p_i)
@@ -344,11 +331,7 @@ class TestARNN:
 def test_throwing():
     def build_model(hilbert):
         nk.models.ARNNConv1D(
-            hilbert=hilbert,
-            machine_pow=2,
-            layers=3,
-            features=5,
-            kernel_size=2,
+            hilbert=hilbert, machine_pow=2, layers=3, features=5, kernel_size=2
         )
 
     # Only homogeneous Hilbert spaces are supported
@@ -361,18 +344,9 @@ def test_throwing():
 @pytest.mark.parametrize(
     "graph",
     [
-        pytest.param(
-            nk.graph.Grid(extent=[4, 4], pbc=False),
-            id="4x4_obc",
-        ),
-        pytest.param(
-            nk.graph.Grid(extent=[3, 5], pbc=False),
-            id="3x5_obc",
-        ),
-        pytest.param(
-            nk.graph.Grid(extent=[5, 3], pbc=False),
-            id="5x3_obc",
-        ),
+        pytest.param(nk.graph.Grid(extent=[4, 4], pbc=False), id="4x4_obc"),
+        pytest.param(nk.graph.Grid(extent=[3, 5], pbc=False), id="3x5_obc"),
+        pytest.param(nk.graph.Grid(extent=[5, 3], pbc=False), id="5x3_obc"),
     ],
 )
 def test_reorder_idx(graph):

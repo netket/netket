@@ -120,10 +120,7 @@ class MCMixedState(VariationalMixedState, MCState):
 
         diagonal_apply_fun = nkjax.HashablePartial(apply_diagonal, self._apply_fun)
 
-        for kw in [
-            "n_samples",
-            "n_discard_per_chain",
-        ]:
+        for kw in ["n_samples", "n_discard_per_chain"]:
             if kw in kwargs:
                 kwargs.pop(kw)
 
@@ -285,7 +282,5 @@ def deserialize_MCMixedState(vstate, state_dict):
 
 
 serialization.register_serialization_state(
-    MCMixedState,
-    serialize_MCMixedState,
-    deserialize_MCMixedState,
+    MCMixedState, serialize_MCMixedState, deserialize_MCMixedState
 )

@@ -196,13 +196,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
             # Acceptance Kernel
             accepted += acceptance_kernel(
-                σ,
-                σ1,
-                log_values,
-                log_values_1,
-                log_prob_corr,
-                mpow,
-                random_uniform,
+                σ, σ1, log_values, log_values_1, log_prob_corr, mpow, random_uniform
             )
 
         state.n_steps_proc += sampler.sweep_size * sampler.n_chains_per_rank

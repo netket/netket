@@ -234,11 +234,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         # by hand
         sparse_mat_jax = self.to_sparse()
         sparse_mat_scipy = sparse.csr_matrix(
-            (
-                sparse_mat_jax.data,
-                sparse_mat_jax.indices,
-                sparse_mat_jax.indptr,
-            ),
+            (sparse_mat_jax.data, sparse_mat_jax.indices, sparse_mat_jax.indptr),
             shape=sparse_mat_jax.shape,
         )
         return qutip.Qobj(

@@ -176,14 +176,15 @@ class NumbaOperatorGetConnDuringTracingError(NetketError):
         import jax.numpy as jnp
 
         graph = nk.graph.Chain(10)
-        hilbert = nk.hilbert.Spin(1/2, graph.n_nodes)
+        hilbert = nk.hilbert.Spin(1 / 2, graph.n_nodes)
         ham = nk.operator.Ising(hilbert, graph, h=1.0)
         ham_jax = ham.to_jax_operator()
 
         ma = nk.models.RBM()
-        pars = ma.init(jax.random.PRNGKey(1), jnp.ones((2,graph.n_nodes)))
+        pars = ma.init(jax.random.PRNGKey(1), jnp.ones((2, graph.n_nodes)))
 
         samples = hilbert.all_states()
+
 
         @jax.jit
         def compute_local_energies(pars, ham_jax, s):
@@ -195,7 +196,8 @@ class NumbaOperatorGetConnDuringTracingError(NetketError):
             logpsi_sp = ma.apply(pars, sp)
             logpsi_s = jnp.expand_dims(ma.apply(pars, s), -1)
 
-            return jnp.sum(mels * jnp.exp(logpsi_sp-logpsi_s), axis=-1)
+            return jnp.sum(mels * jnp.exp(logpsi_sp - logpsi_s), axis=-1)
+
 
         elocs = compute_local_energies(pars, ham_jax, samples)
         elocs_grad = jax.jacrev(compute_local_energies)(pars, ham_jax, samples)
@@ -221,23 +223,26 @@ class NumbaOperatorGetConnDuringTracingError(NetketError):
       import jax.numpy as jnp
 
       graph = nk.graph.Chain(10)
-      hilbert = nk.hilbert.Spin(1/2, graph.n_nodes)
+      hilbert = nk.hilbert.Spin(1 / 2, graph.n_nodes)
       ham = nk.operator.Ising(hilbert, graph, h=1.0)
 
       ma = nk.models.RBM()
-      pars = ma.init(jax.random.PRNGKey(1), jnp.ones((2,graph.n_nodes)))
+      pars = ma.init(jax.random.PRNGKey(1), jnp.ones((2, graph.n_nodes)))
 
       samples = hilbert.all_states()
+
 
       def compute_local_energies(pars, ham, s):
           sp, mels = ham.get_conn_padded(s)
           return _compute_local_energies_kernel(pars, s, sp, mels)
 
+
       @jax.jit
       def _compute_local_energies_kernel(pars, s, sp, mels):
           logpsi_sp = ma.apply(pars, sp)
           logpsi_s = jnp.expand_dims(ma.apply(pars, s), -1)
-          return jnp.sum(mels * jnp.exp(logpsi_sp-logpsi_s), axis=-1)
+          return jnp.sum(mels * jnp.exp(logpsi_sp - logpsi_s), axis=-1)
+
 
       elocs = compute_local_energies(pars, ham_jax, samples)
       elocs_grad = jax.jacrev(compute_local_energies)(pars, ham_jax, samples)
@@ -298,13 +303,15 @@ class JaxOperatorSetupDuringTracingError(NetketError):
 
         N = 2
 
-        ham = nk.operator.PauliStringsJax(['XI', 'IX'], jnp.array([0.3, 0.4]))
+        ham = nk.operator.PauliStringsJax(["XI", "IX"], jnp.array([0.3, 0.4]))
 
         samples = ham.hilbert.all_states()
+
 
         @jax.jit
         def compute_values(ham, s):
             return ham.get_conn_padded(s)
+
 
         compute_values(ham, samples)
 
@@ -368,9 +375,11 @@ class JaxOperatorNotConvertibleToNumba(NetketError):
         op = nk.operator.spin.sigmax(hi, 0)
         op = op.to_jax_operator()
 
+
         @jax.jit
         def test(op):
             op.to_numba_operator()
+
 
         test(op)
 

@@ -232,18 +232,9 @@ partial_model_pairs = [
 @pytest.mark.parametrize(
     "hilbert",
     [
-        pytest.param(
-            nk.hilbert.Spin(s=1 / 2, N=4),
-            id="spin_1/2",
-        ),
-        pytest.param(
-            nk.hilbert.Spin(s=1, N=4),
-            id="spin_1",
-        ),
-        pytest.param(
-            nk.hilbert.Fock(n_max=3, N=4),
-            id="fock",
-        ),
+        pytest.param(nk.hilbert.Spin(s=1 / 2, N=4), id="spin_1/2"),
+        pytest.param(nk.hilbert.Spin(s=1, N=4), id="spin_1"),
+        pytest.param(nk.hilbert.Fock(n_max=3, N=4), id="fock"),
     ],
 )
 @pytest.mark.parametrize("partial_model_pair", partial_model_pairs)

@@ -60,22 +60,13 @@ class M3(nn.Module):
     def __call__(self, x):
         n_v = x.shape[-1]
         W0r = self.param(
-            "weights_re",
-            nn.initializers.normal(),
-            (self.n_h // 2, n_v),
-            jnp.float64,
+            "weights_re", nn.initializers.normal(), (self.n_h // 2, n_v), jnp.float64
         )
         W0i = self.param(
-            "weights_im",
-            nn.initializers.normal(),
-            (self.n_h // 2, n_v),
-            jnp.float64,
+            "weights_im", nn.initializers.normal(), (self.n_h // 2, n_v), jnp.float64
         )
         W1 = self.param(
-            "weights",
-            nn.initializers.normal(),
-            (self.n_h // 2, n_v),
-            jnp.complex128,
+            "weights", nn.initializers.normal(), (self.n_h // 2, n_v), jnp.complex128
         )
         W = jnp.concatenate([W0r + 1j * W0i, W1], axis=0)
         y = jnp.einsum("ij,...j", W, x)

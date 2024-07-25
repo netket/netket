@@ -29,11 +29,7 @@ def test_vjp_chunked_holo_fun(w_dtype, x_dtype, vec_dtype):
     X = jnp.ones((8, 20), dtype=x_dtype)
     vec = jnp.ones((8,), dtype=vec_dtype)
 
-    res, vjp_fun = nk.jax.vjp(
-        f,
-        w,
-        X,
-    )
+    res, vjp_fun = nk.jax.vjp(f, w, X)
 
     dw, dX = vjp_fun(vec)
     np.testing.assert_allclose(w, 1.0)
@@ -58,11 +54,7 @@ def test_vjp_chunked_nonholo_fun(w_dtype, x_dtype, vec_dtype):
     X = jnp.ones((8, 20), dtype=x_dtype)
     vec = jnp.ones((8,), dtype=vec_dtype)
 
-    res, vjp_fun = nk.jax.vjp(
-        f,
-        w,
-        X,
-    )
+    res, vjp_fun = nk.jax.vjp(f, w, X)
 
     dw, dX = vjp_fun(vec)
     np.testing.assert_allclose(w, 1.0)

@@ -339,9 +339,7 @@ class FullSumState(VariationalState):
 
 
 def serialize_FullSumState(vstate):
-    state_dict = {
-        "variables": serialization.to_state_dict(vstate.variables),
-    }
+    state_dict = {"variables": serialization.to_state_dict(vstate.variables)}
     return state_dict
 
 
@@ -359,7 +357,5 @@ def deserialize_FullSumState(vstate, state_dict):
 
 
 serialization.register_serialization_state(
-    FullSumState,
-    serialize_FullSumState,
-    deserialize_FullSumState,
+    FullSumState, serialize_FullSumState, deserialize_FullSumState
 )

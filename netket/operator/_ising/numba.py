@@ -155,10 +155,7 @@ class Ising(IsingBase):
 
         """
         x = concrete_or_error(
-            np.asarray,
-            x,
-            NumbaOperatorGetConnDuringTracingError,
-            self,
+            np.asarray, x, NumbaOperatorGetConnDuringTracingError, self
         )
 
         return self._flattened_kernel(x, sections, self.edges, self._h, self._J)

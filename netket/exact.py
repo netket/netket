@@ -56,7 +56,7 @@ def lanczos_ed(
         Test for 1D Ising chain with 8 sites.
 
         >>> import netket as nk
-        >>> hi = nk.hilbert.Spin(s=1/2)**8
+        >>> hi = nk.hilbert.Spin(s=1 / 2) ** 8
         >>> hamiltonian = nk.operator.Ising(hi, h=1.0, graph=nk.graph.Chain(8))
         >>> w = nk.exact.lanczos_ed(hamiltonian, k=3)
         >>> w
@@ -75,9 +75,7 @@ def lanczos_ed(
         # wrap the operator.to_linear_operator() in a scipy.sparse.linalg.LinearOperator
         n = operator.hilbert.n_states
         A = _LinearOperator(
-            (n, n),
-            operator.to_linear_operator().__matmul__,
-            dtype=operator.dtype,
+            (n, n), operator.to_linear_operator().__matmul__, dtype=operator.dtype
         )
     else:
         A = operator.to_sparse()
@@ -115,7 +113,7 @@ def full_ed(operator: _AbstractOperator, *, compute_eigenvectors: bool = False):
         Test for 1D Ising chain with 8 sites.
 
         >>> import netket as nk
-        >>> hi = nk.hilbert.Spin(s=1/2)**8
+        >>> hi = nk.hilbert.Spin(s=1 / 2) ** 8
         >>> hamiltonian = nk.operator.Ising(hi, h=1.0, graph=nk.graph.Chain(8))
         >>> w = nk.exact.full_ed(hamiltonian)
         >>> w.shape

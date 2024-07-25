@@ -45,17 +45,9 @@ def test_DenseSymm_matrixInput(mode):
     g, hi, perms = _setup_symm("trans", N=8)
     shape = tuple(g.extent)
     perms_matrix = np.array(perms)
-    ma = nk.nn.DenseSymm(
-        symmetries=perms,
-        mode=mode,
-        features=2,
-        shape=shape,
-    )
+    ma = nk.nn.DenseSymm(symmetries=perms, mode=mode, features=2, shape=shape)
     ma_matrix = nk.nn.DenseSymm(
-        symmetries=perms_matrix,
-        mode=mode,
-        features=2,
-        shape=shape,
+        symmetries=perms_matrix, mode=mode, features=2, shape=shape
     )
 
     assert hash(ma) == hash(ma_matrix)
@@ -71,11 +63,7 @@ def test_DenseSymm_matrixInput(mode):
     mask[np.random.choice(n_symm, n_symm // 2, replace=False)] = 1
 
     ma_masked = nk.nn.DenseSymm(
-        symmetries=perms,
-        mode=mode,
-        features=2,
-        shape=shape,
-        mask=mask,
+        symmetries=perms, mode=mode, features=2, shape=shape, mask=mask
     )
     p3 = jax.jit(ma_masked.init)(k, x)
     assert nk.jax.tree_size(p3) < nk.jax.tree_size(p1)
@@ -170,30 +158,19 @@ def test_DenseEquivariant_creation(mode):
         _ = ma.init(nk.jax.PRNGKey(0), np.ones([1, 4, 16]))
 
     # Init with graph
-    check_init(
-        lambda: nk.nn.DenseEquivariant(
-            symmetries=g,
-            mode=mode,
-            features=4,
-        )
-    )
+    check_init(lambda: nk.nn.DenseEquivariant(symmetries=g, mode=mode, features=4))
 
     # init with space_group
     if mode == "irreps":
         check_init(
             lambda: nk.nn.DenseEquivariant(
-                symmetries=space_group,
-                mode=mode,
-                features=4,
+                symmetries=space_group, mode=mode, features=4
             )
         )
     else:
         check_init(
             lambda: nk.nn.DenseEquivariant(
-                symmetries=space_group,
-                shape=tuple(g.extent),
-                mode=mode,
-                features=4,
+                symmetries=space_group, shape=tuple(g.extent), mode=mode, features=4
             )
         )
 
@@ -201,26 +178,19 @@ def test_DenseEquivariant_creation(mode):
     if mode == "irreps":
         check_init(
             lambda: nk.nn.DenseEquivariant(
-                symmetries=space_group.irrep_matrices(),
-                mode=mode,
-                features=4,
+                symmetries=space_group.irrep_matrices(), mode=mode, features=4
             )
         )
     elif mode == "fft":
         check_init(
             lambda: nk.nn.DenseEquivariant(
-                symmetries=space_group.product_table,
-                mode=mode,
-                shape=(8,),
-                features=4,
+                symmetries=space_group.product_table, mode=mode, shape=(8,), features=4
             )
         )
     else:
         check_init(
             lambda: nk.nn.DenseEquivariant(
-                symmetries=space_group.product_table,
-                mode=mode,
-                features=4,
+                symmetries=space_group.product_table, mode=mode, features=4
             )
         )
 
@@ -304,10 +274,7 @@ def test_modes_DenseSymm(lattice, symmetries, batch):
         bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseSymm(
-        symmetries=perms,
-        mode="matrix",
-        features=4,
-        bias_init=uniform(),
+        symmetries=perms, mode="matrix", features=4, bias_init=uniform()
     )
 
     dum_input = jax.random.normal(rng.next(), batch + (1, g.n_nodes))
@@ -346,10 +313,7 @@ def test_modes_DenseSymm_infeatures(lattice, symmetries):
         bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseSymm(
-        symmetries=perms,
-        mode="matrix",
-        features=4,
-        bias_init=uniform(),
+        symmetries=perms, mode="matrix", features=4, bias_init=uniform()
     )
 
     dum_input = jax.random.normal(rng.next(), (1, 3, g.n_nodes))
@@ -375,16 +339,10 @@ def test_modes_DenseEquivariant(lattice, symmetries):
         bias_init=uniform(),
     )
     ma_irreps = nk.nn.DenseEquivariant(
-        symmetries=perms,
-        mode="irreps",
-        features=1,
-        bias_init=uniform(),
+        symmetries=perms, mode="irreps", features=1, bias_init=uniform()
     )
     ma_matrix = nk.nn.DenseEquivariant(
-        symmetries=perms,
-        mode="matrix",
-        features=1,
-        bias_init=uniform(),
+        symmetries=perms, mode="matrix", features=1, bias_init=uniform()
     )
 
     dum_input = jax.random.normal(rng.next(), (1, 1, len(perms)))
@@ -410,11 +368,7 @@ def test_deprecated_inout_features_DenseEquivariant():
             )
 
     with pytest.warns(FutureWarning):
-        nk.nn.DenseEquivariant(
-            symmetries=perms,
-            mode="irreps",
-            out_features=1,
-        )
+        nk.nn.DenseEquivariant(symmetries=perms, mode="irreps", out_features=1)
 
     with pytest.warns(FutureWarning):
         nk.nn.DenseEquivariant(

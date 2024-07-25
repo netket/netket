@@ -37,11 +37,7 @@ from .summation import KahanSum
 
 from .holomorphic import is_probably_holomorphic
 
-from .deprecation import (
-    warn_deprecation,
-    deprecated,
-    deprecated_new_name,
-)
+from .deprecation import warn_deprecation, deprecated, deprecated_new_name
 
 from .model_frameworks import maybe_wrap_module
 
@@ -54,13 +50,5 @@ from .static_range import StaticRange
 _hide_submodules(
     __name__,
     remove_self=False,
-    ignore=[
-        "numbers",
-        "types",
-        "float",
-        "dispatch",
-        "errors",
-        "timing",
-        "display",
-    ],
+    ignore=["numbers", "types", "float", "dispatch", "errors", "timing", "display"],
 )

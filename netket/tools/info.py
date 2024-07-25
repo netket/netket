@@ -48,9 +48,9 @@ def info():
     When called via::
 
         # python3 -m netket.tools.check_mpi
-        mpi4py_available     : True
-        mpi4jax_available : True
-        n_nodes           : 1
+        mpi4py_available: True
+        mpi4jax_available: True
+        n_nodes: 1
 
     this will print out basic MPI information to make allow users to check whether
     the environment has been set up correctly.

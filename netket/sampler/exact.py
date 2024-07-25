@@ -52,10 +52,7 @@ class ExactSampler(Sampler):
     """
 
     def __init__(
-        self,
-        hilbert: DiscreteHilbert,
-        machine_pow: int = 2,
-        dtype: DType = float,
+        self, hilbert: DiscreteHilbert, machine_pow: int = 2, dtype: DType = float
     ):
         """
         Construct an exact sampler.
@@ -72,10 +69,7 @@ class ExactSampler(Sampler):
         return True
 
     def _init_state(
-        sampler,
-        machine: nn.Module,
-        parameters: PyTree,
-        seed: SeedT | None = None,
+        sampler, machine: nn.Module, parameters: PyTree, seed: SeedT | None = None
     ):
         pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
         return ExactSamplerState(pdf=pdf, rng=seed)
@@ -103,10 +97,7 @@ class ExactSampler(Sampler):
         numbers = jax.random.choice(
             rng,
             sampler.hilbert.n_states,
-            shape=(
-                sampler.n_batches,
-                chain_length,
-            ),
+            shape=(sampler.n_batches, chain_length),
             replace=True,
             p=state.pdf,
         )

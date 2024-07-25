@@ -314,10 +314,7 @@ class ParallelTemperingSampler(MetropolisSampler):
         )
 
         return ParallelTemperingSamplerState(
-            σ=σ,
-            rng=key_state,
-            rule_state=rule_state,
-            beta=beta,
+            σ=σ, rng=key_state, rule_state=rule_state, beta=beta
         )
 
     @partial(jax.jit, static_argnums=1)
@@ -470,9 +467,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             # swap acceptances
             swapped_n_accepted_per_beta = swap_rows(n_accepted_per_beta, idxs, inn)
             s["n_accepted_per_beta"] = jax.numpy.where(
-                do_swap,
-                swapped_n_accepted_per_beta,
-                n_accepted_per_beta,
+                do_swap, swapped_n_accepted_per_beta, n_accepted_per_beta
             )
 
             # Update statistics to compute diffusion coefficient of replicas
@@ -611,11 +606,12 @@ def ParallelTemperingExchange(
           nearest-neighbours exchanges.
 
           >>> import pytest; pytest.skip("EXPERIMENTAL")
+          >>>
           >>> import netket as nk
           >>> import netket.sampler.metropolis_pt as mpt
           >>>
-          >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-          >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+          >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
+          >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
           >>>
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = mpt.MetropolisExchangePt(hi, graph=g)
@@ -657,11 +653,12 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
        Sampling from a RBM machine in a 1D lattice of spin 1/2
 
        >>> import pytest; pytest.skip("EXPERIMENTAL")
+       >>>
        >>> import netket as nk
        >>> import netket.sampler.metropolis_pt as mpt
        >>>
-       >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-       >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+       >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
+       >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
        >>>
        >>> # Transverse-field Ising Hamiltonian
        >>> ha = nk.operator.Ising(hilbert=hi, h=1.0, graph=g)

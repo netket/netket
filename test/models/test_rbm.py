@@ -50,9 +50,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
 
     vmc = nk.VMC(
-        nk.operator.Ising(hi, g, h=1.0),
-        nk.optimizer.Sgd(0.1),
-        variational_state=vs,
+        nk.operator.Ising(hi, g, h=1.0), nk.optimizer.Sgd(0.1), variational_state=vs
     )
     vmc.advance(1)
 

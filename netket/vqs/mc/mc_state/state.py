@@ -31,12 +31,7 @@ from netket import nn
 from netket.stats import Stats
 from netket.operator import AbstractOperator, Squared
 from netket.sampler import Sampler, SamplerState
-from netket.utils import (
-    maybe_wrap_module,
-    wrap_afun,
-    wrap_to_support_scalar,
-    timing,
-)
+from netket.utils import maybe_wrap_module, wrap_afun, wrap_to_support_scalar, timing
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -588,11 +583,7 @@ class MCState(VariationalState):
     # override to use chunks
     @timing.timed
     def expect_and_grad(
-        self,
-        O: AbstractOperator,
-        *,
-        mutable: CollectionFilter | None = None,
-        **kwargs,
+        self, O: AbstractOperator, *, mutable: CollectionFilter | None = None, **kwargs
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient
         for a given operator :math:`O`.
@@ -618,21 +609,12 @@ class MCState(VariationalState):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_grad(
-            self,
-            O,
-            self.chunk_size,
-            mutable=mutable,
-            **kwargs,
-        )
+        return expect_and_grad(self, O, self.chunk_size, mutable=mutable, **kwargs)
 
     # override to use chunks
     @timing.timed
     def expect_and_forces(
-        self,
-        O: AbstractOperator,
-        *,
-        mutable: CollectionFilter | None = None,
+        self, O: AbstractOperator, *, mutable: CollectionFilter | None = None
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and the corresponding force
         vector for a given operator O.
@@ -789,7 +771,5 @@ def deserialize_MCState(vstate, state_dict):
 
 
 serialization.register_serialization_state(
-    MCState,
-    serialize_MCState,
-    deserialize_MCState,
+    MCState, serialize_MCState, deserialize_MCState
 )

@@ -54,11 +54,7 @@ explicit_fixed_step_solvers = {
     "RK4": RK4,
 }
 
-explicit_adaptive_solvers = {
-    "RK12": RK12,
-    "RK23": RK23,
-    "RK45": RK45,
-}
+explicit_adaptive_solvers = {"RK12": RK12, "RK23": RK23, "RK45": RK45}
 
 tableaus_params = [pytest.param(obj, id=name) for name, obj in tableaus.items()]
 explicit_fixed_step_solvers_params = [
@@ -132,10 +128,7 @@ def test_ode_solver(method):
 
     # somewhat arbitrary tolerances, that may still help spot
     # errors introduced later
-    rtol = {
-        "Euler": 1e-2,
-        "RK4": 5e-4,
-    }.get(solver.tableau.name, 1e-3)
+    rtol = {"Euler": 1e-2, "RK4": 5e-4}.get(solver.tableau.name, 1e-3)
     np.testing.assert_allclose(y_t[:, 0], y_ref, rtol=rtol)
 
 

@@ -61,10 +61,7 @@ def vstate(request):
         visible_bias_init=normal(),
     )
 
-    vstate = nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        ma,
-    )
+    vstate = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
     vstate.init_parameters(normal(stddev=0.001), seed=jax.random.PRNGKey(3))
 
     vstate.sample()
@@ -73,12 +70,10 @@ def vstate(request):
 
 
 @pytest.mark.parametrize(
-    "qgt",
-    [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
+    "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
 @pytest.mark.parametrize(
-    "solver",
-    [pytest.param(solver, id=name) for name, solver in solvers.items()],
+    "solver", [pytest.param(solver, id=name) for name, solver in solvers.items()]
 )
 def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     is_holo = nk.jax.is_complex_dtype(vstate.model.param_dtype)
@@ -131,10 +126,7 @@ def test_qgt_otf_scale_err():
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
     ma = nk.models.RBM()
-    vstate = nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        ma,
-    )
+    vstate = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
     with pytest.raises(NotImplementedError):
         nk.optimizer.qgt.QGTOnTheFly(vstate, diag_scale=0.01)
 
@@ -152,8 +144,7 @@ def test_qgt_explicit_chunk_size(SType):
 
 
 @pytest.mark.parametrize(
-    "solver",
-    [pytest.param(solver, id=name) for name, solver in solvers.items()],
+    "solver", [pytest.param(solver, id=name) for name, solver in solvers.items()]
 )
 def test_solver_kwargs_partial_api(solver):
     # create the partial interface
@@ -164,8 +155,7 @@ def test_solver_kwargs_partial_api(solver):
 
 
 @pytest.mark.parametrize(
-    "solver",
-    [pytest.param(solver, id=name) for name, solver in solvers.items()],
+    "solver", [pytest.param(solver, id=name) for name, solver in solvers.items()]
 )
 def test_solver_dense_api(solver):
     A = jax.random.normal(jax.random.key(1), (10, 10))

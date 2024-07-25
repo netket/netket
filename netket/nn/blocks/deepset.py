@@ -4,10 +4,7 @@ import jax
 from jax import numpy as jnp
 from flax import linen as nn
 from netket.utils.types import NNInitFunc, DType
-from jax.nn.initializers import (
-    zeros,
-    lecun_normal,
-)
+from jax.nn.initializers import zeros, lecun_normal
 
 from .mlp import MLP
 

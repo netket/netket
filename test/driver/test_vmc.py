@@ -55,9 +55,7 @@ def test_estimate():
 
 def test_raise_n_iter():
     ha, sx, ma, sampler, driver = _setup_vmc()
-    with raises(
-        ValueError,
-    ):
+    with raises(ValueError):
         driver.run("prova", 12)
 
 

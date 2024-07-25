@@ -18,12 +18,7 @@ def _setup(useExactSampler=True):
 
     if useExactSampler:
         sa = nk.sampler.ExactSampler(hilbert=hi)
-        vs = nk.vqs.MCState(
-            sampler=sa,
-            model=ma,
-            n_samples=n_samples,
-            seed=seed,
-        )
+        vs = nk.vqs.MCState(sampler=sa, model=ma, n_samples=n_samples, seed=seed)
 
     else:
         sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains_per_rank=16)
@@ -35,11 +30,7 @@ def _setup(useExactSampler=True):
             seed=seed,
         )
 
-    vs_exact = nk.vqs.FullSumState(
-        hilbert=hi,
-        model=ma,
-        seed=seed,
-    )
+    vs_exact = nk.vqs.FullSumState(hilbert=hi, model=ma, seed=seed)
 
     H = nk.operator.IsingJax(hi, graph=nk.graph.Chain(N), h=1, J=-1)
     H2 = H @ H
@@ -65,10 +56,7 @@ def var_exact_fun(params, vs, H, H2):
 )
 @pytest.mark.parametrize(
     "use_Oloc2",
-    [
-        pytest.param(True, id="UseOloc2"),
-        pytest.param(False, id="NotUseOloc2"),
-    ],
+    [pytest.param(True, id="UseOloc2"), pytest.param(False, id="NotUseOloc2")],
 )
 def test_MCState(useExactSampler, use_Oloc2):
     vs, vs_exact, H, H2 = _setup(useExactSampler)
@@ -100,10 +88,7 @@ def test_MCState(useExactSampler, use_Oloc2):
 
 @pytest.mark.parametrize(
     "use_Oloc2",
-    [
-        pytest.param(True, id="UseOloc2"),
-        pytest.param(False, id="NotUseOloc2"),
-    ],
+    [pytest.param(True, id="UseOloc2"), pytest.param(False, id="NotUseOloc2")],
 )
 def test_FullSumState(use_Oloc2):
     err = 1e-3

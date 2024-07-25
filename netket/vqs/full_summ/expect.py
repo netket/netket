@@ -94,10 +94,7 @@ def expect_and_grad_fullsum(
 
 @expect_and_forces.dispatch
 def expect_and_forces_fullsum(
-    vstate: FullSumState,
-    Ô: DiscreteOperator,
-    *,
-    mutable: CollectionFilter = False,
+    vstate: FullSumState, Ô: DiscreteOperator, *, mutable: CollectionFilter = False
 ) -> tuple[Stats, PyTree]:
     if isinstance(Ô, Squared):
         raise NotImplementedError("expect_and_forces not yet implemented for `Squared`")

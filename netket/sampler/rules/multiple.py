@@ -37,6 +37,7 @@ class MultipleRules(MetropolisRule):
 
     Each `rule[i]` will be selected with a probability `probabilities[i]`.
     """
+
     rules: tuple[MetropolisRule, ...]
     """List of rules to be selected from."""
     probabilities: jax.Array
@@ -127,10 +128,7 @@ class MultipleRules(MetropolisRule):
             log_prob_corrs.append(log_prob_corr_i)
 
         indices = jax.random.choice(
-            keys[-1],
-            N,
-            shape=(sampler.n_batches,),
-            p=self.probabilities,
+            keys[-1], N, shape=(sampler.n_batches,), p=self.probabilities
         )
 
         # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing

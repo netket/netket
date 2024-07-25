@@ -25,14 +25,9 @@ from netket.utils import mpi
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
-from netket.operator import (
-    AbstractOperator,
-)
+from netket.operator import AbstractOperator
 
-from netket.vqs.mc import (
-    get_local_kernel_arguments,
-    get_local_kernel,
-)
+from netket.vqs.mc import get_local_kernel_arguments, get_local_kernel
 
 from .state import MCState
 
@@ -82,10 +77,7 @@ def forces_expect_hermitian(
     n_samples = σ.shape[0] * mpi.n_nodes
 
     O_loc = local_value_kernel(
-        model_apply_fun,
-        {"params": parameters, **model_state},
-        σ,
-        local_value_args,
+        model_apply_fun, {"params": parameters, **model_state}, σ, local_value_args
     )
 
     Ō = statistics(O_loc.reshape((n_chains, -1)))
@@ -108,8 +100,4 @@ def forces_expect_hermitian(
 
     new_model_state = new_model_state[0] if is_mutable else None
 
-    return (
-        Ō,
-        Ō_grad,
-        new_model_state,
-    )
+    return (Ō, Ō_grad, new_model_state)

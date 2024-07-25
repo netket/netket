@@ -45,10 +45,7 @@ def expect(vstate: FullSumState, variance_operator: VarianceObservable):
 
 @expect_and_grad.dispatch
 def expect_and_grad(
-    vstate: FullSumState,
-    variance_operator: VarianceObservable,
-    *,
-    mutable,
+    vstate: FullSumState, variance_operator: VarianceObservable, *, mutable
 ):
     if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")

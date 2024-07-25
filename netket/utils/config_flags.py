@@ -72,15 +72,7 @@ class Config:
         self._callbacks = {}
 
     def define(
-        self,
-        name,
-        type,
-        default,
-        *,
-        help,
-        runtime=False,
-        callback=None,
-        lazy=False,
+        self, name, type, default, *, help, runtime=False, callback=None, lazy=False
     ):  # noqa: W0613
         """
         Defines a new flag

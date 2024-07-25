@@ -88,11 +88,7 @@ class RuntimeLog(AbstractLog):
         Inner method of `serialize`, working on an IO object.
         """
         outstream.write(
-            orjson.dumps(
-                self.data,
-                default=default,
-                option=orjson.OPT_SERIALIZE_NUMPY,
-            )
+            orjson.dumps(self.data, default=default, option=orjson.OPT_SERIALIZE_NUMPY)
         )
 
     def __repr__(self):

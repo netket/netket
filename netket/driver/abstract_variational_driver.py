@@ -323,9 +323,7 @@ class AbstractVariationalDriver(abc.ABC):
 
         with timing.timed_scope(force=timeit) as timer:
             with tqdm(
-                total=n_iter,
-                disable=not show_progress,
-                dynamic_ncols=True,
+                total=n_iter, disable=not show_progress, dynamic_ncols=True
             ) as pbar:
                 old_step = self.step_count
                 first_step = True

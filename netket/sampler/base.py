@@ -64,11 +64,7 @@ class Sampler(struct.Pytree):
     """The dtype of the states sampled."""
 
     def __init__(
-        self,
-        hilbert: AbstractHilbert,
-        *,
-        machine_pow: float = 2,
-        dtype: DType = float,
+        self, hilbert: AbstractHilbert, *, machine_pow: float = 2, dtype: DType = float
     ):
         """
         Construct a Monte Carlo sampler.

@@ -29,11 +29,7 @@ from netket.utils.numbers import dtype as _dtype, is_scalar
 from .._discrete_operator import DiscreteOperator
 from .._lazy import Transpose
 
-from .helpers import (
-    canonicalize_input,
-    _multiply_operators,
-    cast_operator_matrix_dtype,
-)
+from .helpers import canonicalize_input, _multiply_operators, cast_operator_matrix_dtype
 from .convert import local_operators_to_pauli_strings
 
 if TYPE_CHECKING:
@@ -93,7 +89,7 @@ class LocalOperatorBase(DiscreteOperator):
 
            >>> from netket.hilbert import Spin
            >>> from netket.operator import LocalOperator
-           >>> hi = Spin(0.5)**20
+           >>> hi = Spin(0.5) ** 20
            >>> empty_hat = LocalOperator(hi)
            >>> print(len(empty_hat.acting_on))
            0

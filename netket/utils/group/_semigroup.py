@@ -176,7 +176,7 @@ class FiniteSemiGroup:
 @dispatch
 def product(A: FiniteSemiGroup, B: FiniteSemiGroup):  # noqa: F811
     return FiniteSemiGroup(
-        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)]
     )
 
 

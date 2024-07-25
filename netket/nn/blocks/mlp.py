@@ -41,6 +41,7 @@ class MLP(nn.Module):
     Forms a common building block for models such as
     `PauliNet (continuous) <https://www.nature.com/articles/s41557-020-0544-y>`_
     """
+
     output_dim: int = 1
     """The output dimension"""
     hidden_dims: int | tuple[int, ...] | None = None

@@ -178,11 +178,7 @@ class VariationalState(abc.ABC):
         return r[1]
 
     def expect_and_grad(
-        self,
-        O: AbstractOperator,
-        *,
-        mutable: CollectionFilter | None = None,
-        **kwargs,
+        self, O: AbstractOperator, *, mutable: CollectionFilter | None = None, **kwargs
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient
         for a given operator :math:`O`.
@@ -211,10 +207,7 @@ class VariationalState(abc.ABC):
         return expect_and_grad(self, O, mutable=mutable, **kwargs)
 
     def expect_and_forces(
-        self,
-        O: AbstractOperator,
-        *,
-        mutable: CollectionFilter | None = None,
+        self, O: AbstractOperator, *, mutable: CollectionFilter | None = None
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and the corresponding force
         vector for a given operator O.

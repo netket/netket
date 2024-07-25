@@ -96,11 +96,7 @@ def pack_internals(
 
     diag_mels = np.full((n_operators, max_op_size), np.nan, dtype=dtype)
 
-    mels = np.full(
-        (n_operators, max_op_size, max_op_size_offdiag),
-        np.nan,
-        dtype=dtype,
-    )
+    mels = np.full((n_operators, max_op_size, max_op_size_offdiag), np.nan, dtype=dtype)
     # x_prime contains the local state after the operator has been applied
     # for the sites the operator is acting on, for each row
     # (each row also corresponds to a list of local states)

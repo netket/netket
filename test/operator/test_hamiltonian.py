@@ -84,10 +84,7 @@ def _colored_graph(graph):
 
 @pytest.mark.parametrize(
     "dtype",
-    [
-        pytest.param(np.float32, id="float32"),
-        pytest.param(np.float64, id="float64"),
-    ],
+    [pytest.param(np.float32, id="float32"), pytest.param(np.float64, id="float64")],
 )
 @pytest.mark.parametrize(
     "partial_H_pair",

@@ -29,11 +29,7 @@ class Renyi2EntanglementEntropy(AbstractObservable):
 
     """
 
-    def __init__(
-        self,
-        hilbert: None,
-        partition: jnp.array,
-    ):
+    def __init__(self, hilbert: None, partition: jnp.array):
         r"""
         Constructs the operator computing the Rényi2 entanglement entropy of
         a state :math:`| \Psi \rangle` for a partition with partition A:

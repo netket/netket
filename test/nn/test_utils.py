@@ -45,10 +45,7 @@ def vstate(request):
         visible_bias_init=normal(),
     )
 
-    return nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        ma,
-    )
+    return nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
 
 
 @pytest.mark.parametrize("normalize", [True, False])
@@ -83,8 +80,7 @@ def vstate_rho(request):
     ma = nk.models.NDM()
 
     return nk.vqs.MCMixedState(
-        nk.sampler.MetropolisLocal(nk.hilbert.DoubledHilbert(hi)),
-        ma,
+        nk.sampler.MetropolisLocal(nk.hilbert.DoubledHilbert(hi)), ma
     )
 
 

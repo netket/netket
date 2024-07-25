@@ -79,15 +79,9 @@ dense_tol[np.dtype("float64")] = 1e-5, 1e-15
 dense_tol[np.dtype("float32")] = 5e-4, 1e-6
 
 
-RBM = partial(
-    nk.models.RBM,
-    hidden_bias_init=normal(),
-    visible_bias_init=normal(),
-)
+RBM = partial(nk.models.RBM, hidden_bias_init=normal(), visible_bias_init=normal())
 RBMModPhase = partial(
-    nk.models.RBMModPhase,
-    hidden_bias_init=normal(),
-    kernel_init=normal(),
+    nk.models.RBMModPhase, hidden_bias_init=normal(), kernel_init=normal()
 )
 
 models = {
@@ -116,10 +110,7 @@ def vstate(request, model, chunk_size):
     k1, k2 = jax.random.split(k)
 
     vstate = nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        model,
-        seed=k1,
-        n_samples=1024,
+        nk.sampler.MetropolisLocal(hi), model, seed=k1, n_samples=1024
     )
 
     # initialize the same parameters on every rank
@@ -143,12 +134,10 @@ def is_complex_failing(vstate, qgt_partial):
 
 
 @pytest.mark.parametrize(
-    "qgt",
-    [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
+    "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
 @pytest.mark.parametrize(
-    "solver",
-    [pytest.param(solver, id=name) for name, solver in solvers.items()],
+    "solver", [pytest.param(solver, id=name) for name, solver in solvers.items()]
 )
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
@@ -167,9 +156,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
 
     rtol, atol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.param_dtype)]
     jax.tree_util.tree_map(
-        partial(testing.assert_allclose, rtol=rtol, atol=atol),
-        S @ x,
-        vstate.parameters,
+        partial(testing.assert_allclose, rtol=rtol, atol=atol), S @ x, vstate.parameters
     )
 
     if _mpi_size > 1:
@@ -195,8 +182,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
 
 @common.skipif_mpi
 @pytest.mark.parametrize(
-    "qgt",
-    [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
+    "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
 @pytest.mark.parametrize("chunk_size", [None])
 def test_qgt_solve_with_x0(qgt, vstate):
@@ -211,8 +197,7 @@ def test_qgt_solve_with_x0(qgt, vstate):
 
 
 @pytest.mark.parametrize(
-    "qgt",
-    [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
+    "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
@@ -269,8 +254,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 
 
 @pytest.mark.parametrize(
-    "qgt",
-    [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
+    "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
@@ -320,12 +304,7 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
 @pytest.mark.parametrize(
     "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
-@pytest.mark.parametrize(
-    "chunk_size",
-    [
-        None,
-    ],
-)
+@pytest.mark.parametrize("chunk_size", [None])
 def test_qgt_pytree_diag_shift(qgt, vstate):
     if is_complex_failing(vstate, qgt):
         return
@@ -354,8 +333,7 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
 def test_qgt_holomorphic_real_pars_throws():
     hi = nk.hilbert.Spin(1 / 2, 5)
     vstate = nk.vqs.MCState(
-        nk.sampler.MetropolisLocal(hi),
-        nk.models.RBM(param_dtype=float),
+        nk.sampler.MetropolisLocal(hi), nk.models.RBM(param_dtype=float)
     )
 
     with pytest.raises(nk.errors.IllegalHolomorphicDeclarationForRealParametersError):

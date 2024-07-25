@@ -17,10 +17,7 @@ from jax import numpy as jnp
 from netket.utils.types import Array, PyTree
 import netket.jax as nkjax
 
-from .jacobian_pytree import (
-    jacobian_real_holo,
-    jacobian_cplx,
-)
+from .jacobian_pytree import jacobian_real_holo, jacobian_cplx
 
 
 def ravel(x: PyTree) -> Array:

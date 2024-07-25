@@ -78,10 +78,7 @@ class IsingBase(SpecialHamiltonian):
             graph = graph.edges()
 
         if isinstance(graph, list):
-            graph = np.asarray(
-                [[u, v] for u, v in graph],
-                dtype=np.intp,
-            )
+            graph = np.asarray([[u, v] for u, v in graph], dtype=np.intp)
 
         if graph.ndim != 2 or graph.shape[1] != 2:
             raise ValueError(

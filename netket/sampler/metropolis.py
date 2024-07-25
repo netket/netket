@@ -237,6 +237,7 @@ class MetropolisSampler(Sampler):
 
     The dtype of the sampled states can be chosen.
     """
+
     rule: MetropolisRule = None
     """The Metropolis transition rule."""
     sweep_size: int = struct.field(pytree_node=False, default=None)
@@ -317,10 +318,7 @@ class MetropolisSampler(Sampler):
             n_chains_per_rank = 16
 
         n_chains = _round_n_chains_to_next_multiple(
-            n_chains,
-            n_chains_per_rank,
-            device_count(),
-            "rank",
+            n_chains, n_chains_per_rank, device_count(), "rank"
         )
         n_chains_per_rank = n_chains // device_count()
 
@@ -330,11 +328,7 @@ class MetropolisSampler(Sampler):
             )
         self.chunk_size = chunk_size
 
-        super().__init__(
-            hilbert=hilbert,
-            machine_pow=machine_pow,
-            dtype=dtype,
-        )
+        super().__init__(hilbert=hilbert, machine_pow=machine_pow, dtype=dtype)
 
         self.n_chains = n_chains
         self.reset_chains = reset_chains
@@ -627,8 +621,8 @@ def MetropolisExchange(
 
           >>> import netket as nk
           >>>
-          >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-          >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+          >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
+          >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
           >>>
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = nk.sampler.MetropolisExchange(hi, graph=g)
@@ -676,8 +670,8 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
 
        >>> import netket as nk
        >>>
-       >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-       >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+       >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
+       >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
        >>>
        >>> # Transverse-field Ising Hamiltonian
        >>> ha = nk.operator.Ising(hilbert=hi, h=1.0, graph=g)

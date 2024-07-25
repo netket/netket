@@ -116,9 +116,7 @@ def random_split_like_tree(rng_key, target=None, treedef=None):
 def tree_random_normal_like(rng_key, target):
     keys_tree = random_split_like_tree(rng_key, target)
     return jax.tree_util.tree_map(
-        lambda l, k: jax.random.normal(k, l.shape, l.dtype),
-        target,
-        keys_tree,
+        lambda l, k: jax.random.normal(k, l.shape, l.dtype), target, keys_tree
     )
 
 
@@ -174,8 +172,7 @@ class Example:
             pass
         else:
             self.target = jax.tree_util.tree_map(
-                lambda x: astype_unsafe(x, pardtype),
-                self.target,
+                lambda x: astype_unsafe(x, pardtype), self.target
             )
 
         k = jax.random.PRNGKey(seed)
@@ -329,12 +326,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
     # use that S is hermitian:
     # S^T = (O^H O)^T = O^T O* = (O^H O)* = S*
     # S^T w = S* w = (S w*)*
-    expected = nkjax.tree_conj(
-        mv(
-            nkjax.tree_conj(w),
-            0.0,
-        )
-    )
+    expected = nkjax.tree_conj(mv(nkjax.tree_conj(w), 0.0))
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
     assert_tree_allclose(actual, expected)
     tree_samedtypes(actual, expected)

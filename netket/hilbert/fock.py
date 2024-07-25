@@ -33,10 +33,7 @@ class Fock(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local fock basis."""
 
     def __init__(
-        self,
-        n_max: int | None = None,
-        N: int = 1,
-        n_particles: int | None = None,
+        self, n_max: int | None = None, N: int = 1, n_particles: int | None = None
     ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites
@@ -117,7 +114,7 @@ class Fock(HomogeneousHilbert):
         return NotImplemented
 
     def _mul_sametype_(self, other: "Fock") -> "Fock":
-        assert type(self) == type(other)
+        assert type(self) is type(other)
         if self.n_max == other.n_max:
             if self._n_particles is None and other._n_particles is None:
                 return Fock(self.n_max, N=self.size + other.size)

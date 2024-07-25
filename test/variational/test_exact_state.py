@@ -193,10 +193,7 @@ def _expval(par, vs, H):
 
 
 @common.skipif_mpi
-@pytest.mark.parametrize(
-    "L,n_iterations,h",
-    [(4, 100, 1), (6, 100, 2)],
-)
+@pytest.mark.parametrize("L,n_iterations,h", [(4, 100, 1), (6, 100, 2)])
 @pytest.mark.parametrize(
     "machine", [pytest.param(ma, id=name) for name, ma in machines.items()]
 )
@@ -204,13 +201,7 @@ def _expval(par, vs, H):
     "qgtT", [pytest.param(qgtT, id=name) for name, qgtT in qgt_types.items()]
 )
 def test_TFIM_energy_strictly_decreases(
-    L,
-    n_iterations,
-    h,
-    machine,
-    qgtT,
-    abs_eps=1.0e-3,
-    rel_eps=1.0e-4,
+    L, n_iterations, h, machine, qgtT, abs_eps=1.0e-3, rel_eps=1.0e-4
 ):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
@@ -220,10 +211,7 @@ def test_TFIM_energy_strictly_decreases(
     op = nk.optimizer.Sgd(learning_rate=0.003)
 
     gs = nk.driver.VMC(
-        ha,
-        op,
-        variational_state=vs,
-        preconditioner=nk.optimizer.SR(qgt=qgtT),
+        ha, op, variational_state=vs, preconditioner=nk.optimizer.SR(qgt=qgtT)
     )
 
     log = nk.logging.RuntimeLog()

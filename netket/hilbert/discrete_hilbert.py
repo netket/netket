@@ -278,7 +278,7 @@ class DiscreteHilbert(AbstractHilbert):
         return is_indexable(self.shape)
 
     def __mul__(self, other: "DiscreteHilbert"):
-        if type(self) == type(other):
+        if type(self) is type(other):
             res = self._mul_sametype_(other)
             if res is not NotImplemented:
                 return res

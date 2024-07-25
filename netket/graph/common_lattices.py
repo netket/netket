@@ -98,13 +98,13 @@ def Grid(
         Construct a 5x10 square lattice with periodic boundary conditions:
 
         >>> import netket
-        >>> g=netket.graph.Grid(extent=[5, 10], pbc=True)
+        >>> g = netket.graph.Grid(extent=[5, 10], pbc=True)
         >>> print(g.n_nodes)
         50
 
         Construct a 2x2x3 cubic lattice with open boundary conditions:
 
-        >>> g=netket.graph.Grid(extent=[2,2,3], pbc=False)
+        >>> g = netket.graph.Grid(extent=[2, 2, 3], pbc=False)
         >>> print(g.n_nodes)
         12
     """
@@ -169,7 +169,7 @@ def Cube(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
         constructed as follows:
 
         >>> import netket
-        >>> g=netket.graph.Cube(10, pbc=True)
+        >>> g = netket.graph.Cube(10, pbc=True)
         >>> print(g.n_nodes)
         1000
     """
@@ -192,7 +192,7 @@ def Square(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
         constructed as follows:
 
         >>> import netket
-        >>> g=netket.graph.Square(10, pbc=True)
+        >>> g = netket.graph.Square(10, pbc=True)
         >>> print(g.n_nodes)
         100
     """
@@ -250,7 +250,7 @@ def BCC(
         Construct a BCC lattice with 3×3×3 primitive unit cells:
 
         >>> from netket.graph import BCC
-        >>> g = BCC(extent=[3,3,3])
+        >>> g = BCC(extent=[3, 3, 3])
         >>> print(g.n_nodes)
         27
     """
@@ -292,7 +292,7 @@ def FCC(
         Construct an FCC lattice with 3×3×3 primitive unit cells:
 
         >>> from netket.graph import FCC
-        >>> g = FCC(extent=[3,3,3])
+        >>> g = FCC(extent=[3, 3, 3])
         >>> print(g.n_nodes)
         27
     """
@@ -336,7 +336,7 @@ def Diamond(
         Construct a diamond lattice with 3×3×3 primitive unit cells:
 
         >>> from netket.graph import Diamond
-        >>> g = Diamond(extent=[3,3,3])
+        >>> g = Diamond(extent=[3, 3, 3])
         >>> print(g.n_nodes)
         54
     """
@@ -386,7 +386,7 @@ def Pyrochlore(
         Construct a pyrochlore lattice with 3×3×3 primitive unit cells:
 
         >>> from netket.graph import Pyrochlore
-        >>> g = Pyrochlore(extent=[3,3,3])
+        >>> g = Pyrochlore(extent=[3, 3, 3])
         >>> print(g.n_nodes)
         108
     """
@@ -485,10 +485,7 @@ def Honeycomb(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice
         18
     """
     return _hexagonal_general(
-        extent,
-        site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]],
-        pbc=pbc,
-        **kwargs,
+        extent, site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]], pbc=pbc, **kwargs
     )
 
 

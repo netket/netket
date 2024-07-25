@@ -36,12 +36,7 @@ def _thermal_state(ha, beta):
     return rho
 
 
-def _generate_data(
-    hi,
-    rho,
-    n_basis=20,
-    n_shots=100,
-):
+def _generate_data(hi, rho, n_basis=20, n_shots=100):
     N = int(np.log2(rho.shape[0]))
     rotations = []
     training_samples = []

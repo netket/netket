@@ -70,7 +70,7 @@ class CustomHilbert(HomogeneousHilbert):
             Simple custom hilbert space.
 
             >>> import netket as nk
-            >>> g = nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+            >>> g = nk.graph.Hypercube(length=10, n_dim=2, pbc=True)
             >>> local_states = nk.utils.StaticRange(start=-2.0, step=1.0, length=4)
             >>> hi = nk.hilbert.CustomHilbert(local_states=local_states, N=100)
             >>> print(hi.size)
@@ -79,7 +79,7 @@ class CustomHilbert(HomogeneousHilbert):
         super().__init__(local_states, N, constraint_fn)
 
     def _mul_sametype_(self, other):
-        assert type(self) == type(other)
+        assert type(self) is type(other)
         if not self.constrained:
             if self.local_states == other.local_states:
                 return CustomHilbert(self._local_states, self.size + other.size)

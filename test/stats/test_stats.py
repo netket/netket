@@ -208,30 +208,15 @@ def test_decimal_format():
 @common.skipif_mpi
 def test_R_hat():
     # detect disagreeing chains
-    x = np.array(
-        [
-            [1.0, 1.0, 1.0],
-            [1.1, 1.1, 1.1],
-        ]
-    )
+    x = np.array([[1.0, 1.0, 1.0], [1.1, 1.1, 1.1]])
     assert statistics(x).R_hat > 1.01
 
     # detect non-stationary chains
-    x = np.array(
-        [
-            [1.0, 1.5, 2.0],
-            [2.0, 1.5, 1.0],
-        ]
-    )
+    x = np.array([[1.0, 1.5, 2.0], [2.0, 1.5, 1.0]])
     assert statistics(x).R_hat > 1.01
 
     # detect "stuck" chains
-    x = np.array(
-        [
-            np.random.normal(size=1000),
-            np.random.normal(size=1000),
-        ]
-    )
+    x = np.array([np.random.normal(size=1000), np.random.normal(size=1000)])
     # not stuck -> good R_hat:
     assert statistics(x).R_hat <= 1.01
     # stuck -> bad  R_hat:

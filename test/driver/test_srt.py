@@ -77,10 +77,7 @@ def _setup(*, complex=True, machine=None):
         machine = RBM(num_hidden=2 * Ns, complex=complex)
 
     sampler = nk.sampler.MetropolisExchange(
-        hilbert=hi,
-        n_chains=64,
-        graph=lattice,
-        d_max=2,
+        hilbert=hi, n_chains=64, graph=lattice, d_max=2
     )
     opt = nk.optimizer.Sgd(learning_rate=0.035)
     vstate = nk.vqs.MCState(
@@ -205,12 +202,7 @@ def test_SRt_constructor_errors():
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
     H, opt, vstate_srt = _setup()
-    gs = VMC_SRt(
-        H,
-        opt,
-        variational_state=vstate_srt,
-        diag_shift=0.1,
-    )
+    gs = VMC_SRt(H, opt, variational_state=vstate_srt, diag_shift=0.1)
     assert gs.jacobian_mode == "complex"
     gs.run(1)
 

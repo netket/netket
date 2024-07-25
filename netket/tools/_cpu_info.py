@@ -55,10 +55,7 @@ SYSCTL_KEY_TRANSLATIONS = {
 }
 
 
-SYSCTL_FLAG_TRANSLATIONS = {
-    "sse4.1": "sse4_1",
-    "sse4.2": "sse4_2",
-}
+SYSCTL_FLAG_TRANSLATIONS = {"sse4.1": "sse4_1", "sse4.2": "sse4_2"}
 
 
 def get_sysctl_cpu():

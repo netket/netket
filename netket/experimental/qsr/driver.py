@@ -23,10 +23,7 @@ from netket import jax as nkjax
 from netket.driver import AbstractVariationalDriver
 from netket.operator import AbstractOperator
 from netket.vqs import VariationalState
-from netket.optimizer import (
-    identity_preconditioner,
-    PreconditionerT,
-)
+from netket.optimizer import identity_preconditioner, PreconditionerT
 from netket.utils.types import Array
 from netket.jax import tree_cast
 

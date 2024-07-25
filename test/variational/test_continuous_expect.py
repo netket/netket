@@ -41,18 +41,10 @@ sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, sweep_size=1)
 model = test()
 model2 = test2()
 vs_continuous = nk.vqs.MCState(
-    sab,
-    model,
-    n_samples=256 * 1024,
-    n_discard_per_chain=2048,
-    sampler_seed=123,
+    sab, model, n_samples=256 * 1024, n_discard_per_chain=2048, sampler_seed=123
 )
 vs_continuous2 = nk.vqs.MCState(
-    sab,
-    model2,
-    n_samples=1024 * 1024,
-    n_discard_per_chain=2048,
-    sampler_seed=123,
+    sab, model2, n_samples=1024 * 1024, n_discard_per_chain=2048, sampler_seed=123
 )
 
 

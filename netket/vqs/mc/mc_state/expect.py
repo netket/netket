@@ -102,9 +102,7 @@ def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
 # but if somebody wants to override behaviour for an existing operator or define
 # a completely arbitrary novel type of operator, this makes it much easier.
 @dispatch
-def expect(
-    vstate: MCState, Ô: AbstractOperator, chunk_size: None
-) -> Stats:  # noqa: F811
+def expect(vstate: MCState, Ô: AbstractOperator, chunk_size: None) -> Stats:  # noqa: F811
     σ, args = get_local_kernel_arguments(vstate, Ô)
     local_estimator_fun = get_local_kernel(vstate, Ô)
 

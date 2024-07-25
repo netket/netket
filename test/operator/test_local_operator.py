@@ -80,8 +80,7 @@ def assert_same_matrices(matl, matr, eps=1.0e-6):
 
 
 @pytest.mark.parametrize(
-    "op",
-    [pytest.param(op, id=name) for name, op in herm_operators.items()],
+    "op", [pytest.param(op, id=name) for name, op in herm_operators.items()]
 )
 def test_hermitian_local_operator_transpose_conjugation(op):
     orig_op = op.copy()
@@ -121,8 +120,7 @@ def test_hermitian_local_operator_transpose_conjugation(op):
 
 
 @pytest.mark.parametrize(
-    "op_tuple",
-    [pytest.param(op, id=name) for name, op in generic_operators.items()],
+    "op_tuple", [pytest.param(op, id=name) for name, op in generic_operators.items()]
 )
 def test_local_operator_transpose_conjugation(op_tuple):
     op, oph = op_tuple
@@ -361,8 +359,7 @@ def test_truediv():
 
 
 @pytest.mark.parametrize(
-    "op",
-    [pytest.param(op, id=name) for name, op in herm_operators.items()],
+    "op", [pytest.param(op, id=name) for name, op in herm_operators.items()]
 )
 def test_copy(op):
     op_copy = op.copy()
@@ -419,8 +416,7 @@ def test_empty_after_sum():
 
 
 @pytest.mark.parametrize(
-    "op",
-    [pytest.param(op, id=name) for name, op in herm_operators.items()],
+    "op", [pytest.param(op, id=name) for name, op in herm_operators.items()]
 )
 def test_is_hermitian(op):
     assert op.is_hermitian
@@ -430,8 +426,7 @@ def test_is_hermitian(op):
 
 
 @pytest.mark.parametrize(
-    "ops",
-    [pytest.param(op, id=name) for name, op in generic_operators.items()],
+    "ops", [pytest.param(op, id=name) for name, op in generic_operators.items()]
 )
 def test_is_hermitian_generic_op(ops):
     op, oph = ops
@@ -440,10 +435,7 @@ def test_is_hermitian_generic_op(ops):
     assert not oph.is_hermitian
 
 
-@pytest.mark.parametrize(
-    "jax",
-    [pytest.param(op) for op in [True, False]],
-)
+@pytest.mark.parametrize("jax", [pytest.param(op) for op in [True, False]])
 def test_qutip_conversion(jax):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -624,15 +616,7 @@ def test_pauli_strings_conversion():
     np.testing.assert_allclose(ps_true.to_dense(), ps_conv.to_dense())
     np.testing.assert_allclose(lo.to_dense(), ps_conv.to_dense())
 
-    operators = [
-        "IZZII",
-        "IZYII",
-        "IIIIX",
-        "IIZZY",
-        "IIZXI",
-        "IIZZI",
-        "IXYXY",
-    ]
+    operators = ["IZZII", "IZYII", "IIIIX", "IIZZY", "IIZXI", "IIZZI", "IXYXY"]
     weights = [1.0, 1j, 3, 1, 7, 9.5, 6.6]
 
     ps_true, lo, ps_conv = _convert(operators, weights, 1.1)

@@ -91,42 +91,32 @@ samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange
     hib, graph=g
 )
 
-samplers[
-    "Metropolis(Hamiltonian,numba operator): Spin"
-] = nk.sampler.MetropolisHamiltonian(
-    hi,
-    hamiltonian=ha,
-    reset_chains=True,
+samplers["Metropolis(Hamiltonian,numba operator): Spin"] = (
+    nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha, reset_chains=True)
 )
 
-samplers[
-    "Metropolis(ParticleExchange): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
-samplers[
-    "Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisParticleExchange(
-    hi_fermion_spin, graph=g, exchange_spins=False
+samplers["Metropolis(ParticleExchange): SpinOrbitalFermions"] = (
+    nkx.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
 )
-samplers[
-    "Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisParticleExchange(
-    hi_fermion_spin_higher, graph=g, exchange_spins=False
+samplers["Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"] = (
+    nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin, graph=g, exchange_spins=False
+    )
+)
+samplers["Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"] = (
+    nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin_higher, graph=g, exchange_spins=False
+    )
 )
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
-    hi,
-    hamiltonian=ha,
-    reset_chains=True,
+    hi, hamiltonian=ha, reset_chains=True
 )
 
 ha_jax = nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)
 
-samplers[
-    "Metropolis(Hamiltonian, jax operator): Spin"
-] = nk.sampler.MetropolisHamiltonian(
-    hi,
-    hamiltonian=ha_jax,
-    reset_chains=True,
+samplers["Metropolis(Hamiltonian, jax operator): Spin"] = (
+    nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha_jax, reset_chains=True)
 )
 
 samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
@@ -140,13 +130,14 @@ samplers["Metropolis(MultipleRules[Local,Local]): Spin"] = nk.sampler.Metropolis
         [nk.sampler.rules.LocalRule(), nk.sampler.rules.LocalRule()], [0.8, 0.2]
     ),
 )
-samplers[
-    "Metropolis(MultipleRules[Local,Hamiltonian]): Spin"
-] = nk.sampler.MetropolisSampler(
-    hi,
-    nk.sampler.rules.MultipleRules(
-        [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)], [0.8, 0.2]
-    ),
+samplers["Metropolis(MultipleRules[Local,Hamiltonian]): Spin"] = (
+    nk.sampler.MetropolisSampler(
+        hi,
+        nk.sampler.rules.MultipleRules(
+            [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],
+            [0.8, 0.2],
+        ),
+    )
 )
 
 
@@ -160,14 +151,14 @@ hi_particles = nk.hilbert.Particle(N=3, L=jnp.inf, pbc=False)
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
     hi_particles, sigma=1.0, sweep_size=hi_particles.size * 10
 )
-samplers[
-    "Metropolis(AdjustedLangevin): AdjustedLangevin"
-] = nk.sampler.MetropolisAdjustedLangevin(
-    hi_particles, dt=0.1, sweep_size=hi_particles.size
+samplers["Metropolis(AdjustedLangevin): AdjustedLangevin"] = (
+    nk.sampler.MetropolisAdjustedLangevin(
+        hi_particles, dt=0.1, sweep_size=hi_particles.size
+    )
 )
-samplers[
-    "Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"
-] = nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
+samplers["Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"] = (
+    nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
+)
 
 # TensorHilbert sampler
 hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
@@ -291,13 +282,7 @@ def findrng(rng):
 
 
 @pytest.fixture(
-    params=[
-        pytest.param(
-            sampl,
-            id=name,
-        )
-        for name, sampl in samplers.items()
-    ]
+    params=[pytest.param(sampl, id=name) for name, sampl in samplers.items()]
 )
 def sampler_c(request):
     cmdline_sampler = request.config.getoption("--sampler").lower()
@@ -348,11 +333,7 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
                 ma, w, state=sampler_state, chain_length=n_samples // 100
             )
 
-            assert samples.shape == (
-                sampler.n_chains,
-                n_samples // 100,
-                hi.size,
-            )
+            assert samples.shape == (sampler.n_chains, n_samples // 100, hi.size)
             samples, sampler_state = sampler.sample(
                 ma, w, state=sampler_state, chain_length=n_samples
             )
@@ -392,16 +373,9 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
                 ma, w, state=sampler_state, chain_length=n_discard
             )
 
-            assert samples.shape == (
-                sampler.n_chains,
-                n_discard,
-                hi.size,
-            )
+            assert samples.shape == (sampler.n_chains, n_discard, hi.size)
             samples, sampler_state = sampler.sample(
-                ma,
-                w,
-                state=sampler_state,
-                chain_length=n_samples,
+                ma, w, state=sampler_state, chain_length=n_samples
             )
 
             assert samples.shape == (sampler.n_chains, n_samples, hi.size)
@@ -468,17 +442,11 @@ def test_sampling_sharded_not_commuincating(
 
 def test_throwing(model_and_weights):
     with pytest.raises(TypeError):
-        nk.sampler.MetropolisHamiltonian(
-            hi,
-            hamiltonian=10,
-            reset_chains=True,
-        )
+        nk.sampler.MetropolisHamiltonian(hi, hamiltonian=10, reset_chains=True)
 
     with pytest.raises(ValueError):
         sampler = nk.sampler.MetropolisHamiltonian(
-            nk.hilbert.DoubledHilbert(hi),
-            hamiltonian=ha,
-            reset_chains=True,
+            nk.hilbert.DoubledHilbert(hi), hamiltonian=ha, reset_chains=True
         )
 
         ma, w = model_and_weights(hi)
@@ -488,9 +456,7 @@ def test_throwing(model_and_weights):
 
     with pytest.raises(ValueError):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
-            nk.hilbert.Fock(3) ** hi.size,
-            hamiltonian=ha,
-            reset_chains=True,
+            nk.hilbert.Fock(3) ** hi.size, hamiltonian=ha, reset_chains=True
         )
 
         ma, w = model_and_weights(hi)
@@ -500,9 +466,7 @@ def test_throwing(model_and_weights):
 
     with pytest.raises(flax.errors.ScopeParamShapeError):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
-            nk.hilbert.DoubledHilbert(hi),
-            hamiltonian=ha,
-            reset_chains=True,
+            nk.hilbert.DoubledHilbert(hi), hamiltonian=ha, reset_chains=True
         )
 
         ma, w = model_and_weights(hi)
@@ -631,12 +595,7 @@ def test_multiplerules_pt(model_and_weights):
 
     sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
     sampler_state = sa.reset(ma, w, state=sampler_state)
-    samples, sampler_state = sa.sample(
-        ma,
-        w,
-        state=sampler_state,
-        chain_length=10,
-    )
+    samples, sampler_state = sa.sample(ma, w, state=sampler_state, chain_length=10)
     assert samples.shape == (sa.n_chains, 10, hi.size)
 
 
@@ -681,12 +640,7 @@ def test_chunking_invariant(model_and_weights, sampler_type):
 
     sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
     sampler_state = sa.reset(ma, w, state=sampler_state)
-    samples, sampler_state = sa.sample(
-        ma,
-        w,
-        state=sampler_state,
-        chain_length=10,
-    )
+    samples, sampler_state = sa.sample(ma, w, state=sampler_state, chain_length=10)
 
     sa = samplers[sampler_type + "-chunked"]
     hi = sa.hilbert
@@ -694,11 +648,6 @@ def test_chunking_invariant(model_and_weights, sampler_type):
 
     sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
     sampler_state = sa.reset(ma, w, state=sampler_state)
-    samples_ch, sampler_state = sa.sample(
-        ma,
-        w,
-        state=sampler_state,
-        chain_length=10,
-    )
+    samples_ch, sampler_state = sa.sample(ma, w, state=sampler_state, chain_length=10)
 
     np.testing.assert_allclose(samples, samples_ch)
