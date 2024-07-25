@@ -38,7 +38,7 @@ from jax._src.lib import xla_extension
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 hilberts = {}
 

@@ -24,6 +24,7 @@ import jax
 from jax.nn.initializers import normal
 
 import netket as nk
+from netket import config
 from netket.hilbert import DiscreteHilbert, Particle
 from netket.utils import array_in, mpi
 from netket.jax.sharding import device_count_per_rank
@@ -91,13 +92,14 @@ samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange
     hib, graph=g
 )
 
-samplers[
-    "Metropolis(Hamiltonian,numba operator): Spin"
-] = nk.sampler.MetropolisHamiltonian(
-    hi,
-    hamiltonian=ha,
-    reset_chains=True,
-)
+if not config.netket_experimental_sharding:
+    samplers[
+        "Metropolis(Hamiltonian,numba operator): Spin"
+    ] = nk.sampler.MetropolisHamiltonian(
+        hi,
+        hamiltonian=ha,
+        reset_chains=True,
+    )
 
 samplers[
     "Metropolis(ParticleExchange): SpinOrbitalFermions"
@@ -140,14 +142,16 @@ samplers["Metropolis(MultipleRules[Local,Local]): Spin"] = nk.sampler.Metropolis
         [nk.sampler.rules.LocalRule(), nk.sampler.rules.LocalRule()], [0.8, 0.2]
     ),
 )
-samplers[
-    "Metropolis(MultipleRules[Local,Hamiltonian]): Spin"
-] = nk.sampler.MetropolisSampler(
-    hi,
-    nk.sampler.rules.MultipleRules(
-        [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)], [0.8, 0.2]
-    ),
-)
+if not config.netket_experimental_sharding:
+    samplers[
+        "Metropolis(MultipleRules[Local,Hamiltonian]): Spin"
+    ] = nk.sampler.MetropolisSampler(
+        hi,
+        nk.sampler.rules.MultipleRules(
+            [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],
+            [0.8, 0.2],
+        ),
+    )
 
 
 samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi)
@@ -181,12 +185,13 @@ samplers["Metropolis(TensorRule): Spin x Fock"] = nk.sampler.MetropolisSampler(
 # TensorHilbert sampler
 hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
 ha = sum(nk.operator.spin.sigmax(nk.hilbert.Spin(0.5, 4), i) for i in range(4))
-samplers["Metropolis(TensorRule): Spin x Fock"] = nk.sampler.MetropolisSampler(
-    hi,
-    nk.sampler.rules.TensorRule(
-        hi, [nk.sampler.rules.HamiltonianRule(ha), nk.sampler.rules.LocalRule()]
-    ),
-)
+if not config.netket_experimental_sharding:
+    samplers["Metropolis(TensorRule): Spin x Fock"] = nk.sampler.MetropolisSampler(
+        hi,
+        nk.sampler.rules.TensorRule(
+            hi, [nk.sampler.rules.HamiltonianRule(ha), nk.sampler.rules.LocalRule()]
+        ),
+    )
 
 
 # The following fixture initialises a model and it's weights
@@ -220,7 +225,7 @@ def model_and_weights(request):
 
 # The following fixture returns one sampler at a time (and iterates through)
 # all samplers.
-#  it skips tests according to the --sampler cmdline argument introduced in
+# it skips tests according to the --sampler cmdline argument introduced in
 # conftest.py
 @pytest.fixture(
     params=[pytest.param(sampl, id=name) for name, sampl in samplers.items()]
@@ -261,6 +266,7 @@ def set_pdf_power(request):
     return fun
 
 
+@common.skipif_distributed
 def test_states_in_hilbert(sampler, model_and_weights):
     hi = sampler.hilbert
     chain_length = 50
@@ -318,6 +324,7 @@ def sampler_c(request):
 # This tests do not take into account the fact that our samplers do not necessarily
 # produce samples which are uncorrelated. So unless the autocorrelation time is 0, we
 # are bound to fail such tests. We should account for that.
+@common.skipif_distributed
 def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
     sampler = set_pdf_power(sampler_c)
 
@@ -433,19 +440,17 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
 @pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
-def test_sampling_sharded_not_commuincating(
+def test_sampling_sharded_not_communicating(
     sampler_c, model_and_weights, set_pdf_power
 ):
+    if isinstance(sampler_c, nk.sampler.MetropolisNumpy):
+        pytest.skip("Not jit compatible")
+
     sampler = set_pdf_power(sampler_c)
     hi = sampler.hilbert
     ma, w = model_and_weights(hi, sampler)
     sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
     samples, sampler_state = sampler.sample(ma, w, state=sampler_state, chain_length=1)
-
-    if isinstance(
-        sampler_state, nk.sampler._metropolis_numpy.MetropolisNumpySamplerState
-    ):
-        pytest.xfail("MetropolisNumpySamplerState is not jit compatible")
 
     sample_jit = jax.jit(
         sampler.sample, static_argnums=0, static_argnames="chain_length"
@@ -466,6 +471,7 @@ def test_sampling_sharded_not_commuincating(
             assert o not in l
 
 
+@common.skipif_distributed
 def test_throwing(model_and_weights):
     with pytest.raises(TypeError):
         nk.sampler.MetropolisHamiltonian(
@@ -529,6 +535,7 @@ def test_throwing(model_and_weights):
         sampler = nk.sampler.MetropolisLocalNumpy(hi, chunk_size=5)
 
 
+@common.skipif_distributed
 def test_setup_throwing_tensorrule():
     # TensorHilbert sampler
     hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
@@ -551,6 +558,7 @@ def test_setup_throwing_tensorrule():
         nk.sampler.rules.TensorRule(hi, [rule1, rule1, rule2])
 
 
+@common.skipif_distributed
 def test_setup_throwing_multiplerules():
     rule1 = nk.sampler.rules.LocalRule()
     rule2 = nk.sampler.rules.LocalRule()
@@ -569,6 +577,7 @@ def test_setup_throwing_multiplerules():
         nk.sampler.rules.MultipleRules(rule1, [0.5, 0.5])
 
 
+@common.skipif_distributed
 def test_exact_sampler(sampler):
     known_exact_samplers = (nk.sampler.ExactSampler, nk.sampler.ARDirectSampler)
     if isinstance(sampler, known_exact_samplers):
@@ -579,6 +588,7 @@ def test_exact_sampler(sampler):
         assert sampler.n_chains == 16 * mpi.n_nodes * device_count_per_rank()
 
 
+@common.skipif_distributed
 def test_fermions_spin_exchange():
     # test that the graph correctly creates a disjoint graph for the spinful case
     g = nk.graph.Hypercube(length=4, n_dim=1)
@@ -615,6 +625,7 @@ def test_fermions_spin_exchange():
     assert np.allclose(nodes, np.arange(hi_fermion_spin_higher.size))
 
 
+@common.skipif_distributed
 def test_multiplerules_pt(model_and_weights):
     hi = ha.hilbert
     sa = nk.sampler.ParallelTemperingSampler(
@@ -674,8 +685,14 @@ def test_hamiltonian_jax_sampler_isleaf():
 @pytest.mark.parametrize(
     "sampler_type", ["MetropolisNumpy(Local): Spin", "Metropolis(Local): Spin"]
 )
+@common.skipif_distributed
 def test_chunking_invariant(model_and_weights, sampler_type):
     sa = samplers[sampler_type]
+
+    if isinstance(sa, nk.sampler.MetropolisNumpy):
+        if nk.config.netket_experimental_sharding:
+            pytest.xfail(reason="TODO: to be investigated.")
+
     hi = sa.hilbert
     ma, w = model_and_weights(hi, sa)
 

@@ -11,7 +11,7 @@ from scipy.linalg import expm
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 SEED = 214748364
 

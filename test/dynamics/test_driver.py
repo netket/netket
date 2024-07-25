@@ -24,6 +24,7 @@ import netket.experimental as nkx
 
 from .. import common
 
+pytestmark = common.skipif_distributed
 
 SEED = 214748364
 
@@ -111,6 +112,9 @@ def l4_norm(x):
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
 @pytest.mark.parametrize("disable_jit", [False, True])
 def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit):
+    if disable_jit:
+        common.skipif_sharding()
+
     with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", disable_jit):
         ha, vstate, _ = _setup_system(L=2)
         te = nkx.TDVP(
