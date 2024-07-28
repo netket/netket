@@ -23,7 +23,7 @@ class VarianceObservable(AbstractObservable):
     Observable computing the variance of a quantum operator :math:`O`.
     """
 
-    def __init__(self, operator: AbstractOperator, use_Oloc2: bool = False):
+    def __init__(self, operator: AbstractOperator, use_fast_estimator: bool = False):
         r"""
         Constructs the observable computing the variance of an arbitrary quantum operator :math:`O` as:
 
@@ -49,8 +49,8 @@ class VarianceObservable(AbstractObservable):
 
         Args:
             operator: The operator for which the variance is to be computed.
-            use_Oloc2: If True, uses the local estimator of the squared operator `O^2` for variance computation.
-                        If False, uses only the operator `O` for variance computation (defaults to False).
+            use_fast_estimator: If False, uses the local estimator of the squared operator `O^2` for variance computation (defaults to False).
+                        If True, uses only the operator `O` for variance computation.
 
         Returns:
             Observable computing the variance of `operator`.
@@ -58,7 +58,7 @@ class VarianceObservable(AbstractObservable):
         super().__init__(operator.hilbert)
         self._operator = operator
 
-        if use_Oloc2:
+        if use_fast_estimator:
             self._operator_squared = nk.operator.Squared(operator)
         else:
             self._operator_squared = operator @ operator
@@ -74,9 +74,9 @@ class VarianceObservable(AbstractObservable):
     def operator_squared(self) -> AbstractOperator:
         """
         The squared of the operator for which the variance is to be computed.
-        Depending on the flag `use_Oloc2`, this can be the operator using the local
-        estimator of `O^2` (True), or the one using the square modulus of the
-        local estimator of `O` (False).
+        Depending on the flag `use_fast_estimator`, this can be the operator using the local
+        estimator of `O^2` (False), or the one using the square modulus of the
+        local estimator of `O` (True).
         """
         return self._operator_squared
 
