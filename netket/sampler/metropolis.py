@@ -122,7 +122,7 @@ def serialize_MetropolisSamplerState_sharding(sampler_state):
             state_dict[prop] = gather(x)
     state_dict = extract_replicated(state_dict)
     state_dict['rng'] = jax.random.key_data(state_dict['rng'])
-    
+
     return state_dict
 
 
@@ -131,7 +131,8 @@ def deserialize_MetropolisSamplerState_sharding(sampler_state, state_dict):
         x = state_dict[prop]
         if x is not None:
             state_dict[prop] = distribute_to_devices_along_axis(x)
-    state_dict['rng'] = jax.random.wrap_key_data(state_dict['rng'])
+    if not jnp.issubdtype(state_dict['rng'].dtype, jax.dtypes.prng_key):
+        state_dict['rng'] = jax.random.wrap_key_data(state_dict['rng'])
 
     return MetropolisSamplerState._from_flax_state_dict(
         MetropolisSamplerState._pytree__static_fields, sampler_state, state_dict

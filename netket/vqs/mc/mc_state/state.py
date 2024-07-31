@@ -781,7 +781,8 @@ def deserialize_MCState(vstate, state_dict):
         jnp.asarray,
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
-    state_dict["sampler_state"]["rng"] = jax.random.wrap_key_data(state_dict["sampler_state"]["rng"])
+    if not jnp.issubdtype(state_dict['rng'].dtype, jax.dtypes.prng_key):
+        state_dict['rng'] = jax.random.wrap_key_data(state_dict['rng'])
     new_vstate.sampler_state = serialization.from_state_dict(
         vstate.sampler_state, state_dict["sampler_state"]
     )
