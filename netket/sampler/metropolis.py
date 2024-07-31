@@ -122,6 +122,7 @@ def serialize_MetropolisSamplerState_sharding(sampler_state):
             state_dict[prop] = gather(x)
     state_dict = extract_replicated(state_dict)
     state_dict['rng'] = jax.random.key_data(state_dict['rng'])
+    
     return state_dict
 
 
