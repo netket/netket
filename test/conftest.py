@@ -1,4 +1,3 @@
-from typing import Literal
 import os
 
 import pytest
@@ -49,7 +48,7 @@ def _device_count(request):
     return sharding.device_count()
 
 
-def parse_clearcache(s: str) -> int | Literal["auto", "logical"]:
+def parse_clearcache(s: str) -> int | None:
     if s in ("auto", None):
         if os.environ.get("CI", False):
             return 200
@@ -72,7 +71,7 @@ def pytest_addoption(parser):
         metavar="clear_cache_every",
         type=parse_clearcache,
         default="auto",
-        help="mpow: single, all, 1,2,3...",
+        help="...",
     )
     parser.addoption(
         "--arnn_test_rate",
@@ -83,6 +82,7 @@ def pytest_addoption(parser):
 
 
 _n_test_since_reset: int = 0
+_clear_cache_every: int = 0
 
 
 @pytest.fixture(autouse=True)
@@ -93,14 +93,21 @@ def clear_jax_cache(request):
     """
     # Setup: fill with any logic you want
 
-    yield  # this is where the testing happens
+    # this is where the testing happens
+    yield
 
     # Teardown : fill with any logic you want
-    clear_cache_every = request.config.getoption("--clear-cache-every")
-    if clear_cache_every is not None:
+    if _clear_cache_every is not None:
         global _n_test_since_reset
         _n_test_since_reset += 1
 
-        if _n_test_since_reset > clear_cache_every:
+        if _n_test_since_reset > _clear_cache_every:
             jax.clear_caches()
             _n_test_since_reset = 0
+
+
+def pytest_configure(config):
+    global _clear_cache_every
+    _clear_cache_every = config.getoption("--clear-cache-every")
+    if _clear_cache_every is not None:
+        print(f"Clearing jax cache every {_clear_cache_every} tests")
