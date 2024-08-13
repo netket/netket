@@ -23,7 +23,7 @@ class VarianceObservable(AbstractObservable):
     Observable computing the variance of a quantum operator :math:`O`.
     """
 
-    def __init__(self, operator: AbstractOperator, use_fast_estimator: bool = False):
+    def __init__(self, operator: AbstractOperator, use_Oloc_squared: bool = False):
         r"""
         Constructs the observable computing the variance of an arbitrary quantum operator :math:`O` as:
 
@@ -49,7 +49,7 @@ class VarianceObservable(AbstractObservable):
 
         Args:
             operator: The operator for which the variance is to be computed.
-            use_fast_estimator: If False, uses the local estimator of the squared operator `O^2` for variance computation (defaults to False).
+            use_Oloc_squared: If False, uses the local estimator of the squared operator `O^2` for variance computation (defaults to False).
                         If True, uses only the operator `O` for variance computation.
 
         Returns:
@@ -58,7 +58,7 @@ class VarianceObservable(AbstractObservable):
         super().__init__(operator.hilbert)
         self._operator = operator
 
-        if use_fast_estimator:
+        if use_Oloc_squared:
             self._operator_squared = nk.operator.Squared(operator)
         else:
             self._operator_squared = operator @ operator
@@ -74,7 +74,7 @@ class VarianceObservable(AbstractObservable):
     def operator_squared(self) -> AbstractOperator:
         """
         The squared of the operator for which the variance is to be computed.
-        Depending on the flag `use_fast_estimator`, this can be the operator using the local
+        Depending on the flag `use_Oloc_squared`, this can be the operator using the local
         estimator of `O^2` (False), or the one using the square modulus of the
         local estimator of `O` (True).
         """

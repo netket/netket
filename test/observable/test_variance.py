@@ -64,15 +64,15 @@ def var_exact_fun(params, vs, H, H2):
     ],
 )
 @pytest.mark.parametrize(
-    "use_Oloc2",
+    "use_Oloc_squared",
     [
         pytest.param(True, id="UseOloc2"),
         pytest.param(False, id="NotUseOloc2"),
     ],
 )
-def test_MCState(useExactSampler, use_Oloc2):
+def test_MCState(useExactSampler, use_Oloc_squared):
     vs, vs_exact, H, H2 = _setup(useExactSampler)
-    var_op = nkx.observable.VarianceObservable(H, use_Oloc2=use_Oloc2)
+    var_op = nkx.observable.VarianceObservable(H, use_Oloc_squared=use_Oloc_squared)
 
     params, unravel = nk.jax.tree_ravel(vs.parameters)
 
@@ -99,16 +99,16 @@ def test_MCState(useExactSampler, use_Oloc2):
 
 
 @pytest.mark.parametrize(
-    "use_Oloc2",
+    "use_Oloc_squared",
     [
         pytest.param(True, id="UseOloc2"),
         pytest.param(False, id="NotUseOloc2"),
     ],
 )
-def test_FullSumState(use_Oloc2):
+def test_FullSumState(use_Oloc_squared):
     err = 1e-3
     vs, vs_exact, H, H2 = _setup()
-    var_op = nkx.observable.VarianceObservable(H, use_Oloc2=use_Oloc2)
+    var_op = nkx.observable.VarianceObservable(H, use_Oloc_squared=use_Oloc_squared)
 
     params, unravel = nk.jax.tree_ravel(vs_exact.parameters)
 
