@@ -79,6 +79,8 @@ def pinv_smooth(
         rtol_smooth : Regularization parameter used with a similar effect to `rtol`
             but with a softer curve. See :math:`\epsilon` in the formula
             above.
+        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
+        rcond_smooth: (deprecated) Alias for `rtol_smooth`. Will be removed in a future release.
     """
     del x0
 
@@ -151,6 +153,7 @@ def pinv(A, b, *, rtol: float = 1e-12, x0=None, rcond: float = None):
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
         rtol: Cut-off ratio for small singular values of :code:`A`.
+        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
     """
     del x0
 
