@@ -37,7 +37,7 @@ op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
 
 # SR
 sr = nk.optimizer.SR(
-    solver=partial(nk.optimizer.solver.pinv, rcond=1.0e-6), diag_shift=0.01
+    solver=partial(nk.optimizer.solver.pinv, rtol=1.0e-6), diag_shift=0.01
 )
 
 # Variational state
