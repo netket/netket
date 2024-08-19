@@ -302,6 +302,7 @@ def test_init_parameters(vstate):
 
 
 @common.skipif_mpi
+@common.xfailif_sharding
 @pytest.mark.parametrize(
     "operator",
     [

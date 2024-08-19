@@ -23,6 +23,7 @@ import numpy as np
 from numba import jit
 from numba4jax import njit4jax
 
+from netket import config
 from netket.operator import DiscreteOperator, DiscreteJaxOperator
 from netket.utils import struct
 from netket.jax.sharding import sharding_decorator, with_samples_sharding_constraint
@@ -73,6 +74,12 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
             raise TypeError(
                 "Argument to HamiltonianRule must be a valid operator, "
                 f"but operator is a {type(operator)}."
+            )
+        if config.netket_experimental_sharding:
+            raise TypeError(
+                "Numba-based hamiltonian sampling rule is not"
+                "supported with NETKET_EXPERIMENTAL_SHARDING. To keep using"
+                "sharding, use a jax based operator."
             )
         # call _setup on the operator if it exists, to warmup the cache and
         # avoid calling it in a numba callback which might break things.

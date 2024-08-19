@@ -27,6 +27,7 @@ import jax
 from netket.hilbert import AbstractHilbert
 from netket.utils.mpi import mpi_sum, n_nodes
 from netket.utils.types import PyTree
+from netket import config
 
 import netket.jax as nkjax
 
@@ -121,6 +122,25 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         # standard samplers use jax arrays, this must be a numpy array
         self.machine_pow = np.array(self.machine_pow)
 
+    @property
+    def n_batches(self) -> int:
+        r"""
+        The batch size of the configuration $\sigma$ used by this sampler on this
+        jax process.
+
+        This is used to determine the shape of the batches generated in a single process.
+        This is needed because when using MPI, every process must create a batch of chains
+        of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
+        mode we must declare the full shape on every jax process, therefore this returns
+        :attr:`~Sampler.n_chains`.
+
+        Usage of this flag is required to support both MPI and sharding.
+
+        Samplers may override this to have a larger batch size, for example to
+        propagate multiple replicas (in the case of parallel tempering).
+        """
+        return self.n_chains_per_rank
+
     def _init_state(sampler, machine, parameters, key):
         rgen = np.random.default_rng(np.asarray(key))
 
@@ -188,9 +208,26 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             # σp, log_prob_correction =
             sampler.rule.transition(sampler, machine, parameters, state, state.rng, σ)
 
-            log_values_1 = np.asarray(
-                apply_model(machine, parameters, σ1, sampler.chunk_size)
-            )
+            if config.netket_experimental_sharding:
+                from jax.experimental.multihost_utils import (
+                    host_local_array_to_global_array,
+                    global_array_to_host_local_array,
+                )
+
+                global_mesh = jax.sharding.Mesh(jax.devices(), "x")
+                pspecs = jax.sharding.PartitionSpec("x")
+
+                all_samples = host_local_array_to_global_array(σ1, global_mesh, pspecs)
+                log_psi = apply_model(
+                    machine, parameters, all_samples, sampler.chunk_size
+                )
+                assert len(log_psi.addressable_shards) == 1
+                log_psi = global_array_to_host_local_array(log_psi, global_mesh, pspecs)
+            else:
+                log_psi = apply_model(machine, parameters, σ1, sampler.chunk_size)
+
+            log_values_1 = np.asarray(log_psi)
+            assert log_values_1.shape == σ1.shape[:-1]
 
             random_uniform = rgen.uniform(0, 1, size=σ.shape[0])
 
