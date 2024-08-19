@@ -49,8 +49,7 @@ class VarianceObservable(AbstractObservable):
 
         Args:
             operator: The operator for which the variance is to be computed.
-            use_Oloc_squared: If False, uses the local estimator of the squared operator `O^2` for variance computation (defaults to False).
-                        If True, uses only the operator `O` for variance computation.
+            use_Oloc_squared: (Defaults False) if True, uses the fast estimator obtained by squaring the local estimator O_loc. If False, uses the straightforward estimator of (O@O)_loc which is quadratically more expensive. The fast estimator can sometimes lead to worse quality results.
 
         Returns:
             Observable computing the variance of `operator`.
