@@ -18,6 +18,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 
 from netket.jax import tree_ravel
+from netket.utils import module_version
 from netket.utils.api_utils import partial_from_kwargs
 from netket.utils.deprecation import warn_deprecation
 
@@ -168,7 +169,12 @@ def pinv(A, b, *, rtol: float = 1e-12, x0=None, rcond: float = None):
         A = A.to_dense()
     b, unravel = tree_ravel(b)
 
-    A_inv = jnp.linalg.pinv(A, rtol=rtol, hermitian=True)
+    # TODO: Cleanup when we support only jax 0.4.29 or later
+    if module_version(jax) >= (0, 4, 29):
+        A_inv = jnp.linalg.pinv(A, rtol=rtol, hermitian=True)
+    else:
+        A_inv = jnp.linalg.pinv(A, rcond=rtol, hermitian=True)
+
     x = jnp.dot(A_inv, b)
 
     return unravel(x), None
