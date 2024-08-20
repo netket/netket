@@ -1,0 +1,81 @@
+
+[envs.hatch-test]
+default-args = ["test"]
+features = [
+  "dev",
+  "extra",
+]
+extra-dependencies = [
+  "jax @ git+https://github.com/google/jax"
+]
+randomize = false
+parallel = false
+
+[[envs.hatch-test.matrix]]
+distributed = ['nompi', 'mpi', 'sharding']
+
+[envs.hatch-test.overrides]
+matrix.distributed.extra-dependencies = [
+  { value = "mpi4py", if = ["mpi", "sharding"] },
+  { value = "mpi4jax", if = ["mpi"] },
+]
+matrix.distributed.scripts = [
+    { key = "run", value = "mpirun -np 2 pytest -n 0 {env:HATCH_TEST_ARGS:} {args}", if = ["mpi"] },
+    { key = "run-cov", value = "mpirun -np 2 coverage run -m pytest -n 0 {env:HATCH_TEST_ARGS:} {args}", if = ["mpi"] },
+    { key = "cov-combine", value = "coverage combine --append", if = ["mpi"] },
+
+    { key = "run", value = "MPITRAMPOLINE_LIB=\"{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so\" \"{env:VIRTUAL_ENV}/MPIWrapper/build/bin/mpiwrapperexec\" -np 2 pytest -n 0 --jax-distributed-mpi {env:HATCH_TEST_ARGS:} {args}", if = ["sharding"] },
+]
+matrix.distributed.env-vars = [
+  { key = "NETKET_MPI", value = "0", if = ["nompi", "sharding"] },
+  { key = "NETKET_MPI", value = "1", if = ["mpi"] },
+  { key = "NETKET_EXPERIMENTAL_SHARDING", value = "1", if = ["sharding"] },
+  { key = "NETKET_MPI_WARNING", value = "0", if = ["sharding"] },
+]
+matrix.distributed.parallel = { value = true, if = ["nompi"] }
+matrix.distributed.set-default-args = { value = ["test_sharding/test_sharding_distributed.py"], if = ["sharding"] }
+matrix.distributed.post-install-commands = [
+    { value = "mkdir \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper\"", if = ["sharding"] },
+    { value = "git clone https://github.com/eschnett/MPIwrapper.git \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper\"", if = ["sharding"] },
+    { value = "mkdir \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper/build\"",if = ["sharding"] },
+    { value = "cd \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper/build\" && cmake ..",if = ["sharding"] },
+    { value = "cd \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper/build\" && make",if = ["sharding"] },
+    ]
+
+[envs.docs]
+features = [
+  "docs",
+]
+extra-dependencies = [
+  "sphinx-autobuild"
+]
+[envs.docs.scripts]
+clean = "cd {root}/docs && make clean"
+build = "sphinx-build -M html docs docs/_build"
+serve = "sphinx-autobuild docs docs/_build/html"
+
+
+[envs.sharding]
+features = [
+  "dev",
+  "extra",
+]
+extra-dependencies = [
+  "jax @ git+https://github.com/google/jax",
+  "mpi4py"
+]
+post-install-commands = [
+    "mkdir \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper\"", 
+    "git clone https://github.com/eschnett/MPIwrapper.git \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper\"", 
+    "mkdir \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper/build\"",
+    "cd \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper/build\" && cmake ..",
+    "cd \"{env:VIRTUAL_ENV:DEFAULT}/MPIWrapper/build\" && make",
+    ]
+[envs.sharding.env-vars]
+NETKET_EXPERIMENTAL_SHARDING = "1"
+#MPITRAMPOLINE_LIB = "{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so"
+
+[envs.sharding.scripts]
+run = [
+    "MPITRAMPOLINE_LIB=\"{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so\" \"{env:VIRTUAL_ENV}/MPIWrapper/build/bin/mpiwrapperexec\" -np 2 python {args}"
+]

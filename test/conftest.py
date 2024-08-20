@@ -79,6 +79,12 @@ def pytest_addoption(parser):
         default=0.2,
         help="rate of running a test for ARNN",
     )
+    parser.addoption(
+        "--jax-distributed-mpi",
+        action="store_true",
+        default=False,
+        help="Enable JAX distributed initialization",
+    )
 
 
 _n_test_since_reset: int = 0
@@ -111,3 +117,14 @@ def pytest_configure(config):
     _clear_cache_every = config.getoption("--clear-cache-every")
     if _clear_cache_every is not None:
         print(f"Clearing jax cache every {_clear_cache_every} tests")
+
+    if config.getoption("--jax-distributed-mpi"):
+        print("Initializing JAX distributed...")
+        import jax
+
+        jax.config.update("jax_cpu_collectives_implementation", "mpi")
+        jax.distributed.initialize(cluster_detection_method="mpi4py")
+
+        default_string = f"r{jax.process_index()}/{jax.process_count()} - "
+        print(default_string, jax.devices())
+        print(default_string, jax.local_devices())
