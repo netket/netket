@@ -7,7 +7,7 @@ import flax.linen as nn
 from .. import common
 
 SEED = 123
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 
 def test_deprecated_stuff():

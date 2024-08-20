@@ -9,7 +9,7 @@ from netket.utils import StaticRange
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 
 def test_staticrange_eq():

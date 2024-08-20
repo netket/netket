@@ -27,7 +27,7 @@ from scipy.optimize import curve_fit
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 
 WEIGHT_SEED = 3

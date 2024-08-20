@@ -5,7 +5,7 @@ import netket as nk
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 
 @pytest.mark.parametrize("chunk_size", [2, None])
