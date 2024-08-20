@@ -18,11 +18,22 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 
 from netket.jax import tree_ravel
+from netket.utils import module_version
 from netket.utils.api_utils import partial_from_kwargs
+from netket.utils.deprecation import warn_deprecation
 
 
 @partial_from_kwargs
-def pinv_smooth(A, b, *, rcond: float = 1e-14, rcond_smooth: float = 1e-14, x0=None):
+def pinv_smooth(
+    A,
+    b,
+    *,
+    rtol: float = 1e-14,
+    rtol_smooth: float = 1e-14,
+    x0=None,
+    rcond: float = None,
+    rcond_smooth: float = None,
+):
     r"""
     Solve the linear system by building a pseudo-inverse from the
     eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
@@ -62,15 +73,31 @@ def pinv_smooth(A, b, *, rcond: float = 1e-14, rcond_smooth: float = 1e-14, x0=N
     Args:
         A: LinearOperator (matrix)
         b: vector or Pytree
-        rcond : Cut-off ratio for small singular values of :code:`A`. For
+        rtol : Relative tolerance for small singular values of :code:`A`. For
             the purposes of rank determination, singular values are treated
-            as zero if they are smaller than rcond times the largest
+            as zero if they are smaller than `rtol` times the largest
             singular value of :code:`A`.
-        rcond_smooth : regularization parameter used with a similar effect to `rcond`
+        rtol_smooth : Regularization parameter used with a similar effect to `rtol`
             but with a softer curve. See :math:`\epsilon` in the formula
             above.
+        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
+        rcond_smooth: (deprecated) Alias for `rtol_smooth`. Will be removed in a future release.
     """
     del x0
+
+    if rcond is not None:
+        warn_deprecation(
+            "The 'rcond' argument is deprecated and will be removed in a future release. "
+            "Please use 'rtol' instead."
+        )
+        rtol = rcond
+
+    if rcond_smooth is not None:
+        warn_deprecation(
+            "The 'rcond_smooth' argument is deprecated and will be removed in a future release. "
+            "Please use 'rtol_smooth' instead."
+        )
+        rtol_smooth = rcond
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
@@ -79,10 +106,10 @@ def pinv_smooth(A, b, *, rcond: float = 1e-14, rcond_smooth: float = 1e-14, x0=N
     Σ, U = jnp.linalg.eigh(A)
 
     # Discard eigenvalues below numerical precision
-    Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rcond, jnp.reciprocal(Σ), 0.0)
+    Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
 
     # Set regularizer for singular value cutoff
-    regularizer = 1.0 / (1.0 + (rcond_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
+    regularizer = 1.0 / (1.0 + (rtol_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
 
     Σ_inv = Σ_inv * regularizer
 
@@ -92,14 +119,14 @@ def pinv_smooth(A, b, *, rcond: float = 1e-14, rcond_smooth: float = 1e-14, x0=N
 
 
 @partial_from_kwargs
-def pinv(A, b, *, rcond: float = 1e-12, x0=None):
+def pinv(A, b, *, rtol: float = 1e-12, x0=None, rcond: float = None):
     """
     Solve the linear system using jax's implementation of the
     pseudo-inverse.
 
     Internally it calls :func:`~jax.numpy.linalg.pinv` which
     uses a :func:`~jax.numpy.linalg.svd` decomposition with
-    the same value of **rcond**.
+    the same value of **rtol**.
 
     .. note::
 
@@ -120,21 +147,34 @@ def pinv(A, b, *, rcond: float = 1e-12, x0=None):
         a partial capturing them.
 
     The diagonal shift on the matrix can be 0 and the
-    **rcond** variable can be used to truncate small
+    **rtol** variable can be used to truncate small
     eigenvalues.
 
     Args:
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
-        rcond: The condition number
+        rtol: Cut-off ratio for small singular values of :code:`A`.
+        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
     """
     del x0
+
+    if rcond is not None:
+        warn_deprecation(
+            "The 'rcond' argument is deprecated and will be removed in a future release. "
+            "Please use 'rtol' instead."
+        )
+        rtol = rcond
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
     b, unravel = tree_ravel(b)
 
-    A_inv = jnp.linalg.pinv(A, rcond=rcond, hermitian=True)
+    # TODO: Cleanup when we support only jax 0.4.29 or later
+    if module_version(jax) >= (0, 4, 29):
+        A_inv = jnp.linalg.pinv(A, rtol=rtol, hermitian=True)
+    else:
+        A_inv = jnp.linalg.pinv(A, rcond=rtol, hermitian=True)
+
     x = jnp.dot(A_inv, b)
 
     return unravel(x), None
