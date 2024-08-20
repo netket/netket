@@ -29,7 +29,6 @@ from netket.utils import config
 from netket.utils.deprecation import deprecated
 from netket.jax.sharding import (
     extract_replicated,
-    gather,
     distribute_to_devices_along_axis,
 )
 
@@ -104,7 +103,7 @@ def to_array(
         # for now assume no mpi (no hybrid)
         x = hilbert.all_states()
         xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
-        n_states = xs.shape[0]
+        n_states = hilbert.n_states
     elif mpi.n_nodes == 1:
         xs = hilbert.all_states()
         mask = None
@@ -134,14 +133,10 @@ def to_array(
         chunk_size,
         mask,
     )
+
     if allgather and config.netket_experimental_sharding:
-        # for simplicity we gather here outside of jit
-        # alternatively we could use a sharding constraint in _to_array_rank
-        psi = gather(psi)
-        # make it a local numpy array, so that we can operate with e.g.
-        # a sparse scipy array on it and jax thinks its replicated next time we pass it to jit
         psi = np.asarray(extract_replicated(psi))
-        psi = psi[: hilbert.n_states]
+
     return psi
 
 
@@ -200,13 +195,18 @@ def _to_array_rank(
 
     if allgather:
         psi, _ = mpi.mpi_allgather_jax(psi_local)
+        psi = psi.reshape(-1)
     else:
         psi = psi_local
 
-    psi = psi.reshape(-1)
+    # gather/replicate
+    if allgather and config.netket_experimental_sharding:
+        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        psi = jax.lax.with_sharding_constraint(psi, sharding)
 
     # remove fake states
     psi = psi[0:n_states]
+
     return psi
 
 
