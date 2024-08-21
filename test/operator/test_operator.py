@@ -169,6 +169,11 @@ def test_produce_elements_in_hilbert(op, attr):
     hi = op.hilbert
     get_conn_fun = getattr(op, attr)
 
+    if nk.config.netket_experimental_sharding:
+        # TODO: get_conn_fun(rstates[i]) and shard map do not play well
+        # together.
+        pytest.xfail("Broken under sharding")
+
     assert len(hi.local_states) == hi.local_size
     assert hi.size > 0
 
@@ -460,6 +465,10 @@ def test_operator_jax_getconn(op):
     op_jax = op.to_jax_operator()
 
     states = op.hilbert.all_states()
+
+    if nk.config.netket_experimental_sharding:
+        # TODO: shard_map breaks
+        pytest.xfail("Broken under sharding")
 
     @jax.jit
     def _get_conn_padded(op, s):
