@@ -6,7 +6,6 @@ features = [
   "extra",
 ]
 extra-dependencies = [
-  "jax @ git+https://github.com/google/jax"
 ]
 randomize = false
 parallel = false
