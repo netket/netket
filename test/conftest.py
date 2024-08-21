@@ -83,7 +83,13 @@ def pytest_addoption(parser):
         "--jax-distributed-mpi",
         action="store_true",
         default=False,
-        help="Enable JAX distributed initialization",
+        help="Enable JAX distributed initialization using MPI",
+    )
+    parser.addoption(
+        "--jax-distributed-gloo",
+        action="store_true",
+        default=False,
+        help="Enable JAX distributed initialization using GLOO",
     )
 
 
@@ -119,11 +125,21 @@ def pytest_configure(config):
         print(f"Clearing jax cache every {_clear_cache_every} tests")
 
     if config.getoption("--jax-distributed-mpi"):
-        print("Initializing JAX distributed...")
+        print("Initializing JAX distributed using MPI...")
         import jax
 
         jax.config.update("jax_cpu_collectives_implementation", "mpi")
         jax.distributed.initialize(cluster_detection_method="mpi4py")
+
+        default_string = f"r{jax.process_index()}/{jax.process_count()} - "
+        print(default_string, jax.devices())
+        print(default_string, jax.local_devices())
+    elif config.getoption("--jax-distributed-gloo"):
+        print("Initializing JAX distributed using GLOO...")
+        import jax
+
+        jax.config.update("jax_cpu_enable_gloo_collectives", True)
+        jax.distributed.initialize()
 
         default_string = f"r{jax.process_index()}/{jax.process_count()} - "
         print(default_string, jax.devices())
