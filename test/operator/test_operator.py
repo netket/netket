@@ -9,6 +9,8 @@ import jax
 from jax.experimental.sparse import BCOO
 from netket.jax.sharding import with_samples_sharding_constraint
 
+from .. import common
+
 operators = {}
 
 # Ising 1D
@@ -191,6 +193,7 @@ def test_produce_elements_in_hilbert(op, attr):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
+@common.skipif_distributed
 def test_is_hermitian(op):
     rng = nk.jax.PRNGSeq(20)
 
@@ -432,6 +435,7 @@ def test_operator_on_subspace():
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
+@common.skipif_sharding
 def test_operator_jax_conversion(op):
     op_jax = op.to_jax_operator()
     op_numba = op_jax.to_numba_operator()
