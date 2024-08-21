@@ -436,9 +436,9 @@ def test_local_indices_to_states(hi):
 
 
 def test_state_iteration():
-    hilbert = Spin(s=0.5, N=5)
+    hilbert = Spin(s=0.5, N=10)
 
-    reference = [np.array(el) for el in itertools.product([1.0, -1.0], repeat=5)]
+    reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=10)]
 
     for state, ref in zip(hilbert.states(), reference):
         np.testing.assert_allclose(state, ref)
