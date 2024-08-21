@@ -379,6 +379,7 @@ def test_raises_unsorted_hilbert():
         nk.operator.LocalOperator(hi)
 
 
+
 def test_type_promotion():
     hi = nk.hilbert.Qubit(1)
     real_op = nk.operator.spin.sigmax(hi, 0, dtype=float)
