@@ -103,7 +103,7 @@ def to_array(
         # for now assume no mpi (no hybrid)
         x = hilbert.all_states()
         xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
-        n_states = xs.shape[0]
+        n_states = hilbert.n_states
     elif mpi.n_nodes == 1:
         xs = hilbert.all_states()
         mask = None
