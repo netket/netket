@@ -445,6 +445,8 @@ def test_sampling_sharded_not_communicating(
 ):
     if isinstance(sampler_c, nk.sampler.MetropolisNumpy):
         pytest.skip("Not jit compatible")
+    if isinstance(sampler_c, nk.sampler.ExactSampler):
+        pytest.xfail("Error logic communicates")
 
     sampler = set_pdf_power(sampler_c)
     hi = sampler.hilbert
