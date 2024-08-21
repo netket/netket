@@ -200,6 +200,11 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             The sparse jax matrix representation of the operator.
         """
+
+        # TODO: If the operator get_conn_padded uses shard_map, the
+        # replication of all_states will lead to a crash when
+        # the n_samples cannot be divided by the number of ranks.
+        # this should be fixed.
         x = self.hilbert.all_states()
         n = x.shape[0]
         xp, mels = self.get_conn_padded(x)

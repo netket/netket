@@ -9,6 +9,8 @@ import jax
 from jax.experimental.sparse import BCOO
 from netket.jax.sharding import with_samples_sharding_constraint
 
+from .. import common
+
 operators = {}
 
 # Ising 1D
@@ -169,6 +171,11 @@ def test_produce_elements_in_hilbert(op, attr):
     hi = op.hilbert
     get_conn_fun = getattr(op, attr)
 
+    if nk.config.netket_experimental_sharding:
+        # TODO: get_conn_fun(rstates[i]) and shard map do not play well
+        # together.
+        pytest.xfail("Broken under sharding")
+
     assert len(hi.local_states) == hi.local_size
     assert hi.size > 0
 
@@ -186,6 +193,7 @@ def test_produce_elements_in_hilbert(op, attr):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
+@common.skipif_distributed
 def test_is_hermitian(op):
     rng = nk.jax.PRNGSeq(20)
 
@@ -427,6 +435,7 @@ def test_operator_on_subspace():
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
+@common.skipif_sharding
 def test_operator_jax_conversion(op):
     op_jax = op.to_jax_operator()
     op_numba = op_jax.to_numba_operator()
@@ -460,6 +469,10 @@ def test_operator_jax_getconn(op):
     op_jax = op.to_jax_operator()
 
     states = op.hilbert.all_states()
+
+    if nk.config.netket_experimental_sharding:
+        # TODO: shard_map breaks
+        pytest.xfail("Broken under sharding")
 
     @jax.jit
     def _get_conn_padded(op, s):

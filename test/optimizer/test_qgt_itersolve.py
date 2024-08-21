@@ -396,11 +396,11 @@ def test_qgt_onthefly_correct_chunking_selection():
         assert QGT._mat_vec.func is _mat_vec
 
         # check is still non chunked
-        vstate.chunk_size = vstate.n_samples / len(jax.devices())
+        vstate.chunk_size = vstate.n_samples // len(jax.devices())
         QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
         assert QGT._mat_vec.func is _mat_vec
 
         # check is chunked
-        vstate.chunk_size = vstate.n_samples / (2 * len(jax.devices()))
+        vstate.chunk_size = vstate.n_samples // (2 * len(jax.devices()))
         QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
         assert QGT._mat_vec.func is not _mat_vec
