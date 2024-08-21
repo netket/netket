@@ -429,7 +429,9 @@ class MCState(VariationalState):
             return
 
         if not isinstance(chunk_size, int) or chunk_size <= 0:
-            raise ValueError("Chunk size must be a positive INTEGER. ")
+            raise ValueError(
+                f"Chunk size must be a positive INTEGER (got {chunk_size} instead)."
+            )
 
         if not _is_power_of_two(chunk_size):
             warnings.warn(
