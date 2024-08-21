@@ -268,6 +268,19 @@ def test_run_twice():
     driver.run(0.03)
     np.testing.assert_allclose(driver.t, 0.06)
 
+def test_initial_loss():
+    # 1100
+    ha, vstate, _ = _setup_system(L=2)
+    driver = nkx.TDVP(
+        ha,
+        vstate,
+        nkx.dynamics.RK23(dt=0.01),
+        qgt=nk.optimizer.qgt.QGTOnTheFly(holomorphic=True),
+    )
+    log = nk.logging.RuntimeLog()
+    driver.run(0.05, callback=nk.callbacks.InvalidLossStopping(), out=log)
+    np.testing.assert_allclose(log['Generator']['iters'], np.arange(6)/100)
+
 
 def test_change_integrator():
     ha, vstate, _ = _setup_system(L=2)

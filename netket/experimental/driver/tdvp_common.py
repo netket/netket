@@ -99,6 +99,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             self._generator = lambda _: op
         else:
             self._generator = operator
+        self._loss_stats = self.state.expect(self.generator(t0))
 
         self._dw = None  # type: PyTree
         self._last_qgt = None
