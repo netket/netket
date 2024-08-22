@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import math
-from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -21,12 +20,10 @@ import jax.numpy as jnp
 import numpy as np
 
 from numba import jit
-from numba4jax import njit4jax
 
 from netket import config
 from netket.operator import DiscreteOperator, DiscreteJaxOperator
 from netket.utils import struct
-from netket.jax.sharding import sharding_decorator, with_samples_sharding_constraint
 
 from .base import MetropolisRule
 
@@ -90,47 +87,44 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
     def transition(rule, sampler, machine, parameters, state, key, σ):
         """
         This implements the transition rule for `DiscreteOperator`s that are
-        implemented in Numba, relying on the `_get_conn_flattened_closure`
-        hack to make it work in numba.
+        not jax-compatible by using a :ref:`jax.pure_callback`, which has a large
+        overhead.
+
+        If possible, consider using a jax-variant of the operators.
         """
-        get_conn_flattened = rule.operator._get_conn_flattened_closure()
-        n_conn_from_sections = rule.operator._n_conn_from_sections
+        log_prob_dtype = jax.dtypes.canonicalize_dtype(float)
 
-        @partial(sharding_decorator, sharded_args_tree=(True, True), check_rep=False)
         def _transition(v, rand_vec):
-            @njit4jax(
-                (
-                    jax.core.ShapedArray(v.shape, v.dtype),
-                    jax.core.ShapedArray((v.shape[0],), v.dtype),
-                )
-            )
-            def __transition(args):
-                # unpack arguments
-                v_proposed, log_prob_corr, v, rand_vec = args
+            log_prob_corr = np.zeros((v.shape[0],), dtype=log_prob_dtype)
+            v_proposed = np.empty(v.shape, dtype=v.dtype)
 
-                log_prob_corr.fill(0)
-                sections = np.empty(v.shape[0], dtype=np.int32)
-                vp, _ = get_conn_flattened(v, sections)
+            sections = np.empty(v.shape[0], dtype=np.int32)
+            vp, _ = rule.operator.get_conn_flattened(v, sections)
 
-                _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
+            _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
 
-                # TODO: n_conn(v_proposed, sections) implemented below, but
-                # might be slower than fast implementations like ising
-                get_conn_flattened(v_proposed, sections)
-                n_conn_from_sections(sections)
+            rule.operator.n_conn(v_proposed, sections)
 
-                log_prob_corr -= np.log(sections)
-
-            return __transition(v, rand_vec)
+            log_prob_corr -= np.log(sections)
+            return v_proposed, log_prob_corr
 
         # ideally we would pass the key to python/numba in _choose, initialise a
         # np.random.default_rng(key) and use it to generate random uniform integers.
-        # However, numba dose not support np states, and reseeding it's MT1998 implementation
+        # However, numba does not support np states, and reseeding its MT1998 implementation
         # would be slow so we generate floats in the [0,1] range in jax and pass those
         # to python
         rand_vec = jax.random.uniform(key, shape=(σ.shape[0],))
-        rand_vec = with_samples_sharding_constraint(rand_vec)
-        σp, log_prob_correction = _transition(σ, rand_vec)
+
+        σp, log_prob_correction = jax.pure_callback(
+            _transition,
+            (
+                jax.core.ShapedArray(σ.shape, σ.dtype),
+                jax.core.ShapedArray((σ.shape[0],), log_prob_dtype),
+            ),
+            σ,
+            rand_vec,
+            # vectorized=True, #TODO: Make the callback work with vectorized inputs
+        )
 
         return σp, log_prob_correction
 

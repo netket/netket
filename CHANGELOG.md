@@ -7,6 +7,7 @@
 
 ### Changes
 * Jax operators now use the same `chunk_size` as specified by the user when computing the forward pass. Prior to this change, Jax operators would be chunking the sample axis, but if an operator had a lot of connected elements this would end up increasing the effective sample size [#1875](https://github.com/netket/netket/pull/1875).
+* Metropolis Hamiltonian sampler for numba operators has been greatly simplified in order to remove the dependency on numba4jax. The new implementation will generally be slower than before, so we encourage you to use Jax Operators if possible. In the future, if people ask for it, we may reintroduce this implementation as a separate package [#1747](https://github.com/netket/netket/pull/1747).
 
 ### Improvements
 * Specialised lattice constructors like {func}`nk.graph.Grid` now accept a `point_group` argument, overriding the default (usually maximal) point groups [#1879](https://github.com/netket/netket/pull/1879).

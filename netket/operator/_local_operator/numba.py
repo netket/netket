@@ -105,40 +105,6 @@ class LocalOperator(LocalOperatorBase):
             pad,
         )
 
-    def _get_conn_flattened_closure(self):
-        self._setup()
-        _local_states = self._local_states
-        _basis = self._basis
-        _constant = self._constant
-        _diag_mels = self._diag_mels
-        _n_conns = self._n_conns
-        _mels = self._mels
-        _x_prime = self._x_prime
-        _acting_on = self._acting_on
-        _acting_size = self._acting_size
-        # workaround my painfully discovered Numba#6979 (cannot use numpy bools in closures)
-        _nonzero_diagonal = bool(self._nonzero_diagonal)
-
-        fun = self._get_conn_flattened_kernel
-
-        def gccf_fun(x, sections):
-            return fun(
-                x,
-                sections,
-                _local_states,
-                _basis,
-                _constant,
-                _diag_mels,
-                _n_conns,
-                _mels,
-                _x_prime,
-                _acting_on,
-                _acting_size,
-                _nonzero_diagonal,
-            )
-
-        return numba.jit(nopython=True)(gccf_fun)
-
     @staticmethod
     @numba.jit(nopython=True)
     def _get_conn_flattened_kernel(

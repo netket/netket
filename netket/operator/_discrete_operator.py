@@ -290,14 +290,3 @@ class DiscreteOperator(AbstractOperator):
 
     def to_linear_operator(self):
         return self.to_sparse()
-
-    def _get_conn_flattened_closure(self):
-        raise NotImplementedError(
-            """
-            _get_conn_flattened_closure not implemented for this operator type.
-            You were probably trying to use an operator with a sampler.
-            Please report this bug.
-
-            numba4jax won't work.
-            """
-        )
