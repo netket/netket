@@ -95,8 +95,8 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
         log_prob_dtype = jax.dtypes.canonicalize_dtype(float)
 
         def _transition(v, rand_vec):
-            log_prob_corr = np.zeros((σ.shape[0],), dtype=log_prob_dtype)
-            v_proposed = np.empty(σ.shape, dtype=σ.dtype)
+            log_prob_corr = np.zeros((v.shape[0],), dtype=log_prob_dtype)
+            v_proposed = np.empty(v.shape, dtype=v.dtype)
 
             sections = np.empty(v.shape[0], dtype=np.int32)
             vp, _ = rule.operator.get_conn_flattened(v, sections)
@@ -110,7 +110,7 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
 
         # ideally we would pass the key to python/numba in _choose, initialise a
         # np.random.default_rng(key) and use it to generate random uniform integers.
-        # However, numba dose not support np states, and reseeding it's MT1998 implementation
+        # However, numba does not support np states, and reseeding its MT1998 implementation
         # would be slow so we generate floats in the [0,1] range in jax and pass those
         # to python
         rand_vec = jax.random.uniform(key, shape=(σ.shape[0],))
