@@ -136,7 +136,7 @@ def test_invalid_loss_stopping(driver):
     params = flax.core.unfreeze(driver.state.parameters)
     params["visible_bias"] = np.inf * params["visible_bias"]
     if isinstance(driver, nkx.driver.TDVP):
-        driver._integrator._rkstate = driver._integrator._rkstate.replace(y=params)
+        driver._integrator._state = driver._integrator._state.replace(y=params)
     driver.state.parameters = params
     driver.reset()
 

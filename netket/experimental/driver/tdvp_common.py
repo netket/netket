@@ -33,8 +33,8 @@ from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
 
-from netket.experimental.dynamics import RKIntegratorConfig
-from netket.experimental.dynamics._rk_solver_structures import (
+from netket.experimental.dynamics import IntegratorConfig
+from netket.experimental.dynamics._structures import (
     euclidean_norm,
     maximum_norm,
 )
@@ -60,7 +60,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: RKIntegratorConfig,
+        integrator: IntegratorConfig,
         *,
         t0: float = 0.0,
         error_norm: str | Callable = "qgt",
@@ -255,11 +255,11 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 step_accepted = self._integrator.step(max_dt=max_dt)
                 if self._integrator.errors:
                     raise RuntimeError(
-                        f"RK solver: {self._integrator.errors.message()}"
+                        f"ODE solver: {self._integrator.errors.message()}"
                     )
                 elif self._integrator.warnings:
                     warnings.warn(
-                        f"RK solver: {self._integrator.warnings.message()}",
+                        f"ODE solver: {self._integrator.warnings.message()}",
                         UserWarning,
                         stacklevel=3,
                     )

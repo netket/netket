@@ -14,8 +14,9 @@
 
 
 __all__ = [
-    "RungeKuttaIntegrator",
-    "RKIntegratorConfig",
+    "Integrator",
+    "IntegratorConfig",
+    "IntegratorState",
     "Euler",
     "Heun",
     "Midpoint",
@@ -25,8 +26,9 @@ __all__ = [
     "RK45",
 ]
 
-from ._rk_solver_structures import RungeKuttaIntegrator, RKIntegratorConfig
-from ._rk_solver import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
+from ._integrator import Integrator, IntegratorConfig
+from ._state import IntegratorState
+from ._rk._solver import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
 
 from netket.utils import _hide_submodules
 

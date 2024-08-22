@@ -192,7 +192,7 @@ def test_dt_bounds():
         nkx.dynamics.RK23(dt=0.1, adaptive=True, dt_limits=(1e-2, None)),
         propagation_type="real",
     )
-    with pytest.warns(UserWarning, match="RK solver: dt reached lower bound"):
+    with pytest.warns(UserWarning, match="ODE solver: dt reached lower bound"):
         te.run(T=0.1, callback=_stop_after_one_step)
 
 
