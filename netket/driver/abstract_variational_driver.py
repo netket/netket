@@ -221,12 +221,12 @@ class AbstractVariationalDriver(abc.ABC):
         """
         for _ in range(0, n_steps, step):
             for i in range(0, step):
-                dp = self._forward_and_backward()
+                self._dp = self._forward_and_backward()
                 if i == 0:
                     yield self.step_count
 
                 self._step_count += 1
-                self.update_parameters(dp)
+                self.update_parameters(self._dp)
 
     def advance(self, steps: int = 1):
         """
