@@ -145,6 +145,40 @@ def test_invalid_loss_stopping(driver):
     assert driver.step_count == patience
 
 
+def test_invalid_loss_stopping_correct_interval():
+    patience = 4
+    cb = nk.callbacks.InvalidLossStopping(patience=patience)
+
+    driver = nk.driver.AbstractVariationalDriver(
+        None, None, minimized_quantity_name="loss"
+    )
+
+    log_data = {}
+    cb(0, log_data, driver)
+    assert cb._last_valid_iter == 0
+
+    driver._loss_stats = nk.stats.Stats(mean=np.array(1.0))
+    assert cb(2, log_data, driver)
+    assert cb._last_valid_iter == 0
+
+    driver._step_count = 2
+    assert cb(None, log_data, driver)
+    assert cb._last_valid_iter == 2
+
+    driver._step_count = 3
+    driver._loss_stats = nk.stats.Stats(mean=np.nan)
+    assert cb(None, log_data, driver)
+    assert cb._last_valid_iter == 2
+
+    driver._step_count = 4
+    assert cb(None, log_data, driver)
+    assert cb._last_valid_iter == 2
+
+    driver._step_count = 8
+    assert not cb(None, log_data, driver)
+    assert cb._last_valid_iter == 2
+
+
 def test_convergence_stopping():
     loss_values = [10] + [9] * 12 + [1] * 4
     es = nk.callbacks.ConvergenceStopping(target=9.0, patience=10, smoothing_window=1)
