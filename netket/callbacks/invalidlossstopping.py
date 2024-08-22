@@ -62,10 +62,16 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
         Returns:
             A boolean. If True, training continues, else, it does not.
         """
-        loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
-        if not np.isfinite(loss):
-            if step - self._last_valid_iter >= self.patience:
-                return False
-        else:
-            self._last_valid_iter = step
+        # clears the _last_valid_iter in case the driver was reset
+        if driver.step_count < self._last_valid_iter:
+            self._last_valid_iter = 0
+
+        if driver._loss_stats is not None:
+            loss = np.real(getattr(driver._loss_stats, self.monitor))
+
+            if not np.isfinite(loss):
+                if driver.step_count - self._last_valid_iter >= self.patience:
+                    return False
+            else:
+                self._last_valid_iter = driver.step_count
         return True
