@@ -58,17 +58,4 @@ from .utils import (
     binary_encoding,
 )
 
-from .deprecation import (
-    Dense,
-    DenseGeneral,
-    Conv,
-    ConvTranspose,
-    Embed,
-    SelfAttention,
-    dot_product_attention,
-    make_attention_mask,
-    make_causal_mask,
-    combine_masks,
-)
-
 from . import blocks
