@@ -182,18 +182,6 @@ def test_no_preconditioner_api():
     assert driver.preconditioner(None, 1, 2) == 1
 
 
-def test_preconditioner_deprecated_signature():
-    ha, sx, ma, sampler, driver = _setup_vmc(sr=True)
-
-    sr = driver.preconditioner
-    _sr = lambda vstate, grad: sr(vstate, grad)
-
-    with pytest.warns(FutureWarning):
-        driver.preconditioner = _sr
-
-    driver.run(1)
-
-
 def test_observable_jaxoperator():
     # If we don't stop the flattening correctly the
     # jax operators are unpacked in expect and everything

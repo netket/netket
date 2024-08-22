@@ -272,35 +272,3 @@ class PauliStrings(PauliStringsBase):
         )
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
-
-    def _get_conn_flattened_closure(self):
-        self._setup()
-        _x_prime_max = self._x_prime_max
-        _mels_max = self._mels_max
-        _sites = self._sites
-        _ns = self._ns
-        _n_op = self._n_op
-        _weights = self._weights_numba
-        _nz_check = self._nz_check
-        _z_check = self._z_check
-        _cutoff = self._cutoff
-        _n_operators = self._n_operators
-        fun = self._flattened_kernel
-
-        def gccf_fun(x, sections):
-            return fun(
-                x,
-                sections,
-                _x_prime_max,
-                _mels_max,
-                _sites,
-                _ns,
-                _n_op,
-                _weights,
-                _nz_check,
-                _z_check,
-                _cutoff,
-                _n_operators,
-            )
-
-        return jit(nopython=True)(gccf_fun)

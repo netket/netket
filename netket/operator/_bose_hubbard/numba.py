@@ -248,30 +248,3 @@ class BoseHubbard(BoseHubbardBase):
         )
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
-
-    def _get_conn_flattened_closure(self):
-        _edges = self._edges
-        _U = self._U
-        _V = self._V
-        _J = self._J
-        _mu = self._mu
-        _n_max = self._n_max
-        _max_conn = self._max_conn
-        fun = self._flattened_kernel
-
-        # do not pass the preallocated self._max_mels and self._max_xprime because they are frozen in a closure
-        # and become read only
-        def gccf_fun(x, sections):  # pragma: no cover
-            return fun(
-                x,
-                sections,
-                _edges,
-                _U,
-                _V,
-                _J,
-                _mu,
-                _n_max,
-                _max_conn,
-            )
-
-        return jit(nopython=True)(gccf_fun)

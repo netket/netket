@@ -16,7 +16,6 @@
 
 import pytest
 from functools import partial
-from contextlib import nullcontext as does_not_raise
 
 import math
 import numpy as np
@@ -385,7 +384,6 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
     model_state = {}
-    # rescale_shift = False
 
     def apply_fun(params, samples):
         return e.f(params["params"], samples)
@@ -470,40 +468,6 @@ def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
     rtol = 1e-5 if pardtype is jnp.float32 else 1e-8
     assert_tree_allclose(actual, expected, rtol=rtol)
     tree_samedtypes(actual, expected)
-
-
-@pytest.mark.parametrize(
-    "inputs, expected",
-    [
-        ((None, None, None), (0.0, 0.0)),
-        ((0.02, None, None), (0.02, 0.0)),
-        ((None, 0.02, None), (0.0, 0.02)),
-        ((0.01, 0.02, None), (0.01, 0.02)),
-        ((None, None, False), (0.0, 0.0)),
-        ((0.02, None, False), (0.02, 0.0)),
-        ((None, 0.02, False), "error"),
-        ((0.01, 0.02, False), "error"),
-        ((None, None, True), (0.0, 0.0)),
-        ((0.02, None, True), (0.0, 0.02)),
-        ((None, 0.02, True), "error"),
-        ((0.01, 0.02, True), "error"),
-        ((None, None, 0.0), "error"),
-    ],
-)
-def test_sanitize_diag_shift(inputs, expected):
-    if inputs[2] is not None:
-        ctx = pytest.warns(FutureWarning)
-    else:
-        ctx = does_not_raise()
-
-    if expected == "error":
-        with pytest.raises(ValueError):
-            qgt_jacobian_common.sanitize_diag_shift(*inputs)
-    else:
-        with ctx:
-            output = qgt_jacobian_common.sanitize_diag_shift(*inputs)
-
-        assert output == expected
 
 
 def test_qgt_onthefly_dense_nonholo_error():

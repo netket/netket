@@ -169,15 +169,3 @@ class Ising(IsingBase):
         )
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
-
-    def _get_conn_flattened_closure(self):
-        _edges = self._edges
-        _h = self._h
-        _J = self._J
-        fun = self._flattened_kernel
-
-        def gccf_fun(x, sections):  # pragma: no cover
-            # todo
-            return fun(x, sections, _edges, _h, _J)
-
-        return jit(nopython=True)(gccf_fun)

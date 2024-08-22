@@ -54,51 +54,7 @@ from .utils import (
     to_array,
     to_matrix,
     split_array_mpi,
-    update_dense_symm,
     binary_encoding,
 )
 
-from .deprecation import (
-    Dense,
-    DenseGeneral,
-    Conv,
-    ConvTranspose,
-    Embed,
-    SelfAttention,
-    dot_product_attention,
-    make_attention_mask,
-    make_causal_mask,
-    combine_masks,
-)
-
 from . import blocks
-
-
-# TODO: Eventually remove These (deprecated in 3.5)
-# These were never supposed to be re-exported, but they slipped and I used them in quite
-# some tutorials so we should keep them for a long time.
-_deprecated_names = ["Module", "compact"]
-
-
-from netket.utils import warn_deprecation as _warn_deprecation
-
-
-def __getattr__(name):
-    import sys
-
-    if name in _deprecated_names:
-        _warn_deprecation(
-            f" \n"
-            f" \n"
-            f"          =======================================================================\n"
-            f"          `nk.nn.{name}` is deprecated. Use `flax.linen.{name}` directly instead.\n"
-            f"          =======================================================================\n"
-            f" \n"
-            f"If you imported `flax.linen as nn`, as is customary to do, you can use `nn.{name}` "
-            f"directly. There are no functionality changes.\n"
-        )
-        import flax
-
-        return getattr(flax.linen, name)
-
-    raise AttributeError(f"module {__name__} has no attribute {name}")
