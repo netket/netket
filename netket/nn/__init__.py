@@ -54,7 +54,6 @@ from .utils import (
     to_array,
     to_matrix,
     split_array_mpi,
-    update_dense_symm,
     binary_encoding,
 )
 
