@@ -3,6 +3,7 @@ import netket.experimental as nkx
 import time
 import numpy as np
 import flax
+import pytest
 
 SEED = 3141592
 L = 8
@@ -35,12 +36,12 @@ def _tdvp(n_iter=20):
     hi = nk.hilbert.Spin(s=0.5) ** L
 
     ma = nk.models.RBM(alpha=1)
-
-    ha = nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
+    # rescale so that dt=1.0
+    ha = 1e-2 * nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
     sa = nk.sampler.MetropolisLocal(hi)
     vs = nk.vqs.MCState(sa, ma, n_samples=512, seed=SEED)
 
-    int = nkx.dynamics.RK4(dt=1e-2)
+    int = nkx.dynamics.RK4(dt=1.0)
     solv = nk.optimizer.solver.svd(rcond=1e-5)
 
     return nkx.TDVP(
@@ -123,47 +124,25 @@ def test_earlystopping_doesnt_get_stuck_with_patience_reltol():
     assert es._best_val == 9
 
 
-def test_invalid_loss_stopping_vmc():
+@pytest.mark.parametrize("driver", [_tdvp(), _vmc()])
+def test_invalid_loss_stopping(driver):
     patience = 10
     nsteps = 2 * patience
     ils = nk.callbacks.InvalidLossStopping(patience=patience)
 
-    gs = _vmc()
-    gs.run(nsteps, callback=ils)
-    assert ils._invalid_steps == 0
-    assert gs.step_count == nsteps
+    driver.run(nsteps, callback=ils)
+    assert driver.step_count == nsteps
 
-    params = flax.core.unfreeze(gs.state.parameters)
-    print(params.keys())
+    params = flax.core.unfreeze(driver.state.parameters)
     params["visible_bias"] = np.inf * params["visible_bias"]
-    gs.state.parameters = params
-    gs.reset()
+    if isinstance(driver, nkx.driver.TDVP):
+        driver._integrator._rkstate = driver._integrator._rkstate.replace(y=params)
+    driver.state.parameters = params
+    driver.reset()
 
-    gs.run(nsteps, callback=ils)
-    assert ils._invalid_steps == patience + 1
-    assert gs.step_count == patience
-
-
-def test_invalid_loss_stopping_tdvp():
-    patience = 10
-    nsteps = 2 * patience
-    ils = nk.callbacks.InvalidLossStopping(patience=patience)
-
-    te = _tdvp()
-    te.run(nsteps * 1e-2, callback=ils)
-    assert ils._invalid_steps == 0
-    assert te.step_count == nsteps
-
-    params = flax.core.unfreeze(te.state.parameters)
-    params["visible_bias"] = np.inf * params["visible_bias"]
-    te._integrator._rkstate = te._integrator._rkstate.replace(y=params)
-    te.state.parameters = params
-    te.reset()
-    print(te._loss_stats)
-
-    te.run(nsteps * 1e-2, callback=ils)
-    assert ils._invalid_steps == patience + 1
-    assert te.step_count == patience + 1
+    driver.run(nsteps, callback=ils)
+    assert ils._last_valid_iter == 0
+    assert driver.step_count == patience
 
 
 def test_convergence_stopping():
