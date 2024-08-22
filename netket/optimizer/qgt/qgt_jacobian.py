@@ -23,7 +23,6 @@ from netket.nn import split_array_mpi
 from .qgt_jacobian_dense import QGTJacobianDenseT
 from .qgt_jacobian_pytree import QGTJacobianPyTreeT
 from .qgt_jacobian_common import (
-    sanitize_diag_shift,
     to_shift_offset,
     rescale,
 )
@@ -127,17 +126,14 @@ def QGTJacobian_DefaultConstructor(
     )
 
 
-@partial_from_kwargs(
-    exclusive_arg_names=(("rescale_shift", "diag_scale"), ("mode", "holomorphic"))
-)
+@partial_from_kwargs(exclusive_arg_names=(("mode", "holomorphic")))
 def QGTJacobianDense(
     vstate,
     *,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift=None,
-    diag_scale=None,
-    rescale_shift=None,
+    diag_shift=0.0,
+    diag_scale=0.0,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianDenseT:
@@ -177,10 +173,6 @@ def QGTJacobianDense(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
-    if rescale_shift is not None and diag_scale is not None:
-        raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
-    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
-
     # TODO: Find a better way to handle this case
     from netket.vqs import FullSumState
 
@@ -210,17 +202,14 @@ def QGTJacobianDense(
     )
 
 
-@partial_from_kwargs(
-    exclusive_arg_names=(("rescale_shift", "diag_scale"), ("mode", "holomorphic"))
-)
+@partial_from_kwargs(exclusive_arg_names=(("mode", "holomorphic")))
 def QGTJacobianPyTree(
     vstate,
     *,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift=None,
-    diag_scale=None,
-    rescale_shift=None,
+    diag_shift=0.0,
+    diag_scale=0.0,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianPyTreeT:
@@ -260,10 +249,6 @@ def QGTJacobianPyTree(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
-    if rescale_shift is not None and diag_scale is not None:
-        raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
-    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
-
     # TODO: Find a better way to handle this case
     from netket.vqs import FullSumState
 
