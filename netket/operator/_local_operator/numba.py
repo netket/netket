@@ -108,7 +108,6 @@ class LocalOperator(LocalOperatorBase):
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
 
-
     @staticmethod
     @numba.jit(nopython=True)
     def _get_conn_flattened_kernel(
