@@ -28,8 +28,8 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
     """Number of epochs with invalid loss after which training will be stopped."""
 
     # caches
-    _last_valid_iter: int
-    """Last valid iteration, to check against patience"""
+    _invalid_steps: int
+    """Number of invalid iterations, to check against patience"""
 
     def __init__(self, monitor: str = "mean", patience: int | float = 0):
         """
@@ -48,7 +48,7 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
         self.patience = patience
 
         # caches
-        self._last_valid_iter = 0
+        self._invalid_steps = 0
 
     def __call__(self, step, log_data, driver):
         """
@@ -62,10 +62,13 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
         Returns:
             A boolean. If True, training continues, else, it does not.
         """
-        loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
-        if not np.isfinite(loss):
-            if step - self._last_valid_iter >= self.patience:
-                return False
-        else:
-            self._last_valid_iter = step
+        if driver._loss_stats is not None:
+            loss = np.real(getattr(driver._loss_stats, self.monitor))
+
+            if not np.isfinite(loss):
+                self._invalid_steps += 1
+
+                if self._invalid_steps > self.patience:
+                    return False
+
         return True
