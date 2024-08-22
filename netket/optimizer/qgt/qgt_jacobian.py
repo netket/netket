@@ -39,8 +39,8 @@ def QGTJacobian_DefaultConstructor(
     dense: bool,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift: float = 0.0,
-    diag_scale: float = 0.0,
+    diag_shift: float | None = 0.0,
+    diag_scale: float | None = None,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianDenseT | QGTJacobianPyTreeT:
@@ -102,7 +102,6 @@ def QGTJacobian_DefaultConstructor(
         center=True,
         _sqrt_rescale=True,
     )
-
     shift, offset = to_shift_offset(diag_shift, diag_scale)
 
     if offset is not None:
@@ -132,8 +131,8 @@ def QGTJacobianDense(
     *,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift=0.0,
-    diag_scale=0.0,
+    diag_shift: float | None = 0.0,
+    diag_scale: float | None = None,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianDenseT:
@@ -208,8 +207,8 @@ def QGTJacobianPyTree(
     *,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift=0.0,
-    diag_scale=0.0,
+    diag_shift: float | None = 0.0,
+    diag_scale: float | None = None,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianPyTreeT:

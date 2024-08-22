@@ -20,14 +20,19 @@ import jax.numpy as jnp
 from netket.utils import mpi
 
 
-def to_shift_offset(diag_shift, diag_scale):
-    if not isinstance(diag_scale, jax.Array):
-        if diag_scale == 0.0:
+def to_shift_offset(
+    diag_shift: float | None, diag_scale: float | None
+) -> tuple[float, float | None]:
+    if diag_shift is None:
+        diag_shift = 0.0
+
+    if isinstance(diag_scale, jax.Array):
+        return diag_scale, diag_shift / diag_scale
+    else:
+        if diag_scale is None or diag_scale == 0.0:
             return diag_shift, None
         else:
             return diag_scale, diag_shift / diag_scale
-    else:
-        return diag_scale, diag_shift / diag_scale
 
 
 @partial(jax.jit, static_argnames="ndims")
