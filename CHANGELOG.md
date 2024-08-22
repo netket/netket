@@ -15,6 +15,14 @@
 ### Bug fixes
 * Fix the function {meth}`nk.graph.SpaceGroupBuilder.space_group_irreps` throwing away the imaginary part of point-group characters, which led to incorrect space-group characters in some rare cases [#1876](https://github.com/netket/netket/pull/1876).
 
+### Finalized deprecations
+Some features that have been deprecated for the last ~24 months have been finally removed from NetKet and will now raise errors. If this is a problem for you, you should install an older version of NetKet.
+
+* Finalized deprecation for `nk.nn.update_dense_symm` utility used to change the format of stored parameters for DenseSymm layers. The method was used to update from a format used in NetKet v3.2, released in 2021.
+* Finalized deprecation for `nk.nn.Module`, `nk.nn.compact`, `nk.nn.Dense` and similar methods that have been aliasing to `flax.linen` since NetKet 3.5 (released in august 2022).
+* Finalized deprecation for `rescale_shift` argument of `QGTJacobian***` implementations, which was superseeded by `diag_scale`. This was deprecated since NetKet v3.6 released in november 2022.
+* Finalized deprecation for preconditioner signatures with only 2 arguments in favour of the new format using 3 arguments, which have been deprecated since NetKet v3.6 released in november 2022.
+
 
 ## NetKet 3.13 (11 July 2024)
 

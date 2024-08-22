@@ -17,55 +17,22 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-from netket.utils import mpi, warn_deprecation
+from netket.utils import mpi
 
 
-def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
-    """Sanitises different inputs for diag_shift etc.
-
-
-    Also raises a deprecation warnings for `rescale_shift`.
-
-    Returns:
-        the tuple `(diag_shift, diag_scale)`.
-    """
-
+def to_shift_offset(
+    diag_shift: float | None, diag_scale: float | None
+) -> tuple[float, float | None]:
     if diag_shift is None:
         diag_shift = 0.0
 
-    if rescale_shift is not None and diag_scale is not None:
-        raise ValueError(
-            "`rescale_shift` has been deprecated, and cannot be declared with `diag_scale`.\n"
-            "Use only `diag_scale` instead."
-        )
-
-    if rescale_shift is False:
-        warn_deprecation(
-            "`rescale_shift` is deprecated, please do not specify `rescale_shift=False`."
-        )
-        diag_scale = 0.0
-    elif rescale_shift is True:
-        warn_deprecation(
-            f"`rescale_shift` is deprecated, use `diag_scale={diag_shift}, diag_shift=0` instead."
-        )
-        diag_scale = diag_shift
-        diag_shift = 0.0
-    elif rescale_shift is None:
-        if diag_scale is None:
-            diag_scale = 0.0
+    if isinstance(diag_scale, jax.Array):
+        return diag_scale, diag_shift / diag_scale
     else:
-        raise ValueError("`rescale_shift` must be boolean or None.")
-    return diag_shift, diag_scale
-
-
-def to_shift_offset(diag_shift, diag_scale):
-    if not isinstance(diag_scale, jax.Array):
-        if diag_scale == 0.0:
+        if diag_scale is None or diag_scale == 0.0:
             return diag_shift, None
         else:
             return diag_scale, diag_shift / diag_scale
-    else:
-        return diag_scale, diag_shift / diag_scale
 
 
 @partial(jax.jit, static_argnames="ndims")

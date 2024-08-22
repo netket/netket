@@ -30,9 +30,6 @@ def test_qgt_partial_jacobian_sanitise(qgt):
     with pytest.raises(ValueError):
         qgt(mode="real", holomorphic=True)
 
-    with pytest.raises(ValueError):
-        qgt(diag_scale=0.02, rescale_shift=True)
-
 
 @pytest.mark.parametrize(
     "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]

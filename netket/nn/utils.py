@@ -32,9 +32,6 @@ from netket.jax.sharding import (
     distribute_to_devices_along_axis,
 )
 
-from flax.traverse_util import flatten_dict, unflatten_dict
-from flax.core import unfreeze
-
 
 def split_array_mpi(array: Array) -> Array:
     """
@@ -230,31 +227,6 @@ def to_matrix(
         rho /= trace
 
     return rho
-
-
-# TODO: Deprecate: remove
-def update_dense_symm(params, names=("dense_symm", "Dense")):
-    """Updates DenseSymm kernels in pre-PR#1030 parameter pytrees to the new
-    3D convention.
-
-    Args:
-        params: a parameter pytree
-        names: layer names search for, default: those used in RBMSymm and GCNN*
-    """
-    params = unfreeze(params)  # just in case, doesn't break with a plain dict
-
-    def fix_one_kernel(args):
-        path, array = args
-        if (
-            len(path) > 1
-            and path[-2] in names
-            and path[-1] == "kernel"
-            and array.ndim == 2
-        ):
-            array = jnp.expand_dims(array, 1)
-        return (path, array)
-
-    return unflatten_dict(dict(map(fix_one_kernel, flatten_dict(params).items())))
 
 
 def _get_output_idx(

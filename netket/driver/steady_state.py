@@ -13,14 +13,11 @@
 # limitations under the License.
 
 
-from inspect import signature
-
 from netket.operator import Squared, AbstractSuperOperator
 from netket.vqs import MCMixedState
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
-    _DeprecatedPreconditionerSignature,
 )
 from netket.jax import tree_cast
 from netket.utils.types import Optimizer
@@ -117,9 +114,6 @@ class SteadyState(AbstractVariationalDriver):
     def preconditioner(self, val: PreconditionerT | None):
         if val is None:
             val = identity_preconditioner
-
-        if len(signature(val).parameters) == 2:
-            val = _DeprecatedPreconditionerSignature(val)
 
         self._preconditioner = val
 
