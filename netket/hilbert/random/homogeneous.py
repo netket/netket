@@ -42,8 +42,8 @@ def random_state(  # noqa: F811
     x_ids = jax.random.randint(
         key, shape=(batches, hilb.size), minval=0, maxval=len(hilb._local_states)
     )
-    return hilb.local_indices_to_states(x_ids).astype(dtype)
-
+    res = hilb.local_indices_to_states(x_ids, dtype=dtype)
+    return res
 
 
 @dispatch
@@ -59,7 +59,6 @@ def random_state(  # noqa: F811
     local_states = hilb._local_states
     if dtype is None:
         dtype = hilb._local_states.dtype
-    print("here")
 
     # Convert total constraint to Fock-like total number of excitations
     n_excitations = (
@@ -69,7 +68,7 @@ def random_state(  # noqa: F811
     samples_indx = _random_states_with_constraint_fock(
         n_excitations, hilb.shape, key, (batches,), dtype
     )
-    return hilb.local_indices_to_states(samples_indx)
+    return hilb.local_indices_to_states(samples_indx, dtype=dtype)
 
 
 @dispatch
