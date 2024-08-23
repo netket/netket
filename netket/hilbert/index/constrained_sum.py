@@ -8,15 +8,12 @@ import jax.numpy as jnp
 from netket.utils import struct, StaticRange
 from netket.utils.types import Array
 
-from netket.hilbert.constraint import (
-    optimalConstrainedHilbertindex,
-    ConstrainedHilbertIndex,
-    SumConstraint,
-)
+from netket.hilbert.constraint import SumConstraint
 
 from .base import HilbertIndex, is_indexable
 from .uniform_tensor import UniformTensorProductHilbertIndex
 from .unconstrained import LookupTableHilbertIndex
+from .constrained_generic import ConstrainedHilbertIndex, optimalConstrainedHilbertindex
 
 
 @optimalConstrainedHilbertindex.dispatch
