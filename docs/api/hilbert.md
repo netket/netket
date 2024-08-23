@@ -33,7 +33,6 @@ Below you find a list of all concrete Hilbert spaces that you can use.
    :template: class
    :nosignatures:
 
-   CustomHilbert
    TensorHilbert
    DoubledHilbert
    Spin

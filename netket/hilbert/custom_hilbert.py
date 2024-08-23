@@ -21,7 +21,16 @@ from .homogeneous import HomogeneousHilbert
 
 
 class CustomHilbert(HomogeneousHilbert):
-    r"""A custom hilbert space with discrete local quantum numbers."""
+    r"""A custom hilbert space with discrete local quantum numbers.
+
+    .. warning::
+
+        This class is deprecated in version 3.14. Use custom constraints with
+        existing classes instead, or define your own hilbert space class.
+
+        Do contact us on GitHub if you have any questions or need assistance.
+
+    """
 
     def __init__(
         self,
@@ -32,6 +41,11 @@ class CustomHilbert(HomogeneousHilbert):
         r"""
         Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and
         a number of sites, or modes, within this hilbert space.
+
+        .. warning::
+
+            This class is deprecated in version 3.14. Use custom constraints with
+            existing classes instead, or define your own hilbert space class.
 
         Args:
             local_states: :class:`~netket.utils.StaticRange` object describing the
