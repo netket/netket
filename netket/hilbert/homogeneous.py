@@ -81,14 +81,9 @@ class HomogeneousHilbert(DiscreteHilbert):
         if not (isinstance(local_states, StaticRange) or local_states is None):
             raise TypeError("local_states must be a StaticRange.")
 
-        self._is_finite = local_states is not None
-
-        if self._is_finite:
-            self._local_states = local_states
-            self._local_size = len(local_states)
-        else:
-            self._local_states = None
-            self._local_size = np.iinfo(np.intp).max
+        self._local_states = local_states
+        self._local_size = len(local_states)
+        self._is_finite = self._local_size < np.iinfo(np.intp).max
 
         self._constraint_fn = constraint_fn
 
@@ -176,6 +171,11 @@ class HomogeneousHilbert(DiscreteHilbert):
     @property
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""
+        # De-facto, all Homogeneous Hilbert spaces, as they have internally
+        # a StaticRange, are factually finite. So, even when we say this is
+        # False we are lying because it's technically always Finite...
+        #
+        # Do we still need this flag?
         return self._is_finite
 
     @property
