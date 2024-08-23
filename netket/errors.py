@@ -726,7 +726,7 @@ class UnhashableConstraintError(NetketError):
     This usually happens because you did not mark all the pytree fields in your constraint
     as `struct.field(pytree_node=False)`.
 
-    For a good example, see the documentation of :class:`netket.hilbert.index.constraints.DiscreteHilbertConstraint`.
+    For a good example, see the documentation of :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`.
     Below, you find a coincise example of how to fix this error:
 
     .. code-block:: python
@@ -769,7 +769,7 @@ class UnhashableConstraintError(NetketError):
                 from typing import Any
                 from netket.utils import struct
 
-                class MyCustomConstraint(nk.hilbert.index.constraints.DiscreteHilbertConstraint):
+                class MyCustomConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
                     fieldA: Any = struct.field(pytree_node=False)
                     fieldB: Any = struct.field(pytree_node=False)
                     def __init__(self, fieldA, fieldB):
