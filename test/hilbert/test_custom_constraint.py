@@ -54,7 +54,7 @@ def test_extra_constraint():
     assert isinstance(repr(c1), str)
 
 
-def test_extra_constraint_integration():
+def test_extra_constraint_integration(recwarn):
     # Constraint checking that first value is 1
     class CustomConstraintPy(nk.hilbert.constraint.DiscreteHilbertConstraint):
         def __call__(self, x):
@@ -96,8 +96,12 @@ def test_extra_constraint_integration():
 
     with pytest.warns(nk.errors.UnoptimisedCustomConstraintRandomStateMethodWarning):
         ran_states = hi.random_state(jax.random.key(1), 100)
-
     assert np.all(joint_constraint(ran_states))
+
+    nk.config.netket_random_state_fallback_warning = False
+    _ = hi.random_state(jax.random.key(1), 2)
+    assert len(recwarn) == 0, "Warnings were raised during the test"
+    nk.config.netket_random_state_fallback_warning = True
 
 
 def test_hilbert_extra_constraint():

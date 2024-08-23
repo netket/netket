@@ -18,6 +18,7 @@ import warnings
 import jax
 import jax.numpy as jnp
 
+from netket import config
 from netket.errors import UnoptimisedCustomConstraintRandomStateMethodWarning
 from netket.hilbert import HomogeneousHilbert
 from netket.utils.dispatch import dispatch
@@ -76,7 +77,10 @@ def random_state(  # noqa: F811
 def random_state(  # noqa: F811
     hilb: HomogeneousHilbert, constraint, key, batches: int, *, dtype=None
 ):
-    warnings.warn(UnoptimisedCustomConstraintRandomStateMethodWarning(hilb, constraint))
+    if config.netket_random_state_fallback_warning:
+        warnings.warn(
+            UnoptimisedCustomConstraintRandomStateMethodWarning(hilb, constraint)
+        )
 
     keys = jax.random.split(key, batches + 1)
     states = random_state(hilb, None, keys[0], batches, dtype=dtype)

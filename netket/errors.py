@@ -822,7 +822,8 @@ class UnoptimisedCustomConstraintRandomStateMethodWarning(NetketWarning):
 
     .. note::
 
-        You can silence this warning by setting the environment variable `NETKET_NO_RANDOM_STATE_WARNING=1`.
+        You can silence this warning by setting the environment variable ``NETKET_RANDOM_STATE_FALLBACK_WARNING=0``
+        or by setting ``nk.config.netket_random_state_fallback_warning = 0`` in your code.
 
 
     Example implementation of a custom `random_state` method:
@@ -857,6 +858,13 @@ class UnoptimisedCustomConstraintRandomStateMethodWarning(NetketWarning):
             the current Hilbert space with a custom constraint. Consider implementing a
             custom `random_state` method for your constraint if this method takes a long time to
             generate a random state.
+
+            ================================================================
+            You can silence this warning by setting the environment variable
+            ``NETKET_RANDOM_STATE_FALLBACK_WARNING=0``
+            or by setting ``nk.config.netket_random_state_fallback_warning = False``
+            in your code.
+            ================================================================
 
             To generate a custom random_state dispatched method, you should use multiple dispatch
             following the following syntax:

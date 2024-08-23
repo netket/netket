@@ -391,3 +391,18 @@ config.define(
         """
     ),
 )
+
+
+config.define(
+    "NETKET_RANDOM_STATE_FALLBACK_WARNING",
+    bool,
+    default=True,
+    runtime=True,
+    help=dedent(
+        """
+        Print a warning every time you use a fallback that could never stop running
+        when using random_state of constrained hilbert spaces with custom
+        constraints.
+        """
+    ),
+)
