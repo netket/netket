@@ -32,7 +32,6 @@ from . import tensor_hilbert_discrete
 
 from . import random
 
-from netket.utils import _hide_submodules
 
 # Deprecated bindings
 from .custom_hilbert import CustomHilbert as _deprecated_CustomHilbert
@@ -47,6 +46,7 @@ _deprecations = {
 }
 
 from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+from netket.utils import _hide_submodules
 
 __getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
