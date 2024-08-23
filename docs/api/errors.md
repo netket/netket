@@ -26,3 +26,14 @@ Netket has the following classes of errors.
   UnoptimalSRtWarning
   SymmModuleInvalidInputShape
 ```
+
+## Hilbert space errors
+
+```{eval-rst}
+.. autosummary::
+  :toctree: _generated/errors
+  :nosignatures:
+
+  UnoptimisedCustomConstraintRandomStateMethodWarning
+  UnhashableConstraintError
+  InvalidConstraintInterface
