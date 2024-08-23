@@ -365,7 +365,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
             dataclass (a class decorated with @nk.utils.struct.dataclass) which
             inherits from a `nk.utils.struct.Pytree`.
 
-            The class is {type(clz)}.
+            The class is {clz}.
 
             This behaviour is not supported and might break. Please remove
             the decorator and just inherit from the base class, defining
@@ -382,7 +382,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
             dataclass (a class decorated with @nk.utils.struct.dataclass) which
             inherits from a `nk.utils.struct.Pytree`.
 
-            The class is {type(clz)}.
+            The class is {clz}.
 
             This behaviour is not supported and might break. Please remove
             the decorator and just inherit from the base class, defining
