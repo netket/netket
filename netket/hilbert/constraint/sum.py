@@ -42,5 +42,5 @@ class SumConstraint(DiscreteHilbertConstraint):
 
     def __eq__(self, other):
         if isinstance(other, SumConstraint):
-            return self.total_sum == other.total_sum
+            return self.sum_value == other.sum_value
         return False
