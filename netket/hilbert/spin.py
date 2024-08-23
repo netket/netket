@@ -148,4 +148,4 @@ class Spin(HomogeneousHilbert):
 
     @property
     def _attrs(self):
-        return (self.size, self._s, self._total_sz)
+        return (self.size, self._s, self.constraint)

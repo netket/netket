@@ -167,4 +167,4 @@ class Fock(HomogeneousHilbert):
 
     @property
     def _attrs(self):
-        return (self.size, self._n_max, self.n_particles)
+        return (self.size, self._n_max, self.constraint)

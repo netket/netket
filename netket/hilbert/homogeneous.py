@@ -68,7 +68,7 @@ def check_and_deprecate_constraint(
         hash(constraint)
         constraint == constraint
 
-    except RuntimeError as err:
+    except Exception as err:
         raise UnhashableConstraintError(constraint) from err
 
     return constraint

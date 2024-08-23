@@ -106,11 +106,16 @@ def test_hilbert_extra_constraint():
     assert isinstance(hi * hi, nk.hilbert.TensorHilbert)
     with pytest.raises(TypeError):
         _ = hi**2
+    assert hi == nk.hilbert.Spin(0.5, 4, total_sz=0.0)
+    assert isinstance(repr(hi), str)
 
+    c = nk.hilbert.constraint.SumConstraint(1)
     hi = nk.hilbert.Fock(2, 4, constraint=c)
     assert isinstance(hi * hi, nk.hilbert.TensorHilbert)
     with pytest.raises(TypeError):
         _ = hi**2
+    assert hi == nk.hilbert.Fock(2, 4, n_particles=1)
+    assert isinstance(repr(hi), str)
 
     with pytest.raises(ValueError):
         nk.hilbert.Spin(0.5, 4, total_sz=0.0, constraint=c)
