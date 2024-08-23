@@ -39,7 +39,8 @@ def random_state(  # noqa: F811
     x_ids = jax.random.randint(
         key, shape=(batches, hilb.size), minval=0, maxval=len(hilb._local_states)
     )
-    return hilb.local_indices_to_states(x_ids)
+    return hilb.local_indices_to_states(x_ids).astype(dtype)
+
 
 
 @dispatch
