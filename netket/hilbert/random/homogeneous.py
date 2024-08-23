@@ -43,6 +43,7 @@ def random_state(  # noqa: F811
 
 
 @dispatch
+@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
 def random_state(  # noqa: F811
     hilb: HomogeneousHilbert, constraint, key, batches: int, *, dtype=None
 ):
