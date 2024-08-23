@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from . import constraint
+from . import index
+
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
 from .homogeneous import HomogeneousHilbert
@@ -27,6 +30,8 @@ from .particle import Particle
 
 from .tensor_hilbert import TensorHilbert
 from . import tensor_hilbert_discrete
+
+from . import random
 
 from netket.utils import _hide_submodules
 

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-
 from functools import partial
-from collections.abc import Callable
+from typing import Callable
+
+import numpy as np
 
 import jax
 import jax.numpy as jnp
@@ -24,8 +24,13 @@ from netket.utils.types import Array
 from netket.utils import struct, StaticRange
 from netket.utils.dispatch import dispatch
 
-from ..base import HilbertIndex
-from ..uniform_tensor import UniformTensorProductHilbertIndex
+from netket.hilbert.constraint import (
+    DiscreteHilbertConstraint,
+    ExtraConstraint,
+)
+
+from .base import HilbertIndex
+from .uniform_tensor import UniformTensorProductHilbertIndex
 
 
 @dispatch.abstract
@@ -45,6 +50,27 @@ def optimalConstrainedHilbertindex(local_states, size, constraint):
     """
 
 
+# Generic dispatch rule based on a lookup table. Not very performant, but will always
+# work.
+@optimalConstrainedHilbertindex.dispatch
+def optimalConstrainedHilbertindex_generic(local_states, size, constraint):
+    bare_index = UniformTensorProductHilbertIndex(local_states, size)
+    return ConstrainedHilbertIndex(bare_index, constraint)
+
+
+# Rule for ExtraConstraint, which is a constraint that is a sum of two constraints.
+# This wraps an optimised hilbert index into a cosntrained one if it exists.
+@optimalConstrainedHilbertindex.dispatch
+def optimalConstrainedHilbertindex(local_states, size, constraint: ExtraConstraint):
+    # If we have a constraint, we tentatively construct a specialised Hilbert index for that particular constraint.
+    # If this specialised indexer object exists, we check whether it is more efficient than the generic
+    # ConstrainedHilbertIndex one. If it is more efficient, we use it, otherwise we keep the generic one.
+    bare_index = optimalConstrainedHilbertindex(
+        local_states, size, constraint.base_constraint
+    )
+    return ConstrainedHilbertIndex(bare_index, constraint.extra_constraint)
+
+
 @struct.dataclass
 class ConstrainedHilbertIndex(HilbertIndex):
     """
@@ -55,7 +81,7 @@ class ConstrainedHilbertIndex(HilbertIndex):
     """
 
     unconstrained_index: HilbertIndex
-    constraint_fun: Callable[[Array], Array] = struct.field(pytree_node=False)
+    constraint_fun: DiscreteHilbertConstraint = struct.field(pytree_node=False)
 
     @property
     def _bare_numbers(self) -> Array:
@@ -105,13 +131,6 @@ class ConstrainedHilbertIndex(HilbertIndex):
         and by Hilbert spaces to decide which implementation to pick.
         """
         return self.unconstrained_index.n_states
-
-
-@optimalConstrainedHilbertindex.dispatch
-def optimalConstrainedHilbertindex_generic(local_states, size, constraint):
-    # Generic dispatch rule based on a lookup table.
-    bare_index = UniformTensorProductHilbertIndex(local_states, size)
-    return ConstrainedHilbertIndex(bare_index, constraint)
 
 
 # This function has exponential runtime in self.size, so we cache it in order to
