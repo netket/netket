@@ -51,7 +51,7 @@ class Fock(HomogeneousHilbert):
             is imposed.
           constraint: A custom constraint on the allowed configurations. This argument
             cannot be specified at the same time as :code:`n_particles`. The constraint
-            must be a subclass of :class:`~netket.hilbert.DiscreteHilbertConstraint`
+            must be a subclass of :class:`~netket.hilbert.constraint.DiscreteHilbertConstraint`
 
         Examples:
            Simple boson hilbert space.

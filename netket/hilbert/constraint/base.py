@@ -49,7 +49,7 @@ class DiscreteHilbertConstraint(struct.Pytree):
 
             import jax; import jax.numpy as jnp
 
-            class SumConstraint(nk.hilbert.DiscreteHilbertConstraint):
+            class SumConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
                 # A simple constraint checking that the total sum of the elements
                 # in the configuration is equal to a given value.
 
@@ -87,7 +87,7 @@ class DiscreteHilbertConstraint(struct.Pytree):
             import netket as nk
             from netket.utils import struct
 
-            class SumConstraintPy(nk.hilbert.DiscreteHilbertConstraint):
+            class SumConstraintPy(nk.hilbert.constraint.DiscreteHilbertConstraint):
                 # A simple constraint checking that the total sum of the elements
                 # in the configuration is equal to a given value.
 

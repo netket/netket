@@ -290,7 +290,7 @@ Existing Hilbert spaces such as {class}`~nk.hilbert.Spin` or {class}`~nk.hilbert
 A constraint effectively declares that the Hilbert space you are working with is smaller than the original {class}`~nk.hilbert.Spin` or {class}`~nk.hilbert.Fock`, for example by only considering configurations with a well defined magnetization. Those are often associated to some simmetries.
 
 To work with a custom constraint, you must do 2 things:
- - Define a custom constraint class, used to specify whether a configuration is valid or not. This must be a callable class inheriting from {class}`~nk.hilbert.DiscreteHilbertConstraint` that if passed a set of configurations will return an array of boolean flags telling netket whether those configurations are valid or not.
+ - Define a custom constraint class, used to specify whether a configuration is valid or not. This must be a callable class inheriting from {class}`~nk.hilbert.constraint.DiscreteHilbertConstraint` that if passed a set of configurations will return an array of boolean flags telling netket whether those configurations are valid or not.
  - You must define a custom {func}`nk.hilbert.random.random_state` dispatch rule specifying how to generate random configurations directly within the subspace. In principle this should return configurations distributed uniformly, but it is not terribly important (this is used to start the samplers, so even if it's a constant it might lead to worse warmup time but it might still work). 
 
 Both those methods should be implemented in such a way to be {func}`jax.jit`-table. If you can't write them in a jax-friendly way, you should call your function using {func}`jax.pure_callback`, which allows jax to call back into python functions.
@@ -304,7 +304,7 @@ In the following example, we will be implementing our own custom SumConstraint
 import netket as nk
 import jax; import jax.numpy as jnp
 
-class SumConstraint(nk.hilbert.DiscreteHilbertConstraint):
+class SumConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
     # A simple constraint checking that the total sum of the elements
     # in the configuration is equal to a given value.
 
