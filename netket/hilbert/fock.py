@@ -19,7 +19,7 @@ import numpy as np
 from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
-from .index.constraints import SumConstraint
+from .constraint import DiscreteHilbertConstraint, SumConstraint
 
 FOCK_MAX = np.iinfo(np.intp).max - 1
 """
@@ -37,6 +37,7 @@ class Fock(HomogeneousHilbert):
         n_max: int | None = None,
         N: int = 1,
         n_particles: int | None = None,
+        constraint: DiscreteHilbertConstraint | None = None,
     ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites
@@ -48,6 +49,9 @@ class Fock(HomogeneousHilbert):
           N: number of bosonic modes (default = 1)
           n_particles: Constraint for the number of particles. If None, no constraint
             is imposed.
+          constraint: A custom constraint on the allowed configurations. This argument
+            cannot be specified at the same time as :code:`n_particles`. The constraint
+            must be a subclass of :class:`~netket.hilbert.constraint.DiscreteHilbertConstraint`
 
         Examples:
            Simple boson hilbert space.
@@ -66,6 +70,11 @@ class Fock(HomogeneousHilbert):
                 raise TypeError(
                     f"n_particles must be an integer. Got {n_particles} ({type(n_particles)})"
                 )
+            if constraint is not None:
+                raise ValueError(
+                    "Cannot specify at the same time a total magnetization "
+                    "constraint and a `custom_constraint."
+                )
 
             n_particles = int(n_particles)
             if n_particles < 0:
@@ -82,9 +91,8 @@ class Fock(HomogeneousHilbert):
                         """The required total number of bosons is not compatible
                         with the given n_max."""
                     )
-            constraints = SumConstraint(n_particles)
+            constraint = SumConstraint(n_particles)
         else:
-            constraints = None
             self._n_particles = None
 
         if self._n_max is None:
@@ -93,7 +101,7 @@ class Fock(HomogeneousHilbert):
             0, 1, self._n_max + 1, dtype=np.int8 if self._n_max < 2**6 else int
         )
 
-        super().__init__(local_states, N, constraints)
+        super().__init__(local_states, N, constraint=constraint)
 
     @property
     def n_max(self) -> int | None:
@@ -108,7 +116,7 @@ class Fock(HomogeneousHilbert):
         return self._n_particles
 
     def __pow__(self, n) -> "Fock":
-        if self.n_particles is None:
+        if not self.constrained:
             return Fock(self.n_max, self.size * n)
 
         return NotImplemented
@@ -116,7 +124,7 @@ class Fock(HomogeneousHilbert):
     def _mul_sametype_(self, other: "Fock") -> "Fock":
         assert type(self) == type(other)
         if self.n_max == other.n_max:
-            if self._n_particles is None and other._n_particles is None:
+            if not self.constrained and not other.constrained:
                 return Fock(self.n_max, N=self.size + other.size)
 
         return NotImplemented
@@ -131,7 +139,7 @@ class Fock(HomogeneousHilbert):
                     f"Site {site} not in this hilbert space of site {self.size}"
                 )
 
-        if self.n_particles is not None:
+        if self.constrained:
             raise TypeError(
                 "Cannot take the partial trace with a total particles constraint."
             )
@@ -144,14 +152,16 @@ class Fock(HomogeneousHilbert):
             return Fock(self.n_max, N=self.size - Nsites)
 
     def __repr__(self):
-        n_particles = (
-            f", n_particles={self._n_particles}"
-            if self._n_particles is not None
-            else ""
-        )
+        if self.n_particles is not None:
+            constraint = f", n_particles={self.n_particles}"
+        elif self.constrained:
+            constraint = f", {self._constraint}"
+        else:
+            constraint = ""
+
         nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
-        return f"Fock(n_max={nmax}{n_particles}, N={self.size})"
+        return f"Fock(n_max={nmax}{constraint}, N={self.size})"
 
     @property
     def _attrs(self):
-        return (self.size, self._n_max, self._n_particles)
+        return (self.size, self._n_max, self.constraint)

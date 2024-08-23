@@ -6,29 +6,14 @@ import jax
 import jax.numpy as jnp
 
 from netket.utils import struct, StaticRange
-from netket.utils.types import Scalar, Array
+from netket.utils.types import Array
 
-from ..base import HilbertIndex, is_indexable
-from ..unconstrained import LookupTableHilbertIndex
-from ..uniform_tensor import UniformTensorProductHilbertIndex
+from netket.hilbert.constraint import SumConstraint
 
-from .base import optimalConstrainedHilbertindex, ConstrainedHilbertIndex
-
-
-@struct.dataclass
-class SumConstraint:
-    """
-    Constraint of an Hilbert space enforcing a total sum of all the values in the degrees of freedom.
-
-    Constructed by specifying the total sum. For Fock-like spaces this is the total population,
-    while for Spin-like spaces this is the magnetisation.
-    """
-
-    sum_value: Scalar = struct.field(pytree_node=False)
-
-    @jax.jit
-    def __call__(self, x: Array) -> Array:
-        return x.sum(axis=1) == self.sum_value
+from .base import HilbertIndex, is_indexable
+from .uniform_tensor import UniformTensorProductHilbertIndex
+from .unconstrained import LookupTableHilbertIndex
+from .constrained_generic import ConstrainedHilbertIndex, optimalConstrainedHilbertindex
 
 
 @optimalConstrainedHilbertindex.dispatch

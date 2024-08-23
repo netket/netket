@@ -13,52 +13,9 @@
 # limitations under the License.
 
 import jax
-import numpy as np
-from functools import partial
 
 from netket.hilbert import Spin
 from netket.utils.dispatch import dispatch
-
-from .fock import _random_states_with_constraint_fock
-
-
-@dispatch
-def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
-    shape = (batches,)
-    if hilb._total_sz is None:
-        return _random_states_unconstrained(hilb, key, shape, dtype)
-    else:
-        return _random_states_with_constraint(hilb, key, shape, dtype)
-
-
-# For the implementations of constrained spaces, we use those found inside of
-# fock.py, and simply convert the spin values (-1, 1) to fock values (0,1, ...).
-
-_spin_to_fock = lambda two_times_s, x: (two_times_s + x) // 2
-_fock_to_spin = lambda two_times_s, x: 2 * x - two_times_s
-
-
-@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states_unconstrained(hilb, key, shape, dtype):
-    two_times_s = round(2 * hilb._s)
-    x_fock = jax.random.randint(
-        key, shape=shape + (hilb.size,), minval=0, maxval=two_times_s + 1
-    )
-    return _fock_to_spin(two_times_s, x_fock).astype(dtype)
-
-
-@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states_with_constraint(hilb, key, shape, dtype):
-    # Generate random spin states with a given hilb._total_sz.
-    # Note that this is NOT a uniform distribution over the
-    # basis states of the constrained hilbert space.
-    two_times_s = round(2 * hilb._s)
-    two_times_total_sz = round(2 * hilb._total_sz)
-    n_particles = _spin_to_fock(two_times_s * hilb.size, two_times_total_sz)
-    x_fock = _random_states_with_constraint_fock(
-        n_particles, hilb.shape, key, shape, dtype
-    )
-    return _fock_to_spin(two_times_s, x_fock).astype(dtype)
 
 
 @dispatch

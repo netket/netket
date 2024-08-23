@@ -693,6 +693,200 @@ class UnoptimalSRtWarning(NetketWarning):
         )
 
 
+class InvalidConstraintInterface(NetketError):
+    """Error thrown when a constraint for an Homogeneous
+    Hilbert space does not conform to the expected interface.
+
+    A custom Constraint must respect the :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`
+    interface by inheriting that class and by having a jax-jittable :code:`__call__` method.
+
+    If you see this error, your constraint might just be a function without inheriting from this
+    class, or it does not have a jittable call method.
+
+    See the class documentation of :class:`netket.hilbert.constraint.DiscreteHilbertConstraint` for
+    some examples.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """Your custom constraint does not respect the constraint interface, probably because
+            it does not inherit from `netket.hilbert.constraint.DiscreteHilbertConstraint`, because it does not
+            have a jittable `__call__` method.
+
+            Look at the documentation online to learn more.
+            """
+        )
+
+
+class UnhashableConstraintError(NetketError):
+    """
+    Error thrown when a constraint is not a fully static pytree, and it cannot be hashed.
+
+    This error is thrown when a constraint is a PyTree with some leaf nodes.
+    This usually happens because you did not mark all the pytree fields in your constraint
+    as `struct.field(pytree_node=False)`.
+
+    For a good example, see the documentation of :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`.
+    Below, you find a coincise example of how to fix this error:
+
+    .. code-block:: python
+
+        from typing import Any
+        from netket.utils import struct
+        from netket.hilbert.index.constraints import DiscreteHilbertConstraint
+
+        class MyCustomConstraint(DiscreteHilbertConstraint):
+            fieldA: Any = struct.field(pytree_node=False)
+            fieldB: Any = struct.field(pytree_node=False)
+            def __init__(self, fieldA, fieldB):
+                self.fieldA = fieldA
+                self.fieldB = fieldB
+
+            def __call__(self, x):
+                ....
+
+            def __hash__(self):
+                return hash(("MyCustomConstraint", self.fieldA, self.fieldB))
+
+            def __eq__(self, other):
+                if isinstance(other, UnhashableConstraintError):
+                    return self.fieldA == other.fieldA and self.fieldB == other.fieldB
+                return False
+
+    """
+
+    def __init__(self, constraint):
+        constraintT = type(constraint)
+        super().__init__(
+            f"""
+            The custom constraint type {constraintT} is a pytree with some nodes, meaning that it cannot be
+            safely passed to jax as a static argument.
+
+            This probably happened because some of the fields in your constraint are not marked as
+            `nk.utils.struct.field(pytree_node=False)`.
+
+            To fix this error, you should mark all fields in your constraint as per the example below:
+                from typing import Any
+                from netket.utils import struct
+
+                class MyCustomConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
+                    fieldA: Any = struct.field(pytree_node=False)
+                    fieldB: Any = struct.field(pytree_node=False)
+                    def __init__(self, fieldA, fieldB):
+                        self.fieldA = fieldA
+                        self.fieldB = fieldB
+
+                    def __call__(self, x):
+                        ....
+
+                    def __hash__(self):
+                        return hash(("MyCustomConstraint", self.fieldA, self.fieldB))
+
+                    def __eq__(self, other):
+                        if isinstance(other, UnhashableConstraintError):
+                            return self.fieldA == other.fieldA and self.fieldB == other.fieldB
+                        return False
+
+            """
+        )
+
+
+class UnoptimisedCustomConstraintRandomStateMethodWarning(NetketWarning):
+    """
+    Warning thrown when calling `random_state` on a Hilbert space with a custom constraint.
+
+    This warning is thrown when the custom Hilbert space constraint does not have a custom
+    `random_state` method implemented. This will default to a slow, possibly infinitely-looping
+    method to generate random states.
+
+    The default fallback works by generating random states in the unconstrained Hilbert space
+    until one is found that satisfies the constraint. This can be very slow, and even never
+    terminate if the constraint is too restrictive.
+
+    .. note::
+
+        Generating random states is only required when initializing a Markov Chain Monte Carlo
+        sampler, but is generally not needed during on. Therefore, even if this warning is thrown,
+        it might not be a problem if you do not reset your chains very often.
+
+        In general, if your constraint is not overly (exponentially) restrictive, you may not
+        need to worry about this warning.
+
+    .. note::
+
+        The fallback implementation is not optimised, especially on GPUs. It will generate 1 random
+        state at a time until it finds one that satisfies the constraint, and will repeat this for
+        every different chain.
+
+        We welcome contributions to improve this method to perform the loop in batches.
+
+    .. note::
+
+        You can silence this warning by setting the environment variable ``NETKET_RANDOM_STATE_FALLBACK_WARNING=0``
+        or by setting ``nk.config.netket_random_state_fallback_warning = 0`` in your code.
+
+
+    Example implementation of a custom `random_state` method:
+    ---------------------------------------------------------
+
+    Implementations of :func:`netket.hilbert.random_state` are dispatched based on the Hilbert space and
+    constraint type using Plum's multiple dispatch (see the link <https://beartype.github.io/plum/intro.html>_
+
+    See an example here
+
+    .. code-block:: python
+
+        @dispatch.dispatch
+        def random_state(hilb: HilbertType, constraint: ConstraintType, key, batches: int, *, dtype=None):
+            # your custom implementation here
+            # You should return a batch of `batches` random states, with the given dtype.
+            # return jax.Array with shape (batches, hilb.size) and dtype dtype.
+
+
+    .. note::
+
+        We welcome contributions to improve the documentation here.
+
+    """
+
+    def __init__(self, hilbert_space, constraint):
+        hilb_typ = f"{type(hilbert_space).__module__}.{type(hilbert_space).__name__}"
+        constraint_typ = f"{type(constraint).__module__}.{type(constraint).__name__}"
+        super().__init__(
+            f"""
+            Defaulting to a slow, possibly infinitely-looping method to generate random state of
+            the current Hilbert space with a custom constraint. Consider implementing a
+            custom `random_state` method for your constraint if this method takes a long time to
+            generate a random state.
+
+            ================================================================
+            You can silence this warning by setting the environment variable
+            ``NETKET_RANDOM_STATE_FALLBACK_WARNING=0``
+            or by setting ``nk.config.netket_random_state_fallback_warning = False``
+            in your code.
+            ================================================================
+
+            To generate a custom random_state dispatched method, you should use multiple dispatch
+            following the following syntax:
+
+            >>> import netket as nk
+            >>> from netket.utils import dispatch
+            >>>
+            >>> @dispatch.dispatch
+            >>> def random_state(hilb: {hilb_typ},
+                                constraint: {constraint_typ},
+                                key,
+                                batches: int,
+                                *,
+                                dtype=None):
+            >>>    # your custom implementation here
+            >>>    # You should return a batch of `batches` random states, with the given dtype.
+            >>>    # return jax.Array with shape (batches, hilb.size) and dtype dtype.
+
+            """
+        )
+
+
 class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError):
     """
     Error thrown when trying to assign an undeclared attribute to a NetKet-style Pytree.
@@ -783,7 +977,6 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
                     def __init__(self, dyn_val, static_val):
                         self.my_dynamic_attribute = dyn_val
                         self.my_static_attribute = static_val
-
 
             """
         )

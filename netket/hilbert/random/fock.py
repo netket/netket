@@ -13,32 +13,26 @@
 # limitations under the License.
 
 import jax
-import numpy as np
 from jax import numpy as jnp
 
 from netket.hilbert import Fock
+
 from netket.utils.dispatch import dispatch
 
 from functools import partial
 
 
-@dispatch
-def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
-    shape = (batches,)
-
-    # If unconstrained space, use fast sampling
-    if hilb.n_particles is None:
-        return _random_states_unconstrained(hilb, key, shape, dtype)
-    else:
-        return _random_states_with_constraint(hilb, key, shape, dtype)
-
-
-@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states_unconstrained(hilb, key, shape, dtype):
-    assert hilb.n_particles is None
-    return jax.random.randint(
-        key, shape=shape + (hilb.size,), minval=0, maxval=hilb.n_max + 1
-    ).astype(dtype)
+# No longer implemented. See the generic implementation in
+# homogeneous.py
+#
+# @dispatch
+# @partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+# def random_state(  # noqa: F811
+#    hilb: Fock, constraint: SumConstraint, key, batches: int, *, dtype=None
+# ):
+#    return _random_states_with_constraint_fock(
+#        hilb.n_particles, hilb.shape, key, (batches,), dtype
+#    )
 
 
 def _choice(key, p):
@@ -118,15 +112,8 @@ def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dty
     return jax.lax.scan(body_fun, init, keys)[0]
 
 
-@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states_with_constraint(hilb, key, shape, dtype):
-    return _random_states_with_constraint_fock(
-        hilb.n_particles, hilb.shape, key, shape, dtype
-    )
-
-
 @dispatch
-def flip_state_scalar(hilb: Fock, key, σ, idx):
+def flip_state_scalar(hilb: Fock, key, σ, idx):  # noqa: F811
     if hilb._n_max == 0:
         return σ, σ[idx]
 
