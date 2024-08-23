@@ -55,6 +55,9 @@ class ExtraConstraint(DiscreteHilbertConstraint):
             )
         return False
 
+    def __repr__(self):
+        return f"ExtraConstraint({self.base_constraint}, {self.extra_constraint})"
+
     # ----- Parametric class definition
     # Definitions to make the @dispatch.parametric class give informative errors
     # Look at https://beartype.github.io/plum/parametric.html for more information

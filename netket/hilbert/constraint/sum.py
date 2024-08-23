@@ -44,3 +44,6 @@ class SumConstraint(DiscreteHilbertConstraint):
         if isinstance(other, SumConstraint):
             return self.sum_value == other.sum_value
         return False
+
+    def __repr__(self):
+        return f"SumConstraint({self.sum_value})"
