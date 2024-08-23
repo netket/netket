@@ -37,3 +37,4 @@ Netket has the following classes of errors.
   UnoptimisedCustomConstraintRandomStateMethodWarning
   UnhashableConstraintError
   InvalidConstraintInterface
+```
