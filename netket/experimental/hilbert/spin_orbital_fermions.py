@@ -52,6 +52,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         *,
         n_fermions: int | None = None,
         n_fermions_per_spin: tuple[int, ...] | None = None,
+        constraint: DiscreteHilbertConstraint = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
@@ -75,6 +76,8 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 subsector. This automatically enforces a global population constraint. Only one
                 between **n_fermions** and **n_fermions_per_spin** can be specified. The length
                 of the iterable should be :math:`2S+1`.
+            constraint: An extra constraint for the Hilbert space, defined according to the
+                constraint API.
 
         Returns:
             A SpinOrbitalFermions object
@@ -164,12 +167,22 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 if n_fermions is not None:
                     occupation_constraint = SumConstraint(n_fermions)
 
+        # Wrap the extra user provided cosntraint around our
+        # occupation constraint of the populations.
+        if constraint is not None:
+            constraint = ExtraConstraint(
+                base_constraint=occupation_constraint,
+                extra_constraint=constraint,
+            )
+        else:
+            constraint = occupation_constraint
+
         """Internal representation of this Hilbert space (Fock or TensorHilbert)."""
         # local states are the occupation numbers (0, 1)
         local_states = StaticRange(0.0, 1.0, 2, dtype=np.int8)
 
         # we use the constraints from the Fock spaces, and override `constrained`
-        super().__init__(local_states, N=total_size, constraint=occupation_constraint)
+        super().__init__(local_states, N=total_size, constraint=constraint)
         self._s = s
         self._n_fermions = n_fermions
         self._n_fermions_per_subsector: tuple[int | None, ...] = n_fermions_per_spin
