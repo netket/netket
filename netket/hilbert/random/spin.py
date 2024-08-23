@@ -25,20 +25,6 @@ from .fock import _random_states_with_constraint_fock
 @dispatch
 @partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
 def random_state(  # noqa: F811
-    hilb: Spin, constraint: None, key, batches: int, *, dtype=None
-):
-    if dtype is None:
-        dtype = hilb._local_states.dtype
-    two_times_s = round(2 * hilb._s)
-    x_fock = jax.random.randint(
-        key, shape=(batches, hilb.size), minval=0, maxval=two_times_s + 1
-    )
-    return _fock_to_spin(two_times_s, x_fock).astype(dtype)
-
-
-@dispatch
-@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
-def random_state(  # noqa: F811
     hilb: Spin,
     constraint: SumConstraint,
     key,

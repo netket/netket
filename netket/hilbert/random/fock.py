@@ -26,23 +26,6 @@ from functools import partial
 @dispatch
 @partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
 def random_state(  # noqa: F811
-    hilb: Fock, constraint: None, key, batches: int, *, dtype=None
-):
-    assert hilb.n_particles is None
-    return jax.random.randint(
-        key,
-        shape=(
-            batches,
-            hilb.size,
-        ),
-        minval=0,
-        maxval=hilb.n_max + 1,
-    ).astype(dtype)
-
-
-@dispatch
-@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
-def random_state(  # noqa: F811
     hilb: Fock, constraint: SumConstraint, key, batches: int, *, dtype=None
 ):
     return _random_states_with_constraint_fock(
