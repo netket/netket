@@ -16,21 +16,23 @@ import jax
 from jax import numpy as jnp
 
 from netket.hilbert import Fock
-from netket.hilbert.spin import SumConstraint
 
 from netket.utils.dispatch import dispatch
 
 from functools import partial
 
 
-@dispatch
-@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
-def random_state(  # noqa: F811
-    hilb: Fock, constraint: SumConstraint, key, batches: int, *, dtype=None
-):
-    return _random_states_with_constraint_fock(
-        hilb.n_particles, hilb.shape, key, (batches,), dtype
-    )
+# No longer implemented. See the generic implementation in
+# homogeneous.py
+#
+# @dispatch
+# @partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+# def random_state(  # noqa: F811
+#    hilb: Fock, constraint: SumConstraint, key, batches: int, *, dtype=None
+# ):
+#    return _random_states_with_constraint_fock(
+#        hilb.n_particles, hilb.shape, key, (batches,), dtype
+#    )
 
 
 def _choice(key, p):

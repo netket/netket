@@ -21,6 +21,9 @@ import jax.numpy as jnp
 from netket.errors import UnoptimisedCustomConstraintRandomStateMethodWarning
 from netket.hilbert import HomogeneousHilbert
 from netket.utils.dispatch import dispatch
+from netket.hilbert.constraint import SumConstraint
+
+from .fock import _random_states_with_constraint_fock
 
 
 @dispatch
@@ -41,6 +44,32 @@ def random_state(  # noqa: F811
     )
     return hilb.local_indices_to_states(x_ids).astype(dtype)
 
+
+
+@dispatch
+@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+def random_state(  # noqa: F811
+    hilb: HomogeneousHilbert,
+    constraint: SumConstraint,
+    key,
+    batches: int,
+    *,
+    dtype=None,
+):
+    local_states = hilb._local_states
+    if dtype is None:
+        dtype = hilb._local_states.dtype
+    print("here")
+
+    # Convert total constraint to Fock-like total number of excitations
+    n_excitations = (
+        constraint.sum_value - (local_states.start * hilb.size)
+    ) // local_states.step
+
+    samples_indx = _random_states_with_constraint_fock(
+        n_excitations, hilb.shape, key, (batches,), dtype
+    )
+    return hilb.local_indices_to_states(samples_indx)
 
 
 @dispatch
