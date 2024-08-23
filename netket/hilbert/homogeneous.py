@@ -21,7 +21,7 @@ import jax.numpy as jnp
 
 from equinox import error_if
 
-from netket.errors import InvalidConstraintInterface
+from netket.errors import InvalidConstraintInterface, UnhashableConstraintError
 from netket.utils import StaticRange, warn_deprecation
 from netket.utils.types import Array
 
@@ -64,12 +64,11 @@ def check_and_deprecate_constraint(
     try:
         leaves, struct = jax.tree_util.tree_flatten(constraint)
         assert len(leaves) == 0
+        hash(constraint)
+        constraint == constraint
 
     except TypeError as err:
-        raise TypeError(
-            f"class {type(constraint)} is not hashable. Please define the __hash___ method.\n"
-            "\nThis error was originated from\n"
-        ) from err
+        raise UnhashableConstraintError(constraint) from err
 
     return constraint
 
@@ -120,7 +119,7 @@ class HomogeneousHilbert(DiscreteHilbert):
             constraint: A callable class specifying constraints on the quantum numbers.
                 Given a batch of quantum numbers it should return a vector of bools
                 specifying whether those states are valid or not. It must be an
-                hashable subclass of :class:`netket.hilbert.DiscreteHilbertConstraint`.
+                hashable subclass of :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`.
 
         """
         assert isinstance(N, int)

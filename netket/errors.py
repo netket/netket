@@ -745,6 +745,14 @@ class UnhashableConstraintError(NetketError):
             def __call__(self, x):
                 ....
 
+            def __hash__(self):
+                return hash(("MyCustomConstraint", self.fieldA, self.fieldB))
+
+            def __eq__(self, other):
+                if isinstance(other, UnhashableConstraintError):
+                    return self.fieldA == other.fieldA and self.fieldB == other.fieldB
+                return False
+
     """
 
     def __init__(self, constraint):
@@ -770,6 +778,14 @@ class UnhashableConstraintError(NetketError):
 
                     def __call__(self, x):
                         ....
+
+                    def __hash__(self):
+                        return hash(("MyCustomConstraint", self.fieldA, self.fieldB))
+
+                    def __eq__(self, other):
+                        if isinstance(other, UnhashableConstraintError):
+                            return self.fieldA == other.fieldA and self.fieldB == other.fieldB
+                        return False
 
             """
         )
