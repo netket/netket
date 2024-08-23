@@ -26,3 +26,13 @@ Netket has the following classes of errors.
   UnoptimalSRtWarning
   SymmModuleInvalidInputShape
 ```
+
+## PyTree errors
+
+```{eval-rst}
+.. autosummary::
+  :toctree: _generated/errors
+  :nosignatures:
+
+  NetKetPyTreeUndeclaredAttributeAssignmentError
+```

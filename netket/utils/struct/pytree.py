@@ -12,6 +12,7 @@ import jax
 
 from .fields import CachedProperty, _cache_name, _raw_cache_name, Uninitialized
 from netket.utils import config
+from netket.errors import NetKetPyTreeUndeclaredAttributeAssignmentError
 
 P = tp.TypeVar("P", bound="Pytree")
 
@@ -77,7 +78,8 @@ class Pytree(metaclass=PytreeMeta):
     PyTree.
 
     Static fields must be specified as class attributes, by specifying
-    the :func:`nk.utils.struct.field(pytree_node=False)`.
+    the :func:`netket.utils.struct.field` as
+    :code:`struct.field(pytree_node=False)`.
 
     Example:
         Construct a PyTree with a 'constant' value
@@ -431,9 +433,8 @@ class Pytree(metaclass=PytreeMeta):
                 if self._pytree__class_dynamic_nodes:
                     pass
                 elif field not in self._pytree__init_fields:
-                    raise AttributeError(
-                        f"Cannot set field {field} in init that was not described "
-                        "as a class attribute above."
+                    raise NetKetPyTreeUndeclaredAttributeAssignmentError(
+                        self, field, self._pytree__init_fields
                     )
             else:
                 if field in self._pytree__setter_descriptors:
