@@ -222,6 +222,11 @@ class HomogeneousHilbert(DiscreteHilbert):
     @property
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""
+        # De-facto, all Homogeneous Hilbert spaces, as they have internally
+        # a StaticRange, are factually finite. So, even when we say this is
+        # False we are lying because it's technically always Finite...
+        #
+        # Do we still need this flag?
         return self._is_finite
 
     @property
