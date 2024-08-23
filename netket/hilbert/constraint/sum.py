@@ -30,7 +30,7 @@ class SumConstraint(DiscreteHilbertConstraint):
 
     sum_value: Scalar = struct.field(pytree_node=False)
 
-    def __init__(self, sum_value : Scalar):
+    def __init__(self, sum_value: Scalar):
         self.sum_value = sum_value
 
     @jax.jit
@@ -44,4 +44,3 @@ class SumConstraint(DiscreteHilbertConstraint):
         if isinstance(other, SumConstraint):
             return self.total_sum == other.total_sum
         return False
-

@@ -49,7 +49,10 @@ class ExtraConstraint(DiscreteHilbertConstraint):
 
     def __eq__(self, other):
         if isinstance(other, ExtraConstraint):
-            return self.base_constraint == other.base_constraint and self.extra_constraint == other.extra_constraint
+            return (
+                self.base_constraint == other.base_constraint
+                and self.extra_constraint == other.extra_constraint
+            )
         return False
 
     # ----- Parametric class definition
