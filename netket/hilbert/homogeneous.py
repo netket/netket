@@ -63,11 +63,12 @@ def check_and_deprecate_constraint(
     # Check that the constraint is well behaved and is jax-friendly hashable
     try:
         leaves, struct = jax.tree_util.tree_flatten(constraint)
-        assert len(leaves) == 0
+        if not len(leaves) == 0:
+            raise TypeError
         hash(constraint)
         constraint == constraint
 
-    except TypeError as err:
+    except RuntimeError as err:
         raise UnhashableConstraintError(constraint) from err
 
     return constraint

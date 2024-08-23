@@ -878,6 +878,7 @@ class UnoptimisedCustomConstraintRandomStateMethodWarning(NetketWarning):
             """
         )
 
+
 class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError):
     """
     Error thrown when trying to assign an undeclared attribute to a NetKet-style Pytree.

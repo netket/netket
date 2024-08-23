@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 import netket as nk
 import numpy as np
 
@@ -22,11 +24,39 @@ from .. import common
 pytestmark = common.skipif_distributed
 
 
-def test_extra_constraint():
+def test_sum_constraint():
+    c1 = nk.hilbert.constraint.SumConstraint(0.0)
+    c1b = nk.hilbert.constraint.SumConstraint(0.0)
+    c2 = nk.hilbert.constraint.SumConstraint(2.0)
 
+    assert c1 == c1b
+    assert c1 != c2
+    assert hash(c1) == hash(c1b)
+    assert hash(c1) != hash(c2)
+
+    assert isinstance(repr(c1), str)
+
+
+def test_extra_constraint():
+    sc1 = nk.hilbert.constraint.SumConstraint(0.0)
+    sc2 = nk.hilbert.constraint.SumConstraint(2.0)
+    sc3 = nk.hilbert.constraint.SumConstraint(4.0)
+
+    c1 = nk.hilbert.constraint.ExtraConstraint(sc1, sc2)
+    c1b = nk.hilbert.constraint.ExtraConstraint(sc1, sc2)
+    c2 = nk.hilbert.constraint.ExtraConstraint(sc1, sc3)
+
+    assert c1 == c1b
+    assert c1 != c2
+    assert hash(c1) == hash(c1b)
+    assert hash(c1) != hash(c2)
+
+    assert isinstance(repr(c1), str)
+
+
+def test_extra_constraint_integration():
     # Constraint checking that first value is 1
     class CustomConstraintPy(nk.hilbert.constraint.DiscreteHilbertConstraint):
-
         def __call__(self, x):
             return jax.pure_callback(
                 self._call_py,
@@ -64,5 +94,45 @@ def test_extra_constraint():
     assert np.all(extra_constraint(hi.all_states()))
     assert np.all(joint_constraint(hi.all_states()))
 
-    ran_states = hi.random_state(jax.random.key(1), 100)
+    with pytest.warns(nk.errors.UnoptimisedCustomConstraintRandomStateMethodWarning):
+        ran_states = hi.random_state(jax.random.key(1), 100)
+
     assert np.all(joint_constraint(ran_states))
+
+
+def test_hilbert_extra_constraint():
+    c = nk.hilbert.constraint.SumConstraint(0.0)
+    hi = nk.hilbert.Spin(0.5, 4, constraint=c)
+    assert isinstance(hi * hi, nk.hilbert.TensorHilbert)
+    with pytest.raises(TypeError):
+        _ = hi**2
+
+    hi = nk.hilbert.Fock(2, 4, constraint=c)
+    assert isinstance(hi * hi, nk.hilbert.TensorHilbert)
+    with pytest.raises(TypeError):
+        _ = hi**2
+
+    with pytest.raises(ValueError):
+        nk.hilbert.Spin(0.5, 4, total_sz=0.0, constraint=c)
+    with pytest.raises(ValueError):
+        nk.hilbert.Fock(2, 4, n_particles=2, constraint=c)
+
+
+def test_constraint_interface_errors():
+    def myconstraint(x):
+        return np.sum(x, axis=-1)
+
+    with pytest.raises(nk.errors.InvalidConstraintInterface):
+        _ = nk.hilbert.Spin(0.5, 4, constraint=myconstraint)
+
+    class CustomConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
+        x: int
+
+        def __init__(self, x):
+            self.x = x
+
+        def __call__(self, x):
+            pass
+
+    with pytest.raises(nk.errors.UnhashableConstraintError):
+        _ = nk.hilbert.Spin(0.5, 4, constraint=CustomConstraint(1))
