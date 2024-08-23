@@ -20,7 +20,6 @@ from netket.utils.types import Scalar, Array
 from .base import DiscreteHilbertConstraint
 
 
-@struct.dataclass
 class SumConstraint(DiscreteHilbertConstraint):
     """
     Constraint of an Hilbert space enforcing a total sum of all the values in the degrees of freedom.
@@ -31,6 +30,18 @@ class SumConstraint(DiscreteHilbertConstraint):
 
     sum_value: Scalar = struct.field(pytree_node=False)
 
+    def __init__(self, sum_value : Scalar):
+        self.sum_value = sum_value
+
     @jax.jit
     def __call__(self, x: Array) -> Array:
         return x.sum(axis=-1) == self.sum_value
+
+    def __hash__(self):
+        return hash(("SumConstraint", self.sum_value))
+
+    def __eq__(self, other):
+        if isinstance(other, SumConstraint):
+            return self.total_sum == other.total_sum
+        return False
+

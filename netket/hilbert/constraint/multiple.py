@@ -44,6 +44,14 @@ class ExtraConstraint(DiscreteHilbertConstraint):
         )
         return jnp.all(conditions, axis=0)
 
+    def __hash__(self):
+        return hash(("ExtraConstraint", self.base_constraint, self.extra_constraint))
+
+    def __eq__(self, other):
+        if isinstance(other, ExtraConstraint):
+            return self.base_constraint == other.base_constraint and self.extra_constraint == other.extra_constraint
+        return False
+
     # ----- Parametric class definition
     # Definitions to make the @dispatch.parametric class give informative errors
     # Look at https://beartype.github.io/plum/parametric.html for more information
