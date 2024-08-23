@@ -119,7 +119,7 @@ class Fock(HomogeneousHilbert):
         return self._n_particles
 
     def __pow__(self, n) -> "Fock":
-        if self.n_particles is None:
+        if not self.constrained:
             return Fock(self.n_max, self.size * n)
 
         return NotImplemented
@@ -127,7 +127,7 @@ class Fock(HomogeneousHilbert):
     def _mul_sametype_(self, other: "Fock") -> "Fock":
         assert type(self) == type(other)
         if self.n_max == other.n_max:
-            if self._n_particles is None and other._n_particles is None:
+            if not self.constrained and not other.constrained:
                 return Fock(self.n_max, N=self.size + other.size)
 
         return NotImplemented
@@ -142,7 +142,7 @@ class Fock(HomogeneousHilbert):
                     f"Site {site} not in this hilbert space of site {self.size}"
                 )
 
-        if self.n_particles is not None:
+        if self.constrained:
             raise TypeError(
                 "Cannot take the partial trace with a total particles constraint."
             )
@@ -155,14 +155,16 @@ class Fock(HomogeneousHilbert):
             return Fock(self.n_max, N=self.size - Nsites)
 
     def __repr__(self):
-        n_particles = (
-            f", n_particles={self._n_particles}"
-            if self._n_particles is not None
-            else ""
-        )
+        if self.n_particles is not None:
+            constraint = f", n_particles={self.n_particles}"
+        elif self.constrained:
+            constraint = f", {self._constraint}"
+        else:
+            constraint = ""
+
         nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
-        return f"Fock(n_max={nmax}{n_particles}, N={self.size})"
+        return f"Fock(n_max={nmax}{constraint}, N={self.size})"
 
     @property
     def _attrs(self):
-        return (self.size, self._n_max, self._n_particles)
+        return (self.size, self._n_max, self.n_particles)
