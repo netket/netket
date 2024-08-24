@@ -16,6 +16,7 @@ netket.egg-info/
 pip-wheel-metadata
 .ipynb_checkpoints
 .pytest_cache
+.benchmarks
 .mypy_cache
 .virtual_documents
 oldest_requirements.txt

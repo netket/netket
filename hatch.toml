@@ -71,9 +71,14 @@ post-install-commands = [
     ]
 [envs.sharding.env-vars]
 NETKET_EXPERIMENTAL_SHARDING = "1"
-#MPITRAMPOLINE_LIB = "{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so"
 
 [envs.sharding.scripts]
 run = [
     "MPITRAMPOLINE_LIB=\"{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so\" \"{env:VIRTUAL_ENV}/MPIWrapper/build/bin/mpiwrapperexec\" -np 2 python {args}"
+]
+run3 = [
+    "MPITRAMPOLINE_LIB=\"{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so\" \"{env:VIRTUAL_ENV}/MPIWrapper/build/bin/mpiwrapperexec\" -np 3 python {args}"
+]
+run4 = [
+    "MPITRAMPOLINE_LIB=\"{env:VIRTUAL_ENV}/MPIWrapper/build/libmpiwrapper.so\" \"{env:VIRTUAL_ENV}/MPIWrapper/build/bin/mpiwrapperexec\" -np 4 python {args}"
 ]
