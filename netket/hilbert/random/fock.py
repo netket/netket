@@ -15,9 +15,6 @@
 import jax
 from jax import numpy as jnp
 
-from netket.hilbert import Fock
-
-from netket.utils.dispatch import dispatch
 
 from functools import partial
 
@@ -110,19 +107,3 @@ def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dty
     # iterate body_fun above n_particles times
     keys = jax.random.split(key, n_particles)
     return jax.lax.scan(body_fun, init, keys)[0]
-
-
-@dispatch
-def flip_state_scalar(hilb: Fock, key, σ, idx):  # noqa: F811
-    if hilb._n_max == 0:
-        return σ, σ[idx]
-
-    n_states = hilb._n_max + 1
-
-    σi_old = σ[idx]
-    r = jax.random.uniform(key)
-    σi_new = jax.numpy.floor(r * (n_states - 1))
-    σi_new = σi_new + (σi_new >= σi_old)
-    σi_new = σi_new.astype(σ.dtype)
-
-    return σ.at[idx].set(σi_new), σi_old

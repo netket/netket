@@ -31,6 +31,9 @@ class SumConstraint(DiscreteHilbertConstraint):
     sum_value: Scalar = struct.field(pytree_node=False)
 
     def __init__(self, sum_value: Scalar):
+        if sum_value is None:
+            raise TypeError("sum_value must be a number.")
+
         self.sum_value = sum_value
 
     @jax.jit

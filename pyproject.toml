@@ -131,7 +131,7 @@ command_line = "-m pytest --verbose test"
 source = ["netket"]
 
 [tool.pytest.ini_options]
-addopts = "--color=yes --verbose --durations=100 -n auto --tb=short"
+addopts = "--color=yes --verbose --durations=50 -n auto --tb=short"
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
 filterwarnings = [
     "ignore::UserWarning",
@@ -145,6 +145,7 @@ filterwarnings = [
     "ignore:Defaulting to `holomorphic=False`,",
     "ignore::PendingDeprecationWarning: the matrix subclass",
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
+    "ignore:netket.hilbert.CustomHilbert is deprecated"
 ]
 testpaths = [
     "test",
