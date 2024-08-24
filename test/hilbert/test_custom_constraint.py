@@ -36,6 +36,9 @@ def test_sum_constraint():
 
     assert isinstance(repr(c1), str)
 
+    with pytest.raises(TypeError):
+        nk.hilbert.constraint.SumConstraint(None)
+
 
 def test_extra_constraint():
     sc1 = nk.hilbert.constraint.SumConstraint(0.0)
