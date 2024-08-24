@@ -1,0 +1,19 @@
+name: Report coverage
+
+on:
+  workflow_run:
+    workflows: ["CI", "CI_sharding"]
+    types:
+      - completed
+
+jobs:
+  final_job:
+    name: Finalize coverage
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+
+    steps:
+      - name: Run final job
+        uses: coverallsapp/github-action@v4
+        with:
+          parallel-finished: true

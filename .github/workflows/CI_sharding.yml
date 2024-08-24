@@ -70,3 +70,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # required
           verbose: true # optional (default = false)
+          parallel: true
