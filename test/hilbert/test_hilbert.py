@@ -333,6 +333,50 @@ def test_flip_state_fock_infinite():
     np.testing.assert_allclose(states_np, states_new_np)
 
 
+# Check that the flip state rule works for 1-local dimension spaces
+def test_flip_state_d1():
+    hi = Fock(n_max=0, N=2)
+    rng = nk.jax.PRNGSeq(1)
+    N_batches = 20
+
+    states = hi.random_state(rng.next(), N_batches, dtype=jnp.int64)
+    np.testing.assert_allclose(states, 0)
+
+    ids = jnp.asarray(
+        jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
+        dtype=int,
+    )
+
+    new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
+    np.testing.assert_allclose(new_states, 0)
+    np.testing.assert_allclose(old_vals, 0)
+
+
+# Check that the flip state rule works for 2-local dimension spaces
+def test_flip_state_d2():
+    hi = Spin(0.5, N=4)
+    rng = nk.jax.PRNGSeq(1)
+    N_batches = 20
+
+    states = hi.random_state(rng.next(), N_batches, dtype=jnp.int64)
+
+    ids = jnp.asarray(
+        jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
+        dtype=int,
+    )
+    # Check it flipped the sites
+    new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
+    np.testing.assert_allclose(new_states[jnp.arange(N_batches), ids], -old_vals)
+    # check returning correct old vals
+    np.testing.assert_allclose(states[jnp.arange(N_batches), ids], old_vals)
+
+    # Check flipping twice brings us back
+    new_new_states, old_vals = nk.hilbert.random.flip_state(
+        hi, rng.next(), new_states, ids
+    )
+    np.testing.assert_allclose(states, new_new_states)
+
+
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_hilbert_index_discrete(hi: DiscreteHilbert):
     assert isinstance(hi.constrained, bool)
