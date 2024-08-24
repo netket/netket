@@ -77,7 +77,8 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 between **n_fermions** and **n_fermions_per_spin** can be specified. The length
                 of the iterable should be :math:`2S+1`.
             constraint: An extra constraint for the Hilbert space, defined according to the
-                constraint API.
+                constraint API (see :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`
+                for more details).
 
         Returns:
             A SpinOrbitalFermions object
