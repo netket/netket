@@ -19,6 +19,7 @@ pip-wheel-metadata
 .benchmarks
 .mypy_cache
 .virtual_documents
+.ruff_cache
 oldest_requirements.txt
 
 # Packages #
