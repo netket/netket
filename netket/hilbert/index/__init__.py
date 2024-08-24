@@ -34,6 +34,7 @@ from .unconstrained import LookupTableHilbertIndex
 from .uniform_tensor import UniformTensorProductHilbertIndex
 from .constrained_generic import ConstrainedHilbertIndex, optimalConstrainedHilbertindex
 from .constrained_sum import SumConstrainedHilbertIndex
+from .constrained_sum_partitions import SumOnPartitionConstrainedHilbertIndex
 
 
 from netket.utils import _hide_submodules

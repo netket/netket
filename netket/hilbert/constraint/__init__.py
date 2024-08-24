@@ -15,6 +15,7 @@
 from .base import DiscreteHilbertConstraint
 from .sum import SumConstraint
 from .multiple import ExtraConstraint
+from .sum_partition import SumOnPartitionConstraint
 
 
 from netket.utils import _hide_submodules

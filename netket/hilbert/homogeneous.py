@@ -164,7 +164,13 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self.local_states
 
     @property
-    def constraint(self):
+    def constraint(self) -> DiscreteHilbertConstraint:
+        """
+        The constraint inflicted upon this poor Hilbert space.
+
+        Instead of all possible combinations of local states, only those satisfying
+        the constraint are part of this Hilbert space.
+        """
         return self._constraint
 
     @property

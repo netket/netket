@@ -22,7 +22,7 @@ from netket import config
 from netket.errors import UnoptimisedCustomConstraintRandomStateMethodWarning
 from netket.hilbert import HomogeneousHilbert
 from netket.utils.dispatch import dispatch
-from netket.hilbert.constraint import SumConstraint
+from netket.hilbert.constraint import SumConstraint, SumOnPartitionConstraint
 
 from .fock import _random_states_with_constraint_fock
 
@@ -69,6 +69,48 @@ def random_state(  # noqa: F811
     samples_indx = _random_states_with_constraint_fock(
         n_excitations, hilb.shape, key, (batches,), dtype
     )
+    return hilb.local_indices_to_states(samples_indx, dtype=dtype)
+
+
+@dispatch
+@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+def random_state(  # noqa: F811
+    hilb: HomogeneousHilbert,
+    constraint: SumOnPartitionConstraint,
+    key,
+    batches: int,
+    *,
+    dtype=None,
+):
+    if dtype is None:
+        dtype = hilb._local_states.dtype
+
+    # Convert total constraint to Fock-like total number of excitations
+    local_states = hilb._local_states
+    n_excitations = [
+        (sum_val - (local_states.start * hilb.size)) // local_states.step
+        for sum_val in constraint.sum_values
+    ]
+
+    n_subspaces = len(n_excitations)
+    keys = jax.random.split(key, len(n_excitations))
+    shape = hilb.shape
+    sizes = (0,) + constraint.sizes
+
+    # Generate a valid configuration for every sub-partition
+    vs = [
+        _random_states_with_constraint_fock(
+            n_excitations[i],
+            shape[sum(sizes[: i + 1]) : sum(sizes[: i + 2])],
+            keys[i],
+            (batches,),
+            dtype,
+        )
+        for i in range(n_subspaces)
+    ]
+    # then concatenate
+    samples_indx = jnp.concatenate(vs, axis=-1)
+
     return hilb.local_indices_to_states(samples_indx, dtype=dtype)
 
 
