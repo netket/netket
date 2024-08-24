@@ -70,7 +70,7 @@ dev = [
     "coverage>=5",
     "pre-commit>=2.7",
     "black==23.9.1",
-    "ruff==0.4.2",
+    "ruff==0.6.2",
     "qutip>=5",
     "wheel",
     "build",
@@ -154,12 +154,12 @@ testpaths = [
 [tool.ruff]
 target-version = "py310"
 line-length = 88
-exclude = ["Examples/Legacy", "docs/conf.py"]
+exclude = ["Examples/Legacy", "docs/conf.py", "*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "D410"]
 fixable = ["E", "F", "W", "D"]
-ignore = ["E501", "E731", "E741"]
+ignore = ["E501", "E731", "E721", "E741"]
 #ignore = ["E266"]
 
 [tool.ruff.lint.per-file-ignores]

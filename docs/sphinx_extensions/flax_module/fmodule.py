@@ -40,7 +40,7 @@ def render_module(modname: str, qualname: str, app):
     parent = importlib.import_module(modname)
     obj = getattr(parent, qualname)
     is_flax_module = False
-    if type(obj) == type:
+    if type(obj) == type:  # noqa: E721
         if issubclass(obj, Module):
             is_flax_module = True
     template = ag.AutosummaryRenderer(app)
