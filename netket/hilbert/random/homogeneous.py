@@ -99,3 +99,30 @@ def random_state(  # noqa: F811
         return jax.lax.while_loop(__cond, __body, (state, key))[0]
 
     return jax.vmap(_loop_until_ok, in_axes=(0, 0))(states, keys[1:])
+
+
+@dispatch
+def flip_state_scalar(hilb: HomogeneousHilbert, key, σ, idx):  # noqa: F811
+    local_dimension = len(hilb._local_states)
+
+    if local_dimension < 2:
+        return σ, σ[idx]
+
+    # Get site to flip, convert that individual site to indices
+    σi_old = σ[idx]
+    xi_old = hilb.states_to_local_indices(σi_old)
+
+    if local_dimension == 2:
+        # hardcode for 2-dim, where there is no randomness
+        xi_new = jnp.where(xi_old == 1, 0, 1).astype(xi_old.dtype)
+    else:
+        # compute flipped index
+        r = jax.random.uniform(key)
+        xi_new = jax.numpy.floor(r * (local_dimension - 1))
+        xi_new = xi_new + (xi_new >= xi_old)
+        xi_new = xi_new.astype(xi_old.dtype)
+
+    # return
+    σ_new = σ.at[idx].set(hilb.local_indices_to_states(xi_new, dtype=σ.dtype))
+
+    return σ_new, σi_old
