@@ -15,6 +15,7 @@
 import pytest
 
 import netket as nk
+from netket import experimental as nkx
 import numpy as np
 
 import jax
@@ -40,6 +41,28 @@ def test_sum_constraint():
         nk.hilbert.constraint.SumConstraint(None)
 
 
+def test_sum_partition_constraint():
+    with pytest.raises(TypeError):
+        nk.hilbert.constraint.SumOnPartitionConstraint(1, 2)
+    # Length mismatch
+    with pytest.raises(ValueError):
+        nk.hilbert.constraint.SumOnPartitionConstraint((1, 2), (2, 3, 3))
+    # None constraint invalid
+    with pytest.raises(TypeError):
+        nk.hilbert.constraint.SumOnPartitionConstraint((None, 2), (2, 3))
+
+    c1 = nk.hilbert.constraint.SumOnPartitionConstraint((1, 2), (2, 3))
+    c1b = nk.hilbert.constraint.SumOnPartitionConstraint((1, 2), (2, 3))
+    c2 = nk.hilbert.constraint.SumOnPartitionConstraint((1, 2), (2, 4))
+
+    assert c1 == c1b
+    assert c1 != c2
+    assert hash(c1) == hash(c1b)
+    assert hash(c1) != hash(c2)
+
+    assert isinstance(repr(c1), str)
+
+
 def test_extra_constraint():
     sc1 = nk.hilbert.constraint.SumConstraint(0.0)
     sc2 = nk.hilbert.constraint.SumConstraint(2.0)
@@ -56,33 +79,39 @@ def test_extra_constraint():
 
     assert isinstance(repr(c1), str)
 
+    with pytest.raises(TypeError):
+        nk.hilbert.constraint.ExtraConstraint(1, 2)
+    with pytest.raises(TypeError):
+        nk.hilbert.constraint.ExtraConstraint[int, float]
+
+
+# Constraint checking that first value is 1
+class CustomConstraintPy(nk.hilbert.constraint.DiscreteHilbertConstraint):
+    def __call__(self, x):
+        return jax.pure_callback(
+            self._call_py,
+            (jax.ShapeDtypeStruct(x.shape[:-1], bool)),
+            x,
+            vectorized=True,
+        )
+
+    def _call_py(self, x):
+        # Not Jax compatible
+        return x[..., 0] == 1
+
+    def __hash__(self):
+        return hash("CustomConstraintPy")
+
+    def __eq__(self, other):
+        if isinstance(other, CustomConstraintPy):
+            return True
+        return False
+
+    def __repr__(self):
+        return "CustomConstraintPy()"
+
 
 def test_extra_constraint_integration(recwarn):
-    # Constraint checking that first value is 1
-    class CustomConstraintPy(nk.hilbert.constraint.DiscreteHilbertConstraint):
-        def __call__(self, x):
-            return jax.pure_callback(
-                self._call_py,
-                (jax.ShapeDtypeStruct(x.shape[:-1], bool)),
-                x,
-                vectorized=True,
-            )
-
-        def _call_py(self, x):
-            # Not Jax compatible
-            return x[..., 0] == 1
-
-        def __hash__(self):
-            return hash("CustomConstraintPy")
-
-        def __eq__(self, other):
-            if isinstance(other, CustomConstraintPy):
-                return True
-            return False
-
-        def __repr__(self):
-            return "CustomConstraintPy()"
-
     base_constraint = nk.hilbert.constraint.SumConstraint(0.0)
     extra_constraint = CustomConstraintPy()
     joint_constraint = nk.hilbert.constraint.ExtraConstraint(
@@ -148,3 +177,19 @@ def test_constraint_interface_errors():
 
     with pytest.raises(nk.errors.UnhashableConstraintError):
         _ = nk.hilbert.Spin(0.5, 4, constraint=CustomConstraint(1))
+
+
+def test_extra_constraint_spin_orbital_fermion():
+    hi = nkx.hilbert.SpinOrbitalFermions(
+        4, s=1 / 2, n_fermions_per_spin=(1, 2), constraint=CustomConstraintPy()
+    )
+
+    assert isinstance(hi.constraint, nk.hilbert.constraint.ExtraConstraint)
+    assert isinstance(
+        hi.constraint,
+        nk.hilbert.constraint.ExtraConstraint[
+            nk.hilbert.constraint.SumOnPartitionConstraint, CustomConstraintPy
+        ],
+    )
+
+    assert np.all(hi.constraint(hi.all_states()))

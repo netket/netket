@@ -41,7 +41,7 @@ class SumOnPartitionConstraint(DiscreteHilbertConstraint):
 
     def __init__(self, sum_values, sizes):
         if not (isinstance(sum_values, tuple) and isinstance(sizes, tuple)):
-            raise ValueError("sum_values and sizes must be tuples.")
+            raise TypeError("sum_values and sizes must be tuples.")
         if not len(sum_values) == len(sizes):
             raise ValueError("Length mismatch between sum values and sizes")
         if any(v is None for v in sum_values):
