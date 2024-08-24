@@ -43,26 +43,22 @@ pytestmark = common.skipif_distributed
 hilberts = {}
 
 # Spin 1/2
-hilberts["Spin 1/2"] = Spin(s=0.5, N=20)
+hilberts["Spin[1/2, N=10]"] = Spin(s=0.5, N=10)
 
 # Spin 1/2 with total Sz
-hilberts["Spin[0.5, N=20, total_sz=1"] = Spin(s=0.5, total_sz=1.0, N=20)
-hilberts["Spin[0.5, N=5, total_sz=-1.5"] = Spin(s=0.5, total_sz=-1.5, N=5)
+hilberts["Spin[1/2, N=10, total_sz=1"] = Spin(s=0.5, total_sz=1.0, N=10)
+hilberts["Spin[1/2, N=5, total_sz=-1.5"] = Spin(s=0.5, total_sz=-1.5, N=5)
 
 # Spin 1/2 with total Sz
-hilberts["Spin 1 with total Sz, even sites"] = Spin(s=1.0, total_sz=5.0, N=6)
-
-# Spin 1/2 with total Sz
-hilberts["Spin 1 with total Sz, odd sites"] = Spin(s=1.0, total_sz=2.0, N=7)
+hilberts["Spin[1, N=6, total_sz=5.0]"] = Spin(s=1.0, total_sz=5.0, N=6)
+hilberts["Spin[1, N=7, total_sz=2.0]"] = Spin(s=1.0, total_sz=2.0, N=7)
 
 # Spin 3
-hilberts["Spin 3"] = Spin(s=3, N=25)
+hilberts["Spin[s=3, N=25]"] = Spin(s=3, N=25)
 
 # Boson
-hilberts["Fock"] = Fock(n_max=5, N=41)
-
-# Boson with total number
-hilberts["Fock with total number"] = Fock(n_max=3, n_particles=110, N=120)
+hilberts["Fock[max=5, N=41]"] = Fock(n_max=5, N=41)
+hilberts["Fock[max=3, N=120, n_particles=110]"] = Fock(n_max=3, n_particles=110, N=120)
 
 # Composite Fock
 hilberts["Fock * Fock (indexable)"] = Fock(n_max=5, N=4) * Fock(n_max=7, N=4)
@@ -75,7 +71,7 @@ hilberts["Qubit"] = nk.hilbert.Qubit(100)
 hilberts["Custom Hilbert"] = CustomHilbert(local_states=StaticRange(-153, 44, 3), N=70)
 
 # Heisenberg 1d
-hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, N=20)
+hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, N=10)
 
 # Bose Hubbard
 hilberts["Bose Hubbard"] = Fock(n_max=4, n_particles=20, N=20)
