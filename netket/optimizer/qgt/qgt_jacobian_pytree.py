@@ -203,8 +203,10 @@ class QGTJacobianPyTreeT(LinearOperator):
         Returns the operator computing real part of the complex, non holomorphic QGT.
 
         The real part of the QGT is used in the Stochastic Reconfiguration (SR)
-        algorithm as well as in the McLachlan or Time-Dependent Variational Principles
-        to simulate Quantum Dynamics.
+        algorithm as well as in the McLachlan Variational Principles used to simulate
+        Quantum Dynamics.
+        See Table 1 in `"Theory of Variational Quantum Simulation" by McLachlan et al.
+        <https://arxiv.org/pdf/1812.08767>`_ for more details.
 
         .. note::
 
@@ -238,8 +240,10 @@ class QGTJacobianPyTreeT(LinearOperator):
         """
         Returns the operator computing imaginary part of the complex, non holomorphic QGT.
 
-        The imaginary part of the QGT is necessary to implement the McLachlan variational
-        principle for the dynamics.
+        The imaginary part of the QGT is necessary to implement the TDVP variational
+        principle for the quantum dynamics.
+        See Table 1 in `"Theory of Variational Quantum Simulation" by Yuan et al.
+        <https://arxiv.org/pdf/1812.08767>`_ for more details.
 
         .. note::
 
