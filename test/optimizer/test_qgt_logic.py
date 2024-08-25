@@ -557,4 +557,30 @@ def test_qgt_jacobian_imaginary_match():
     np.testing.assert_allclose(xd, xp, atol=1e-15)
 
 
+@common.named_parametrize(
+    "QGT_T", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]
+)
+def test_qgt_jacobian_imaginary_conversion(QGT_T):
+    # Check the to_real/to_imag functions
+    g = nk.graph.Hypercube(length=3, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+
+    ma = nk.models.RBM(alpha=1, param_dtype=complex)
+
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+    vs = nk.vqs.MCState(sa, ma, n_samples=512, n_discard_per_chain=0)
+
+    S_real = QGT_T(vs, diag_shift=1.00, mode="complex")
+    S_imag_conv = S_real.to_imag_part()
+
+    S_imag = QGT_T(vs, diag_shift=1.00, mode="imag")
+
+    S1_leaves, S1_treedef = jax.tree.flatten(S_imag_conv)
+    S2_leaves, S2_treedef = jax.tree.flatten(S_imag)
+
+    assert S1_treedef == S2_treedef
+    for S1l, S2l in zip(S1_leaves, S2_leaves):
+        np.testing.assert_allclose(S1l, S2l)
+
+
 # TODO test with MPI

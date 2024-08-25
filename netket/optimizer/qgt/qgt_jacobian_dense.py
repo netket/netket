@@ -158,10 +158,35 @@ class QGTJacobianDenseT(LinearOperator):
             O = O.reshape(-1, O.shape[-1])
             return mpi.mpi_sum_jax(O.conj().T @ O)[0] + self.diag_shift * diag
 
-    def to_real_part(self):
+    def to_real_part(self) -> "QGTJacobianDenseT":
+        """
+        Returns the operator computing real part of the complex, non holomorphic QGT.
+
+        The real part of the QGT is used in the Stochastic Reconfiguration (SR)
+        algorithm as well as in the McLachlan or Time-Dependent Variational Principles
+        to simulate Quantum Dynamics.
+
+        .. note::
+
+            This function can only be called on the non-holomorphic QGT.
+
+        .. note::
+
+            The returned object is another :code:`QGTJacobian***` object.
+
+            NetKet does not currently implement the *full* complex QGT object
+            for non-holomorphic functions, instead you need to keep on hand
+            the two separate terms obtained by calling
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_real_part` and
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_imag_part`.
+
+        See also :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_imag_part`.
+        """
         if self.mode == "imag":
             return self.replace(mode="complex")
         elif self.mode == "complex":
+            return self
+        elif self.mode == "real":
             return self
         else:
             raise ValueError(
@@ -169,7 +194,31 @@ class QGTJacobianDenseT(LinearOperator):
                 "QGT, not the holomorphic or sign-less one."
             )
 
-    def to_imag_part(self):
+    def to_imag_part(self) -> "QGTJacobianDenseT":
+        """
+        Returns the operator computing imaginary part of the complex, non holomorphic QGT.
+
+        The imaginary part of the QGT is necessary to implement the McLachlan variational
+        principle for the dynamics.
+
+        .. note::
+
+            This function can only be called on the non-holomorphic QGTs
+            of a complex-valued wave-function.
+
+        .. note::
+
+            The returned object is another :code:`QGTJacobian***` object.
+
+            NetKet does not currently implement the *full* complex QGT object
+            for non-holomorphic functions, instead you need to keep on hand
+            the two separate terms obtained by calling
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_real_part` and
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_imag_part`.
+
+        See also :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_real_part`.
+        """
+
         if self.mode == "complex":
             return self.replace(mode="imag")
         elif self.mode == "imag":
