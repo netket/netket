@@ -90,12 +90,18 @@ def QGTJacobian_DefaultConstructor(
         # use jit so that we can do it on global shared array
         samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
 
+    jac_mode = mode
+    if mode == "imag":
+        # Imaginary mode is a specificity of the QGT, but it requires the standard complex-mode
+        # jacobian to be computed.
+        jac_mode = "complex"
+
     jacobians = nkjax.jacobian(
         apply_fun,
         parameters,
         samples,
         model_state,
-        mode=mode,
+        mode=jac_mode,
         pdf=pdf,
         chunk_size=chunk_size,
         dense=dense,
@@ -105,7 +111,7 @@ def QGTJacobian_DefaultConstructor(
     shift, offset = to_shift_offset(diag_shift, diag_scale)
 
     if offset is not None:
-        ndims = 1 if mode != "complex" else 2
+        ndims = 1 if (mode != "complex" and mode != "imag") else 2
         jacobians, scale = rescale(jacobians, offset, ndims=ndims)
     else:
         scale = None
