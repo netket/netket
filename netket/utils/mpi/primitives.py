@@ -330,7 +330,10 @@ def mpi_bcast_jax(x, *, token=None, root, comm=MPI_jax_comm):
 
 def mpi_allgather(x, *, comm=MPI_py_comm):
     if n_nodes == 1:
-        return x
+        if isinstance(x, np.ndarray | jax.Array):
+            return x.reshape(1, *x.shape)
+        else:
+            return (x,)
     else:
         if isinstance(x, np.ndarray | jax.Array):
             out = np.empty((n_nodes,) + x.shape, dtype=x.dtype)
@@ -338,6 +341,21 @@ def mpi_allgather(x, *, comm=MPI_py_comm):
             return out
         else:
             return comm.allgather(x)
+
+
+def mpi_gather(x, *, root: int = 0, comm=MPI_py_comm):
+    if n_nodes == 1:
+        if isinstance(x, np.ndarray | jax.Array):
+            return x.reshape(1, *x.shape)
+        else:
+            return (x,)
+    else:
+        if isinstance(x, np.ndarray | jax.Array):
+            out = np.empty((n_nodes,) + x.shape, dtype=x.dtype)
+            comm.Gather(np.asarray(x), out, root=root)
+            return out
+        else:
+            return comm.gather(x, root=root)
 
 
 @promote_to_pytree
