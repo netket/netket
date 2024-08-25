@@ -9,6 +9,9 @@ from functools import partial
 from types import MappingProxyType
 
 import jax
+import jax.numpy as jnp
+
+from flax import serialization
 
 from .fields import CachedProperty, _cache_name, _raw_cache_name, Uninitialized
 from netket.utils import config
@@ -151,6 +154,7 @@ class Pytree(metaclass=PytreeMeta):
 
         # Custom information
         noserialize_fields = _inherited_noserialize_fields(cls)
+        sharded_fields = _inherited_sharded_fields(cls)
 
         # add special static fields that are in the instance, not in the class
         static_fields.add("_pytree__node_fields")
@@ -167,6 +171,8 @@ class Pytree(metaclass=PytreeMeta):
 
                 if not value.metadata.get("serialize", True):
                     noserialize_fields.add(field)
+                if value.metadata.get("sharded", False):
+                    sharded_fields.add(field)
 
                 # default setters
                 if value.default is not dataclasses.MISSING:
@@ -226,6 +232,7 @@ class Pytree(metaclass=PytreeMeta):
 
         static_fields = tuple(sorted(static_fields))
         noserialize_fields = tuple(sorted(noserialize_fields))
+        sharded_fields = tuple(sorted(sharded_fields))
 
         # init class variables
         cls._pytree__initializing = False
@@ -233,6 +240,7 @@ class Pytree(metaclass=PytreeMeta):
         cls._pytree__fields = all_fields
         cls._pytree__static_fields = static_fields
         cls._pytree__noserialize_fields = noserialize_fields
+        cls._pytree__sharded_fields = sharded_fields
         cls._pytree__setter_descriptors = frozenset(setter_descriptors)
         cls._pytree__default_setters = default_setters
 
@@ -268,9 +276,6 @@ class Pytree(metaclass=PytreeMeta):
                 ),
                 cls._pytree__unflatten,
             )
-
-        # flax serialization support
-        from flax import serialization
 
         serialization.register_serialization_state(
             cls,
@@ -362,13 +367,20 @@ class Pytree(metaclass=PytreeMeta):
     def _to_flax_state_dict(
         cls, noserialize_field_names: tuple[str, ...], pytree: "Pytree"
     ) -> dict[str, tp.Any]:
-        from flax import serialization
+        from .pytree_serialization_sharding import to_flax_state_dict_sharding
 
         state_dict = {
-            name: serialization.to_state_dict(getattr(pytree, name))
+            name: unwrap_jax_prng_keys(
+                serialization.to_state_dict(getattr(pytree, name))
+            )
             for name in pytree.__dict__
             if name not in noserialize_field_names
         }
+
+        # Handle sharding
+        for name in cls._pytree__sharded_fields:
+            state_dict[name] = to_flax_state_dict_sharding(state_dict[name])
+        # End handle sharding
         return state_dict
 
     @classmethod
@@ -379,8 +391,6 @@ class Pytree(metaclass=PytreeMeta):
         state: dict[str, tp.Any],
     ) -> P:
         """Restore the state of a data class."""
-        from flax import serialization
-
         state = state.copy()  # copy the state so we can pop the restored fields.
         updates = {}
         for name in pytree.__dict__:
@@ -394,7 +404,39 @@ class Pytree(metaclass=PytreeMeta):
                 )
             value = getattr(pytree, name)
             value_state = state.pop(name)
-            updates[name] = serialization.from_state_dict(value, value_state, name=name)
+            # updates[name] = serialization.from_state_dict(value, value_state, name=name)
+
+            # handle PRNG arrays: if target is a prng key array we unwrap it
+            _pytree_prng_orig_value = dataclasses.MISSING
+            if isinstance(pytree, jax.Array) and jnp.issubdtype(
+                pytree.dtype, jax.dtypes.prng_key
+            ):
+                value = jax.random.key_data(pytree)
+                # return jax.random.wrap_key_data(source_data, jax.random.key_impl(target_maybe_key))
+                # return jax.random.key_data(maybe_key)
+
+            # Handle sharding
+            # from netket.utils import mpi
+            # import jax
+            if name in cls._pytree__sharded_fields:
+                updates[name] = (
+                    cls._pytree__fields[name]
+                    .metadata["sharded"]
+                    .deserialization_function(value, value_state, name=name)
+                )
+
+            # End handle sharding
+            else:
+                updates[name] = serialization.from_state_dict(
+                    value, value_state, name=name
+                )
+
+            # rewrap prng arrays
+            if _pytree_prng_orig_value is not dataclasses.MISSING:
+                updates[name] = jax.random.wrap_key_data(
+                    updates[name], impl=jax.random.key_impl(_pytree_prng_orig_value)
+                )
+
         if state:
             names = ",".join(state.keys())
             raise ValueError(
@@ -504,6 +546,23 @@ def _inherited_noserialize_fields(cls: type) -> set[str]:
     return noserialize_fields
 
 
+def _inherited_sharded_fields(cls: type) -> set[str]:
+    """
+    Returns the set of noserialize fields of base classes
+    of the input class
+    """
+    sharded_fields = set()
+    for parent_class in cls.mro():
+        if parent_class is not cls and parent_class is not Pytree:
+            if issubclass(parent_class, Pytree):
+                sharded_fields.update(parent_class._pytree__sharded_fields)
+            elif dataclasses.is_dataclass(parent_class):
+                for field in dataclasses.fields(parent_class):
+                    if field.metadata.get("sharded", False):
+                        sharded_fields.add(field.name)
+    return sharded_fields
+
+
 def _inherited_cachedproperty_fields(cls: type) -> set[str]:
     """
     Returns the set of cached properties of base classes
@@ -542,3 +601,11 @@ def _inherited_defaults_setters(cls: type) -> set[Callable[[], Any]]:
                         default_setters[field.name] = field.default_factory
 
     return default_setters
+
+
+def unwrap_jax_prng_keys(maybe_key):
+    if isinstance(maybe_key, jax.Array) and jnp.issubdtype(
+        maybe_key.dtype, jax.dtypes.prng_key
+    ):
+        return jax.random.key_data(maybe_key)
+    return maybe_key

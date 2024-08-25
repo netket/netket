@@ -406,3 +406,18 @@ config.define(
         """
     ),
 )
+
+
+config.define(
+    "NETKET_EXPERIMENTAL_SHARDING_FAST_SERIALIZATION",
+    bool,
+    default=False,
+    runtime=True,
+    help=dedent(
+        """
+        If True (Defaults False) does not gather data on the master process when
+        using flax.serialization methods. This allows to use orbax-checkpoint with
+        higher efficiency.
+        """
+    ),
+)
