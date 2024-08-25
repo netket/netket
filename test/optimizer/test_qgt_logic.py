@@ -557,7 +557,7 @@ def test_qgt_jacobian_imaginary_match():
     np.testing.assert_allclose(xd, xp, atol=1e-15)
 
 
-def test_qgt_jacobian_imaginary_conversion(QGT_T):
+def test_qgt_jacobian_imaginary_conversion():
     # Check the to_real/to_imag functions
     g = nk.graph.Hypercube(length=3, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
