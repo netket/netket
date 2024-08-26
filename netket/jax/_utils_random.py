@@ -14,6 +14,7 @@
 
 
 import jax
+import jax.numpy as jnp
 
 from netket.utils import random_seed, mpi, config
 from netket.utils.mpi import MPI_jax_comm
@@ -46,9 +47,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
         key = seed
 
     if not config.netket_experimental_sharding:
-        key = jax.tree_util.tree_map(
-            lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
-        )
+        key = _bcast_key(key, root=root, comm=comm)
     return key
 
 
@@ -101,9 +100,31 @@ def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     # on all MPI nodes?
     keys = jax.random.split(key, mpi.n_nodes)
 
-    keys = jax.tree_util.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
+    keys = _bcast_key(keys, root=root, comm=comm)
 
     return keys[mpi.rank]
+
+
+def _bcast_key(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
+    """
+    Utility function equivalent to calling `mpi_bcast_jax` on a jax key,
+    but working around some sharding bug when not using sharding, arising
+    from MPI.
+    """
+    if jnp.issubdtype(key.dtype, jax.dtypes.prng_key):
+        _impl = jax.random.key_impl(key)
+        key = jax.random.key_data(key)
+    else:
+        _impl = None
+
+    key = jax.tree_util.tree_map(
+        lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
+    )
+
+    if _impl is not None:
+        key = jax.random.wrap_key_data(key, impl=_impl)
+
+    return key
 
 
 def batch_choice(key, a, p):
