@@ -25,22 +25,13 @@ class ModuleFramework(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def is_my_module(module):
+    def is_my_module(module) -> bool:
         pass
 
     @staticmethod
     @abc.abstractmethod
     def wrap(module):
         return module
-
-    @staticmethod
-    def wrap_params(variables):
-        return {"params": variables}
-
-    @staticmethod
-    @abc.abstractmethod
-    def unwrap_params(wrapped_variables):
-        return wrapped_variables
 
 
 registered_frameworks = []
@@ -65,16 +56,12 @@ class UnknownFramework(ModuleFramework):
         return True
 
     @staticmethod
-    def is_my_module(module):
+    def is_my_module(module) -> bool:
         return False
 
     @staticmethod
-    def wrap(module):
+    def wrap(module) -> tuple:
         return module
-
-    @staticmethod
-    def unwrap_params(wrapped_variables):
-        return wrapped_variables
 
 
 def identify_framework(module):
@@ -85,7 +72,7 @@ def identify_framework(module):
     return UnknownFramework
 
 
-def maybe_wrap_module(module):
+def maybe_wrap_module(module) -> tuple:
     """
     Passing a module from an unknown framework (might be user defined module, a jax
     module, flax or haiku or anything else really), attempt to identify what is the
@@ -96,4 +83,4 @@ def maybe_wrap_module(module):
     """
     framewrk = identify_framework(module)
 
-    return framewrk, framewrk.wrap(module)
+    return framewrk.wrap(module)

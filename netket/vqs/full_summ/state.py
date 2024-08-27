@@ -117,7 +117,11 @@ class FullSumState(VariationalState):
             # Wrap it in an HashablePartial because if two instances of the same model are provided,
             # model.apply and model2.apply will be different methods forcing recompilation, but
             # model and model2 will have the same hash.
-            _, model = maybe_wrap_module(model)
+            _maybe_unwrapped_variables, model = maybe_wrap_module(model)
+
+            if variables is None:
+                if _maybe_unwrapped_variables is not None:
+                    variables = _maybe_unwrapped_variables
 
             self._model = model
 

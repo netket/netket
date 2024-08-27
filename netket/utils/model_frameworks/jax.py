@@ -78,12 +78,4 @@ class JaxFramework(ModuleFramework):
 
     @staticmethod
     def wrap(module):
-        return JaxWrapper(*module)
-
-    @staticmethod
-    def wrap_params(variables):
-        return {"params": variables}
-
-    @staticmethod
-    def unwrap_params(wrapped_variables):
-        return wrapped_variables["params"]
+        return None, JaxWrapper(*module)
