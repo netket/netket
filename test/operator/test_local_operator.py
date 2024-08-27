@@ -373,12 +373,6 @@ def test_copy(op):
     assert_same_matrices(op, op_copy)
 
 
-def test_raises_unsorted_hilbert():
-    hi = nk.hilbert.CustomHilbert(nk.utils.StaticRange(1, -2, 2), N=3)
-    with pytest.raises(ValueError):
-        nk.operator.LocalOperator(hi)
-
-
 def test_type_promotion():
     hi = nk.hilbert.Qubit(1)
     real_op = nk.operator.spin.sigmax(hi, 0, dtype=float)

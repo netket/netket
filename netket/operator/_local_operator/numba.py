@@ -52,7 +52,6 @@ class LocalOperator(LocalOperatorBase):
             self._mels = data["mels"]
             self._x_prime = data["x_prime"]
             self._n_conns = data["n_conns"]
-            self._local_states = data["local_states"]
             self._basis = data["basis"]
             self._nonzero_diagonal = data["nonzero_diagonal"]
             self._max_conn_size = data["max_conn_size"]
@@ -82,17 +81,18 @@ class LocalOperator(LocalOperatorBase):
         """
         self._setup()
 
-        x = concrete_or_error(
+        x_ids = self.hilbert.states_to_local_indices(x)
+
+        x_ids = concrete_or_error(
             np.asarray,
-            x,
+            x_ids,
             NumbaOperatorGetConnDuringTracingError,
             self,
         )
 
-        return self._get_conn_flattened_kernel(
-            x,
+        xp_ids, mels = self._get_conn_flattened_kernel(
+            x_ids,
             sections,
-            self._local_states,
             self._basis,
             self._constant,
             self._diag_mels,
@@ -105,12 +105,14 @@ class LocalOperator(LocalOperatorBase):
             pad,
         )
 
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
+        return xp, mels
+
     @staticmethod
     @numba.jit(nopython=True)
     def _get_conn_flattened_kernel(
         x,
         sections,
-        local_states,
         basis,
         constant,
         diag_mels,
@@ -155,13 +157,7 @@ class LocalOperator(LocalOperatorBase):
                 # iterate over sites the current operator is acting on
                 for k in range(acting_size_i):
                     # compute
-                    xs_n[b, i] += (
-                        np.searchsorted(
-                            local_states[i, acting_size_i - k - 1],
-                            x_i[acting_size_i - k - 1],
-                        )
-                        * basis[i, k]
-                    )
+                    xs_n[b, i] += x_i[acting_size_i - k - 1] * basis[i, k]
 
                 # sum the number of off-diagonal connected elements
                 conn_b += n_conns[i, xs_n[b, i]]
@@ -248,17 +244,17 @@ class LocalOperator(LocalOperatorBase):
         """
         self._setup()
 
-        x = concrete_or_error(
+        x_ids = self.hilbert.states_to_local_indices(x)
+        x_ids = concrete_or_error(
             np.asarray,
-            x,
+            x_ids,
             NumbaOperatorGetConnDuringTracingError,
             self,
         )
 
-        return self._get_conn_filtered_kernel(
-            x,
+        xp_ids, mels = self._get_conn_filtered_kernel(
+            x_ids,
             sections,
-            self._local_states,
             self._basis,
             self._constant,
             self._diag_mels,
@@ -269,13 +265,14 @@ class LocalOperator(LocalOperatorBase):
             self._acting_size,
             filters,
         )
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
+        return xp, mels
 
     @staticmethod
     @numba.jit(nopython=True)
     def _get_conn_filtered_kernel(
         x,
         sections,
-        local_states,
         basis,
         constant,
         diag_mels,
@@ -315,13 +312,7 @@ class LocalOperator(LocalOperatorBase):
             x_b = x[b]
             x_i = x_b[acting_on[i, :acting_size_i]]
             for k in range(acting_size_i):
-                xs_n[b, i] += (
-                    np.searchsorted(
-                        local_states[i, acting_size_i - k - 1],
-                        x_i[acting_size_i - k - 1],
-                    )
-                    * basis[i, k]
-                )
+                xs_n[b, i] += x_i[acting_size_i - k - 1] * basis[i, k]
 
             tot_conn += n_conns[i, xs_n[b, i]]
             sections[b] = tot_conn

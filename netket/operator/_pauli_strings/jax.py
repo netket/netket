@@ -49,10 +49,10 @@ if TYPE_CHECKING:
 
 
 # duplicated from ising
-def _ising_conn_states_jax(x, cond, local_states):
-    was_state_0 = x == local_states[0]
-    state_0 = jnp.asarray(local_states[0], dtype=x.dtype)
-    state_1 = jnp.asarray(local_states[1], dtype=x.dtype)
+def _ising_conn_states_jax(x, cond):
+    was_state_0 = x == 0
+    state_0 = jnp.asarray(0, dtype=x.dtype)
+    state_1 = jnp.asarray(1, dtype=x.dtype)
     return jnp.where(cond ^ was_state_0, state_0, state_1)
 
 
@@ -242,11 +242,11 @@ def pack_internals_jax(
 
 
 @jax.jit
-def _pauli_strings_mels_jax(local_states, z_data, x):
+def _pauli_strings_mels_jax(z_data, x):
     # supports both masks and indexing (can be padded, so also with a mask but smaller)
     # which path is taken is flexible, and can be fully determined by z_data
     # z_data: a list of tuples weights, z_sign_mask, z_sign_indices, z_sign_indexmask
-    state1 = local_states[1]
+    state1 = 1
     was_state_1 = x == state1
     mels = []
     for w, z_sign_mask, z_sign_indices, z_sign_indexmask in zip(*z_data):
@@ -269,8 +269,8 @@ def _pauli_strings_mels_jax(local_states, z_data, x):
 
 
 @jax.jit
-def _pauli_strings_kernel_jax(local_states, x_flip_masks_all, z_data, x, cutoff=None):
-    mels = _pauli_strings_mels_jax(local_states, z_data, x)
+def _pauli_strings_kernel_jax(x_flip_masks_all, z_data, x, cutoff=None):
+    mels = _pauli_strings_mels_jax(z_data, x)
     if cutoff is not None:
         nonzero_mels_mask = jnp.abs(mels) > cutoff
         mels = jax.lax.select(nonzero_mels_mask, mels, jnp.zeros_like(mels))
@@ -279,15 +279,15 @@ def _pauli_strings_kernel_jax(local_states, x_flip_masks_all, z_data, x, cutoff=
     else:
         nonzero_mels_mask = None
     # can re-use function from Ising
-    x_prime = _ising_conn_states_jax(x[..., None, :], x_flip_masks_all, local_states)
+    x_prime = _ising_conn_states_jax(x[..., None, :], x_flip_masks_all)
     # TODO we could optionally move nonzeros to front here
     return x_prime, mels, nonzero_mels_mask
 
 
 @jax.jit
-def _pauli_strings_n_conn_jax(local_states, x_flip_masks_all, z_data, x, cutoff=None):
+def _pauli_strings_n_conn_jax(x_flip_masks_all, z_data, x, cutoff=None):
     _, _, nonzero_mels_mask = _pauli_strings_kernel_jax(
-        local_states, x_flip_masks_all, z_data, x, cutoff
+        x_flip_masks_all, z_data, x, cutoff
     )
     if nonzero_mels_mask is not None:
         return nonzero_mels_mask.sum(axis=-1, dtype=np.int32)
@@ -341,7 +341,6 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         #          (and possibly on gpu)
         # By adapting pack_internals_jax hybrid approaches are also possible.
         # depending on performance tests we might expose or remove it
-        self._hi_local_states = tuple(self.hilbert.local_states)
         self._initialized = False
         self._mode = _mode
 
@@ -403,23 +402,25 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
 
     def n_conn(self, x):
         self._setup()
+        x_ids = self.hilbert.states_to_local_indices(x)
         return _pauli_strings_n_conn_jax(
-            self._hi_local_states,
             self._x_flip_masks_stacked,
             self._z_data,
-            x,
+            x_ids,
             cutoff=self._cutoff,
         )
 
     def get_conn_padded(self, x):
         self._setup()
-        xp, mels, _ = _pauli_strings_kernel_jax(
-            self._hi_local_states,
+
+        x_ids = self.hilbert.states_to_local_indices(x)
+        xp_ids, mels, _ = _pauli_strings_kernel_jax(
             self._x_flip_masks_stacked,
             self._z_data,
-            x,
+            x_ids,
             cutoff=self._cutoff,
         )
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
 
     def tree_flatten(self):

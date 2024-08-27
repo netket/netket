@@ -84,8 +84,8 @@ class BoseHubbard(BoseHubbardBase):
         super().__init__(hilbert, graph=graph, U=U, V=V, J=J, mu=mu, dtype=dtype)
 
         # caches for numba indexing methods
-        self._max_mels = np.zeros(self._max_conn, dtype=self.dtype)
-        self._max_xprime = np.zeros((self._max_conn, self._n_sites))
+        self._max_mels = None  # np.zeros(self._max_conn, dtype=self.dtype)
+        self._max_xprime = None  # np.zeros((self._max_conn, self._n_sites), dtype=)
 
     def to_jax_operator(self) -> "BoseHubbardJax":  # noqa: F821
         """
@@ -136,8 +136,8 @@ class BoseHubbard(BoseHubbardBase):
             x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
 
         if pad:
-            x_prime[:] = 0
-            mels[:] = 0
+            x_prime[:] = np.array(0, dtype=x_prime.dtype)
+            mels[:] = np.array(0, dtype=x_prime.dtype)
 
         sqrt = math.sqrt
         Uh = 0.5 * U
@@ -216,24 +216,24 @@ class BoseHubbard(BoseHubbardBase):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-
-        # try to cache those temporary buffers with their max size
-        total_size = x.shape[0] * self._max_conn
-        if self._max_mels.size < total_size:
-            self._max_mels = np.empty(total_size, dtype=self._max_mels.dtype)
-            self._max_xprime = np.empty((total_size, x.shape[1]), dtype=x.dtype)
-        elif x.dtype != self._max_xprime.dtype:
-            self._max_xprime = self._max_xprime.astype(x.dtype)
-
-        x = concrete_or_error(
+        x_ids = self.hilbert.states_to_local_indices(x)
+        x_ids = concrete_or_error(
             np.asarray,
-            x,
+            x_ids,
             NumbaOperatorGetConnDuringTracingError,
             self,
         )
 
-        return self._flattened_kernel(
-            x,
+        # try to cache those temporary buffers with their max size
+        total_size = x.shape[0] * self._max_conn
+        if self._max_xprime is None or (self._max_mels.size < total_size):
+            self._max_mels = np.empty(total_size, dtype=self.dtype)
+            self._max_xprime = np.empty((total_size, x.shape[-1]), dtype=x_ids.dtype)
+        elif x.dtype != self._max_xprime.dtype:
+            self._max_xprime = self._max_xprime.astype(x_ids.dtype)
+
+        xp_ids, mels = self._flattened_kernel(
+            x_ids,
             sections,
             self._edges,
             self._U,
@@ -246,3 +246,5 @@ class BoseHubbard(BoseHubbardBase):
             self._max_xprime,
             pad,
         )
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
+        return xp, mels
