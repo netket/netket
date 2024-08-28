@@ -52,7 +52,30 @@ def _check_total_sz(total_sz, S, size):
 
 
 class Spin(HomogeneousHilbert):
-    r"""Hilbert space obtained as tensor product of local spin states."""
+    r"""Hilbert space obtained as tensor product of local spin states.
+
+    .. warning::
+
+        The ordering of the Spin Hilbert space basis has historically always been
+        such that `-1=↑, 1=↓`, but it will be changed 1st january 2025 to
+        be such that `1=↑, -1=↓`.
+
+        The change will break:
+            - code that relies on the assumption that -1=↑;
+            - all saves because the inputs to the network will change;
+            - custom operators that rely on the basis being ordered;
+
+        To avoid distruption, NetKet will support **both** conventions in the (near)
+        future. You can specify the ordering you need with :code:`inverted_ordering = True`
+        (historical ordering) or :code:`inverted_ordering=False` (future default behaviour).
+
+        If you do not specify this flag, a future version of NetKet might break your
+        serialized weights or other logic, so we strongly reccomend that you either
+        limit yourself to NetKet 3.14, or that you specify :code:`inverted_ordering`
+        explicitly.
+
+
+    """
 
     def __init__(
         self,
@@ -61,17 +84,27 @@ class Spin(HomogeneousHilbert):
         *,
         total_sz: float | None = None,
         constraint: DiscreteHilbertConstraint | None = None,
+        inverted_ordering: bool = True,
     ):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
-           s: Spin at each site. Must be integer or half-integer.
-           N: Number of sites (default=1)
-           total_sz: If given, constrains the total spin of system to a particular
+            s: Spin at each site. Must be integer or half-integer.
+            N: Number of sites (default=1)
+            total_sz: If given, constrains the total spin of system to a particular
                 value.
-          constraint: A custom constraint on the allowed configurations. This argument
+            constraint: A custom constraint on the allowed configurations. This argument
                 cannot be specified at the same time as :code:`total_sz`. The constraint
                 must be a subclass of :class:`~netket.hilbert.DiscreteHilbertConstraint`.
+            inverted_ordering: Flag to specify the ordering of the Local basis. Historically
+                NetKet has always used the convention `-1=↑, 1=↓` (corresponding to
+                :code:`inverted_ordering=True`, but we will change it to `1=↑, -1=↓` (
+                :code:`inverted_ordering=False`).
+                The default as of September 2024 (NetKet 3.14) is :code:`inverted_ordering=True`, but
+                we will change it in the near future.
+                The change will (i) break code that relies on the assumption that -1=↑, and
+                (ii) will break all saves because the inputs to the network will change.
+
 
         Examples:
            Simple spin hilbert space.
@@ -83,12 +116,23 @@ class Spin(HomogeneousHilbert):
         """
         local_size = round(2 * s + 1)
         assert int(2 * s + 1) == local_size
-        local_states = StaticRange(
-            local_size - 1,
-            -2,
-            local_size,
-            dtype=np.int8 if local_size < 2**7 else int,
-        )
+
+        if not inverted_ordering:
+            # Reasonable, new ordering where  1=↑ -1=↓
+            local_states = StaticRange(
+                local_size - 1,
+                -2,
+                local_size,
+                dtype=np.int8 if local_size < 2**7 else int,
+            )
+        else:
+            # Old ordering where -1=↑ 1=↓
+            local_states = StaticRange(
+                1 - local_size,
+                2,
+                local_size,
+                dtype=np.int8 if local_size < 2**7 else int,
+            )
 
         _check_total_sz(total_sz, s, N)
         if total_sz is not None:
@@ -101,6 +145,7 @@ class Spin(HomogeneousHilbert):
 
         self._total_sz = total_sz
         self._s = s
+        self._inverted_ordering = inverted_ordering
 
         super().__init__(local_states, N, constraint=constraint)
 
@@ -145,8 +190,9 @@ class Spin(HomogeneousHilbert):
             constraint = f", {self._constraint}"
         else:
             constraint = ""
-        return f"Spin(s={Fraction(self._s)}, N={self.size}{constraint})"
+        ordering = "inverted" if self._inverted_ordering else "new"
+        return f"Spin(s={Fraction(self._s)}, N={self.size}, ordering={ordering}{constraint})"
 
     @property
     def _attrs(self):
-        return (self.size, self._s, self.constraint)
+        return (self.size, self._s, self._inverted_ordering, self.constraint)
