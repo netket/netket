@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 import jax
@@ -46,6 +47,31 @@ def _device_count(request):
     from netket.jax import sharding
 
     return sharding.device_count()
+
+
+@pytest.fixture
+def tmp_path_distributed(request, tmp_path):
+    """
+    Equivalent to tmp_path, but works well with mpi and jax distirbuted
+    """
+    import netket as nk
+    from netket.utils import mpi
+
+    if mpi.n_nodes > 1:
+        tmp_path = mpi.MPI_py_comm.bcast(tmp_path, root=0)
+    elif nk.config.netket_experimental_sharding:
+        rng_key = nk.jax.PRNGKey()
+        val = jax.random.randint(rng_key, (), minval=0, maxval=999999999)
+        val = int(val)
+
+        tmp_path = Path("/tmp/netket_tests") / Path(str(val))
+
+    if mpi.rank == 0 and jax.process_index() == 0:
+        tmp_path.mkdir(parents=True, exist_ok=True)
+    if mpi.n_nodes > 1:
+        mpi.MPI_py_comm.barrier()
+
+    return tmp_path
 
 
 def parse_clearcache(s: str) -> int | None:
@@ -125,6 +151,7 @@ def pytest_configure(config):
         print(f"Clearing jax cache every {_clear_cache_every} tests")
 
     if config.getoption("--jax-distributed-mpi"):
+        print("\n---------------------------------------------")
         print("Initializing JAX distributed using MPI...")
         import jax
 
@@ -134,7 +161,9 @@ def pytest_configure(config):
         default_string = f"r{jax.process_index()}/{jax.process_count()} - "
         print(default_string, jax.devices())
         print(default_string, jax.local_devices())
+        print("---------------------------------------------\n", flush=True)
     elif config.getoption("--jax-distributed-gloo"):
+        print("\n---------------------------------------------")
         print("Initializing JAX distributed using GLOO...")
         import jax
 
@@ -144,3 +173,4 @@ def pytest_configure(config):
         default_string = f"r{jax.process_index()}/{jax.process_count()} - "
         print(default_string, jax.devices())
         print(default_string, jax.local_devices())
+        print("---------------------------------------------\n", flush=True)
