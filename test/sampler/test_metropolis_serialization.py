@@ -111,3 +111,6 @@ def test_metropolis_serialization(key_type, tmp_path_distributed):
             _σ_all = σ_all[: sa.n_chains].reshape(mpi.n_nodes, -1)
             σ2_all = _allgather(hi.states_to_numbers(sampler_state_2.σ))
             np.testing.assert_allclose(σ2_all, _σ_all)
+
+        # verify that it works
+        sa.samples(ma, pars, state=sampler_state_2)
