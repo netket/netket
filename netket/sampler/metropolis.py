@@ -21,7 +21,6 @@ import numpy as np
 
 import jax
 from flax import linen as nn
-from flax import serialization
 from jax import numpy as jnp
 
 from netket.hilbert import AbstractHilbert, ContinuousHilbert
@@ -32,11 +31,7 @@ from netket.utils.types import PyTree, DType
 from netket.utils.deprecation import warn_deprecation
 from netket.utils import struct
 
-from netket.utils.config_flags import config
 from netket.jax.sharding import (
-    extract_replicated,
-    gather,
-    distribute_to_devices_along_axis,
     device_count,
     with_samples_sharding_constraint,
 )
@@ -54,16 +49,16 @@ class MetropolisSamplerState(SamplerState):
     state of the transition rule.
     """
 
-    σ: jnp.ndarray
+    σ: jnp.ndarray = struct.field(sharded=True)
     """Current batch of configurations in the Markov chain."""
-    rng: jnp.ndarray
+    rng: jnp.ndarray = struct.field(sharded=True)
     """State of the random number generator (key, in jax terms)."""
     rule_state: Any | None
     """Optional state of the transition rule."""
 
     n_steps_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=int))
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: jnp.ndarray
+    n_accepted_proc: jnp.ndarray = struct.field(sharded=True)
     """Number of accepted transitions among the chains in this process since the last reset."""
 
     def __init__(self, σ: jnp.ndarray, rng: jnp.ndarray, rule_state: Any | None):
@@ -108,47 +103,6 @@ class MetropolisSamplerState(SamplerState):
             acc_string = ""
 
         return f"{type(self).__name__}({acc_string}rng state={self.rng})"
-
-
-# serialization when sharded
-def serialize_MetropolisSamplerState_sharding(sampler_state):
-    state_dict = MetropolisSamplerState._to_flax_state_dict(
-        MetropolisSamplerState._pytree__static_fields, sampler_state
-    )
-
-    for prop in ["σ", "n_accepted_proc"]:
-        x = state_dict.get(prop, None)
-        if x is not None and isinstance(x, jax.Array) and len(x.devices()) > 1:
-            state_dict[prop] = gather(x)
-    state_dict = extract_replicated(state_dict)
-    return state_dict
-
-
-def deserialize_MetropolisSamplerState_sharding(sampler_state, state_dict):
-    for prop in ["σ", "n_accepted_proc"]:
-        x = state_dict[prop]
-        if x is not None:
-            state_dict[prop] = distribute_to_devices_along_axis(x)
-
-    return MetropolisSamplerState._from_flax_state_dict(
-        MetropolisSamplerState._pytree__static_fields, sampler_state, state_dict
-    )
-
-
-if config.netket_experimental_sharding:
-    # when running on multiple jax processes the σ and n_accepted_proc are not fully addressable
-    # however, when serializing they need to be so here we register custom handlers which
-    # gather all the data to every process.
-    # when deserializing we distribute the samples again to all availale devices
-    # this way it is enough to serialize on process 0, and we can restart the simulation
-    # also  on a different number of devices, provided the number of samples is still
-    # divisible by the new number of devices
-    serialization.register_serialization_state(
-        MetropolisSamplerState,
-        serialize_MetropolisSamplerState_sharding,
-        deserialize_MetropolisSamplerState_sharding,
-        override=True,
-    )
 
 
 def _assert_good_sample_shape(samples, shape, dtype, obj=""):
