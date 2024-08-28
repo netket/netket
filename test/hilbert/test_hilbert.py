@@ -476,7 +476,7 @@ def test_local_indices_to_states(hi):
 
 
 @pytest.mark.parametrize("inverted_ordering", [True, False])
-def test_spin_state_iteration(inverted_ordering:bool):
+def test_spin_state_iteration(inverted_ordering: bool):
     hilbert = Spin(s=0.5, N=5, inverted_ordering=inverted_ordering)
 
     if inverted_ordering:
