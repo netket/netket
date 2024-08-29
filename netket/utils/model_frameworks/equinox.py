@@ -75,11 +75,7 @@ class EquinoxFramework(ModuleFramework):
         # this will only get called if the module is loaded
         import equinox as eqx  # noqa: E0401
 
-        # jax modules are tuples
-        if isinstance(module, eqx.Module):
-            return True
-
-        return False
+        return isinstance(module, eqx.Module)
 
     @staticmethod
     def wrap(module):
