@@ -15,9 +15,17 @@
 from fractions import Fraction
 from typing import Optional
 
+from pathlib import Path
+import os
+from datetime import datetime, timedelta
+import warnings
+import jax
+
 import numpy as np
 
-from netket.utils import StaticRange
+from netket import config as nkconfig
+from netket.utils import StaticRange, mpi
+from netket.errors import UndeclaredSpinOderingWarning
 
 from .homogeneous import HomogeneousHilbert
 from .constraint import DiscreteHilbertConstraint, SumConstraint
@@ -54,6 +62,35 @@ def _check_total_sz(total_sz, S, size):
 class Spin(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local spin states.
 
+    The correspondance between basis elements of the hilbert space and the configurations
+    that are then fed to variational states is as follows:
+
+    +----------+----------------------------------+-----------------------------------+
+    | State    | Old Behavior                     | New Behavior                      |
+    |          | :code:`inverted_ordering=True`   | :code:`inverted_ordering=False`   |
+    +==========+==================================+===================================+
+    | ↑ ↑ ↑    | -1 -1 -1                         | +1 +1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↑ ↓    | -1 -1 +1                         | +1 +1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↓ ↑    | -1 +1 -1                         | +1 -1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↓ ↓    | -1 +1 +1                         | +1 -1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↑ ↑    | +1 -1 -1                         | -1 +1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↑ ↓    | +1 -1 +1                         | -1 +1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↓ ↑    | +1 +1 -1                         | -1 -1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↓ ↓    | +1 +1 +1                         | -1 -1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+
+    The old behaviour is the default behaviour of NetKet 3.14 and before, while the new
+    behaviour will become the default starting 1st january 2025.
+    For that reason, in the transition period, we will print warnings asking to explicitly
+    specify which ordering you want
+
     .. warning::
 
         The ordering of the Spin Hilbert space basis has historically always been
@@ -74,7 +111,6 @@ class Spin(HomogeneousHilbert):
         limit yourself to NetKet 3.14, or that you specify :code:`inverted_ordering`
         explicitly.
 
-
     """
 
     def __init__(
@@ -84,9 +120,22 @@ class Spin(HomogeneousHilbert):
         *,
         total_sz: float | None = None,
         constraint: DiscreteHilbertConstraint | None = None,
-        inverted_ordering: bool = True,
+        inverted_ordering: bool | None = None,
     ):
         r"""Hilbert space obtained as tensor product of local spin states.
+
+        .. note::
+
+            During the transition period of September-December 2024 (NetKet 3.14-3.15),
+            it will be necessary to specify the ordering of the basis of the Spin Hilbert
+            space by specifying the `inverted_ordering` flag explicitly.
+
+            To ensure that the old behaviour is maintained, you should specify
+            `inverted_ordering=True`. If you want to opt into the new default
+            you should specify `inverted_ordering=False`.
+
+            A warning will be printed if you do not specify this flag, as the default
+            will change in the future.
 
         Args:
             s: Spin at each site. Must be integer or half-integer.
@@ -116,6 +165,48 @@ class Spin(HomogeneousHilbert):
         """
         local_size = round(2 * s + 1)
         assert int(2 * s + 1) == local_size
+
+        if inverted_ordering is None:
+            inverted_ordering = True
+            # Check last edit date of ~/.netketrc, and warn if it was last
+            # touched 2 days ago or more
+
+            # Do not warn if:
+
+            skip_warn = (
+                os.environ.get("CI", False)  # runnin gin CI
+                or nkconfig.netket_spin_ordering_warning is False  # disabled warnings
+            )
+
+            force_warn = (
+                mpi.n_nodes > 1  # running in parallel with MPI
+                or jax.process_count() > 1  # running in parallel with jax
+            )
+
+            if not skip_warn and not force_warn:
+                # Define the path to the file
+                file_path = Path.home() / ".netketrc"
+
+                # Check if the file exists
+                if file_path.exists():
+                    # Get the elapsed time since modification time of the file
+                    last_modified_time = file_path.stat().st_mtime
+                    last_modified_date = datetime.fromtimestamp(last_modified_time)
+                    time_diff = datetime.now() - last_modified_date
+
+                    # Check if the file was touched 2 days ago or more
+                    if time_diff < timedelta(days=2):
+                        skip_warn = True
+                    elif time_diff >= timedelta(days=2):
+                        file_path.touch()
+                else:
+                    file_path.touch()
+
+            if force_warn or not skip_warn:
+                if mpi.rank == 0 and jax.process_index() == 0:
+                    warnings.warn(
+                        UndeclaredSpinOderingWarning(), FutureWarning, stacklevel=2
+                    )
 
         if not inverted_ordering:
             # Reasonable, new ordering where  1=↑ -1=↓
