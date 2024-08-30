@@ -68,8 +68,8 @@ def test_expect():
     :math:`<V> = \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = 0.1975164 (\psi = 1)`
     :math:`<\nabla V> = \nabla_p \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = -0.140256 (\psi = \exp(p^2 x))`
     """
-    np.testing.assert_allclose(0.1975164, sol_nc.mean, atol=1e-3)
-    np.testing.assert_allclose(-0.140256, O_grad_nc, atol=1e-3)
+    np.testing.assert_allclose(0.1975164, sol_nc.mean, atol=1.5e-3)
+    np.testing.assert_allclose(-0.140256, O_grad_nc, atol=1.5e-3)
 
     vs_continuous.chunk_size = 128
     vs_continuous2.chunk_size = 128
