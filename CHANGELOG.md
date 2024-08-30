@@ -21,6 +21,7 @@
 * Specialised lattice constructors like {func}`nk.graph.Grid` now accept a `point_group` argument, overriding the default (usually maximal) point groups [#1879](https://github.com/netket/netket/pull/1879).
 * Methods to generate random states are automatically implemented for all {class}`nk.hilbert.HomogeneousHilbert`, constrained or not [#1911](https://github.com/netket/netket/pull/1911).
 * Serialization of metropolis sampler states when using MPI will now serialise the parameters across all MPI ranks, not only rank 0 [#1914](https://github.com/netket/netket/pull/1914).
+* Our implementation of `netket.sampler.MetropolisSampler` had a sub-optimal complexity of  `O((sweep_size+1) * n_samples)` instead of `O(sweep_size * n_samples)` because it was recomputing the variational function at the beginning of every sweep. This has now been fixed [#1915](https://github.com/netket/netket/pull/1915).
 
 ### Bug fixes
 * Fix the function {meth}`nk.graph.SpaceGroupBuilder.space_group_irreps` throwing away the imaginary part of point-group characters, which led to incorrect space-group characters in some rare cases [#1876](https://github.com/netket/netket/pull/1876).
