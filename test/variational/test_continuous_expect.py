@@ -32,31 +32,30 @@ def v2(x):
     return 1 / jnp.sqrt(2 * jnp.pi) * jnp.sum(jnp.exp(-0.5 * ((x - 2.5) ** 2)), axis=-1)
 
 
-hilb = nk.hilbert.Particle(N=1, L=5, pbc=True)
-pot = nk.operator.PotentialEnergy(hilb, v1)
-kin = nk.operator.KineticEnergy(hilb, mass=1.0)
-e = pot + kin
-sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, sweep_size=1)
-
-model = test()
-model2 = test2()
-vs_continuous = nk.vqs.MCState(
-    sab,
-    model,
-    n_samples=256 * 1024,
-    n_discard_per_chain=2048,
-    sampler_seed=123,
-)
-vs_continuous2 = nk.vqs.MCState(
-    sab,
-    model2,
-    n_samples=1024 * 1024,
-    n_discard_per_chain=2048,
-    sampler_seed=123,
-)
-
-
 def test_expect():
+    hilb = nk.hilbert.Particle(N=1, L=5, pbc=True)
+    pot = nk.operator.PotentialEnergy(hilb, v1)
+    kin = nk.operator.KineticEnergy(hilb, mass=1.0)
+    e = pot + kin
+    sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, sweep_size=1)
+
+    model = test()
+    model2 = test2()
+    vs_continuous = nk.vqs.MCState(
+        sab,
+        model,
+        n_samples=256 * 1024,
+        n_discard_per_chain=2048,
+        sampler_seed=1234,
+    )
+    vs_continuous2 = nk.vqs.MCState(
+        sab,
+        model2,
+        n_samples=1024 * 1024,
+        n_discard_per_chain=2048,
+        sampler_seed=1234,
+    )
+
     assert vs_continuous.chunk_size is None
     assert vs_continuous2.chunk_size is None
     # x = vs_continuous2.samples.reshape(-1, 1)
