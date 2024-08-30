@@ -35,7 +35,7 @@ from netket.jax.sharding import (
     device_count,
     with_samples_sharding_constraint,
 )
-from netket.jax import apply_chunked
+from netket.jax import apply_chunked, dtype_real
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
@@ -51,6 +51,8 @@ class MetropolisSamplerState(SamplerState):
 
     σ: jnp.ndarray = struct.field(sharded=True)
     """Current batch of configurations in the Markov chain."""
+    log_prob: jnp.ndarray = struct.field(sharded=True, serialize=False)
+    """Log probabilities of the current batch of configurations σ in the Markov chain."""
     rng: jnp.ndarray = struct.field(sharded=True)
     """State of the random number generator (key, in jax terms)."""
     rule_state: Any | None
@@ -61,10 +63,20 @@ class MetropolisSamplerState(SamplerState):
     n_accepted_proc: jnp.ndarray = struct.field(sharded=True)
     """Number of accepted transitions among the chains in this process since the last reset."""
 
-    def __init__(self, σ: jnp.ndarray, rng: jnp.ndarray, rule_state: Any | None):
+    def __init__(
+        self,
+        σ: jnp.ndarray,
+        rng: jnp.ndarray,
+        rule_state: Any | None,
+        log_prob: jnp.ndarray | None = None,
+    ):
         self.σ = σ
         self.rng = rng
         self.rule_state = rule_state
+
+        if log_prob is None:
+            log_prob = jnp.full(self.σ.shape[:-1], -jnp.inf, dtype=float)
+        self.log_prob = with_samples_sharding_constraint(log_prob)
 
         self.n_accepted_proc = with_samples_sharding_constraint(
             jnp.zeros(σ.shape[0], dtype=int)
@@ -230,9 +242,9 @@ class MetropolisSampler(Sampler):
                 `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
             n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-                               If netket_experimental_sharding is enabled this is interpreted as the number
-                               of independent chains on every jax device, and the n_chains_per_rank
-                               property of the sampler will return the total number of chains on all devices.
+                                If netket_experimental_sharding is enabled this is interpreted as the number
+                                of independent chains on every jax device, and the n_chains_per_rank
+                                property of the sampler will return the total number of chains on all devices.
             chunk_size: Chunk size for evaluating the ansatz while sampling. Must divide n_chains_per_rank.
             sweep_size: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
@@ -337,7 +349,16 @@ class MetropolisSampler(Sampler):
         rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
         σ = jnp.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
         σ = with_samples_sharding_constraint(σ)
-        state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
+
+        output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
+        log_prob = jnp.full(
+            (sampler.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype)
+        )
+        log_prob = with_samples_sharding_constraint(log_prob)
+
+        state = MetropolisSamplerState(
+            σ=σ, rng=key_state, rule_state=rule_state, log_prob=log_prob
+        )
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
         if not sampler.reset_chains:
@@ -370,10 +391,17 @@ class MetropolisSampler(Sampler):
         else:
             σ = state.σ
 
+        # Recompute the log_probability of the current samples
+        apply_machine = apply_chunked(
+            machine.apply, in_axes=(None, 0), chunk_size=sampler.chunk_size
+        )
+        log_prob_σ = sampler.machine_pow * apply_machine(parameters, σ).real
+
         rule_state = sampler.rule.reset(sampler, machine, parameters, state)
 
         return state.replace(
             σ=σ,
+            log_prob=log_prob_σ,
             rng=rng,
             rule_state=rule_state,
             n_steps_proc=jnp.zeros_like(state.n_steps_proc),
@@ -425,20 +453,21 @@ class MetropolisSampler(Sampler):
 
             return s
 
-        new_rng, rng = jax.random.split(state.rng)
-
         s = {
-            "key": rng,
+            "key": state.rng,
             "σ": state.σ,
-            "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
+            # Log prob is already computed in reset, so don't recompute it.
+            # "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
+            "log_prob": state.log_prob,
             # for logging
             "accepted": state.n_accepted_proc,
         }
         s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
         new_state = state.replace(
-            rng=new_rng,
+            rng=s["key"],
             σ=s["σ"],
+            log_prob=s["log_prob"],
             n_accepted_proc=s["accepted"],
             n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches,
         )

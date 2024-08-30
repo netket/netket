@@ -379,6 +379,8 @@ class Pytree(metaclass=PytreeMeta):
 
         # Handle sharding
         for name in cls._pytree__sharded_fields:
+            if name in cls._pytree__noserialize_fields:
+                continue
             state_dict[name] = to_flax_state_dict_sharding(state_dict[name])
         # End handle sharding
         return state_dict

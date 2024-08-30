@@ -28,7 +28,7 @@ def test_jax_framework_works_without_haiku():
         return out_shape, pars
 
     def apply(pars, x, **_):
-        return pars[0] * jnp.sum(x)
+        return pars["0"] * jnp.sum(x)
 
     hi = nk.hilbert.Qubit(8)
     sampler = nk.sampler.MetropolisLocal(hi)
