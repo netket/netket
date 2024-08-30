@@ -57,8 +57,10 @@ def tmp_path_distributed(request, tmp_path):
     import netket as nk
     from netket.utils import mpi
 
+    global MPI_pytest_comm
+
     if mpi.n_nodes > 1:
-        tmp_path = mpi.MPI_py_comm.bcast(tmp_path, root=0)
+        tmp_path = MPI_pytest_comm.bcast(tmp_path, root=0)
     elif nk.config.netket_experimental_sharding:
         rng_key = nk.jax.PRNGKey()
         val = jax.random.randint(rng_key, (), minval=0, maxval=999999999)
@@ -69,7 +71,7 @@ def tmp_path_distributed(request, tmp_path):
     if mpi.rank == 0 and jax.process_index() == 0:
         tmp_path.mkdir(parents=True, exist_ok=True)
     if mpi.n_nodes > 1:
-        mpi.MPI_py_comm.barrier()
+        MPI_pytest_comm.barrier()
 
     return tmp_path
 
@@ -121,6 +123,7 @@ def pytest_addoption(parser):
 
 _n_test_since_reset: int = 0
 _clear_cache_every: int = 0
+MPI_pytest_comm = None
 
 
 @pytest.fixture(autouse=True)
@@ -174,3 +177,13 @@ def pytest_configure(config):
         print(default_string, jax.devices())
         print(default_string, jax.local_devices())
         print("---------------------------------------------\n", flush=True)
+    else:
+        # Check for MPI
+        import netket as nk
+
+        if nk.utils.mpi.n_nodes > 1 and not nk.config.netket_experimental_sharding:
+            from mpi4py import MPI
+
+            global MPI_pytest_comm
+            MPI_pytest_comm = MPI.COMM_WORLD.Create(MPI.COMM_WORLD.Get_group())
+            print("Testing under MPI ...")
