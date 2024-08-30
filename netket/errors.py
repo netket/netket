@@ -982,6 +982,94 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
         )
 
 
+class UndeclaredSpinOderingWarning(NetketWarning):
+    """
+    Warning thrown when a Spin Hilbert space is created without specifying the spin ordering.
+
+    This warning is thrown in the transition period of NetKet 3.14 to NetKet 3.15 (september to
+    december 2024), to warn users that the correspondence between ±1 and spin up/down will change
+    according to the table below.
+
+    +----------+----------------------------------+-----------------------------------+
+    | State    | Old Behavior                     | New Behavior                      |
+    |          | :code:`inverted_ordering=True`   | :code:`inverted_ordering=False`   |
+    +==========+==================================+===================================+
+    | ↑ ↑ ↑    | -1 -1 -1                         | +1 +1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↑ ↓    | -1 -1 +1                         | +1 +1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↓ ↑    | -1 +1 -1                         | +1 -1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↓ ↓    | -1 +1 +1                         | +1 -1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↑ ↑    | +1 -1 -1                         | -1 +1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↑ ↓    | +1 -1 +1                         | -1 +1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↓ ↑    | +1 +1 -1                         | -1 -1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↓ ↓    | +1 +1 +1                         | -1 -1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+
+    The old behaviour is the default behaviour of NetKet 3.14 and before, while the new
+    behaviour will become the default starting 1st january 2025.
+    For that reason, in the transition period, we will print warnings asking to explicitly
+    specify which ordering you want
+
+    .. warning::
+
+        The ordering of the Spin Hilbert space basis has historically always been
+        such that `-1=↑, 1=↓`, but it will be changed 1st january 2025 to
+        be such that `1=↑, -1=↓`.
+
+        The change will break:
+            - code that relies on the assumption that -1=↑;
+            - all saves because the inputs to the network will change;
+            - custom operators that rely on the basis being ordered;
+
+        To avoid distruption, NetKet will support **both** conventions in the (near)
+        future. You can specify the ordering you need with :code:`inverted_ordering = True`
+        (historical ordering) or :code:`inverted_ordering=False` (future default behaviour).
+
+        If you do not specify this flag, a future version of NetKet might break your
+        serialized weights or other logic, so we strongly reccomend that you either
+        limit yourself to NetKet 3.14, or that you specify :code:`inverted_ordering`
+        explicitly.
+
+    To avoid this warning, you can :
+
+     - explicitly specify the ordering you want wit the `inverted_ordering` flag, which will
+       ensure that your code will still work in the future with no changes. If possible,
+       we suggest you use the new ordering `inverted_ordering=False`, but if you want to
+       keep loading parameters serialized before th switch, you should use `inverted_ordering=True`.
+
+     - You can silence this warning by setting the environment variable
+       ``NETKET_SPIN_ORDERING_WARNING=0`` or by setting
+       ``nk.config.netket_spin_ordering_warning = False`` in your code.
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            _dedent(
+                """
+                You have not explicitly specified the spin ordering for the Hilbert space.
+                The default behaviour is currently `-1=↑, 1=↓`, but it will be changed 1st january 2025 to `1=↑, -1=↓`.
+
+                - To maintain the current behaviour in the future, specify `inverted_ordering=True` (this
+                    allows you to load NN parameters you have saved in the past)
+                - To opt-in today in the future default, specify `inverted_ordering=False` (so your code will
+                    work without changes in the future)
+
+                If you do not care about this warning, you can silence it by setting the environment variable
+                `NETKET_SPIN_ORDERING_WARNING=0` or by executing `nk.config.netket_spin_ordering_warning = False`
+
+                This warning will be shown once per day during interactive sessions, and always in scripts and MPI/SLURM jobs unless silenced.
+                """
+            )
+        )
+
+
 #################################################
 # Functions to throw errors                     #
 #################################################

@@ -421,3 +421,17 @@ config.define(
         """
     ),
 )
+
+
+config.define(
+    "NETKET_SPIN_ORDERING_WARNING",
+    bool,
+    default=True,
+    runtime=True,
+    help=dedent(
+        """
+        If True (Defaults True) warns if the ordering of spins in the Hilbert space
+        is not declared.
+        """
+    ),
+)

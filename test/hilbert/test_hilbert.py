@@ -475,10 +475,14 @@ def test_local_indices_to_states(hi):
         np.testing.assert_allclose(local_states[idxs[..., s]], x[..., s])
 
 
-def test_state_iteration():
-    hilbert = Spin(s=0.5, N=10)
+@pytest.mark.parametrize("inverted_ordering", [True, False])
+def test_spin_state_iteration(inverted_ordering: bool):
+    hilbert = Spin(s=0.5, N=5, inverted_ordering=inverted_ordering)
 
-    reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=10)]
+    if inverted_ordering:
+        reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=5)]
+    else:
+        reference = [np.array(el) for el in itertools.product([1.0, -1.0], repeat=5)]
 
     for state, ref in zip(hilbert.states(), reference):
         np.testing.assert_allclose(state, ref)
