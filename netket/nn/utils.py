@@ -235,12 +235,12 @@ def _get_output_idx(
     bits_per_local_occupation = tuple(np.ceil(np.log2(shape)).astype(int))
     if max_bits is None:
         max_bits = max(bits_per_local_occupation)
-    output_idx = []
+    _output_idx = []
     offset = 0
     for b in bits_per_local_occupation:
-        output_idx.extend([i + offset for i in range(b)][::-1])
+        _output_idx.extend([i + offset for i in range(b)][::-1])
         offset += max_bits
-    output_idx = tuple(output_idx)
+    output_idx = tuple(_output_idx)
     return output_idx, max_bits
 
 

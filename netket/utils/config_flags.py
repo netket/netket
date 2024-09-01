@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import os
 import sys
 import warnings
@@ -161,6 +160,9 @@ class Config:
             txt = txt + f" - {k} = {v}\n"
 
         return txt
+
+    def __dir__(self):
+        return list(k.lower() for k in self._values.keys())
 
 
 config = Config()

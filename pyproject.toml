@@ -167,3 +167,17 @@ ignore = ["E501", "E731", "E721", "E741"]
 "netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
 "docs/sphinx_extensions/*" = ["UP", "D"]
+
+
+[tool.mypy]
+show_error_codes = true
+disable_error_code = "attr-defined, name-defined, annotation-unchecked, import-untyped"
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+    "netket"
+]
+ignore_missing_imports = true

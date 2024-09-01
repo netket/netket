@@ -5,10 +5,7 @@ import jax.numpy as jnp
 
 from jax.api_util import argnums_partial
 
-if jax.__version_info__ >= (0, 4, 16):
-    from jax.extend import linear_util as lu
-else:
-    from jax import linear_util as lu
+from jax.extend import linear_util as lu
 
 _tree_add = partial(jax.tree_util.tree_map, jax.lax.add)
 _tree_zeros_like = partial(

@@ -32,7 +32,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
     if isinstance(seed, int):
         # We can't sync the PRNGKey, so we can only sinc integer seeds
         # see https://github.com/google/jax/pull/16511
-        if config.netket_experimental_sharding and jax.process_count() > 1:
+        if config.netket_experimental_sharding and jax.process_count() > 1:  # type: ignore[attr-defined]
             # TODO: use stable jax function
             from jax.experimental import multihost_utils
 
@@ -46,7 +46,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
     else:
         key = seed
 
-    if not config.netket_experimental_sharding:
+    if not config.netket_experimental_sharding:  # type: ignore[attr-defined]
         key = _bcast_key(key, root=root, comm=comm)
     return key
 
@@ -61,7 +61,7 @@ class PRNGSeq:
             base_key = PRNGKey()
         elif isinstance(base_key, int):
             base_key = PRNGKey(base_key)
-        self._current = base_key
+        self._current: PRNGKeyT = base_key
 
     def __iter__(self):
         return self
@@ -111,17 +111,17 @@ def _bcast_key(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     but working around some sharding bug when not using sharding, arising
     from MPI.
     """
-    if jnp.issubdtype(key.dtype, jax.dtypes.prng_key):
+    is_new_style_key = jnp.issubdtype(key.dtype, jax.dtypes.prng_key)
+
+    if is_new_style_key:
         _impl = jax.random.key_impl(key)
         key = jax.random.key_data(key)
-    else:
-        _impl = None
 
     key = jax.tree_util.tree_map(
         lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
     )
 
-    if _impl is not None:
+    if is_new_style_key:
         key = jax.random.wrap_key_data(key, impl=_impl)
 
     return key

@@ -139,7 +139,7 @@ class FastMaskedDense1D(nn.Module):
         y_i = lax.dot(cache_i, mask_i * kernel_i, precision=self.precision)
 
         if self.use_bias:
-            y_i = y_i + bias[index, :]
+            y_i = y_i + bias[index, :]  # type: ignore[assignment,index]
 
         assert y_i.shape[1] == self.features
 
@@ -158,7 +158,7 @@ class FastMaskedDense1D(nn.Module):
         Returns:
           The transformed data.
         """
-        return MaskedDense1D.__call__(self, inputs)
+        return MaskedDense1D.__call__(self, inputs)  # type: ignore[arg-type]
 
 
 class FastMaskedConv1D(nn.Module):
@@ -260,7 +260,7 @@ class FastMaskedConv1D(nn.Module):
         dimension_numbers = _conv_dimension_numbers(cache.shape)
         y_i = lax.conv_general_dilated(
             cache,
-            kernel,
+            kernel,  # type: ignore[arg-type]
             window_strides=(1,),
             padding="VALID",
             lhs_dilation=(1,),
