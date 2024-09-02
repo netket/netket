@@ -14,7 +14,6 @@
 
 import warnings
 from functools import partial
-from typing import Any
 from collections.abc import Callable
 
 import numpy as np
@@ -22,12 +21,12 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 
-import flax
-from flax import serialization
+from flax import serialization, linen as nn, core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
-from netket import nn
+from netket import nn as nknn
+from netket.hilbert.discrete_hilbert import DiscreteHilbert
 from netket.stats import Stats
 from netket.operator import AbstractOperator, Squared
 from netket.sampler import Sampler, SamplerState
@@ -43,7 +42,13 @@ from netket.optimizer.qgt import QGTAuto
 
 from netket.jax import sharding
 
-from netket.vqs.base import VariationalState, expect, expect_and_grad, expect_and_forces
+from netket.vqs.base import (
+    VariationalState,
+    QGTConstructor,
+    expect,
+    expect_and_grad,
+    expect_and_forces,
+)
 from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
 
 
@@ -104,16 +109,13 @@ class MCState(VariationalState):
     The state is sampled according to the provided sampler.
     """
 
-    # model: Any
-    # """The model"""
-    model_state: PyTree | None
-    """An Optional PyTree encoding a mutable state of the model that is not trained."""
+    _model: nn.Module
 
     _sampler: Sampler
     """The sampler used to sample the Hilbert space."""
     sampler_state: SamplerState
     """The current state of the sampler."""
-    _previous_sampler_state: SamplerState = None
+    _previous_sampler_state: SamplerState | None = None
     """The sampler state before the last sampling has been effected.
 
     This field is used so that we don't need to serialize the current samples
@@ -125,12 +127,12 @@ class MCState(VariationalState):
     _n_discard_per_chain: int = 0
     """Number of samples discarded at the beginning of every Markov chain."""
 
-    _samples: jnp.ndarray | None = None
+    _samples: jax.Array | None = None
     """Cached samples obtained with the last sampling."""
 
-    _init_fun: Callable = None
+    _init_fun: Callable | None = None
     """The function used to initialise the parameters and model_state."""
-    _apply_fun: Callable = None
+    _apply_fun: Callable
     """The function used to evaluate the model."""
 
     _chunk_size: int | None = None
@@ -223,19 +225,8 @@ class MCState(VariationalState):
         else:
             raise ValueError("Must either pass the model or apply_fun.")
 
-        # default argument for n_samples/n_samples_per_rank
-        if n_samples is None and n_samples_per_rank is None:
-            # get the first multiple of sampler.n_chains above 1000 to avoid
-            # printing a warning on construction
-            n_samples = int(np.ceil(1000 / sampler.n_chains) * sampler.n_chains)
-        elif n_samples is not None and n_samples_per_rank is not None:
-            raise ValueError(
-                "Only one argument between `n_samples` and `n_samples_per_rank`"
-                "can be specified at the same time."
-            )
-
         self.mutable = mutable
-        self.training_kwargs = flax.core.freeze(training_kwargs)
+        self.training_kwargs = fcore.freeze(training_kwargs)
 
         if variables is not None:
             self.variables = variables
@@ -249,12 +240,22 @@ class MCState(VariationalState):
         self._sampler_seed = nkjax.PRNGKey(sampler_seed)
         self.sampler = sampler
 
-        if n_samples is not None:
+        # default argument for n_samples/n_samples_per_rank
+        if n_samples is None and n_samples_per_rank is None:
+            # get the first multiple of sampler.n_chains above 1000 to avoid
+            # printing a warning on construction
+            self.n_samples = int(np.ceil(1000 / sampler.n_chains) * sampler.n_chains)
+        elif n_samples is not None and n_samples_per_rank is not None:
+            raise ValueError(
+                "Only one argument between `n_samples` and `n_samples_per_rank`"
+                "can be specified at the same time."
+            )
+        elif n_samples is not None:
             self.n_samples = n_samples
-        else:
+        elif n_samples_per_rank is not None:
             self.n_samples_per_rank = n_samples_per_rank
 
-        self.n_discard_per_chain = n_discard_per_chain
+        self.n_discard_per_chain = n_discard_per_chain  # type: ignore[assignment]
 
         self.chunk_size = chunk_size
 
@@ -279,12 +280,12 @@ class MCState(VariationalState):
         self.variables = variables
 
     @property
-    def model(self) -> Any | None:
+    def model(self) -> nn.Module:
         """Returns the model definition of this variational state."""
         return self._model
 
     @property
-    def _sampler_model(self):
+    def _sampler_model(self) -> nn.Module:
         """Returns the model definition used for sampling this variational state.
         Equal to `.model`.
         """
@@ -330,7 +331,7 @@ class MCState(VariationalState):
         # `ValueError` will be raised.
         # `_chain_length == 0` means that this `MCState` is being constructed.
         if self._chain_length > 0:
-            self.n_samples = n_samples_old
+            self.n_samples = n_samples_old  # type: ignore
 
         self.reset()
 
@@ -402,7 +403,7 @@ class MCState(VariationalState):
         )
 
     @property
-    def chunk_size(self) -> int:
+    def chunk_size(self) -> int | None:
         """
         Suggested *maximum size* of the chunks used in forward and backward evaluations
         of the Neural Network model.
@@ -498,7 +499,7 @@ class MCState(VariationalState):
         if self.n_discard_per_chain > 0:
             with timing.timed_scope("sampling n_discarded samples"):
                 _, self.sampler_state = self.sampler.sample(
-                    self.model,
+                    self._sampler_model,
                     self.variables,
                     state=self.sampler_state,
                     chain_length=n_discard_per_chain,
@@ -513,7 +514,7 @@ class MCState(VariationalState):
         return self._samples
 
     @property
-    def samples(self) -> jnp.ndarray:
+    def samples(self) -> jax.Array:
         """
         Returns the set of cached samples.
 
@@ -526,7 +527,7 @@ class MCState(VariationalState):
         """
         if self._samples is None:
             self.sample()
-        return self._samples
+        return self._samples  # type: ignore[return-value]
 
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
         r"""
@@ -676,7 +677,7 @@ class MCState(VariationalState):
         return expect_and_forces(self, O, self.chunk_size, mutable=mutable)
 
     def quantum_geometric_tensor(
-        self, qgt_T: LinearOperator | None = None
+        self, qgt_T: QGTConstructor | None = None
     ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
@@ -690,12 +691,15 @@ class MCState(VariationalState):
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
         if qgt_T is None:
-            qgt_T = QGTAuto()
+            qgt_T = QGTAuto()  # type: ignore[assignment]
 
-        return qgt_T(self)
+        return qgt_T(self)  # type: ignore[misc]
 
-    def to_array(self, normalize: bool = True) -> jnp.ndarray:
-        return nn.to_array(
+    def to_array(self, normalize: bool = True) -> jax.Array:
+        if not isinstance(self.hilbert, DiscreteHilbert):
+            raise TypeError("Cannot convert to array a non-discrete Hilbert space.")
+
+        return nknn.to_array(  # type: ignore[return-value]
             self.hilbert,
             self._apply_fun,
             self.variables,

@@ -20,19 +20,18 @@ from collections.abc import Callable
 import jax
 from jax import numpy as jnp
 
-import flax
-from flax import serialization
+from flax import serialization, core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
 from netket import nn as nknn
-from netket.hilbert import AbstractHilbert
+from netket.hilbert.discrete_hilbert import DiscreteHilbert
 from netket.utils import maybe_wrap_module, wrap_afun, wrap_to_support_scalar
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from ..base import VariationalState
+from ..base import VariationalState, QGTConstructor
 from ..mc.mc_state.state import check_chunk_size, _is_power_of_two
 
 
@@ -63,24 +62,21 @@ class FullSumState(VariationalState):
     the parameters.
     """
 
-    model_state: PyTree | None
-    """An Optional PyTree encoding a mutable state of the model that is not trained."""
-
-    _init_fun: Callable = None
+    _init_fun: Callable | None = None
     """The function used to initialise the parameters and model_state"""
-    _apply_fun: Callable = None
+    _apply_fun: Callable
     """The function used to evaluate the model"""
 
     _chunk_size: int | None = None
 
     def __init__(
         self,
-        hilbert: AbstractHilbert,
+        hilbert: DiscreteHilbert,
         model=None,
         *,
         chunk_size: int | None = None,
         variables: PyTree | None = None,
-        init_fun: NNInitFunc = None,
+        init_fun: NNInitFunc | None = None,
         apply_fun: Callable | None = None,
         seed: SeedT | None = None,
         mutable: CollectionFilter = False,
@@ -150,7 +146,7 @@ class FullSumState(VariationalState):
             raise ValueError("Must either pass the model or apply_fun.")
 
         self.mutable = mutable
-        self.training_kwargs = flax.core.freeze(training_kwargs)
+        self.training_kwargs = fcore.freeze(training_kwargs)
 
         if variables is not None:
             self.variables = variables
@@ -195,7 +191,18 @@ class FullSumState(VariationalState):
         self.variables = variables
 
     @property
-    def chunk_size(self) -> int:
+    def hilbert(self) -> DiscreteHilbert:
+        r"""The descriptor of the Hilbert space
+        on which this variational state is defined.
+
+        .. note::
+
+            Full summation states only work over discrete hilbert spaces.
+        """
+        return self._hilbert  # type: ignore
+
+    @property
+    def chunk_size(self) -> int | None:
         """
         Suggested *maximum size* of the chunks used in forward and backward evaluations
         of the Neural Network model. If your inputs are smaller than the chunk size
@@ -273,7 +280,7 @@ class FullSumState(VariationalState):
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
     def quantum_geometric_tensor(
-        self, qgt_T: LinearOperator | None = None
+        self, qgt_T: QGTConstructor | None = None
     ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
@@ -288,9 +295,10 @@ class FullSumState(VariationalState):
         """
         if qgt_T is None:
             qgt_T = QGTAuto()
+
         return qgt_T(self)
 
-    def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
+    def to_array(self, normalize: bool = True, allgather: bool = True) -> jax.Array:
         if self._array is None and normalize:
             self._array = nknn.to_array(
                 self.hilbert,
@@ -313,7 +321,7 @@ class FullSumState(VariationalState):
                 chunk_size=self.chunk_size,
             )
 
-        return arr
+        return arr  # type: ignore
 
     def probability_distribution(self):
         if self._pdf is None:

@@ -14,16 +14,18 @@
 
 from functools import partial
 from collections.abc import Callable
+from typing import cast
 
 import jax
 from jax import numpy as jnp
+from jax.core import concrete_or_error
 import numpy as np
 from math import prod
 
 from netket import jax as nkjax
 from netket.utils import get_afun_if_module, mpi
 from netket.utils.types import Array, PyTree
-from netket.hilbert import DiscreteHilbert
+from netket.hilbert import DiscreteHilbert, DoubledHilbert
 
 from netket.utils import config
 from netket.utils.deprecation import deprecated
@@ -96,7 +98,7 @@ def to_array(
 
     apply_fun = get_afun_if_module(apply_fun)
 
-    if config.netket_experimental_sharding:
+    if config.netket_experimental_sharding:  # type: ignore
         # for now assume no mpi (no hybrid)
         x = hilbert.all_states()
         xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
@@ -131,7 +133,7 @@ def to_array(
         mask,
     )
 
-    if allgather and config.netket_experimental_sharding:
+    if allgather and config.netket_experimental_sharding:  # type: ignore
         psi = np.asarray(extract_replicated(psi))
 
     return psi
@@ -197,7 +199,7 @@ def _to_array_rank(
         psi = psi_local
 
     # gather/replicate
-    if allgather and config.netket_experimental_sharding:
+    if allgather and config.netket_experimental_sharding:  # type: ignore
         sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
         psi = jax.lax.with_sharding_constraint(psi, sharding)
 
@@ -208,7 +210,7 @@ def _to_array_rank(
 
 
 def to_matrix(
-    hilbert: DiscreteHilbert,
+    hilbert: DoubledHilbert,
     machine: Callable[[PyTree, Array], Array],
     params: PyTree,
     *,
@@ -235,7 +237,8 @@ def _get_output_idx(
     bits_per_local_occupation = tuple(np.ceil(np.log2(shape)).astype(int))
     if max_bits is None:
         max_bits = max(bits_per_local_occupation)
-    _output_idx = []
+        max_bits = cast(int, max_bits)
+    _output_idx: list[int] = []
     offset = 0
     for b in bits_per_local_occupation:
         _output_idx.extend([i + offset for i in range(b)][::-1])
@@ -271,7 +274,7 @@ def binary_encoding(
     """
     x = hilbert.states_to_local_indices(x)
     shape = tuple(hilbert.shape)
-    jax.core.concrete_or_error(None, shape, "Shape must be known statically")
+    concrete_or_error(None, shape, "Shape must be known statically")
     output_idx, max_bits = _get_output_idx(shape, max_bits)
     binarised_states = jnp.zeros(
         (

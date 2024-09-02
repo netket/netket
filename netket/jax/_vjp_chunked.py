@@ -231,7 +231,7 @@ def vjp_chunked(
     ############################################################################
     # sharding
 
-    if config.netket_experimental_sharding and chunk_size is not None:
+    if config.netket_experimental_sharding and chunk_size is not None:  # type: ignore
         if return_forward:
             raise NotImplementedError
 

@@ -66,9 +66,9 @@ class StaticRange(struct.Pytree):
 
     """
 
-    start: Number = struct.field(pytree_node=False)
+    start: float = struct.field(pytree_node=False)
     """The first value in the range."""
-    step: Number = struct.field(pytree_node=False)
+    step: float = struct.field(pytree_node=False)
     """The difference between two consecutive values in the range."""
     length: int = struct.field(pytree_node=False)
     """The number of entries in the range."""

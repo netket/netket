@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, TYPE_CHECKING, Union
 from numbers import Number
 
 from netket.utils.optional_deps import import_optional_dependency
+from netket.vqs import VariationalState
 
 from .base import AbstractLog
+
+if TYPE_CHECKING:
+    import tensorboardX
 
 
 def tree_log(tree, root, data):
@@ -37,7 +42,7 @@ def tree_log(tree, root, data):
             tree_log(val, root + f"/{i}", data)
 
     elif isinstance(tree, list) and hasattr(tree, "_fields"):
-        for key in tree._fields:
+        for key in tree._fields:  # type: ignore
             tree_log(getattr(tree, key), root + f"/{key}", data)
 
     elif isinstance(tree, tuple):
@@ -49,10 +54,10 @@ def tree_log(tree, root, data):
             tree_log(value, root + f"/{key}", data)  # noqa: F722
 
     elif hasattr(tree, "to_compound"):
-        tree_log(tree.to_compound()[1], root, data)  # noqa: F722
+        tree_log(tree.to_compound()[1], root, data)  # noqa: F722  # type: ignore
 
     elif hasattr(tree, "to_dict"):
-        tree_log(tree.to_dict(), root, data)  # noqa: F722
+        tree_log(tree.to_dict(), root, data)  # noqa: F722  # type: ignore
 
     elif isinstance(tree, complex):
         tree_log(tree.real, root + "/re", data)  # noqa: F722
@@ -123,7 +128,7 @@ class TensorBoardLog(AbstractLog):
         self._init_kwargs = kwargs
         """Store the kwargs for the lazily initialized SummaryWriter's constructor."""
 
-        self._writer = None
+        self._writer: Union["tensorboardX.SummaryWriter", None] = None
         """Lazily initialized summarywriter constructor"""
 
         self._old_step = 0
@@ -135,9 +140,15 @@ class TensorBoardLog(AbstractLog):
 
         self._writer = tensorboardX.SummaryWriter(*self._init_args, **self._init_kwargs)
 
-    def __call__(self, step, item, machine):
+    def __call__(
+        self,
+        step: int,
+        item: dict[str, Any],
+        variational_state: VariationalState | None = None,
+    ):
         if self._writer is None:
             self._init_tensorboard()
+        assert self._writer is not None
 
         data = []
         tree_log(item, "", data)

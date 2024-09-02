@@ -164,7 +164,7 @@ def _prepare_mask(n, n_pad):
 
 
 def distribute_to_devices_along_axis(
-    inp_data, axis=0, pad=False, pad_value=None, devices=None
+    inp_data, axis=0, pad: bool = False, pad_value=None, devices=None
 ):
     """
     Distribute a local array equally along an axis to multiple jax devices devices
@@ -213,12 +213,14 @@ def distribute_to_devices_along_axis(
         # )
 
         if pad:
-            if n_pad > 0:
+            if n_pad > 0:  # type: ignore
                 mask = jax.jit(
                     _prepare_mask,
                     out_shardings=sharding.reshape(-1),
                     static_argnums=(0, 1),
-                )(n, n_pad)
+                )(
+                    n, n_pad
+                )  # type: ignore
             else:
                 mask = None
             return out_data, mask
@@ -492,7 +494,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         obj_wrapped = Partial(partial(lambda x: x, obj))
         y4 = jax.jit(sharding_decorator(looped_computation4, sharded_args_tree=(True, False)))(x, obj_wrapped)
     """
-    if config.netket_experimental_sharding:
+    if config.netket_experimental_sharding:  # type: ignore
         if not isinstance(sharded_args_tree, tuple):
             sharded_args_tree = (sharded_args_tree,)
         sharded_args, args_treedef = jax.tree_util.tree_flatten(sharded_args_tree)
@@ -578,7 +580,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
     return f
 
 
-def device_count_per_rank():
+def device_count_per_rank() -> int:
     """
     Helper functions which returns the number of jax devices netket will use for every
     MPI rank.
@@ -586,7 +588,7 @@ def device_count_per_rank():
     Returns:
         jax.device_count() if config.netket_experimental_sharding is True, and 1 otherwise
     """
-    if config.netket_experimental_sharding:
+    if config.netket_experimental_sharding:  # type: ignore
         if mpi.n_nodes > 1:
             # this should never be triggered as we disable mpi when sharding
             raise NotImplementedError("hybrid mpi and sharding is not not supported")
@@ -595,7 +597,7 @@ def device_count_per_rank():
         return 1
 
 
-def device_count():
+def device_count() -> int:
     """
     Helper functions which returns the TOTAL number of jax devices netket will use.
 

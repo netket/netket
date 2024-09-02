@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
 from functools import wraps
 
 import numpy as np
 import jax
 import jax.numpy as jnp
 
+from netket.utils.types import Array
+
 from .mpi import n_nodes, MPI, MPI_py_comm, MPI_jax_comm
+
+Token = Any
 
 
 def promote_to_pytree(f):
@@ -68,7 +73,9 @@ def mpi_sum(x, *, comm=MPI_py_comm):
 
 
 @promote_to_pytree
-def mpi_sum_jax(x, *, token=None, comm=MPI_jax_comm):
+def mpi_sum_jax(
+    x: Array, *, token: Token = None, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     """
     Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
@@ -87,11 +94,11 @@ def mpi_sum_jax(x, *, token=None, comm=MPI_jax_comm):
         token: an output token
     """
     if n_nodes == 1:
-        return x, token
+        return jnp.asarray(x), token
     else:
         import mpi4jax
 
-        return mpi4jax.allreduce(x, op=MPI.SUM, comm=comm, token=token)
+        return mpi4jax.allreduce(x, op=MPI.SUM, comm=comm, token=token)  # type: ignore
 
 
 def mpi_prod(x, *, comm=MPI_py_comm):
@@ -115,7 +122,9 @@ def mpi_prod(x, *, comm=MPI_py_comm):
 
 
 @promote_to_pytree
-def mpi_prod_jax(x, *, token=None, comm=MPI_jax_comm):
+def mpi_prod_jax(
+    x: Array, *, token: Token = None, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     """
     Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
@@ -134,11 +143,11 @@ def mpi_prod_jax(x, *, token=None, comm=MPI_jax_comm):
         token: an output token
     """
     if n_nodes == 1:
-        return x, token
+        return jnp.asarray(x), token
     else:
         import mpi4jax
 
-        return mpi4jax.allreduce(x, op=MPI.PROD, comm=comm, token=token)
+        return mpi4jax.allreduce(x, op=MPI.PROD, comm=comm, token=token)  # type: ignore
 
 
 def mpi_mean(x, *, comm=MPI_py_comm):
@@ -157,7 +166,9 @@ def mpi_mean(x, *, comm=MPI_py_comm):
 
 
 @promote_to_pytree
-def mpi_mean_jax(x, *, token=None, comm=MPI_jax_comm):
+def mpi_mean_jax(
+    x: Array, *, token: Token = None, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     """
     Computes the elementwise mean of an array or a scalar across all MPI processes
     of a jax array.
@@ -289,7 +300,9 @@ def mpi_max(x, *, comm=MPI_py_comm):
 
 
 @promote_to_pytree
-def mpi_max_jax(x, *, token=None, comm=MPI_jax_comm):
+def mpi_max_jax(
+    x: Array, *, token: Token = None, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     """
     Computes the elementwise logical OR of an array or a scalar across all MPI
     processes, effectively equivalent to an elementwise any
@@ -303,11 +316,11 @@ def mpi_max_jax(x, *, token=None, comm=MPI_jax_comm):
         token: an output token
     """
     if n_nodes == 1:
-        return x, token
+        return jnp.asarray(x), token
     else:
         import mpi4jax
 
-        return mpi4jax.allreduce(x, op=MPI.MAX, comm=comm, token=token)
+        return mpi4jax.allreduce(x, op=MPI.MAX, comm=comm, token=token)  # type: ignore
 
 
 def mpi_bcast(x, *, root, comm=MPI_py_comm):
@@ -318,14 +331,16 @@ def mpi_bcast(x, *, root, comm=MPI_py_comm):
 
 
 @promote_to_pytree
-def mpi_bcast_jax(x, *, token=None, root, comm=MPI_jax_comm):
+def mpi_bcast_jax(
+    x: Array, *, token: Token = None, root, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     if n_nodes == 1:
         assert root == 0
-        return x, token
+        return jnp.asarray(x), token
     else:
         import mpi4jax
 
-        return mpi4jax.bcast(x, token=token, root=root, comm=comm)
+        return mpi4jax.bcast(x, token=token, root=root, comm=comm)  # type: ignore
 
 
 def mpi_allgather(x, *, comm=MPI_py_comm):
@@ -359,27 +374,33 @@ def mpi_gather(x, *, root: int = 0, comm=MPI_py_comm):
 
 
 @promote_to_pytree
-def mpi_gather_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+def mpi_gather_jax(
+    x: Array, *, token: Token = None, root: int = 0, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     if n_nodes == 1:
         return jnp.expand_dims(x, 0), token
     else:
         import mpi4jax
 
-        return mpi4jax.gather(x, token=token, root=root, comm=comm)
+        return mpi4jax.gather(x, token=token, root=root, comm=comm)  # type: ignore
 
 
 @promote_to_pytree
-def mpi_allgather_jax(x, *, token=None, comm=MPI_jax_comm):
+def mpi_allgather_jax(
+    x: Array, *, token: Token = None, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     if n_nodes == 1:
         return jnp.expand_dims(x, 0), token
     else:
         import mpi4jax
 
-        return mpi4jax.allgather(x, token=token, comm=comm)
+        return mpi4jax.allgather(x, token=token, comm=comm)  # type: ignore
 
 
 @promote_to_pytree
-def mpi_scatter_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+def mpi_scatter_jax(
+    x: Array, *, token: Token = None, root: int = 0, comm=MPI_jax_comm
+) -> tuple[jax.Array, Token]:
     if n_nodes == 1:
         if x.shape[0] != 1:
             raise ValueError("Scatter input must have shape (nproc, ...)")
@@ -387,7 +408,7 @@ def mpi_scatter_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
     else:
         import mpi4jax
 
-        return mpi4jax.scatter(x, root=root, token=token, comm=comm)
+        return mpi4jax.scatter(x, root=root, token=token, comm=comm)  # type: ignore
 
 
 @promote_to_pytree

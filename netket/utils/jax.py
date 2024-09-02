@@ -16,6 +16,8 @@ from collections.abc import Callable
 
 import jax.numpy as jnp
 
+from flax import linen as nn
+
 from .partial import HashablePartial
 from . import struct
 
@@ -39,14 +41,14 @@ class WrappedApplyFun:
         return f"{type(self).__name__}(apply={self.apply}, hash={hash(self)})"
 
 
-def wrap_afun(mod_or_fun):
+def wrap_afun(mod_or_fun) -> nn.Module:
     """Wraps a callable to be a module-like object with the method `apply`.
     Does nothing if it already has an apply method.
     """
     if hasattr(mod_or_fun, "apply"):
         return mod_or_fun
     else:
-        return WrappedApplyFun(mod_or_fun)
+        return WrappedApplyFun(mod_or_fun)  # type: ignore[return-type]
 
 
 def wrap_to_support_scalar(fun):

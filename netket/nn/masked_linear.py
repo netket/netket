@@ -99,7 +99,7 @@ class MaskedDense1D(nn.Module):
         mask = np.kron(
             mask, np.ones((in_features, self.features), dtype=self.param_dtype)
         )
-        mask: jax.Array = jnp.asarray(mask)  # type: ignore[no-redef]
+        mask = jnp.asarray(mask)  # type: ignore[no-redef]
 
         kernel = self.param(
             "kernel",

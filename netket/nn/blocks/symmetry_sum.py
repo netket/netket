@@ -20,7 +20,6 @@ from flax import linen as nn
 
 from netket.jax import logsumexp_cplx
 from netket.utils.group import PermutationGroup
-from netket.utils.types import Array
 
 
 class SymmExpSum(nn.Module):
@@ -108,7 +107,7 @@ class SymmExpSum(nn.Module):
     """
 
     @nn.compact
-    def __call__(self, x: Array):
+    def __call__(self, x: jax.Array) -> jax.Array:
         """
         Accepts a single input or arbitrary batch of inputs.
 
@@ -125,6 +124,7 @@ class SymmExpSum(nn.Module):
         psi_symm = self.module(x_symm).reshape(*x_symm_shape[:-1])
 
         # Extract the characters. Those are compile-time constant (a numpy array).
+        characters: np.ndarray
         if self.character_id is None:
             characters = np.ones(len(np.asarray(self.symm_group)))
         else:

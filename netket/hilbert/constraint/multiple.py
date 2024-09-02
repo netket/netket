@@ -14,9 +14,9 @@
 
 from textwrap import dedent
 
+import jax
 import jax.numpy as jnp
 
-from netket.utils.types import Array
 from netket.utils import struct, dispatch
 
 from .base import (
@@ -38,7 +38,7 @@ class ExtraConstraint(DiscreteHilbertConstraint):
     base_constraint: DiscreteHilbertConstraint = struct.field(pytree_node=False)
     extra_constraint: DiscreteHilbertConstraint = struct.field(pytree_node=False)
 
-    def __call__(self, x: Array) -> Array:
+    def __call__(self, x: jax.Array) -> jax.Array:
         conditions = jnp.stack(
             [self.base_constraint(x), self.extra_constraint(x)], axis=0
         )

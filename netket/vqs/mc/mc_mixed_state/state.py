@@ -20,6 +20,7 @@ from flax import serialization
 
 import netket
 from netket import jax as nkjax
+from netket.hilbert import DiscreteHilbert
 from netket.sampler import Sampler
 from netket.stats import Stats
 from netket.utils.types import PyTree
@@ -210,8 +211,11 @@ class MCMixedState(VariationalMixedState, MCState):
     ) -> tuple[Stats, PyTree]:
         raise NotImplementedError
 
-    def to_matrix(self, normalize: bool = True) -> jnp.ndarray:
-        return netket.nn.to_matrix(
+    def to_matrix(self, normalize: bool = True) -> jax.Array:
+        if not isinstance(self.hilbert, DiscreteHilbert):
+            raise TypeError("Cannot convert to array a non-discrete Hilbert space.")
+
+        return netket.nn.to_matrix(  # type: ignore[return-value]
             self.hilbert,
             self._apply_fun,
             self.variables,

@@ -31,7 +31,7 @@ JaxArray = _jax.Array
 
 ArrayLike = Any  # Objects that are valid inputs to (np|jnp).asarray.
 
-NNInitFunc = Callable[[PRNGKeyT, Shape, DType], Array]
+NNInitFunc = Callable[[PRNGKeyT, Shape, DType], _jax.Array]
 
 PyTree = Any
 

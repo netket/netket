@@ -64,7 +64,7 @@ def reim(f):
 
     fun = HashablePartial(reim_f, f)
 
-    fun.__name__ = f"reim_{f.__name__}"
+    fun.__name__ = f"reim_{f.__name__}"  # type: ignore
     fun.__doc__ = (
         f"{f.__name__} applied separately to the real and"
         f"imaginary parts of it's input.\n\n"

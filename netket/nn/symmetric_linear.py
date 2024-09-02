@@ -124,7 +124,7 @@ class DenseSymmMatrix(Module):
             precision=self.precision,
         )
 
-        if self.use_bias:
+        if bias is not None:
             # Convert symmetry-reduced bias of shape (features,) to the full bias of
             # shape (..., features, 1).
             x += jnp.expand_dims(bias, 1)
@@ -247,7 +247,7 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*batch_shape, self.features, self.n_symm)
 
-        if self.use_bias:
+        if bias is not None:
             x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
@@ -370,7 +370,7 @@ class DenseEquivariantFFT(Module):
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*batch_shape, self.features, self.n_symm)
 
-        if self.use_bias:
+        if bias is not None:
             x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
@@ -559,7 +559,7 @@ class DenseEquivariantIrrep(Module):
         x = self.inverse_ft(x_fourier).reshape(*batch_shape, self.features, self.n_symm)
         x = cast(jax.Array, x)
 
-        if self.use_bias:
+        if bias is not None:
             x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
@@ -610,6 +610,7 @@ class DenseEquivariantMatrix(Module):
         """
         in_features = x.shape[-2]
 
+        kernel: jax.Array
         if self.mask is not None:
             kernel_params = self.param(
                 "kernel",
@@ -652,7 +653,7 @@ class DenseEquivariantMatrix(Module):
             precision=self.precision,
         )
 
-        if self.use_bias:
+        if bias is not None:
             x += jnp.expand_dims(bias, 1)
 
         return x
@@ -876,14 +877,14 @@ def DenseEquivariant(
             )
         else:
             return DenseEquivariantFFT(
-                HashableArray(sg.product_table), mask=mask, shape=shape, **kwargs
+                HashableArray(sg.product_table), mask=mask, shape=shape, **kwargs  # type: ignore
             )
     elif mode in ["irreps", "auto"]:
         irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
         return DenseEquivariantIrrep(irreps, mask=mask, **kwargs)
     elif mode == "matrix":
         return DenseEquivariantMatrix(
-            HashableArray(sg.product_table), mask=mask, **kwargs
+            HashableArray(sg.product_table), mask=mask, **kwargs  # type: ignore
         )
     else:
         raise ValueError(

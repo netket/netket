@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable
+from collections.abc import Callable, Sized
+from typing import Iterable
 
 import jax
 import jax.numpy as jnp
@@ -43,9 +44,9 @@ class MLP(nn.Module):
     """
     output_dim: int = 1
     """The output dimension"""
-    hidden_dims: int | tuple[int, ...] | None = None
+    hidden_dims: tuple[int, ...] | None = None
     """The size of the hidden layers, excluding the output layer."""
-    hidden_dims_alpha: int | tuple[int, ...] | None = None
+    hidden_dims_alpha: tuple[int, ...] | None = None
     """The size of the hidden layers provided as number of times the input size.
     One must choose to either specify this or the hidden_dims keyword argument"""
     param_dtype: DType = jnp.float64
@@ -87,7 +88,7 @@ class MLP(nn.Module):
 
         if self.hidden_activations is None:
             hidden_activations = [None] * len(hidden_dims)
-        elif hasattr(self.hidden_activations, "__len__"):
+        elif isinstance(self.hidden_activations, (Sized, Iterable)):
             hidden_activations = self.hidden_activations
         else:
             hidden_activations = [self.hidden_activations] * len(hidden_dims)

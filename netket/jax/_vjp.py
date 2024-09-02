@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, Literal, overload, TypeVar
 from collections.abc import Callable
 from functools import partial
 
@@ -24,6 +24,11 @@ from jax.tree_util import Partial, tree_map
 from netket.utils import HashablePartial
 
 from ._utils_tree import tree_leaf_iscomplex, eval_shape
+
+# These TypeVars are used below to express the fact that function types
+# (i.e. call signatures) are invariant under the vmap transformation.
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 # _grad_CC, _RR and _RC are the chunked gradient functions for machines going
@@ -172,6 +177,26 @@ def vjp_rc(
 
 
 # This function dispatches to the right
+@overload
+def vjp(
+    fun: Callable[..., T],
+    *primals: Any,
+    has_aux: Literal[False] = False,
+    conjugate: bool = False,
+) -> tuple[T, Callable]:
+    ...
+
+
+@overload
+def vjp(
+    fun: Callable[..., tuple[T, U]],
+    *primals: Any,
+    has_aux: Literal[True],
+    conjugate: bool = False,
+) -> tuple[T, Callable, U]:
+    ...
+
+
 def vjp(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
 ) -> tuple[Any, Callable] | tuple[Any, Callable, Any]:

@@ -122,7 +122,7 @@ def _bcast_key(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     )
 
     if is_new_style_key:
-        key = jax.random.wrap_key_data(key, impl=_impl)
+        key = jax.random.wrap_key_data(key, impl=_impl)  # type: ignore[arg-type]
 
     return key
 

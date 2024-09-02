@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fractions import Fraction
 from typing import Optional
+from fractions import Fraction
 
 from pathlib import Path
 import os
@@ -211,16 +211,16 @@ class Spin(HomogeneousHilbert):
         if not inverted_ordering:
             # Reasonable, new ordering where  1=↑ -1=↓
             local_states = StaticRange(
-                local_size - 1,
-                -2,
+                local_size - 1,  # type: ignore[arg-type]
+                -2,  # type: ignore[arg-type]
                 local_size,
                 dtype=np.int8 if local_size < 2**7 else int,
             )
         else:
             # Old ordering where -1=↑ 1=↓
             local_states = StaticRange(
-                1 - local_size,
-                2,
+                1 - local_size,  # type: ignore[arg-type]
+                2,  # type: ignore[arg-type]
                 local_size,
                 dtype=np.int8 if local_size < 2**7 else int,
             )
