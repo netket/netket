@@ -24,9 +24,9 @@ from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
 
-from netket.experimental.hilbert import SpinOrbitalFermions
+from netket.hilbert import SpinOrbitalFermions
 
-from ._fermion_operator_2nd_utils import (
+from .utils import (
     _convert_terms_to_spin_blocks,
     _canonicalize_input,
     _check_hermitian,
@@ -92,14 +92,14 @@ class FermionOperator2ndBase(DiscreteOperator):
             Constructs the fermionic hamiltonian in :math:`2^{nd}` quantization
             :math:`(0.5-0.5j)*(a_0^\dagger a_1) + (0.5+0.5j)*(a_2^\dagger a_1)`.
 
-            >>> import netket.experimental as nkx
+            >>> import netket as nk
             >>> terms, weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
-            >>> hi = nkx.hilbert.SpinOrbitalFermions(3)
-            >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
+            >>> hi = nk.hilbert.SpinOrbitalFermions(3)
+            >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
             FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> terms = ("0^ 1", "2^ 1")
-            >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
+            >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
             FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> op.hilbert

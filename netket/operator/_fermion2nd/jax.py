@@ -26,8 +26,8 @@ from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.types import DType
 from netket.jax.sharding import sharding_decorator
 
-from ._fermion_operator_2nd_base import FermionOperator2ndBase
-from ._fermion_operator_2nd_utils import _is_diag_term
+from .base import FermionOperator2ndBase
+from .utils import _is_diag_term
 
 
 @partial(jax.vmap, in_axes=(0, None, None))
@@ -518,7 +518,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     better performance.
 
     Can be converted to the Numba one with the method
-    :meth:`~netket.experimental.operator.FermionOperator2ndJax.to_numba_operator()`.
+    :meth:`~netket.operator.FermionOperator2ndJax.to_numba_operator()`.
     """
 
     @wraps(FermionOperator2ndBase.__init__)
@@ -624,9 +624,9 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     def to_numba_operator(self) -> "FermionOperator2nd":  # noqa: F821
         """
         Returns the standard numba version of this operator, which is an
-        instance of :class:`netket.experimental.operator.FermionOperator2nd`.
+        instance of :class:`netket.operator.FermionOperator2nd`.
         """
-        from ._fermion_operator_2nd_numba import FermionOperator2nd
+        from .numba import FermionOperator2nd
 
         new_op = FermionOperator2nd(self.hilbert, cutoff=self._cutoff, dtype=self.dtype)
         new_op._operators = self._operators.copy()

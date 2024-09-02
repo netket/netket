@@ -39,20 +39,9 @@ Below you find a list of all concrete Hilbert spaces that you can use.
    Qubit
    Fock
    Particle
+   SpinOrbitalFermions
 ```
 
-In the experimental submodule there is also an hilbert space for fermions.
-
-```{eval-rst}
-.. currentmodule:: netket
-
-.. autosummary::
-   :toctree: _generated/hilbert
-   :template: class
-   :nosignatures:
-
-   experimental.hilbert.SpinOrbitalFermions
-```
 
 ## Abstract Classes
 
