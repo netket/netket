@@ -3,7 +3,10 @@
 
 # Change Log
 
-## NetKet 3.14 (⚙️ In development)
+## NetKet 3.15 (⚙️ In development)
+
+
+## NetKet 3.14 (⛓️ 4 September 2024)
 
 ### New features
 * Hilbert spaces such as {class}`nk.hilbert.Spin` and {class}`nk.hilbert.Fock`, as well as their base class {class}`nk.hilbert.HomogeneousHilbert`, now support arbitrary custom constraints [#1908](https://github.com/netket/netket/pull/1908).
