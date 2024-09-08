@@ -22,7 +22,7 @@ import jax.numpy as jnp
 import netket as nk
 from netket import config
 from netket.utils.mpi.primitives import mpi_all_jax
-from netket.utils.struct import dataclass, field
+from netket.utils import struct, KahanSum
 from netket.utils.types import Array, PyTree
 from netket.utils.numbers import dtype as _dtype
 
@@ -124,13 +124,13 @@ def maximum_norm(x: PyTree | Array):
         )
 
 
-@dataclass
+@struct.dataclass
 class RungeKuttaState:
     step_no: int
     """Number of successful steps since the start of the iteration."""
     step_no_total: int
     """Number of steps since the start of the iteration, including rejected steps."""
-    t: nk.utils.KahanSum
+    t: KahanSum
     """Current time."""
     y: Array
     """Solution at current time."""
@@ -300,13 +300,13 @@ def general_time_step_fixed(
     )
 
 
-@dataclass(_frozen=False)
+@struct.dataclass(_frozen=False)
 class RungeKuttaIntegrator:
     tableau: rkt.NamedTableau
 
-    f: Callable = field(repr=False)
+    f: Callable = struct.field(repr=False)
     t0: float
-    y0: Array = field(repr=False)
+    y0: Array = struct.field(repr=False)
 
     initial_dt: float
 
@@ -340,8 +340,8 @@ class RungeKuttaIntegrator:
         self._rkstate = RungeKuttaState(
             step_no=0,
             step_no_total=0,
-            t=nk.utils.KahanSum(self.t0),
             y=self.y0,
+            t=KahanSum(self.t0),
             dt=self.initial_dt,
             last_norm=0.0 if self.use_adaptive else None,
             last_scaled_error=0.0 if self.use_adaptive else None,
