@@ -310,8 +310,8 @@ def general_time_step_adaptive(
                 lambda _: rk_state.dt,
                 None,
             ),
-            last_norm=norm_y,
-            last_scaled_error=scaled_err,
+            last_norm=norm_y.astype(rk_state.last_norm.dtype),
+            last_scaled_error=scaled_err.astype(rk_state.last_scaled_error.dtype),
             flags=flags | SolverFlags.INFO_STEP_ACCEPTED,
         ),
         # step rejected, repeat with lower dt
