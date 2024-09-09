@@ -320,7 +320,6 @@ def test_float32_dtype():
     import netket as nk
     from netket import experimental
 
-    import flax.linen as nn
     import jax.numpy as jnp
 
     N = 3
@@ -331,7 +330,7 @@ def test_float32_dtype():
     model = nk.models.RBM(alpha=1, param_dtype=jnp.float32)
     vstate = nk.vqs.MCState(sa, model, n_samples=1008, n_discard_per_chain=16)
     integrator = experimental.dynamics.RK12(dt=1e-2, adaptive=True, rtol=1e-5)
-    tdvp = experimental.TDVP(ha, vstate, integrator, error_norm='qgt')
+    tdvp = experimental.TDVP(ha, vstate, integrator, error_norm="qgt")
 
     tdvp_log = nk.logging.RuntimeLog()
     tdvp.run(T=0.1, out=tdvp_log)
