@@ -5,6 +5,9 @@
 
 ## NetKet 3.15 (⚙️ In development)
 
+## NetKet 3.14.1 (9 September 2024)
+
+* Fix a dtype-stability issue in adaptive TDVP integrators [#1918](https://github.com/netket/netket/pull/1918).
 
 ## NetKet 3.14 (⛓️ 4 September 2024)
 
