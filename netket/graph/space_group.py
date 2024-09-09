@@ -22,12 +22,13 @@ from collections.abc import Iterable, Sequence
 
 from .lattice import Lattice
 
-from netket.utils import struct
+from netket.utils import struct, deprecated_new_name
 from netket.utils.types import Array, Union
 from netket.utils.float import prune_zeros
 from netket.utils.dispatch import dispatch
 
 from netket.utils.group import (
+    Element,
     Identity,
     PointGroup,
     Permutation,
@@ -80,7 +81,7 @@ def _ensure_iterable(x):
 
 
 @struct.dataclass
-class SpaceGroupBuilder:
+class SpaceGroupBuilder(struct.Pytree):
     """
     Class to handle the space group symmetries of `Lattice`.
 
@@ -95,14 +96,57 @@ class SpaceGroupBuilder:
     """
 
     lattice: Lattice
-    point_group_: PointGroup
+    _point_group: PointGroup
 
-    def __post_init__(self):
-        object.__setattr__(
-            self,
-            "point_group_",
-            self.point_group_.replace(unit_cell=self.lattice.basis_vectors),
-        )
+    def __init__(self, lattice: Lattice, point_group: PointGroup):
+        """
+        Constructs the Space Group Builder used to concretize a point group
+        which knows nothing about how many sites there are in a lattice,
+        into a Permutation Group which can be used to perform calculations.
+
+        From the point of view of group theory, you can think of this as
+        taking the point group and returning a representation on the computational
+        basis defined by the lattice.
+
+        Args:
+            lattice: The lattice for which to represent the point group as
+                a permutation group
+            point_group: The point group to be represented
+        """
+        self.lattice = lattice
+
+        if not isinstance(lattice, Lattice):
+            raise TypeError(
+                "The lattice provided to Space Group Builder must "
+                "be an instance of `Lattice`. However the lattice you provided "
+                f"is of type {type(lattice)}."
+            )
+
+        if not isinstance(point_group, PointGroup):
+            extra_tip = ""
+            if isinstance(point_group, Element):
+                extra_tip = extra_tip + (
+                    "\n\n It seems you might have forgotten to wrap this "
+                    "single symmetry inside of a nk.utils.group.PointGroup."
+                )
+            raise TypeError(
+                "The point group provided to Space Group Builder must "
+                "be an instance of `PointGroup`. However the lattice you provided "
+                f"is of type {type(point_group)}. {extra_tip}"
+            )
+
+        point_group = point_group.replace(unit_cell=lattice.basis_vectors)
+        self._point_group = point_group
+
+    @property
+    @deprecated_new_name("_point_group", reason="Consistency")
+    def point_group_(self) -> PointGroup:
+        """
+        Deprecated: Returns the internally stored point group as a point group,
+        instead of the one stored as a permutation group.
+        """
+
+        return self._point_group
 
     # TODO describe ordering of group elements here and later in docstring
     @struct.property_cached
