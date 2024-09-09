@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .struct import dataclass
-from .types import Scalar
+import jax.numpy as jnp
+
+from netket.utils import struct
+from netket.utils.types import Scalar
 
 
-@dataclass
-class KahanSum:
+@struct.dataclass
+class KahanSum(struct.Pytree):
     """
     Accumulator implementing Kahan summation [1], which reduces
     the effect of accumulated floating-point error.
@@ -26,10 +28,33 @@ class KahanSum:
     """
 
     value: Scalar
-    compensator: Scalar = 0.0
+    """
+    Current value stored in this array
+    """
+    compensator: Scalar
+    """
+    Compensator used to fix addition/subtraction
+    """
+
+    def __init__(self, value, compensator=None) -> None:
+        """
+        Constructs the Kahan Summation accumulator with a zero-initialized
+        compensator if unspecified.
+
+        Args:
+            value: The value to initialize this scalar.
+            compensator: The state of the compensator. 0 by default.
+        """
+        self.value = jnp.asarray(value)
+        if compensator is None:
+            compensator = jnp.zeros_like(self.value)
+        self.compensator = compensator
 
     def __add__(self, other: Scalar):
         delta = other - self.compensator
         new_value = self.value + delta
         new_compensator = (new_value - self.value) - delta
         return KahanSum(new_value, new_compensator)
+
+    def __jax_array__(self, dtype=None):
+        return self.value.astype(dtype)

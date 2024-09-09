@@ -22,7 +22,7 @@ import jax.numpy as jnp
 import netket as nk
 from netket import config
 from netket.utils.mpi.primitives import mpi_all_jax
-from netket.utils.struct import dataclass, field
+from netket.utils import struct, KahanSum
 from netket.utils.types import Array, PyTree
 from netket.utils.numbers import dtype as _dtype
 
@@ -124,13 +124,13 @@ def maximum_norm(x: PyTree | Array):
         )
 
 
-@dataclass
-class RungeKuttaState:
+@struct.dataclass
+class RungeKuttaState(struct.Pytree):
     step_no: int
     """Number of successful steps since the start of the iteration."""
     step_no_total: int
     """Number of steps since the start of the iteration, including rejected steps."""
-    t: nk.utils.KahanSum
+    t: KahanSum
     """Current time."""
     y: Array
     """Solution at current time."""
@@ -142,6 +142,53 @@ class RungeKuttaState:
     """Error of the TDVP integrator at the last time step."""
     flags: SolverFlags = SolverFlags.INFO_STEP_ACCEPTED
     """Flags containing information on the solver state."""
+
+    def __init__(
+        self,
+        y,
+        t: float,
+        dt: float,
+        *,
+        step_no=0,
+        step_no_total=0,
+        last_norm=None,
+        last_scaled_error=None,
+        flags=SolverFlags.INFO_STEP_ACCEPTED,
+    ):
+        step_dtype = jnp.int64 if jax.config.x64_enabled else jnp.int32
+        err_dtype = jnp.float64 if jax.config.x64_enabled else jnp.float32
+
+        self.step_no = jnp.asarray(step_no, dtype=step_dtype)
+        self.step_no_total = jnp.asarray(step_no_total, dtype=step_dtype)
+
+        if not isinstance(t, KahanSum):
+            t = KahanSum(t)
+        if not isinstance(dt, jax.Array):
+            dt = jnp.asarray(dt)
+        self.t = t
+        self.dt = dt
+
+        # To avoid creating problems, just convert to array if the leaves
+        # in the parameters are not jax arrays already.
+        def _maybe_asarray(x):
+            if isinstance(x, jax.Array):
+                return x
+            else:
+                return jnp.asarray(x)
+
+        self.y = jax.tree_util.tree_map(_maybe_asarray, y)
+
+        if last_norm is not None:
+            last_norm = jnp.asarray(last_norm, dtype=err_dtype)
+        self.last_norm = last_norm
+        if last_scaled_error is not None:
+            last_scaled_error = jnp.asarray(last_scaled_error, dtype=err_dtype)
+        self.last_scaled_error = last_scaled_error
+
+        # Todo: if making SolverFlag a proper pytree this can be restored.
+        # if not isinstance(flags, SolverFlags):
+        #    raise TypeError(f"flags must be SolverFlags but got {type(flags)} : {flag}")
+        self.flags = flags
 
     def __repr__(self):
         try:
@@ -263,8 +310,8 @@ def general_time_step_adaptive(
                 lambda _: rk_state.dt,
                 None,
             ),
-            last_norm=norm_y,
-            last_scaled_error=scaled_err,
+            last_norm=norm_y.astype(rk_state.last_norm.dtype),
+            last_scaled_error=scaled_err.astype(rk_state.last_scaled_error.dtype),
             flags=flags | SolverFlags.INFO_STEP_ACCEPTED,
         ),
         # step rejected, repeat with lower dt
@@ -300,13 +347,13 @@ def general_time_step_fixed(
     )
 
 
-@dataclass(_frozen=False)
+@struct.dataclass(_frozen=False)
 class RungeKuttaIntegrator:
     tableau: rkt.NamedTableau
 
-    f: Callable = field(repr=False)
+    f: Callable = struct.field(repr=False)
     t0: float
-    y0: Array = field(repr=False)
+    y0: Array = struct.field(repr=False)
 
     initial_dt: float
 
@@ -338,10 +385,8 @@ class RungeKuttaIntegrator:
         setattr(self, "initial_dt", jnp.array(self.initial_dt, dtype=t_dtype))
 
         self._rkstate = RungeKuttaState(
-            step_no=0,
-            step_no_total=0,
-            t=nk.utils.KahanSum(self.t0),
             y=self.y0,
+            t=KahanSum(self.t0),
             dt=self.initial_dt,
             last_norm=0.0 if self.use_adaptive else None,
             last_scaled_error=0.0 if self.use_adaptive else None,
