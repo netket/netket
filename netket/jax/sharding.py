@@ -34,7 +34,7 @@ from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
 
 from netket.utils import config, mpi
-from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
+from netket.utils.deprecation import warn_deprecation
 
 
 _identity = lambda x: x
@@ -113,16 +113,38 @@ def distribute_to_devices_along_axis(
 
 # TODO consider merging this with distribute_to_devices_along_axis
 @jax.jit
+def shard_along_axis(x, axis: int):
+    """
+    When running with experimental sharding mode, calls
+    :func:`jax.lax.with_sharding_constraint` with a
+    :class:`jax.sharding.PositionalSharding` sharded along the given axis.
+
+    Args:
+        x: An array
+        axis: the axis to be sharded
+    """
+    if config.netket_experimental_sharding and jax.device_count() > 1:
+        # Shard shape is (1, 1, 1, -1, 1, 1) where -1 is the axis
+        shard_shape = [1 for _ in range(x.ndim)]
+        shard_shape[axis] = -1
+
+        x = jax.lax.with_sharding_constraint(
+            x, PositionalSharding(jax.devices()).reshape(tuple(shard_shape))
+        )
+    return x
+
+
+@jax.jit
 def with_samples_sharding_constraint(x, shape=None):
     """
     ensure the input x is sharded along axis 0 on all devices
     works both outside and inside of jit
     """
-    if config.netket_experimental_sharding and jax.device_count() > 1:
-        x = jax.lax.with_sharding_constraint(
-            x, PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
-        )
-    return x
+    warn_deprecation(
+        "with_samples_sharding_constraint is deprecated in favour of nk.jax.sharding.shard_along_axis(x, axis=0)"
+    )
+
+    return shard_along_axis(x, 0)
 
 
 def extract_replicated(t):

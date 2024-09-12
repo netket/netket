@@ -7,7 +7,7 @@ from netket.operator import DiscreteJaxOperator
 import pytest
 import jax
 from jax.experimental.sparse import BCOO
-from netket.jax.sharding import with_samples_sharding_constraint
+from netket.jax.sharding import shard_along_axis
 
 from .. import common
 
@@ -315,7 +315,7 @@ def test_operator_sharded_not_commuincating(op):
 
     hi = op.hilbert
     x = hi.random_state(jax.random.PRNGKey(0), 8 * jax.device_count(), dtype=np.float64)
-    x = with_samples_sharding_constraint(x)
+    x = shard_along_axis(x, axis=0)
 
     gcp_jit = jax.jit(lambda ha, x: ha.get_conn_padded(x))
     compiled = gcp_jit.lower(op, x).compile()
