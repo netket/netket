@@ -16,8 +16,10 @@ import abc
 
 from typing import Any
 
+import jax
 
 from netket.vqs import VariationalState
+from netket.utils import mpi
 
 
 class AbstractLog(abc.ABC):
@@ -58,3 +60,10 @@ class AbstractLog(abc.ABC):
                 might be extracted.
 
         """
+
+    @property
+    def _is_master_process(self) -> bool:
+        """
+        Returns whether this logger is the root logger in a distributed setting.
+        """
+        return mpi.rank == 0 and jax.process_index == 0

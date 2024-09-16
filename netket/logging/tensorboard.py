@@ -146,6 +146,8 @@ class TensorBoardLog(AbstractLog):
         item: dict[str, Any],
         variational_state: VariationalState | None = None,
     ):
+        if not self._is_master_process:
+            return
         if self._writer is None:
             self._init_tensorboard()
         assert self._writer is not None

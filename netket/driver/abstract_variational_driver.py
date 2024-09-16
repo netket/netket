@@ -311,20 +311,14 @@ class AbstractVariationalDriver(abc.ABC):
         elif out is None:
             out = ()
 
-        # Log only non-root nodes
-        if self._is_root:
-            loggers = _to_iterable(out)
-        else:
-            loggers: tuple[AbstractLog, ...] = tuple()
-            show_progress = False
-
+        loggers = _to_iterable(out)
         callbacks = _to_iterable(callback)
         callback_stop = False
 
         with timing.timed_scope(force=timeit) as timer:
             with tqdm(
                 total=n_iter,
-                disable=not show_progress,
+                disable=not show_progress or not self._is_root,
                 dynamic_ncols=True,
             ) as pbar:
                 old_step = self.step_count
