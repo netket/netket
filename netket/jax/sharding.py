@@ -112,7 +112,7 @@ def distribute_to_devices_along_axis(
 
 
 # TODO consider merging this with distribute_to_devices_along_axis
-@jax.jit
+@partial(jax.jit, static_argnames="axis")
 def shard_along_axis(x, axis: int):
     """
     When running with experimental sharding mode, calls
