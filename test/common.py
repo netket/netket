@@ -1,13 +1,14 @@
 # File containing common commands for NetKet Test infrastructure
 
 from typing import Any
-
 from functools import partial
 import os
 
 import pytest
 
+import jax
 import netket as nk
+import numpy as np
 
 
 def _is_true(x):
@@ -163,3 +164,15 @@ def hash_for_seed(obj):
 def named_parametrize(argname: str, values: list):
     param_values = [pytest.param(obj, id=f"{argname}={obj}") for obj in values]
     return pytest.mark.parametrize(argname, param_values)
+
+
+def assert_allclose(x, y, **kwargs):
+    from jax.experimental import multihost_utils
+
+    if isinstance(x, jax.Array):
+        if not x.is_fully_addressable:
+            x = multihost_utils.process_allgather(x)
+    if isinstance(y, jax.Array):
+        if not y.is_fully_addressable:
+            y = multihost_utils.process_allgather(y)
+    np.testing.assert_allclose(x, y, **kwargs)

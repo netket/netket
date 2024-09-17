@@ -1,4 +1,3 @@
-import numpy as np
 import jax.numpy as jnp
 
 from netket.operator import LocalOperatorJax
@@ -6,6 +5,8 @@ from netket.operator import IsingJax
 from netket.hilbert import Spin
 from netket.graph import Chain
 from netket.operator.spin import identity
+
+from .. import common
 
 
 def test_casting():
@@ -37,5 +38,5 @@ def test_identity():
     xp, mels = ha.get_conn_padded(x)
     assert xp.shape == (len(x), 1, hi.size)
     assert mels.shape == (len(x), 1)
-    np.testing.assert_allclose(mels, 1)
-    np.testing.assert_allclose(xp, x[:, None])
+    common.assert_allclose(mels, 1)
+    common.assert_allclose(xp, x[:, None])
