@@ -170,7 +170,7 @@ def pytest_configure(config):
         print("Initializing JAX distributed using GLOO...")
         import jax
 
-        jax.config.update("jax_cpu_enable_gloo_collectives", True)
+        jax.config.update("jax_cpu_collectives_implementation", "gloo")
         jax.distributed.initialize(cluster_detection_method="mpi4py")
 
         default_string = f"r{jax.process_index()}/{jax.process_count()} - "
