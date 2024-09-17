@@ -337,7 +337,7 @@ def test_operator_sharded_not_commuincating(op):
 def test_to_local_operator(op):
     op_l = op.to_local_operator()
     assert isinstance(op_l, nk.operator._local_operator.LocalOperatorBase)
-    np.testing.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
+    common.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
 
 
 def test_enforce_float_Ising():
