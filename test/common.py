@@ -75,7 +75,7 @@ at least 2 MPI processes.
 """
 
 skipif_sharding = pytest.mark.skipif(
-    nk.config.netket_experimental_sharding, reason="Only run without MPI"
+    nk.config.netket_experimental_sharding, reason="Only run without sharding"
 )
 """Use as a decorator to mark a test to be skipped when running under Sharding."""
 
