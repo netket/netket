@@ -59,6 +59,12 @@ jobs:
         run: |
           pip install uv
           uv pip install --system -e ".[dev,extra]"
+          # Also install mpi4py needed for cluster detection
+          if [ -z "${{ matrix.mpi }}" ]; then
+            echo "nothing else"
+          else
+            uv pip install --system mpi4py
+          fi
 
       - name: run tests
         run: |
