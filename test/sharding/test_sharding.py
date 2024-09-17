@@ -128,9 +128,6 @@ def test_grad():
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
 def test_vmc(Op, qgt, chunk_size, reset_chains):
-    # TODO: Fix one day this jaxlib bug
-    if chunk_size is not None:
-        pytest.xfail("Jaxlib CPU bug")
 
     vs, g, _ = _setup(16, reset_chains=reset_chains)
     vs.chunk_size = chunk_size
