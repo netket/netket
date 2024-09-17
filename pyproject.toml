@@ -101,6 +101,12 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "netket/_version.py"
 
+[tool.uv]
+dev-dependencies = [
+  "netket[dev]",
+  "mpi4py",
+  "jax>=0.4.33"
+]
 
 # Development tools
 
