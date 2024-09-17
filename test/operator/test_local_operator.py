@@ -16,6 +16,8 @@ from netket.utils import module_version
 import pytest
 from pytest import raises
 
+from .. import common
+
 # TODO: once we require np 2.0.0, we can remove this
 if module_version(np) >= (2, 0, 0):
     from numpy.exceptions import ComplexWarning
@@ -438,6 +440,7 @@ def test_is_hermitian_generic_op(ops):
     "jax",
     [pytest.param(op) for op in [True, False]],
 )
+@common.skipif_sharding
 def test_qutip_conversion(jax):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -537,6 +540,7 @@ def test_identity():
     assert_same_matrices(I @ X, X)
 
 
+@common.skipif_sharding
 def test_not_recompiling():
     hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
     op = bcreate(hi, 0) * bdestroy(hi, 2)

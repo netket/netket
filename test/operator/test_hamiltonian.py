@@ -17,6 +17,8 @@ import pytest
 
 import netket as nk
 
+from .. import common
+
 
 def test_ising_int_dtype():
     H = nk.operator.Ising(nk.hilbert.Spin(0.5, 4), nk.graph.Chain(4), h=1, J=-1)
@@ -82,6 +84,7 @@ def _colored_graph(graph):
     return nk.graph.Graph(edges=[(i, j, i % 2) for i, j in graph.edges()])
 
 
+@common.skipif_distributed
 @pytest.mark.parametrize(
     "dtype",
     [

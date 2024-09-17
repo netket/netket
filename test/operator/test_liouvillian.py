@@ -22,6 +22,10 @@ from pytest import approx
 
 from netket.operator import spin
 
+from .. import common
+
+pytestmark = common.skipif_sharding
+
 np.set_printoptions(linewidth=180)
 
 # 1D Lattice
@@ -41,7 +45,7 @@ for i in range(L):
     j_ops.append(1j * spin.sigmam(hi, i))
 
 
-#  Create the lindbladian with
+# Create the lindbladian with
 lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
 
