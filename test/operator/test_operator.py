@@ -138,6 +138,14 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nkx.operator.FermionOperator2nd
     _mode="mask",
 )
 
+# Remove non jax operators when sharding is activated
+if nk.config.netket_experimental_sharding:
+    _operators = {}
+    for k, o in operators.items():
+        if isinstance(o, nk.operator.DiscreteJaxOperator):
+            _operators[k] = o
+    operators = _operators
+
 op_special = {}
 for name, op in operators.items():
     if hasattr(op, "to_local_operator"):
@@ -296,8 +304,8 @@ def test_get_conn_padded(op, shape, dtype):
     assert mels.dtype == op.dtype
 
     vp_f, mels_f = op.get_conn_padded(v.reshape(-1, hi.size))
-    np.testing.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
-    np.testing.assert_allclose(mels_f, mels.reshape(-1, mels.shape[-1]))
+    common.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
+    common.assert_allclose(mels_f, mels.reshape(-1, mels.shape[-1]))
 
 
 @pytest.mark.parametrize(
