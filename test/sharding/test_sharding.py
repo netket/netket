@@ -128,7 +128,6 @@ def test_grad():
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
 def test_vmc(Op, qgt, chunk_size, reset_chains):
-
     vs, g, _ = _setup(16, reset_chains=reset_chains)
     vs.chunk_size = chunk_size
     # initially the params are only on the first device of each process
