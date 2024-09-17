@@ -101,6 +101,12 @@ source = "vcs"
 [tool.hatch.build.hooks.vcs]
 version-file = "netket/_version.py"
 
+[tool.uv]
+dev-dependencies = [
+  "netket[dev]",
+  "mpi4py",
+  "jax>=0.4.33"
+]
 
 # Development tools
 
@@ -145,7 +151,9 @@ filterwarnings = [
     "ignore:Defaulting to `holomorphic=False`,",
     "ignore::PendingDeprecationWarning: the matrix subclass",
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
-    "ignore:netket.hilbert.CustomHilbert is deprecated"
+    "ignore:netket.hilbert.CustomHilbert is deprecated",
+    "ignore::netket.errors.UndeclaredSpinOderingWarning",
+    "ignore::netket.errors.UnoptimalSRtWarning",
 ]
 testpaths = [
     "test",
