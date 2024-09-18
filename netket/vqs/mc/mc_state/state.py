@@ -798,9 +798,7 @@ def serialize_MCState(vstate):
         sampler_state = vstate.sampler_state
 
     state_dict = {
-        "variables": serialization.to_state_dict(
-            sharding.extract_replicated(vstate.variables)
-        ),
+        "variables": serialization.to_state_dict(vstate.variables),
         "sampler_state": serialization.to_state_dict(sampler_state),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
