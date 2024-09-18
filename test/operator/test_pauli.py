@@ -144,7 +144,11 @@ def test_pauli_cutoff(Op):
     x = np.ones((2,)) * hilbert.local_states[0]
     xp, mels = op.get_conn(x)
     assert xp.shape[-1] == hilbert.size
-    assert xp.shape[-2] == 1
+    if isinstance(op, nk.operator.PauliStringsJax):
+        # PauliStringsJax always pads to max_conn_size
+        assert xp.shape[-2] == op.max_conn_size
+    else:
+        assert xp.shape[-2] == 1
 
 
 @pytest.mark.parametrize("Op", operators)
