@@ -168,15 +168,16 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 if n_fermions is not None:
                     occupation_constraint = SumConstraint(n_fermions)
 
-        # Wrap the extra user provided cosntraint around our
-        # occupation constraint of the populations.
-        if constraint is not None:
-            constraint = ExtraConstraint(
-                base_constraint=occupation_constraint,
-                extra_constraint=constraint,
-            )
-        else:
-            constraint = occupation_constraint
+        if occupation_constraint is not None:
+            # Wrap the extra user provided cosntraint around our
+            # occupation constraint of the populations.
+            if constraint is not None:
+                constraint = ExtraConstraint(
+                    base_constraint=occupation_constraint,
+                    extra_constraint=constraint,
+                )
+            else:
+                constraint = occupation_constraint
 
         """Internal representation of this Hilbert space (Fock or TensorHilbert)."""
         # local states are the occupation numbers (0, 1)
