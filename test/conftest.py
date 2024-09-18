@@ -121,7 +121,7 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
-        "--jax-cpu_disable_async_dispatch",
+        "--jax-cpu-disable-async-dispatch",
         action="store_true",
         default=False,
         help="Disable async cpu dispatch",
@@ -160,9 +160,11 @@ def pytest_configure(config):
     if _clear_cache_every is not None:
         print(f"Clearing jax cache every {_clear_cache_every} tests")
 
-    if config.getoption("--jax_cpu_disable_async_dispatch"):
+    if config.getoption("--jax-cpu-disable-async-dispatch"):
         print("Disabling async CPU dispatch...")
-        jax.config.update('jax_cpu_enable_async_dispatch', False)
+        import jax
+
+        jax.config.update("jax_cpu_enable_async_dispatch", False)
 
     if config.getoption("--jax-distributed-mpi"):
         print("\n---------------------------------------------")
