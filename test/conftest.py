@@ -120,6 +120,13 @@ def pytest_addoption(parser):
         help="Enable JAX distributed initialization using GLOO",
     )
 
+    parser.addoption(
+        "--jax-cpu_disable_async_dispatch",
+        action="store_true",
+        default=False,
+        help="Disable async cpu dispatch",
+    )
+
 
 _n_test_since_reset: int = 0
 _clear_cache_every: int = 0
@@ -152,6 +159,10 @@ def pytest_configure(config):
     _clear_cache_every = config.getoption("--clear-cache-every")
     if _clear_cache_every is not None:
         print(f"Clearing jax cache every {_clear_cache_every} tests")
+
+    if config.getoption("--jax_cpu_disable_async_dispatch"):
+        print("Disabling async CPU dispatch...")
+        jax.config.update('jax_cpu_enable_async_dispatch', False)
 
     if config.getoption("--jax-distributed-mpi"):
         print("\n---------------------------------------------")
