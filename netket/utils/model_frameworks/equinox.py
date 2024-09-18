@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TYPE_CHECKING
+
 import sys
 import jax
 
 from .base import ModuleFramework, framework
+
+if TYPE_CHECKING:
+    import equinox
 
 
 # expose jax-stax as a flax module
@@ -82,7 +87,17 @@ class EquinoxFramework(ModuleFramework):
         import equinox as eqx
 
         params, static = eqx.partition(module, eqx.is_array)
-        params_list, params_treedef = jax.tree.flatten(params)
-        variables = {"params": {"list": tuple(params_list)}}
+        params_leaves, params_treedef = jax.tree.flatten(params)
+        variables = {"params": {"list": tuple(params_leaves)}}
 
         return variables, EquinoxWrapper(static, params_treedef)
+
+    @staticmethod
+    def unwrap(module, maybe_variables) -> "equinox.Module":
+        import equinox as eqx
+
+        params_leaves = maybe_variables["params"]["list"]
+        params_module = jax.tree.unflatten(module.params_treedef, params_leaves)
+
+        eqx_module = eqx.combine(params_module, module.static_module)
+        return eqx_module

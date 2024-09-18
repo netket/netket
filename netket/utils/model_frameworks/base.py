@@ -14,6 +14,7 @@
 
 import dataclasses
 import abc
+from typing import Any
 
 
 @dataclasses.dataclass(frozen=True)
@@ -31,6 +32,10 @@ class ModuleFramework(abc.ABC):
     @staticmethod
     @abc.abstractmethod
     def wrap(module):
+        return module
+
+    @staticmethod
+    def unwrap(module, maybe_variables) -> Any:
         return module
 
 
