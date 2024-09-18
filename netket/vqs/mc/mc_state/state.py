@@ -31,7 +31,7 @@ from netket.stats import Stats
 from netket.operator import AbstractOperator, Squared
 from netket.sampler import Sampler, SamplerState
 from netket.utils import (
-    maybe_wrap_module,
+    model_frameworks,
     wrap_afun,
     wrap_to_support_scalar,
     timing,
@@ -186,13 +186,16 @@ class MCState(VariationalState):
         """
         super().__init__(sampler.hilbert)
 
+        self._model_framework = None
+
         # Init type 1: pass in a model
         if model is not None:
             # extract init and apply functions
             # Wrap it in an HashablePartial because if two instances of the same model are provided,
             # model.apply and model2.apply will be different methods forcing recompilation, but
             # model and model2 will have the same hash.
-            _maybe_unwrapped_variables, model = maybe_wrap_module(model)
+            self._model_framework = model_frameworks.identify_framework(model)
+            _maybe_unwrapped_variables, model = self._model_framework.wrap(model)
 
             if variables is None:
                 if _maybe_unwrapped_variables is not None:
@@ -282,6 +285,8 @@ class MCState(VariationalState):
     @property
     def model(self) -> nn.Module:
         """Returns the model definition of this variational state."""
+        if self._model_framework is not None:
+            return self._model_framework.unwrap(self._model, self.variables)
         return self._model
 
     @property
@@ -289,7 +294,7 @@ class MCState(VariationalState):
         """Returns the model definition used for sampling this variational state.
         Equal to `.model`.
         """
-        return self.model
+        return self._model
 
     @property
     def _sampler_variables(self):
