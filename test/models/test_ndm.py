@@ -14,7 +14,10 @@
 
 import netket as nk
 
+from .. import common
 
+
+@common.skipif_sharding  # no jax version of LocalLiouvillian
 def test_ndm():
     L = 6
     g = nk.graph.Hypercube(
