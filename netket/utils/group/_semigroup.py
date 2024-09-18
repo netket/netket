@@ -131,6 +131,12 @@ def product(ab: Composite, cd: Composite):  # noqa: F811
 
 @dataclass(frozen=True)
 class FiniteSemiGroup:
+    """
+    Base class for Finite Semigroups, made by combining a finite sequence
+    of :class:`netket.utils.group.Element`s.
+
+    """
+
     elems: list[Element]
 
     def __post_init__(self):
