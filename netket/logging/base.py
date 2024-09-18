@@ -66,4 +66,4 @@ class AbstractLog(abc.ABC):
         """
         Returns whether this logger is the root logger in a distributed setting.
         """
-        return mpi.rank == 0 and jax.process_index == 0
+        return mpi.rank == 0 and jax.process_index() == 0
