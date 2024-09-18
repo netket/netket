@@ -72,15 +72,11 @@ class ExtraConstraint(DiscreteHilbertConstraint):
         ):
             raise TypeError(
                 dedent(
-                    """The type parameters T1, T2 of ExtraConstraint[T1, T2] must be subtypes of
+                    """The arguments of ExtraConstraint must both be subtypes of
                     nk.hilbert.constraint.DiscreteHilbertConstraint, but one or more are not.
 
                     To verify if those are valid type parameters you can check it with
-                    issubclass(T1, nk.hilbert.constraint.DiscreteHilbertConstraint).
-
-                    For more information, look at the documentation of parametric classes in
-                    https://beartype.github.io/plum/parametric.html or open an issue on NetKet's
-                    GitHub discussion session.
+                    issubclass(arg, nk.hilbert.constraint.DiscreteHilbertConstraint).
                     """
                 )
             )
@@ -99,15 +95,11 @@ class ExtraConstraint(DiscreteHilbertConstraint):
         ):
             raise TypeError(
                 dedent(
-                    """The type parameters T1, T2 of ExtraConstraint[T1, T2] must be subtypes of
+                    """The arguments of ExtraConstraint must both be subtypes of
                     nk.hilbert.constraint.DiscreteHilbertConstraint, but one or more are not.
 
-                    To verify if those are valid type parameters you can check it with
-                    issubclass(T1, nk.hilbert.constraint.DiscreteHilbertConstraint).
-
-                    For more information, look at the documentation of parametric classes in
-                    https://beartype.github.io/plum/parametric.html or open an issue on NetKet's
-                    GitHub discussion session.
+                    To verify if those are valid arguments you can check it with
+                    isinstance(arg, nk.hilbert.constraint.DiscreteHilbertConstraint).
                     """
                 )
             )
