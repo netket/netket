@@ -236,7 +236,10 @@ def pack_internals_jax(
         z_sign_indices_masks[k] if (mode == "index") else None for k in keys
     ]
 
-    x_flip_masks_stacked = jnp.concatenate(x_flip_masks, axis=0)
+    if len(x_flip_masks) > 0:
+        x_flip_masks_stacked = jnp.concatenate(x_flip_masks, axis=0)
+    else:  # empty / zero operator
+        x_flip_masks_stacked = jnp.zeros((0, n_sites), dtype=mask_dtype)
     z_data = (weights, z_sign_masks, z_sign_indices, z_sign_indices_masks)
     return x_flip_masks_stacked, z_data
 
@@ -265,7 +268,10 @@ def _pauli_strings_mels_jax(z_data, x):
             axis=-1, promote_integers=False
         )
         mels.append(jnp.einsum("...ab,ab->...a", sgn, w))
-    return jnp.concatenate(mels, axis=-1)
+    if len(mels) > 0:
+        return jnp.concatenate(mels, axis=-1)
+    else:
+        return jnp.zeros(x.shape[:-1] + (0,))
 
 
 @jax.jit
