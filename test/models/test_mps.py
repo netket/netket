@@ -16,8 +16,6 @@ import netket as nk
 import pytest
 import jax.numpy as jnp
 
-from .. import common
-
 
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 def test_mps_periodic(dtype):
