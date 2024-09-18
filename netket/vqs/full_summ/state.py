@@ -185,7 +185,7 @@ class FullSumState(VariationalState):
 
         key = nkjax.PRNGKey(seed)
 
-        dummy_input = jnp.zeros((1, self.hilbert.size), dtype=dtype)
+        dummy_input = self.hilbert.random_state(key, 1, dtype=dtype)
 
         variables = jit_evaluate(self._init_fun, {"params": key}, dummy_input)
         self.variables = variables
