@@ -95,6 +95,14 @@ for i in range(H.hilbert.size):
 
 operators["operator:(Non Hermitian)"] = H
 
+# Remove non jax operators when sharding is activated
+if nk.config.netket_experimental_sharding:
+    _operators = {}
+    for k, o in operators.items():
+        if isinstance(o, nk.operator.DiscreteJaxOperator):
+            _operators[k] = o
+    operators = _operators
+
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
@@ -469,7 +477,7 @@ def test_local_estimators(vstate, operator):
 # This only checks that the code runs.
 @common.xfailif_mpi
 def test_expect_grad_nonhermitian_works(vstate):
-    op = nk.operator.spin.sigmap(vstate.hilbert, 0)
+    op = nk.operator.spin.sigmap(vstate.hilbert, 0).to_jax_operator()
     O_stat, O_grad = vstate.expect_and_grad(op)
 
 

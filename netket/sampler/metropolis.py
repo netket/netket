@@ -33,7 +33,7 @@ from netket.utils import struct
 
 from netket.jax.sharding import (
     device_count,
-    with_samples_sharding_constraint,
+    shard_along_axis,
 )
 from netket.jax import apply_chunked, dtype_real
 
@@ -76,10 +76,10 @@ class MetropolisSamplerState(SamplerState):
 
         if log_prob is None:
             log_prob = jnp.full(self.σ.shape[:-1], -jnp.inf, dtype=float)
-        self.log_prob = with_samples_sharding_constraint(log_prob)
+        self.log_prob = shard_along_axis(log_prob, axis=0)
 
-        self.n_accepted_proc = with_samples_sharding_constraint(
-            jnp.zeros(σ.shape[0], dtype=int)
+        self.n_accepted_proc = shard_along_axis(
+            jnp.zeros(σ.shape[0], dtype=int), axis=0
         )
         self.n_steps_proc = jnp.zeros((), dtype=int)
         super().__init__()
@@ -348,13 +348,13 @@ class MetropolisSampler(Sampler):
         key_state, key_rule = jax.random.split(key)
         rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
         σ = jnp.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
-        σ = with_samples_sharding_constraint(σ)
+        σ = shard_along_axis(σ, axis=0)
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
         log_prob = jnp.full(
             (sampler.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype)
         )
-        log_prob = with_samples_sharding_constraint(log_prob)
+        log_prob = shard_along_axis(log_prob, axis=0)
 
         state = MetropolisSamplerState(
             σ=σ, rng=key_state, rule_state=rule_state, log_prob=log_prob
@@ -370,7 +370,7 @@ class MetropolisSampler(Sampler):
                 sampler.dtype,
                 f"{sampler.rule}.random_state",
             )
-            σ = with_samples_sharding_constraint(σ)
+            σ = shard_along_axis(σ, axis=0)
             state = state.replace(σ=σ, rng=key_state)
         return state
 
@@ -387,7 +387,7 @@ class MetropolisSampler(Sampler):
                 sampler.dtype,
                 f"{sampler.rule}.random_state",
             )
-            σ = with_samples_sharding_constraint(σ)
+            σ = shard_along_axis(σ, axis=0)
         else:
             σ = state.σ
 

@@ -19,10 +19,8 @@ All functions in here are not part of the public API, internal, and may change w
 
 import math
 from functools import partial, wraps
-import warnings
 import contextlib
 
-import numpy as np
 
 import jax
 import jax.numpy as jnp
@@ -36,124 +34,7 @@ from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
 
 from netket.utils import config, mpi
-from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
-
-
-def _convert_gspmdsharding_to_positionalsharding(x):
-    # try to convert gspmdsharding to positional sharding
-    # necessary because gspmdsharding has no .replicate()
-    # TODO
-    s = x.sharding
-    shard_shape = tuple(
-        (
-            2 * (np.array(s.shard_shape(x.shape)) == np.array(x.shape)).astype(int) - 1
-        ).tolist()
-    )
-    # TODO would like to take x.devices, but list(x.devices()) has reversed order
-    s_new = PositionalSharding(jax.devices()).reshape(shard_shape)
-    assert s.is_equivalent_to(s_new, x.ndim)
-    return jax.jit(_identity, out_shardings=s_new)(x)
-    # TODO support gspmdsharding in numba wrapper and use this
-    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, s_new)
-
-
-def replicate_sharding_decorator_for_get_conn_padded(f):
-    """
-    Wrapper for python get_conn_padded to make it work with shared/global device arrays.
-
-    Calls f on every shard, and puts the results back on the devices with the correct sharding.
-    The input to f is assumed to have PositionalSharding (or equivalent) along a single batch axis.
-
-     .. note::
-         The resulting function cannot be used inside of jit.
-
-    Args:
-        f: a python get_conn_padded (which takes self, x and maps it to (xp,mels))
-    """
-    # ideally I would like to use a simple shard map with callback, however
-    # for that we need to know the shape a priori which would require an extra n_conn call.
-
-    if config.netket_experimental_sharding:
-
-        @wraps(f)
-        def _f(self, x):
-            concrete_or_error(None, x, NumbaOperatorGetConnDuringTracingError, f)
-
-            if isinstance(x, jax.Array) and len(x.devices()) > 1:  # sharded
-                if config.netket_experimental_sharding_numba_wrapper_warning:
-                    warnings.warn(
-                        "You are using the experimental wrapper for numba operators acting on a sharded input array. "
-                        "Please consider rewriting your operator in jax."
-                        "Some of the built-in netket operators can be converted into jax by calling .to_jax_operator()"
-                        "If you have to use this wrapper and find that it does not work properly, "
-                        "please open an issue at https://github.com/netket/netket/issues."
-                        "To silence this warning, set the environment variable `NETKET_EXPERIMENTAL_SHARDING_NUMBA_WRAPPER_WARNING=0`",
-                        stacklevel=2,
-                    )
-
-                if isinstance(x.sharding, jax.sharding.GSPMDSharding):
-                    x = _convert_gspmdsharding_to_positionalsharding(x)
-
-                xp_mels_np = []
-                n_conn_dev = []
-                for s in x.addressable_shards:
-                    xp, mels = f(self, s.data)
-                    xp_mels_np.append((xp, mels))
-                    n_conn_dev.append(
-                        jax.device_put(
-                            np.array(
-                                [
-                                    mels.shape[-1],
-                                ]
-                            ),
-                            s.device,
-                        )
-                    )
-                # numba might pad every x differently, so here we pad all to the common max over devices and all processes
-                n_conn = jax.make_array_from_single_device_arrays(
-                    (len(x.devices()),),
-                    PositionalSharding(list(x.devices())),
-                    n_conn_dev,
-                )
-                n_conn_max = int(jax.jit(lambda x: x.max())(n_conn))
-                xp_dev = []
-                mels_dev = []
-                for (xp, mels), s in safe_zip(xp_mels_np, x.addressable_shards):
-                    npad = n_conn_max - mels.shape[-1]
-                    if npad > 0:
-                        mels = np.pad(
-                            mels, pad_width=((0, 0),) * (mels.ndim - 1) + ((0, npad),)
-                        )
-                        xp = np.pad(
-                            xp,
-                            pad_width=((0, 0),) * (mels.ndim - 1)
-                            + ((0, npad),)
-                            + ((0, 0),),
-                        )
-                        xp[..., -npad:, :] = xp[..., :1, :]
-                    xp_dev.append(jax.device_put(xp, s.device))
-                    mels_dev.append(jax.device_put(mels, s.device))
-                shape = x.shape[:-1] + (n_conn_max,)
-                xp = jax.make_array_from_single_device_arrays(
-                    shape + x.shape[-1:],
-                    x.sharding.reshape(
-                        x.sharding.shape[:-1] + (1,) + x.sharding.shape[-1:]
-                    ),
-                    xp_dev,
-                )
-                mels = jax.make_array_from_single_device_arrays(
-                    shape, x.sharding, mels_dev
-                )
-                return xp, mels
-            elif isinstance(x, jax.Array):  # and len(x.devices()) == 1; single device
-                (device,) = x.devices()
-                return jax.device_put(f(self, x), device=device)
-            else:
-                return f(self, x)
-
-        return _f
-    else:
-        return f
+from netket.utils.deprecation import warn_deprecation
 
 
 _identity = lambda x: x
@@ -231,17 +112,39 @@ def distribute_to_devices_along_axis(
 
 
 # TODO consider merging this with distribute_to_devices_along_axis
+@partial(jax.jit, static_argnames="axis")
+def shard_along_axis(x, axis: int):
+    """
+    When running with experimental sharding mode, calls
+    :func:`jax.lax.with_sharding_constraint` with a
+    :class:`jax.sharding.PositionalSharding` sharded along the given axis.
+
+    Args:
+        x: An array
+        axis: the axis to be sharded
+    """
+    if config.netket_experimental_sharding and jax.device_count() > 1:
+        # Shard shape is (1, 1, 1, -1, 1, 1) where -1 is the axis
+        shard_shape = [1 for _ in range(x.ndim)]
+        shard_shape[axis] = -1
+
+        x = jax.lax.with_sharding_constraint(
+            x, PositionalSharding(jax.devices()).reshape(tuple(shard_shape))
+        )
+    return x
+
+
 @jax.jit
 def with_samples_sharding_constraint(x, shape=None):
     """
     ensure the input x is sharded along axis 0 on all devices
     works both outside and inside of jit
     """
-    if config.netket_experimental_sharding and jax.device_count() > 1:
-        x = jax.lax.with_sharding_constraint(
-            x, PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
-        )
-    return x
+    warn_deprecation(
+        "with_samples_sharding_constraint is deprecated in favour of nk.jax.sharding.shard_along_axis(x, axis=0)"
+    )
+
+    return shard_along_axis(x, 0)
 
 
 def extract_replicated(t):

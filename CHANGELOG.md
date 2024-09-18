@@ -4,6 +4,8 @@
 # Change Log
 
 ## NetKet 3.15 (⚙️ In development)
+* Removed support for using Numba-operators under sharding. This has never really worked realiably and lead to uncomprehensible crashes, and was very hard to maintain so it's leaving [#1919](https://github.com/netket/netket/pull/1919).
+
 
 ## NetKet 3.14.2 (18 September 2024)
 * Fix an issue in {class}`~netket.experimental.hilbert.SpinOrbitalFermions` where the extra constraint would not work without a fermion number constraint [#1924](https://github.com/netket/netket/pull/1924).

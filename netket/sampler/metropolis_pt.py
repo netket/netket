@@ -24,7 +24,7 @@ from netket import config
 from netket.utils.types import PyTree, PRNGKeyT, Array
 from netket.utils import struct, mpi
 from netket.jax import dtype_real
-from netket.jax.sharding import with_samples_sharding_constraint, sharding_decorator
+from netket.jax.sharding import shard_along_axis, sharding_decorator
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
@@ -309,13 +309,13 @@ class ParallelTemperingSampler(MetropolisSampler):
         key_state, key_rule, rng = jax.random.split(key, 3)
         rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
         σ = sampler.rule.random_state(sampler, machine, parameters, rule_state, rng)
-        σ = with_samples_sharding_constraint(σ)
+        σ = shard_along_axis(σ, axis=0)
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
         log_prob = jnp.full(
             (sampler.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype)
         )
-        log_prob = with_samples_sharding_constraint(log_prob)
+        log_prob = shard_along_axis(log_prob, axis=0)
 
         beta = jnp.tile(
             sampler.sorted_betas, (sampler.n_batches // sampler.n_replicas, 1)

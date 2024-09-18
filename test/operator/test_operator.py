@@ -7,7 +7,7 @@ from netket.operator import DiscreteJaxOperator
 import pytest
 import jax
 from jax.experimental.sparse import BCOO
-from netket.jax.sharding import with_samples_sharding_constraint
+from netket.jax.sharding import shard_along_axis
 
 from .. import common
 
@@ -137,6 +137,14 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nkx.operator.FermionOperator2nd
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
     _mode="mask",
 )
+
+# Remove non jax operators when sharding is activated
+if nk.config.netket_experimental_sharding:
+    _operators = {}
+    for k, o in operators.items():
+        if isinstance(o, nk.operator.DiscreteJaxOperator):
+            _operators[k] = o
+    operators = _operators
 
 op_special = {}
 for name, op in operators.items():
@@ -296,8 +304,8 @@ def test_get_conn_padded(op, shape, dtype):
     assert mels.dtype == op.dtype
 
     vp_f, mels_f = op.get_conn_padded(v.reshape(-1, hi.size))
-    np.testing.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
-    np.testing.assert_allclose(mels_f, mels.reshape(-1, mels.shape[-1]))
+    common.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
+    common.assert_allclose(mels_f, mels.reshape(-1, mels.shape[-1]))
 
 
 @pytest.mark.parametrize(
@@ -315,7 +323,7 @@ def test_operator_sharded_not_commuincating(op):
 
     hi = op.hilbert
     x = hi.random_state(jax.random.PRNGKey(0), 8 * jax.device_count(), dtype=np.float64)
-    x = with_samples_sharding_constraint(x)
+    x = shard_along_axis(x, axis=0)
 
     gcp_jit = jax.jit(lambda ha, x: ha.get_conn_padded(x))
     compiled = gcp_jit.lower(op, x).compile()
@@ -337,7 +345,7 @@ def test_operator_sharded_not_commuincating(op):
 def test_to_local_operator(op):
     op_l = op.to_local_operator()
     assert isinstance(op_l, nk.operator._local_operator.LocalOperatorBase)
-    np.testing.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
+    common.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
 
 
 def test_enforce_float_Ising():
