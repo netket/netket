@@ -315,7 +315,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
 
-        if len(self.hilbert.local_states) != 2:
+        if set(self.hilbert.shape) != {2}:
             raise ValueError(
                 "PauliStringsJax only supports Hamiltonians with two local states"
             )
