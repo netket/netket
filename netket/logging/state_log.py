@@ -131,6 +131,8 @@ class StateLog(AbstractLog):
         self._tar_file = None
         self._closed = False
 
+        self._file_step = 0
+
     def _init_output(self):
         if self._is_master_process:
             if self._tar:

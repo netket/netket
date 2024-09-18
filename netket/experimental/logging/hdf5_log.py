@@ -187,7 +187,7 @@ class HDF5Log(AbstractLog):
                 tree_log(tree, "variational_state", self._writer)
                 self._steps_notsaved_params = 0
 
-        self._writer.flush()
+            self._writer.flush()
         self._steps_notsaved_params += 1
 
     def flush(self, variational_state=None):
