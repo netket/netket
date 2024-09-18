@@ -5,6 +5,10 @@
 
 ## NetKet 3.15 (⚙️ In development)
 
+## NetKet 3.14.2 (18 September 2024)
+* Fix an issue in {class}`~netket.experimental.hilbert.SpinOrbitalFermions` where the extra constraint would not work without a fermion number constraint [#1924](https://github.com/netket/netket/pull/1924).
+
+
 ## NetKet 3.14.1 (9 September 2024)
 
 * Fix a dtype-stability issue in adaptive TDVP integrators [#1918](https://github.com/netket/netket/pull/1918).
