@@ -288,6 +288,20 @@ class AbstractVariationalDriver(abc.ABC):
         also returned at the end of this function so that you can inspect the results
         without reading the json output.
 
+        When running among multiple MPI ranks/Jax devices, the logging logic is executed
+        on all nodes, but only root-rank loggers should write to files or do expensive I/O
+        operations.
+
+        .. note::
+
+            Before NetKet 3.15, loggers where automatically 'ignored' on non-root ranks.
+            However, starting with NetKet 3.15 it is the responsability of a logger to
+            check if it is executing on a non-root rank, and to 'do nothing' if that is
+            the case.
+
+            The change was required to work correctly and efficiently with sharding. It will
+            only affect users that were defining custom loggers themselves.
+
         Args:
             n_iter: the total number of iterations to be performed during this run.
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
