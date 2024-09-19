@@ -110,6 +110,26 @@ class MCState(VariationalState):
     """
 
     _model: nn.Module
+    """
+    The raw, hashable, static model definition of this variational state.
+
+    When using frameworks that encode the parameters directly into the model,
+    such as equinox or :ref:`flax.nnx`, this will return the model definition
+    wrapped into some netket structure to make it look like a `flax` model.
+
+    This is what is used internally by netket.
+    """
+
+    _model_framework: model_frameworks.ModuleFramework | None = None
+    """
+    The model framework used to define the model.
+
+    The model frameworks are used to wrap non-flax models into a flax-like
+    compatibility layer, and we keep a reference to the framework used in order
+    to unwrap the model when the user wants it.
+
+    Supported model frameworks are defined in `netket.utils.model_frameworks`.
+    """
 
     _sampler: Sampler
     """The sampler used to sample the Hilbert space."""
@@ -185,8 +205,6 @@ class MCState(VariationalState):
                 but will trade a higher computational cost for lower memory cost.
         """
         super().__init__(sampler.hilbert)
-
-        self._model_framework = None
 
         # Init type 1: pass in a model
         if model is not None:
