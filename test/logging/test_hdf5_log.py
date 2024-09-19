@@ -3,14 +3,14 @@ import pytest
 import glob
 
 import numpy as np
-import netket as nk
-import netket.experimental as nkx
+import jax
 from jax.nn.initializers import normal
 from jax import numpy as jnp
 
-from .. import common
+import netket as nk
+import netket.experimental as nkx
 
-pytestmark = common.skipif_distributed
+from .. import common
 
 
 @pytest.fixture()
@@ -31,9 +31,7 @@ def vstate(request):
     )
 
 
-@pytest.mark.skipif(
-    nk.config.netket_experimental_sharding, reason="Only run without sharding"
-)
+@common.skipif_distributed
 def test_hdf5log(vstate, tmp_path):
     # skip test if hdf5py not installed
     h5py = pytest.importorskip("h5py")
@@ -62,9 +60,7 @@ def test_hdf5log(vstate, tmp_path):
     assert iters.shape[0] == 30
 
 
-@pytest.mark.skipif(
-    nk.config.netket_experimental_sharding, reason="Only run without sharding"
-)
+@common.skipif_distributed
 def test_lazy_init(tmp_path):
     # skip test if hdf5py not installed
     pytest.importorskip("h5py")
@@ -75,3 +71,31 @@ def test_lazy_init(tmp_path):
 
     files = glob.glob(path + "/*")
     assert len(files) == 0
+
+
+@common.onlyif_distributed
+def test_write_only_on_master(vstate, tmp_path):
+    # Check that the logger runs everywhere but serializes only on rank 0
+    # skip test if tensorboardX not installed
+    pytest.importorskip("h5py")
+
+    if nk.config.netket_experimental_sharding:
+        rank = jax.process_index()
+    else:
+        rank = nk.utils.mpi.rank
+
+    path = str(tmp_path) + "/dir1/r{rank}"
+
+    log = nkx.logging.HDF5Log(path + "/output")
+
+    for i in range(30):
+        log(i, {"Energy": jnp.array(1.0), "complex": jnp.array(1.0 + 1j)}, vstate)
+
+    log.flush()
+    del log
+
+    files = glob.glob(path + "/*")
+    if rank == 0:
+        assert len(files) >= 1
+    else:
+        assert len(files) == 0
