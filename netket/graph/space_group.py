@@ -155,7 +155,7 @@ class SpaceGroupBuilder(struct.Pytree):
         The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
         """
         perms = []
-        for p in self.point_group_:
+        for p in self._point_group:
             if isinstance(p, Identity):
                 perms.append(Identity())
             else:
@@ -169,7 +169,7 @@ class SpaceGroupBuilder(struct.Pytree):
         """The group of rotations (i.e. point group symmetries with determinant +1)
         as a `PermutationGroup` acting on the sites of `self.lattice`."""
         perms = []
-        for p in self.point_group_.rotation_group():
+        for p in self._point_group.rotation_group():
             if isinstance(p, Identity):
                 perms.append(Identity())
             else:
