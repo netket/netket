@@ -284,7 +284,15 @@ class MCState(VariationalState):
 
     @property
     def model(self) -> nn.Module:
-        """Returns the model definition of this variational state."""
+        """Returns the model definition of this variational state.
+
+        When using model frameworks that encode the parameters directly into the
+        model, such as equinox or :ref:`flax.nnx`, this will return the model
+        including the parameters.
+
+        If you want access to the *raw model* without the parameters that is used
+        internally by netket, use :code:`MCState._model` instead.
+        """
         if self._model_framework is not None:
             return self._model_framework.unwrap(self._model, self.variables)
         return self._model
