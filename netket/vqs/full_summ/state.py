@@ -26,7 +26,7 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 from netket import jax as nkjax
 from netket import nn as nknn
 from netket.hilbert.discrete_hilbert import DiscreteHilbert
-from netket.utils import maybe_wrap_module, wrap_afun, wrap_to_support_scalar
+from netket.utils import model_frameworks, wrap_afun, wrap_to_support_scalar
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -106,6 +106,7 @@ class FullSumState(VariationalState):
                 but will trade a higher computational cost for lower memory cost.
         """
         super().__init__(hilbert)
+        self._model_framework = None
 
         # Init type 1: pass in a model
         if model is not None:
@@ -113,7 +114,8 @@ class FullSumState(VariationalState):
             # Wrap it in an HashablePartial because if two instances of the same model are provided,
             # model.apply and model2.apply will be different methods forcing recompilation, but
             # model and model2 will have the same hash.
-            _maybe_unwrapped_variables, model = maybe_wrap_module(model)
+            self._model_framework = model_frameworks.identify_framework(model)
+            _maybe_unwrapped_variables, model = self._model_framework.wrap(model)
 
             if variables is None:
                 if _maybe_unwrapped_variables is not None:
@@ -259,7 +261,9 @@ class FullSumState(VariationalState):
         This field is optional, and is set to `None` if the variational state has
         been initialized using a custom function.
         """
-        return self._model
+        if self._model_framework is not None:
+            return self._model_framework.unwrap(self._model, self.variables)
+        self._model
 
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
         r"""
