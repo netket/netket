@@ -26,8 +26,6 @@ from netket.stats import Stats
 from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
 
-from netket.jax.sharding import extract_replicated
-
 from netket.vqs import VariationalMixedState
 
 from netket.vqs.mc import MCState
@@ -252,7 +250,7 @@ class MCMixedState(VariationalMixedState, MCState):
 
 def serialize_MCMixedState(vstate):
     state_dict = {
-        "variables": serialization.to_state_dict(extract_replicated(vstate.variables)),
+        "variables": serialization.to_state_dict(vstate.variables),
         "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
         "diagonal": serialization.to_state_dict(vstate.diagonal),
         "n_samples": vstate.n_samples,

@@ -94,6 +94,12 @@ skipif_distributed = pytest.mark.skipif(
 """Use as a decorator to mark a test to be skipped when running under MPI or Sharding."""
 
 
+onlyif_distributed = pytest.mark.skipif(
+    nk.utils.mpi.n_nodes == 1 and not nk.config.netket_experimental_sharding,
+    reason="Only if distributed",
+)
+
+
 class netket_disable_mpi:
     """
     Temporarily disables MPI functions inside of NetKet, tricking NetKet

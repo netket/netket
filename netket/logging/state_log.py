@@ -131,11 +131,14 @@ class StateLog(AbstractLog):
         self._tar_file = None
         self._closed = False
 
+        self._file_step = 0
+
     def _init_output(self):
-        if self._tar:
-            self._create_tar_file()
-        else:
-            self._check_output_folder()
+        if self._is_master_process:
+            if self._tar:
+                self._create_tar_file()
+            else:
+                self._check_output_folder()
         self._init = True
 
     def _create_tar_file(self):
@@ -187,13 +190,15 @@ class StateLog(AbstractLog):
         binary_data = serialization.to_bytes(
             extract_replicated(variational_state.variables)
         )
-        if self._tar:
-            save_binary_to_tar(
-                self._tar_file, binary_data, str(self._file_step) + ".mpack"
-            )
-        else:
-            with open(self._prefix + str(self._file_step) + ".mpack", "wb") as f:
-                f.write(binary_data)
+
+        if self._is_master_process:
+            if self._tar:
+                save_binary_to_tar(
+                    self._tar_file, binary_data, str(self._file_step) + ".mpack"
+                )
+            else:
+                with open(self._prefix + str(self._file_step) + ".mpack", "wb") as f:
+                    f.write(binary_data)
 
         self._file_step += 1
         self._runtime_taken += time.time() - _time

@@ -316,13 +316,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         elif out is None:
             out = ()
 
-        # Log only non-root nodes
-        if self._is_root:
-            loggers = _to_iterable(out)
-        else:
-            loggers = tuple()
-            show_progress = False
-
+        loggers = _to_iterable(out)
         callbacks = _to_iterable(callback)
         callback_stop = False
 
@@ -330,7 +324,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
 
         with tqdm(
             total=t_end,
-            disable=not show_progress,
+            disable=not show_progress or not self._is_root,
             unit_scale=True,
             dynamic_ncols=True,
         ) as pbar:

@@ -79,6 +79,9 @@ class RuntimeLog(AbstractLog):
         if isinstance(path, str):
             path = Path(path)
 
+        if not self._is_master_process:
+            return
+
         if isinstance(path, Path):
             parent = path.parent
             filename = path.name

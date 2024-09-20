@@ -163,29 +163,31 @@ class HDF5Log(AbstractLog):
         self._steps_notsaved_params = 0
 
     def _init_output_file(self):
-        import h5py
+        if self._is_master_process:
+            import h5py
 
-        self._writer = h5py.File(self._file_name, self._file_mode)
+            self._writer = h5py.File(self._file_name, self._file_mode)
 
     def __call__(self, step, log_data, variational_state):
         if self._writer is None:
             self._init_output_file()
 
-        tree_log(log_data, "data", self._writer, iter=step)
+        if self._is_master_process:
+            tree_log(log_data, "data", self._writer, iter=step)
 
-        if self._steps_notsaved_params % self._save_params_every == 0:
-            variables = variational_state.variables
-            # TODO: remove - FrozenDict are deprecated
-            if isinstance(variables, FrozenDict):
-                variables = variables.unfreeze()
+            if self._steps_notsaved_params % self._save_params_every == 0:
+                variables = variational_state.variables
+                # TODO: remove - FrozenDict are deprecated
+                if isinstance(variables, FrozenDict):
+                    variables = variables.unfreeze()
 
-            _, params = fpop(variables, "params")
-            binary_data = to_bytes(variables)
-            tree = {"model_state": binary_data, "parameters": params, "iter": step}
-            tree_log(tree, "variational_state", self._writer)
-            self._steps_notsaved_params = 0
+                _, params = fpop(variables, "params")
+                binary_data = to_bytes(variables)
+                tree = {"model_state": binary_data, "parameters": params, "iter": step}
+                tree_log(tree, "variational_state", self._writer)
+                self._steps_notsaved_params = 0
 
-        self._writer.flush()
+            self._writer.flush()
         self._steps_notsaved_params += 1
 
     def flush(self, variational_state=None):

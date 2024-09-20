@@ -26,6 +26,7 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
 from netket import nn as nknn
+from netket import config
 from netket.hilbert.discrete_hilbert import DiscreteHilbert
 from netket.stats import Stats
 from netket.operator import AbstractOperator, Squared
@@ -297,7 +298,13 @@ class MCState(VariationalState):
 
         dummy_input = self.hilbert.random_state(key, 1, dtype=dtype)
 
-        variables = jit_evaluate(self._init_fun, {"params": key}, dummy_input)
+        if config.netket_experimental_sharding:
+            par_sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        else:
+            par_sharding = None
+        variables = jax.jit(self._init_fun, out_shardings=par_sharding)(
+            {"params": key}, dummy_input
+        )
         self.variables = variables
 
     @property
@@ -798,9 +805,7 @@ def serialize_MCState(vstate):
         sampler_state = vstate.sampler_state
 
     state_dict = {
-        "variables": serialization.to_state_dict(
-            sharding.extract_replicated(vstate.variables)
-        ),
+        "variables": serialization.to_state_dict(vstate.variables),
         "sampler_state": serialization.to_state_dict(sampler_state),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
