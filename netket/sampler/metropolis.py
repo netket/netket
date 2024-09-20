@@ -53,7 +53,11 @@ class MetropolisSamplerState(SamplerState):
     """Current batch of configurations in the Markov chain."""
     log_prob: jnp.ndarray = struct.field(sharded=True, serialize=False)
     """Log probabilities of the current batch of configurations σ in the Markov chain."""
-    rng: jnp.ndarray = struct.field(sharded=True)
+    rng: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-rng-key"
+        )
+    )
     """State of the random number generator (key, in jax terms)."""
     rule_state: Any | None
     """Optional state of the transition rule."""
