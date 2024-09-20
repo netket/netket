@@ -4,6 +4,11 @@
 # Change Log
 
 ## NetKet 3.15 (⚙️ In development)
+
+### Improvements
+* The {meth}`~netket.graph.Lattice.draw` method of {class}`~netket.graph.Lattic` has been overhauled, and now supports 3D lattices and additional keyword arguments. The defaults are now tuned to draw the whole lattice as well as repeated cells due to periodicity, as well as the basis vectors.
+
+### Breaking Changes
 * Removed support for using Numba-operators under sharding. This has never really worked realiably and lead to uncomprehensible crashes, and was very hard to maintain so it's leaving [#1919](https://github.com/netket/netket/pull/1919).
 
 
