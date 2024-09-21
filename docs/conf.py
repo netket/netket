@@ -132,7 +132,7 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
-    "igraph": ("https://igraph.org/python/api/latest", None),
+    "igraph": ("https://python.igraph.org/en/stable/", None),
     "qutip": ("https://qutip.readthedocs.io/en/latest/", None),
     "pyscf": ("https://pyscf.org/", None),
 }

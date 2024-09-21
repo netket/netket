@@ -79,6 +79,7 @@ export JAX_PLATFORM_NAME=gpu
 srun python yourscript.py
 ```
 
+(cluster-sharding-setup)=
 ## Running simulations with Sharding on GPUS
 
 ```bash
@@ -106,6 +107,19 @@ export NETKET_EXPERIMENTAL_SHARDING=1
 export JAX_PLATFORM_NAME=gpu
 
 srun python -m netket_pro.tools.autogpu_run yourscript.py
+```
+
+And the script is structured as
+
+```python
+import jax
+
+jax.distributed.initialize()
+
+print(jax.devices())
+print(jax.local_devices())
+
+import netket as nk
 ```
 
 
