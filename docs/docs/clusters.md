@@ -82,6 +82,13 @@ srun python yourscript.py
 (cluster-sharding-setup)=
 ## Running simulations with Sharding on GPUS
 
+To run simulations with sharding on GPUs, just install the following packages in the environemnt:
+```bash
+netket
+jax[cuda]
+```
+nothing else is needed: no MPI.
+
 ```bash
 #SBATCH --job-name=test_mpi
 #SBATCH --output=test_mpi_%j.txt
@@ -96,7 +103,6 @@ module purge
 
 # Load the same packages you used during installation. In our case that is
 module load gcc/12.2.0 anaconda-py3 
-module load cuda/12.2.0 cudnn/9.2-v7.5.1.10
 
 # Load the conda environment or equivalent
 conda activate ENV_NAME
@@ -106,7 +112,7 @@ export NETKET_EXPERIMENTAL_SHARDING=1
 # Tell Jax that we want to use GPUs. THis is generally not needed but can't hurt
 export JAX_PLATFORM_NAME=gpu
 
-srun python -m netket_pro.tools.autogpu_run yourscript.py
+srun python yourscript.py
 ```
 
 And the script is structured as
