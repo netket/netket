@@ -23,7 +23,18 @@ If you want to add support for another framework, you should add
 a new file in this folder and include it here.
 """
 
+__all__ = [
+    "ModuleFramework",
+    "maybe_wrap_module",
+    "registered_frameworks",
+    "identify_framework",
+]
 
-from .base import maybe_wrap_module, registered_frameworks
+from .base import (
+    ModuleFramework as ModuleFramework,
+    maybe_wrap_module as maybe_wrap_module,
+    registered_frameworks as registered_frameworks,
+    identify_framework as identify_framework,
+)
 
-from . import flax, jax, haiku
+from . import flax, jax, haiku, equinox

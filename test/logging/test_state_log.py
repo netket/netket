@@ -3,12 +3,12 @@ import pytest
 import tarfile
 import glob
 
-import netket as nk
+import jax
 from jax.nn.initializers import normal
 
-from .. import common
+import netket as nk
 
-pytestmark = common.skipif_distributed
+from .. import common
 
 
 @pytest.fixture()
@@ -29,6 +29,7 @@ def vstate(request):
     )
 
 
+@common.skipif_distributed
 def test_tar(vstate, tmp_path):
     path = str(tmp_path) + "/dir1/dir2"
 
@@ -75,6 +76,7 @@ def test_tar(vstate, tmp_path):
         assert file.endswith(".mpack")
 
 
+@common.skipif_distributed
 def test_dir(vstate, tmp_path):
     path = str(tmp_path) + "/dir1/dir2"
 
@@ -121,3 +123,27 @@ def test_lazy_init(tmp_path):
 
     files = glob.glob(path + "/*")
     assert len(files) == 0
+
+
+@common.onlyif_distributed
+def test_write_only_on_master(vstate, tmp_path):
+    # Check that the logger runs everywhere but serializes only on rank 0
+
+    if nk.config.netket_experimental_sharding:
+        rank = jax.process_index()
+    else:
+        rank = nk.utils.mpi.rank
+
+    path = str(tmp_path) + "/dir1/r{rank}"
+
+    log = nk.logging.StateLog(path, "w", tar=False, save_every=1)
+    for i in range(10):
+        log(i, None, vstate)
+
+    log.flush()
+
+    files = glob.glob(path + "/*.mpack")
+    if rank == 0:
+        assert len(files) == 10
+    else:
+        assert len(files) == 0

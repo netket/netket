@@ -52,7 +52,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         *,
         n_fermions: int | None = None,
         n_fermions_per_spin: tuple[int, ...] | None = None,
-        constraint: DiscreteHilbertConstraint = None,
+        constraint: DiscreteHilbertConstraint | None = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
@@ -168,15 +168,16 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 if n_fermions is not None:
                     occupation_constraint = SumConstraint(n_fermions)
 
-        # Wrap the extra user provided cosntraint around our
-        # occupation constraint of the populations.
-        if constraint is not None:
-            constraint = ExtraConstraint(
-                base_constraint=occupation_constraint,
-                extra_constraint=constraint,
-            )
-        else:
-            constraint = occupation_constraint
+        if occupation_constraint is not None:
+            # Wrap the extra user provided cosntraint around our
+            # occupation constraint of the populations.
+            if constraint is not None:
+                constraint = ExtraConstraint(
+                    base_constraint=occupation_constraint,
+                    extra_constraint=constraint,
+                )
+            else:
+                constraint = occupation_constraint
 
         """Internal representation of this Hilbert space (Fock or TensorHilbert)."""
         # local states are the occupation numbers (0, 1)
@@ -215,7 +216,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         return self._n_orbitals
 
     @property
-    def spin(self) -> float:
+    def spin(self) -> float | None:
         """Returns the spin of the fermions"""
         return self._s
 
@@ -235,10 +236,12 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     def _spin_index(self, sz: int | None) -> int:
         """Return the index of the Fock block corresponding to the sz projection"""
         if self.spin is None:
-            if sz is not None or not np.isclose(sz, 0):
+            if sz is not None or not np.isclose(sz, 0):  # type: ignore[call-overload]
                 raise Exception("cannot request spin index of spinless fermions")
             return 0
         else:
+            if sz is None:
+                raise TypeError("sz must be declared for spin-full hilbert spaces.")
             if sz != int(sz):
                 raise TypeError(f"sz must be an integer, but got {type(sz)} ({sz})")
             if abs(sz) > 2 * self.spin:
@@ -260,7 +263,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                     )
             return (sz + int(2 * self.spin)) // 2
 
-    def _get_index(self, orb: int, sz: float | None = None):
+    def _get_index(self, orb: int, sz: int | None = None):
         """go from (site, spin_projection) indices to index in the hilbert space"""
         if orb >= self.n_orbitals:
             raise IndexError("requested orbital index outside of the hilbert space")

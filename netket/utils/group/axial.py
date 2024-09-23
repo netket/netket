@@ -113,7 +113,25 @@ def inversion_group() -> PGSymmetry:
 
 @export
 def reflection(axis: Array) -> PGSymmetry:
-    r"""Returns a reflection across a plane whose normal is `axis`"""
+    r"""Returns a 3D reflection across a plane whose normal is `axis`.
+
+    .. warning::
+
+        For 2D reflections see
+        :func:`netket.utils.group.planar.reflection`.
+
+    Args:
+        axis: The 3-component basis vector identifying the reflection axis,
+            for example :code:`np.array([1,0,0])`.
+
+    """
+    if len(axis) != 3:
+        raise ValueError(
+            "The axis must be a 3 component vector."
+            "If you want reflections in 2 dimensions, use "
+            "nk.utils.group.planar.reflection instead."
+        )
+
     axis = np.asarray(axis) / np.linalg.norm(axis)
     return PGSymmetry(np.eye(3) - 2 * np.outer(axis, axis))
 

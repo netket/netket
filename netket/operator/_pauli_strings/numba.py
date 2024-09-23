@@ -160,7 +160,6 @@ class PauliStrings(PauliStringsBase):
             self._x_prime_max = np.empty((self._n_operators, self.hilbert.size))
             self._mels_max = np.empty((self._n_operators), dtype=data["mel_dtype"])
 
-            self._local_states = np.array(self.hilbert.states_at_index(0))
             self._initialized = True
 
     def _reset_caches(self):
@@ -182,12 +181,11 @@ class PauliStrings(PauliStringsBase):
         z_check,
         cutoff,
         max_conn,
-        local_states,
         pad=False,
     ):
         x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]), dtype=x.dtype)
         mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
-        state_1 = local_states[-1]
+        state_1 = 1
 
         n_c = 0
         for b in range(x.shape[0]):
@@ -212,8 +210,8 @@ class PauliStrings(PauliStringsBase):
                     x_prime[n_c] = np.copy(xb)
                     # now flip all the sites in the X string
                     for site in sites[i, : ns[i]]:
-                        new_state_idx = int(x_prime[n_c, site] == local_states[0])
-                        x_prime[n_c, site] = local_states[new_state_idx]
+                        new_state_idx = int(x_prime[n_c, site] == 0)
+                        x_prime[n_c, site] = new_state_idx
                     mels[n_c] = mel
                     n_c += 1
 
@@ -246,9 +244,10 @@ class PauliStrings(PauliStringsBase):
         """
         self._setup()
 
-        x = concrete_or_error(
+        x_ids = self.hilbert.states_to_local_indices(x)
+        x_ids = concrete_or_error(
             np.asarray,
-            x,
+            x_ids,
             NumbaOperatorGetConnDuringTracingError,
             self,
         )
@@ -256,8 +255,8 @@ class PauliStrings(PauliStringsBase):
         assert (
             x.shape[-1] == self.hilbert.size
         ), "size of hilbert space does not match size of x"
-        return self._flattened_kernel(
-            x,
+        xp_ids, mels = self._flattened_kernel(
+            x_ids,
             sections,
             self._x_prime_max,
             self._mels_max,
@@ -269,6 +268,7 @@ class PauliStrings(PauliStringsBase):
             self._z_check,
             self._cutoff,
             self._n_operators,
-            self._local_states,
             pad,
         )
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
+        return xp, mels

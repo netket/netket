@@ -24,7 +24,9 @@ _mpi4jax_loaded = False
 mpi4jax_available = False
 
 try:
-    if not config.netket_mpi or config.netket_experimental_sharding:  # pragma: no cover
+    if (
+        not config.netket_mpi or config.netket_experimental_sharding  # type: ignore
+    ):  # pragma: no cover  # type: ignore
         # if mpi is disabled trigger import error
         # and follow the no-mpi code path
         raise ImportError
@@ -53,10 +55,10 @@ try:
     # Let's check if we have multiple GPUs available. If that is the case, as netket
     # does not support multiple GPUs per rank in MPI mode, we fix that only one gpu
     # is avaialble per rank, by using local ranks.
-    if config.netket_mpi_autodetect_local_gpu:
+    if config.netket_mpi_autodetect_local_gpu:  # type: ignore
         from .gpu_autorank_util import autoset_default_gpu
 
-        autoset_default_gpu(MPI_py_comm)
+        autoset_default_gpu(MPI_py_comm)  # type: ignore
         del autoset_default_gpu
 
 
@@ -75,7 +77,7 @@ except ImportError:
     MPI = FakeMPI()
 
     # Try to detect if we are running under MPI and warn that mpi4py is not installed
-    if config.netket_mpi_warning and not config.netket_experimental_sharding:
+    if config.netket_mpi_warning and not config.netket_experimental_sharding:  # type: ignore
         _MPI_ENV_VARIABLES = [
             "OMPI_COMM_WORLD_SIZE",
             "I_MPI_HYDRA_HOST_FILE",
@@ -110,10 +112,10 @@ except ImportError:
 if mpi4py_available:
     _MIN_MPI4JAX_VERSION = (0, 3, 1)
 
-    if module_version(mpi4jax) < _MIN_MPI4JAX_VERSION:
+    if module_version(mpi4jax) < _MIN_MPI4JAX_VERSION:  # type: ignore
         raise ImportError(
             f"Netket is only compatible with mpi4jax >= {_MIN_MPI4JAX_VERSION} "
-            f"(you have mpi4jax == {mpi4jax.__version__}). "
+            f"(you have mpi4jax == {mpi4jax.__version__}). "  # type: ignore
             "Please update it to a more recent version by running "
             "(`pip install -U mpi4jax`)."
         )

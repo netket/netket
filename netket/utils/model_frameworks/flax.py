@@ -36,12 +36,4 @@ class FlaxFramework(ModuleFramework):
 
     @staticmethod
     def wrap(module):
-        return module
-
-    @staticmethod
-    def wrap_params(variables):
-        return variables
-
-    @staticmethod
-    def unwrap_params(wrapped_variables):
-        return wrapped_variables
+        return None, module

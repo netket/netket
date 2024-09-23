@@ -156,5 +156,6 @@ def test_binary_encoding(hilbert_shape):
         random_state = hilbert.random_state(key=jax.random.PRNGKey(0))
         encoded_with_hilbert = binary_encoding(hilbert, random_state)
         assert total_bits == encoded_with_hilbert.size
-        desired_state = sum(_state_to_binary_list(random_state, bits_per_site), [])
+        random_state_i = hilbert.states_to_local_indices(random_state)
+        desired_state = sum(_state_to_binary_list(random_state_i, bits_per_site), [])
         np.testing.assert_allclose(encoded_with_hilbert, desired_state)

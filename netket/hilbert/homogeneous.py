@@ -99,7 +99,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def __init__(
         self,
-        local_states: StaticRange | None,
+        local_states: StaticRange,
         N: int = 1,
         *,
         constraint: DiscreteHilbertConstraint | None = None,

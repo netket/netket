@@ -14,6 +14,7 @@
 
 
 import jax
+import jax.numpy as jnp
 
 from netket.utils import random_seed, mpi, config
 from netket.utils.mpi import MPI_jax_comm
@@ -31,7 +32,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
     if isinstance(seed, int):
         # We can't sync the PRNGKey, so we can only sinc integer seeds
         # see https://github.com/google/jax/pull/16511
-        if config.netket_experimental_sharding and jax.process_count() > 1:
+        if config.netket_experimental_sharding and jax.process_count() > 1:  # type: ignore[attr-defined]
             # TODO: use stable jax function
             from jax.experimental import multihost_utils
 
@@ -45,10 +46,8 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
     else:
         key = seed
 
-    if not config.netket_experimental_sharding:
-        key = jax.tree_util.tree_map(
-            lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
-        )
+    if not config.netket_experimental_sharding:  # type: ignore[attr-defined]
+        key = _bcast_key(key, root=root, comm=comm)
     return key
 
 
@@ -62,7 +61,7 @@ class PRNGSeq:
             base_key = PRNGKey()
         elif isinstance(base_key, int):
             base_key = PRNGKey(base_key)
-        self._current = base_key
+        self._current: PRNGKeyT = base_key
 
     def __iter__(self):
         return self
@@ -101,9 +100,31 @@ def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     # on all MPI nodes?
     keys = jax.random.split(key, mpi.n_nodes)
 
-    keys = jax.tree_util.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
+    keys = _bcast_key(keys, root=root, comm=comm)
 
     return keys[mpi.rank]
+
+
+def _bcast_key(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
+    """
+    Utility function equivalent to calling `mpi_bcast_jax` on a jax key,
+    but working around some sharding bug when not using sharding, arising
+    from MPI.
+    """
+    is_new_style_key = jnp.issubdtype(key.dtype, jax.dtypes.prng_key)
+
+    if is_new_style_key:
+        _impl = jax.random.key_impl(key)
+        key = jax.random.key_data(key)
+
+    key = jax.tree_util.tree_map(
+        lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
+    )
+
+    if is_new_style_key:
+        key = jax.random.wrap_key_data(key, impl=_impl)  # type: ignore[arg-type]
+
+    return key
 
 
 def batch_choice(key, a, p):

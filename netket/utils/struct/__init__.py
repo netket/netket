@@ -19,3 +19,5 @@ from .fields import field, static_field, property_cached, Uninitialized
 from .dataclass import dataclass
 
 from .pytree import Pytree
+
+from .pytree_serialization_sharding import ShardedFieldSpec

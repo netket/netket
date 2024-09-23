@@ -36,29 +36,25 @@ if TYPE_CHECKING:
     from .numba import LocalOperator
 
 
-@partial(jax.vmap, in_axes=(0, None, None))  # samples
-@partial(jax.vmap, in_axes=(0, 0, 0))  # operators
-def _state_to_number(x_i, local_states_i, basis_i):
+@partial(jax.vmap, in_axes=(0, None))  # samples
+@partial(jax.vmap, in_axes=(0, 0))  # operators
+def _state_to_number(x_i, basis_i):
     # convert array of local states to number
     # in the hilbert space of all the sites the operator is acting on
 
     # number of sites these operators are acting on
-    acting_size_i = local_states_i.shape[-2]
+    acting_size_i = basis_i.shape[-1]
 
-    @partial(jax.vmap, in_axes=(None, None, None, None, 0))  # vmap over local sites (k)
-    def _f(acting_size_i, x_i, local_states_i, basis_i, k):
+    @partial(jax.vmap, in_axes=(None, None, None, 0))  # vmap over local sites (k)
+    def _f(acting_size_i, x_i, basis_i, k):
         # special case for empty operator
         if len(basis_i) == 0:
             return jnp.zeros((), dtype=basis_i.dtype)
-        return basis_i[k] * jnp.searchsorted(
-            local_states_i[acting_size_i - k - 1], x_i[acting_size_i - k - 1]
-        )
+        return basis_i[k] * x_i[acting_size_i - k - 1]
 
     # vmap over sites we are acting on, computing the contribution to the total int,
     # then taking the sum
-    return _f(
-        acting_size_i, x_i, local_states_i, basis_i, jnp.arange(acting_size_i)
-    ).sum()
+    return _f(acting_size_i, x_i, basis_i, jnp.arange(acting_size_i)).sum()
 
 
 @partial(jax.vmap, in_axes=(0, 0, None))  # Ns
@@ -85,7 +81,6 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     # of operators with the same number of sites they act on
 
     (
-        local_states_,
         acting_on_,
         n_conns_,
         diag_mels_,
@@ -95,7 +90,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         constant,
     ) = op_args
 
-    n_groups = len(local_states_)
+    n_groups = len(acting_on_)
     ncmax_ = [m.shape[2] for m in mels_]
 
     ###
@@ -106,9 +101,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     for k in range(n_groups):
         # extract the local states of all sites the operators are acting on
         # and compute the corresponding number / row index
-        i_row_.append(
-            _state_to_number(x[:, acting_on_[k]], local_states_[k], basis_[k])
-        )
+        i_row_.append(_state_to_number(x[:, acting_on_[k]], basis_[k]))
     ###
     # compute the number of connected elements
     #
@@ -235,7 +228,6 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
                 self.mel_cutoff,
             )
 
-            self._local_states = data["local_states"]
             self._acting_on = data["acting_on"]
             self._n_conns = data["n_conns"]
             self._diag_mels = data["diag_mels"]
@@ -252,13 +244,13 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
         shape = x.shape
         x = x.reshape(-1, x.shape[-1])
+        x_ids = self.hilbert.states_to_local_indices(x)
 
-        xp, mels, n_conn = _local_operator_kernel_jax(
+        xp_ids, mels, n_conn = _local_operator_kernel_jax(
             self._nonzero_diagonal,
             self._max_conn_size,
             self._mel_cutoff,
             (
-                self._local_states,
                 self._acting_on,
                 self._n_conns,
                 self._diag_mels,
@@ -267,8 +259,10 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
                 self._basis,
                 self._constant,
             ),
-            x,
+            x_ids,
         )
+
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         xp = xp.reshape(shape[:-1] + xp.shape[-2:])
         mels = mels.reshape(shape[:-1] + mels.shape[-1:])
         n_conn = n_conn.reshape(shape[:-1])
@@ -286,7 +280,6 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
     def tree_flatten(self):
         self._setup()
         data = (
-            self._local_states,
             self._acting_on,
             self._n_conns,
             self._diag_mels,
@@ -313,7 +306,6 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         op._nonzero_diagonal = metadata["nonzero_diagonal"]
         op._max_conn_size = metadata["max_conn_size"]
         (
-            op._local_states,
             op._acting_on,
             op._n_conns,
             op._diag_mels,

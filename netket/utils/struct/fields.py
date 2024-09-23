@@ -24,6 +24,8 @@ from dataclasses import MISSING
 
 import jax
 
+from .pytree_serialization_sharding import ShardedFieldSpec
+
 
 def _cache_name(property_name):
     return "__" + property_name + "_cache"
@@ -51,7 +53,13 @@ jax.tree_util.register_pytree_node(
 )
 
 
-def field(pytree_node=True, serialize=None, cache=False, **kwargs):
+def field(
+    pytree_node=True,
+    serialize=None,
+    cache=False,
+    sharded: bool | ShardedFieldSpec = False,
+    **kwargs,
+):
     """Mark a field of a dataclass or PyTree to be:
 
     Args:
@@ -64,8 +72,15 @@ def field(pytree_node=True, serialize=None, cache=False, **kwargs):
     """
     if serialize is None:
         serialize = pytree_node
+    if sharded is True:
+        sharded = ShardedFieldSpec()
     return dataclasses.field(
-        metadata={"pytree_node": pytree_node, "serialize": serialize, "cache": cache},
+        metadata={
+            "pytree_node": pytree_node,
+            "serialize": serialize,
+            "cache": cache,
+            "sharded": sharded,
+        },
         **kwargs,
     )
 

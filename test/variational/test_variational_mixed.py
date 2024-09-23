@@ -271,6 +271,7 @@ def test_expect_numpysampler_works(vstate, operator):
     assert isinstance(out, nk.stats.Stats)
 
 
+@common.skipif_sharding  # no jax version of LocalLiouvillian
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
@@ -299,6 +300,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     )
 
 
+@common.skipif_sharding  # no jax version of LocalLiouvillian
 @common.skipif_mpi
 @pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_grad_chunking(vstate, n_chunks):
@@ -357,6 +359,7 @@ def check_consistent_diag(vstate):
     )
 
 
+@common.skipif_sharding  # no jax version of LocalLiouvillian
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
@@ -389,6 +392,7 @@ def test_expect_exact(vstate, operator):
         np.testing.assert_allclose(O_expval_exact.imag, O_mean.imag, atol=err, rtol=err)
 
 
+@common.skipif_sharding  # no jax version of LocalLiouvillian
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, Callable
 from functools import partial
 from numbers import Number
 
@@ -347,7 +347,13 @@ def append(self: History, val: Any, it: Any):  # noqa: E0102, F811
         append(self, {"value": val}, it)
 
 
-def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
+def accum_in_tree(
+    fun: Callable[[Any, Any], Any],
+    tree_accum: dict[str, Any] | Any,
+    tree: dict[str, Any] | Any,
+    compound: bool = True,
+    **kwargs,
+) -> dict[str, Any]:
     """
     Maps all the leafs in the two trees, applying the function with the leafs of tree1
     as first argument and the leafs of tree2 as second argument
@@ -402,7 +408,7 @@ def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
         return fun(tree_accum, tree, **kwargs)
 
 
-def accum_histories(accum, data, *, step=0):
+def accum_histories(accum: History | None, data, *, step=0) -> History:
     if accum is None:
         return History(data, step)
     else:

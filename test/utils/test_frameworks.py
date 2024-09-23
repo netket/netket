@@ -1,8 +1,11 @@
 import builtins
 
+import pytest
+
+import numpy as np
+
 import jax
 import jax.numpy as jnp
-import pytest
 
 import netket as nk
 
@@ -28,7 +31,7 @@ def test_jax_framework_works_without_haiku():
         return out_shape, pars
 
     def apply(pars, x, **_):
-        return pars[0] * jnp.sum(x)
+        return pars["0"] * jnp.sum(x)
 
     hi = nk.hilbert.Qubit(8)
     sampler = nk.sampler.MetropolisLocal(hi)
@@ -57,3 +60,36 @@ def test_haiku_framework():
 
     logpsi = vstate.log_value(hi.all_states())
     assert logpsi.shape == (hi.n_states,)
+
+
+def test_equinox_framework():
+    pytest.importorskip("equinox")
+    import equinox as eqx
+
+    class SupportBatch(eqx.Module):
+        submodule: eqx.Module
+
+        def __init__(self, submodule):
+            self.submodule = submodule
+
+        def __call__(self, x, **kwargs):
+            return jax.vmap(lambda x: self.submodule(x, **kwargs))(x)
+
+    L = 8
+
+    ma = SupportBatch(
+        eqx.nn.MLP(
+            in_size=L, out_size="scalar", width_size=8, depth=1, key=jax.random.key(1)
+        )
+    )
+
+    hi = nk.hilbert.Qubit(L)
+    sampler = nk.sampler.MetropolisLocal(hi)
+    vstate = nk.vqs.MCState(sampler, ma)
+
+    assert vstate.n_parameters == hi.size * (ma.submodule.width_size + 2) + 1
+
+    logpsi = vstate.log_value(hi.all_states())
+    assert logpsi.shape == (hi.n_states,)
+
+    np.testing.assert_allclose(vstate.model(hi.all_states()), logpsi)

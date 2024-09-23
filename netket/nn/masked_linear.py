@@ -18,6 +18,7 @@ import numpy as np
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
 
+import jax
 from jax import lax
 from jax import numpy as jnp
 from jax.nn.initializers import lecun_normal, zeros
@@ -67,7 +68,7 @@ class MaskedDense1D(nn.Module):
     """initializer for the bias."""
 
     @nn.compact
-    def __call__(self, inputs: Array) -> Array:
+    def __call__(self, inputs: jax.Array) -> Array:
         """
         Applies a masked linear transformation to the inputs.
 
@@ -98,7 +99,7 @@ class MaskedDense1D(nn.Module):
         mask = np.kron(
             mask, np.ones((in_features, self.features), dtype=self.param_dtype)
         )
-        mask = jnp.asarray(mask)
+        mask = jnp.asarray(mask)  # type: ignore[no-redef]
 
         kernel = self.param(
             "kernel",
@@ -205,7 +206,7 @@ class MaskedConv1D(nn.Module):
         dimension_numbers = _conv_dimension_numbers(inputs.shape)
         y = lax.conv_general_dilated(
             y,
-            kernel,
+            kernel,  # type: ignore[arg-type]
             window_strides=(1,),
             padding="VALID",
             lhs_dilation=(1,),

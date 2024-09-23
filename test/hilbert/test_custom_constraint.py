@@ -180,10 +180,17 @@ def test_constraint_interface_errors():
 
 
 def test_extra_constraint_spin_orbital_fermion():
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(1, 2))
+    assert isinstance(hi.constraint, nk.hilbert.constraint.SumOnPartitionConstraint)
+    assert np.all(hi.constraint(hi.all_states()))
+
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, constraint=CustomConstraintPy())
+    assert isinstance(hi.constraint, CustomConstraintPy)
+    assert np.all(hi.constraint(hi.all_states()))
+
     hi = nkx.hilbert.SpinOrbitalFermions(
         4, s=1 / 2, n_fermions_per_spin=(1, 2), constraint=CustomConstraintPy()
     )
-
     assert isinstance(hi.constraint, nk.hilbert.constraint.ExtraConstraint)
     assert isinstance(
         hi.constraint,
@@ -191,5 +198,4 @@ def test_extra_constraint_spin_orbital_fermion():
             nk.hilbert.constraint.SumOnPartitionConstraint, CustomConstraintPy
         ],
     )
-
     assert np.all(hi.constraint(hi.all_states()))

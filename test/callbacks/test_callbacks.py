@@ -23,7 +23,7 @@ def _vmc(n_iter=20):
 
     ma = nk.models.RBM(alpha=1)
 
-    ha = nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
+    ha = nk.operator.IsingJax(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
     sa = nk.sampler.MetropolisLocal(hi)
     vs = nk.vqs.MCState(sa, ma, n_samples=512, seed=SEED)
 
@@ -37,7 +37,7 @@ def _tdvp(n_iter=20):
 
     ma = nk.models.RBM(alpha=1)
     # rescale so that dt=1.0
-    ha = 1e-2 * nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
+    ha = 1e-2 * nk.operator.IsingJax(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
     sa = nk.sampler.MetropolisLocal(hi)
     vs = nk.vqs.MCState(sa, ma, n_samples=512, seed=SEED)
 

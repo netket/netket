@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import abc
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -21,8 +22,10 @@ import jax.numpy as jnp
 from jax.nn.initializers import normal
 
 from flax import core as fcore
-from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
+from flax.core.scope import CollectionFilter
+from plum import Callable  # noqa: F401
 
+from netket.hilbert.discrete_hilbert import DiscreteHilbert
 import netket.jax as nkjax
 from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
@@ -30,6 +33,12 @@ from netket.stats import Stats
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
 from netket.utils.dispatch import dispatch
 from netket.utils.optional_deps import import_optional_dependency
+
+if TYPE_CHECKING:
+    from netket.optimizer.linear_operator import LinearOperator
+
+
+QGTConstructor = Callable[["VariationalState"], "LinearOperator"]
 
 
 class VariationalState(abc.ABC):
@@ -44,6 +53,8 @@ class VariationalState(abc.ABC):
     See `their docs <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_.
 
     """
+
+    mutable: CollectionFilter
 
     def __init__(self, hilbert: AbstractHilbert):
         """Initialize the Abstract base class of a Variational State defined
@@ -70,19 +81,20 @@ class VariationalState(abc.ABC):
         r"""The pytree of the parameters of the model."""
         return fcore.copy(self._parameters, {})
 
-    @property
-    def n_parameters(self) -> int:
-        r"""The total number of parameters in the model."""
-        return nkjax.tree_size(self.parameters)
-
     @parameters.setter
     def parameters(self, pars: PyTree):
         self._parameters = pars
         self.reset()
 
     @property
-    def model_state(self) -> PyTree | None:
-        r"""The optional pytree with the mutable state of the model."""
+    def n_parameters(self) -> int:
+        r"""The total number of parameters in the model."""
+        return nkjax.tree_size(self.parameters)
+
+    @property
+    def model_state(self) -> PyTree:
+        r"""The optional PyTree with the mutable state of the model, which
+        is not optimized."""
         return fcore.copy(self._model_state, {})
 
     @model_state.setter
@@ -128,7 +140,7 @@ class VariationalState(abc.ABC):
 
         def new_pars(par):
             return jnp.asarray(
-                init_fun(rng.take(1)[0], shape=par.shape, dtype=par.dtype),
+                init_fun(rng.take(1)[0], shape=par.shape, dtype=par.dtype),  # type: ignore
                 dtype=par.dtype,
             )
 
@@ -247,14 +259,16 @@ class VariationalState(abc.ABC):
         return expect_and_forces(self, O, mutable=mutable)
 
     # @abc.abstractmethod
-    def quantum_geometric_tensor(self, qgt_type):
+    def quantum_geometric_tensor(
+        self, qgt_T: QGTConstructor | None
+    ) -> "LinearOperator":
         r"""Computes an estimate of the quantum geometric tensor G_ij.
 
         This function returns a linear operator that can be used to apply G_ij to a
         given vector or can be converted to a full matrix.
 
         Args:
-            qgt_type: the optional type of the quantum geometric tensor. By default it
+            qgt_T: the optional type of the quantum geometric tensor. By default it
                 is automatically selected.
 
         Returns:
@@ -282,6 +296,12 @@ class VariationalState(abc.ABC):
         Returns:
             A :class:`qutip.Qobj` object.
         """
+        if not isinstance(self.hilbert, DiscreteHilbert):
+            raise TypeError(
+                "Only states defined on discrete hilbert spaces can be "
+                "converted to the dense representation required by QuTiP."
+            )
+
         qutip = import_optional_dependency("qutip", descr="to_qobj")
 
         q_dims = [list(self.hilbert.shape), [1 for i in range(self.hilbert.size)]]
@@ -299,7 +319,7 @@ class VariationalMixedState(VariationalState):
     def hilbert_physical(self) -> AbstractHilbert:
         return self._hilbert_physical
 
-    def to_matrix(self, normalize: bool = True) -> jnp.ndarray:
+    def to_matrix(self, normalize: bool = True) -> jax.Array:
         """
         Returns the dense-matrix representation of this operator.
 
@@ -320,7 +340,8 @@ class VariationalMixedState(VariationalState):
         """
         qutip = import_optional_dependency("qutip", descr="to_qobj")
 
-        q_dims = [list(self.hilbert_physical.shape), list(self.hilbert_physical.shape)]
+        hilbert: DiscreteHilbert = self.hilbert_physical  # type: ignore
+        q_dims = [list(hilbert.shape), list(hilbert.shape)]
         return qutip.Qobj(np.asarray(self.to_matrix()), dims=q_dims)
 
 

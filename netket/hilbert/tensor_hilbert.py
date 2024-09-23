@@ -59,7 +59,7 @@ class TensorHilbert(ABC):
             *hilb: An iterable object containing at least 1 hilbert space.
         """
         # Flatten "TensorHilberts" found inside hilb_spaces
-        _hilb_spaces_flat = []
+        _hilb_spaces_flat: list[AbstractHilbert] = []
         for hi in hilb_spaces:
             if isinstance(hi, TensorHilbert):
                 _hilb_spaces_flat.extend(hi.subspaces)

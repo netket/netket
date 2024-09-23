@@ -15,22 +15,23 @@
 import flax
 from jax import numpy as jnp
 
-from .. import common
+import pytest
 
 import numpy as np
-import pytest
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
+
 import jax
 from jax.nn.initializers import normal
 
 import netket as nk
+from netket import experimental as nkx
 from netket import config
 from netket.hilbert import DiscreteHilbert, Particle
 from netket.utils import array_in, mpi
 from netket.jax.sharding import device_count_per_rank
 
-from netket import experimental as nkx
 
+from .. import common
 
 pytestmark = common.skipif_mpi
 
@@ -109,11 +110,14 @@ samplers[
 ] = nkx.sampler.MetropolisParticleExchange(
     hi_fermion_spin, graph=g, exchange_spins=False
 )
-samplers[
-    "Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisParticleExchange(
-    hi_fermion_spin_higher, graph=g, exchange_spins=False
-)
+if nk.utils.module_version("jax") != (0, 4, 33):
+    # this test is broken for a bug in jax 0.4.33
+    # https://github.com/google/jax/issues/23727
+    samplers[
+        "Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"
+    ] = nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin_higher, graph=g, exchange_spins=False
+    )
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
     hi,

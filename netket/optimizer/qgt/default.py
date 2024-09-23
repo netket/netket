@@ -12,19 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from functools import partial
 
 import jax
+from plum import Callable
 
 import netket.jax as nkjax
+from netket.optimizer.linear_operator import LinearOperator
 
 from .qgt_jacobian import QGTJacobianDense, QGTJacobianPyTree
 from .qgt_onthefly import QGTOnTheFly
 
 from .. import solver as nk_solver_module
 
-solvers = []
+if TYPE_CHECKING:
+    from netket.vqs import VariationalState
+
+QGTConstructor = Callable[["VariationalState"], LinearOperator]
+
+solvers: list[Callable] = []
 
 for solver in dir(nk_solver_module):
     # only add solvers, not random
@@ -48,7 +55,9 @@ def _is_dense_solver(solver: Any) -> bool:
     return False
 
 
-def default_qgt_matrix(variational_state, solver=False, **kwargs):
+def default_qgt_matrix(
+    variational_state, solver: Any = False, **kwargs
+) -> QGTConstructor:
     """
     Determines default metric tensor depending on variational_state and solver
     """
@@ -76,7 +85,7 @@ def default_qgt_matrix(variational_state, solver=False, **kwargs):
         else:
             return partial(QGTJacobianPyTree, **kwargs)
     else:
-        return partial(QGTOnTheFly, **kwargs)
+        return partial(QGTOnTheFly, **kwargs)  # type: ignore
 
 
 class QGTAuto:
@@ -94,7 +103,7 @@ class QGTAuto:
     QGT to chose.
     """
 
-    _last_matrix = None
+    _last_matrix: QGTConstructor | None = None
     """
     Cached last QGT. Used when vstate == _last_vstate
     """
@@ -104,12 +113,16 @@ class QGTAuto:
     Kwargs passed at construction. Used when constructing a QGT.
     """
 
-    def __init__(self, solver=None, **kwargs):
+    _solver: Callable | None
+
+    def __init__(self, solver: Callable | None = None, **kwargs):
         self._solver = solver
 
         self._kwargs = kwargs
 
-    def __call__(self, variational_state, *args, **kwargs):
+    def __call__(
+        self, variational_state: "VariationalState", *args, **kwargs
+    ) -> LinearOperator:
         if self._last_vstate != variational_state:
             self._last_vstate = variational_state
 
@@ -117,7 +130,7 @@ class QGTAuto:
                 variational_state, solver=self._solver, **self._kwargs, **kwargs
             )
 
-        return self._last_matrix(variational_state, *args, **kwargs)
+        return self._last_matrix(variational_state, *args, **kwargs)  # type: ignore
 
     def __repr__(self):
         return "QGTAuto()"

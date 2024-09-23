@@ -127,7 +127,7 @@ class AbstractHilbert(abc.ABC):
 
         from .tensor_hilbert import TensorHilbert
 
-        return TensorHilbert(other, self)
+        return TensorHilbert(other, self)  # type: ignore[return-value]
 
     def _mul_sametype_(self, other: "AbstractHilbert") -> "AbstractHilbert":
         """This function can be implemented by subclasses to

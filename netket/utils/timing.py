@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Callable
+from typing import TypeVar, ParamSpec
 
 import time
 import inspect
@@ -22,8 +23,11 @@ import contextlib
 from rich.tree import Tree
 from rich.panel import Panel
 
-
 from netket.utils import struct, display
+
+T = TypeVar("T")
+P = ParamSpec("P")
+
 
 CURRENT_TIMER_STACK = []
 
@@ -196,7 +200,7 @@ def timed_scope(name: str = None, force: bool = False):
         yield None
 
 
-def timed(fun: Callable = None, name: str | None = None):
+def timed(fun: Callable[P, T] = None, name: str | None = None) -> Callable[P, T]:
     """
     Marks the decorated function to be timed individually in
     NetKet timing scopes.

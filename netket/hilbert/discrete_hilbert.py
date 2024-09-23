@@ -135,7 +135,7 @@ class DiscreteHilbert(AbstractHilbert):
         raise NotImplementedError()  # pragma: no cover
 
     @partial(jax.jit, static_argnums=0)
-    def numbers_to_states(self, numbers: Array) -> Array:
+    def numbers_to_states(self, numbers: Array) -> jax.Array:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n.
 
@@ -168,8 +168,22 @@ class DiscreteHilbert(AbstractHilbert):
             (*numbers.shape, self.size)
         )
 
+    def _numbers_to_states(self, numbers: jax.Array) -> jax.Array:
+        """
+        This method must be overriden by subclasses to allow conversion of
+        numbers to states.
+
+        Args:
+            numbers: jax array encoding a batch of input numbers to be converted
+                into arrays of quantum numbers.
+
+        Returns:
+            A batch of states.
+        """
+        raise NotImplementedError
+
     @partial(jax.jit, static_argnums=0)
-    def states_to_numbers(self, states: Array) -> Array:
+    def states_to_numbers(self, states: Array) -> jax.Array:
         r"""Returns the basis state number corresponding to given quantum states.
 
         The states are given in a batch, such that states[k] has shape (hilbert.size).
@@ -199,6 +213,20 @@ class DiscreteHilbert(AbstractHilbert):
             return out[0]
         else:
             return out.reshape(states.shape[:-1])
+
+    def _states_to_numbers(self, states: jax.Array) -> jax.Array:
+        """
+        This method must be overriden by subclasses to allow conversion of
+        states to numbers.
+
+        Args:
+            states: jax array encoding a batch of input states to be converted
+                into a vector of numbers.
+
+        Returns:
+            A vector of numbers.
+        """
+        raise NotImplementedError
 
     def states(self) -> Iterator[np.ndarray]:
         r"""Returns an iterator over all valid configurations of the Hilbert space.

@@ -19,6 +19,8 @@ import numpy as np
 
 import netket as nk
 
+from .. import common
+
 
 class M1(nn.Module):
     n_h: int
@@ -88,7 +90,7 @@ def test_forces_gradient_rule():
     ma2 = M2(nh)
     ma3 = M3(nh)
     hi = nk.hilbert.Spin(1 / 2, N=4)
-    ha = nk.operator.Ising(hi, nk.graph.Chain(4), h=0.5)
+    ha = nk.operator.IsingJax(hi, nk.graph.Chain(4), h=0.5)
     samp = nk.sampler.ExactSampler(hi)
     vs1 = nk.vqs.MCState(samp, model=ma1, n_samples=1024, sampler_seed=1234, seed=1234)
     vs2 = nk.vqs.MCState(samp, model=ma2, n_samples=1024, sampler_seed=1234, seed=1234)
@@ -135,6 +137,7 @@ def test_forces_gradient_rule():
     )
 
 
+@common.skipif_sharding  # no jax version of LocalLiouvillian
 def test_forces_gradient_rule_ldagl():
     nh = 8
     ma1 = M1(nh)

@@ -50,7 +50,7 @@ def jacobian(
     model_state: PyTree | None = None,
     *,
     mode: str,
-    pdf: Array = None,
+    pdf: Array | None = None,
     chunk_size: int | None = None,
     center: bool = False,
     dense: bool = False,
@@ -308,10 +308,7 @@ def jacobian(
     if model_state is None:
         model_state = {}
 
-    if dense:
-        jac_type = jacobian_dense
-    else:
-        jac_type = jacobian_pytree
+    jac_type = jacobian_dense if dense else jacobian_pytree
 
     if mode == "real":
         split_complex_params = True  # convert C→R and R&C→R to R→R

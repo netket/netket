@@ -231,7 +231,7 @@ def vjp_chunked(
     ############################################################################
     # sharding
 
-    if config.netket_experimental_sharding and chunk_size is not None:
+    if config.netket_experimental_sharding and chunk_size is not None:  # type: ignore
         if return_forward:
             raise NotImplementedError
 
@@ -286,12 +286,12 @@ def vjp_chunked(
         y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
         if return_forward:
 
-            def __vjp_fun(y, vjp_fun, cotangents):
+            def __vjp_fun_retfwd(y, vjp_fun, cotangents):
                 res = vjp_fun(cotangents)
                 res = _trash_tuple_elements(res, nondiff_argnums)
                 return y, res
 
-            return Partial(__vjp_fun, y, vjp_fun)
+            return Partial(__vjp_fun_retfwd, y, vjp_fun)
         else:
 
             def __vjp_fun(vjp_fun, cotangents):

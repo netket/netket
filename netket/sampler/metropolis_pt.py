@@ -23,7 +23,8 @@ from jax import numpy as jnp
 from netket import config
 from netket.utils.types import PyTree, PRNGKeyT, Array
 from netket.utils import struct, mpi
-from netket.jax.sharding import with_samples_sharding_constraint, sharding_decorator
+from netket.jax import dtype_real
+from netket.jax.sharding import shard_along_axis, sharding_decorator
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
@@ -62,6 +63,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         rng: jnp.ndarray,
         rule_state: Any | None,
         beta: jnp.ndarray,
+        log_prob: jnp.ndarray | None = None,
     ):
         n_chains, n_replicas = beta.shape
 
@@ -71,7 +73,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         self.beta_position = jnp.zeros((n_chains,), dtype=float)
         self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
         self.exchange_steps = jnp.zeros((), dtype=int)
-        super().__init__(σ, rng, rule_state)
+        super().__init__(σ, rng=rng, rule_state=rule_state, log_prob=log_prob)
         self.n_accepted_proc = jnp.zeros(
             n_chains, dtype=int
         )  # correct shape is (n_chains,) and not (n_batches,)
@@ -307,7 +309,13 @@ class ParallelTemperingSampler(MetropolisSampler):
         key_state, key_rule, rng = jax.random.split(key, 3)
         rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
         σ = sampler.rule.random_state(sampler, machine, parameters, rule_state, rng)
-        σ = with_samples_sharding_constraint(σ)
+        σ = shard_along_axis(σ, axis=0)
+
+        output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
+        log_prob = jnp.full(
+            (sampler.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype)
+        )
+        log_prob = shard_along_axis(log_prob, axis=0)
 
         beta = jnp.tile(
             sampler.sorted_betas, (sampler.n_batches // sampler.n_replicas, 1)
@@ -315,6 +323,7 @@ class ParallelTemperingSampler(MetropolisSampler):
 
         return ParallelTemperingSamplerState(
             σ=σ,
+            log_prob=log_prob,
             rng=key_state,
             rule_state=rule_state,
             beta=beta,
@@ -485,12 +494,12 @@ class ParallelTemperingSampler(MetropolisSampler):
 
             return s
 
-        new_rng, rng = jax.random.split(state.rng)
-
         s = {
-            "key": rng,
+            "key": state.rng,
             "σ": state.σ,
-            "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
+            # Log prob is already computed in reset, so don't recompute it.
+            # "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
+            "log_prob": state.log_prob,
             "beta": state.beta,
             # for logging
             "beta_0_index": state.beta_0_index,
@@ -507,8 +516,9 @@ class ParallelTemperingSampler(MetropolisSampler):
         )
 
         new_state = state.replace(
-            rng=new_rng,
+            rng=s["key"],
             σ=s["σ"],
+            log_prob=s["log_prob"],
             n_steps_proc=state.n_steps_proc
             + sampler.sweep_size * sampler.n_batches // sampler.n_replicas,
             beta=s["beta"],

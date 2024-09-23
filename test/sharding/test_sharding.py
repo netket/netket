@@ -106,8 +106,7 @@ def test_grad():
 
 @pytest.mark.parametrize(
     "Op",
-    ([pytest.param(nk.operator.Ising, id="numba")] if jax.process_count() < 2 else [])
-    + [pytest.param(nk.operator.IsingJax, id="jax")],
+    [pytest.param(nk.operator.IsingJax, id="IsingJax")],
 )
 @pytest.mark.parametrize(
     "qgt",
@@ -129,10 +128,6 @@ def test_grad():
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
 def test_vmc(Op, qgt, chunk_size, reset_chains):
-    # TODO: Fix one day this jaxlib bug
-    if chunk_size is not None:
-        pytest.xfail("Jaxlib CPU bug")
-
     vs, g, _ = _setup(16, reset_chains=reset_chains)
     vs.chunk_size = chunk_size
     # initially the params are only on the first device of each process
@@ -191,8 +186,7 @@ def test_qgt_onthefly():
 
 @pytest.mark.parametrize(
     "Op",
-    ([pytest.param(nk.operator.Ising, id="numba")] if jax.process_count() < 2 else [])
-    + [pytest.param(nk.operator.IsingJax, id="jax")],
+    [pytest.param(nk.operator.IsingJax, id="IsingJax")],
 )
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"

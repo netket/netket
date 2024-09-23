@@ -168,7 +168,8 @@ class JsonLog(RuntimeLog):
     def _flush_log(self):
         # Time how long flushing data takes.
         self._last_flush_time = time.time()
-        self.serialize(self._prefix + ".log")
+        if self._is_master_process:
+            self.serialize(self._prefix + ".log")
         self._last_flush_runtime = time.time() - self._last_flush_time
 
         self._flush_log_time += self._last_flush_runtime
@@ -184,8 +185,9 @@ class JsonLog(RuntimeLog):
         binary_data = serialization.to_bytes(
             extract_replicated(variational_state.variables)
         )
-        with open(self._prefix + ".mpack", "wb") as outfile:
-            outfile.write(binary_data)
+        if self._is_master_process:
+            with open(self._prefix + ".mpack", "wb") as outfile:
+                outfile.write(binary_data)
         self._last_flush_pars_runtime = time.time() - self._last_flush_pars_time
 
         self._flush_pars_time += self._last_flush_pars_runtime

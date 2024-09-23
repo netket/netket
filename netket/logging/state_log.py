@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Literal, Union
+
 import tarfile
 import time
 from io import BytesIO
@@ -23,8 +25,18 @@ from os import path as _path
 from flax import serialization
 
 from netket.jax.sharding import extract_replicated
+from netket.vqs import VariationalState
 
 from .base import AbstractLog
+
+FileModeT = Union[
+    Literal["write"],
+    Literal["append"],
+    Literal["fail"],
+    Literal["x"],
+    Literal["w"],
+    Literal["a"],
+]
 
 
 def save_binary_to_tar(tar_file, byte_data, name):
@@ -51,7 +63,7 @@ class StateLog(AbstractLog):
     def __init__(
         self,
         output_prefix: str,
-        mode: str = "write",
+        mode: FileModeT = "write",
         save_every: int = 1,
         tar: bool = False,
     ):
@@ -105,7 +117,7 @@ class StateLog(AbstractLog):
             os.makedirs(dir_name, exist_ok=True)
 
         self._prefix = output_prefix
-        self._file_mode = mode
+        self._file_mode: FileModeT = mode
 
         self._save_every = save_every
         self._old_step = 0
@@ -119,16 +131,19 @@ class StateLog(AbstractLog):
         self._tar_file = None
         self._closed = False
 
+        self._file_step = 0
+
     def _init_output(self):
-        if self._tar:
-            self._create_tar_file()
-        else:
-            self._check_output_folder()
+        if self._is_master_process:
+            if self._tar:
+                self._create_tar_file()
+            else:
+                self._check_output_folder()
         self._init = True
 
     def _create_tar_file(self):
         if self._tar_file is None:
-            self._tar_file = tarfile.TarFile(self._prefix + ".tar", self._file_mode[0])
+            self._tar_file = tarfile.TarFile(self._prefix + ".tar", self._file_mode[0])  # type: ignore
             self._file_step = 0
             if self._file_mode == "append":
                 files = self._tar_file.getnames()
@@ -153,7 +168,12 @@ class StateLog(AbstractLog):
             self._tar_file.close()
             self._closed = True
 
-    def __call__(self, step, item, variational_state):
+    def __call__(
+        self,
+        step: int,
+        item: dict[str, Any],
+        variational_state: VariationalState | None = None,
+    ):
         old_step = self._old_step
 
         if self._steps_notsaved % self._save_every == 0 or step == old_step - 1:
@@ -170,13 +190,15 @@ class StateLog(AbstractLog):
         binary_data = serialization.to_bytes(
             extract_replicated(variational_state.variables)
         )
-        if self._tar:
-            save_binary_to_tar(
-                self._tar_file, binary_data, str(self._file_step) + ".mpack"
-            )
-        else:
-            with open(self._prefix + str(self._file_step) + ".mpack", "wb") as f:
-                f.write(binary_data)
+
+        if self._is_master_process:
+            if self._tar:
+                save_binary_to_tar(
+                    self._tar_file, binary_data, str(self._file_step) + ".mpack"
+                )
+            else:
+                with open(self._prefix + str(self._file_step) + ".mpack", "wb") as f:
+                    f.write(binary_data)
 
         self._file_step += 1
         self._runtime_taken += time.time() - _time
