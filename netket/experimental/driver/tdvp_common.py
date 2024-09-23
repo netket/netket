@@ -226,7 +226,9 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         if tstops is not None and (
             np.any(np.less(tstops, self.t)) or np.any(np.greater(tstops, t_end))
         ):
-            raise ValueError(f"All tstops must be in range [t, t + T]=[{self.t}, {t_end}]")
+            raise ValueError(
+                f"All tstops must be in range [t, t + T]=[{self.t}, {t_end}]"
+            )
 
         if tstops is not None and len(tstops) > 0:
             tstops = np.sort(tstops)
