@@ -64,7 +64,11 @@ class MetropolisSamplerState(SamplerState):
 
     n_steps_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=int))
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: jnp.ndarray = struct.field(sharded=True)
+    n_accepted_proc: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-ignore-errors"
+        )
+    )
     """Number of accepted transitions among the chains in this process since the last reset."""
 
     def __init__(
