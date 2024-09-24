@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable
-from functools import partial
+from typing import Any, Iterable, Optional, TYPE_CHECKING
 from numbers import Number
 
 import numpy as np
 
-from flax.core import FrozenDict
 
+if TYPE_CHECKING:
+    import matplotlib
 
-from .dispatch import dispatch
-from .numbers import is_scalar
-from .types import Array, DType
+from ..dispatch import dispatch
+from ..numbers import is_scalar
+from ..types import Array, DType
+from ..optional_deps import import_optional_dependency
 
 
 def raise_if_len_not_match(length, expected_length, string):
@@ -173,11 +174,18 @@ class History:
         self._keys = keys
 
     @property
+    def main_value_name(self) -> Optional[str]:
+        """The name of the main value in this history object, if defined."""
+        return self._value_name
+
+    @property
     def iters(self) -> Array:
         return self._value_dict["iters"]
 
     @property
     def values(self) -> Array:
+        if self._value_name is None:
+            raise ValueError("No main value defined for this history object.")
         return self._value_dict[self._value_name]
 
     def __len__(self) -> int:
@@ -283,6 +291,71 @@ class History:
     def __str__(self):
         return f"History(keys={self.keys()}, n_iters={len(self.iters)})"
 
+    def plot(
+        self,
+        *args,
+        fig: "matplotlib.figure.Figure | None" = None,
+        show: bool = True,
+        all: bool | None = None,
+        **kwargs,
+    ) -> "matplotlib.axes.Axes" | Iterable["matplotlib.axes.Axes"]:
+        """
+        Plot the history object using matplotlib.
+
+        This function is equivalent to calling `matplotlib.pyplot.plot` on the
+        values of the history object. If multiple keys are present, it will
+        plot only the main value by default. If `all=True`, it will plot all
+        the keys in the history object.
+
+        When plotting a single key, this function is equivalent to calling
+        :code:`plt.plot(history.iters, history[key], *args, **kwargs)`.
+
+        For the arguments and keyword arguments, refer to the documentation of
+        :func:`matplotlib.pyplot.plot`. Below we document some extra arguments.
+
+        Args:
+            fig: A matplotlib figure object to plot the data on. If not provided,
+                a new figure is created.
+            all: If True, plot all the keys in the history object. If False, plot
+                only the main value. If None, plot only the main value if it is
+                defined, otherwise plot all the keys.
+            show: If True, call `plt.show()` at the end of the function. If False,
+                the plot is not shown.
+
+        """
+        plt = import_optional_dependency("matplotlib.pyplot", descr="plot")
+
+        if self.main_value_name is None and all is None:
+            all = True
+
+        if fig is None:
+            fig = plt.figure()
+
+        if all:
+            n_plots = len(self.keys())
+        else:
+            n_plots = 1
+
+        axes = fig.subplots(n_plots, sharex=True)
+        if not isinstance(axes, Iterable):
+            axes = [axes]
+
+        keys_to_plot = self.keys() if all else [self.main_value_name]
+
+        for ax, key in zip(axes, keys_to_plot):
+            ax.plot(self.iters, self[key], label=key, *args, **kwargs)
+            ax.set_ylabel(key)
+
+        plt.xlabel("Iterations")
+        plt.legend()
+        if show:
+            plt.show()
+
+        if n_plots == 1:
+            return axes[0]
+        else:
+            return axes
+
 
 @dispatch
 def append(self: History, val: Any):
@@ -303,7 +376,7 @@ def append(self: History, val: History, it: Any):  # noqa: E0102, F811
     self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
 
     self._len = len(self) + len(val)
-
+    return self
 
 @dispatch
 def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
@@ -333,6 +406,7 @@ def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
 
     self.iters[-1] = it
     self._len += 1
+    return self
 
 
 @dispatch
@@ -345,75 +419,4 @@ def append(self: History, val: Any, it: Any):  # noqa: E0102, F811
         append(self, val.to_dict(), it)
     else:
         append(self, {"value": val}, it)
-
-
-def accum_in_tree(
-    fun: Callable[[Any, Any], Any],
-    tree_accum: dict[str, Any] | Any,
-    tree: dict[str, Any] | Any,
-    compound: bool = True,
-    **kwargs,
-) -> dict[str, Any]:
-    """
-    Maps all the leafs in the two trees, applying the function with the leafs of tree1
-    as first argument and the leafs of tree2 as second argument
-    Any additional argument after the first two is forwarded to the function call.
-
-    This is useful e.g. to sum the leafs of two trees
-
-    Args:
-        fun: the function to apply to all leafs
-        tree1: the structure containing leafs. This can also be just a leaf
-        tree2: the structure containing leafs. This can also be just a leaf
-        *args: additional positional arguments passed to fun
-        **kwargs: additional kw arguments passed to fun
-
-    Returns:
-        An equivalent tree, containing the result of the function call.
-    """
-    if tree is None:
-        return tree_accum
-
-    elif isinstance(tree, list):
-        if tree_accum is None:
-            tree_accum = [None for _ in range(len(tree))]
-
-        return [
-            accum_in_tree(fun, _accum, _tree, **kwargs)
-            for _accum, _tree in zip(tree_accum, tree)
-        ]
-    elif isinstance(tree, tuple):
-        if tree_accum is None:
-            tree_accum = (None for _ in range(len(tree)))
-
-        return tuple(
-            accum_in_tree(fun, _accum, _tree, **kwargs)
-            for _accum, _tree in zip(tree_accum, tree)
-        )
-    elif isinstance(tree, dict | FrozenDict):
-        if tree_accum is None:
-            tree_accum = {}
-
-        for key in tree.keys():
-            tree_accum[key] = accum_in_tree(
-                fun, tree_accum.get(key, None), tree[key], **kwargs
-            )
-
-        return tree_accum
-    elif hasattr(tree, "to_compound") and compound:
-        return fun(tree_accum, tree, **kwargs)
-    elif hasattr(tree, "to_dict"):
-        return accum_in_tree(fun, tree_accum, tree.to_dict(), **kwargs)
-    else:
-        return fun(tree_accum, tree, **kwargs)
-
-
-def accum_histories(accum: History | None, data, *, step=0) -> History:
-    if accum is None:
-        return History(data, step)
-    else:
-        accum.append(data, it=step)
-        return accum
-
-
-accum_histories_in_tree = partial(accum_in_tree, accum_histories)
+    return self
