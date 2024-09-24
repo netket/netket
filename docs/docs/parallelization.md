@@ -30,8 +30,8 @@ be careful is when you save files to do so only on the master rank.
 | Distributed: GPU       |         |   🤯  |               |            ✔️           |
 
 Legend:
- - 🐢 Slow: Sharding is slow
- - ✔️ Recommended: Recommended method
+ - ✔️ Recommended method
+ - 🐢 Sharding is slow
  - 🤯 Hard to setup 
 
 (mpi)=
@@ -161,7 +161,9 @@ import jax
 # but it's a pain to setup. see instructions below for MPITrampoline.
 jax.config.update("jax_cpu_collectives_implementation", "gloo")
 # This assumes you have mpi4py installed, but is very reliable.
+print("initializing jax distributed...", flush=True)
 jax.distributed.initialize(cluster_detection_method="mpi4py")
+print("initialization succeded...", flush=True)
 
 import os
 os.environ['NETKET_MPI'] = '0'
@@ -192,11 +194,24 @@ See the [Sharding/multi_process.py](https://github.com/netket/netket/blob/master
 :::
 
 :::{warning}
-### Common issues
+### Common problems
 
 Common issues we have found so far with this setup are:
  - On MacOs, this initialization is sometimes not compatible with OpenMPI>=5
  - If the 'hostname' does not resolve to 127.0.0.1, the call to `.initlaize` will deadlock. In those cases you just need to bind your hostname to `127.0.0.1`. This sometimes happen when using VPNs at some institutions.
+
+About this latter point: if the script below does not work and deadlocks on your local computer right after printing ``initializing jax distributed`, it is often caused by the fact that your hostname is not resolvable.
+To diagnose the issue, run the following command
+
+```bash
+ping $(hostname)
+``` 
+If it fails, then it means that your computer does not know how to talk to itself through its own hostname.
+To fix this, you must edit the `/etc/host` file and add a line that looks like
+```bash
+echo "127.0.0.1      $(hostname)"
+```
+To edit the host file, you can for example do ``sudo nano \etc\host``
 :::
 
 #### MPITrampoline backend (very experimental)
