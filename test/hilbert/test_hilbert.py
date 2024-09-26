@@ -843,3 +843,15 @@ def test_doubled_hilbert_indexable():
     hid = DoubledHilbert(hi)
     assert hi.is_indexable  # just to verify this is indeed still the case
     assert hid.is_indexable  # then this must hold as well
+
+
+def test_hilbert_dtype_int8():
+    hi = nkx.hilbert.SpinOrbitalFermions(4)
+    assert hi.all_states().dtype == np.int8
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions=2)
+    assert hi.all_states().dtype == np.int8
+
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2)
+    assert hi.all_states().dtype == np.int8
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(2, 2))
+    assert hi.all_states().dtype == np.int8
