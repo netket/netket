@@ -1,12 +1,25 @@
+# Copyright 2021 The NetKet Authors - All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Callable, Optional
 from functools import partial
 
 import jax
 import jax.numpy as jnp
 
-import netket as nk
 from netket.utils.mpi.primitives import mpi_all_jax
-from netket.utils.struct import dataclass, field
+from netket.utils import struct, KahanSum
 from netket.utils.types import Array
 from netket.utils.numbers import dtype as _dtype
 from ._structures import maybe_jax_jit
@@ -22,7 +35,7 @@ from ._tableau import Tableau
 from ._state import IntegratorState, SolverFlags
 
 
-@partial(maybe_jax_jit, static_argnames=["f", "norm_fn", "dt_limits"])
+@partial(maybe_jax_jit, static_argnames=["f"])
 def general_time_step_fixed(
     tableau: Tableau,
     f: Callable,
@@ -69,7 +82,7 @@ def general_time_step_adaptive(
     rtol: float,
     norm_fn: Callable,
     max_dt: Optional[float],
-    dt_limits: LimitsType,  ### change to limtsDType
+    dt_limits: LimitsType,
 ):
     r"""
     Performs one adaptive step from current time.
@@ -91,7 +104,6 @@ def general_time_step_adaptive(
     Returns:
         Updated state of the integrator.
     """
-    # return 0
     flags = SolverFlags(0)
 
     if max_dt is None:
@@ -136,16 +148,12 @@ def adapt_time_step(
         scaled_err,
         error_order,
         limits=(
-            (
-                jnp.maximum(0.1 * state.dt, dt_limits[0])
-                if dt_limits[0]
-                else 0.1 * state.dt
-            ),
-            (
-                jnp.minimum(5.0 * state.dt, dt_limits[1])
-                if dt_limits[1]
-                else 5.0 * state.dt
-            ),
+            jnp.maximum(0.1 * state.dt, dt_limits[0])
+            if dt_limits[0]
+            else 0.1 * state.dt,
+            jnp.minimum(5.0 * state.dt, dt_limits[1])
+            if dt_limits[1]
+            else 5.0 * state.dt,
         ),
     )
 
@@ -182,8 +190,8 @@ def adapt_time_step(
                     lambda _: state.dt,
                     None,
                 ),
-                last_norm=norm_y,
-                last_scaled_error=scaled_err,
+                last_norm=norm_y.astype(state.last_norm.dtype),
+                last_scaled_error=scaled_err.astype(state.last_scaled_error.dtype),
                 flags=flags | SolverFlags.INFO_STEP_ACCEPTED,
             ),
             # step rejected, repeat with lower dt
@@ -198,21 +206,22 @@ def adapt_time_step(
     )
 
 
-@dataclass(_frozen=False)
+@struct.dataclass(_frozen=False)
 class Integrator:
     r"""
     Ordinary-Differential-Equation integrator.
     Given an ODE-function f, it integrates the derivatives to obtain the solution
     at the next time step.
     """
+
     tableau: Tableau
     """The tableau containing the integration coefficients."""
 
-    f: Callable = field(repr=False)
+    f: Callable = struct.field(repr=False)
     """ODE function."""
     t0: float
     """Initial time."""
-    y0: Array = field(repr=False)
+    y0: Array = struct.field(repr=False)
     """Initial state."""
 
     initial_dt: float
@@ -247,10 +256,8 @@ class Integrator:
         setattr(self, "initial_dt", jnp.array(self.initial_dt, dtype=t_dtype))
 
         self._state = IntegratorState(
-            step_no=0,
-            step_no_total=0,
-            t=nk.utils.KahanSum(self.t0),
             y=self.y0,
+            t=KahanSum(self.t0),
             dt=self.initial_dt,
             last_norm=0.0 if self.use_adaptive else None,
             last_scaled_error=0.0 if self.use_adaptive else None,

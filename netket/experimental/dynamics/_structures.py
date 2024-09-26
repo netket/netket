@@ -1,16 +1,28 @@
+# Copyright 2021 The NetKet Authors - All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import wraps
-from typing import Optional, Union
 
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
 
 import netket as nk
 from netket import config
 from netket.utils.types import Array, PyTree
 
 
-LimitsType = tuple[Optional[float], Optional[float]]
+LimitsType = tuple[float | None, float | None]
 """Type of the dt limits field, having independently optional upper and lower bounds."""
 
 
@@ -73,7 +85,7 @@ def set_flag_jax(condition, flags, flag):
     )
 
 
-def euclidean_norm(x: Union[PyTree, Array]):
+def euclidean_norm(x: PyTree | Array):
     """
     Computes the Euclidean L2 norm of the Array or PyTree intended as a flattened array
     """
@@ -83,12 +95,12 @@ def euclidean_norm(x: Union[PyTree, Array]):
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
                 lambda x, y: x + y,
-                tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
+                jax.tree_util.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
             )
         )
 
 
-def maximum_norm(x: Union[PyTree, Array]):
+def maximum_norm(x: PyTree | Array):
     """
     Computes the maximum norm of the Array or PyTree intended as a flattened array
     """
@@ -98,7 +110,7 @@ def maximum_norm(x: Union[PyTree, Array]):
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
                 jnp.maximum,
-                tree_map(lambda x: jnp.max(jnp.abs(x)), x),
+                jax.tree_util.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
             )
         )
 
@@ -112,7 +124,7 @@ def expand_dim(tree: PyTree, sz: int):
     def _expand(x):
         return jnp.zeros((sz, *x.shape), dtype=x.dtype)
 
-    return tree_map(_expand, tree)
+    return jax.tree_util.tree_map(_expand, tree)
 
 
 def append_docstring(doc):

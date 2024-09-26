@@ -16,7 +16,6 @@ import pytest
 import numpy as np
 
 import jax
-from functools import partial
 
 from netket.experimental.dynamics import (
     Euler,
@@ -40,7 +39,7 @@ from netket.experimental.dynamics._rk._tableau import (
 
 from .. import common
 
-pytestmark = common.skipif_mpi
+pytestmark = common.skipif_distributed
 
 
 tableaus_rk = {
@@ -55,25 +54,25 @@ tableaus_rk = {
 }
 
 
-fixed_step_solvers = {
+explicit_fixed_step_solvers = {
     "Euler": Euler,
     "Heun": Heun,
     "Midpoint": Midpoint,
     "RK4": RK4,
 }
 
-adaptive_solvers = {
+explicit_adaptive_solvers = {
     "RK12": RK12,
     "RK23": RK23,
     "RK45": RK45,
 }
 
 rk_tableaus_params = [pytest.param(obj, id=name) for name, obj in tableaus_rk.items()]
-fixed_step_solvers_params = [
-    pytest.param(obj, id=name) for name, obj in fixed_step_solvers.items()
+explicit_fixed_step_solvers_params = [
+    pytest.param(obj, id=name) for name, obj in explicit_fixed_step_solvers.items()
 ]
-adaptive_solvers_params = [
-    pytest.param(obj, id=name) for name, obj in adaptive_solvers.items()
+explicit_adaptive_solvers_params = [
+    pytest.param(obj, id=name) for name, obj in explicit_adaptive_solvers.items()
 ]
 
 
@@ -101,13 +100,13 @@ def test_tableau_rk(tableau: str):
         assert tableau.b.shape[0] == 2
 
 
-@pytest.mark.parametrize("method", fixed_step_solvers_params)
+@pytest.mark.parametrize("method", explicit_fixed_step_solvers_params)
 def test_fixed_adaptive_error(method):
     with pytest.raises(TypeError):
         method(dt=0.01, adaptive=True)
 
 
-@pytest.mark.parametrize("method", fixed_step_solvers_params)
+@pytest.mark.parametrize("method", explicit_fixed_step_solvers_params)
 def test_ode_solver(method):
     def ode(t, x, **_):
         return -t * x
@@ -148,7 +147,7 @@ def test_ode_repr():
     def ode(t, x, **_):
         return -t * x
 
-    solver = RK23(dt, adaptive=True)
+    solver = RK23(dt=dt, adaptive=True)
     y0 = np.array([1.0])
     solv = solver(ode, 0.0, y0)
 
@@ -161,7 +160,7 @@ def test_ode_repr():
 
     _test_jit_repr(solv._state)
     _test_jit_repr(solv.tableau)
-    # _test_jit_repr(solv)  # this is broken. should be fixed in the zukunft
+    # _test_jit_repr(solv) # this is broken. should be fixed in the zukunft
 
 
 def test_solver_t0_is_integer():
@@ -171,7 +170,9 @@ def test_solver_t0_is_integer():
     def df(t, y, stage=None):
         return np.sin(t) ** 2 * y
 
-    init_config = RK23(dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1])
+    init_config = RK23(
+        dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1]
+    )
     integrator = init_config(
         df, 0, np.array([1.0])
     )  # <-- the second argument has to be a float
@@ -181,7 +182,7 @@ def test_solver_t0_is_integer():
     assert integrator.t.dtype == integrator.dt.dtype
 
 
-@pytest.mark.parametrize("solver", adaptive_solvers_params)
+@pytest.mark.parametrize("solver", explicit_adaptive_solvers_params)
 def test_adaptive_solver(solver):
     tol = 1e-7
 

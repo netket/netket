@@ -1,17 +1,30 @@
+# Copyright 2021 The NetKet Authors - All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Callable
-from functools import partial
 
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
 
+from netket import config
 from netket.utils.struct import dataclass, field
 from netket.utils.types import Array
-from .._structures import expand_dim, maybe_jax_jit
+from .._structures import expand_dim
 from .._tableau import Tableau
 from .._state import IntegratorState
 
-default_dtype = jnp.float64
+default_dtype = jnp.float64 if config.netket_enable_x64 else jnp.float32
 
 
 @dataclass
@@ -35,7 +48,7 @@ class TableauRKExplicit(Tableau):
         y_{\mathrm{err}} = \sum_l (b_l - b'_l) k_l.
 
     [1] https://en.wikipedia.org/w/index.php?title=Runge%E2%80%93Kutta_methods&oldid=1055669759
-    [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002)
+    [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002).
     """
 
     a: jax.numpy.ndarray = field(repr=False)
@@ -94,23 +107,22 @@ class TableauRKExplicit(Tableau):
 
         k = expand_dim(y_t, self.stages)
         for l in range(self.stages):
-            dy_l = tree_map(
+            dy_l = jax.tree_util.tree_map(
                 lambda k: jnp.tensordot(
                     jnp.asarray(self.a[l], dtype=k.dtype), k, axes=1
                 ),
                 k,
             )
-            y_l = tree_map(
+            y_l = jax.tree_util.tree_map(
                 lambda y_t, dy_l: jnp.asarray(y_t + dt * dy_l, dtype=dy_l.dtype),
                 y_t,
                 dy_l,
             )
             k_l = f(times[l], y_l, stage=l)
-            k = tree_map(lambda k, k_l: k.at[l].set(k_l), k, k_l)
+            k = jax.tree_util.tree_map(lambda k, k_l: k.at[l].set(k_l), k, k_l)
 
         return k
 
-    @partial(maybe_jax_jit, static_argnames=("f"))
     def step(
         self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
     ):
@@ -118,7 +130,7 @@ class TableauRKExplicit(Tableau):
         k = self._compute_slopes(f, t, dt, y_t)
 
         b = self.b[0] if self.b.ndim == 2 else self.b
-        y_tp1 = tree_map(
+        y_tp1 = jax.tree_util.tree_map(
             lambda y_t, k: y_t
             + jnp.asarray(dt, dtype=y_t.dtype)
             * jnp.tensordot(jnp.asarray(b, dtype=k.dtype), k, axes=1),
@@ -128,7 +140,6 @@ class TableauRKExplicit(Tableau):
 
         return y_tp1
 
-    @partial(maybe_jax_jit, static_argnames=("f"))
     def step_with_error(
         self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
     ):
@@ -141,7 +152,7 @@ class TableauRKExplicit(Tableau):
 
         k = self._compute_slopes(f, t, dt, y_t)
 
-        y_tp1 = tree_map(
+        y_tp1 = jax.tree_util.tree_map(
             lambda y_t, k: y_t
             + jnp.asarray(dt, dtype=y_t.dtype)
             * jnp.tensordot(jnp.asarray(self.b[0], dtype=k.dtype), k, axes=1),
@@ -149,7 +160,7 @@ class TableauRKExplicit(Tableau):
             k,
         )
         db = self.b[0] - self.b[1]
-        y_err = tree_map(
+        y_err = jax.tree_util.tree_map(
             lambda k: jnp.asarray(dt, dtype=k.dtype)
             * jnp.tensordot(jnp.asarray(db, dtype=k.dtype), k, axes=1),
             k,
