@@ -78,21 +78,21 @@ class SumConstrainedHilbertIndex(HilbertIndex):
     @jax.jit
     def _compute_all_states(self):
         if self.n_particles == 0:
-            return jnp.zeros((1, self.size), dtype=jnp.int32)
+            return jnp.zeros((1, self.size), dtype=self.range.dtype)
         with jax.ensure_compile_time_eval():
             c = jnp.repeat(
-                jnp.eye(self.size, dtype=jnp.int32),
+                jnp.eye(self.size, dtype=self.range.dtype),
                 np.array(self.shape) - 1,
                 axis=0,
             )
             combs = jnp.array(
                 list(itertools.combinations(np.arange(len(c)), self.n_particles))
             )
-            all_states = c[combs].sum(axis=1, dtype=jnp.int32)
+            all_states = c[combs].sum(axis=1, dtype=self.range.dtype)
             if (np.array(self.shape) > 1).any():
                 all_states = jnp.unique(all_states, axis=0)
         all_states_fock = jnp.asarray(all_states)
-        return self.range.numbers_to_states(all_states_fock, dtype=np.int32)
+        return self.range.numbers_to_states(all_states_fock, dtype=self.range.dtype)
 
     @struct.property_cached(pytree_node=True)
     def _lookup_table(self) -> LookupTableHilbertIndex:
