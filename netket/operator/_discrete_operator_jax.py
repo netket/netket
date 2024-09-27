@@ -271,3 +271,11 @@ class DiscreteJaxOperator(DiscreteOperator):
             return self._op__rmatmul__(other)
         else:
             return NotImplemented
+
+    def to_jax_operator(self) -> "DiscreteJaxOperator":
+        """
+        Return the JAX version of this operator.
+
+        If this is a JAX operator does nothing.
+        """
+        return self
