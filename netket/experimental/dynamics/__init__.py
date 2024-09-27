@@ -15,7 +15,7 @@
 
 __all__ = [
     "Integrator",
-    "IntegratorConfig",
+    "AbstractSolver",
     "IntegratorState",
     "Euler",
     "Heun",
@@ -26,7 +26,8 @@ __all__ = [
     "RK45",
 ]
 
-from ._integrator import Integrator, IntegratorConfig
+from ._integrator import Integrator
+from ._solver import AbstractSolver
 from ._state import IntegratorState
 from ._rk._solver import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
 

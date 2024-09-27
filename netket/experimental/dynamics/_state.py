@@ -75,9 +75,9 @@ class IntegratorState(struct.Pytree):
 
     def __init__(
         self,
-        y,
-        t: float,
         dt: float,
+        y,
+        t,
         *,
         step_no=0,
         step_no_total=0,
@@ -93,9 +93,9 @@ class IntegratorState(struct.Pytree):
 
         if not isinstance(t, KahanSum):
             t = KahanSum(t)
+        self.t = t
         if not isinstance(dt, jax.Array):
             dt = jnp.asarray(dt)
-        self.t = t
         self.dt = dt
 
         # To avoid creating problems, just convert to array if the leaves
@@ -122,9 +122,9 @@ class IntegratorState(struct.Pytree):
 
     def __repr__(self):
         try:
-            dt = "{self.dt:.2e}"
+            dt = f"{self.dt:.2e}"
             last_norm = f", {self.last_norm:.2e}" if self.last_norm is not None else ""
-            accepted = (f", {'A' if self.accepted else 'R'}",)
+            accepted = f", {'A' if self.accepted else 'R'}"
         except (ValueError, TypeError):
             dt = f"{self.dt}"
             last_norm = f"{self.last_norm}"

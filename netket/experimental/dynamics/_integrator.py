@@ -19,25 +19,24 @@ import jax
 import jax.numpy as jnp
 
 from netket.utils.mpi.primitives import mpi_all_jax
-from netket.utils import struct, KahanSum
-from netket.utils.types import Array
-from netket.utils.numbers import dtype as _dtype
-from ._structures import maybe_jax_jit
+from netket.utils import struct
+from ._utils import maybe_jax_jit
+from ._solver import AbstractSolver  
 
-from ._structures import (
+from ._utils import (
     LimitsType,
     scaled_error,
     propose_time_step,
     set_flag_jax,
     euclidean_norm,
 )
-from ._tableau import Tableau
+# from ._tableau import Tableau
 from ._state import IntegratorState, SolverFlags
 
 
 @partial(maybe_jax_jit, static_argnames=["f"])
 def general_time_step_fixed(
-    tableau: Tableau,
+    solver: AbstractSolver,
     f: Callable,
     state: IntegratorState,
     max_dt: Optional[float],
@@ -45,13 +44,13 @@ def general_time_step_fixed(
     r"""
     Performs one fixed step from current time.
     Args:
-        tableau: Integration tableau containing the coefficeints for integration.
-            The tableau should contain method step_with_error(f, t, dt, y_t, state).
+        solver: Instance that solves the ODE
+            The solver should contain a method `step(f, t, dt, y_t, state)`
         f: A callable ODE function.
             Given a time `t` and a state `y_t`, it should return the partial
             derivatives in the same format as `y_t`. The dunction should also accept
             supplementary arguments, such as code:`stage`.
-        state: Intagrator state containing the current state (t,y) and stablity information.
+        state: Intagrator state containing the current state (t,y) and stability information.
         max_dt: The maximal value for the time step `dt`.
 
     Returns:
@@ -62,7 +61,7 @@ def general_time_step_fixed(
     else:
         actual_dt = jnp.minimum(state.dt, max_dt)
 
-    y_tp1 = tableau.step(f, state.t.value, actual_dt, state.y, state)
+    y_tp1 = solver.step(f, state.t.value, actual_dt, state.y, state)
 
     return state.replace(
         step_no=state.step_no + 1,
@@ -75,7 +74,7 @@ def general_time_step_fixed(
 
 @partial(maybe_jax_jit, static_argnames=["f", "norm_fn", "dt_limits"])
 def general_time_step_adaptive(
-    tableau: Tableau,
+    solver : AbstractSolver,
     f: Callable,
     state: IntegratorState,
     atol: float,
@@ -87,13 +86,13 @@ def general_time_step_adaptive(
     r"""
     Performs one adaptive step from current time.
     Args:
-        tableau: Integration tableau containing the coefficeints for integration.
-            The tableau should contain method step_with_error(f, t, dt, y_t, state).
+        solver: Instance that solves the ODE
+            The solver should contain a method `step_with_error(f, t, dt, y_t, state)`
         f: A callable ODE function.
             Given a time `t` and a state `y_t`, it should return the partial
             derivatives in the same format as `y_t`. The dunction should also accept
             supplementary arguments, such as code:`stage`.
-        state: Intagrator state containing the current state (t,y) and stablity information.
+        state: Intagrator state containing the current state (t,y) and stability information.
         atol: The tolerance for the absolute error on the state.
         rtol: The tolerance for the realtive error on the state.
         norm_fn: The function used for the norm of the error.
@@ -102,7 +101,7 @@ def general_time_step_adaptive(
         dt_limits: The extremal accepted values for the time-step `dt`.
 
     Returns:
-        Updated state of the integrator.
+        Updated state of the integrator, boolean indicating if the step was accepted
     """
     flags = SolverFlags(0)
 
@@ -111,26 +110,8 @@ def general_time_step_adaptive(
     else:
         actual_dt = jnp.minimum(state.dt, max_dt)
 
-    y_tp1, y_err = tableau.step_with_error(f, state.t.value, actual_dt, state.y, state)
+    y_tp1, y_err = solver.step_with_error(f, state.t.value, actual_dt, state.y, state)
 
-    return adapt_time_step(
-        y_tp1,
-        y_err,
-        atol,
-        rtol,
-        state,
-        norm_fn,
-        actual_dt,
-        dt_limits,
-        tableau.error_order,
-        flags,
-    )
-
-
-@partial(maybe_jax_jit, static_argnames=["norm_fn", "dt_limits", "error_order"])
-def adapt_time_step(
-    y_tp1, y_err, atol, rtol, state, norm_fn, actual_dt, dt_limits, error_order, flags
-):
     scaled_err, norm_y = scaled_error(
         y_tp1,
         y_err,
@@ -146,7 +127,7 @@ def adapt_time_step(
     next_dt = propose_time_step(
         actual_dt,
         scaled_err,
-        error_order,
+        solver.error_order,
         limits=(
             jnp.maximum(0.1 * state.dt, dt_limits[0])
             if dt_limits[0]
@@ -214,18 +195,13 @@ class Integrator:
     at the next time step.
     """
 
-    tableau: Tableau
-    """The tableau containing the integration coefficients."""
-
     f: Callable = struct.field(repr=False)
-    """ODE function."""
-    t0: float
-    """Initial time."""
-    y0: Array = struct.field(repr=False)
-    """Initial state."""
+    """The ODE function."""
 
-    initial_dt: float
-    """Initial time-step."""
+    _state : IntegratorState
+    """The state of the integrator, containing informations about the solution."""
+    _solver : "AbstractSolver"
+    """The ODE solver."""
 
     use_adaptive: bool
     """Boolean indicating whether to use an adaptative scheme."""
@@ -249,20 +225,7 @@ class Integrator:
             self.norm = euclidean_norm
 
         if self.dt_limits is None:
-            self.dt_limits = (None, 10 * self.initial_dt)
-
-        t_dtype = jnp.result_type(_dtype(self.t0), _dtype(self.initial_dt))
-        setattr(self, "t0", jnp.array(self.t0, dtype=t_dtype))
-        setattr(self, "initial_dt", jnp.array(self.initial_dt, dtype=t_dtype))
-
-        self._state = IntegratorState(
-            y=self.y0,
-            t=KahanSum(self.t0),
-            dt=self.initial_dt,
-            last_norm=0.0 if self.use_adaptive else None,
-            last_scaled_error=0.0 if self.use_adaptive else None,
-            flags=SolverFlags(0),
-        )
+            self.dt_limits = (None, 10 * self.dt)
 
     def step(self, max_dt=None):
         """
@@ -276,34 +239,40 @@ class Integrator:
             in both cases, so the integrator state will have changed
             even after a rejected step.
         """
-        self._state = self._do_step(self._state, max_dt)
+        self._state = self._do_step(max_dt)
         return self._state.accepted
 
-    def _do_step_fixed(self, state, max_dt=None):
+    def _do_step_fixed(self, max_dt=None):
         r"""
         Performs one full step with a fixed time-step value code:`dt`
         """
-        return general_time_step_fixed(
-            tableau=self.tableau,
+        state = general_time_step_fixed(
+            solver=self._solver,
             f=self.f,
-            state=state,
+            state=self._state,
             max_dt=max_dt,
         )
+        state = self._solver._update_state(state)
 
-    def _do_step_adaptive(self, state, max_dt=None):
+        return state
+
+    def _do_step_adaptive(self, max_dt=None):
         r"""
         Performs one full step with an adaptive time-step value code:`dt`
         """
-        return general_time_step_adaptive(
-            tableau=self.tableau,
+        state, flag = general_time_step_adaptive(
+            solver=self._solver,
             f=self.f,
-            state=state,
+            state=self._state,
             atol=self.atol,
             rtol=self.rtol,
             norm_fn=self.norm,
             max_dt=max_dt,
             dt_limits=self.dt_limits,
-        )[0]
+        )
+        if flag:
+            state = self._solver._update_state(state)
+        return state
 
     @property
     def t(self):
@@ -335,61 +304,3 @@ class Integrator:
     def warnings(self) -> SolverFlags:
         """Returns the currently set warning flags of the solver."""
         return self._get_solver_flags(SolverFlags.WARNINGS_FLAGS)
-
-
-class IntegratorConfig:
-    r"""
-    A configurator for instantiation of the integrator.
-    This allows to define the integrator (actually the IntegratorConfig) in a
-    first time, pass it as an argument to a driver which will set it by calling it.
-    """
-
-    def __init__(self, dt, tableau, *, adaptive=False, **kwargs):
-        r"""
-        Args:
-            dt: The initial time-step of the integrator.
-            tableau: The tableau of coefficients for the integration.
-            adaptive: A boolean indicator whether to use an daaptive scheme.
-        """
-        if not tableau.is_adaptive and adaptive:
-            raise ValueError(
-                "Cannot set `adaptive=True` for a non-adaptive integrator."
-            )
-
-        self.dt = dt
-        self.adaptive = adaptive
-        self.kwargs = kwargs
-        self.tableau = tableau
-
-    def __call__(self, f, t0, y0, *, norm=None):
-        r"""
-        Instantiates an integrator given the parameters given in
-        the first instance and passed as arguments.
-        Args:
-            f: The ODE function.
-            t0: The initial time.
-            y0: The initial state.
-            norm: The error norm.
-
-        Returns:
-            An Integrator with according parameters.
-        """
-        return Integrator(
-            self.tableau,
-            f,
-            t0,
-            y0,
-            initial_dt=self.dt,
-            use_adaptive=self.adaptive,
-            norm=norm,
-            **self.kwargs,
-        )
-
-    def __repr__(self):
-        return "{}(tableau={}, dt={}, adaptive={}{})".format(
-            "IntegratorConfig",
-            self.tableau,
-            self.dt,
-            self.adaptive,
-            f", **kwargs={self.kwargs}" if self.kwargs else "",
-        )

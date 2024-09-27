@@ -29,7 +29,7 @@ from netket.vqs import (
 )
 from netket.jax import tree_cast
 
-from netket.experimental.dynamics import IntegratorConfig
+from netket.experimental.dynamics import AbstractSolver
 
 from .tdvp_common import TDVPBaseDriver, odefun
 
@@ -54,7 +54,7 @@ class TDVP(TDVPBaseDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: IntegratorConfig,
+        integrator: AbstractSolver,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",

@@ -25,12 +25,16 @@ from netket.utils.types import Array, PyTree
 LimitsType = tuple[float | None, float | None]
 """Type of the dt limits field, having independently optional upper and lower bounds."""
 
+def expand_dim(tree: PyTree, sz: int):
+    """
+    creates a new pytree with same structure as input `tree`, but where very leaf
+    has an extra dimension at 0 with size `sz`.
+    """
 
-def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
-    norm_y = norm_fn(y)
-    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nk.jax.tree_size(y_err)
-    return norm_fn(y_err) / scale, norm_y
+    def _expand(x):
+        return jnp.zeros((sz, *x.shape), dtype=x.dtype)
 
+    return jax.tree_util.tree_map(_expand, tree)
 
 def propose_time_step(
     dt: float, scaled_error: float, error_order: int, limits: LimitsType
@@ -85,6 +89,12 @@ def set_flag_jax(condition, flags, flag):
     )
 
 
+def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
+    norm_y = norm_fn(y)
+    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nk.jax.tree_size(y_err)
+    return norm_fn(y_err) / scale, norm_y
+
+
 def euclidean_norm(x: PyTree | Array):
     """
     Computes the Euclidean L2 norm of the Array or PyTree intended as a flattened array
@@ -113,18 +123,6 @@ def maximum_norm(x: PyTree | Array):
                 jax.tree_util.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
             )
         )
-
-
-def expand_dim(tree: PyTree, sz: int):
-    """
-    creates a new pytree with same structure as input `tree`, but where very leaf
-    has an extra dimension at 0 with size `sz`.
-    """
-
-    def _expand(x):
-        return jnp.zeros((sz, *x.shape), dtype=x.dtype)
-
-    return jax.tree_util.tree_map(_expand, tree)
 
 
 def append_docstring(doc):

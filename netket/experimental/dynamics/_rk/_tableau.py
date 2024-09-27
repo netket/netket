@@ -12,23 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable
-
 import jax
 import jax.numpy as jnp
 
 from netket import config
 from netket.utils.struct import dataclass, field
-from netket.utils.types import Array
-from .._structures import expand_dim
-from .._tableau import Tableau
-from .._state import IntegratorState
 
 default_dtype = jnp.float64 if config.netket_enable_x64 else jnp.float32
 
 
 @dataclass
-class TableauRKExplicit(Tableau):
+class TableauRKExplicit:
     r"""
     Class representing the Butcher tableau of an explicit Runge-Kutta method [1,2],
     which, given the ODE :math:`dy/dt = F(t, y)`, updates the solution as
@@ -51,6 +45,9 @@ class TableauRKExplicit(Tableau):
     [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002).
     """
 
+    order: tuple[int, int]
+    """The order of the tableau"""
+    
     a: jax.numpy.ndarray = field(repr=False)
     """Coefficients of th intermediate states."""
     b: jax.numpy.ndarray = field(repr=False)
@@ -58,116 +55,16 @@ class TableauRKExplicit(Tableau):
     c: jax.numpy.ndarray = field(repr=False)
     """Coefficients of the intermediate times."""
 
-    @property
-    def is_explicit(self):
-        """Boolean indication whether the integrator is explicit."""
-        jnp.allclose(self.a, jnp.tril(self.a))  # check if lower triangular
+    name: str = field(pytree_node=False, default="RKTableau")
+    """The name of the tableau."""
+
+    def __repr__(self):
+        return self.name
 
     @property
     def is_adaptive(self):
         """Boolean indication whether the integrator can beå adaptive."""
         return self.b.ndim == 2
-
-    @property
-    def is_fsal(self):
-        """Returns True if the first iteration is the same as last."""
-        # TODO: this is not yet supported
-        return False
-
-    @property
-    def stages(self):
-        """
-        Number of stages (equal to the number of evaluations of the ode function)
-        of the scheme.
-        """
-        return len(self.c)
-
-    @property
-    def error_order(self):
-        """
-        Returns the order of the embedded error estimate for a tableau
-        supporting adaptive step size. Otherwise, None is returned.
-        """
-        if not self.is_adaptive:
-            return None
-        else:
-            return self.order[1]
-
-    def _compute_slopes(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
-        """Computes the intermediate slopes k_l."""
-        times = t + self.c * dt
-
-        # TODO: Use FSAL
-
-        k = expand_dim(y_t, self.stages)
-        for l in range(self.stages):
-            dy_l = jax.tree_util.tree_map(
-                lambda k: jnp.tensordot(
-                    jnp.asarray(self.a[l], dtype=k.dtype), k, axes=1
-                ),
-                k,
-            )
-            y_l = jax.tree_util.tree_map(
-                lambda y_t, dy_l: jnp.asarray(y_t + dt * dy_l, dtype=dy_l.dtype),
-                y_t,
-                dy_l,
-            )
-            k_l = f(times[l], y_l, stage=l)
-            k = jax.tree_util.tree_map(lambda k, k_l: k.at[l].set(k_l), k, k_l)
-
-        return k
-
-    def step(
-        self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
-    ):
-        """Perform one fixed-size RK step from `t` to `t + dt`."""
-        k = self._compute_slopes(f, t, dt, y_t)
-
-        b = self.b[0] if self.b.ndim == 2 else self.b
-        y_tp1 = jax.tree_util.tree_map(
-            lambda y_t, k: y_t
-            + jnp.asarray(dt, dtype=y_t.dtype)
-            * jnp.tensordot(jnp.asarray(b, dtype=k.dtype), k, axes=1),
-            y_t,
-            k,
-        )
-
-        return y_tp1
-
-    def step_with_error(
-        self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
-    ):
-        """
-        Perform one fixed-size RK step from `t` to `t + dt` and additionally return the
-        error vector provided by the adaptive solver.
-        """
-        if not self.is_adaptive:
-            raise RuntimeError(f"{self} is not adaptive")
-
-        k = self._compute_slopes(f, t, dt, y_t)
-
-        y_tp1 = jax.tree_util.tree_map(
-            lambda y_t, k: y_t
-            + jnp.asarray(dt, dtype=y_t.dtype)
-            * jnp.tensordot(jnp.asarray(self.b[0], dtype=k.dtype), k, axes=1),
-            y_t,
-            k,
-        )
-        db = self.b[0] - self.b[1]
-        y_err = jax.tree_util.tree_map(
-            lambda k: jnp.asarray(dt, dtype=k.dtype)
-            * jnp.tensordot(jnp.asarray(db, dtype=k.dtype), k, axes=1),
-            k,
-        )
-
-        return y_tp1, y_err
-
 
 # fmt: off
 # flake8: noqa: E123, E126, E201, E202, E221, E226, E231, E241, E251

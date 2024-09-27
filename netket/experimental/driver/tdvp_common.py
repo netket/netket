@@ -33,8 +33,8 @@ from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
 
-from netket.experimental.dynamics import IntegratorConfig
-from netket.experimental.dynamics._structures import (
+from netket.experimental.dynamics import AbstractSolver, Integrator
+from netket.experimental.dynamics._utils import (
     euclidean_norm,
     maximum_norm,
 )
@@ -60,7 +60,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: IntegratorConfig,
+        solver: AbstractSolver,
         *,
         t0: float = 0.0,
         error_norm: str | Callable = "qgt",
@@ -103,16 +103,22 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self._dw = None  # type: PyTree
         self._last_qgt = None
         self._integrator = None
-        self._integrator_constructor = None
 
         self._odefun = HashablePartial(odefun_host_callback, self.state, self)
 
         self.error_norm = error_norm
-        self.integrator = integrator
+        self.solver = solver
 
         self._stop_count = 0
         self._postfix = {}
 
+    @property
+    def solver(self):
+        """
+        The underlying solver which solves the ODE at each time step.
+        """
+        return self.integrator._solver
+    
     @property
     def integrator(self):
         """
@@ -120,19 +126,18 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         """
         return self._integrator
 
-    @integrator.setter
-    def integrator(self, integrator):
+    @solver.setter
+    def solver(self, new_solver):
         if self._integrator is None:
             t0 = self.t0
         else:
             t0 = self.t
 
-        self._integrator_constructor = integrator
-
-        self._integrator = integrator(
+        self._integrator = Integrator(
             self._odefun,
-            t0,
-            self.state.parameters,
+            _solver=new_solver,
+            _state=new_solver._init_state(t0, self.state.parameters),
+            use_adaptive=new_solver.adaptive,
             norm=self.error_norm,
         )
 

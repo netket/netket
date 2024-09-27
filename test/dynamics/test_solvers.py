@@ -18,6 +18,7 @@ import numpy as np
 import jax
 
 from netket.experimental.dynamics import (
+    Integrator,
     Euler,
     Heun,
     Midpoint,
@@ -120,14 +121,20 @@ def test_ode_solver(method):
 
     y_ref = y0 * np.exp(-(times**2) / 2)
 
-    solv = solver(ode, 0.0, y0)
+    integrator = Integrator(
+        ode,
+        _solver=solver,
+        _state=solver._init_state(0.0, y0),
+        use_adaptive=solver.adaptive,
+        norm=None,
+    )
 
     t = []
     y_t = []
     for _ in range(n_steps):
-        t.append(solv.t)
-        y_t.append(solv.y)
-        solv.step()
+        t.append(integrator.t)
+        y_t.append(integrator.y)
+        integrator.step()
     y_t = np.asarray(y_t)
 
     assert np.all(np.isfinite(t))
@@ -149,17 +156,23 @@ def test_ode_repr():
 
     solver = RK23(dt=dt, adaptive=True)
     y0 = np.array([1.0])
-    solv = solver(ode, 0.0, y0)
+    integrator = Integrator(
+        ode,
+        _solver=solver,
+        _state=solver._init_state(0.0, y0),
+        use_adaptive=solver.adaptive,
+        norm=None,
+    )
 
-    assert isinstance(repr(solv), str)
-    assert isinstance(repr(solv._state), str)
+    assert isinstance(repr(integrator), str)
+    assert isinstance(repr(integrator._state), str)
 
     @jax.jit
     def _test_jit_repr(x):
         return 1
 
-    _test_jit_repr(solv._state)
-    _test_jit_repr(solv.tableau)
+    _test_jit_repr(integrator._state)
+    _test_jit_repr(integrator._solver.tableau)
     # _test_jit_repr(solv) # this is broken. should be fixed in the zukunft
 
 
@@ -170,16 +183,21 @@ def test_solver_t0_is_integer():
     def df(t, y, stage=None):
         return np.sin(t) ** 2 * y
 
-    init_config = RK23(
-        dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1]
-    )
-    integrator = init_config(
-        df, 0, np.array([1.0])
+    solver = RK23(dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1])
+    integrator = Integrator(
+        df,
+        _solver=solver,
+        _state=solver._init_state(0, np.array([1.0])),
+        use_adaptive=True,
+        norm=None,
     )  # <-- the second argument has to be a float
 
     integrator.step()
-    assert integrator.t > 0.0
+    integrator.step()
     assert integrator.t.dtype == integrator.dt.dtype
+    print(integrator.t)
+    assert integrator.t > 0.0
+    assert 0
 
 
 @pytest.mark.parametrize("solver", explicit_adaptive_solvers_params)
@@ -190,18 +208,25 @@ def test_adaptive_solver(solver):
         return -t * x
 
     y0 = np.array([1.0])
-    solv = solver(dt=0.2, adaptive=True, atol=0.0, rtol=tol)(ode, 0.0, y0)
+    solv = solver(dt=0.2, adaptive=True, atol=0.0, rtol=tol)
+    integrator = Integrator(
+        ode,
+        _solver=solv,
+        _state=solv._init_state(0.0, y0),
+        use_adaptive=solv.adaptive,
+        norm=None,
+    )
 
     t = []
     y_t = []
     last_step = -1
-    while solv.t <= 2.0:
+    while integrator.t <= 2.0:
         # print(solv._state)
-        if solv._state.step_no != last_step:
-            last_step = solv._state.step_no
-            t.append(solv.t)
-            y_t.append(solv.y)
-        solv.step()
+        if integrator._state.step_no != last_step:
+            last_step = integrator._state.step_no
+            t.append(integrator.t)
+            y_t.append(integrator.y)
+        integrator.step()
     y_t = np.asarray(y_t)
     t = np.asarray(t)
 
@@ -209,3 +234,4 @@ def test_adaptive_solver(solver):
     y_ref = y0 * np.exp(-(t**2) / 2)
 
     np.testing.assert_allclose(y_t[:, 0], y_ref, rtol=1e-5)
+    assert t[-1] > 0.0
