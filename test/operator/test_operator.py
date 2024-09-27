@@ -166,7 +166,7 @@ for name, op in operators.items():
 
 op_jax_compatible = {}
 for name, op in op_finite_size.items():
-    if hasattr(op, "to_jax_operator"):
+    if hasattr(op, "to_jax_operator") and not isinstance(op, DiscreteJaxOperator):
         op_jax_compatible[name] = op
 
 
