@@ -565,3 +565,15 @@ def test_matmul_sparse_vector(op):
         Ov_sparse = (op @ v).todense()
 
     np.testing.assert_array_equal(Ov_dense, Ov_sparse)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        pytest.param(op, id=name)
+        for name, op in operators.items()
+        if isinstance(op, DiscreteJaxOperator)
+    ],
+)
+def test_jax_operator_to_jax_operator(op):
+    assert op == op.to_jax_operator()
