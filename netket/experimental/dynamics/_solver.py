@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from netket.utils.struct import Pytree, field
-from netket.utils.types import Any, Callable
+from netket.utils.types import Any, Callable, PyTree
 from abc import abstractmethod
 
 
@@ -58,8 +58,8 @@ class AbstractSolver(Pytree):
 
     @abstractmethod
     def step(
-        self, f: Callable, dt: float, t: float, y_t: Pytree, state: SolverState
-    ) -> tuple[Pytree, SolverState]:
+        self, f: Callable, dt: float, t: float, y_t: PyTree, state: SolverState
+    ) -> tuple[PyTree, SolverState]:
         r"""
         Performs one fixed-size step from `t` to `t + dt`
         Args:
@@ -80,8 +80,8 @@ class AbstractSolver(Pytree):
 
     @abstractmethod
     def step_with_error(
-        self, f: Callable, dt: float, t: float, y_t: Pytree, state: SolverState
-    ) -> tuple[Pytree, Pytree, SolverState]:
+        self, f: Callable, dt: float, t: float, y_t: PyTree, state: SolverState
+    ) -> tuple[PyTree, PyTree, SolverState]:
         r"""
         Perform one fixed-size step from `t` to `t + dt` and additionally returns the
         error vector provided by the adaptive solver.
@@ -99,7 +99,7 @@ class AbstractSolver(Pytree):
             "You need to define the method `step_with_error` in your `AbstractSolver`."
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}(dt={}, adaptive={}{})".format(
             self.__class__.__name__,
             self.initial_dt,
@@ -109,19 +109,19 @@ class AbstractSolver(Pytree):
 
     @property
     @abstractmethod
-    def is_explicit(self):
+    def is_explicit(self) -> bool:
         """Boolean indication whether the integrator is explicit."""
         raise NotImplementedError
 
     @property
     @abstractmethod
-    def is_adaptive(self):
+    def is_adaptive(self) -> bool:
         """Boolean indication whether the integrator can be adaptive."""
         raise NotImplementedError
 
     @property
     @abstractmethod
-    def stages(self):
+    def stages(self) -> int:
         """
         Number of stages (equal to the number of evaluations of the ode function) of the scheme.
         """

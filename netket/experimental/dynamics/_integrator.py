@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Callable, Optional
+from netket.utils.types import PyTree
 from functools import partial
 
 import jax
@@ -25,7 +26,7 @@ from ._utils import maybe_jax_jit
 from ._solver import AbstractSolver
 
 from ._utils import (
-    LimitsType,
+    LimitsDType,
     scaled_error,
     propose_time_step,
     set_flag_jax,
@@ -88,7 +89,7 @@ def general_time_step_adaptive(
     rtol: float,
     norm_fn: Callable,
     max_dt: Optional[float],
-    dt_limits: LimitsType,
+    dt_limits: LimitsDType,
     **kwargs,
 ) -> IntegratorState:
     r"""
@@ -226,7 +227,7 @@ class Integrator(struct.Pytree, mutable=True):
     """Absolute tolerance on the error of the state."""
     rtol: float = struct.field(pytree_node=False)
     """Relative tolerance on the error of the state."""
-    dt_limits: Optional[LimitsType] = struct.field()
+    dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
     """Limits of the time-step size."""
 
     _do_step: Callable = struct.field(pytree_node=False)
@@ -237,7 +238,7 @@ class Integrator(struct.Pytree, mutable=True):
         f: Callable,
         solver: AbstractSolver,
         t0: float,
-        y0: struct.Pytree,
+        y0: PyTree,
         use_adaptive: bool,
         norm: Callable,
         *args,
@@ -265,7 +266,7 @@ class Integrator(struct.Pytree, mutable=True):
 
         self._state = self._init_state(t0, y0, dt=solver.initial_dt)
 
-    def _init_state(self, t0: float, y0: struct.Pytree, dt: float) -> IntegratorState:
+    def _init_state(self, t0: float, y0: PyTree, dt: float) -> IntegratorState:
         r"""
         Initializes the `IntegratorState` structure containing the solver and state,
         given the necessary information.
@@ -289,7 +290,7 @@ class Integrator(struct.Pytree, mutable=True):
             flags=IntegratorFlags(0),
         )
 
-    def step(self, max_dt: float = None):
+    def step(self, max_dt: float = None) -> bool:
         """
         Performs one full step by min(self.dt, max_dt).
 
@@ -314,22 +315,22 @@ class Integrator(struct.Pytree, mutable=True):
         return self._state.accepted
 
     @property
-    def t(self):
+    def t(self) -> float:
         """The actual time."""
         return self._state.t.value
 
     @property
-    def y(self):
+    def y(self) -> PyTree:
         """The actual state."""
         return self._state.y
 
     @property
-    def dt(self):
+    def dt(self) -> float:
         """The actual time-step size."""
         return self._state.dt
 
     @property
-    def solver(self):
+    def solver(self) -> AbstractSolver:
         """The ODE solver."""
         return self._solver
 
@@ -349,7 +350,7 @@ class Integrator(struct.Pytree, mutable=True):
         r"""Returns the currently set warning flags of the integrator."""
         return self._get_integrator_flags(IntegratorFlags.WARNINGS_FLAGS)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}(solver={}, state={}, adaptive={}{})".format(
             "Integrator",
             self.solver,

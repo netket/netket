@@ -125,7 +125,7 @@ class IntegratorState(struct.Pytree):
 
         self.solver_state = solver._init_state(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         try:
             dt = f"{self.dt:.2e}"
             last_norm = f", {self.last_norm:.2e}" if self.last_norm is not None else ""
@@ -143,6 +143,6 @@ class IntegratorState(struct.Pytree):
         return f"IntegratorState(step_no(total)={self.step_no}({self.step_no_total}), t={self.t.value}, dt={dt}{last_norm}{accepted}{solver_state})"
 
     @property
-    def accepted(self):
+    def accepted(self) -> bool:
         """Boolean indicating whether the last step was accepted."""
         return IntegratorFlags.INFO_STEP_ACCEPTED & self.flags != 0

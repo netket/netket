@@ -19,14 +19,14 @@ import jax.numpy as jnp
 
 import netket as nk
 from netket import config
-from netket.utils.types import Array, PyTree
+from netket.utils.types import Array, PyTree, Callable
 
 
-LimitsType = tuple[float | None, float | None]
+LimitsDType = tuple[float | None, float | None]
 """Type of the dt limits field, having independently optional upper and lower bounds."""
 
 
-def expand_dim(tree: PyTree, sz: int):
+def expand_dim(tree: PyTree, sz: int) -> PyTree:
     """
     creates a new pytree with same structure as input `tree`, but where very leaf
     has an extra dimension at 0 with size `sz`.
@@ -39,8 +39,8 @@ def expand_dim(tree: PyTree, sz: int):
 
 
 def propose_time_step(
-    dt: float, scaled_error: float, error_order: int, limits: LimitsType
-):
+    dt: float, scaled_error: float, error_order: int, limits: LimitsDType
+) -> float:
     """
     Propose an updated dt based on the scheme suggested in Numerical Recipes, 3rd ed.
     """
@@ -53,7 +53,7 @@ def propose_time_step(
     )
 
 
-def maybe_jax_jit(fun, *jit_args, **jit_kwargs):
+def maybe_jax_jit(fun: Callable, *jit_args, **jit_kwargs) -> Callable:
     """
     Only jit if `config.netket_experimental_disable_ode_jit` is False.
 
@@ -91,13 +91,13 @@ def set_flag_jax(condition, flags, flag):
     )
 
 
-def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
+def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn) -> float:
     norm_y = norm_fn(y)
     scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nk.jax.tree_size(y_err)
     return norm_fn(y_err) / scale, norm_y
 
 
-def euclidean_norm(x: PyTree | Array):
+def euclidean_norm(x: PyTree | Array) -> float:
     """
     Computes the Euclidean L2 norm of the Array or PyTree intended as a flattened array
     """
@@ -112,7 +112,7 @@ def euclidean_norm(x: PyTree | Array):
         )
 
 
-def maximum_norm(x: PyTree | Array):
+def maximum_norm(x: PyTree | Array) -> float:
     """
     Computes the maximum norm of the Array or PyTree intended as a flattened array
     """
