@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from .._solver import AbstractSolver
+from .._solver import AbstractSolver, SolverState
 from .._utils import (
     append_docstring,
     args_adaptive_docstring,
@@ -25,11 +25,10 @@ import jax.numpy as jnp
 
 from netket.utils.types import Array
 from .._utils import expand_dim
-from .._state import IntegratorState
+from netket.utils.struct import field
+from ._tableau import TableauRKExplicit
 
 
-
-# @dataclass
 class RKSolver(AbstractSolver):
     r"""
     Class representing the Butcher tableau of an explicit Runge-Kutta method [1,2],
@@ -53,19 +52,24 @@ class RKSolver(AbstractSolver):
     [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002).
     """
 
+    tableau: TableauRKExplicit = field(pytree_node=False)
+    """The Butcher tableau containing all coefficients for solving the ODE."""
+
     def __init__(self, dt, tableau, *, adaptive=False, **kwargs):
         self.tableau = tableau
         if adaptive and not tableau.is_adaptive:
             raise AttributeError(f"Tableau of type {tableau} cannot be adaptve.")
-        super().__init__(dt, adaptive=adaptive, kwargs=kwargs)
+        super().__init__(dt, adaptive=adaptive, **kwargs)
 
     def __repr__(self):
-        return super().__repr__()[:-1]+f", tableau={self.tableau})"
+        return super().__repr__()[:-1] + f", tableau={self.tableau})"
 
     @property
     def is_explicit(self):
         """Boolean indication whether the integrator is explicit."""
-        return jnp.allclose(self.tableau.a, jnp.tril(self.tableau.a))  # check if lower triangular
+        return jnp.allclose(
+            self.tableau.a, jnp.tril(self.tableau.a)
+        )  # check if lower triangular
 
     @property
     def is_adaptive(self):
@@ -127,9 +131,7 @@ class RKSolver(AbstractSolver):
 
         return k
 
-    def step(
-        self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
-    ):
+    def step(self, f: Callable, dt: float, t: float, y_t: Array, state: SolverState):
         """Perform one fixed-size RK step from `t` to `t + dt`."""
         k = self._compute_slopes(f, t, dt, y_t)
 
@@ -142,10 +144,10 @@ class RKSolver(AbstractSolver):
             k,
         )
 
-        return y_tp1
+        return y_tp1, None
 
     def step_with_error(
-        self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
+        self, f: Callable, dt: float, t: float, y_t: Array, state: SolverState
     ):
         """
         Perform one fixed-size RK step from `t` to `t + dt` and additionally return the
@@ -170,7 +172,7 @@ class RKSolver(AbstractSolver):
             k,
         )
 
-        return y_tp1, y_err
+        return y_tp1, y_err, None
 
 
 @append_docstring(args_fixed_dt_docstring)

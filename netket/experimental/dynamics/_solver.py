@@ -12,81 +12,92 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax.numpy as jnp
-
-from typing import Callable
-import jax.numpy as jnp
-
-from netket.utils import struct
-from netket.utils.types import Array
-from netket.utils.numbers import dtype as _dtype
+from netket.utils.struct import Pytree, field
+from netket.utils.types import Any, Callable
 from abc import abstractmethod
 
 
-# from ._integrator import Integrator
-from ._state import IntegratorState, SolverFlags
+from ._state import IntegratorState
+
+SolverState = Any
 
 
-@struct.dataclass(_frozen=True)
-class AbstractSolver:
+class AbstractSolver(Pytree):
     r"""
-    The ODE solver, which also works as a constructor for the `Integrator` and `AbstractSolver` instances.
+    The ODE solver. Given the ODE :math:`dy/dt = F(t, y)`, it finds the solution :math:`y(t)`.
+    Also works as a constructor for the `SolverState` instance if required.
     """
+
+    initial_dt: float = field(pytree_node=False)
+    """The intial time-step size."""
+    adaptive: bool = field(pytree_node=False, default=False)
+    """The flag whether to use adaptive time-stepping."""
+    kwargs: Any = field(pytree_node=False)
+    """Any additional arguments to pass to the Integrator"""
+
     def __init__(self, dt, *, adaptive=False, **kwargs):
         r"""
         Args:
-            dt: The initial time-step of the solver.
+            dt: The initial time-step size of the solver.
             adaptive: A boolean indicator whether to use an adaptive scheme.
-            error_order: The error order of the solver-scheme
         """
         self.initial_dt = dt
         self.adaptive = adaptive
         self.kwargs = kwargs
 
-    def _init_state(self, t0, y0):
+    def _init_state(self, integrator_state: IntegratorState) -> SolverState:
         r"""
-        Initializes the `Integrator` structure containing the solver and state, 
-        given the necessary information.
+        Initializes the `SolverState` structure containing supplementary information needed.
         Args:
-            f: The ODE function
-            t0: The initial time of evolution
-            y0: The solution at initial time `t0`
-            norm: The norm used to estimate the error
+            integrator_state: The state of the Integrator
 
         Returns:
-            An `Integrator` instance intialized with the passed arguments 
+            An intialized `SolverState` instance
         """
-        t_dtype = jnp.result_type(_dtype(t0), _dtype(self.initial_dt))
-
-        return IntegratorState(
-            y=y0,
-            t=jnp.array(t0, dtype=t_dtype),
-            dt=jnp.array(self.initial_dt, dtype=t_dtype),
-            last_norm=0.0 if self.adaptive else None,
-            last_scaled_error=0.0 if self.adaptive else None,
-            flags=SolverFlags(0),
-        )
-    
-    def _update_state(self, state, *args):
-        return state
+        return None
 
     @abstractmethod
     def step(
-        self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
-    ):
-        """Perform one fixed-size step from `t` to `t + dt`."""
+        self, f: Callable, dt: float, t: float, y_t: Pytree, state: SolverState
+    ) -> tuple[Pytree, SolverState]:
+        r"""
+        Performs one fixed-size step from `t` to `t + dt`
+        Args:
+            f: The ODE function
+            dt: The current time-step size
+            t: The current time
+            y_t: The current solution
+            state: The state of the solver
 
-        raise NotImplementedError("You need to define the method `step` in your `AbstractSolver`.")
-    
+        Returns:
+            The next solution y_t+1 and the corresponding updated state of the solver
+
+        """
+
+        raise NotImplementedError(
+            "You need to define the method `step` in your `AbstractSolver`."
+        )
+
     @abstractmethod
     def step_with_error(
-        self, f: Callable, t: float, dt: float, y_t: Array, state: IntegratorState
-    ):
-        """
-        Perform one fixed-size step from `t` to `t + dt` and additionally return the
+        self, f: Callable, dt: float, t: float, y_t: Pytree, state: SolverState
+    ) -> tuple[Pytree, Pytree, SolverState]:
+        r"""
+        Perform one fixed-size step from `t` to `t + dt` and additionally returns the
         error vector provided by the adaptive solver.
+        Args:
+            f: The ODE function
+            dt: The current time-step size
+            t: The current time
+            y_t: The current solution
+            state: The state of the solver
+
+        Returns:
+            The next solution y_t+1, the error y_err and the corresponding updated state of the solver
         """
-        raise NotImplementedError("You need to define the method `step_with_error` in your `AbstractSolver`.")
+        raise NotImplementedError(
+            "You need to define the method `step_with_error` in your `AbstractSolver`."
+        )
 
     def __repr__(self):
         return "{}(dt={}, adaptive={}{})".format(
@@ -100,13 +111,13 @@ class AbstractSolver:
     @abstractmethod
     def is_explicit(self):
         """Boolean indication whether the integrator is explicit."""
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def is_adaptive(self):
         """Boolean indication whether the integrator can be adaptive."""
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -114,4 +125,4 @@ class AbstractSolver:
         """
         Number of stages (equal to the number of evaluations of the ode function) of the scheme.
         """
-        pass
+        raise NotImplementedError

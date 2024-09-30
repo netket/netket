@@ -15,13 +15,13 @@
 from enum import IntFlag, auto
 
 from netket.utils import struct, KahanSum
-from netket.utils.types import Array
+from netket.utils.types import Array, Any
 
 import jax
 import jax.numpy as jnp
 
 
-class SolverFlags(IntFlag):
+class IntegratorFlags(IntFlag):
     """
     Enum class containing flags for signaling solver information from within `jax.jit`ed code.
     """
@@ -48,13 +48,15 @@ class SolverFlags(IntFlag):
         return ", ".join(msg[flag] for flag in msg.keys() if flag & self != 0)
 
 
-@struct.dataclass
 class IntegratorState(struct.Pytree):
     r"""
     Dataclass containing the state of an ODE solver.
     In particular, it stores the current state of the system, former usefull values
     and information about integration (number of step, errors, etc)
     """
+
+    solver_state: Any | None
+    """The state of the solver."""
 
     step_no: int
     """Number of successful steps since the start of the iteration."""
@@ -65,12 +67,12 @@ class IntegratorState(struct.Pytree):
     y: Array
     """Solution at current time."""
     dt: float
-    """Current step size."""
+    """Current time-step size."""
     last_norm: float | None = None
     """Solution norm at previous time step."""
     last_scaled_error: float | None = None
     """Error of the TDVP integrator at the last time step."""
-    flags: SolverFlags = SolverFlags.INFO_STEP_ACCEPTED
+    flags: IntegratorFlags = IntegratorFlags.INFO_STEP_ACCEPTED
     """Flags containing information on the solver state."""
 
     def __init__(
@@ -78,12 +80,13 @@ class IntegratorState(struct.Pytree):
         dt: float,
         y,
         t,
+        solver,
         *,
         step_no=0,
         step_no_total=0,
         last_norm=None,
         last_scaled_error=None,
-        flags=SolverFlags.INFO_STEP_ACCEPTED,
+        flags=IntegratorFlags.INFO_STEP_ACCEPTED,
     ):
         step_dtype = jnp.int64 if jax.config.x64_enabled else jnp.int32
         err_dtype = jnp.float64 if jax.config.x64_enabled else jnp.float32
@@ -120,6 +123,8 @@ class IntegratorState(struct.Pytree):
         #    raise TypeError(f"flags must be SolverFlags but got {type(flags)} : {flag}")
         self.flags = flags
 
+        self.solver_state = solver._init_state(self)
+
     def __repr__(self):
         try:
             dt = f"{self.dt:.2e}"
@@ -128,11 +133,16 @@ class IntegratorState(struct.Pytree):
         except (ValueError, TypeError):
             dt = f"{self.dt}"
             last_norm = f"{self.last_norm}"
-            accepted = f"{SolverFlags.INFO_STEP_ACCEPTED}"
+            accepted = f"{IntegratorFlags.INFO_STEP_ACCEPTED}"
 
-        return f"IntegratorState(step_no(total)={self.step_no}({self.step_no_total}), t={self.t.value}, dt={dt}{last_norm}{accepted})"
+        if self.solver_state is not None:
+            solver_state = f", solver_state={self.solver_state}"
+        else:
+            solver_state = ""
+
+        return f"IntegratorState(step_no(total)={self.step_no}({self.step_no_total}), t={self.t.value}, dt={dt}{last_norm}{accepted}{solver_state})"
 
     @property
     def accepted(self):
         """Boolean indicating whether the last step was accepted."""
-        return SolverFlags.INFO_STEP_ACCEPTED & self.flags != 0
+        return IntegratorFlags.INFO_STEP_ACCEPTED & self.flags != 0

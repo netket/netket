@@ -25,6 +25,7 @@ from netket.utils.types import Array, PyTree
 LimitsType = tuple[float | None, float | None]
 """Type of the dt limits field, having independently optional upper and lower bounds."""
 
+
 def expand_dim(tree: PyTree, sz: int):
     """
     creates a new pytree with same structure as input `tree`, but where very leaf
@@ -35,6 +36,7 @@ def expand_dim(tree: PyTree, sz: int):
         return jnp.zeros((sz, *x.shape), dtype=x.dtype)
 
     return jax.tree_util.tree_map(_expand, tree)
+
 
 def propose_time_step(
     dt: float, scaled_error: float, error_order: int, limits: LimitsType

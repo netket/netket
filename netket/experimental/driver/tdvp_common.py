@@ -72,7 +72,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
-            integrator: Configuration of the algorithm used for solving the ODE.
+            solver: Solving algorithm used the ODE.
             t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
@@ -118,7 +118,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         The underlying solver which solves the ODE at each time step.
         """
         return self.integrator._solver
-    
+
     @property
     def integrator(self):
         """
@@ -135,10 +135,12 @@ class TDVPBaseDriver(AbstractVariationalDriver):
 
         self._integrator = Integrator(
             self._odefun,
-            _solver=new_solver,
-            _state=new_solver._init_state(t0, self.state.parameters),
+            new_solver,
+            t0,
+            self.state.parameters,
             use_adaptive=new_solver.adaptive,
             norm=self.error_norm,
+            **new_solver.kwargs,
         )
 
     @property

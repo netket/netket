@@ -122,12 +122,15 @@ def test_ode_solver(method):
     y_ref = y0 * np.exp(-(times**2) / 2)
 
     integrator = Integrator(
-        ode,
-        _solver=solver,
-        _state=solver._init_state(0.0, y0),
+        f=ode,
+        solver=solver,
+        t0=0.0,
+        y0=y0,
         use_adaptive=solver.adaptive,
         norm=None,
+        **solver.kwargs,
     )
+    print(integrator, integrator._state.t)
 
     t = []
     y_t = []
@@ -157,11 +160,13 @@ def test_ode_repr():
     solver = RK23(dt=dt, adaptive=True)
     y0 = np.array([1.0])
     integrator = Integrator(
-        ode,
-        _solver=solver,
-        _state=solver._init_state(0.0, y0),
+        f=ode,
+        solver=solver,
+        t0=0.0,
+        y0=y0,
         use_adaptive=solver.adaptive,
         norm=None,
+        **solver.kwargs,
     )
 
     assert isinstance(repr(integrator), str)
@@ -173,7 +178,7 @@ def test_ode_repr():
 
     _test_jit_repr(integrator._state)
     _test_jit_repr(integrator._solver.tableau)
-    # _test_jit_repr(solv) # this is broken. should be fixed in the zukunft
+    _test_jit_repr(solver)
 
 
 def test_solver_t0_is_integer():
@@ -185,19 +190,18 @@ def test_solver_t0_is_integer():
 
     solver = RK23(dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1])
     integrator = Integrator(
-        df,
-        _solver=solver,
-        _state=solver._init_state(0, np.array([1.0])),
-        use_adaptive=True,
+        f=df,
+        solver=solver,
+        t0=0,
+        y0=np.array([1.0]),
+        use_adaptive=solver.adaptive,
         norm=None,
+        **solver.kwargs,
     )  # <-- the second argument has to be a float
 
     integrator.step()
-    integrator.step()
     assert integrator.t.dtype == integrator.dt.dtype
-    print(integrator.t)
     assert integrator.t > 0.0
-    assert 0
 
 
 @pytest.mark.parametrize("solver", explicit_adaptive_solvers_params)
@@ -210,11 +214,13 @@ def test_adaptive_solver(solver):
     y0 = np.array([1.0])
     solv = solver(dt=0.2, adaptive=True, atol=0.0, rtol=tol)
     integrator = Integrator(
-        ode,
-        _solver=solv,
-        _state=solv._init_state(0.0, y0),
+        f=ode,
+        solver=solv,
+        t0=0.0,
+        y0=y0,
         use_adaptive=solv.adaptive,
         norm=None,
+        **solv.kwargs,
     )
 
     t = []

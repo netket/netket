@@ -47,7 +47,7 @@ class TableauRKExplicit:
 
     order: tuple[int, int]
     """The order of the tableau"""
-    
+
     a: jax.numpy.ndarray = field(repr=False)
     """Coefficients of th intermediate states."""
     b: jax.numpy.ndarray = field(repr=False)
@@ -65,6 +65,7 @@ class TableauRKExplicit:
     def is_adaptive(self):
         """Boolean indication whether the integrator can beå adaptive."""
         return self.b.ndim == 2
+
 
 # fmt: off
 # flake8: noqa: E123, E126, E201, E202, E221, E226, E231, E241, E251
