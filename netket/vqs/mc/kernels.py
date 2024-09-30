@@ -61,7 +61,7 @@ def local_value_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
 
 
 def local_value_kernel_jax(
-    logpsi: Callable, pars: PyTree, σ: Array, O: DiscreteJaxOperator, chunk_size: int, max_conn: int
+    logpsi: Callable, pars: PyTree, σ: Array, O: DiscreteJaxOperator, chunk_size: int,
 ):
     """
     local_value kernel for MCState for jax-compatible operators
@@ -69,17 +69,6 @@ def local_value_kernel_jax(
 
     σp, mel = O.get_conn_padded(jnp.squeeze(σ))
    
-    def select_nonzero(xp,mels):
-      k = jnp.argmin(jnp.abs(mels))
-      i = jnp.nonzero(mels,size=max_conn,fill_value=k)
-
-      xp = xp[i]
-      mels = mels[i]
-
-      return xp, mels
-
-    σp, mel = select_nonzero(σp, mel)
-
     logpsi_σ = logpsi(pars, σ)
 
     apply_conn = lambda s: logpsi(pars,s)
@@ -202,7 +191,7 @@ def local_value_kernel_jax_chunked(
     local_value kernel for MCState and jaxcoompatible operators
     """
    
-    local_value_kernel = lambda s: local_value_kernel_jax(logpsi, pars, s, O, chunk_size=min(O.max_conn_size,chunk_size),max_conn=O.max_conn_size)
+    local_value_kernel = lambda s: local_value_kernel_jax(logpsi, pars, s, O, chunk_size=min(O.max_conn_size,chunk_size))
 
     local_value_chunked = nkjax.apply_chunked(
         local_value_kernel, in_axes=0, chunk_size=max(1, chunk_size // O.max_conn_size)
