@@ -13,12 +13,16 @@
 # limitations under the License.
 
 from enum import IntFlag, auto
+from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
 
 from netket.utils import struct, KahanSum
-from netket.utils.types import Array, Any
+from netket.utils.types import Array
+
+if TYPE_CHECKING:
+    from ._solver import SolverState
 
 
 class IntegratorFlags(IntFlag):
@@ -55,7 +59,7 @@ class IntegratorState(struct.Pytree):
     and information about integration (number of step, errors, etc)
     """
 
-    solver_state: Any | None
+    solver_state: "SolverState"
     """The state of the solver."""
 
     step_no: int

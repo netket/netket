@@ -68,7 +68,7 @@ class AbstractSolver(Pytree):
         Returns:
             An intialized `SolverState` instance
         """
-        return None
+        return SolverState()
 
     def step(
         self, f: Callable, dt: float, t: float, y_t: PyTree, state: SolverState
