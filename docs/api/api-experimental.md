@@ -150,7 +150,8 @@ This module contains experimental loggers that can be used with the optimization
 
 ## ODE Integrators
 
-This is a collection of ODE integrators that can be used with the TDVP driver above.
+### Concrete solvers
+This is a collection of ODE solvers that can be used with the TDVP driver above.
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
@@ -169,6 +170,25 @@ This is a collection of ODE integrators that can be used with the TDVP driver ab
    dynamics.RK4
    dynamics.RK45
 ```
+The corresponding integrator is then automatically constructed within the TDVP driver. 
+
+
+### Abstract classes 
+Those are the abstract classes you can inherit from to implement your own solver
+```{eval-rst}
+.. currentmodule:: netket.experimental
+```
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/dynamics
+   :template: class
+   :nosignatures:
+
+   dynamics.AbstractSolver
+   dynamics.SolverState
+```
+
 
 ## Fermions
 
