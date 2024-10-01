@@ -17,7 +17,7 @@ from functools import wraps
 import jax
 import jax.numpy as jnp
 
-import netket as nk
+import netket.jax as nkjax
 from netket import config
 from netket.utils.types import Array, PyTree, Callable
 
@@ -93,7 +93,7 @@ def set_flag_jax(condition, flags, flag):
 
 def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn) -> float:
     norm_y = norm_fn(y)
-    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nk.jax.tree_size(y_err)
+    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nkjax.tree_size(y_err)
     return norm_fn(y_err) / scale, norm_y
 
 

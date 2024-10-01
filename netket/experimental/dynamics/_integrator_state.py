@@ -14,11 +14,11 @@
 
 from enum import IntFlag, auto
 
-from netket.utils import struct, KahanSum
-from netket.utils.types import Array, Any
-
 import jax
 import jax.numpy as jnp
+
+from netket.utils import struct, KahanSum
+from netket.utils.types import Array, Any
 
 
 class IntegratorFlags(IntFlag):

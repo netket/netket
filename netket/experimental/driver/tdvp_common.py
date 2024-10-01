@@ -23,6 +23,7 @@ from tqdm.auto import tqdm
 
 import netket as nk
 from netket import config
+from netket.utils.deprecation import warn_deprecation
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.jax import HashablePartial
@@ -32,14 +33,11 @@ from netket.utils import mpi, timing
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
-
 from netket.experimental.dynamics import AbstractSolver, Integrator
 from netket.experimental.dynamics._utils import (
     euclidean_norm,
     maximum_norm,
 )
-
-from netket.utils.deprecation import warn_deprecation
 
 
 class TDVPBaseDriver(AbstractVariationalDriver):
@@ -63,9 +61,9 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         operator: AbstractOperator,
         variational_state: VariationalState,
         solver: AbstractSolver = None,
-        integrator: AbstractSolver = None,
         *,
         t0: float = 0.0,
+        integrator: AbstractSolver = None,
         error_norm: str | Callable = "qgt",
     ):
         r"""
@@ -113,7 +111,9 @@ class TDVPBaseDriver(AbstractVariationalDriver):
 
         if integrator is not None:
             warn_deprecation(
-                "Specifying `integrator` when constructing TDVP is deprecated. Please use `solver` instead."
+                "The keyword argument `integrator` has been renamed to `solver` and "
+                "deprecated to improve clarity.\n"
+                "Update the keyword argument in your code to avoid breakage in the future."
             )
             if solver is not None:
                 raise ValueError("Cannot specify both `solver` and `integrator`.")

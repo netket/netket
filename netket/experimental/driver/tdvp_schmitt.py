@@ -26,7 +26,6 @@ from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 from netket.jax import tree_cast
 from netket.utils import timing
-
 from netket.experimental.dynamics import AbstractSolver
 
 
@@ -106,10 +105,10 @@ class TDVPSchmitt(TDVPBaseDriver):
         operator: AbstractOperator,
         variational_state: VariationalState,
         solver: AbstractSolver = None,
-        integrator: AbstractSolver = None,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
+        integrator: AbstractSolver = None,
         holomorphic: bool | None = None,
         diag_shift: float = 0.0,
         diag_scale: float | None = None,
@@ -182,7 +181,12 @@ class TDVPSchmitt(TDVPBaseDriver):
         self.diag_scale = diag_scale
 
         super().__init__(
-            operator, variational_state, solver, integrator, t0=t0, error_norm=error_norm
+            operator,
+            variational_state,
+            solver,
+            t0=t0,
+            error_norm=error_norm,
+            integrator=integrator,
         )
 
 

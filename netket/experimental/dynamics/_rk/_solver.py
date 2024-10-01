@@ -11,6 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from typing import Callable
+
+import jax
+import jax.numpy as jnp
+
+from netket.utils.types import Array
+from netket.utils.struct import field
+from .._utils import expand_dim
+from ._tableau import TableauRKExplicit
 from .._solver import (
     AbstractSolver,
     SolverState,
@@ -19,18 +29,8 @@ from .._solver import (
     args_fixed_dt_docstring,
 )
 
-from typing import Callable
 
-import jax
-import jax.numpy as jnp
-
-from netket.utils.types import Array
-from .._utils import expand_dim
-from netket.utils.struct import field
-from ._tableau import TableauRKExplicit
-
-
-class RKSolver(AbstractSolver):
+class RKExplicitSolver(AbstractSolver):
     r"""
     Class representing the Butcher tableau of an explicit Runge-Kutta method [1,2],
     which, given the ODE :math:`dy/dt = F(t, y)`, updates the solution as
@@ -184,7 +184,7 @@ def Euler(dt):
     """
     from . import _tableau as rkt
 
-    return RKSolver(dt, tableau=rkt.bt_feuler)
+    return RKExplicitSolver(dt, tableau=rkt.bt_feuler)
 
 
 @append_docstring(args_fixed_dt_docstring)
@@ -195,7 +195,7 @@ def Midpoint(dt):
     """
     from . import _tableau as rkt
 
-    return RKSolver(dt, tableau=rkt.bt_midpoint)
+    return RKExplicitSolver(dt, tableau=rkt.bt_midpoint)
 
 
 @append_docstring(args_fixed_dt_docstring)
@@ -206,7 +206,7 @@ def Heun(dt):
     """
     from . import _tableau as rkt
 
-    return RKSolver(dt, tableau=rkt.bt_heun)
+    return RKExplicitSolver(dt, tableau=rkt.bt_heun)
 
 
 @append_docstring(args_fixed_dt_docstring)
@@ -217,7 +217,7 @@ def RK4(dt):
     """
     from . import _tableau as rkt
 
-    return RKSolver(dt, tableau=rkt.bt_rk4)
+    return RKExplicitSolver(dt, tableau=rkt.bt_rk4)
 
 
 @append_docstring(args_adaptive_docstring)
@@ -229,7 +229,7 @@ def RK12(dt, **kwargs):
     """
     from . import _tableau as rkt
 
-    return RKSolver(dt, tableau=rkt.bt_rk12, **kwargs)
+    return RKExplicitSolver(dt, tableau=rkt.bt_rk12, **kwargs)
 
 
 @append_docstring(args_adaptive_docstring)
@@ -241,7 +241,7 @@ def RK23(dt, **kwargs):
     """
     from . import _tableau as rkt
 
-    return RKSolver(dt, tableau=rkt.bt_rk23, **kwargs)
+    return RKExplicitSolver(dt, tableau=rkt.bt_rk23, **kwargs)
 
 
 @append_docstring(args_adaptive_docstring)
@@ -252,4 +252,4 @@ def RK45(dt, **kwargs):
     """
     from . import _tableau as rkt
 
-    return RKSolver(dt, tableau=rkt.bt_rk4_dopri, **kwargs)
+    return RKExplicitSolver(dt, tableau=rkt.bt_rk4_dopri, **kwargs)

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
-from netket.utils.types import PyTree
+from typing import Callable, Optional, TYPE_CHECKING
 from functools import partial
 
 import jax
@@ -22,9 +21,9 @@ import jax.numpy as jnp
 from netket.utils.numbers import dtype as _dtype
 from netket.utils.mpi.primitives import mpi_all_jax
 from netket.utils import struct
+from netket.utils.types import PyTree
 
-from ._state import IntegratorState, IntegratorFlags
-from typing import TYPE_CHECKING
+from ._integrator_state import IntegratorState, IntegratorFlags
 
 if TYPE_CHECKING:
     from ._solver import AbstractSolver
@@ -106,9 +105,6 @@ class Integrator(struct.Pytree, mutable=True):
     dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
     """Limits of the time-step size."""
 
-    _do_step: Callable = struct.field(pytree_node=False)
-    """The function that performs the time step."""
-
     def __init__(
         self,
         f: Callable,
@@ -141,10 +137,6 @@ class Integrator(struct.Pytree, mutable=True):
         self._solver = solver
 
         self.use_adaptive = use_adaptive
-        if use_adaptive:
-            self._do_step = general_time_step_adaptive
-        else:
-            self._do_step = general_time_step_fixed
 
         if norm is not None:
             if isinstance(norm, str):
@@ -207,16 +199,25 @@ class Integrator(struct.Pytree, mutable=True):
             in both cases, so the integrator state will have changed
             even after a rejected step.
         """
-        self._state = self._do_step(
-            solver=self._solver,
-            f=self.f,
-            state=self._state,
-            atol=self.atol,
-            rtol=self.rtol,
-            norm_fn=self.norm,
-            max_dt=max_dt,
-            dt_limits=self.dt_limits,
-        )
+        if not self.use_adaptive:
+            self._state = self._step_fixed(
+                solver=self._solver,
+                f=self.f,
+                state=self._state,
+                max_dt=max_dt,
+            )
+        else:
+            self._state = self._step_adaptive(
+                solver=self._solver,
+                f=self.f,
+                state=self._state,
+                atol=self.atol,
+                rtol=self.rtol,
+                norm_fn=self.norm,
+                max_dt=max_dt,
+                dt_limits=self.dt_limits,
+            )
+
         return self._state.accepted
 
     @property
@@ -268,169 +269,168 @@ class Integrator(struct.Pytree, mutable=True):
             ),
         )
 
+    @partial(maybe_jax_jit, static_argnames=["f"])
+    def _step_fixed(
+        self,
+        solver: "AbstractSolver",
+        f: Callable,
+        state: IntegratorState,
+        max_dt: Optional[float],
+    ) -> IntegratorState:
+        r"""
+        Performs one fixed step from current time.
+        Args:
+            solver: Instance that solves the ODE.
+                The solver should contain a method :code:`step(f,dt,t,y_t,solver_state)`
+            f: A callable ODE function.
+                Given a time `t` and a state `y_t`, it should return the partial
+                derivatives in the same format as `y_t`. The function should also accept
+                supplementary arguments, such as :code:`stage`.
+            state: IntegratorState containing the current state (t,y), the solver_state and stability information.
+            max_dt: The maximal value for the time step `dt`.
 
-@partial(maybe_jax_jit, static_argnames=["f"])
-def general_time_step_fixed(
-    solver: "AbstractSolver",
-    f: Callable,
-    state: IntegratorState,
-    *,
-    max_dt: Optional[float],
-    **kwargs,
-) -> IntegratorState:
-    r"""
-    Performs one fixed step from current time.
-    Args:
-        solver: Instance that solves the ODE
-            The solver should contain a method :code:`step(f,dt,t,y_t,solver_state)`
-        f: A callable ODE function.
-            Given a time `t` and a state `y_t`, it should return the partial
-            derivatives in the same format as `y_t`. The function should also accept
-            supplementary arguments, such as :code:`stage`.
-        state: IntegratorState containing the current state (t,y), the solver_state and stability information.
-        max_dt: The maximal value for the time step `dt`.
+        Returns:
+            Updated state of the integrator.
+        """
+        if max_dt is None:
+            actual_dt = state.dt
+        else:
+            actual_dt = jnp.minimum(state.dt, max_dt)
 
-    Returns:
-        Updated state of the integrator.
-    """
-    if max_dt is None:
-        actual_dt = state.dt
-    else:
-        actual_dt = jnp.minimum(state.dt, max_dt)
+        # Perform the solving step
+        y_tp1, solver_state = solver.step(
+            f, actual_dt, state.t.value, state.y, state.solver_state
+        )
 
-    # Perform the solving step
-    y_tp1, solver_state = solver.step(
-        f, actual_dt, state.t.value, state.y, state.solver_state
-    )
-
-    return state.replace(
-        step_no=state.step_no + 1,
-        step_no_total=state.step_no_total + 1,
-        t=state.t + actual_dt,
-        y=y_tp1,
-        solver_state=solver_state,
-        flags=IntegratorFlags.INFO_STEP_ACCEPTED,
-    )
-
-
-@partial(maybe_jax_jit, static_argnames=["f", "norm_fn", "dt_limits"])
-def general_time_step_adaptive(
-    solver: "AbstractSolver",
-    f: Callable,
-    state: IntegratorState,
-    atol: float,
-    rtol: float,
-    norm_fn: Callable,
-    max_dt: Optional[float],
-    dt_limits: LimitsDType,
-    **kwargs,
-) -> IntegratorState:
-    r"""
-    Performs one adaptive step from current time.
-    Args:
-        solver: Instance that solves the ODE
-            The solver should contain a method :code:`step_with_error(f,dt,t,y_t,solver_state)`
-        f: A callable ODE function.
-            Given a time `t` and a state `y_t`, it should return the partial
-            derivatives in the same format as `y_t`. The function should also accept
-            supplementary arguments, such as :code:`stage`.
-        state: IntegratorState containing the current state (t,y), the solver_state and stability information.
-        atol: The tolerance for the absolute error on the solution.
-        rtol: The tolerance for the realtive error on the solution.
-        norm_fn: The function used for the norm of the error.
-            By default, we use euclidean_norm.
-        max_dt: The maximal value for the time-step size `dt`.
-        dt_limits: The extremal accepted values for the time-step size `dt`.
-
-    Returns:
-        Updated state of the integrator
-    """
-    flags = IntegratorFlags(0)
-
-    if max_dt is None:
-        actual_dt = state.dt
-    else:
-        actual_dt = jnp.minimum(state.dt, max_dt)
-
-    # Perform the solving step
-    y_tp1, y_err, solver_state = solver.step_with_error(
-        f, actual_dt, state.t.value, state.y, state.solver_state
-    )
-
-    scaled_err, norm_y = scaled_error(
-        y_tp1,
-        y_err,
-        atol,
-        rtol,
-        last_norm_y=state.last_norm,
-        norm_fn=norm_fn,
-    )
-
-    # Propose the next time step, but limited within [0.1 dt, 5 dt] and potential
-    # global limits in dt_limits. Not used when actual_dt < state.dt (i.e., the
-    # integrator is doing a smaller step to hit a specific stop).
-    next_dt = propose_time_step(
-        actual_dt,
-        scaled_err,
-        solver.error_order,
-        limits=(
-            (
-                jnp.maximum(0.1 * state.dt, dt_limits[0])
-                if dt_limits[0]
-                else 0.1 * state.dt
-            ),
-            (
-                jnp.minimum(5.0 * state.dt, dt_limits[1])
-                if dt_limits[1]
-                else 5.0 * state.dt
-            ),
-        ),
-    )
-
-    # check if next dt is NaN
-    flags = set_flag_jax(
-        ~jnp.isfinite(next_dt), flags, IntegratorFlags.ERROR_INVALID_DT
-    )
-
-    # check if we are at lower bound for dt
-    if dt_limits[0] is not None:
-        is_at_min_dt = jnp.isclose(next_dt, dt_limits[0])
-        flags = set_flag_jax(is_at_min_dt, flags, IntegratorFlags.WARN_MIN_DT)
-    else:
-        is_at_min_dt = False
-    if dt_limits[1] is not None:
-        is_at_max_dt = jnp.isclose(next_dt, dt_limits[1])
-        flags = set_flag_jax(is_at_max_dt, flags, IntegratorFlags.WARN_MAX_DT)
-
-    # accept if error is within tolerances or we are already at the minimal step
-    accept_step = jnp.logical_or(scaled_err < 1.0, is_at_min_dt)
-    # accept the time step iff it is accepted by all MPI processes
-    accept_step, _ = mpi_all_jax(accept_step)
-
-    return jax.lax.cond(
-        accept_step,
-        # step accepted
-        lambda _: state.replace(
+        return state.replace(
             step_no=state.step_no + 1,
             step_no_total=state.step_no_total + 1,
-            y=y_tp1,
             t=state.t + actual_dt,
-            dt=jax.lax.cond(
-                actual_dt == state.dt,
-                lambda _: next_dt,
-                lambda _: state.dt,
-                None,
-            ),
-            last_norm=norm_y.astype(state.last_norm.dtype),
-            last_scaled_error=scaled_err.astype(state.last_scaled_error.dtype),
+            y=y_tp1,
             solver_state=solver_state,
-            flags=flags | IntegratorFlags.INFO_STEP_ACCEPTED,
-        ),
-        # step rejected, repeat with lower dt
-        lambda _: state.replace(
-            step_no_total=state.step_no_total + 1,
-            dt=next_dt,
-            flags=flags,
-        ),
-        state,
+            flags=IntegratorFlags.INFO_STEP_ACCEPTED,
+        )
+
+    @partial(
+        maybe_jax_jit, static_argnames=["f", "atol", "rtol", "norm_fn", "dt_limits"]
     )
+    def _step_adaptive(
+        self,
+        solver: "AbstractSolver",
+        f: Callable,
+        state: IntegratorState,
+        atol: float,
+        rtol: float,
+        norm_fn: Callable,
+        max_dt: Optional[float],
+        dt_limits: LimitsDType,
+    ) -> IntegratorState:
+        r"""
+        Performs one adaptive step from current time.
+        Args:
+            solver: Instance that solves the ODE
+                The solver should contain a method :code:`step_with_error(f,dt,t,y_t,solver_state)`
+            f: A callable ODE function.
+                Given a time `t` and a state `y_t`, it should return the partial
+                derivatives in the same format as `y_t`. The function should also accept
+                supplementary arguments, such as :code:`stage`.
+            state: IntegratorState containing the current state (t,y), the solver_state and stability information.
+            atol: The tolerance for the absolute error on the solution.
+            rtol: The tolerance for the realtive error on the solution.
+            norm_fn: The function used for the norm of the error.
+                By default, we use euclidean_norm.
+            max_dt: The maximal value for the time-step size `dt`.
+            dt_limits: The extremal accepted values for the time-step size `dt`.
+
+        Returns:
+            Updated state of the integrator
+        """
+        flags = IntegratorFlags(0)
+
+        if max_dt is None:
+            actual_dt = state.dt
+        else:
+            actual_dt = jnp.minimum(state.dt, max_dt)
+
+        # Perform the solving step
+        y_tp1, y_err, solver_state = solver.step_with_error(
+            f, actual_dt, state.t.value, state.y, state.solver_state
+        )
+
+        scaled_err, norm_y = scaled_error(
+            y_tp1,
+            y_err,
+            atol,
+            rtol,
+            last_norm_y=state.last_norm,
+            norm_fn=norm_fn,
+        )
+
+        # Propose the next time step, but limited within [0.1 dt, 5 dt] and potential
+        # global limits in dt_limits. Not used when actual_dt < state.dt (i.e., the
+        # integrator is doing a smaller step to hit a specific stop).
+        next_dt = propose_time_step(
+            actual_dt,
+            scaled_err,
+            solver.error_order,
+            limits=(
+                (
+                    jnp.maximum(0.1 * state.dt, dt_limits[0])
+                    if dt_limits[0]
+                    else 0.1 * state.dt
+                ),
+                (
+                    jnp.minimum(5.0 * state.dt, dt_limits[1])
+                    if dt_limits[1]
+                    else 5.0 * state.dt
+                ),
+            ),
+        )
+
+        # check if next dt is NaN
+        flags = set_flag_jax(
+            ~jnp.isfinite(next_dt), flags, IntegratorFlags.ERROR_INVALID_DT
+        )
+
+        # check if we are at lower bound for dt
+        if dt_limits[0] is not None:
+            is_at_min_dt = jnp.isclose(next_dt, dt_limits[0])
+            flags = set_flag_jax(is_at_min_dt, flags, IntegratorFlags.WARN_MIN_DT)
+        else:
+            is_at_min_dt = False
+        if dt_limits[1] is not None:
+            is_at_max_dt = jnp.isclose(next_dt, dt_limits[1])
+            flags = set_flag_jax(is_at_max_dt, flags, IntegratorFlags.WARN_MAX_DT)
+
+        # accept if error is within tolerances or we are already at the minimal step
+        accept_step = jnp.logical_or(scaled_err < 1.0, is_at_min_dt)
+        # accept the time step iff it is accepted by all MPI processes
+        accept_step, _ = mpi_all_jax(accept_step)
+
+        return jax.lax.cond(
+            accept_step,
+            # step accepted
+            lambda _: state.replace(
+                step_no=state.step_no + 1,
+                step_no_total=state.step_no_total + 1,
+                y=y_tp1,
+                t=state.t + actual_dt,
+                dt=jax.lax.cond(
+                    actual_dt == state.dt,
+                    lambda _: next_dt,
+                    lambda _: state.dt,
+                    None,
+                ),
+                last_norm=norm_y.astype(state.last_norm.dtype),
+                last_scaled_error=scaled_err.astype(state.last_scaled_error.dtype),
+                solver_state=solver_state,
+                flags=flags | IntegratorFlags.INFO_STEP_ACCEPTED,
+            ),
+            # step rejected, repeat with lower dt
+            lambda _: state.replace(
+                step_no_total=state.step_no_total + 1,
+                dt=next_dt,
+                flags=flags,
+            ),
+            state,
+        )

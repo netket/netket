@@ -18,6 +18,7 @@ from functools import partial
 import jax
 
 import netket as nk
+from netket.jax import tree_cast
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -27,8 +28,6 @@ from netket.vqs import (
     MCState,
     FullSumState,
 )
-from netket.jax import tree_cast
-
 from netket.experimental.dynamics import AbstractSolver
 
 from .tdvp_common import TDVPBaseDriver, odefun
@@ -55,10 +54,10 @@ class TDVP(TDVPBaseDriver):
         operator: AbstractOperator,
         variational_state: VariationalState,
         solver: AbstractSolver = None,
-        integrator: AbstractSolver = None,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
+        integrator: AbstractSolver = None,
         qgt: LinearOperator = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
@@ -122,7 +121,12 @@ class TDVP(TDVPBaseDriver):
         self.linear_solver_restart = linear_solver_restart
 
         super().__init__(
-            operator, variational_state, solver, integrator, t0=t0, error_norm=error_norm
+            operator,
+            variational_state,
+            solver,
+            t0=t0,
+            error_norm=error_norm,
+            integrator=integrator,
         )
 
 

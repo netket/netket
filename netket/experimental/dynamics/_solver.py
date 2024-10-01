@@ -15,8 +15,7 @@
 from netket.utils.struct import Pytree, field
 from netket.utils.types import Callable, PyTree
 
-
-from ._state import IntegratorState
+from ._integrator_state import IntegratorState
 from ._integrator import IntegratorParameters
 
 
@@ -28,8 +27,9 @@ class SolverState(Pytree):
 
 class AbstractSolver(Pytree):
     r"""
-    The ODE solver. Given the ODE :math:`dy/dt = F(t, y)`, it finds the solution :math:`y(t)`.
-    Also works as a constructor for the `SolverState` instance if required.
+    Abstract base class for ODE solvers.
+    This object is an immutable pyTree. The structure used to hold any solver-specific data should be initialized by
+    ``_init_state``.
     """
 
     dt: float = field(pytree_node=False)
