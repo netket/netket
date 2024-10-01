@@ -14,9 +14,10 @@
 
 
 __all__ = [
-    "Integrator",
     "AbstractSolver",
+    "SolverState",
     "IntegratorState",
+    "Integrator",
     "Euler",
     "Heun",
     "Midpoint",
@@ -26,9 +27,9 @@ __all__ = [
     "RK45",
 ]
 
-from ._integrator import Integrator
-from ._solver import AbstractSolver
+from ._solver import AbstractSolver, SolverState
 from ._state import IntegratorState
+from ._integrator import Integrator
 from ._rk._solver import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
 
 from netket.utils import _hide_submodules

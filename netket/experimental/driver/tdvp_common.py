@@ -39,6 +39,8 @@ from netket.experimental.dynamics._utils import (
     maximum_norm,
 )
 
+from netket.utils.deprecation import warn_deprecation
+
 
 class TDVPBaseDriver(AbstractVariationalDriver):
     """
@@ -61,6 +63,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         operator: AbstractOperator,
         variational_state: VariationalState,
         solver: AbstractSolver,
+        integrator: AbstractSolver = None,
         *,
         t0: float = 0.0,
         error_norm: str | Callable = "qgt",
@@ -107,6 +110,16 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self._odefun = HashablePartial(odefun_host_callback, self.state, self)
 
         self.error_norm = error_norm
+
+        if integrator is not None:
+            warn_deprecation(
+                "Specifying `integrator` when constructing TDVP is deprecated. Please use `solver` instead."
+            )
+            if solver is not None:
+                raise ValueError("Cannot specify both `solver` and `integrator`.")
+            solver = integrator
+        if solver is None:
+            raise ValueError("You need to define the `solver` for the TDVP driver.")
         self.solver = solver
 
         self._stop_count = 0
@@ -140,7 +153,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             self.state.parameters,
             use_adaptive=new_solver.adaptive,
             norm=self.error_norm,
-            **new_solver.kwargs,
+            parameters=new_solver.integrator_params,
         )
 
     @property
@@ -262,11 +275,11 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 step_accepted = self._integrator.step(max_dt=max_dt)
                 if self._integrator.errors:
                     raise RuntimeError(
-                        f"ODE solver: {self._integrator.errors.message()}"
+                        f"ODE integrator: {self._integrator.errors.message()}"
                     )
                 elif self._integrator.warnings:
                     warnings.warn(
-                        f"ODE solver: {self._integrator.warnings.message()}",
+                        f"ODE integrator: {self._integrator.warnings.message()}",
                         UserWarning,
                         stacklevel=3,
                     )
@@ -486,7 +499,7 @@ def odefun(state, driver, t, w, **kwargs):
 def odefun_host_callback(state, driver, *args, **kwargs):
     """
     Calls odefun through a host callback in order to make the rest of the
-    ODE solver jit-able.
+    ODE inteagrator jit-able.
     """
     if config.netket_experimental_disable_ode_jit:
         return odefun(state, driver, *args, **kwargs)

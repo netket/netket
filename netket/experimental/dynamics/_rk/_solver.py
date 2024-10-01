@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from .._solver import AbstractSolver, SolverState
-from .._utils import (
+from .._solver import (
+    AbstractSolver,
+    SolverState,
     append_docstring,
     args_adaptive_docstring,
     args_fixed_dt_docstring,
@@ -55,11 +56,11 @@ class RKSolver(AbstractSolver):
     tableau: TableauRKExplicit = field(pytree_node=False)
     """The Butcher tableau containing all coefficients for solving the ODE."""
 
-    def __init__(self, dt, tableau, *, adaptive=False, **kwargs):
+    def __init__(self, dt, tableau, adaptive=False, **kwargs):
         self.tableau = tableau
         if adaptive and not tableau.is_adaptive:
             raise AttributeError(f"Tableau of type {tableau} cannot be adaptve.")
-        super().__init__(dt, adaptive=adaptive, **kwargs)
+        super().__init__(dt=dt, adaptive=adaptive, **kwargs)
 
     def __repr__(self):
         return super().__repr__()[:-1] + f", tableau={self.tableau})"

@@ -59,21 +59,21 @@ class IntegratorState(struct.Pytree):
     """The state of the solver."""
 
     step_no: int
-    """Number of successful steps since the start of the iteration."""
+    """The number of successful steps since the start of the iteration."""
     step_no_total: int
-    """Number of steps since the start of the iteration, including rejected steps."""
+    """The number of steps since the start of the iteration, including rejected steps."""
     t: KahanSum
-    """Current time."""
+    """The current time."""
     y: Array
-    """Solution at current time."""
+    """The solution at current time."""
     dt: float
-    """Current time-step size."""
+    """The current time-step size."""
     last_norm: float | None = None
-    """Solution norm at previous time step."""
+    """The solution norm at previous time step."""
     last_scaled_error: float | None = None
-    """Error of the TDVP integrator at the last time step."""
+    """The error of the TDVP integrator at the last time step."""
     flags: IntegratorFlags = IntegratorFlags.INFO_STEP_ACCEPTED
-    """Flags containing information on the solver state."""
+    """The flags containing information on the solver state."""
 
     def __init__(
         self,
@@ -88,6 +88,21 @@ class IntegratorState(struct.Pytree):
         last_scaled_error=None,
         flags=IntegratorFlags.INFO_STEP_ACCEPTED,
     ):
+        r"""
+        Args:
+            dt: The current time-step size.
+            y: The solution at current time.
+            t: The current time.
+            solver: The ODE solver.
+
+            step_no: The number of successful steps since the start of the iteration.
+                defaults to :code:`0`.
+            step_no_total: The number of steps since the start of the iteration, including rejected steps.
+                defaults to :code:`0`.
+            last_norm: The solution norm at previous time step.
+            last_scaled_error: The error of the TDVP integrator at the last time step.
+            flags: The flags containing information on the solver state.
+        """
         step_dtype = jnp.int64 if jax.config.x64_enabled else jnp.int32
         err_dtype = jnp.float64 if jax.config.x64_enabled else jnp.float32
 

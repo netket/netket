@@ -13,13 +13,17 @@
 # limitations under the License.
 
 from netket.utils.struct import Pytree, field
-from netket.utils.types import Any, Callable, PyTree
-from abc import abstractmethod
+from netket.utils.types import Callable, PyTree
 
 
 from ._state import IntegratorState
+from ._integrator import IntegratorParameters
 
-SolverState = Any
+
+class SolverState(Pytree):
+    """
+    Base class holding the state of a solver.
+    """
 
 
 class AbstractSolver(Pytree):
@@ -28,22 +32,29 @@ class AbstractSolver(Pytree):
     Also works as a constructor for the `SolverState` instance if required.
     """
 
-    initial_dt: float = field(pytree_node=False)
+    dt: float = field(pytree_node=False)
     """The intial time-step size."""
     adaptive: bool = field(pytree_node=False, default=False)
     """The flag whether to use adaptive time-stepping."""
-    kwargs: Any = field(pytree_node=False)
+    integrator_params: IntegratorParameters = field(pytree_node=False)
     """Any additional arguments to pass to the Integrator"""
 
-    def __init__(self, dt, *, adaptive=False, **kwargs):
+    def __init__(self, dt, adaptive=False, **kwargs):
         r"""
         Args:
-            dt: The initial time-step size of the solver.
+            dt: The initial time-step size of the integrator.
             adaptive: A boolean indicator whether to use an adaptive scheme.
+
+            atol: The tolerance for the absolute error on the solution if :code:`adaptive`.
+                defaults to :code:`0.0`.
+            rtol: The tolerance for the realtive error on the solution if :code:`adaptive`.
+                defaults to :code:`1e-7`.
+            dt_limits: The extremal accepted values for the time-step size `dt` if :code:`adaptive`.
+                defaults to :code:`(None, 10 * dt)`.
         """
-        self.initial_dt = dt
+        self.dt = dt
         self.adaptive = adaptive
-        self.kwargs = kwargs
+        self.integrator_params = IntegratorParameters(dt=dt, **kwargs)
 
     def _init_state(self, integrator_state: IntegratorState) -> SolverState:
         r"""
@@ -56,18 +67,17 @@ class AbstractSolver(Pytree):
         """
         return None
 
-    @abstractmethod
     def step(
         self, f: Callable, dt: float, t: float, y_t: PyTree, state: SolverState
     ) -> tuple[PyTree, SolverState]:
         r"""
         Performs one fixed-size step from `t` to `t + dt`
         Args:
-            f: The ODE function
-            dt: The current time-step size
-            t: The current time
-            y_t: The current solution
-            state: The state of the solver
+            f: The ODE function.
+            dt: The current time-step size.
+            t: The current time.
+            y_t: The current solution.
+            state: The state of the solver.
 
         Returns:
             The next solution y_t+1 and the corresponding updated state of the solver
@@ -78,7 +88,6 @@ class AbstractSolver(Pytree):
             "You need to define the method `step` in your `AbstractSolver`."
         )
 
-    @abstractmethod
     def step_with_error(
         self, f: Callable, dt: float, t: float, y_t: PyTree, state: SolverState
     ) -> tuple[PyTree, PyTree, SolverState]:
@@ -86,11 +95,11 @@ class AbstractSolver(Pytree):
         Perform one fixed-size step from `t` to `t + dt` and additionally returns the
         error vector provided by the adaptive solver.
         Args:
-            f: The ODE function
-            dt: The current time-step size
-            t: The current time
-            y_t: The current solution
-            state: The state of the solver
+            f: The ODE function.
+            dt: The current time-step size.
+            t: The current time.
+            y_t: The current solution.
+            state: The state of the solver.
 
         Returns:
             The next solution y_t+1, the error y_err and the corresponding updated state of the solver
@@ -100,29 +109,84 @@ class AbstractSolver(Pytree):
         )
 
     def __repr__(self) -> str:
-        return "{}(dt={}, adaptive={}{})".format(
+        return "{}(dt={}, adaptive={})".format(
             self.__class__.__name__,
-            self.initial_dt,
+            self.dt,
             self.adaptive,
-            f", **kwargs={self.kwargs}" if self.kwargs else "",
         )
 
     @property
-    @abstractmethod
     def is_explicit(self) -> bool:
         """Boolean indication whether the integrator is explicit."""
         raise NotImplementedError
 
     @property
-    @abstractmethod
     def is_adaptive(self) -> bool:
         """Boolean indication whether the integrator can be adaptive."""
         raise NotImplementedError
 
     @property
-    @abstractmethod
     def stages(self) -> int:
         """
         Number of stages (equal to the number of evaluations of the ode function) of the scheme.
         """
         raise NotImplementedError
+
+
+def append_docstring(doc):
+    """
+    Decorator that appends the string `doc` to the decorated function.
+
+    This is needed here because docstrings cannot be f-strings or manipulated strings.
+    """
+
+    def _append_docstring(fun):
+        fun.__doc__ = fun.__doc__ + doc
+        return fun
+
+    return _append_docstring
+
+
+args_fixed_dt_docstring = """
+    Args:
+        dt: Timestep (floating-point number).
+"""
+
+args_adaptive_docstring = """
+    This solver is adaptive, meaning that the time-step is changed at every
+    iteration in order to keep the error below a certain threshold.
+
+    In particular, given the variables at step :math:`t`, :math:`\\theta^{t}` and the
+    error at the same time-step, :math:`\\epsilon^t`, we compute a rescaled error by
+    using the absolute (**atol**) and relative (**reltol**) tolerances according
+    to this formula.
+
+    .. math::
+
+        \\epsilon^\\text{scaled} = \\text{Norm}(\\frac{\\epsilon^{t}}{\\epsilon_{atol} +
+            \\max(\\theta^t, \\theta^{t-1})\\epsilon_{reltol}}),
+
+    where :math:`\\text{Norm}` is a function that normalises the vector, usually a vector
+    norm but could be something else as well, and :math:`\\max` is an elementwise maximum
+    function (with lexicographical ordering for complex numbers).
+
+    Then, the integrator will attempt to keep `\\epsilon^\\text{scaled}<1`.
+
+    Args:
+        dt: Timestep (floating-point number). When :code:`adaptive==False` this value
+            is never changed, when :code:`adaptive == True` this is the initial timestep.
+        adaptive: Whether to use adaptive timestepping (Defaults to False).
+            Not all integrators support adaptive timestepping.
+        atol: Maximum absolute error at every time-step during adaptive timestepping.
+            A larger value will lead to larger timestep. This option is ignored if
+            `adaptive=False`. A value of 0 means it is ignored. Note that the `norm` used
+            to compute the error can be  changed in the :ref:`netket.experimental.TDVP`
+            driver. (Defaults to 0).
+        rtol: Maximum relative error at every time-step during adaptive timestepping.
+            A larger value will lead to larger timestep. This option is ignored if
+            `adaptive=False`. Note that the `norm` used to compute the error can be
+            changed in the :ref:`netket.experimental.TDVP` driver. (Defaults to 1e-7)
+        dt_limits: A length-2 tuple of minimum and maximum timesteps considered by
+            adaptive time-stepping. A value of None signals that there is no bound.
+            Defaults to :code:`(None, 10*dt)`.
+    """

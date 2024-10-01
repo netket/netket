@@ -128,9 +128,8 @@ def test_ode_solver(method):
         y0=y0,
         use_adaptive=solver.adaptive,
         norm=None,
-        **solver.kwargs,
+        parameters=solver.integrator_params,
     )
-    print(integrator, integrator._state.t)
 
     t = []
     y_t = []
@@ -166,7 +165,7 @@ def test_ode_repr():
         y0=y0,
         use_adaptive=solver.adaptive,
         norm=None,
-        **solver.kwargs,
+        parameters=solver.integrator_params,
     )
 
     assert isinstance(repr(integrator), str)
@@ -196,7 +195,7 @@ def test_solver_t0_is_integer():
         y0=np.array([1.0]),
         use_adaptive=solver.adaptive,
         norm=None,
-        **solver.kwargs,
+        parameters=solver.integrator_params,
     )  # <-- the second argument has to be a float
 
     integrator.step()
@@ -220,7 +219,7 @@ def test_adaptive_solver(solver):
         y0=y0,
         use_adaptive=solv.adaptive,
         norm=None,
-        **solv.kwargs,
+        parameters=solv.integrator_params,
     )
 
     t = []

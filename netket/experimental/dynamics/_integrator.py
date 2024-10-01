@@ -18,27 +18,260 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-from netket.utils.numbers import dtype as _dtype
 
+from netket.utils.numbers import dtype as _dtype
 from netket.utils.mpi.primitives import mpi_all_jax
 from netket.utils import struct
-from ._utils import maybe_jax_jit
-from ._solver import AbstractSolver
+
+from ._state import IntegratorState, IntegratorFlags
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._solver import AbstractSolver
 
 from ._utils import (
+    maybe_jax_jit,
     LimitsDType,
     scaled_error,
     propose_time_step,
     set_flag_jax,
     euclidean_norm,
+    maximum_norm,
 )
 
-from ._state import IntegratorState, IntegratorFlags
+
+@struct.dataclass
+class IntegratorParameters(struct.Pytree):
+    dt: float = struct.field(pytree_node=False)
+    """The initial time-step size of the integrator."""
+
+    atol: float = struct.field(pytree_node=False)
+    """The tolerance for the absolute error on the solution."""
+    rtol: float = struct.field(pytree_node=False)
+    """The tolerance for the realtive error on the solution."""
+
+    dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
+    """The extremal accepted values for the time-step size `dt`."""
+
+    def __init__(
+        self,
+        dt: float,
+        atol: float = 0.0,
+        rtol: float = 1e-7,
+        dt_limits: Optional[LimitsDType] = None,
+    ):
+        r"""
+        Args:
+            dt: The initial time-step size of the integrator.
+            atol: The tolerance for the absolute error on the solution.
+                defaults to :code:`0.0`.
+            rtol: The tolerance for the realtive error on the solution.
+                defaults to :code:`1e-7`.
+            dt_limits: The extremal accepted values for the time-step size `dt`.
+                defaults to :code:`(None, 10 * dt)`.
+        """
+        self.dt = dt
+
+        self.atol = atol
+        self.rtol = rtol
+        if dt_limits is None:
+            dt_limits = (None, 10 * dt)
+        self.dt_limits = dt_limits
+
+
+class Integrator(struct.Pytree, mutable=True):
+    r"""
+    Ordinary-Differential-Equation integrator.
+    Given an ODE-function :math:`dy/dt = f(t, y)`, it integrates the derivatives to obtain the solution
+    at the next time step :math:`y_{t+1}`.
+    """
+
+    f: Callable = struct.field(pytree_node=False)
+    """The ODE function."""
+
+    _state: IntegratorState
+    """The state of the integrator, containing informations about the solution."""
+    _solver: "AbstractSolver"
+    """The ODE solver."""
+
+    use_adaptive: bool = struct.field(pytree_node=False)
+    """Boolean indicating whether to use an adaptative scheme."""
+    norm: Callable = struct.field(pytree_node=False)
+    """The norm used to estimate the error."""
+
+    atol: float = struct.field(pytree_node=False)
+    """Absolute tolerance on the error of the state."""
+    rtol: float = struct.field(pytree_node=False)
+    """Relative tolerance on the error of the state."""
+    dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
+    """Limits of the time-step size."""
+
+    _do_step: Callable = struct.field(pytree_node=False)
+    """The function that performs the time step."""
+
+    def __init__(
+        self,
+        f: Callable,
+        solver: "AbstractSolver",
+        t0: float,
+        y0: PyTree,
+        use_adaptive: bool,
+        parameters: IntegratorParameters,
+        norm: str | Callable = None,
+    ):
+        r"""
+        Args:
+            f: The ODE function
+                Given a time `t` and a state `y_t`, it should return the partial
+                derivatives in the same format as `y_t`. The function should also accept
+                supplementary arguments, such as :code:`stage`.
+            solver: The ODE solver.
+                If :code:`use_adaptive`, it should define the method :code:`step_with_error(f,dt,t,y_t,solver_state)`
+                otherwise, the method :code:`step(f,dt,t,y_t,solver_state)`
+            t0: The intial time.
+            y0: The initial state.
+            use_adaptive: The (boolean) indicator whether an adaptive (time-step) scheme is used.
+            parameters: The supplkementary hyper-parameters of the integrator.
+                This includes the values for :code:`dt`, :code:`atol`, :code`rtol` and :code`dt_limits`
+                See :code:`IntegratorParameters` for more details.
+            norm: The function used for the norm of the error.
+                By default, we use euclidean_norm.
+        """
+        self.f = f
+        self._solver = solver
+
+        self.use_adaptive = use_adaptive
+        if use_adaptive:
+            self._do_step = general_time_step_adaptive
+        else:
+            self._do_step = general_time_step_fixed
+
+        if norm is not None:
+            if isinstance(norm, str):
+                norm = norm.lower()
+                if norm == "euclidean":
+                    norm = euclidean_norm
+                elif norm == "maximum":
+                    norm = maximum_norm
+                else:
+                    raise ValueError(
+                        f"The error norm must either be 'eclidean' or 'maximum', instead got {norm}."
+                    )
+            if not isinstance(norm, Callable):
+                raise ValueError(
+                    f"The error norm must be a callable, instead got a {type(norm)}."
+                )
+        else:
+            norm = euclidean_norm
+        self.norm = norm
+
+        self.atol = parameters.atol
+        self.rtol = parameters.rtol
+        self.dt_limits = parameters.dt_limits
+
+        self._state = self._init_state(t0, y0, dt=parameters.dt)
+
+    def _init_state(self, t0: float, y0: PyTree, dt: float) -> IntegratorState:
+        r"""
+        Initializes the `IntegratorState` structure containing the solver and state,
+        given the necessary information.
+        Args:
+            t0: The initial time of evolution
+            y0: The solution at initial time `t0`
+            dt: The initial step size
+
+        Returns:
+            An :code:`Integrator` instance intialized with the passed arguments
+        """
+        t_dtype = jnp.result_type(_dtype(t0), _dtype(dt))
+
+        return IntegratorState(
+            t=jnp.array(t0, dtype=t_dtype),
+            y=y0,
+            dt=jnp.array(dt, dtype=t_dtype),
+            solver=self._solver,
+            last_norm=0.0 if self.use_adaptive else None,
+            last_scaled_error=0.0 if self.use_adaptive else None,
+            flags=IntegratorFlags(0),
+        )
+
+    def step(self, max_dt: float = None) -> bool:
+        """
+        Performs one full step by :code:`min(self.dt, max_dt)`.
+
+        Returns:
+            A boolean indicating whether the step was successful or
+            was rejected by the step controller and should be retried.
+
+            Note that the step size can be adjusted by the step controller
+            in both cases, so the integrator state will have changed
+            even after a rejected step.
+        """
+        self._state = self._do_step(
+            solver=self._solver,
+            f=self.f,
+            state=self._state,
+            atol=self.atol,
+            rtol=self.rtol,
+            norm_fn=self.norm,
+            max_dt=max_dt,
+            dt_limits=self.dt_limits,
+        )
+        return self._state.accepted
+
+    @property
+    def t(self) -> float:
+        """The actual time."""
+        return self._state.t.value
+
+    @property
+    def y(self) -> PyTree:
+        """The actual state."""
+        return self._state.y
+
+    @property
+    def dt(self) -> float:
+        """The actual time-step size."""
+        return self._state.dt
+
+    @property
+    def solver(self) -> "AbstractSolver":
+        """The ODE solver."""
+        return self._solver
+
+    def _get_integrator_flags(self, intersect=IntegratorFlags.NONE) -> IntegratorFlags:
+        r"""Returns the currently set flags of the integrator, intersected with `intersect`."""
+        # _state.flags is turned into an int-valued DeviceArray by JAX,
+        # so we convert it back.
+        return IntegratorFlags(int(self._state.flags) & intersect)
+
+    @property
+    def errors(self) -> IntegratorFlags:
+        r"""Returns the currently set error flags of the integrator."""
+        return self._get_integrator_flags(IntegratorFlags.ERROR_FLAGS)
+
+    @property
+    def warnings(self) -> IntegratorFlags:
+        r"""Returns the currently set warning flags of the integrator."""
+        return self._get_integrator_flags(IntegratorFlags.WARNINGS_FLAGS)
+
+    def __repr__(self) -> str:
+        return "{}(solver={}, state={}, adaptive={}{})".format(
+            "Integrator",
+            self.solver,
+            self._state,
+            self.use_adaptive,
+            (
+                f", norm={self.norm}, atol={self.atol}, rtol={self.rtol}, dt_limits={self.dt_limits}"
+                if self.use_adaptive
+                else ""
+            ),
+        )
 
 
 @partial(maybe_jax_jit, static_argnames=["f"])
 def general_time_step_fixed(
-    solver: AbstractSolver,
+    solver: "AbstractSolver",
     f: Callable,
     state: IntegratorState,
     *,
@@ -49,11 +282,11 @@ def general_time_step_fixed(
     Performs one fixed step from current time.
     Args:
         solver: Instance that solves the ODE
-            The solver should contain a method `step(f,dt,t,y_t,solver_state)`
+            The solver should contain a method :code:`step(f,dt,t,y_t,solver_state)`
         f: A callable ODE function.
             Given a time `t` and a state `y_t`, it should return the partial
-            derivatives in the same format as `y_t`. The dunction should also accept
-            supplementary arguments, such as code:`stage`.
+            derivatives in the same format as `y_t`. The function should also accept
+            supplementary arguments, such as :code:`stage`.
         state: IntegratorState containing the current state (t,y), the solver_state and stability information.
         max_dt: The maximal value for the time step `dt`.
 
@@ -82,7 +315,7 @@ def general_time_step_fixed(
 
 @partial(maybe_jax_jit, static_argnames=["f", "norm_fn", "dt_limits"])
 def general_time_step_adaptive(
-    solver: AbstractSolver,
+    solver: "AbstractSolver",
     f: Callable,
     state: IntegratorState,
     atol: float,
@@ -96,11 +329,11 @@ def general_time_step_adaptive(
     Performs one adaptive step from current time.
     Args:
         solver: Instance that solves the ODE
-            The solver should contain a method `step_with_error(f,dt,t,y_t,solver_state)`
+            The solver should contain a method :code:`step_with_error(f,dt,t,y_t,solver_state)`
         f: A callable ODE function.
             Given a time `t` and a state `y_t`, it should return the partial
-            derivatives in the same format as `y_t`. The dunction should also accept
-            supplementary arguments, such as code:`stage`.
+            derivatives in the same format as `y_t`. The function should also accept
+            supplementary arguments, such as :code:`stage`.
         state: IntegratorState containing the current state (t,y), the solver_state and stability information.
         atol: The tolerance for the absolute error on the solution.
         rtol: The tolerance for the realtive error on the solution.
@@ -201,164 +434,3 @@ def general_time_step_adaptive(
         ),
         state,
     )
-
-
-class Integrator(struct.Pytree, mutable=True):
-    r"""
-    Ordinary-Differential-Equation integrator.
-    Given an ODE-function :math:`dy/dt = f(t, y)`, it integrates the derivatives to obtain the solution
-    at the next time step :math:`y_{t+1}`.
-    """
-
-    f: Callable = struct.field(pytree_node=False)
-    """The ODE function."""
-
-    _state: IntegratorState
-    """The state of the integrator, containing informations about the solution."""
-    _solver: AbstractSolver
-    """The ODE solver."""
-
-    use_adaptive: bool = struct.field(pytree_node=False)
-    """Boolean indicating whether to use an adaptative scheme."""
-    norm: Callable = struct.field(pytree_node=False)
-    """The norm used to estimate the error."""
-
-    atol: float = struct.field(pytree_node=False)
-    """Absolute tolerance on the error of the state."""
-    rtol: float = struct.field(pytree_node=False)
-    """Relative tolerance on the error of the state."""
-    dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
-    """Limits of the time-step size."""
-
-    _do_step: Callable = struct.field(pytree_node=False)
-    """The function that performs the time step."""
-
-    def __init__(
-        self,
-        f: Callable,
-        solver: AbstractSolver,
-        t0: float,
-        y0: PyTree,
-        use_adaptive: bool,
-        norm: Callable,
-        *args,
-        **kwargs,
-    ):
-        self.f = f
-        self._solver = solver
-
-        self.use_adaptive = use_adaptive
-        if use_adaptive:
-            self._do_step = general_time_step_adaptive
-        else:
-            self._do_step = general_time_step_fixed
-
-        if norm is None:
-            norm = euclidean_norm
-        self.norm = norm
-
-        self.atol = kwargs.get("atol", 0.0)
-        self.rtol = kwargs.get("rtol", 1e-7)
-        dt_limits = kwargs.get("dt_limits", None)
-        if dt_limits is None:
-            dt_limits = (None, 10 * solver.initial_dt)
-        self.dt_limits = dt_limits
-
-        self._state = self._init_state(t0, y0, dt=solver.initial_dt)
-
-    def _init_state(self, t0: float, y0: PyTree, dt: float) -> IntegratorState:
-        r"""
-        Initializes the `IntegratorState` structure containing the solver and state,
-        given the necessary information.
-        Args:
-            t0: The initial time of evolution
-            y0: The solution at initial time `t0`
-            dt: The initial step size
-
-        Returns:
-            An `Integrator` instance intialized with the passed arguments
-        """
-        t_dtype = jnp.result_type(_dtype(t0), _dtype(dt))
-
-        return IntegratorState(
-            t=jnp.array(t0, dtype=t_dtype),
-            y=y0,
-            dt=jnp.array(dt, dtype=t_dtype),
-            solver=self._solver,
-            last_norm=0.0 if self.use_adaptive else None,
-            last_scaled_error=0.0 if self.use_adaptive else None,
-            flags=IntegratorFlags(0),
-        )
-
-    def step(self, max_dt: float = None) -> bool:
-        """
-        Performs one full step by min(self.dt, max_dt).
-
-        Returns:
-            A boolean indicating whether the step was successful or
-            was rejected by the step controller and should be retried.
-
-            Note that the step size can be adjusted by the step controller
-            in both cases, so the integrator state will have changed
-            even after a rejected step.
-        """
-        self._state = self._do_step(
-            solver=self._solver,
-            f=self.f,
-            state=self._state,
-            atol=self.atol,
-            rtol=self.rtol,
-            norm_fn=self.norm,
-            max_dt=max_dt,
-            dt_limits=self.dt_limits,
-        )
-        return self._state.accepted
-
-    @property
-    def t(self) -> float:
-        """The actual time."""
-        return self._state.t.value
-
-    @property
-    def y(self) -> PyTree:
-        """The actual state."""
-        return self._state.y
-
-    @property
-    def dt(self) -> float:
-        """The actual time-step size."""
-        return self._state.dt
-
-    @property
-    def solver(self) -> AbstractSolver:
-        """The ODE solver."""
-        return self._solver
-
-    def _get_integrator_flags(self, intersect=IntegratorFlags.NONE) -> IntegratorFlags:
-        r"""Returns the currently set flags of the integrator, intersected with `intersect`."""
-        # _state.flags is turned into an int-valued DeviceArray by JAX,
-        # so we convert it back.
-        return IntegratorFlags(int(self._state.flags) & intersect)
-
-    @property
-    def errors(self) -> IntegratorFlags:
-        r"""Returns the currently set error flags of the integrator."""
-        return self._get_integrator_flags(IntegratorFlags.ERROR_FLAGS)
-
-    @property
-    def warnings(self) -> IntegratorFlags:
-        r"""Returns the currently set warning flags of the integrator."""
-        return self._get_integrator_flags(IntegratorFlags.WARNINGS_FLAGS)
-
-    def __repr__(self) -> str:
-        return "{}(solver={}, state={}, adaptive={}{})".format(
-            "Integrator",
-            self.solver,
-            self._state,
-            self.use_adaptive,
-            (
-                f", norm={self.norm}, atol={self.atol}, rtol={self.rtol}, dt_limits={self.dt_limits}"
-                if self.use_adaptive
-                else ""
-            ),
-        )
