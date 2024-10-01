@@ -60,7 +60,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        solver: AbstractSolver = None,
+        ode_solver: AbstractSolver = None,
         *,
         t0: float = 0.0,
         integrator: AbstractSolver = None,
@@ -73,7 +73,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
-            solver: Solving algorithm used the ODE.
+            ode_solver: Solving algorithm used the ODE.
             t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
@@ -111,22 +111,22 @@ class TDVPBaseDriver(AbstractVariationalDriver):
 
         if integrator is not None:
             warn_deprecation(
-                "The keyword argument `integrator` has been renamed to `solver` and "
+                "The keyword argument `integrator` has been renamed to `ode_solver` and "
                 "deprecated to improve clarity.\n"
                 "Update the keyword argument in your code to avoid breakage in the future."
             )
-            if solver is not None:
-                raise ValueError("Cannot specify both `solver` and `integrator`.")
-            solver = integrator
-        if solver is None:
-            raise ValueError("You need to define the `solver` for the TDVP driver.")
-        self.solver = solver
+            if ode_solver is not None:
+                raise ValueError("Cannot specify both `ode_solver` and `integrator`.")
+            ode_solver = integrator
+        if ode_solver is None:
+            raise ValueError("You need to define the `ode_solver` for the TDVP driver.")
+        self.ode_solver = ode_solver
 
         self._stop_count = 0
         self._postfix = {}
 
     @property
-    def solver(self):
+    def ode_solver(self):
         """
         The underlying solver which solves the ODE at each time step.
         """
@@ -139,8 +139,8 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         """
         return self._integrator
 
-    @solver.setter
-    def solver(self, new_solver):
+    @ode_solver.setter
+    def ode_solver(self, new_ode_solver):
         if self._integrator is None:
             t0 = self.t0
         else:
@@ -148,12 +148,12 @@ class TDVPBaseDriver(AbstractVariationalDriver):
 
         self._integrator = Integrator(
             self._odefun,
-            new_solver,
+            new_ode_solver,
             t0,
             self.state.parameters,
-            use_adaptive=new_solver.adaptive,
+            use_adaptive=new_ode_solver.adaptive,
             norm=self.error_norm,
-            parameters=new_solver.integrator_params,
+            parameters=new_ode_solver.integrator_params,
         )
 
     @property

@@ -104,7 +104,7 @@ class TDVPSchmitt(TDVPBaseDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        solver: AbstractSolver = None,
+        ode_solver: AbstractSolver = None,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
@@ -124,7 +124,7 @@ class TDVPSchmitt(TDVPBaseDriver):
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
-            solver: Solving algorithm used the ODE.
+            ode_solver: Solving algorithm used the ODE.
             t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
@@ -183,7 +183,7 @@ class TDVPSchmitt(TDVPBaseDriver):
         super().__init__(
             operator,
             variational_state,
-            solver,
+            ode_solver,
             t0=t0,
             error_norm=error_norm,
             integrator=integrator,

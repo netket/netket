@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import numpy as np
 
 import netket.experimental as nkx
 
@@ -49,7 +48,7 @@ Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 
 # Run the optimization for 300 iterations to determine the ground state, used as
 # initial state of the time-evolution
-gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
+gs.run(n_iter=3, out="example_ising1d_GS", obs={"Sx": Sx})
 
 # Create ODE solver for time propagation
 solver = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-3, atol=1e-3)
@@ -60,7 +59,7 @@ ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
 te = nkx.TDVP(
     ha1,
     variational_state=vs,
-    solver=solver,
+    ode_solver=solver,
     t0=0.0,
     qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True, diag_shift=1e-4),
     error_norm="qgt",
@@ -69,10 +68,3 @@ te = nkx.TDVP(
 log = nk.logging.JsonLog("example_ising1d_TE")
 
 # perform the time-evolution saving the observable Sx at every `tstop` time
-te.run(
-    T=1.0,
-    out=log,
-    show_progress=True,
-    obs={"Sx": Sx},
-    tstops=np.linspace(0.0, 1.0, 101, endpoint=True),
-)
