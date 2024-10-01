@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import TYPE_CHECKING
 
 from netket.utils.struct import Pytree, field
 from netket.utils.types import Callable, PyTree
 
-from ._integrator_state import IntegratorState
-from ._integrator import IntegratorParameters
+from ._integrator_params import IntegratorParameters
+
+if TYPE_CHECKING:
+    from ._integrator_state import IntegratorState
 
 
 class SolverState(Pytree):
@@ -56,7 +59,7 @@ class AbstractSolver(Pytree):
         self.adaptive = adaptive
         self.integrator_params = IntegratorParameters(dt=dt, **kwargs)
 
-    def _init_state(self, integrator_state: IntegratorState) -> SolverState:
+    def _init_state(self, integrator_state: "IntegratorState") -> SolverState:
         r"""
         Initializes the `SolverState` structure containing supplementary information needed.
         Args:

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional
 from functools import partial
 
 import jax
@@ -24,10 +24,8 @@ from netket.utils import struct
 from netket.utils.types import PyTree
 
 from ._integrator_state import IntegratorState, IntegratorFlags
-
-if TYPE_CHECKING:
-    from ._solver import AbstractSolver
-
+from ._integrator_params import IntegratorParameters
+from ._solver import AbstractSolver
 from ._utils import (
     maybe_jax_jit,
     LimitsDType,
@@ -37,45 +35,6 @@ from ._utils import (
     euclidean_norm,
     maximum_norm,
 )
-
-
-@struct.dataclass
-class IntegratorParameters(struct.Pytree):
-    dt: float = struct.field(pytree_node=False)
-    """The initial time-step size of the integrator."""
-
-    atol: float = struct.field(pytree_node=False)
-    """The tolerance for the absolute error on the solution."""
-    rtol: float = struct.field(pytree_node=False)
-    """The tolerance for the realtive error on the solution."""
-
-    dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
-    """The extremal accepted values for the time-step size `dt`."""
-
-    def __init__(
-        self,
-        dt: float,
-        atol: float = 0.0,
-        rtol: float = 1e-7,
-        dt_limits: Optional[LimitsDType] = None,
-    ):
-        r"""
-        Args:
-            dt: The initial time-step size of the integrator.
-            atol: The tolerance for the absolute error on the solution.
-                defaults to :code:`0.0`.
-            rtol: The tolerance for the realtive error on the solution.
-                defaults to :code:`1e-7`.
-            dt_limits: The extremal accepted values for the time-step size `dt`.
-                defaults to :code:`(None, 10 * dt)`.
-        """
-        self.dt = dt
-
-        self.atol = atol
-        self.rtol = rtol
-        if dt_limits is None:
-            dt_limits = (None, 10 * dt)
-        self.dt_limits = dt_limits
 
 
 class Integrator(struct.Pytree, mutable=True):
@@ -90,25 +49,23 @@ class Integrator(struct.Pytree, mutable=True):
 
     _state: IntegratorState
     """The state of the integrator, containing informations about the solution."""
-    _solver: "AbstractSolver"
+    _solver: AbstractSolver
     """The ODE solver."""
+    _parameters: IntegratorParameters
+    """The options of the integration."""
 
     use_adaptive: bool = struct.field(pytree_node=False)
     """Boolean indicating whether to use an adaptative scheme."""
     norm: Callable = struct.field(pytree_node=False)
     """The norm used to estimate the error."""
 
-    atol: float = struct.field(pytree_node=False)
-    """Absolute tolerance on the error of the state."""
-    rtol: float = struct.field(pytree_node=False)
-    """Relative tolerance on the error of the state."""
     dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
     """Limits of the time-step size."""
 
     def __init__(
         self,
         f: Callable,
-        solver: "AbstractSolver",
+        solver: AbstractSolver,
         t0: float,
         y0: PyTree,
         use_adaptive: bool,
@@ -135,6 +92,7 @@ class Integrator(struct.Pytree, mutable=True):
         """
         self.f = f
         self._solver = solver
+        self._parameters = parameters
 
         self.use_adaptive = use_adaptive
 
@@ -157,24 +115,22 @@ class Integrator(struct.Pytree, mutable=True):
             norm = euclidean_norm
         self.norm = norm
 
-        self.atol = parameters.atol
-        self.rtol = parameters.rtol
-        self.dt_limits = parameters.dt_limits
+        self._state = self._init_state(t0, y0)
 
-        self._state = self._init_state(t0, y0, dt=parameters.dt)
-
-    def _init_state(self, t0: float, y0: PyTree, dt: float) -> IntegratorState:
+    def _init_state(self, t0: float, y0: PyTree) -> IntegratorState:
         r"""
         Initializes the `IntegratorState` structure containing the solver and state,
         given the necessary information.
+
         Args:
             t0: The initial time of evolution
             y0: The solution at initial time `t0`
-            dt: The initial step size
 
         Returns:
             An :code:`Integrator` instance intialized with the passed arguments
         """
+        dt = self._parameters.dt
+
         t_dtype = jnp.result_type(_dtype(t0), _dtype(dt))
 
         return IntegratorState(
@@ -205,17 +161,16 @@ class Integrator(struct.Pytree, mutable=True):
                 f=self.f,
                 state=self._state,
                 max_dt=max_dt,
+                parameters=self._parameters,
             )
         else:
             self._state = self._step_adaptive(
                 solver=self._solver,
                 f=self.f,
                 state=self._state,
-                atol=self.atol,
-                rtol=self.rtol,
-                norm_fn=self.norm,
                 max_dt=max_dt,
-                dt_limits=self.dt_limits,
+                parameters=self._parameters,
+                norm_fn=self.norm,
             )
 
         return self._state.accepted
@@ -236,7 +191,7 @@ class Integrator(struct.Pytree, mutable=True):
         return self._state.dt
 
     @property
-    def solver(self) -> "AbstractSolver":
+    def solver(self) -> AbstractSolver:
         """The ODE solver."""
         return self._solver
 
@@ -263,19 +218,20 @@ class Integrator(struct.Pytree, mutable=True):
             self._state,
             self.use_adaptive,
             (
-                f", norm={self.norm}, atol={self.atol}, rtol={self.rtol}, dt_limits={self.dt_limits}"
+                f", norm={self.norm}, other settings={self._parameters}"
                 if self.use_adaptive
                 else ""
             ),
         )
 
+    @staticmethod
     @partial(maybe_jax_jit, static_argnames=["f"])
     def _step_fixed(
-        self,
-        solver: "AbstractSolver",
+        solver: AbstractSolver,
         f: Callable,
         state: IntegratorState,
         max_dt: Optional[float],
+        parameters: IntegratorParameters,
     ) -> IntegratorState:
         r"""
         Performs one fixed step from current time.
@@ -288,10 +244,13 @@ class Integrator(struct.Pytree, mutable=True):
                 supplementary arguments, such as :code:`stage`.
             state: IntegratorState containing the current state (t,y), the solver_state and stability information.
             max_dt: The maximal value for the time step `dt`.
+            parameters: The integration parameters.
 
         Returns:
             Updated state of the integrator.
         """
+        del parameters
+
         if max_dt is None:
             actual_dt = state.dt
         else:
@@ -311,19 +270,15 @@ class Integrator(struct.Pytree, mutable=True):
             flags=IntegratorFlags.INFO_STEP_ACCEPTED,
         )
 
-    @partial(
-        maybe_jax_jit, static_argnames=["f", "atol", "rtol", "norm_fn", "dt_limits"]
-    )
+    @staticmethod
+    @partial(maybe_jax_jit, static_argnames=["f", "norm_fn"])
     def _step_adaptive(
-        self,
-        solver: "AbstractSolver",
+        solver: AbstractSolver,
         f: Callable,
         state: IntegratorState,
-        atol: float,
-        rtol: float,
-        norm_fn: Callable,
         max_dt: Optional[float],
-        dt_limits: LimitsDType,
+        parameters: IntegratorParameters,
+        norm_fn: Callable,
     ) -> IntegratorState:
         r"""
         Performs one adaptive step from current time.
@@ -335,12 +290,10 @@ class Integrator(struct.Pytree, mutable=True):
                 derivatives in the same format as `y_t`. The function should also accept
                 supplementary arguments, such as :code:`stage`.
             state: IntegratorState containing the current state (t,y), the solver_state and stability information.
-            atol: The tolerance for the absolute error on the solution.
-            rtol: The tolerance for the realtive error on the solution.
             norm_fn: The function used for the norm of the error.
                 By default, we use euclidean_norm.
+            parameters: The integration parameters.
             max_dt: The maximal value for the time-step size `dt`.
-            dt_limits: The extremal accepted values for the time-step size `dt`.
 
         Returns:
             Updated state of the integrator
@@ -360,8 +313,8 @@ class Integrator(struct.Pytree, mutable=True):
         scaled_err, norm_y = scaled_error(
             y_tp1,
             y_err,
-            atol,
-            rtol,
+            parameters.atol,
+            parameters.rtol,
             last_norm_y=state.last_norm,
             norm_fn=norm_fn,
         )
@@ -369,21 +322,14 @@ class Integrator(struct.Pytree, mutable=True):
         # Propose the next time step, but limited within [0.1 dt, 5 dt] and potential
         # global limits in dt_limits. Not used when actual_dt < state.dt (i.e., the
         # integrator is doing a smaller step to hit a specific stop).
+        dt_min, dt_max = parameters.dt_limits
         next_dt = propose_time_step(
             actual_dt,
             scaled_err,
             solver.error_order,
             limits=(
-                (
-                    jnp.maximum(0.1 * state.dt, dt_limits[0])
-                    if dt_limits[0]
-                    else 0.1 * state.dt
-                ),
-                (
-                    jnp.minimum(5.0 * state.dt, dt_limits[1])
-                    if dt_limits[1]
-                    else 5.0 * state.dt
-                ),
+                (jnp.maximum(0.1 * state.dt, dt_min) if dt_min else 0.1 * state.dt),
+                (jnp.minimum(5.0 * state.dt, dt_max) if dt_max else 5.0 * state.dt),
             ),
         )
 
@@ -393,13 +339,13 @@ class Integrator(struct.Pytree, mutable=True):
         )
 
         # check if we are at lower bound for dt
-        if dt_limits[0] is not None:
-            is_at_min_dt = jnp.isclose(next_dt, dt_limits[0])
+        if dt_min is not None:
+            is_at_min_dt = jnp.isclose(next_dt, dt_min)
             flags = set_flag_jax(is_at_min_dt, flags, IntegratorFlags.WARN_MIN_DT)
         else:
             is_at_min_dt = False
-        if dt_limits[1] is not None:
-            is_at_max_dt = jnp.isclose(next_dt, dt_limits[1])
+        if dt_max is not None:
+            is_at_max_dt = jnp.isclose(next_dt, dt_max)
             flags = set_flag_jax(is_at_max_dt, flags, IntegratorFlags.WARN_MAX_DT)
 
         # accept if error is within tolerances or we are already at the minimal step
