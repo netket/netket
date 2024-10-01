@@ -1,7 +1,9 @@
 import jax.numpy as jnp
+import numpy as np
 
 from netket import nn
 from netket.sampler import Sampler
+from netket.utils.optional_deps import import_optional_dependency
 
 from ..mc_state import MCState
 
@@ -20,6 +22,21 @@ class MCPOVMState(MCState):
         return nn.to_matrix_povm(
             self.hilbert, self._apply_fun, self.variables, normalize=normalize
         )
+
+    def to_qobj(self):  # -> "qutip.Qobj"
+        r"""Convert this mixed state to a qutip density matrix Qobj.
+
+        Returns:
+            A :class:`qutip.Qobj` object.
+        """
+        qutip = import_optional_dependency("qutip", descr="to_qobj")
+
+        hilbert = self.hilbert  # type: ignore
+        q_dims = [
+            list(2 for _ in range(hilbert.size)),
+            list(2 for _ in range(hilbert.size)),
+        ]
+        return qutip.Qobj(np.asarray(self.to_matrix()), dims=q_dims)
 
     def __repr__(self):
         return (

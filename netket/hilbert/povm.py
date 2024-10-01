@@ -18,6 +18,7 @@ import jax.numpy as jnp
 
 import numpy as np
 
+from netket.utils import StaticRange
 from .homogeneous import HomogeneousHilbert
 
 
@@ -30,7 +31,7 @@ class AbstractPOVM(HomogeneousHilbert):
         self._T = jnp.einsum("aij,bji -> ab", self._M, self._M)
         self._Tinv = jnp.linalg.inv(self.T)
 
-        local_states = list(np.arange(len(self.M)))
+        local_states = StaticRange(0, 1, len(self.M))
         super().__init__(local_states, N)
 
     @abc.abstractmethod
