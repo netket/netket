@@ -23,7 +23,6 @@ from tqdm.auto import tqdm
 
 import netket as nk
 from netket import config
-from netket.utils.deprecation import warn_deprecation
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.jax import HashablePartial
@@ -32,6 +31,7 @@ from netket.operator import AbstractOperator
 from netket.utils import mpi, timing
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
+from netket.utils.deprecation import warn_deprecation
 from netket.vqs import VariationalState
 from netket.experimental.dynamics import AbstractSolver, Integrator
 from netket.experimental.dynamics._utils import (
@@ -60,9 +60,11 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
+        # TODO: remove default None once `integrator` is removed
         ode_solver: AbstractSolver = None,
         *,
         t0: float = 0.0,
+        # TODO: integrator deprecated in 3.16 (oct/nov 2024)
         integrator: AbstractSolver = None,
         error_norm: str | Callable = "qgt",
     ):
