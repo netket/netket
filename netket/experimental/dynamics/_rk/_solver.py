@@ -145,7 +145,7 @@ class RKExplicitSolver(AbstractSolver):
             k,
         )
 
-        return y_tp1, None
+        return y_tp1, state
 
     def step_with_error(
         self, f: Callable, dt: float, t: float, y_t: Array, state: SolverState
@@ -173,7 +173,7 @@ class RKExplicitSolver(AbstractSolver):
             k,
         )
 
-        return y_tp1, y_err, None
+        return y_tp1, y_err, state
 
 
 @append_docstring(args_fixed_dt_docstring)
