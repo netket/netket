@@ -63,7 +63,7 @@ ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
 te = nkx.driver.TDVPSchmitt(
     ha1,
     variational_state=vs,
-    solver=solver,
+    ode_solver=solver,
     t0=0.0,
     error_norm="qgt",
     # snr_atol = 1e-10,
