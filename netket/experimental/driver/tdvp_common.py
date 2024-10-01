@@ -62,7 +62,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        solver: AbstractSolver,
+        solver: AbstractSolver = None,
         integrator: AbstractSolver = None,
         *,
         t0: float = 0.0,
