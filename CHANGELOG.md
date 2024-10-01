@@ -8,10 +8,12 @@
 ### Improvements
 * The {meth}`~netket.graph.Lattice.draw` method of {class}`~netket.graph.Lattic` has been overhauled, and now supports 3D lattices and additional keyword arguments. The defaults are now tuned to draw the whole lattice as well as repeated cells due to periodicity, as well as the basis vectors.
 * Drivers now call the loggers from all ranks, allowing more advanced logging logic (and checkpointers) to be implemented [#1920](https://github.com/netket/netket/pull/1920).
+* The `netket.experimental.dynamics` module has been greatly refactored, chaing all internal logics but exposing a well designed, easier to extend interface. While the interface is not yet documented, it is now reasonably possible to implement new ode integrators on top of our interface to be used with {class}`~netket.experimental.driver.TDVP` or other drivers [#1933](https://github.com/netket/netket/pull/1933).
 
 ### Breaking Changes
 * Removed support for using Numba-operators under sharding. This has never really worked realiably and lead to uncomprehensible crashes, and was very hard to maintain so it's leaving [#1919](https://github.com/netket/netket/pull/1919).
 * Loggers will now be called from all MPI ranks/ Jax processes, and are themselves responsible for only performing expensive I/O operations on a single rank (such as rank 0). The attribute {attr}`netket.logging.AbstractLog._is_master_process` can be used to determine whether the logger is being executed on the master process or not. For examples on how update loggers, refer to {class}`netket.logging.RuntimeLog` or {class}`netket.logging.TensorboardLog` [#1920](https://github.com/netket/netket/pull/1920).
+* The `integrator` argument of the constructors {class}`~netket.experimental.driver.TDVP` and {class}`~netket.experimental.driver.TDVPSchmitt` has been renamed to `ode_solver`, and a deprecation warning will be raised if `integrator is specified`. The attribute `integrator` of the driver is maintained, albeit it has sensibly different internals, but we also have added a new `ode_solver` attribute as well [#1933](https://github.com/netket/netket/pull/1933).
 
 
 ## NetKet 3.14.2 (18 September 2024)
