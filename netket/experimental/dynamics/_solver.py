@@ -22,10 +22,13 @@ if TYPE_CHECKING:
     from ._integrator_state import IntegratorState
 
 
-class SolverState(Pytree):
+class AbstractSolverState(Pytree):
     """
     Base class holding the state of a solver.
     """
+
+    def __repr__(self):
+        return "SolverState()"
 
 
 class AbstractSolver(Pytree):
@@ -59,7 +62,7 @@ class AbstractSolver(Pytree):
         self.adaptive = adaptive
         self.integrator_params = IntegratorParameters(dt=dt, **kwargs)
 
-    def _init_state(self, integrator_state: "IntegratorState") -> SolverState:
+    def _init_state(self, integrator_state: "IntegratorState") -> AbstractSolverState:
         r"""
         Initializes the `SolverState` structure containing supplementary information needed.
         Args:
@@ -68,11 +71,11 @@ class AbstractSolver(Pytree):
         Returns:
             An intialized `SolverState` instance
         """
-        return SolverState()
+        return AbstractSolverState()
 
     def step(
-        self, f: Callable, dt: float, t: float, y_t: PyTree, state: SolverState
-    ) -> tuple[PyTree, SolverState]:
+        self, f: Callable, dt: float, t: float, y_t: PyTree, state: AbstractSolverState
+    ) -> tuple[PyTree, AbstractSolverState]:
         r"""
         Performs one fixed-size step from `t` to `t + dt`
         Args:
@@ -91,8 +94,8 @@ class AbstractSolver(Pytree):
         )
 
     def step_with_error(
-        self, f: Callable, dt: float, t: float, y_t: PyTree, state: SolverState
-    ) -> tuple[PyTree, PyTree, SolverState]:
+        self, f: Callable, dt: float, t: float, y_t: PyTree, state: AbstractSolverState
+    ) -> tuple[PyTree, PyTree, AbstractSolverState]:
         r"""
         Perform one fixed-size step from `t` to `t + dt` and additionally returns the
         error vector provided by the adaptive solver.
@@ -111,10 +114,8 @@ class AbstractSolver(Pytree):
         )
 
     def __repr__(self) -> str:
-        return "{}(dt={}, adaptive={})".format(
-            self.__class__.__name__,
-            self.dt,
-            self.adaptive,
+        return "{}(dt={}, adaptive={}, integrator_parameters={})".format(
+            self.__class__.__name__, self.dt, self.adaptive, self.integrator_params
         )
 
     @property

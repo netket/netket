@@ -101,7 +101,7 @@ class Integrator(struct.Pytree, mutable=True):
                     norm = maximum_norm
                 else:
                     raise ValueError(
-                        f"The error norm must either be 'eclidean' or 'maximum', instead got {norm}."
+                        f"The error norm must either be 'euclidean' or 'maximum', instead got {norm}."
                     )
             if not isinstance(norm, Callable):
                 raise ValueError(
@@ -213,11 +213,7 @@ class Integrator(struct.Pytree, mutable=True):
             self.solver,
             self._state,
             self.use_adaptive,
-            (
-                f", norm={self.norm}, other settings={self._parameters}"
-                if self.use_adaptive
-                else ""
-            ),
+            (f", norm={self.norm}" if self.use_adaptive else ""),
         )
 
     @staticmethod

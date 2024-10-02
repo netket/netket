@@ -154,10 +154,7 @@ class IntegratorState(struct.Pytree):
             last_norm = f"{self.last_norm}"
             accepted = f"{IntegratorFlags.INFO_STEP_ACCEPTED}"
 
-        if self.solver_state is not None:
-            solver_state = f", solver_state={self.solver_state}"
-        else:
-            solver_state = ""
+        solver_state = f", solver_state={self.solver_state}"
 
         return f"IntegratorState(step_no(total)={self.step_no}({self.step_no_total}), t={self.t.value}, dt={dt}{last_norm}{accepted}{solver_state})"
 

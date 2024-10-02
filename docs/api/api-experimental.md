@@ -186,7 +186,7 @@ Those are the abstract classes you can inherit from to implement your own solver
    :nosignatures:
 
    dynamics.AbstractSolver
-   dynamics.SolverState
+   dynamics.AbstractSolverState
 ```
 
 

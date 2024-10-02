@@ -23,7 +23,7 @@ from .._utils import expand_dim
 from ._tableau import TableauRKExplicit
 from .._solver import (
     AbstractSolver,
-    SolverState,
+    AbstractSolverState,
     append_docstring,
     args_adaptive_docstring,
     args_fixed_dt_docstring,
@@ -62,8 +62,14 @@ class RKExplicitSolver(AbstractSolver):
             raise AttributeError(f"Tableau of type {tableau} cannot be adaptve.")
         super().__init__(dt=dt, adaptive=adaptive, **kwargs)
 
-    def __repr__(self):
-        return super().__repr__()[:-1] + f", tableau={self.tableau})"
+    def __repr__(self) -> str:
+        return "{}(tableau={}, dt={}, adaptive={}, integrator_parameters={})".format(
+            "RKExplicitSolver",
+            self.tableau,
+            self.dt,
+            self.adaptive,
+            self.integrator_params,
+        )
 
     @property
     def is_explicit(self):
@@ -126,7 +132,9 @@ class RKExplicitSolver(AbstractSolver):
 
         return k
 
-    def step(self, f: Callable, dt: float, t: float, y_t: Array, state: SolverState):
+    def step(
+        self, f: Callable, dt: float, t: float, y_t: Array, state: AbstractSolverState
+    ):
         """Perform one fixed-size RK step from `t` to `t + dt`."""
         k = self._compute_slopes(f, t, dt, y_t)
 
@@ -142,7 +150,7 @@ class RKExplicitSolver(AbstractSolver):
         return y_tp1, state
 
     def step_with_error(
-        self, f: Callable, dt: float, t: float, y_t: Array, state: SolverState
+        self, f: Callable, dt: float, t: float, y_t: Array, state: AbstractSolverState
     ):
         """
         Perform one fixed-size RK step from `t` to `t + dt` and additionally return the
