@@ -15,6 +15,9 @@
 * Loggers will now be called from all MPI ranks/ Jax processes, and are themselves responsible for only performing expensive I/O operations on a single rank (such as rank 0). The attribute {attr}`netket.logging.AbstractLog._is_master_process` can be used to determine whether the logger is being executed on the master process or not. For examples on how update loggers, refer to {class}`netket.logging.RuntimeLog` or {class}`netket.logging.TensorboardLog` [#1920](https://github.com/netket/netket/pull/1920).
 * The `integrator` argument of the constructors {class}`~netket.experimental.driver.TDVP` and {class}`~netket.experimental.driver.TDVPSchmitt` has been renamed to `ode_solver`, and a deprecation warning will be raised if `integrator is specified`. The attribute `integrator` of the driver is maintained, albeit it has sensibly different internals, but we also have added a new `ode_solver` attribute as well [#1933](https://github.com/netket/netket/pull/1933).
 
+## NetKet 3.14.3 (2 October 2024)
+* Fix an issue in Jax operators, which would not be chunking correctly if they had more connected entries than the chunk size [#1940](https://github.com/netket/netket/pull/1940).
+
 
 ## NetKet 3.14.2 (18 September 2024)
 * Fix an issue in {class}`~netket.experimental.hilbert.SpinOrbitalFermions` where the extra constraint would not work without a fermion number constraint [#1924](https://github.com/netket/netket/pull/1924).
