@@ -3,7 +3,9 @@
 
 # Change Log
 
-## NetKet 3.15 (⚙️ In development)
+## NetKet 3.14.3 (2 October 2024)
+* Fix an issue in Jax operators, which would not be chunking correctly if they had more connected entries than the chunk size [#1940](https://github.com/netket/netket/pull/1940).
+
 
 ## NetKet 3.14.2 (18 September 2024)
 * Fix an issue in {class}`~netket.experimental.hilbert.SpinOrbitalFermions` where the extra constraint would not work without a fermion number constraint [#1924](https://github.com/netket/netket/pull/1924).
