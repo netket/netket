@@ -59,6 +59,7 @@ def local_value_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
     σp, mel = args
     return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
 
+
 def local_value_kernel_jax(
     logpsi: Callable, pars: PyTree, σ: Array, O: DiscreteJaxOperator
 ):
@@ -70,8 +71,13 @@ def local_value_kernel_jax(
     logpsi_σp = logpsi(pars, σp.reshape(-1, σp.shape[-1])).reshape(σp.shape[:-1])
     return jnp.sum(mel * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
 
+
 def local_value_kernel_jax_conn_chunked(
-    logpsi: Callable, pars: PyTree, σ: Array, O: DiscreteJaxOperator, chunk_size: int,
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    O: DiscreteJaxOperator,
+    chunk_size: int,
 ):
     """
     local_value kernel for MCState for jax-compatible operators
@@ -79,11 +85,12 @@ def local_value_kernel_jax_conn_chunked(
 
     σp, mel = O.get_conn_padded(jnp.squeeze(σ))
     logpsi_σ = logpsi(pars, σ)
-    apply_conn = lambda s: logpsi(pars,s)
-    apply_conn = nkjax.apply_chunked(apply_conn,in_axes=0,chunk_size=chunk_size) 
+    apply_conn = lambda s: logpsi(pars, s)
+    apply_conn = nkjax.apply_chunked(apply_conn, in_axes=0, chunk_size=chunk_size)
     logpsi_σp = apply_conn(σp)
 
     return jnp.sum(mel * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
+
 
 def local_value_squared_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
     """
@@ -200,11 +207,12 @@ def local_value_kernel_jax_chunked(
     if chunk_size >= O.max_conn_size:
         local_value_kernel = lambda s: local_value_kernel_jax(logpsi, pars, s, O)
     else:
-        local_value_kernel = lambda s: local_value_kernel_jax_conn_chunked(logpsi, pars, s, O, chunk_size)
-    
+        local_value_kernel = lambda s: local_value_kernel_jax_conn_chunked(
+            logpsi, pars, s, O, chunk_size
+        )
+
     local_value_chunked = nkjax.apply_chunked(
         local_value_kernel, in_axes=0, chunk_size=max(1, chunk_size // O.max_conn_size)
     )
 
     return local_value_chunked(σ)
-
