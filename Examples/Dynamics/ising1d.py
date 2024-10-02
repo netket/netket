@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import numpy as np
 
 import netket.experimental as nkx
 
@@ -68,3 +69,10 @@ te = nkx.TDVP(
 log = nk.logging.JsonLog("example_ising1d_TE")
 
 # perform the time-evolution saving the observable Sx at every `tstop` time
+te.run(
+    T=1.0,
+    out=log,
+    show_progress=True,
+    obs={"Sx": Sx},
+    tstops=np.linspace(0.0, 1.0, 101, endpoint=True),
+)

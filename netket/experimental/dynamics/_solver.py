@@ -50,7 +50,7 @@ class AbstractSolver(Pytree):
 
             atol: The tolerance for the absolute error on the solution if :code:`adaptive`.
                 defaults to :code:`0.0`.
-            rtol: The tolerance for the realtive error on the solution if :code:`adaptive`.
+            rtol: The tolerance for the relative error on the solution if :code:`adaptive`.
                 defaults to :code:`1e-7`.
             dt_limits: The extremal accepted values for the time-step size `dt` if :code:`adaptive`.
                 defaults to :code:`(None, 10 * dt)`.
@@ -84,7 +84,6 @@ class AbstractSolver(Pytree):
 
         Returns:
             The next solution y_t+1 and the corresponding updated state of the solver
-
         """
 
         raise NotImplementedError(
@@ -134,6 +133,12 @@ class AbstractSolver(Pytree):
         Number of stages (equal to the number of evaluations of the ode function) of the scheme.
         """
         raise NotImplementedError
+
+    @property
+    def is_fsal(self):
+        """Returns True if the first iteration is the same as last."""
+        # TODO: this is not yet supported
+        return False
 
 
 def append_docstring(doc):

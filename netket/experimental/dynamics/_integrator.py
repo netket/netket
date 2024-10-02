@@ -28,7 +28,6 @@ from ._integrator_params import IntegratorParameters
 from ._solver import AbstractSolver
 from ._utils import (
     maybe_jax_jit,
-    LimitsDType,
     scaled_error,
     propose_time_step,
     set_flag_jax,
@@ -59,9 +58,6 @@ class Integrator(struct.Pytree, mutable=True):
     norm: Callable = struct.field(pytree_node=False)
     """The norm used to estimate the error."""
 
-    dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
-    """Limits of the time-step size."""
-
     def __init__(
         self,
         f: Callable,
@@ -84,7 +80,7 @@ class Integrator(struct.Pytree, mutable=True):
             t0: The intial time.
             y0: The initial state.
             use_adaptive: The (boolean) indicator whether an adaptive (time-step) scheme is used.
-            parameters: The supplkementary hyper-parameters of the integrator.
+            parameters: The suppleementary hyper-parameters of the integrator.
                 This includes the values for :code:`dt`, :code:`atol`, :code`rtol` and :code`dt_limits`
                 See :code:`IntegratorParameters` for more details.
             norm: The function used for the norm of the error.

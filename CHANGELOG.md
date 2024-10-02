@@ -8,7 +8,7 @@
 ### Improvements
 * The {meth}`~netket.graph.Lattice.draw` method of {class}`~netket.graph.Lattic` has been overhauled, and now supports 3D lattices and additional keyword arguments. The defaults are now tuned to draw the whole lattice as well as repeated cells due to periodicity, as well as the basis vectors.
 * Drivers now call the loggers from all ranks, allowing more advanced logging logic (and checkpointers) to be implemented [#1920](https://github.com/netket/netket/pull/1920).
-* The `netket.experimental.dynamics` module has been greatly refactored, chaing all internal logics but exposing a well designed, easier to extend interface. While the interface is not yet documented, it is now reasonably possible to implement new ode integrators on top of our interface to be used with {class}`~netket.experimental.driver.TDVP` or other drivers [#1933](https://github.com/netket/netket/pull/1933).
+* The `netket.experimental.dynamics` module has been greatly refactored, changing all internal logics but exposing a well designed, easier to extend interface. While the interface is not yet documented, it is now reasonably possible to implement new ode integrators on top of our interface to be used with {class}`~netket.experimental.driver.TDVP` or other drivers [#1933](https://github.com/netket/netket/pull/1933).
 
 ### Breaking Changes
 * Removed support for using Numba-operators under sharding. This has never really worked realiably and lead to uncomprehensible crashes, and was very hard to maintain so it's leaving [#1919](https://github.com/netket/netket/pull/1919).

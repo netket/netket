@@ -78,12 +78,6 @@ class RKExplicitSolver(AbstractSolver):
         return self.tableau.is_adaptive
 
     @property
-    def is_fsal(self):
-        """Returns True if the first iteration is the same as last."""
-        # TODO: this is not yet supported
-        return False
-
-    @property
     def stages(self):
         """
         Number of stages (equal to the number of evaluations of the ode function)

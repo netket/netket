@@ -27,7 +27,7 @@ class IntegratorParameters(struct.Pytree):
     atol: float
     """The tolerance for the absolute error on the solution."""
     rtol: float
-    """The tolerance for the realtive error on the solution."""
+    """The tolerance for the relative error on the solution."""
 
     dt_limits: Optional[LimitsDType] = struct.field(pytree_node=False)
     """The extremal accepted values for the time-step size `dt`."""
@@ -44,7 +44,7 @@ class IntegratorParameters(struct.Pytree):
             dt: The initial time-step size of the integrator.
             atol: The tolerance for the absolute error on the solution.
                 defaults to :code:`0.0`.
-            rtol: The tolerance for the realtive error on the solution.
+            rtol: The tolerance for the relative error on the solution.
                 defaults to :code:`1e-7`.
             dt_limits: The extremal accepted values for the time-step size `dt`.
                 defaults to :code:`(None, 10 * dt)`.
