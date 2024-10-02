@@ -31,10 +31,10 @@ from netket.operator import AbstractOperator
 from netket.utils import mpi, timing
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
+from netket.utils.deprecation import warn_deprecation
 from netket.vqs import VariationalState
-
-from netket.experimental.dynamics import RKIntegratorConfig
-from netket.experimental.dynamics._rk_solver_structures import (
+from netket.experimental.dynamics import AbstractSolver, Integrator
+from netket.experimental.dynamics._utils import (
     euclidean_norm,
     maximum_norm,
 )
@@ -60,9 +60,12 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: RKIntegratorConfig,
+        # TODO: remove default None once `integrator` is removed
+        ode_solver: AbstractSolver = None,
         *,
         t0: float = 0.0,
+        # TODO: integrator deprecated in 3.16 (oct/nov 2024)
+        integrator: AbstractSolver = None,
         error_norm: str | Callable = "qgt",
     ):
         r"""
@@ -72,7 +75,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
-            integrator: Configuration of the algorithm used for solving the ODE.
+            ode_solver: Solving algorithm used the ODE.
             t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
@@ -103,15 +106,33 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self._dw = None  # type: PyTree
         self._last_qgt = None
         self._integrator = None
-        self._integrator_constructor = None
 
         self._odefun = HashablePartial(odefun_host_callback, self.state, self)
 
         self.error_norm = error_norm
-        self.integrator = integrator
+
+        if integrator is not None:
+            warn_deprecation(
+                "The keyword argument `integrator` has been renamed to `ode_solver` and "
+                "deprecated to improve clarity.\n"
+                "Update the keyword argument in your code to avoid breakage in the future."
+            )
+            if ode_solver is not None:
+                raise ValueError("Cannot specify both `ode_solver` and `integrator`.")
+            ode_solver = integrator
+        if ode_solver is None:
+            raise ValueError("You need to define the `ode_solver` for the TDVP driver.")
+        self.ode_solver = ode_solver
 
         self._stop_count = 0
         self._postfix = {}
+
+    @property
+    def ode_solver(self):
+        """
+        The underlying solver which solves the ODE at each time step.
+        """
+        return self.integrator._solver
 
     @property
     def integrator(self):
@@ -120,20 +141,21 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         """
         return self._integrator
 
-    @integrator.setter
-    def integrator(self, integrator):
+    @ode_solver.setter
+    def ode_solver(self, new_ode_solver):
         if self._integrator is None:
             t0 = self.t0
         else:
             t0 = self.t
 
-        self._integrator_constructor = integrator
-
-        self._integrator = integrator(
+        self._integrator = Integrator(
             self._odefun,
+            new_ode_solver,
             t0,
             self.state.parameters,
+            use_adaptive=new_ode_solver.adaptive,
             norm=self.error_norm,
+            parameters=new_ode_solver.integrator_params,
         )
 
     @property
@@ -255,11 +277,11 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 step_accepted = self._integrator.step(max_dt=max_dt)
                 if self._integrator.errors:
                     raise RuntimeError(
-                        f"RK solver: {self._integrator.errors.message()}"
+                        f"ODE integrator: {self._integrator.errors.message()}"
                     )
                 elif self._integrator.warnings:
                     warnings.warn(
-                        f"RK solver: {self._integrator.warnings.message()}",
+                        f"ODE integrator: {self._integrator.warnings.message()}",
                         UserWarning,
                         stacklevel=3,
                     )
@@ -479,7 +501,7 @@ def odefun(state, driver, t, w, **kwargs):
 def odefun_host_callback(state, driver, *args, **kwargs):
     """
     Calls odefun through a host callback in order to make the rest of the
-    ODE solver jit-able.
+    ODE inteagrator jit-able.
     """
     if config.netket_experimental_disable_ode_jit:
         return odefun(state, driver, *args, **kwargs)

@@ -18,6 +18,7 @@ from functools import partial
 import jax
 
 import netket as nk
+from netket.jax import tree_cast
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -27,9 +28,7 @@ from netket.vqs import (
     MCState,
     FullSumState,
 )
-from netket.jax import tree_cast
-
-from netket.experimental.dynamics import RKIntegratorConfig
+from netket.experimental.dynamics import AbstractSolver
 
 from .tdvp_common import TDVPBaseDriver, odefun
 
@@ -54,10 +53,13 @@ class TDVP(TDVPBaseDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: RKIntegratorConfig,
+        # TODO: remove default None once `integrator` is removed
+        ode_solver: AbstractSolver = None,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
+        # TODO: integrator deprecated in 3.16 (oct/nov 2024)
+        integrator: AbstractSolver = None,
         qgt: LinearOperator = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
@@ -70,7 +72,7 @@ class TDVP(TDVPBaseDriver):
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
-            integrator: Configuration of the algorithm used for solving the ODE.
+            ode_solver: Solving algorithm used the ODE.
             t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
@@ -121,7 +123,12 @@ class TDVP(TDVPBaseDriver):
         self.linear_solver_restart = linear_solver_restart
 
         super().__init__(
-            operator, variational_state, integrator, t0=t0, error_norm=error_norm
+            operator,
+            variational_state,
+            ode_solver,
+            t0=t0,
+            error_norm=error_norm,
+            integrator=integrator,
         )
 
 
