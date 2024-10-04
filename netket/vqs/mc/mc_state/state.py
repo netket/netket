@@ -769,7 +769,10 @@ class MCState(VariationalState):
 def _local_estimators_kernel(kernel, apply_fun, shape, variables, samples, extra_args):
     O_loc = kernel(apply_fun, variables, samples, extra_args)
 
-    return O_loc.reshape(shape)
+    def _reshape_to_target(x):
+        return x.reshape(shape + x.shape[1:])
+
+    return jax.tree_util.tree_map(_reshape_to_target, O_loc)
 
 
 def local_estimators(state: MCState, op: AbstractOperator, *, chunk_size: int | None):
