@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from .state import FullSumState
-
 from . import expect
-
 from .expect import expect_and_grad
+
+from .mixed_state import FullSumMixedState
+from . import mixed_expect
