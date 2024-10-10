@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 import pytest
 
 from collections.abc import Callable
@@ -135,3 +137,54 @@ def test_qgt_auto_diag_scale_passed():
     # in the future this might change...
     qgt = qgt_constructor(vstate)
     assert qgt.scale is not None
+
+
+@pytest.mark.parametrize(
+    "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]
+)
+def test_sr_diag_warnings(qgt):
+    """
+    Test various scenarios for warnings related to diag_shift and diag_scale in SR.
+    """
+    N = 5
+    hi = nk.hilbert.Spin(1 / 2, N)
+    model = nk.models.RBM(alpha=1)
+    sampler = nk.sampler.MetropolisLocal(hi)
+    vstate = nk.vqs.MCState(sampler, model)
+    vstate.init_parameters()
+    vstate.sample()
+
+    # Case 1: Overwriting diag_shift from SR default
+    sr1 = nk.optimizer.SR(qgt=qgt(diag_shift=1e-3))
+    with pytest.warns(UserWarning, match=r"Overwriting diag_shift.*"):
+        sr1.lhs_constructor(vstate)
+
+    # Case 2: Overwriting diag_scale from SR  default
+    sr2 = nk.optimizer.SR(qgt=qgt(diag_scale=1e-4))
+    with pytest.warns(UserWarning, match=r"Overwriting diag_scale.*"):
+        sr2.lhs_constructor(vstate)
+
+    # Case 3: Overwriting both diag_shift and diag_scale from SR default
+    sr3 = nk.optimizer.SR(qgt=qgt(diag_shift=1e-3, diag_scale=1e-4))
+    with pytest.warns(
+        UserWarning,
+        match=r"Overwriting (diag_shift, diag_scale|diag_scale, diag_shift).*",
+    ):
+        sr3.lhs_constructor(vstate)
+
+    # Case 4: Warning with default diag_shift and diag_scale by specifying them in SR
+    sr4 = nk.optimizer.SR(
+        qgt=qgt(diag_shift=1e-3, diag_scale=1e-4), diag_shift=1e-2, diag_scale=1e-3
+    )
+    with pytest.warns(
+        UserWarning,
+        match=r"Overwriting (diag_shift, diag_scale|diag_scale, diag_shift).*",
+    ):
+        sr4.lhs_constructor(vstate)
+
+    # Case 5: No warning when diag_shift and diag_scale are specified only in SR
+    sr5 = nk.optimizer.SR(qgt=qgt)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        sr5.lhs_constructor(vstate)
+    assert len(w) == 0, "Unexpected warning(s) raised"

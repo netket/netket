@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from collections.abc import Callable
+import functools
+import warnings
 
 import jax
 
@@ -145,11 +147,45 @@ class SR(AbstractLinearPreconditioner, mutable=True):
                 )
             diag_scale = diag_scale(step)
 
-        return self.qgt_constructor(
+        qgt_kwargs = dict(**self.qgt_kwargs)
+
+        if not isinstance(self.qgt_constructor, functools.partial):
+            return self.qgt_constructor(
+                vstate,
+                diag_shift=diag_shift,
+                diag_scale=diag_scale,
+                **qgt_kwargs,
+            )
+
+        # Get the partial keywords
+        specified_args = set(self.qgt_constructor.keywords.keys())
+        conflicting_args = specified_args.intersection({"diag_shift", "diag_scale"})
+        sr_values_map = {"diag_shift": diag_shift, "diag_scale": diag_scale}
+
+        if conflicting_args:
+            values = ", ".join(
+                f"{arg}={sr_values_map[arg]}" for arg in conflicting_args
+            )
+            warnings.warn(
+                f"Overwriting {', '.join(conflicting_args)} specified in qgt_constructor with values from SR: {values}.",
+                UserWarning,
+            )
+
+        # Reconstruct the qgt_constructor to avoid passing arguments twice
+        qgt_constructor = functools.partial(
+            self.qgt_constructor.func,
+            **{
+                k: v
+                for k, v in self.qgt_constructor.keywords.items()
+                if k not in ("diag_shift", "diag_scale")
+            },
+        )
+
+        return qgt_constructor(
             vstate,
-            diag_shift=diag_shift,
             diag_scale=diag_scale,
-            **self.qgt_kwargs,
+            diag_shift=diag_shift,
+            **qgt_kwargs,
         )
 
     def __repr__(self):
