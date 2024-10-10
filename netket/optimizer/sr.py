@@ -119,13 +119,11 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         if qgt is None:
             qgt = QGTAuto(solver)
 
-        # Store the provided values
         self.qgt_constructor = qgt
         self.qgt_kwargs = kwargs
         self.diag_shift = diag_shift
         self.diag_scale = diag_scale
 
-        # Check for conflicts in diag_shift and diag_scale
         conflicting_args = set()
         sr_values_map = {"diag_shift": diag_shift, "diag_scale": diag_scale}
 
