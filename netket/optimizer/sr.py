@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from collections.abc import Callable
+import functools
+import warnings
 
 import jax
 
@@ -111,7 +113,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
             solver_restart: If False uses the last solution of the linear
                 system as a starting point for the solution of the next
                 (default=False).
-            holomorphic: boolean indicating if the ansatz is boolean or not. May
+            holomorphic: boolean indicating if the ansatz is holomorphic or not. May
                 speed up computations for models with complex-valued parameters.
         """
         if qgt is None:
@@ -121,18 +123,38 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         self.qgt_kwargs = kwargs
         self.diag_shift = diag_shift
         self.diag_scale = diag_scale
+
+        conflicting_args = set()
+        sr_values_map = {"diag_shift": diag_shift, "diag_scale": diag_scale}
+
+        if isinstance(qgt, functools.partial):
+            specified_args = set(qgt.keywords.keys())
+            conflicting_args.update(
+                specified_args.intersection({"diag_shift", "diag_scale"})
+            )
+
+        conflicting_args.update(kwargs.keys() & {"diag_shift", "diag_scale"})
+        if conflicting_args:
+            values = ", ".join(
+                f"{arg}={sr_values_map[arg]}" for arg in conflicting_args
+            )
+            warnings.warn(
+                f"Overwriting {', '.join(conflicting_args)} specified in qgt with values from SR: {values}.",
+                UserWarning,
+            )
+
         super().__init__(solver, solver_restart=solver_restart)
 
     def lhs_constructor(self, vstate: VariationalState, step: Scalar | None = None):
         """
-        This method does things
+        This method constructs the left-hand side (LHS) operator for the linear system.
         """
         diag_shift = self.diag_shift
         if callable(self.diag_shift):
             if step is None:
                 raise TypeError(
                     "If you use a scheduled `diag_shift`, you must call "
-                    "the precoditioner with an extra argument `step`."
+                    "the preconditioner with an extra argument `step`."
                 )
             diag_shift = diag_shift(step)
 
@@ -141,7 +163,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
             if step is None:
                 raise TypeError(
                     "If you use a scheduled `diag_scale`, you must call "
-                    "the precoditioner with an extra argument `step`."
+                    "the preconditioner with an extra argument `step`."
                 )
             diag_scale = diag_scale(step)
 
