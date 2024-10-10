@@ -155,36 +155,31 @@ def test_sr_diag_warnings(qgt):
     vstate.sample()
 
     # Case 1: Overwriting diag_shift from SR default
-    sr1 = nk.optimizer.SR(qgt=qgt(diag_shift=1e-3))
     with pytest.warns(UserWarning, match=r"Overwriting diag_shift.*"):
-        sr1.lhs_constructor(vstate)
+        nk.optimizer.SR(qgt=qgt(diag_shift=1e-3))
 
     # Case 2: Overwriting diag_scale from SR  default
-    sr2 = nk.optimizer.SR(qgt=qgt(diag_scale=1e-4))
     with pytest.warns(UserWarning, match=r"Overwriting diag_scale.*"):
-        sr2.lhs_constructor(vstate)
+        nk.optimizer.SR(qgt=qgt(diag_scale=1e-4))
 
     # Case 3: Overwriting both diag_shift and diag_scale from SR default
-    sr3 = nk.optimizer.SR(qgt=qgt(diag_shift=1e-3, diag_scale=1e-4))
     with pytest.warns(
         UserWarning,
         match=r"Overwriting (diag_shift, diag_scale|diag_scale, diag_shift).*",
     ):
-        sr3.lhs_constructor(vstate)
+        nk.optimizer.SR(qgt=qgt(diag_shift=1e-3, diag_scale=1e-4))
 
     # Case 4: Warning with default diag_shift and diag_scale by specifying them in SR
-    sr4 = nk.optimizer.SR(
-        qgt=qgt(diag_shift=1e-3, diag_scale=1e-4), diag_shift=1e-2, diag_scale=1e-3
-    )
     with pytest.warns(
         UserWarning,
         match=r"Overwriting (diag_shift, diag_scale|diag_scale, diag_shift).*",
     ):
-        sr4.lhs_constructor(vstate)
+        nk.optimizer.SR(
+            qgt=qgt(diag_shift=1e-3, diag_scale=1e-4), diag_shift=1e-2, diag_scale=1e-3
+        )
 
     # Case 5: No warning when diag_shift and diag_scale are specified only in SR
-    sr5 = nk.optimizer.SR(qgt=qgt)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        sr5.lhs_constructor(vstate)
+        nk.optimizer.SR(qgt=qgt)
     assert len(w) == 0, "Unexpected warning(s) raised"
