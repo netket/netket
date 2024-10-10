@@ -154,25 +154,29 @@ def test_sr_diag_warnings(qgt):
     vstate.init_parameters()
     vstate.sample()
 
+    warning_message = r"The QGT arguments {(%s)} will be overwritten by the ones specified by SR \(including defaults\)\."
+
     # Case 1: Overwriting diag_shift from SR default
-    with pytest.warns(UserWarning, match=r"Overwriting diag_shift.*"):
+    with pytest.warns(UserWarning, match=warning_message % r"'diag_shift'"):
         nk.optimizer.SR(qgt=qgt(diag_shift=1e-3))
 
     # Case 2: Overwriting diag_scale from SR  default
-    with pytest.warns(UserWarning, match=r"Overwriting diag_scale.*"):
+    with pytest.warns(UserWarning, match=warning_message % r"'diag_scale'"):
         nk.optimizer.SR(qgt=qgt(diag_scale=1e-4))
 
     # Case 3: Overwriting both diag_shift and diag_scale from SR default
     with pytest.warns(
         UserWarning,
-        match=r"Overwriting (diag_shift, diag_scale|diag_scale, diag_shift).*",
+        match=warning_message
+        % r"'diag_shift', 'diag_scale'|'diag_scale', 'diag_shift'",
     ):
         nk.optimizer.SR(qgt=qgt(diag_shift=1e-3, diag_scale=1e-4))
 
     # Case 4: Warning with default diag_shift and diag_scale by specifying them in SR
     with pytest.warns(
         UserWarning,
-        match=r"Overwriting (diag_shift, diag_scale|diag_scale, diag_shift).*",
+        match=warning_message
+        % r"'diag_shift', 'diag_scale'|'diag_scale', 'diag_shift'",
     ):
         nk.optimizer.SR(
             qgt=qgt(diag_shift=1e-3, diag_scale=1e-4), diag_shift=1e-2, diag_scale=1e-3

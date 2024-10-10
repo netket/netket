@@ -14,6 +14,7 @@
 
 from collections.abc import Callable
 import functools
+from typing import Any, List
 import warnings
 
 import jax
@@ -24,6 +25,37 @@ from netket.utils import struct
 
 from .qgt import QGTAuto
 from .preconditioner import AbstractLinearPreconditioner
+
+
+def check_conflicting_args_in_partial(
+    qgt: functools.partial | Any,
+    conflicting_args: List[str],
+    warning_message: str,
+) -> None:
+    """
+    Check for conflicting arguments in a QGT partial.
+
+    Args:
+        qgt: The partial to perform the check or any other object.
+        conflicting_args: List of argument names to check for conflicts.
+        warning_message: Warning message for the user.
+
+    Raises:
+        UserWarning: If conflicting arguments are found.
+    """
+
+    if not isinstance(qgt, functools.partial):
+        return
+
+    specified_args = set(qgt.keywords.keys())
+    conflicting = set(conflicting_args).intersection(specified_args)
+    if conflicting:
+        warnings.warn(
+            warning_message.format(
+                conflicting, {k: qgt.keywords[k] for k in conflicting}
+            ),
+            UserWarning,
+        )
 
 
 class SR(AbstractLinearPreconditioner, mutable=True):
@@ -124,24 +156,11 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         self.diag_shift = diag_shift
         self.diag_scale = diag_scale
 
-        conflicting_args = set()
-        sr_values_map = {"diag_shift": diag_shift, "diag_scale": diag_scale}
-
-        if isinstance(qgt, functools.partial):
-            specified_args = set(qgt.keywords.keys())
-            conflicting_args.update(
-                specified_args.intersection({"diag_shift", "diag_scale"})
-            )
-
-        conflicting_args.update(kwargs.keys() & {"diag_shift", "diag_scale"})
-        if conflicting_args:
-            values = ", ".join(
-                f"{arg}={sr_values_map[arg]}" for arg in conflicting_args
-            )
-            warnings.warn(
-                f"Overwriting {', '.join(conflicting_args)} specified in qgt with values from SR: {values}.",
-                UserWarning,
-            )
+        check_conflicting_args_in_partial(
+            qgt,
+            ["diag_shift", "diag_scale"],
+            "The QGT arguments {} will be overwritten by the ones specified by SR (including defaults).",
+        )
 
         super().__init__(solver, solver_restart=solver_restart)
 
