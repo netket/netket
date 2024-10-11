@@ -15,6 +15,9 @@
 * Loggers will now be called from all MPI ranks/ Jax processes, and are themselves responsible for only performing expensive I/O operations on a single rank (such as rank 0). The attribute {attr}`netket.logging.AbstractLog._is_master_process` can be used to determine whether the logger is being executed on the master process or not. For examples on how update loggers, refer to {class}`netket.logging.RuntimeLog` or {class}`netket.logging.TensorboardLog` [#1920](https://github.com/netket/netket/pull/1920).
 * The `integrator` argument of the constructors {class}`~netket.experimental.driver.TDVP` and {class}`~netket.experimental.driver.TDVPSchmitt` has been renamed to `ode_solver`, and a deprecation warning will be raised if `integrator is specified`. The attribute `integrator` of the driver is maintained, albeit it has sensibly different internals, but we also have added a new `ode_solver` attribute as well [#1933](https://github.com/netket/netket/pull/1933).
 
+### Deprecations
+* Constructing the {class}~`netket.optimizer.SR` object with `SR(qgt=QGTType(...))` is now deprecated. This construction can lead to unexpected results because the keyword arguments specified in the `QGTType` are overwritten by those specified by the SR class and its defaults. To fix this, construct SR as `SR(qgt=QGTType, ...)`. A warning will be raised when using the deprecated syntax, and this will become an error in a future release.
+
 ## NetKet 3.14.3 (2 October 2024)
 * Fix an issue in Jax operators, which would not be chunking correctly if they had more connected entries than the chunk size [#1940](https://github.com/netket/netket/pull/1940).
 
