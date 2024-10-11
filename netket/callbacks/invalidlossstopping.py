@@ -19,8 +19,9 @@ from netket.utils import struct
 
 # Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
 class InvalidLossStopping(struct.Pytree, mutable=True):
-    """A simple callback to stop NetKet if there are no more improvements in the training.
-    based on `driver._loss_name`."""
+    """A simple callback to stop the optimisation when the monitored quantity becomes
+    invalid for at least `patience` steps.
+    """
 
     monitor: str
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
@@ -33,13 +34,14 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
 
     def __init__(self, monitor: str = "mean", patience: int | float = 0):
         """
-        Construct a callback stopping theoptimisation when the monitored quantity
-        becaomes invalid for at least `patience` steps.
+        Construct a callback stopping the optimisation when the monitored quantity
+        becomes invalid for at least `patience` steps.
 
         Args:
             monitor: a string with the name of the quantity to be monitored. This
                 is applied to the standard loss optimised by a driver, such as the
-                Energy for the VMC driver (default: 'mean').
+                Energy for the VMC driver. Should be one of
+                'mean', 'variance', 'error_of_mean' (default: 'mean').
             patience: Number of steps to wait before stopping the execution after
                 the tracked quantity becomes invalid (default 0, meaning that it
                 stops immediately).

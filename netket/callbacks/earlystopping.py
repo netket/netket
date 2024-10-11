@@ -72,7 +72,7 @@ class EarlyStopping(struct.Pytree, mutable=True):
             baseline: Baseline value for the monitored quantity. Training
                 will stop if the driver does not drop below the baseline.
             monitor: Loss statistic to monitor. Should be one of
-                `mean`, `variance`, `error_of_mean`.
+                'mean', 'variance', 'error_of_mean'.
             start_from_step: Number of steps to wait before the callback has
                 any effect. Defaults to `0`.
         """
