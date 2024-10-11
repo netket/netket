@@ -23,7 +23,7 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
     based on `driver._loss_name`."""
 
     monitor: str
-    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
+    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
     patience: int | float
     """Number of epochs with invalid loss after which training will be stopped."""
 

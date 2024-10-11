@@ -26,7 +26,7 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
     target: float
     """Target value for the monitored quantity. Training will stop if the driver hits the baseline."""
     monitor: str
-    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
+    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
 
     smoothing_window: int
     """
