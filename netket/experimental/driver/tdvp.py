@@ -47,7 +47,6 @@ class TDVP(TDVPBaseDriver):
         When running computations on GPU, this can lead to infinite hangs or extremely long
         compilation times. In those cases, you might try setting the configuration variable
         `nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
-
     """
 
     def __init__(
@@ -58,7 +57,7 @@ class TDVP(TDVPBaseDriver):
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
-        qgt: LinearOperator = None,
+        qgt: LinearOperator | None = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
         error_norm: str | Callable = "euclidean",
