@@ -34,9 +34,11 @@ class EarlyStopping(struct.Pytree, mutable=True):
     patience: int | float
     """Number of epochs with no improvement after which training will be stopped."""
     baseline: float | None
-    """Baseline value for the monitored quantity. Training will stop if the driver hits the baseline."""
+    """Baseline value for the monitored quantity. Training will stop if the driver is above the baseline."""
     monitor: str
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
+    start_from_step: int
+    """Number of steps to wait before the callback has any effect."""
 
     # The quantities below are internal and should not be edited directly
     # by the user
@@ -54,6 +56,7 @@ class EarlyStopping(struct.Pytree, mutable=True):
         min_reldelta: float = 0.0,
         patience: int | float = 0,
         baseline: float | None = None,
+        start_from_step: int = 0,
         monitor: str = "mean",
     ):
         """
@@ -67,15 +70,18 @@ class EarlyStopping(struct.Pytree, mutable=True):
             patience: Number of epochs with no improvement after which
                 training will be stopped.
             baseline: Baseline value for the monitored quantity. Training
-                will stop if the driver hits the baseline.
+                will stop if the driver does not drop below the baseline.
             monitor: Loss statistic to monitor. Should be one of
                 `mean`, `variance`, `sigma`.
+            start_from_step: Number of steps to wait before the callback has
+                any effect. Defaults to `0`.
         """
         self.min_delta = min_delta
         self.min_reldelta = min_reldelta
         self.patience = patience
         self.baseline = baseline
         self.monitor = monitor
+        self.start_from_step = start_from_step
 
         self._best_val = np.inf
         self._best_iter = 0
@@ -93,6 +99,10 @@ class EarlyStopping(struct.Pytree, mutable=True):
         Returns:
             A boolean. If True, training continues, else, it does not.
         """
+
+        if step < self.start_from_step:
+            return True
+
         loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
 
         self._best_patience_counter += 1
