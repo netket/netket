@@ -49,6 +49,23 @@ def _tdvp(n_iter=20):
     )
 
 
+def test_timeout():
+    timeout = 5
+    tout = nk.callbacks.Timeout(timeout=timeout)
+    vmc = _vmc()
+
+    # warmup the jit
+    vmc.run(1)
+
+    st = time.time()
+    vmc.run(20000, callback=tout)
+    runtime = time.time() - st
+
+    # There is a lag in the first iteration of about 3 seconds
+    # But the timeout works!
+    assert abs(timeout - runtime) < 3
+
+
 def test_earlystopping_with_patience():
     patience = 10
     es = nk.callbacks.EarlyStopping(patience=patience)
@@ -67,23 +84,6 @@ def test_earlystopping_with_baseline():
 
     vmc.run(20, callback=es)
     # We should actually assert something..
-
-
-def test_timeout():
-    timeout = 5
-    tout = nk.callbacks.Timeout(timeout=timeout)
-    vmc = _vmc()
-
-    # warmup the jit
-    vmc.run(1)
-
-    st = time.time()
-    vmc.run(20000, callback=tout)
-    runtime = time.time() - st
-
-    # There is a lag in the first iteration of about 3 seconds
-    # But the timeout works!
-    assert abs(timeout - runtime) < 3
 
 
 def test_earlystopping_doesnt_get_stuck_with_patience():
