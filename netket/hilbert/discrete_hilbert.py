@@ -24,6 +24,7 @@ import jax.numpy as jnp
 from equinox import error_if
 
 from netket.utils.types import Array, DType
+from netket.jax import sharding
 
 from .abstract_hilbert import AbstractHilbert
 from .index import is_indexable
@@ -158,11 +159,14 @@ class DiscreteHilbert(AbstractHilbert):
 
         numbers = jnp.asarray(numbers, dtype=np.int32)
 
-        numbers = error_if(
-            numbers,
-            (numbers >= self.n_states).any() | (numbers < 0).any(),
-            "Numbers outside the range of allowed states.",
-        )
+        # equinox.error_if is broken under shard_map.
+        # If we are using shard map, we skip this check
+        if sharding.SHARD_MAP_STACK_LEVEL == 0:
+            numbers = error_if(
+                numbers,
+                (numbers >= self.n_states).any() | (numbers < 0).any(),
+                "Numbers outside the range of allowed states.",
+            )
 
         return self._numbers_to_states(numbers.ravel()).reshape(
             (*numbers.shape, self.size)

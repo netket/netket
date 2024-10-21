@@ -22,6 +22,7 @@ import jax.numpy as jnp
 from equinox import error_if
 
 from netket.errors import InvalidConstraintInterface, UnhashableConstraintError
+from netket.jax import sharding
 from netket.utils import StaticRange, warn_deprecation
 from netket.utils.types import Array
 
@@ -263,18 +264,22 @@ class HomogeneousHilbert(DiscreteHilbert):
                 start = start - self._local_states.step
                 end = end - self._local_states.step
 
-            states = error_if(
-                states,
-                (states < start).any() | (states >= end).any(),
-                "States outside the range of allowed states.",
-            )
+            # equinox.error_if is broken under shard_map.
+            # If we are using shard map, we skip this check
+            if sharding.SHARD_MAP_STACK_LEVEL == 0:
+                states = error_if(
+                    states,
+                    (states < start).any() | (states >= end).any(),
+                    "States outside the range of allowed states.",
+                )
 
         if self.constrained:
-            states = error_if(
-                states,
-                ~self.constraint(states).all(),
-                "States do not fulfill constraint.",
-            )
+            if sharding.SHARD_MAP_STACK_LEVEL == 0:
+                states = error_if(
+                    states,
+                    ~self.constraint(states).all(),
+                    "States do not fulfill constraint.",
+                )
 
         return self._hilbert_index.states_to_numbers(states)
 
