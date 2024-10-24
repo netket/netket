@@ -20,22 +20,20 @@ from netket.utils import struct
 
 
 class ConvergenceStopping(struct.Pytree, mutable=True):
-    """A simple callback to stop the optimisation if the loss gets below a certain threshold.
-    based on `driver._loss_name`."""
+    """A simple callback to stop the optimisation when the monitored quantity gets
+    below a certain threshold for at least `patience` steps.
+    """
 
     target: float
-    """Target value for the monitored quantity. Training will stop if the driver hits the baseline."""
+    """Target value for the monitored quantity. Training will stop if the driver drops below this value."""
     monitor: str
-    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
-
+    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
     smoothing_window: int
-    """
-    The loss is smoothed over the last `smoothing_window` iterations to reduce statistical fluctuations
-    """
+    """The loss is smoothed over the last `smoothing_window` iterations to
+    reduce statistical fluctuations"""
     patience: int
-    """
-    The loss must be consistently below this value for this number of iterations in order to stop the optimisation.
-    """
+    """The loss must be consistently below this value for this number of
+    iterations in order to stop the optimisation."""
 
     # caches
     _loss_window: deque
@@ -49,6 +47,22 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
         smoothing_window: int = 10,
         patience: int = 10,
     ):
+        """
+        Construct a callback stopping the optimisation when the monitored quantity
+        gets below a certain threshold for at least `patience` steps.
+
+        Args:
+            target: the threshold value for the monitored quantity. Training will stop if the driver drops below this value.
+            monitor: a string with the name of the quantity to be monitored. This
+                is applied to the standard loss optimised by a driver, such as the
+                Energy for the VMC driver. Should be one of
+                'mean', 'variance', 'error_of_mean' (default: 'mean').
+            smoothing_window: an integer number of steps over which the monitored value
+                is averaged before comparing to target.
+            patience: Number of steps to wait before stopping the execution after
+                the tracked quantity drops below the target value (default 0, meaning
+                that it stops immediately).
+        """
         self.target = target
         self.monitor = monitor
         self.smoothing_window = smoothing_window
