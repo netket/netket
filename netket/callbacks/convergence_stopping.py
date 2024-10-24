@@ -25,8 +25,7 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
     """
 
     target: float
-    """Target value for the monitored quantity.
-    Training will stop if the drive below the smoothed value of target."""
+    """Target value for the monitored quantity. Training will stop if the driver drops below this value."""
     monitor: str
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
     smoothing_window: int
@@ -53,8 +52,7 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
         gets below a certain threshold for at least `patience` steps.
 
         Args:
-            target: value for the monitored quantity. Training will stop if the drive
-                below the smoothed value of target.
+            target: the threshold value for the monitored quantity. Training will stop if the driver drops below this value.
             monitor: a string with the name of the quantity to be monitored. This
                 is applied to the standard loss optimised by a driver, such as the
                 Energy for the VMC driver. Should be one of
