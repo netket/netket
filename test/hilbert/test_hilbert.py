@@ -28,7 +28,6 @@ from netket.hilbert import (
     Qubit,
     Spin,
 )
-import netket.experimental as nkx
 from netket.utils import StaticRange
 
 import jax
@@ -112,18 +111,18 @@ hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
 
-hilberts["SpinOrbitalFermions"] = nkx.hilbert.SpinOrbitalFermions(3)
-hilberts["SpinOrbitalFermions (spin)"] = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2)
-hilberts["SpinOrbitalFermions (n_fermions)"] = nkx.hilbert.SpinOrbitalFermions(
+hilberts["SpinOrbitalFermions"] = nk.hilbert.SpinOrbitalFermions(3)
+hilberts["SpinOrbitalFermions (spin)"] = nk.hilbert.SpinOrbitalFermions(3, s=1 / 2)
+hilberts["SpinOrbitalFermions (n_fermions)"] = nk.hilbert.SpinOrbitalFermions(
     3, n_fermions=2
 )
-hilberts["SpinOrbitalFermions (n_fermions=list)"] = nkx.hilbert.SpinOrbitalFermions(
+hilberts["SpinOrbitalFermions (n_fermions=list)"] = nk.hilbert.SpinOrbitalFermions(
     5, s=1 / 2, n_fermions_per_spin=(2, 3)
 )
-hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
+hilberts["SpinOrbitalFermions (polarized)"] = nk.hilbert.SpinOrbitalFermions(
     5, s=1 / 2, n_fermions_per_spin=(2, 0)
 )
-hilberts["SpinOrbitalFermions (higherspin)"] = nkx.hilbert.SpinOrbitalFermions(
+hilberts["SpinOrbitalFermions (higherspin)"] = nk.hilbert.SpinOrbitalFermions(
     3, s=3 / 2, n_fermions_per_spin=(2, 1, 2, 1)
 )
 
@@ -519,29 +518,29 @@ def test_inhomogeneous_fock():
 
 def test_fermions():
     # size checks
-    hi = nkx.hilbert.SpinOrbitalFermions(3)
+    hi = nk.hilbert.SpinOrbitalFermions(3)
     assert hi.size == 3
     assert hi.spin is None
-    hi = nkx.hilbert.SpinOrbitalFermions(3, s=0)
+    hi = nk.hilbert.SpinOrbitalFermions(3, s=0)
     assert hi.size == 3
     assert hi.spin == 0.0
-    hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2)
+    hi = nk.hilbert.SpinOrbitalFermions(3, s=1 / 2)
     assert hi.size == 6
     assert hi.spin == 1 / 2
-    hi = nkx.hilbert.SpinOrbitalFermions(3, n_fermions=2)
+    hi = nk.hilbert.SpinOrbitalFermions(3, n_fermions=2)
     assert hi.size == 3
-    hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions_per_spin=(2, 3))
+    hi = nk.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions_per_spin=(2, 3))
     assert hi.size == 6
 
     # check the output
-    hi = nkx.hilbert.SpinOrbitalFermions(5)
+    hi = nk.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
     assert hi.n_states == 2**5
     assert hi.spin is None
-    hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
+    hi = nk.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
     assert np.all(hi.all_states().sum(axis=-1) == 2)
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
+    hi = nk.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
     assert hi.size == 10
     assert hi.spin == 1 / 2
     assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
@@ -550,44 +549,44 @@ def test_fermions():
 
 def test_fermion_fails():
     with pytest.raises(TypeError):
-        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
+        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
     # TODO: change to TypeError in 3.12
     # with pytest.raises(TypeError):
     with pytest.raises(ValueError):
         with pytest.warns(DeprecationWarning):
-            _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
+            _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
     # TODO: Test the hard error in 3.12
     # with pytest.raises(TypeError):
     with pytest.warns(DeprecationWarning):
-        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1 / 2)
+        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1 / 2)
     with pytest.raises(ValueError):
-        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2])
+        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2])
     with pytest.raises(ValueError):
-        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2], s=1)
+        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2], s=1)
 
 
 def test_fermions_states():
     import scipy.special
 
-    hi = nkx.hilbert.SpinOrbitalFermions(5)
+    hi = nk.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
     assert not hi.constrained
     assert hi.n_states == 2**5
 
-    hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
+    hi = nk.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
     assert hi.constrained
     assert np.all(hi.all_states().sum(axis=-1) == 2)
     assert hi.n_states == int(scipy.special.comb(5, 2))
 
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=2)
+    hi = nk.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=2)
     assert hi.size == 10
     assert hi.constrained
     np.testing.assert_array_equal(hi.all_states().sum(axis=-1), 2)
     # distribute 2 fermions over (2*number of orbitals)
     assert hi.n_states == int(scipy.special.comb(2 * 5, 2))
 
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
+    hi = nk.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
     assert hi.size == 10
     assert hi.constrained
     np.testing.assert_array_equal(hi.all_states()[:, :5].sum(axis=-1), 2)
@@ -597,7 +596,7 @@ def test_fermions_states():
 
 
 def test_fermions_spin_index():
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2)
+    hi = nk.hilbert.SpinOrbitalFermions(5, s=1 / 2)
     assert hi._spin_index(-1) == 0  # indexing starts from -spin
     # sz=-1 --> block 0, sz= +1 --> block 1
     assert hi._spin_index(1) == 1
@@ -608,7 +607,7 @@ def test_fermions_spin_index():
     with pytest.raises(ValueError):
         hi._spin_index(0)
 
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=3 / 2)
+    hi = nk.hilbert.SpinOrbitalFermions(5, s=3 / 2)
     assert hi._spin_index(-3) == 0  # indexing starts from -spin
     assert hi._spin_index(-1) == 1  # indexing starts from -spin
     # sz=-3 --> block 0, sz=-0.5 --> block 1, sz= 1 --> block 2, ...
@@ -618,7 +617,7 @@ def test_fermions_spin_index():
     with pytest.raises(ValueError):
         hi._spin_index(0)
 
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1)
+    hi = nk.hilbert.SpinOrbitalFermions(5, s=1)
     assert hi._spin_index(-2) == 0  # indexing starts from -spin
     assert hi._spin_index(0) == 1  # indexing starts from -spin
     assert hi._spin_index(2) == 2
@@ -627,7 +626,7 @@ def test_fermions_spin_index():
 
 
 def test_fermions_get_index():
-    hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2)
+    hi = nk.hilbert.SpinOrbitalFermions(3, s=1 / 2)
     # first block (-1) and first site (1) --> idx = 0
     assert hi._get_index(0, -1) == 0
     # first block (-1) and second site (1) --> idx = 1
@@ -645,7 +644,7 @@ def test_no_particles():
     np.testing.assert_allclose(states, 0.0)
 
     # same for fermions
-    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions_per_spin=(0, 0))
+    hi = nk.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions_per_spin=(0, 0))
     states = hi.all_states()
     assert states.shape[0] == 1
     np.testing.assert_allclose(states, 0.0)
@@ -839,7 +838,7 @@ def test_hilbert_numbers_to_states_jit(hi: DiscreteHilbert):
 
 def test_doubled_hilbert_indexable():
     # make an indexable hilbert space
-    hi = nkx.hilbert.SpinOrbitalFermions(16, s=1 / 2, n_fermions=1)
+    hi = nk.hilbert.SpinOrbitalFermions(16, s=1 / 2, n_fermions=1)
     hid = DoubledHilbert(hi)
     assert hi.is_indexable  # just to verify this is indeed still the case
     assert hid.is_indexable  # then this must hold as well

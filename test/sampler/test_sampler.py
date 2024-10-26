@@ -57,11 +57,11 @@ move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
-hi_fermion = nk.experimental.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
-hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
+hi_fermion = nk.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
+hi_fermion_spin = nk.hilbert.SpinOrbitalFermions(
     g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
 )
-hi_fermion_spin_higher = nk.experimental.hilbert.SpinOrbitalFermions(
+hi_fermion_spin_higher = nk.hilbert.SpinOrbitalFermions(
     g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
 )
 
@@ -598,7 +598,7 @@ def test_exact_sampler(sampler):
 def test_fermions_spin_exchange():
     # test that the graph correctly creates a disjoint graph for the spinful case
     g = nk.graph.Hypercube(length=4, n_dim=1)
-    hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
+    hi_fermion_spin = nk.hilbert.SpinOrbitalFermions(
         g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
     )
 
@@ -614,7 +614,7 @@ def test_fermions_spin_exchange():
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(hi_fermion_spin.size))
 
-    hi_fermion_spin_higher = nk.experimental.hilbert.SpinOrbitalFermions(
+    hi_fermion_spin_higher = nk.hilbert.SpinOrbitalFermions(
         g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
     )
 
