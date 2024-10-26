@@ -23,7 +23,7 @@ class ParticleExchangeRule(ExchangeRule):
         clusters: list[tuple[int, int]] | None = None,
         graph: AbstractGraph | None = None,
         d_max: int = 1,
-        exchange_spins: bool = False,
+        spin_symmetric: bool = True,
     ):
         r"""
         Constructs the ParticleExchange Rule.
@@ -43,7 +43,7 @@ class ParticleExchangeRule(ExchangeRule):
                 that can be exchanged.
             d_max: Only valid if a graph is passed in. The maximum distance
                 between two sites
-            exchange_spins: (default False) If exchange_spins, the graph must encode the
+            spin_symmetric: (default True) If spin_symmetric, the graph must encode the
                 connectivity  between the first N physical sites having same spin, and
                 it is replicated using :func:`netket.graph.disjoint_union` other every
                 spin subsector. This option conserves the number of fermions per
@@ -54,7 +54,7 @@ class ParticleExchangeRule(ExchangeRule):
             raise ValueError(
                 "This sampler rule currently only works with SpinOrbitalFermions hilbert spaces."
             )
-        if not exchange_spins and hilbert.n_spin_subsectors > 1:
+        if spin_symmetric and hilbert.n_spin_subsectors > 1:
             if graph is not None and graph.n_nodes == hilbert.n_orbitals:
                 graph = disjoint_union(*[graph] * hilbert.n_spin_subsectors)
             if clusters is not None and np.max(clusters) < hilbert.n_orbitals:
