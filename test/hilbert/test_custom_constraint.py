@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from numba import vectorize
 import pytest
 
 import netket as nk
@@ -88,11 +89,18 @@ def test_extra_constraint():
 # Constraint checking that first value is 1
 class CustomConstraintPy(nk.hilbert.constraint.DiscreteHilbertConstraint):
     def __call__(self, x):
+        # TODO: When supporting jax>=0.4.35 keep only second
+        vmap_method ={}
+        if nk.utils.module_version(jax) >= (0,4,35):
+            vmap_method["vmap_method"]="expand_dims"
+        else:
+            vmap_method["vectorized"]=True
+
         return jax.pure_callback(
             self._call_py,
             (jax.ShapeDtypeStruct(x.shape[:-1], bool)),
             x,
-            vectorized=True,
+            **vmap_method,
         )
 
     def _call_py(self, x):
