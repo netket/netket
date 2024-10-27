@@ -100,7 +100,7 @@ class DiscreteHilbertConstraint(struct.Pytree):
                     return jax.pure_callback(self._call_py,
                                             result_shape_dtypes=(jax.ShapeDtypeStruct(x.shape[:-1], bool)),
                                             x,
-                                            vectorized=True)
+                                            vmap_method="expand_dims")
 
                 def _call_py(self, x):
                     # Not Jax compatible

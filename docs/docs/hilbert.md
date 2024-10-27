@@ -387,7 +387,7 @@ class ExamplePythonHilbertSpace(DiscreteHilbert):
                 self.dtype,
             ),
             numbers,
-            vectorized=True,
+            vmap_method="expand_dims",
         )
 
     def states_to_numbers(self, states):
@@ -395,7 +395,7 @@ class ExamplePythonHilbertSpace(DiscreteHilbert):
             partial(states_to_numbers_py, self),
             jax.ShapeDtypeStruct(states.shape[:-1], jnp.int32),
             states,
-            vectorized=True,
+            vmap_method="expand_dims",
         )
 
 

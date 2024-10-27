@@ -123,7 +123,7 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
             ),
             σ,
             rand_vec,
-            # vectorized=True, #TODO: Make the callback work with vectorized inputs
+            # vmap_method="expand_dims", #TODO: Make the callback work with vectorized inputs
         )
 
         return σp, log_prob_correction
