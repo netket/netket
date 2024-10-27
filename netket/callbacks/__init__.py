@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .earlystopping import EarlyStopping
+from .early_stopping import EarlyStopping
 from .timeout import Timeout
-from .invalidlossstopping import InvalidLossStopping
+from .invalid_loss_stopping import InvalidLossStopping
 from .convergence_stopping import ConvergenceStopping
 
 from netket.utils import _hide_submodules

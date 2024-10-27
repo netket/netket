@@ -49,26 +49,6 @@ def _tdvp(n_iter=20):
     )
 
 
-def test_earlystopping_with_patience():
-    patience = 10
-    es = nk.callbacks.EarlyStopping(patience=patience)
-    es._best_val = -1e6
-    vmc = _vmc()
-
-    vmc.run(20, callback=es)
-
-    assert vmc.step_count == patience
-
-
-def test_earlystopping_with_baseline():
-    baseline = -10
-    es = nk.callbacks.EarlyStopping(baseline=baseline)
-    vmc = _vmc()
-
-    vmc.run(20, callback=es)
-    # We should actually assert something..
-
-
 def test_timeout():
     timeout = 5
     tout = nk.callbacks.Timeout(timeout=timeout)
@@ -84,6 +64,52 @@ def test_timeout():
     # There is a lag in the first iteration of about 3 seconds
     # But the timeout works!
     assert abs(timeout - runtime) < 3
+
+
+def test_earlystopping_with_patience():
+    patience = 10
+    es = nk.callbacks.EarlyStopping(patience=patience)
+    es._best_val = -1e6
+    vmc = _vmc()
+
+    vmc.run(20, callback=es)
+
+    assert vmc.step_count == patience
+
+
+def test_earlystopping_baseline_with_patience():
+    loss_values = np.array([11] + [10] * 12 + [9] * 4, dtype=float)
+    loss_values[1:13] = 10.0 - 1e-3 * np.arange(12)
+
+    # Because we have min_delta = min_rdelta = 0 this should not stop
+    # however we do not drop under baseline in `patience` number of steps
+    es = nk.callbacks.EarlyStopping(patience=10, baseline=9)
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        print(es)
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+
+    assert step == 10
+    assert es._best_iter == 10
+    assert es._best_val == loss_values[10]
+
+
+def test_earlystopping_with_delayed_start():
+    loss_values = np.array([11] * 20 + [10] * 12 + [9] * 6, dtype=float)
+    es = nk.callbacks.EarlyStopping(patience=10, start_from_step=9)
+    # Until step 9, es._best_val is inf. In step 10 we have _best_patience_counter 1
+    # In step 19 it is 10, the test self._best_patience_counter > self.patience
+    # and not self._best_patience_counter >= self.patience
+    # In step 20 we would fail, however loss_value drops to 10
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        print(es)
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+    assert step == 31
+    assert es._best_iter == 20
+    assert es._best_val == 10.0
 
 
 def test_earlystopping_doesnt_get_stuck_with_patience():
@@ -122,6 +148,41 @@ def test_earlystopping_doesnt_get_stuck_with_patience_reltol():
     assert step == 16
     assert es._best_iter == 13
     assert es._best_val == 9
+
+
+def test_earlystopping_baseline_with_patience_abstol_delayed_start():
+    patience = 3
+    start_from_step = 7
+    loss_values = np.array([11] * 6 + [10] * 12 + [9] * 6, dtype=float)
+    loss_values[7:19] = 10.0 - 1e-2 * np.arange(12)  # Note 1e-2
+    loss_values[-6:] = 9 - 1e-3 * np.arange(6)  # Note 1e-3
+
+    # We do not drop below baseline considering min_delta
+    es = nk.callbacks.EarlyStopping(
+        patience=patience, baseline=10, min_delta=1e-1, start_from_step=start_from_step
+    )
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        print(es)
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+    assert step == patience + start_from_step
+    assert es._best_iter == 7
+    assert es._best_val == 10.0
+
+    # We drop below baseline and early stop because lack of convergence
+    # Note smaller min_delta (1e-2 instead of 1e-1)
+    es = nk.callbacks.EarlyStopping(
+        patience=patience, baseline=10, min_delta=1e-2, start_from_step=start_from_step
+    )
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        print(es)
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+    assert step == 22
+    assert es._best_iter == 18
+    assert es._best_val == 9.0
 
 
 @pytest.mark.parametrize("driver", [_tdvp(), _vmc()])
