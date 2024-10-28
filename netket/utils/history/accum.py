@@ -24,7 +24,7 @@ from . import History
 
 AccumulatorFun = Callable[[Any, Any], Any]
 
-AccumulatorFunTypeRegistry: dict[type,AccumulatorFun] = {}
+AccumulatorFunTypeRegistry: dict[type, AccumulatorFun] = {}
 """
 Dictionary used for dispatching the accumulator functino based on the type
 of the input tree.
@@ -44,6 +44,8 @@ def _accum_histories_container(
         accum_in_tree(fun, _accum, _tree, **kwargs)
         for _accum, _tree in zip(tree_accum, tree)
     )
+
+
 def _accum_histories_dict(
     fun: Callable[[Any, Any], Any],
     tree_accum: list | Any,
@@ -97,15 +99,11 @@ def accum_in_tree(
 
     tree_type = type(tree)
     if tree_type in AccumulatorFunTypeRegistry:
-        return AccumulatorFunTypeRegistry[tree_type](
-            fun, tree_accum, tree, **kwargs
-        )
+        return AccumulatorFunTypeRegistry[tree_type](fun, tree_accum, tree, **kwargs)
     elif hasattr(tree, "to_compound"):
         return fun(tree_accum, tree, **kwargs)
     elif hasattr(tree, "to_dict"):
-        return accum_in_tree(
-            fun, tree_accum, tree.to_dict(), **kwargs
-        )
+        return accum_in_tree(fun, tree_accum, tree.to_dict(), **kwargs)
     else:
         return fun(tree_accum, tree, **kwargs)
 
@@ -113,6 +111,7 @@ def accum_in_tree(
 @dispatch
 def init_history_from_data(val: Any, step: Any):
     return History(val, step)
+
 
 def accum_histories(accum: History | None, data, *, step=0) -> History:
     if accum is None:

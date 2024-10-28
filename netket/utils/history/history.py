@@ -378,6 +378,7 @@ def append(self: History, val: History, it: Any):  # noqa: E0102, F811
     self._len = len(self) + len(val)
     return self
 
+
 @dispatch
 def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
     for key, val in values.items():
