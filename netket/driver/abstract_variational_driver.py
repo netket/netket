@@ -345,9 +345,8 @@ class AbstractVariationalDriver(abc.ABC):
                 first_step = True
 
                 for step in self.iter(n_iter, step_size):
-                    with timing.timed_scope(name="observables"):
-                        log_data = self.estimate(obs)
-                        self._log_additional_data(log_data, step)
+                    log_data = self.estimate(obs)
+                    self._log_additional_data(log_data, step)
 
                     # if the cost-function is defined then report it in the progress bar
                     if self._loss_stats is not None:
@@ -393,6 +392,7 @@ class AbstractVariationalDriver(abc.ABC):
 
         return loggers
 
+    @timing.timed(name="estimate observables")
     def estimate(self, observables):
         """
         Return MCMC statistics for the expectation value of observables in the

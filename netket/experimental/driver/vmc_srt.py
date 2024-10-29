@@ -260,6 +260,7 @@ class VMC_SRt(AbstractVariationalDriver):
             )
         self._jacobian_mode = mode
 
+    @timing.timed
     def _forward_and_backward(self):
         """
         Performs a number of VMC optimization steps.

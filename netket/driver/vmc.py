@@ -15,6 +15,7 @@
 
 from textwrap import dedent
 
+from netket.utils import timing
 from netket.utils.types import PyTree, Optimizer
 from netket.operator import AbstractOperator
 from netket.stats import Stats
@@ -106,6 +107,7 @@ class VMC(AbstractVariationalDriver):
 
         self._preconditioner = val
 
+    @timing.timed
     def _forward_and_backward(self):
         """
         Performs a number of VMC optimization steps.
