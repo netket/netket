@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import jax
 import netket as nk
 
 # 1D Lattice
@@ -63,8 +64,8 @@ sa = nk.sampler.MetropolisLocal(lind.hilbert)
 op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
-vs = nk.vqs.MCMixedState(sa, ma, n_samples=2000, n_samples_diag=500)
-vs.init_parameters(nk.nn.initializers.normal(stddev=0.01))
+vs = nk.vqs.MCMixedState(sa, ma, n_samples=2000, n_samples_diag=512)
+vs.init_parameters(jax.nn.initializers.normal(stddev=0.01))
 
 ss = nk.SteadyState(lind, op, variational_state=vs, preconditioner=sr)
 
