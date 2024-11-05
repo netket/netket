@@ -26,6 +26,7 @@ from netket.jax import (
     tree_to_real,
     vmap_chunked,
 )
+from netket.jax.sharding import sharding_decorator
 
 from . import jacobian_dense
 from . import jacobian_pytree
@@ -343,8 +344,13 @@ def jacobian(
     # - (n_samples, ...) if mode real/holomorphic
     # here we wrap f with a Partial since the shard_map inside vmap_chunked
     # does not support non-array arguments
-    jacobians = vmap_chunked(
-        jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
+    #
+    # We do sharding decorator here to account for cases where the wavefunction contains
+    # a sharding decorator, for example from get_conn_padded.
+    jacobians = sharding_decorator(
+        vmap_chunked(jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size),
+        (False, False, True),
+        reduction_op_tree=False,
     )(Partial(f), params, samples)
 
     if pdf is None:
