@@ -19,6 +19,7 @@ import jax
 import jax.numpy as jnp
 from jax.tree_util import Partial
 
+from netket.utils import config
 from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi, timing
 from netket.utils.types import Array, Callable, PyTree
@@ -26,6 +27,7 @@ from netket.jax import (
     tree_to_real,
     vmap_chunked,
 )
+from netket.jax.sharding import sharding_decorator
 
 from . import jacobian_dense
 from . import jacobian_pytree
@@ -55,6 +57,7 @@ def jacobian(
     center: bool = False,
     dense: bool = False,
     _sqrt_rescale: bool = False,
+    _axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
 ) -> PyTree:
     r"""
     Computes the jacobian of a NN model with respect to its parameters. This function
@@ -159,7 +162,7 @@ def jacobian(
 
       samples = samples.reshape(-1, samples.shape[-1])
       parameters = jax.tree_util.tree_map(lambda x: x.real, parameters)
-      O_k = jax.jacrev(lambda pars: logpsi(pars, samples).real, parameters)
+      O_k = jax.jacrev(lambda pars: logpsi(pars, samples).real)(parameters)
 
     The jacobian that is returned is a PyTree with the same shape
     as :code:`parameters`, with real data type.
@@ -199,8 +202,8 @@ def jacobian(
     .. code:: python
 
       samples = samples.reshape(-1, samples.shape[-1])
-      Or_k = jax.jacrev(lambda pars: logpsi(pars, samples).real, parameters)
-      Oi_k = jax.jacrev(lambda pars: logpsi(pars, samples).imag, parameters)
+      Or_k = jax.jacrev(lambda pars: logpsi(pars, samples).real)(parameters)
+      Oi_k = jax.jacrev(lambda pars: logpsi(pars, samples).imag)(parameters)
       O_k = jax.tree_util.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
                                                         Or_k, Oi_k)
 
@@ -251,9 +254,9 @@ def jacobian(
       # tree_to_real splits the parameters in a tuple like
       # {'real': jax.tree.map(jnp.real, pars), 'imag': jax.tree.map(jnp.imag, pars)}
       pars_real, reconstruct = nk.jax.tree_to_real(parameters)
-      Or_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).real,
+      Or_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).real)(
                         pars_real)
-      Oi_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).imag,
+      Oi_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).imag)(
                         pars_real)
       O_k = jax.tree_util.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
                                                         Or_k, Oi_k)
@@ -278,7 +281,7 @@ def jacobian(
     .. code:: python
 
       samples = samples.reshape(-1, samples.shape[-1])
-      O_k = jax.jacrev(lambda pars: logpsi(pars, samples), parameters, holomorphic=True)
+      O_k = jax.jacrev(lambda pars: logpsi(pars, samples), holomorphic=True)(parameters)
 
     If the function is not holomorphic the result will be numerically wrong.
 
@@ -343,9 +346,29 @@ def jacobian(
     # - (n_samples, ...) if mode real/holomorphic
     # here we wrap f with a Partial since the shard_map inside vmap_chunked
     # does not support non-array arguments
-    jacobians = vmap_chunked(
-        jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
-    )(Partial(f), params, samples)
+    jacobian_fun = vmap_chunked(
+        jacobian_fun,
+        in_axes=(None, None, 0),
+        chunk_size=chunk_size,
+        axis_0_is_sharded=_axis_0_is_sharded,
+    )  # see below
+    # vmap_chunked, as of 5/11/2024 (3.14.3) only passses the function through
+    # a sharding_decorator if it is chunked, and not if it's not. This creates
+    # a different behaviour in the two cases. To homogenize it, we do it at the
+    # level of nkjax.jacobian.
+    # This fixes computing the jacobian of logpsi with sharded functions like
+    # for example from get_conn_padded.
+
+    # TODO: Maybe remove this and simply always sharding_decorator inside of vmap_chunked.
+    # We do sharding decorator here to account for cases where the wavefunction contains
+    if _axis_0_is_sharded is True:
+        jacobian_fun = sharding_decorator(
+            jacobian_fun,
+            (False, False, True),
+            reduction_op_tree=False,
+        )
+
+    jacobians = jacobian_fun(Partial(f), params, samples)
 
     if pdf is None:
         if center:

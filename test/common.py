@@ -85,7 +85,9 @@ xfailif_sharding = pytest.mark.xfail(
 """Use as a decorator to mark a test to be expected to fail only when running with
 Sharding.
 """
-
+onlyif_sharding = pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with Sharding"
+)
 
 skipif_distributed = pytest.mark.skipif(
     nk.utils.mpi.n_nodes > 1 or nk.config.netket_experimental_sharding,
