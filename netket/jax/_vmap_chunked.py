@@ -68,6 +68,8 @@ def _chunk_vmapped_function(
     """takes a vmapped function and computes it in chunks"""
 
     if chunk_size is None:
+        # TODO: Here we are not applyign sharding_decorator, while below we are
+        # Maybe we should always apply it for consistency?
         return vmapped_fun
 
     if isinstance(argnums, int):
