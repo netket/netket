@@ -159,7 +159,7 @@ def jacobian(
 
       samples = samples.reshape(-1, samples.shape[-1])
       parameters = jax.tree_util.tree_map(lambda x: x.real, parameters)
-      O_k = jax.jacrev(lambda pars: logpsi(pars, samples).real, parameters)
+      O_k = jax.jacrev(lambda pars: logpsi(pars, samples).real)(parameters)
 
     The jacobian that is returned is a PyTree with the same shape
     as :code:`parameters`, with real data type.
@@ -199,8 +199,8 @@ def jacobian(
     .. code:: python
 
       samples = samples.reshape(-1, samples.shape[-1])
-      Or_k = jax.jacrev(lambda pars: logpsi(pars, samples).real, parameters)
-      Oi_k = jax.jacrev(lambda pars: logpsi(pars, samples).imag, parameters)
+      Or_k = jax.jacrev(lambda pars: logpsi(pars, samples).real)(parameters)
+      Oi_k = jax.jacrev(lambda pars: logpsi(pars, samples).imag)(parameters)
       O_k = jax.tree_util.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
                                                         Or_k, Oi_k)
 
@@ -251,9 +251,9 @@ def jacobian(
       # tree_to_real splits the parameters in a tuple like
       # {'real': jax.tree.map(jnp.real, pars), 'imag': jax.tree.map(jnp.imag, pars)}
       pars_real, reconstruct = nk.jax.tree_to_real(parameters)
-      Or_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).real,
+      Or_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).real)(
                         pars_real)
-      Oi_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).imag,
+      Oi_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).imag)(
                         pars_real)
       O_k = jax.tree_util.tree_map(lambda jr, ji: jnp.concatenate([jr, ji]], axis=1),
                                                         Or_k, Oi_k)
@@ -278,7 +278,7 @@ def jacobian(
     .. code:: python
 
       samples = samples.reshape(-1, samples.shape[-1])
-      O_k = jax.jacrev(lambda pars: logpsi(pars, samples), parameters, holomorphic=True)
+      O_k = jax.jacrev(lambda pars: logpsi(pars, samples), holomorphic=True)(parameters)
 
     If the function is not holomorphic the result will be numerically wrong.
 
