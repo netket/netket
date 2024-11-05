@@ -62,8 +62,8 @@ def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwar
 def _chunk_vmapped_function(
     vmapped_fun: Callable,
     chunk_size: int | None,
-    argnums=0,
-    axis_0_is_sharded=False,
+    argnums: int | tuple[int, ...] = 0,
+    axis_0_is_sharded: bool = False,
 ) -> Callable:
     """takes a vmapped function and computes it in chunks"""
 
@@ -98,7 +98,7 @@ def apply_chunked(
     in_axes=0,
     *,
     chunk_size: int | None,
-    axis_0_is_sharded=config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
 ) -> Callable:
     """
     Takes an implicitly vmapped function over the axis 0 and uses scan to
@@ -142,7 +142,7 @@ def vmap_chunked(
     in_axes=0,
     *,
     chunk_size: int | None,
-    axis_0_is_sharded=config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
 ) -> Callable:
     """
     Behaves like jax.vmap but uses scan to chunk the computations in smaller chunks.
