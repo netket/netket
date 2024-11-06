@@ -72,8 +72,8 @@ dev = [
     "black==23.9.1",
     "ruff==0.6.2",
     "qutip>=5",
-    "wheel",
-    "build",
+    "wheel>=0.38.1",
+    "build>=1",
 ]
 docs = [
     "Sphinx>=7.0,<8.2",
@@ -104,7 +104,7 @@ version-file = "netket/_version.py"
 [tool.uv]
 dev-dependencies = [
   "netket[dev]",
-  "mpi4py",
+  "mpi4py>=3.0.1",
   "jax>=0.4.33"
 ]
 
