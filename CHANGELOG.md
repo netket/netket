@@ -19,6 +19,14 @@
 ### Deprecations
 * Constructing the {class}~`netket.optimizer.SR` object with `SR(qgt=QGTType(...))` is now deprecated. This construction can lead to unexpected results because the keyword arguments specified in the `QGTType` are overwritten by those specified by the SR class and its defaults. To fix this, construct SR as `SR(qgt=QGTType, ...)`. A warning will be raised when using the deprecated syntax, and this will become an error in a future release.
 
+
+## NetKet 3.14.4 (7 November 2024)
+* Fix a bug introduced in 3.14.3 when using chunking [#1943](https://github.com/netket/netket/pull/1943).
+* Remove upper version constraints for flax and numba
+* Support jax 0.4.35
+* Support mpi4py>4
+
+
 ## NetKet 3.14.3 (2 October 2024)
 * Fix an issue in Jax operators, which would not be chunking correctly if they had more connected entries than the chunk size [#1940](https://github.com/netket/netket/pull/1940).
 
