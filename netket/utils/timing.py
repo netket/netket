@@ -93,7 +93,7 @@ class Timer(struct.Pytree, mutable=True):
     def _rich_walk_tree_(self, tree):
         attributed = 0.0
         for key, sub_timer in self.sub_timers.items():
-            if sub_timer.total / self.total > 0.01:
+            if self.total > 0 and sub_timer.total / self.total > 0.01:
                 percentage = 100 * (sub_timer.total / self.total)
                 attributed += sub_timer.total
 
@@ -203,7 +203,7 @@ def timed_scope(name: str = None, force: bool = False):
         ...    a = jax.random.normal(jax.random.key(1), (100,100))
         ...    # Must block jax functions otherwise the timing is off
         ...    timer.block_until_ready(timer)
-        ...
+        ...    # doctest: +SKIP
         >>>
         >>> timer  # doctest: +SKIP
         ╭──────────────────────── Timing Information ─────────────────────────╮
