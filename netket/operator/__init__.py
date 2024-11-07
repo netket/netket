@@ -24,6 +24,7 @@ from ._lazy import Adjoint, Transpose, Squared
 from ._heisenberg import Heisenberg
 from ._ising import Ising, IsingJax
 from ._bose_hubbard import BoseHubbard, BoseHubbardJax
+from ._fermions import FermionOperator2nd, FermionOperator2ndJax
 
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian
@@ -33,7 +34,7 @@ from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
 from ._sumoperators import SumOperator
 
-from . import spin, boson
+from . import spin, boson, fermion
 
 from netket.utils import _auto_export
 

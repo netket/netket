@@ -19,13 +19,11 @@ __all__ = [
     "vqs",
     "TDVP",
     "models",
-    "hilbert",
     "operator",
     "logging",
     "observable",
 ]
 
-from . import hilbert
 from . import operator
 from . import driver
 from . import dynamics

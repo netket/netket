@@ -5,7 +5,7 @@ import json
 
 from netket import experimental as nkx
 
-from netket.experimental.operator.fermion import (
+from netket.operator.fermion import (
     destroy as c,
     create as cd,
     number as n,
@@ -21,7 +21,7 @@ g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
 n_sites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
-hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
+hi = nk.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
 
 
 # create an operator representing fermi hubbard interactions
@@ -46,9 +46,9 @@ print("Hamiltonian =", ham.operator_string())
 # and therefore conserve the number of fermions with up and down spin
 
 # g.n_nodes == L*L --> disj_graph == 2*L*L
-# this is handled by netket by passing the keyword copy_per_spin=True
-sa = nkx.sampler.MetropolisParticleExchange(
-    hi, graph=g, n_chains=16, exchange_spins=False, sweep_size=64
+# this is handled by netket by passing the keyword spin_symmetric=True
+sa = nk.sampler.MetropolisParticleExchange(
+    hi, graph=g, n_chains=16, spin_symmetric=True, sweep_size=64
 )
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM

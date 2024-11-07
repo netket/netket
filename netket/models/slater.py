@@ -19,7 +19,7 @@ from functools import partial
 
 import numpy as np
 
-from netket.experimental.hilbert import SpinOrbitalFermions
+from netket.hilbert import SpinOrbitalFermions
 from netket.utils.types import NNInitFunc, DType
 from netket.nn.masked_linear import default_kernel_init
 from netket import jax as nkjax

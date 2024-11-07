@@ -26,6 +26,7 @@ from .spin import Spin
 from .fock import Fock
 from .qubit import Qubit
 from .particle import Particle
+from .spin_orbital_fermions import SpinOrbitalFermions
 
 from .tensor_hilbert import TensorHilbert
 from . import tensor_hilbert_discrete

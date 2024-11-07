@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2023 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-__all__ = ["SpinOrbitalFermions"]
-
-from .spin_orbital_fermions import SpinOrbitalFermions
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from .base import FermionOperator2ndBase
+from .numba import FermionOperator2nd
+from .jax import FermionOperator2ndJax

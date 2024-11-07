@@ -28,6 +28,7 @@ from .metropolis import (
     MetropolisHamiltonian,
     MetropolisGaussian,
     MetropolisAdjustedLangevin,
+    MetropolisParticleExchange,
 )
 
 from .metropolis_pt import (

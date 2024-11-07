@@ -20,11 +20,11 @@ import numba
 from netket.utils.types import DType
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
-from ._fermion_operator_2nd_utils import _is_diag_term, OperatorDict
-from ._fermion_operator_2nd_base import FermionOperator2ndBase
+from .utils import _is_diag_term, OperatorDict
+from .base import FermionOperator2ndBase
 
 if TYPE_CHECKING:
-    from ._fermion_operator_2nd_jax import FermionOperator2ndJax
+    from .jax import FermionOperator2ndJax
 
 
 class FermionOperator2nd(FermionOperator2ndBase):
@@ -77,7 +77,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
         Returns the jax version of this operator, which is an
         instance of :class:`netket.experimental.operator.FermionOperator2ndJax`.
         """
-        from ._fermion_operator_2nd_jax import FermionOperator2ndJax
+        from .jax import FermionOperator2ndJax
 
         new_op = FermionOperator2ndJax(
             self.hilbert, cutoff=self._cutoff, dtype=self.dtype

@@ -1,6 +1,5 @@
 import netket as nk
 import numpy as np
-import netket.experimental as nkx
 import scipy
 from netket.operator import DiscreteJaxOperator
 
@@ -116,8 +115,8 @@ operators["Pauli Hamiltonian Jax (_mode=mask)"] = nk.operator.PauliStringsJax(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4], _mode="mask"
 )
 
-hi = nkx.hilbert.SpinOrbitalFermions(5)
-operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
+hi = nk.hilbert.SpinOrbitalFermions(5)
+operators["FermionOperator2nd"] = nk.operator.FermionOperator2nd(
     hi,
     terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
@@ -125,13 +124,13 @@ operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
 
 operators[
     "FermionOperator2ndJax(_mode=default-scan)"
-] = nkx.operator.FermionOperator2ndJax(
+] = nk.operator.FermionOperator2ndJax(
     hi,
     terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
 )
 
-operators["FermionOperator2ndJax(_mode=mask)"] = nkx.operator.FermionOperator2ndJax(
+operators["FermionOperator2ndJax(_mode=mask)"] = nk.operator.FermionOperator2ndJax(
     hi,
     terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.

@@ -12,15 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-__all__ = ["FermionOperator2nd", "FermionOperator2ndJax"]
-
-from ._fermion_operator_2nd_numba import FermionOperator2nd
-from ._fermion_operator_2nd_jax import FermionOperator2ndJax
-
-from . import fermion
 from .pyscf import from_pyscf_molecule
-
-from netket.utils import _auto_export
-
-_auto_export(__name__)
