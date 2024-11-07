@@ -376,9 +376,8 @@ class TDVPBaseDriver(AbstractVariationalDriver):
 
             with timing.timed_scope(force=timeit) as timer:
                 for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
-                    with timing.timed_scope(name="observables"):
-                        log_data = self.estimate(obs)
-                        self._log_additional_data(log_data, step)
+                    log_data = self.estimate(obs)
+                    self._log_additional_data(log_data, step)
 
                     self._postfix = {"n": self.step_count}
                     # if the cost-function is defined then report it in the progress bar

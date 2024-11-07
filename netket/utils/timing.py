@@ -20,6 +20,8 @@ import inspect
 import functools
 import contextlib
 
+import jax
+
 from rich.tree import Tree
 from rich.panel import Panel
 
@@ -91,7 +93,7 @@ class Timer(struct.Pytree, mutable=True):
     def _rich_walk_tree_(self, tree):
         attributed = 0.0
         for key, sub_timer in self.sub_timers.items():
-            if sub_timer.total / self.total > 0.01:
+            if self.total > 0 and sub_timer.total / self.total > 0.01:
                 percentage = 100 * (sub_timer.total / self.total)
                 attributed += sub_timer.total
 
@@ -122,6 +124,9 @@ class Timer(struct.Pytree, mutable=True):
             self.sub_timers[name] = Timer()
         return self.sub_timers[name]
 
+    def block_until_ready(self, args):
+        return jax.block_until_ready(args)
+
     def __enter__(self):
         global CURRENT_TIMER_STACK
         CURRENT_TIMER_STACK.append(self)
@@ -134,6 +139,29 @@ class Timer(struct.Pytree, mutable=True):
         self.total += current_timer
         _ = CURRENT_TIMER_STACK.pop()
         assert _ is self
+
+
+class NullTimer(struct.Pytree):
+    """
+    A timer-compatible class that does nothing.
+
+    Used to return
+    """
+
+    def get_subtimer(self, name: str):
+        return self
+
+    def block_until_ready(self, args):
+        return args
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
+
+_NULLTIMER = NullTimer()
 
 
 @contextlib.contextmanager
@@ -149,21 +177,35 @@ def timed_scope(name: str = None, force: bool = False):
     timer is in use as well. If `force` is specified, the timer
     and nested timers will always run.
 
+    .. note::
+
+        If you are using JAX functions in your code, to get reliable timing
+        results you should block the output of the function with `block_until_ready`.
+        As this can sensibly slow down your code, this is only done when `force=True`
+        or if a top-level timer is in use.
+
+        To block the output on those conditions, simply use `timer.block_until_ready(output)`
+        on the output of the function you want to time.
+
     Example:
 
         Time a section of code
 
         >>> import netket as nk
-        >>> import time
+        >>> import time; import jax
         >>>
-        >>> with nk.utils.timing.timed_scope(force=True) as t:
+        >>> with nk.utils.timing.timed_scope(force=True) as timer:
         ...    time.sleep(1)  # This line and the ones below are indented
         ...    with nk.utils.timing.timed_scope("subfunction 1"):
         ...       time.sleep(0.5)
         ...    with nk.utils.timing.timed_scope("subfunction 2"):
         ...       time.sleep(0.25)
+        ...    a = jax.random.normal(jax.random.key(1), (100,100))
+        ...    # Must block jax functions otherwise the timing is off
+        ...    timer.block_until_ready(timer)
+        ...    # doctest: +SKIP
         >>>
-        >>> t  # doctest: +SKIP
+        >>> timer  # doctest: +SKIP
         ╭──────────────────────── Timing Information ─────────────────────────╮
         │ Total: 1.763                                                        │
         │ ├── (28.7%) | subfunction 1 : 0.505 s                               │
@@ -197,10 +239,12 @@ def timed_scope(name: str = None, force: bool = False):
         with timer:
             yield timer
     else:  # disabled
-        yield None
+        yield _NULLTIMER
 
 
-def timed(fun: Callable[P, T] = None, name: str | None = None) -> Callable[P, T]:
+def timed(
+    fun: Callable[P, T] = None, name: str | None = None, block_until_ready: bool = True
+) -> Callable[P, T]:
     """
     Marks the decorated function to be timed individually in
     NetKet timing scopes.
@@ -213,6 +257,8 @@ def timed(fun: Callable[P, T] = None, name: str | None = None) -> Callable[P, T]
     Args:
         fun: Function to be decorated
         name: Name to use for the timing of this line.
+        block_until_ready: Calls `jax.block_until_ready` on the output if timing (default True),
+            which slows down the code but gives accurate timing results of JAX functions.
     """
     if fun is None:
         return functools.partial(timed, name=name)
@@ -226,8 +272,12 @@ def timed(fun: Callable[P, T] = None, name: str | None = None) -> Callable[P, T]
     @functools.wraps(fun)
     def timed_function(*args, **kwargs):
         __tracebackhide__ = True
-        with timed_scope(name):
-            return fun(*args, **kwargs)
+        with timed_scope(name) as ts:
+            result = fun(*args, **kwargs)
+            if block_until_ready:
+                return ts.block_until_ready(result)
+            else:
+                return result
 
     return timed_function
 
