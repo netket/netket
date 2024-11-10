@@ -352,11 +352,13 @@ def test_qutip_conversion(vstate):
         pytest.param(
             op,
             id=name,
-            marks=pytest.mark.xfail(
-                reason="MUSTFIX: Non hermitian gradient is known to be wrong"
-            )
-            if not op.is_hermitian
-            else [],
+            marks=(
+                pytest.mark.xfail(
+                    reason="MUSTFIX: Non hermitian gradient is known to be wrong"
+                )
+                if not op.is_hermitian
+                else []
+            ),
         )
         for name, op in operators.items()
     ],
@@ -419,11 +421,13 @@ def test_expect(vstate, operator):
         pytest.param(
             op,
             id=name,
-            marks=pytest.mark.xfail(
-                reason="MUSTFIX: Non-hermitian and Squared forces known to be wrong"
-            )
-            if isinstance(op, nk.operator.Squared) or (not op.is_hermitian)
-            else [],
+            marks=(
+                pytest.mark.xfail(
+                    reason="MUSTFIX: Non-hermitian and Squared forces known to be wrong"
+                )
+                if isinstance(op, nk.operator.Squared) or (not op.is_hermitian)
+                else []
+            ),
         )
         for name, op in operators.items()
     ],

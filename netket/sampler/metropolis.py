@@ -211,6 +211,7 @@ class MetropolisSampler(Sampler):
 
     The dtype of the sampled states can be chosen.
     """
+
     rule: MetropolisRule = None
     """The Metropolis transition rule."""
     sweep_size: int = struct.field(pytree_node=False, default=None)

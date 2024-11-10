@@ -31,9 +31,7 @@ from .state import MCMixedState
 
 
 @dispatch
-def get_local_kernel_arguments(  # noqa: F811
-    vstate: MCMixedState, Ô: DiscreteOperator
-):
+def get_local_kernel_arguments(vstate: MCMixedState, Ô: DiscreteOperator):  # noqa: F811
     check_hilbert(vstate.diagonal.hilbert, Ô.hilbert)
 
     σ = vstate.diagonal.samples

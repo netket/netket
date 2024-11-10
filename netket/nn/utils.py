@@ -248,7 +248,7 @@ def _get_output_idx(
 
 
 def _separate_binary_indices(
-    shape: tuple[int, ...]
+    shape: tuple[int, ...],
 ) -> tuple[tuple[int, ...], tuple[int, ...]]:
     binary_indices = tuple([i for i in range(len(shape)) if shape[i] == 2])
     non_binary_indices = tuple([i for i in range(len(shape)) if shape[i] != 2])

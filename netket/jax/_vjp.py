@@ -183,8 +183,7 @@ def vjp(
     *primals: Any,
     has_aux: Literal[False] = False,
     conjugate: bool = False,
-) -> tuple[T, Callable]:
-    ...
+) -> tuple[T, Callable]: ...
 
 
 @overload
@@ -193,8 +192,7 @@ def vjp(
     *primals: Any,
     has_aux: Literal[True],
     conjugate: bool = False,
-) -> tuple[T, Callable, U]:
-    ...
+) -> tuple[T, Callable, U]: ...
 
 
 def vjp(

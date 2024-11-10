@@ -14,8 +14,7 @@ from flax import serialization
 class ShardedDeserializationFunction(Protocol):
     def __call__(
         self, value_target: jax.Array, value_state: jax.Array, *, name: str = "."
-    ) -> jax.Array:
-        ...
+    ) -> jax.Array: ...
 
 
 @dataclasses.dataclass

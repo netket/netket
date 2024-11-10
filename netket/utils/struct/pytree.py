@@ -330,7 +330,10 @@ class Pytree(metaclass=PytreeMeta):
         pytree: "Pytree",
         *,
         with_key_paths: bool,
-    ) -> tuple[tuple[tp.Any, ...], tp.Mapping[str, tp.Any],]:
+    ) -> tuple[
+        tuple[tp.Any, ...],
+        tp.Mapping[str, tp.Any],
+    ]:
         all_vars = vars(pytree).copy()
         static = {k: all_vars.pop(k) for k in pytree._pytree__static_fields}
 
