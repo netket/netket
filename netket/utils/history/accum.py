@@ -20,7 +20,7 @@ from flax.core import FrozenDict
 
 from ..dispatch import dispatch
 
-from . import History
+from .history import History
 
 AccumulatorFun = Callable[[Any, Any], Any]
 
