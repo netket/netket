@@ -31,19 +31,14 @@ pytestmark = common.skipif_distributed
 SEED = 214748364
 
 
-def _setup_system(L, *, model=None, dtype=np.complex128, sampler="exact"):
+def _setup_system(L, *, model=None, dtype=np.complex128):
     g = nk.graph.Chain(length=L)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
     if model is None:
         model = nk.models.RBM(alpha=1, param_dtype=dtype)
 
-    if sampler == "exact":
-        sa = nk.sampler.ExactSampler(hilbert=hi)
-    elif sampler == "metropolis":
-        sa = nk.sampler.MetropolisLocal(hilbert=hi)
-    else:
-        raise ValueError(f"Invalid sampler: {sampler}")
+    sa = nk.sampler.ExactSampler(hilbert=hi)
 
     vs = nk.vqs.MCState(sa, model, n_samples=1000, seed=SEED)
 
