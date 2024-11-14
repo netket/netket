@@ -55,6 +55,8 @@ class QGTJacobianPyTreeT(LinearOperator):
                   into real and imaginary part.
         - "complex": for complex-valued R->C and C->C Ansätze, splits the complex
                   inputs and outputs into real and imaginary part
+        - "imag": For the imaginary part of the QGT. Solve in this case builds the
+                  purely imaginary hermitian matrix to solve the linear system.
         - "holomorphic": for any Ansätze. Does not split complex values.
         - "auto": autoselect real or complex.
     """
@@ -86,7 +88,7 @@ class QGTJacobianPyTreeT(LinearOperator):
         if self.scale is not None:
             vec = jax.tree_util.tree_map(jnp.multiply, vec, self.scale)
 
-        result = mat_vec(vec, self.O, self.diag_shift)
+        result = mat_vec(vec, self.O, self.diag_shift, imag_part=(self.mode == "imag"))
 
         if self.scale is not None:
             result = jax.tree_util.tree_map(jnp.multiply, result, self.scale)
@@ -134,7 +136,25 @@ class QGTJacobianPyTreeT(LinearOperator):
         # mode=holomorphic to disable splitting the complex part
         unscaled_self = self.replace(scale=None, _in_solve=True)
 
-        out, info = solve_fun(unscaled_self, y, x0=x0)
+        if self.mode == "imag":
+            # If we want to solve the linear system IM(G)x=vec,
+            # the G matrix is hermitian so its imaginary part is skew-simmetric
+            # and has purely imaginary eigenvalues. This is extemely unstable
+            # numerically, so we instead solve the problem
+            # i Im(G) x = i Vec, such that the matrix becomes hermitian and the
+            # solving algorithm are more stable.
+            # Then, we take the real part of the solution.
+            #
+            # To multiply Im(G) by i, as Im(G) = Oₗ† Oᵣ , I can multiply
+            # O by √i
+            #
+            sqrt_i_O = nkjax.tree_ax(jnp.sqrt(1j), unscaled_self.O)
+            y_vec = nkjax.tree_ax(1j, y)
+            unscaled_self = unscaled_self.replace(O=sqrt_i_O)
+            out, info = solve_fun(unscaled_self, y_vec, x0=x0)
+            out = jax.tree_util.tree_map(lambda x: x.real, out)
+        else:
+            out, info = solve_fun(unscaled_self, y, x0=x0)
 
         if self.scale is not None:
             out = jax.tree_util.tree_map(jnp.divide, out, self.scale)
@@ -155,19 +175,103 @@ class QGTJacobianPyTreeT(LinearOperator):
             In R→R and R→C modes, real and imaginary parts of parameters get own rows/columns
         """
         O = self.O
-        if self.mode == "complex":
+        if self.mode == "complex" or self.mode == "imag":
             # I want to iterate across the samples and real/imaginary part
             O = jax.tree_util.tree_map(lambda x: x.reshape(-1, *x.shape[2:]), O)
         O = jax.vmap(lambda l: nkjax.tree_ravel(l)[0])(O)
 
         if self.scale is None:
-            diag = jnp.eye(O.shape[1])
+            diag = jnp.eye(O.shape[-1])
         else:
             scale, _ = nkjax.tree_ravel(self.scale)
             O = O * scale[jnp.newaxis, :]
             diag = jnp.diag(scale**2)
 
-        return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag
+        # concatenate samples with real/Imaginary dimension
+        if self.mode == "imag":
+            O = O.reshape(O.shape[0] // 2, 2, -1)
+
+            flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
+            Ol = (flip_sign * O).reshape(-1, O.shape[-1])
+            Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
+            return mpi.mpi_sum_jax(Ol.T @ Or)[0] + self.diag_shift * diag
+        else:
+            return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag
+
+    def to_real_part(self) -> "QGTJacobianPyTreeT":
+        """
+        Returns the operator computing real part of the complex, non holomorphic QGT.
+
+        The real part of the QGT is used in the Stochastic Reconfiguration (SR)
+        algorithm as well as in the McLachlan Variational Principles used to simulate
+        Quantum Dynamics.
+        See Table 1 in `"Theory of Variational Quantum Simulation" by McLachlan et al.
+        <https://arxiv.org/pdf/1812.08767>`_ for more details.
+
+        .. note::
+
+            This function can only be called on the non-holomorphic QGT.
+
+        .. note::
+
+            The returned object is another :code:`QGTJacobian***` object.
+
+            NetKet does not currently implement the *full* complex QGT object
+            for non-holomorphic functions, instead you need to keep on hand
+            the two separate terms obtained by calling
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_real_part` and
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_imag_part`.
+
+        See also :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_imag_part`.
+        """
+        if self.mode == "imag":
+            return self.replace(mode="complex")
+        elif self.mode == "complex":
+            return self
+        elif self.mode == "real":
+            return self
+        else:
+            raise ValueError(
+                "Can only convert to real part the imaginary part of the"
+                "QGT, not the holomorphic or sign-less one."
+            )
+
+    def to_imag_part(self) -> "QGTJacobianPyTreeT":
+        """
+        Returns the operator computing imaginary part of the complex, non holomorphic QGT.
+
+        The imaginary part of the QGT is necessary to implement the TDVP variational
+        principle for the quantum dynamics.
+        See Table 1 in `"Theory of Variational Quantum Simulation" by Yuan et al.
+        <https://arxiv.org/pdf/1812.08767>`_ for more details.
+
+        .. note::
+
+            This function can only be called on the non-holomorphic QGTs
+            of a complex-valued wave-function.
+
+        .. note::
+
+            The returned object is another :code:`QGTJacobian***` object.
+
+            NetKet does not currently implement the *full* complex QGT object
+            for non-holomorphic functions, instead you need to keep on hand
+            the two separate terms obtained by calling
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_real_part` and
+            :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_imag_part`.
+
+        See also :meth:`~netket.optimizer.qgt.QGTJacobianDenseT.to_real_part`.
+        """
+
+        if self.mode == "complex":
+            return self.replace(mode="imag")
+        elif self.mode == "imag":
+            return self
+        else:
+            raise ValueError(
+                "Can only convert to imaginary part the real part of the"
+                "QGT, not the holomorphic or sign-less one."
+            )
 
     def __repr__(self):
         return (
@@ -202,11 +306,36 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
     """
     Compute ⟨O† O⟩v = ∑ₗ ⟨Oₖᴴ Oₗ⟩ vₗ
     """
+    # w = _jvp(oks, v).conjugate()
+    # r = _vjp(oks, w)
+    # res = nkjax.tree_conj(r)
+    # res = nkjax.tree_cast(res, v)
+
     res = nkjax.tree_conj(_vjp(oks, _jvp(oks, v).conjugate()))
     return nkjax.tree_cast(res, v)
 
 
-def mat_vec(v: PyTree, centered_oks: PyTree, diag_shift: Scalar) -> PyTree:
+def _imag_mat_vec(v: PyTree, oks: PyTree) -> PyTree:
+    # jvp
+    oks_r = jax.tree_util.tree_map(lambda o: jnp.flip(o, axis=1), oks)
+    w = _jvp(oks_r, v).conjugate()
+
+    # prepare
+    flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
+    oks_l = jax.tree_util.tree_map(
+        lambda o: o
+        * flip_sign.reshape(tuple(2 if i == 1 else 1 for i in range(o.ndim))),
+        oks,
+    )
+
+    # vjp
+    res = nkjax.tree_conj(_vjp(oks_l, w))
+    return nkjax.tree_cast(res, v)
+
+
+def mat_vec(
+    v: PyTree, centered_oks: PyTree, diag_shift: Scalar, imag_part: bool = False
+) -> PyTree:
     """
     Compute (S + δ) v = 1/n ⟨ΔO† ΔO⟩v + δ v = ∑ₗ 1/n ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
 
@@ -218,7 +347,16 @@ def mat_vec(v: PyTree, centered_oks: PyTree, diag_shift: Scalar) -> PyTree:
         v: pytree representing the vector v compatible with centered_oks
         centered_oks: pytree of gradients 1/√n ΔOⱼₖ
         diag_shift: a scalar diagonal shift δ
+        imag_part: A boolean specifying whether we are applying the real or imaginary part
+            of the QGT.
+
     Returns:
         a pytree corresponding to the sr matrix-vector product (S + δ) v
     """
-    return nkjax.tree_axpy(diag_shift, v, _mat_vec(v, centered_oks))
+
+    # Different implementations depending on real or imaginary part of the QGT
+    if imag_part:
+        S_times_v = _imag_mat_vec(v, centered_oks)
+    else:
+        S_times_v = _mat_vec(v, centered_oks)
+    return nkjax.tree_axpy(diag_shift, v, S_times_v)

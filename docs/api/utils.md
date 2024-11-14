@@ -27,6 +27,7 @@ Utility functions and classes.
 
    struct.Pytree
    struct.field
+   struct.ShardedFieldSpec
 ```
 
 

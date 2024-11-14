@@ -693,6 +693,383 @@ class UnoptimalSRtWarning(NetketWarning):
         )
 
 
+class InvalidConstraintInterface(NetketError):
+    """Error thrown when a constraint for an Homogeneous
+    Hilbert space does not conform to the expected interface.
+
+    A custom Constraint must respect the :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`
+    interface by inheriting that class and by having a jax-jittable :code:`__call__` method.
+
+    If you see this error, your constraint might just be a function without inheriting from this
+    class, or it does not have a jittable call method.
+
+    See the class documentation of :class:`netket.hilbert.constraint.DiscreteHilbertConstraint` for
+    some examples.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """Your custom constraint does not respect the constraint interface, probably because
+            it does not inherit from `netket.hilbert.constraint.DiscreteHilbertConstraint`, because it does not
+            have a jittable `__call__` method.
+
+            Look at the documentation online to learn more.
+            """
+        )
+
+
+class UnhashableConstraintError(NetketError):
+    """
+    Error thrown when a constraint is not a fully static pytree, and it cannot be hashed.
+
+    This error is thrown when a constraint is a PyTree with some leaf nodes.
+    This usually happens because you did not mark all the pytree fields in your constraint
+    as `struct.field(pytree_node=False)`.
+
+    For a good example, see the documentation of :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`.
+    Below, you find a coincise example of how to fix this error:
+
+    .. code-block:: python
+
+        from typing import Any
+        from netket.utils import struct
+        from netket.hilbert.index.constraints import DiscreteHilbertConstraint
+
+        class MyCustomConstraint(DiscreteHilbertConstraint):
+            fieldA: Any = struct.field(pytree_node=False)
+            fieldB: Any = struct.field(pytree_node=False)
+            def __init__(self, fieldA, fieldB):
+                self.fieldA = fieldA
+                self.fieldB = fieldB
+
+            def __call__(self, x):
+                ....
+
+            def __hash__(self):
+                return hash(("MyCustomConstraint", self.fieldA, self.fieldB))
+
+            def __eq__(self, other):
+                if isinstance(other, UnhashableConstraintError):
+                    return self.fieldA == other.fieldA and self.fieldB == other.fieldB
+                return False
+
+    """
+
+    def __init__(self, constraint):
+        constraintT = type(constraint)
+        super().__init__(
+            f"""
+            The custom constraint type {constraintT} is a pytree with some nodes, meaning that it cannot be
+            safely passed to jax as a static argument.
+
+            This probably happened because some of the fields in your constraint are not marked as
+            `nk.utils.struct.field(pytree_node=False)`.
+
+            To fix this error, you should mark all fields in your constraint as per the example below:
+                from typing import Any
+                from netket.utils import struct
+
+                class MyCustomConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
+                    fieldA: Any = struct.field(pytree_node=False)
+                    fieldB: Any = struct.field(pytree_node=False)
+                    def __init__(self, fieldA, fieldB):
+                        self.fieldA = fieldA
+                        self.fieldB = fieldB
+
+                    def __call__(self, x):
+                        ....
+
+                    def __hash__(self):
+                        return hash(("MyCustomConstraint", self.fieldA, self.fieldB))
+
+                    def __eq__(self, other):
+                        if isinstance(other, UnhashableConstraintError):
+                            return self.fieldA == other.fieldA and self.fieldB == other.fieldB
+                        return False
+
+            """
+        )
+
+
+class UnoptimisedCustomConstraintRandomStateMethodWarning(NetketWarning):
+    """
+    Warning thrown when calling `random_state` on a Hilbert space with a custom constraint.
+
+    This warning is thrown when the custom Hilbert space constraint does not have a custom
+    `random_state` method implemented. This will default to a slow, possibly infinitely-looping
+    method to generate random states.
+
+    The default fallback works by generating random states in the unconstrained Hilbert space
+    until one is found that satisfies the constraint. This can be very slow, and even never
+    terminate if the constraint is too restrictive.
+
+    .. note::
+
+        Generating random states is only required when initializing a Markov Chain Monte Carlo
+        sampler, but is generally not needed during on. Therefore, even if this warning is thrown,
+        it might not be a problem if you do not reset your chains very often.
+
+        In general, if your constraint is not overly (exponentially) restrictive, you may not
+        need to worry about this warning.
+
+    .. note::
+
+        The fallback implementation is not optimised, especially on GPUs. It will generate 1 random
+        state at a time until it finds one that satisfies the constraint, and will repeat this for
+        every different chain.
+
+        We welcome contributions to improve this method to perform the loop in batches.
+
+    .. note::
+
+        You can silence this warning by setting the environment variable ``NETKET_RANDOM_STATE_FALLBACK_WARNING=0``
+        or by setting ``nk.config.netket_random_state_fallback_warning = 0`` in your code.
+
+
+    Example implementation of a custom `random_state` method:
+    ---------------------------------------------------------
+
+    Implementations of :func:`netket.hilbert.random_state` are dispatched based on the Hilbert space and
+    constraint type using Plum's multiple dispatch (see the link <https://beartype.github.io/plum/intro.html>_
+
+    See an example here
+
+    .. code-block:: python
+
+        @dispatch.dispatch
+        def random_state(hilb: HilbertType, constraint: ConstraintType, key, batches: int, *, dtype=None):
+            # your custom implementation here
+            # You should return a batch of `batches` random states, with the given dtype.
+            # return jax.Array with shape (batches, hilb.size) and dtype dtype.
+
+
+    .. note::
+
+        We welcome contributions to improve the documentation here.
+
+    """
+
+    def __init__(self, hilbert_space, constraint):
+        hilb_typ = f"{type(hilbert_space).__module__}.{type(hilbert_space).__name__}"
+        constraint_typ = f"{type(constraint).__module__}.{type(constraint).__name__}"
+        super().__init__(
+            f"""
+            Defaulting to a slow, possibly infinitely-looping method to generate random state of
+            the current Hilbert space with a custom constraint. Consider implementing a
+            custom `random_state` method for your constraint if this method takes a long time to
+            generate a random state.
+
+            ================================================================
+            You can silence this warning by setting the environment variable
+            ``NETKET_RANDOM_STATE_FALLBACK_WARNING=0``
+            or by setting ``nk.config.netket_random_state_fallback_warning = False``
+            in your code.
+            ================================================================
+
+            To generate a custom random_state dispatched method, you should use multiple dispatch
+            following the following syntax:
+
+            >>> import netket as nk
+            >>> from netket.utils import dispatch
+            >>>
+            >>> @dispatch.dispatch
+            >>> def random_state(hilb: {hilb_typ},
+                                constraint: {constraint_typ},
+                                key,
+                                batches: int,
+                                *,
+                                dtype=None):
+            >>>    # your custom implementation here
+            >>>    # You should return a batch of `batches` random states, with the given dtype.
+            >>>    # return jax.Array with shape (batches, hilb.size) and dtype dtype.
+
+            """
+        )
+
+
+class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError):
+    """
+    Error thrown when trying to assign an undeclared attribute to a NetKet-style Pytree.
+
+    This error is thrown when you try to assign an attribute to a NetKet-style Pytree ( a class
+    inheriting from :class:`netket.utils.struct.Pytree`) that was not declared in the class definition.
+
+    This error is thrown to prevent you from accidentally creating a new attribute that is not
+    part of the Pytree structure, which would lead to unexpected behaviour.
+
+    To fix this error, you should declare the attribute in the class definition, as shown in the example below:
+
+    .. code-block:: python
+
+        from netket.utils import struct
+
+        class MyPytree(struct.Pytree):
+            # This line below was probably missing in your class definition
+            my_attribute: Any
+
+            def __init__(self, my_attribute):
+                self.my_attribute = my_attribute
+
+    Note that if the field is not a jax-Array or another Pytree, you should instead declare it as a static
+    or non-node field, which will trigger recompilation when passed to jax functions, as shown below:
+
+    .. code-block:: python
+
+        from netket.utils import struct
+        import jax
+
+        class MyPytree(struct.Pytree):
+            my_dynamic_attribute: jax.Array
+            my_static_attribute : int = struct.field(pytree_node=False)
+
+            def __init__(self, dyn_val, static_val):
+                self.my_dynamic_attribute = dyn_val
+                self.my_static_attribute = static_val
+
+        leafs, structure = jax.tree.flatten(MyPytree(1, 2))
+        print(leafs)
+        # [1]
+        print(structure)
+        # PyTreeDef(CustomNode(MyPytree[{'_pytree__node_fields': ('my_dynamic_attribute',), 'my_static_attribute': 2}], [*]))
+
+    From which you should see that the list of leafs contains only the dynamic attribute, while the
+    structure, which is static information, holds the static attribute.
+
+    .. note::
+
+        You can also declare the class to have dynamic nodes, in which case the attributes will be inferred
+        automatically during the class initialization. However, this is not recomended as it is impossible
+        to declare nodes that are not jax-Arrays or Pytrees.
+
+        Regardless, if you wish to do so you should declare the class as follows:
+
+        .. code-block:: python
+
+            from netket.utils import struct
+
+            class MyPytree(struct.Pytree, dynamic_nodes=True):
+                def __init__(self, my_attribute):
+                    self.my_attribute = my_attribute
+
+    """
+
+    def __init__(self, pytree, attribute, valid_attributes):
+        pytreeT = f"{type(pytree).__module__}.{type(pytree).__name__}"
+        super().__init__(
+            f"""
+            Tried to assign an undeclared attribute "{attribute}" to the Pytree class "{pytreeT}" during
+            the __init__ method.
+
+            Declared attributes for "{pytreeT}" are "{valid_attributes}".
+
+            This error is thrown when you try to assign an attribute to a NetKet-style Pytree ( a class that
+            inherits from `nk.utils.struct.Pytree`) that was not declared in the class definition.
+
+            To fix this error, simply declare the attributes in the class definition as shown in the example below:
+
+                from netket.utils import struct
+                import jax
+
+                class MyPytree(struct.Pytree):
+                    my_dynamic_attribute: jax.Array
+                    my_static_attribute : int = struct.field(pytree_node=False)
+
+                    def __init__(self, dyn_val, static_val):
+                        self.my_dynamic_attribute = dyn_val
+                        self.my_static_attribute = static_val
+
+            """
+        )
+
+
+class UndeclaredSpinOderingWarning(NetketWarning):
+    """
+    Warning thrown when a Spin Hilbert space is created without specifying the spin ordering.
+
+    This warning is thrown in the transition period of NetKet 3.14 to NetKet 3.15 (september to
+    december 2024), to warn users that the correspondence between ±1 and spin up/down will change
+    according to the table below.
+
+    +----------+----------------------------------+-----------------------------------+
+    | State    | Old Behavior                     | New Behavior                      |
+    |          | :code:`inverted_ordering=True`   | :code:`inverted_ordering=False`   |
+    +==========+==================================+===================================+
+    | ↑ ↑ ↑    | -1 -1 -1                         | +1 +1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↑ ↓    | -1 -1 +1                         | +1 +1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↓ ↑    | -1 +1 -1                         | +1 -1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↑ ↓ ↓    | -1 +1 +1                         | +1 -1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↑ ↑    | +1 -1 -1                         | -1 +1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↑ ↓    | +1 -1 +1                         | -1 +1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↓ ↑    | +1 +1 -1                         | -1 -1 +1                          |
+    +----------+----------------------------------+-----------------------------------+
+    | ↓ ↓ ↓    | +1 +1 +1                         | -1 -1 -1                          |
+    +----------+----------------------------------+-----------------------------------+
+
+    The old behaviour is the default behaviour of NetKet 3.14 and before, while the new
+    behaviour will become the default starting 1st january 2025.
+    For that reason, in the transition period, we will print warnings asking to explicitly
+    specify which ordering you want
+
+    .. warning::
+
+        The ordering of the Spin Hilbert space basis has historically always been
+        such that `-1=↑, 1=↓`, but it will be changed 1st january 2025 to
+        be such that `1=↑, -1=↓`.
+
+        The change will break:
+            - code that relies on the assumption that -1=↑;
+            - all saves because the inputs to the network will change;
+            - custom operators that rely on the basis being ordered;
+
+        To avoid distruption, NetKet will support **both** conventions in the (near)
+        future. You can specify the ordering you need with :code:`inverted_ordering = True`
+        (historical ordering) or :code:`inverted_ordering=False` (future default behaviour).
+
+        If you do not specify this flag, a future version of NetKet might break your
+        serialized weights or other logic, so we strongly reccomend that you either
+        limit yourself to NetKet 3.14, or that you specify :code:`inverted_ordering`
+        explicitly.
+
+    To avoid this warning, you can :
+
+     - explicitly specify the ordering you want wit the `inverted_ordering` flag, which will
+       ensure that your code will still work in the future with no changes. If possible,
+       we suggest you use the new ordering `inverted_ordering=False`, but if you want to
+       keep loading parameters serialized before th switch, you should use `inverted_ordering=True`.
+
+     - You can silence this warning by setting the environment variable
+       ``NETKET_SPIN_ORDERING_WARNING=0`` or by setting
+       ``nk.config.netket_spin_ordering_warning = False`` in your code.
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            _dedent(
+                """
+                You have not explicitly specified the spin ordering for the Hilbert space.
+                The default behaviour is currently `-1=↑, 1=↓`, but it will be changed 1st january 2025 to `1=↑, -1=↓`.
+
+                - To maintain the current behaviour in the future, specify `inverted_ordering=True` (this
+                    allows you to load NN parameters you have saved in the past)
+                - To opt-in today in the future default, specify `inverted_ordering=False` (so your code will
+                    work without changes in the future)
+
+                If you do not care about this warning, you can silence it by setting the environment variable
+                `NETKET_SPIN_ORDERING_WARNING=0` or by executing `nk.config.netket_spin_ordering_warning = False`
+
+                This warning will be shown once per day during interactive sessions, and always in scripts and MPI/SLURM jobs unless silenced.
+                """
+            )
+        )
+
+
 #################################################
 # Functions to throw errors                     #
 #################################################
@@ -711,12 +1088,11 @@ def concrete_or_error(force, value, error_class, *args, **kwargs):
       *args: any additional argument and keyword argument to pass to the custom
         error type constructor.
     """
-    import jax
 
-    from jax.core import ConcretizationTypeError
+    from jax.core import ConcretizationTypeError, concrete_or_error
 
     try:
-        return jax.core.concrete_or_error(
+        return concrete_or_error(
             force,
             value,
             """

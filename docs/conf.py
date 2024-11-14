@@ -18,6 +18,16 @@ copyright = "2019-2024, The Netket authors - All rights reserved"
 release = nk.__version__
 
 
+# -- Readthedocs special settings --------------------------------------------
+# Define the canonical URL if you are using a custom domain on Read the Docs
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+
+# Tell Jinja2 templates the build is running on Read the Docs
+if os.environ.get("READTHEDOCS", "") == "True":
+    if "html_context" not in globals():
+        html_context = {}
+    html_context["READTHEDOCS"] = True
+
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -122,7 +132,7 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
-    "igraph": ("https://igraph.org/python/api/latest", None),
+    "igraph": ("https://python.igraph.org/en/stable/", None),
     "qutip": ("https://qutip.readthedocs.io/en/latest/", None),
     "pyscf": ("https://pyscf.org/", None),
 }

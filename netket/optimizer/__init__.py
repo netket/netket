@@ -20,7 +20,6 @@ from .preconditioner import (
     LinearPreconditioner,
     PreconditionerT,
     identity_preconditioner,
-    DeprecatedPreconditionerSignature as _DeprecatedPreconditionerSignature,
 )
 
 from .sr import SR

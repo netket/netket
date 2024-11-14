@@ -38,7 +38,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         >>> from netket.hilbert import Spin, Fock
         >>> hi = Fock(3)*Spin(0.5, 5)
         >>> print(hi)
-        Fock(n_max=3, N=1)⊗Spin(s=1/2, N=5)
+        Fock(n_max=3, N=1)⊗Spin(s=1/2, N=5, ordering=inverted)
         >>> isinstance(hi, nk.hilbert.TensorHilbert)
         True
         >>> type(hi)

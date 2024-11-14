@@ -106,8 +106,7 @@ def test_grad():
 
 @pytest.mark.parametrize(
     "Op",
-    ([pytest.param(nk.operator.Ising, id="numba")] if jax.process_count() < 2 else [])
-    + [pytest.param(nk.operator.IsingJax, id="jax")],
+    [pytest.param(nk.operator.IsingJax, id="IsingJax")],
 )
 @pytest.mark.parametrize(
     "qgt",
@@ -187,8 +186,7 @@ def test_qgt_onthefly():
 
 @pytest.mark.parametrize(
     "Op",
-    ([pytest.param(nk.operator.Ising, id="numba")] if jax.process_count() < 2 else [])
-    + [pytest.param(nk.operator.IsingJax, id="jax")],
+    [pytest.param(nk.operator.IsingJax, id="IsingJax")],
 )
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"

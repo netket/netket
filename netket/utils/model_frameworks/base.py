@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 import dataclasses
 import abc
+
+PyTree = Any
 
 
 @dataclasses.dataclass(frozen=True)
@@ -21,26 +25,56 @@ class ModuleFramework(abc.ABC):
     @staticmethod
     @abc.abstractmethod
     def is_loaded() -> bool:
-        pass
+        """
+        Returns True if this module framework has already been loaded by the user.
+        """
 
     @staticmethod
     @abc.abstractmethod
-    def is_my_module(module):
-        pass
+    def is_my_module(module: Any) -> bool:
+        """
+        Returns True if the given module is from this framework, False otherwise.
+
+        Args:
+            module: a module from an unknown framework.
+        """
 
     @staticmethod
     @abc.abstractmethod
-    def wrap(module):
+    def wrap(module: Any) -> tuple[PyTree | None, Any]:
+        """
+        Wraps the given module in a way that it behaves like a flax module, possibly
+        returning the parameters as well.
+
+        For flax-like modules, this should return None and the module itself. For
+        modules that store the parameters in the module itself, it should return the
+        parameters and a static object that can be used to apply the module.
+
+        Args:
+            A module from the framework corresponding to this class.
+
+        Returns:
+            A tuple with the parameters, if any, and the static module.
+        """
+        # return None, module
+
+    @staticmethod
+    def unwrap(module: Any, maybe_variables: PyTree | None) -> Any:
+        """
+        Undoes the wrapping done by `wrap`, restoring the original module.
+
+        For flax-like modules, this should do nothing. For modules that store
+        the parameters in the module itself, it should unwrap the module and
+        restore the parameters.
+
+        Args:
+            module: the module to unwrap
+            maybe_variables: the variables obtained from the wrapping, if any.
+
+        Returns:
+            The original module from this framework.
+        """
         return module
-
-    @staticmethod
-    def wrap_params(variables):
-        return {"params": variables}
-
-    @staticmethod
-    @abc.abstractmethod
-    def unwrap_params(wrapped_variables):
-        return wrapped_variables
 
 
 registered_frameworks = []
@@ -65,16 +99,12 @@ class UnknownFramework(ModuleFramework):
         return True
 
     @staticmethod
-    def is_my_module(module):
+    def is_my_module(module) -> bool:
         return False
 
     @staticmethod
-    def wrap(module):
+    def wrap(module) -> tuple:
         return module
-
-    @staticmethod
-    def unwrap_params(wrapped_variables):
-        return wrapped_variables
 
 
 def identify_framework(module):
@@ -85,7 +115,7 @@ def identify_framework(module):
     return UnknownFramework
 
 
-def maybe_wrap_module(module):
+def maybe_wrap_module(module) -> tuple:
     """
     Passing a module from an unknown framework (might be user defined module, a jax
     module, flax or haiku or anything else really), attempt to identify what is the
@@ -96,4 +126,6 @@ def maybe_wrap_module(module):
     """
     framewrk = identify_framework(module)
 
-    return framewrk, framewrk.wrap(module)
+    maybe_module_variables, static_module = framewrk.wrap(module)
+
+    return maybe_module_variables, static_module

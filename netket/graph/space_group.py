@@ -22,12 +22,13 @@ from collections.abc import Iterable, Sequence
 
 from .lattice import Lattice
 
-from netket.utils import struct
+from netket.utils import struct, deprecated_new_name
 from netket.utils.types import Array, Union
 from netket.utils.float import prune_zeros
 from netket.utils.dispatch import dispatch
 
 from netket.utils.group import (
+    Element,
     Identity,
     PointGroup,
     Permutation,
@@ -80,7 +81,7 @@ def _ensure_iterable(x):
 
 
 @struct.dataclass
-class SpaceGroupBuilder:
+class SpaceGroupBuilder(struct.Pytree):
     """
     Class to handle the space group symmetries of `Lattice`.
 
@@ -95,14 +96,57 @@ class SpaceGroupBuilder:
     """
 
     lattice: Lattice
-    point_group_: PointGroup
+    _point_group: PointGroup
 
-    def __post_init__(self):
-        object.__setattr__(
-            self,
-            "point_group_",
-            self.point_group_.replace(unit_cell=self.lattice.basis_vectors),
-        )
+    def __init__(self, lattice: Lattice, point_group: PointGroup):
+        """
+        Constructs the Space Group Builder used to concretize a point group
+        which knows nothing about how many sites there are in a lattice,
+        into a Permutation Group which can be used to perform calculations.
+
+        From the point of view of group theory, you can think of this as
+        taking the point group and returning a representation on the computational
+        basis defined by the lattice.
+
+        Args:
+            lattice: The lattice for which to represent the point group as
+                a permutation group
+            point_group: The point group to be represented
+        """
+        self.lattice = lattice
+
+        if not isinstance(lattice, Lattice):
+            raise TypeError(
+                "The lattice provided to Space Group Builder must "
+                "be an instance of `Lattice`. However the lattice you provided "
+                f"is of type {type(lattice)}."
+            )
+
+        if not isinstance(point_group, PointGroup):
+            extra_tip = ""
+            if isinstance(point_group, Element):
+                extra_tip = extra_tip + (
+                    "\n\n It seems you might have forgotten to wrap this "
+                    "single symmetry inside of a nk.utils.group.PointGroup."
+                )
+            raise TypeError(
+                "The point group provided to Space Group Builder must "
+                "be an instance of `PointGroup`. However the lattice you provided "
+                f"is of type {type(point_group)}. {extra_tip}"
+            )
+
+        point_group = point_group.replace(unit_cell=lattice.basis_vectors)
+        self._point_group = point_group
+
+    @property
+    @deprecated_new_name("_point_group", reason="Consistency")
+    def point_group_(self) -> PointGroup:
+        """
+        Deprecated: Returns the internally stored point group as a point group,
+        instead of the one stored as a permutation group.
+        """
+
+        return self._point_group
 
     # TODO describe ordering of group elements here and later in docstring
     @struct.property_cached
@@ -111,7 +155,7 @@ class SpaceGroupBuilder:
         The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
         """
         perms = []
-        for p in self.point_group_:
+        for p in self._point_group:
             if isinstance(p, Identity):
                 perms.append(Identity())
             else:
@@ -125,7 +169,7 @@ class SpaceGroupBuilder:
         """The group of rotations (i.e. point group symmetries with determinant +1)
         as a `PermutationGroup` acting on the sites of `self.lattice`."""
         perms = []
-        for p in self.point_group_.rotation_group():
+        for p in self._point_group.rotation_group():
             if isinstance(p, Identity):
                 perms.append(Identity())
             else:
@@ -197,14 +241,14 @@ class SpaceGroupBuilder:
         wave vector `k`.
         """
         # calculate k' = p(k) for all p in the point group
-        big_star = np.tensordot(self.point_group_.matrices(), k, axes=1)
+        big_star = np.tensordot(self._point_group.matrices(), k, axes=1)
         big_star = self.lattice.to_reciprocal_lattice(big_star) % self.lattice.extent
         # should test for pbc before taking the modulus, but the only valid wave
         # vector for non-pbc axes is 0 and 0 % anything == 0
 
         # assumes point_group_[0] is the identity
         is_in_little_group = np.all(big_star == big_star[0], axis=1)
-        return np.arange(len(self.point_group_))[is_in_little_group]
+        return np.arange(len(self._point_group))[is_in_little_group]
 
     def little_group(self, *k: Array) -> PointGroup:
         """
@@ -219,8 +263,8 @@ class SpaceGroupBuilder:
         """
         k = _ensure_iterable(k)
         return PointGroup(
-            [self.point_group_[i] for i in self._little_group_index(k)],
-            ndim=self.point_group_.ndim,
+            [self._point_group[i] for i in self._little_group_index(k)],
+            ndim=self._point_group.ndim,
             unit_cell=self.lattice.basis_vectors,
         )
 
@@ -233,7 +277,7 @@ class SpaceGroupBuilder:
         """
         idx = self._little_group_index(k)
         CT = self.little_group(k).character_table()
-        CT_full = np.zeros((CT.shape[0], len(self.point_group_)), dtype=CT.dtype)
+        CT_full = np.zeros((CT.shape[0], len(self._point_group)), dtype=CT.dtype)
         CT_full[:, idx] = CT
         return CT_full / idx.size if divide else CT_full
 
@@ -254,7 +298,7 @@ class SpaceGroupBuilder:
         """
         k = _ensure_iterable(k)
         # Wave vectors
-        big_star_Cart = np.tensordot(self.point_group_.matrices(), k, axes=1)
+        big_star_Cart = np.tensordot(self._point_group.matrices(), k, axes=1)
         big_star = self.lattice.to_reciprocal_lattice(big_star_Cart) * (
             2 * pi / self.lattice.extent
         )
@@ -263,11 +307,11 @@ class SpaceGroupBuilder:
         #     of irrep #i for the little group of p(k) is the equivalent
         # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
         point_group_factors = self._little_group_irreps(k, divide=True)[
-            :, self.point_group_.conjugacy_table
+            :, self._point_group.conjugacy_table
         ] * np.exp(
             -1j
             * np.tensordot(
-                self.point_group_.translations(), big_star_Cart, axes=(-1, -1)
+                self._point_group.translations(), big_star_Cart, axes=(-1, -1)
             )
         )
         # Translational factors
@@ -279,11 +323,11 @@ class SpaceGroupBuilder:
                 [1] * axis
                 + [n_trans]
                 + [1] * (self.lattice.ndim - 1 - axis)
-                + [len(self.point_group_)]
+                + [len(self._point_group)]
             )
             trans_factors.append(factors.reshape(shape))
         trans_factors = reduce(np.multiply, trans_factors).reshape(
-            -1, len(self.point_group_)
+            -1, len(self._point_group)
         )
 
         # Multiply the factors together and sum over the "p" PGSymmetry axis
@@ -313,7 +357,7 @@ class SpaceGroupBuilder:
         # Little-group irrep factors
         # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
         point_group_factors = self._little_group_irreps(k) * np.exp(
-            -1j * (self.point_group_.translations() @ k)
+            -1j * (self._point_group.translations() @ k)
         )
         # Translational factors
         trans_factors = []

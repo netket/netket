@@ -114,7 +114,9 @@ class Ising(IsingBase):
         for i in range(x.shape[0]):
             mels[diag_ind] = 0.0
             for k in range(edges.shape[0]):
-                mels[diag_ind] += J * x[i, edges[k, 0]] * x[i, edges[k, 1]]
+                mels[diag_ind] += (
+                    J * (2 * x[i, edges[k, 0]] - 1) * (2 * x[i, edges[k, 1]] - 1)
+                )
 
             odiag_ind = 1 + diag_ind
 
@@ -123,7 +125,7 @@ class Ising(IsingBase):
             x_prime[diag_ind : (diag_ind + n_conn)] = np.copy(x[i])
 
             for j in range(n_sites):
-                x_prime[j + odiag_ind][j] *= -1.0
+                x_prime[j + odiag_ind][j] = np.mod(x_prime[j + odiag_ind][j] + 1, 2)
 
             diag_ind += n_conn
 
@@ -160,16 +162,10 @@ class Ising(IsingBase):
             NumbaOperatorGetConnDuringTracingError,
             self,
         )
+        x_ids = self.hilbert.states_to_local_indices(x)
 
-        return self._flattened_kernel(x, sections, self.edges, self._h, self._J)
-
-    def _get_conn_flattened_closure(self):
-        _edges = self._edges
-        _h = self._h
-        _J = self._J
-        fun = self._flattened_kernel
-
-        def gccf_fun(x, sections):  # pragma: no cover
-            return fun(x, sections, _edges, _h, _J)
-
-        return jit(nopython=True)(gccf_fun)
+        xp_ids, mels = self._flattened_kernel(
+            x_ids, sections, self.edges, self._h, self._J
+        )
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
+        return xp, mels

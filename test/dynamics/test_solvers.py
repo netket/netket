@@ -16,10 +16,18 @@ import pytest
 import numpy as np
 
 import jax
-import scipy.integrate as sci
 
-from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
-from netket.experimental.dynamics._rk_tableau_definitions import (
+from netket.experimental.dynamics import (
+    Integrator,
+    Euler,
+    Heun,
+    Midpoint,
+    RK4,
+    RK12,
+    RK23,
+    RK45,
+)
+from netket.experimental.dynamics._rk._tableau import (
     bt_feuler,
     bt_heun,
     bt_midpoint,
@@ -35,7 +43,7 @@ from .. import common
 pytestmark = common.skipif_distributed
 
 
-tableaus = {
+tableaus_rk = {
     "bt_feuler": bt_feuler,
     "bt_heun": bt_heun,
     "bt_midpoint": bt_midpoint,
@@ -60,7 +68,7 @@ explicit_adaptive_solvers = {
     "RK45": RK45,
 }
 
-tableaus_params = [pytest.param(obj, id=name) for name, obj in tableaus.items()]
+rk_tableaus_params = [pytest.param(obj, id=name) for name, obj in tableaus_rk.items()]
 explicit_fixed_step_solvers_params = [
     pytest.param(obj, id=name) for name, obj in explicit_fixed_step_solvers.items()
 ]
@@ -69,29 +77,28 @@ explicit_adaptive_solvers_params = [
 ]
 
 
-@pytest.mark.parametrize("tableau", tableaus_params)
-def test_tableau(tableau: str):
+@pytest.mark.parametrize("tableau", rk_tableaus_params)
+def test_tableau_rk(tableau: str):
     assert tableau.name != ""
-    td = tableau.data
 
-    for x in td.a, td.b, td.c:
+    for x in tableau.a, tableau.b, tableau.c:
         assert np.all(np.isfinite(x))
 
-    assert td.a.ndim == 2
+    assert tableau.a.ndim == 2
     # a should be strictly upper triangular
-    np.testing.assert_array_equal(np.triu(td.a), np.zeros_like(td.a))
+    np.testing.assert_array_equal(np.triu(tableau.a), np.zeros_like(tableau.a))
     # c's should be in [0, 1]
-    assert np.all(td.c >= 0.0)
-    assert np.all(td.c <= 1.0)
+    assert np.all(tableau.c >= 0.0)
+    assert np.all(tableau.c <= 1.0)
 
-    assert len(td.order) in (1, 2)
-    assert len(td.order) == td.b.ndim
+    assert len(tableau.order) in (1, 2)
+    assert len(tableau.order) == tableau.b.ndim
 
-    assert td.a.shape[0] == td.a.shape[1]
-    assert td.a.shape[0] == td.b.shape[-1]
-    assert td.a.shape[0] == td.c.shape[0]
-    if len(td.order) == 2:
-        assert td.b.shape[0] == 2
+    assert tableau.a.shape[0] == tableau.a.shape[1]
+    assert tableau.a.shape[0] == tableau.b.shape[-1]
+    assert tableau.a.shape[0] == tableau.c.shape[0]
+    if len(tableau.order) == 2:
+        assert tableau.b.shape[0] == 2
 
 
 @pytest.mark.parametrize("method", explicit_fixed_step_solvers_params)
@@ -112,17 +119,24 @@ def test_ode_solver(method):
     y0 = np.array([1.0])
     times = np.linspace(0, n_steps * dt, n_steps, endpoint=False)
 
-    sol = sci.solve_ivp(ode, (0.0, n_steps * dt), y0, t_eval=times)
-    y_ref = sol.y[0]
+    y_ref = y0 * np.exp(-(times**2) / 2)
 
-    solv = solver(ode, 0.0, y0)
+    integrator = Integrator(
+        f=ode,
+        solver=solver,
+        t0=0.0,
+        y0=y0,
+        use_adaptive=solver.adaptive,
+        norm=None,
+        parameters=solver.integrator_params,
+    )
 
     t = []
     y_t = []
     for _ in range(n_steps):
-        t.append(solv.t)
-        y_t.append(solv.y)
-        solv.step()
+        t.append(integrator.t)
+        y_t.append(integrator.y)
+        integrator.step()
     y_t = np.asarray(y_t)
 
     assert np.all(np.isfinite(t))
@@ -132,10 +146,7 @@ def test_ode_solver(method):
 
     # somewhat arbitrary tolerances, that may still help spot
     # errors introduced later
-    rtol = {
-        "Euler": 1e-2,
-        "RK4": 5e-4,
-    }.get(solver.tableau.name, 1e-3)
+    rtol = {"Euler": 1e-2, "RK4": 5e-4}.get(solver.tableau.name, 1e-3)
     np.testing.assert_allclose(y_t[:, 0], y_ref, rtol=rtol)
 
 
@@ -146,20 +157,27 @@ def test_ode_repr():
         return -t * x
 
     solver = RK23(dt=dt, adaptive=True)
-
     y0 = np.array([1.0])
-    solv = solver(ode, 0.0, y0)
+    integrator = Integrator(
+        f=ode,
+        solver=solver,
+        t0=0.0,
+        y0=y0,
+        use_adaptive=solver.adaptive,
+        norm=None,
+        parameters=solver.integrator_params,
+    )
 
-    assert isinstance(repr(solv), str)
-    assert isinstance(repr(solv._rkstate), str)
+    assert isinstance(repr(integrator), str)
+    assert isinstance(repr(integrator._state), str)
 
     @jax.jit
     def _test_jit_repr(x):
-        assert isinstance(repr(x), str)
         return 1
 
-    _test_jit_repr(solv._rkstate)
-    # _test_jit_repr(solv) # this is broken. should be fixed in the zukumft
+    _test_jit_repr(integrator._state)
+    _test_jit_repr(integrator._solver.tableau)
+    _test_jit_repr(solver)
 
 
 def test_solver_t0_is_integer():
@@ -169,16 +187,20 @@ def test_solver_t0_is_integer():
     def df(t, y, stage=None):
         return np.sin(t) ** 2 * y
 
-    int_config = RK23(
-        dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1]
-    )
-    integrator = int_config(
-        df, 0, np.array([1.0])
+    solver = RK23(dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1])
+    integrator = Integrator(
+        f=df,
+        solver=solver,
+        t0=0,
+        y0=np.array([1.0]),
+        use_adaptive=solver.adaptive,
+        norm=None,
+        parameters=solver.integrator_params,
     )  # <-- the second argument has to be a float
 
     integrator.step()
-    assert integrator.t > 0.0
     assert integrator.t.dtype == integrator.dt.dtype
+    assert integrator.t > 0.0
 
 
 @pytest.mark.parametrize("solver", explicit_adaptive_solvers_params)
@@ -189,24 +211,32 @@ def test_adaptive_solver(solver):
         return -t * x
 
     y0 = np.array([1.0])
-    solv = solver(dt=0.2, adaptive=True, atol=0.0, rtol=tol)(ode, 0.0, y0)
+    solv = solver(dt=0.2, adaptive=True, atol=0.0, rtol=tol)
+    integrator = Integrator(
+        f=ode,
+        solver=solv,
+        t0=0.0,
+        y0=y0,
+        use_adaptive=solv.adaptive,
+        norm=None,
+        parameters=solv.integrator_params,
+    )
 
     t = []
     y_t = []
     last_step = -1
-    while solv.t <= 2.0:
-        # print(solv._rkstate)
-        if solv._rkstate.step_no != last_step:
-            last_step = solv._rkstate.step_no
-            t.append(solv.t)
-            y_t.append(solv.y)
-        solv.step()
+    while integrator.t <= 2.0:
+        # print(solv._state)
+        if integrator._state.step_no != last_step:
+            last_step = integrator._state.step_no
+            t.append(integrator.t)
+            y_t.append(integrator.y)
+        integrator.step()
     y_t = np.asarray(y_t)
+    t = np.asarray(t)
 
     # print(t)
-    sol = sci.solve_ivp(
-        ode, (0.0, 2.0), y0, t_eval=t, atol=0.0, rtol=tol, method="RK45"
-    )
-    y_ref = sol.y[0]
+    y_ref = y0 * np.exp(-(t**2) / 2)
 
     np.testing.assert_allclose(y_t[:, 0], y_ref, rtol=1e-5)
+    assert t[-1] > 0.0

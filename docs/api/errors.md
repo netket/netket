@@ -26,3 +26,27 @@ Netket has the following classes of errors.
   UnoptimalSRtWarning
   SymmModuleInvalidInputShape
 ```
+
+## Hilbert space errors
+
+Errors arising when working with Hilbert spaces and their constraints:
+
+```{eval-rst}
+.. autosummary::
+  :toctree: _generated/errors
+  :nosignatures:
+
+  UnoptimisedCustomConstraintRandomStateMethodWarning
+  UnhashableConstraintError
+  InvalidConstraintInterface
+```
+
+## PyTree errors
+
+```{eval-rst}
+.. autosummary::
+  :toctree: _generated/errors
+  :nosignatures:
+
+  NetKetPyTreeUndeclaredAttributeAssignmentError
+```

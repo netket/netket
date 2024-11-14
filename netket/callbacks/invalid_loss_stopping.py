@@ -19,11 +19,12 @@ from netket.utils import struct
 
 # Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
 class InvalidLossStopping(struct.Pytree, mutable=True):
-    """A simple callback to stop NetKet if there are no more improvements in the training.
-    based on `driver._loss_name`."""
+    """A simple callback to stop the optimisation when the monitored quantity becomes
+    invalid for at least `patience` steps.
+    """
 
     monitor: str
-    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
+    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
     patience: int | float
     """Number of epochs with invalid loss after which training will be stopped."""
 
@@ -33,13 +34,14 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
 
     def __init__(self, monitor: str = "mean", patience: int | float = 0):
         """
-        Construct a callback stopping theoptimisation when the monitored quantity
-        becaomes invalid for at least `patience` steps.
+        Construct a callback stopping the optimisation when the monitored quantity
+        becomes invalid for at least `patience` steps.
 
         Args:
             monitor: a string with the name of the quantity to be monitored. This
                 is applied to the standard loss optimised by a driver, such as the
-                Energy for the VMC driver (default: 'mean').
+                Energy for the VMC driver. Should be one of
+                'mean', 'variance', 'error_of_mean' (default: 'mean').
             patience: Number of steps to wait before stopping the execution after
                 the tracked quantity becomes invalid (default 0, meaning that it
                 stops immediately).
@@ -62,10 +64,16 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
         Returns:
             A boolean. If True, training continues, else, it does not.
         """
-        loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
-        if not np.isfinite(loss):
-            if step - self._last_valid_iter >= self.patience:
-                return False
-        else:
-            self._last_valid_iter = step
+        # clears the _last_valid_iter in case the driver was reset
+        if driver.step_count < self._last_valid_iter:
+            self._last_valid_iter = 0
+
+        if driver._loss_stats is not None:
+            loss = np.real(getattr(driver._loss_stats, self.monitor))
+
+            if not np.isfinite(loss):
+                if driver.step_count - self._last_valid_iter >= self.patience:
+                    return False
+            else:
+                self._last_valid_iter = driver.step_count
         return True

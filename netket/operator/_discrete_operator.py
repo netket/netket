@@ -19,10 +19,10 @@ from numba import jit
 from scipy.sparse import csr_matrix as _csr_matrix
 from scipy.sparse import issparse
 
+from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator
 from netket.utils.optional_deps import import_optional_dependency
-from netket.jax.sharding import replicate_sharding_decorator_for_get_conn_padded
 
 
 class DiscreteOperator(AbstractOperator):
@@ -44,7 +44,6 @@ class DiscreteOperator(AbstractOperator):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         raise NotImplementedError
 
-    @replicate_sharding_decorator_for_get_conn_padded
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
@@ -66,6 +65,11 @@ class DiscreteOperator(AbstractOperator):
             N-tensor containing the matrix elements :math:`O(x,x')`
             associated to each x' for every batch.
         """
+        if config.netket_experimental_sharding:
+            raise RuntimeError(
+                "When using Sharding mode, only jax operators are supported."
+            )
+
         n_visible = x.shape[-1]
         n_samples = x.size // n_visible
 
@@ -290,14 +294,3 @@ class DiscreteOperator(AbstractOperator):
 
     def to_linear_operator(self):
         return self.to_sparse()
-
-    def _get_conn_flattened_closure(self):
-        raise NotImplementedError(
-            """
-            _get_conn_flattened_closure not implemented for this operator type.
-            You were probably trying to use an operator with a sampler.
-            Please report this bug.
-
-            numba4jax won't work.
-            """
-        )

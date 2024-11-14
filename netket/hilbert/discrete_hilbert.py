@@ -24,6 +24,7 @@ import jax.numpy as jnp
 from equinox import error_if
 
 from netket.utils.types import Array, DType
+from netket.jax import sharding
 
 from .abstract_hilbert import AbstractHilbert
 from .index import is_indexable
@@ -135,7 +136,7 @@ class DiscreteHilbert(AbstractHilbert):
         raise NotImplementedError()  # pragma: no cover
 
     @partial(jax.jit, static_argnums=0)
-    def numbers_to_states(self, numbers: Array) -> Array:
+    def numbers_to_states(self, numbers: Array) -> jax.Array:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n.
 
@@ -158,18 +159,35 @@ class DiscreteHilbert(AbstractHilbert):
 
         numbers = jnp.asarray(numbers, dtype=np.int32)
 
-        numbers = error_if(
-            numbers,
-            (numbers >= self.n_states).any() | (numbers < 0).any(),
-            "Numbers outside the range of allowed states.",
-        )
+        # equinox.error_if is broken under shard_map.
+        # If we are using shard map, we skip this check
+        if sharding.SHARD_MAP_STACK_LEVEL == 0:
+            numbers = error_if(
+                numbers,
+                (numbers >= self.n_states).any() | (numbers < 0).any(),
+                "Numbers outside the range of allowed states.",
+            )
 
         return self._numbers_to_states(numbers.ravel()).reshape(
             (*numbers.shape, self.size)
         )
 
+    def _numbers_to_states(self, numbers: jax.Array) -> jax.Array:
+        """
+        This method must be overriden by subclasses to allow conversion of
+        numbers to states.
+
+        Args:
+            numbers: jax array encoding a batch of input numbers to be converted
+                into arrays of quantum numbers.
+
+        Returns:
+            A batch of states.
+        """
+        raise NotImplementedError
+
     @partial(jax.jit, static_argnums=0)
-    def states_to_numbers(self, states: Array) -> Array:
+    def states_to_numbers(self, states: Array) -> jax.Array:
         r"""Returns the basis state number corresponding to given quantum states.
 
         The states are given in a batch, such that states[k] has shape (hilbert.size).
@@ -199,6 +217,20 @@ class DiscreteHilbert(AbstractHilbert):
             return out[0]
         else:
             return out.reshape(states.shape[:-1])
+
+    def _states_to_numbers(self, states: jax.Array) -> jax.Array:
+        """
+        This method must be overriden by subclasses to allow conversion of
+        states to numbers.
+
+        Args:
+            states: jax array encoding a batch of input states to be converted
+                into a vector of numbers.
+
+        Returns:
+            A vector of numbers.
+        """
+        raise NotImplementedError
 
     def states(self) -> Iterator[np.ndarray]:
         r"""Returns an iterator over all valid configurations of the Hilbert space.

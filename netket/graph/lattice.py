@@ -34,6 +34,8 @@ from ._lattice_edge_logic import (
     create_site_positions,
     CustomEdgeT,
 )
+from ._lattice_draw import draw_lattice
+
 
 if TYPE_CHECKING:
     from .space_group import SpaceGroupBuilder
@@ -586,86 +588,5 @@ class Lattice(Graph):
             str(self.site_offsets).replace("\n", "\n" + " " * 8),
         )
 
-    def draw(
-        self,
-        ax=None,
-        figsize: tuple[int | float] | None = None,
-        node_color: str = "#1f78b4",
-        node_size: int = 300,
-        edge_color: str = "k",
-        curvature: float = 0.2,
-        font_size: int = 12,
-        font_color: str = "k",
-    ):
-        """
-        Draws the ``Lattice`` graph
-
-        Args:
-            ax: Matplotlib axis object.
-            figsize: (width, height) tuple of the generated figure.
-            node_color: String with the colour of the nodes.
-            node_size: Area of the nodes (as in matplotlib.pyplot.scatter).
-            edge_color: String with the colour of the edges.
-            curvature: A Bezier curve is fit, where the "height" of the curve is
-                `curvature` times the "length" of the curvature.
-            font_size: fontsize of the labels for each node.
-            font_color: Colour of the font used to label nodes.
-
-        Returns:
-            Matplotlib axis object containing the graph's drawing.
-        """
-        import matplotlib.pyplot as plt  # pylint: disable=import-outside-toplevel
-
-        # Check if lattice is 1D or 2D... or notnetketwarnings.py
-        if self._ndim == 1:
-            positions = _np.pad(self.positions, (0, 1), "constant")
-        elif self._ndim == 2:
-            positions = self.positions
-        else:
-            raise ValueError(
-                "Make sure that the graph is 1D or 2D in order to be drawn. "
-                f" Now it is {self._ndim}D"
-            )
-        if ax is None:
-            _, ax = plt.subplots(figsize=figsize)
-
-        for edge in self.edges():
-            x1, y1 = positions[edge[0]]
-            x2, y2 = positions[edge[1]]
-            annotation = ax.annotate(
-                "",
-                xy=(x1, y1),
-                xycoords="data",
-                xytext=(x2, y2),
-                textcoords="data",
-                arrowprops=dict(
-                    arrowstyle="-",
-                    color=edge_color,
-                    shrinkA=0,
-                    shrinkB=0,
-                    patchA=None,
-                    patchB=None,
-                    connectionstyle=f"arc3,rad={curvature}",
-                ),
-            )
-        ax.scatter(
-            *positions.T,
-            s=node_size,
-            c=node_color,
-            marker="o",
-            zorder=annotation.get_zorder() + 1,
-        )
-        for node in self.nodes():
-            x1, y1 = positions[node]
-            ax.text(
-                x1,
-                y1,
-                str(node),
-                horizontalalignment="center",
-                verticalalignment="center",
-                fontsize=font_size,
-                color=font_color,
-                zorder=annotation.get_zorder() + 1,
-            )
-        ax.axis("equal")
-        return ax
+    # Defined in another paper to keep the file small
+    draw = draw_lattice

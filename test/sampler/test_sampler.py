@@ -15,22 +15,23 @@
 import flax
 from jax import numpy as jnp
 
-from .. import common
+import pytest
 
 import numpy as np
-import pytest
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
+
 import jax
 from jax.nn.initializers import normal
 
 import netket as nk
+from netket import experimental as nkx
 from netket import config
 from netket.hilbert import DiscreteHilbert, Particle
 from netket.utils import array_in, mpi
 from netket.jax.sharding import device_count_per_rank
 
-from netket import experimental as nkx
 
+from .. import common
 
 pytestmark = common.skipif_mpi
 
@@ -93,27 +94,30 @@ samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange
 )
 
 if not config.netket_experimental_sharding:
-    samplers[
-        "Metropolis(Hamiltonian,numba operator): Spin"
-    ] = nk.sampler.MetropolisHamiltonian(
-        hi,
-        hamiltonian=ha,
-        reset_chains=True,
+    samplers["Metropolis(Hamiltonian,numba operator): Spin"] = (
+        nk.sampler.MetropolisHamiltonian(
+            hi,
+            hamiltonian=ha,
+            reset_chains=True,
+        )
     )
 
-samplers[
-    "Metropolis(ParticleExchange): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
-samplers[
-    "Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisParticleExchange(
-    hi_fermion_spin, graph=g, exchange_spins=False
+samplers["Metropolis(ParticleExchange): SpinOrbitalFermions"] = (
+    nkx.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
 )
-samplers[
-    "Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisParticleExchange(
-    hi_fermion_spin_higher, graph=g, exchange_spins=False
+samplers["Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"] = (
+    nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin, graph=g, exchange_spins=False
+    )
 )
+if nk.utils.module_version("jax") != (0, 4, 33):
+    # this test is broken for a bug in jax 0.4.33
+    # https://github.com/google/jax/issues/23727
+    samplers["Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"] = (
+        nkx.sampler.MetropolisParticleExchange(
+            hi_fermion_spin_higher, graph=g, exchange_spins=False
+        )
+    )
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
     hi,
@@ -123,12 +127,12 @@ samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltoni
 
 ha_jax = nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)
 
-samplers[
-    "Metropolis(Hamiltonian, jax operator): Spin"
-] = nk.sampler.MetropolisHamiltonian(
-    hi,
-    hamiltonian=ha_jax,
-    reset_chains=True,
+samplers["Metropolis(Hamiltonian, jax operator): Spin"] = (
+    nk.sampler.MetropolisHamiltonian(
+        hi,
+        hamiltonian=ha_jax,
+        reset_chains=True,
+    )
 )
 
 samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
@@ -143,14 +147,14 @@ samplers["Metropolis(MultipleRules[Local,Local]): Spin"] = nk.sampler.Metropolis
     ),
 )
 if not config.netket_experimental_sharding:
-    samplers[
-        "Metropolis(MultipleRules[Local,Hamiltonian]): Spin"
-    ] = nk.sampler.MetropolisSampler(
-        hi,
-        nk.sampler.rules.MultipleRules(
-            [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],
-            [0.8, 0.2],
-        ),
+    samplers["Metropolis(MultipleRules[Local,Hamiltonian]): Spin"] = (
+        nk.sampler.MetropolisSampler(
+            hi,
+            nk.sampler.rules.MultipleRules(
+                [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],
+                [0.8, 0.2],
+            ),
+        )
     )
 
 
@@ -164,14 +168,14 @@ hi_particles = nk.hilbert.Particle(N=3, L=jnp.inf, pbc=False)
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
     hi_particles, sigma=1.0, sweep_size=hi_particles.size * 10
 )
-samplers[
-    "Metropolis(AdjustedLangevin): AdjustedLangevin"
-] = nk.sampler.MetropolisAdjustedLangevin(
-    hi_particles, dt=0.1, sweep_size=hi_particles.size
+samplers["Metropolis(AdjustedLangevin): AdjustedLangevin"] = (
+    nk.sampler.MetropolisAdjustedLangevin(
+        hi_particles, dt=0.1, sweep_size=hi_particles.size
+    )
 )
-samplers[
-    "Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"
-] = nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
+samplers["Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"] = (
+    nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
+)
 
 # TensorHilbert sampler
 hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
@@ -445,6 +449,8 @@ def test_sampling_sharded_not_communicating(
 ):
     if isinstance(sampler_c, nk.sampler.MetropolisNumpy):
         pytest.skip("Not jit compatible")
+    if isinstance(sampler_c, nk.sampler.ExactSampler):
+        pytest.xfail("Error logic communicates")
 
     sampler = set_pdf_power(sampler_c)
     hi = sampler.hilbert

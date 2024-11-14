@@ -14,27 +14,25 @@
 
 from functools import partial
 from collections.abc import Callable
+from typing import cast
 
 import jax
 from jax import numpy as jnp
+from jax.core import concrete_or_error
 import numpy as np
 from math import prod
 
 from netket import jax as nkjax
 from netket.utils import get_afun_if_module, mpi
 from netket.utils.types import Array, PyTree
-from netket.hilbert import DiscreteHilbert
+from netket.hilbert import DiscreteHilbert, DoubledHilbert
 
 from netket.utils import config
 from netket.utils.deprecation import deprecated
 from netket.jax.sharding import (
     extract_replicated,
-    gather,
     distribute_to_devices_along_axis,
 )
-
-from flax.traverse_util import flatten_dict, unflatten_dict
-from flax.core import unfreeze
 
 
 def split_array_mpi(array: Array) -> Array:
@@ -100,11 +98,11 @@ def to_array(
 
     apply_fun = get_afun_if_module(apply_fun)
 
-    if config.netket_experimental_sharding:
+    if config.netket_experimental_sharding:  # type: ignore
         # for now assume no mpi (no hybrid)
         x = hilbert.all_states()
         xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
-        n_states = xs.shape[0]
+        n_states = hilbert.n_states
     elif mpi.n_nodes == 1:
         xs = hilbert.all_states()
         mask = None
@@ -134,14 +132,10 @@ def to_array(
         chunk_size,
         mask,
     )
-    if allgather and config.netket_experimental_sharding:
-        # for simplicity we gather here outside of jit
-        # alternatively we could use a sharding constraint in _to_array_rank
-        psi = gather(psi)
-        # make it a local numpy array, so that we can operate with e.g.
-        # a sparse scipy array on it and jax thinks its replicated next time we pass it to jit
+
+    if allgather and config.netket_experimental_sharding:  # type: ignore
         psi = np.asarray(extract_replicated(psi))
-        psi = psi[: hilbert.n_states]
+
     return psi
 
 
@@ -200,18 +194,23 @@ def _to_array_rank(
 
     if allgather:
         psi, _ = mpi.mpi_allgather_jax(psi_local)
+        psi = psi.reshape(-1)
     else:
         psi = psi_local
 
-    psi = psi.reshape(-1)
+    # gather/replicate
+    if allgather and config.netket_experimental_sharding:  # type: ignore
+        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        psi = jax.lax.with_sharding_constraint(psi, sharding)
 
     # remove fake states
     psi = psi[0:n_states]
+
     return psi
 
 
 def to_matrix(
-    hilbert: DiscreteHilbert,
+    hilbert: DoubledHilbert,
     machine: Callable[[PyTree, Array], Array],
     params: PyTree,
     *,
@@ -232,48 +231,24 @@ def to_matrix(
     return rho
 
 
-# TODO: Deprecate: remove
-def update_dense_symm(params, names=("dense_symm", "Dense")):
-    """Updates DenseSymm kernels in pre-PR#1030 parameter pytrees to the new
-    3D convention.
-
-    Args:
-        params: a parameter pytree
-        names: layer names search for, default: those used in RBMSymm and GCNN*
-    """
-    params = unfreeze(params)  # just in case, doesn't break with a plain dict
-
-    def fix_one_kernel(args):
-        path, array = args
-        if (
-            len(path) > 1
-            and path[-2] in names
-            and path[-1] == "kernel"
-            and array.ndim == 2
-        ):
-            array = jnp.expand_dims(array, 1)
-        return (path, array)
-
-    return unflatten_dict(dict(map(fix_one_kernel, flatten_dict(params).items())))
-
-
 def _get_output_idx(
     shape: tuple[int, ...], max_bits: int | None = None
 ) -> tuple[tuple[int, ...], int]:
     bits_per_local_occupation = tuple(np.ceil(np.log2(shape)).astype(int))
     if max_bits is None:
         max_bits = max(bits_per_local_occupation)
-    output_idx = []
+        max_bits = cast(int, max_bits)
+    _output_idx: list[int] = []
     offset = 0
     for b in bits_per_local_occupation:
-        output_idx.extend([i + offset for i in range(b)][::-1])
+        _output_idx.extend([i + offset for i in range(b)][::-1])
         offset += max_bits
-    output_idx = tuple(output_idx)
+    output_idx = tuple(_output_idx)
     return output_idx, max_bits
 
 
 def _separate_binary_indices(
-    shape: tuple[int, ...]
+    shape: tuple[int, ...],
 ) -> tuple[tuple[int, ...], tuple[int, ...]]:
     binary_indices = tuple([i for i in range(len(shape)) if shape[i] == 2])
     non_binary_indices = tuple([i for i in range(len(shape)) if shape[i] != 2])
@@ -299,7 +274,7 @@ def binary_encoding(
     """
     x = hilbert.states_to_local_indices(x)
     shape = tuple(hilbert.shape)
-    jax.core.concrete_or_error(None, shape, "Shape must be known statically")
+    concrete_or_error(None, shape, "Shape must be known statically")
     output_idx, max_bits = _get_output_idx(shape, max_bits)
     binarised_states = jnp.zeros(
         (

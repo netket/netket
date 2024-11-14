@@ -76,7 +76,7 @@ jobs:
         if: ${{ matrix.main_tests  && (matrix.mpi == '') }} 
         run: |
           export NETKET_EXPERIMENTAL=1
-          pytest --cov=netket --cov-append --clear-cache-every 200 test
+          pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 test
 
       - name: NetKet docstring tests
         if: ${{ matrix.doctest }}
@@ -86,7 +86,7 @@ jobs:
       - name: MPI tests
         if: matrix.mpi != ''
         run: |
-          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 --clear-cache-every 100 test
+          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 --jax-cpu-disable-async-dispatch --clear-cache-every 100 test
           coverage combine --append
 
       - name: Upload coverage reports to Codecov

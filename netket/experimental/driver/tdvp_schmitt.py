@@ -26,8 +26,7 @@ from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 from netket.jax import tree_cast
 from netket.utils import timing
-
-from netket.experimental.dynamics import RKIntegratorConfig
+from netket.experimental.dynamics import AbstractSolver
 
 
 from .tdvp_common import TDVPBaseDriver, odefun
@@ -105,10 +104,13 @@ class TDVPSchmitt(TDVPBaseDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: RKIntegratorConfig,
+        # TODO: remove default None once `integrator` is removed
+        ode_solver: AbstractSolver = None,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
+        # TODO: integrator deprecated in 3.16 (oct/nov 2024)
+        integrator: AbstractSolver = None,
         holomorphic: bool | None = None,
         diag_shift: float = 0.0,
         diag_scale: float | None = None,
@@ -124,7 +126,7 @@ class TDVPSchmitt(TDVPBaseDriver):
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
-            integrator: Configuration of the algorithm used for solving the ODE.
+            ode_solver: Solving algorithm used the ODE.
             t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
@@ -181,7 +183,12 @@ class TDVPSchmitt(TDVPBaseDriver):
         self.diag_scale = diag_scale
 
         super().__init__(
-            operator, variational_state, integrator, t0=t0, error_norm=error_norm
+            operator,
+            variational_state,
+            ode_solver,
+            t0=t0,
+            error_norm=error_norm,
+            integrator=integrator,
         )
 
 

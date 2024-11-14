@@ -43,26 +43,22 @@ pytestmark = common.skipif_distributed
 hilberts = {}
 
 # Spin 1/2
-hilberts["Spin 1/2"] = Spin(s=0.5, N=20)
+hilberts["Spin[1/2, N=10]"] = Spin(s=0.5, N=10)
 
 # Spin 1/2 with total Sz
-hilberts["Spin[0.5, N=20, total_sz=1"] = Spin(s=0.5, total_sz=1.0, N=20)
-hilberts["Spin[0.5, N=5, total_sz=-1.5"] = Spin(s=0.5, total_sz=-1.5, N=5)
+hilberts["Spin[1/2, N=10, total_sz=1"] = Spin(s=0.5, total_sz=1.0, N=10)
+hilberts["Spin[1/2, N=5, total_sz=-1.5"] = Spin(s=0.5, total_sz=-1.5, N=5)
 
 # Spin 1/2 with total Sz
-hilberts["Spin 1 with total Sz, even sites"] = Spin(s=1.0, total_sz=5.0, N=6)
-
-# Spin 1/2 with total Sz
-hilberts["Spin 1 with total Sz, odd sites"] = Spin(s=1.0, total_sz=2.0, N=7)
+hilberts["Spin[1, N=6, total_sz=5.0]"] = Spin(s=1.0, total_sz=5.0, N=6)
+hilberts["Spin[1, N=7, total_sz=2.0]"] = Spin(s=1.0, total_sz=2.0, N=7)
 
 # Spin 3
-hilberts["Spin 3"] = Spin(s=3, N=25)
+hilberts["Spin[s=3, N=25]"] = Spin(s=3, N=25)
 
 # Boson
-hilberts["Fock"] = Fock(n_max=5, N=41)
-
-# Boson with total number
-hilberts["Fock with total number"] = Fock(n_max=3, n_particles=110, N=120)
+hilberts["Fock[max=5, N=41]"] = Fock(n_max=5, N=41)
+hilberts["Fock[max=3, N=120, n_particles=110]"] = Fock(n_max=3, n_particles=110, N=120)
 
 # Composite Fock
 hilberts["Fock * Fock (indexable)"] = Fock(n_max=5, N=4) * Fock(n_max=7, N=4)
@@ -75,7 +71,7 @@ hilberts["Qubit"] = nk.hilbert.Qubit(100)
 hilberts["Custom Hilbert"] = CustomHilbert(local_states=StaticRange(-153, 44, 3), N=70)
 
 # Heisenberg 1d
-hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, N=20)
+hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, N=10)
 
 # Bose Hubbard
 hilberts["Bose Hubbard"] = Fock(n_max=4, n_particles=20, N=20)
@@ -333,6 +329,50 @@ def test_flip_state_fock_infinite():
     np.testing.assert_allclose(states_np, states_new_np)
 
 
+# Check that the flip state rule works for 1-local dimension spaces
+def test_flip_state_d1():
+    hi = Fock(n_max=0, N=2)
+    rng = nk.jax.PRNGSeq(1)
+    N_batches = 20
+
+    states = hi.random_state(rng.next(), N_batches, dtype=jnp.int64)
+    np.testing.assert_allclose(states, 0)
+
+    ids = jnp.asarray(
+        jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
+        dtype=int,
+    )
+
+    new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
+    np.testing.assert_allclose(new_states, 0)
+    np.testing.assert_allclose(old_vals, 0)
+
+
+# Check that the flip state rule works for 2-local dimension spaces
+def test_flip_state_d2():
+    hi = Spin(0.5, N=4)
+    rng = nk.jax.PRNGSeq(1)
+    N_batches = 20
+
+    states = hi.random_state(rng.next(), N_batches, dtype=jnp.int64)
+
+    ids = jnp.asarray(
+        jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
+        dtype=int,
+    )
+    # Check it flipped the sites
+    new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
+    np.testing.assert_allclose(new_states[jnp.arange(N_batches), ids], -old_vals)
+    # check returning correct old vals
+    np.testing.assert_allclose(states[jnp.arange(N_batches), ids], old_vals)
+
+    # Check flipping twice brings us back
+    new_new_states, old_vals = nk.hilbert.random.flip_state(
+        hi, rng.next(), new_states, ids
+    )
+    np.testing.assert_allclose(states, new_new_states)
+
+
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_hilbert_index_discrete(hi: DiscreteHilbert):
     assert isinstance(hi.constrained, bool)
@@ -435,10 +475,14 @@ def test_local_indices_to_states(hi):
         np.testing.assert_allclose(local_states[idxs[..., s]], x[..., s])
 
 
-def test_state_iteration():
-    hilbert = Spin(s=0.5, N=10)
+@pytest.mark.parametrize("inverted_ordering", [True, False])
+def test_spin_state_iteration(inverted_ordering: bool):
+    hilbert = Spin(s=0.5, N=5, inverted_ordering=inverted_ordering)
 
-    reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=10)]
+    if inverted_ordering:
+        reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=5)]
+    else:
+        reference = [np.array(el) for el in itertools.product([1.0, -1.0], repeat=5)]
 
     for state, ref in zip(hilbert.states(), reference):
         np.testing.assert_allclose(state, ref)
@@ -799,3 +843,15 @@ def test_doubled_hilbert_indexable():
     hid = DoubledHilbert(hi)
     assert hi.is_indexable  # just to verify this is indeed still the case
     assert hid.is_indexable  # then this must hold as well
+
+
+def test_hilbert_dtype_int8():
+    hi = nkx.hilbert.SpinOrbitalFermions(4)
+    assert hi.all_states().dtype == np.int8
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions=2)
+    assert hi.all_states().dtype == np.int8
+
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2)
+    assert hi.all_states().dtype == np.int8
+    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(2, 2))
+    assert hi.all_states().dtype == np.int8

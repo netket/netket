@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 import jax
@@ -48,6 +49,33 @@ def _device_count(request):
     return sharding.device_count()
 
 
+@pytest.fixture
+def tmp_path_distributed(request, tmp_path):
+    """
+    Equivalent to tmp_path, but works well with mpi and jax distirbuted
+    """
+    import netket as nk
+    from netket.utils import mpi
+
+    global MPI_pytest_comm
+
+    if mpi.n_nodes > 1:
+        tmp_path = MPI_pytest_comm.bcast(tmp_path, root=0)
+    elif nk.config.netket_experimental_sharding:
+        rng_key = nk.jax.PRNGKey()
+        val = jax.random.randint(rng_key, (), minval=0, maxval=999999999)
+        val = int(val)
+
+        tmp_path = Path("/tmp/netket_tests") / Path(str(val))
+
+    if mpi.rank == 0 and jax.process_index() == 0:
+        tmp_path.mkdir(parents=True, exist_ok=True)
+    if mpi.n_nodes > 1:
+        MPI_pytest_comm.barrier()
+
+    return tmp_path
+
+
 def parse_clearcache(s: str) -> int | None:
     if s in ("auto", None):
         if os.environ.get("CI", False):
@@ -83,12 +111,26 @@ def pytest_addoption(parser):
         "--jax-distributed-mpi",
         action="store_true",
         default=False,
-        help="Enable JAX distributed initialization",
+        help="Enable JAX distributed initialization using MPI",
+    )
+    parser.addoption(
+        "--jax-distributed-gloo",
+        action="store_true",
+        default=False,
+        help="Enable JAX distributed initialization using GLOO",
+    )
+
+    parser.addoption(
+        "--jax-cpu-disable-async-dispatch",
+        action="store_true",
+        default=False,
+        help="Disable async cpu dispatch",
     )
 
 
 _n_test_since_reset: int = 0
 _clear_cache_every: int = 0
+MPI_pytest_comm = None
 
 
 @pytest.fixture(autouse=True)
@@ -118,8 +160,15 @@ def pytest_configure(config):
     if _clear_cache_every is not None:
         print(f"Clearing jax cache every {_clear_cache_every} tests")
 
+    if config.getoption("--jax-cpu-disable-async-dispatch"):
+        print("Disabling async CPU dispatch...")
+        import jax
+
+        jax.config.update("jax_cpu_enable_async_dispatch", False)
+
     if config.getoption("--jax-distributed-mpi"):
-        print("Initializing JAX distributed...")
+        print("\n---------------------------------------------")
+        print("Initializing JAX distributed using MPI...")
         import jax
 
         jax.config.update("jax_cpu_collectives_implementation", "mpi")
@@ -128,3 +177,26 @@ def pytest_configure(config):
         default_string = f"r{jax.process_index()}/{jax.process_count()} - "
         print(default_string, jax.devices())
         print(default_string, jax.local_devices())
+        print("---------------------------------------------\n", flush=True)
+    elif config.getoption("--jax-distributed-gloo"):
+        print("\n---------------------------------------------")
+        print("Initializing JAX distributed using GLOO...")
+        import jax
+
+        jax.config.update("jax_cpu_collectives_implementation", "gloo")
+        jax.distributed.initialize(cluster_detection_method="mpi4py")
+
+        default_string = f"r{jax.process_index()}/{jax.process_count()} - "
+        print(default_string, jax.devices())
+        print(default_string, jax.local_devices())
+        print("---------------------------------------------\n", flush=True)
+    else:
+        # Check for MPI
+        import netket as nk
+
+        if nk.utils.mpi.n_nodes > 1 and not nk.config.netket_experimental_sharding:
+            from mpi4py import MPI
+
+            global MPI_pytest_comm
+            MPI_pytest_comm = MPI.COMM_WORLD.Create(MPI.COMM_WORLD.Get_group())
+            print("Testing under MPI ...")

@@ -16,7 +16,6 @@ from typing import Union, TYPE_CHECKING
 
 import numbers
 
-from textwrap import dedent
 
 import numpy as np
 import jax.numpy as jnp
@@ -102,17 +101,6 @@ class LocalOperatorBase(DiscreteOperator):
         self.mel_cutoff = mel_cutoff
         self._initialized = None
         self._is_hermitian = None
-
-        if not all(
-            [_is_sorted(hilbert.states_at_index(i)) for i in range(hilbert.size)]
-        ):
-            raise ValueError(
-                dedent(
-                    """LocalOperator needs an hilbert space with sorted state values at
-                every site.
-                """
-                )
-            )
 
         # Canonicalize input. From now on input is guaranteed to be in canonical order
         operators, acting_on, dtype = canonicalize_input(

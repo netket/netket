@@ -6,29 +6,14 @@ import jax
 import jax.numpy as jnp
 
 from netket.utils import struct, StaticRange
-from netket.utils.types import Scalar, Array
+from netket.utils.types import Array
 
-from ..base import HilbertIndex, is_indexable
-from ..unconstrained import LookupTableHilbertIndex
-from ..uniform_tensor import UniformTensorProductHilbertIndex
+from netket.hilbert.constraint import SumConstraint
 
-from .base import optimalConstrainedHilbertindex, ConstrainedHilbertIndex
-
-
-@struct.dataclass
-class SumConstraint:
-    """
-    Constraint of an Hilbert space enforcing a total sum of all the values in the degrees of freedom.
-
-    Constructed by specifying the total sum. For Fock-like spaces this is the total population,
-    while for Spin-like spaces this is the magnetisation.
-    """
-
-    sum_value: Scalar = struct.field(pytree_node=False)
-
-    @jax.jit
-    def __call__(self, x: Array) -> Array:
-        return x.sum(axis=1) == self.sum_value
+from .base import HilbertIndex, is_indexable
+from .uniform_tensor import UniformTensorProductHilbertIndex
+from .unconstrained import LookupTableHilbertIndex
+from .constrained_generic import ConstrainedHilbertIndex, optimalConstrainedHilbertindex
 
 
 @optimalConstrainedHilbertindex.dispatch
@@ -93,21 +78,21 @@ class SumConstrainedHilbertIndex(HilbertIndex):
     @jax.jit
     def _compute_all_states(self):
         if self.n_particles == 0:
-            return jnp.zeros((1, self.size), dtype=jnp.int32)
+            return jnp.zeros((1, self.size), dtype=self.range.dtype)
         with jax.ensure_compile_time_eval():
             c = jnp.repeat(
-                jnp.eye(self.size, dtype=jnp.int32),
+                jnp.eye(self.size, dtype=self.range.dtype),
                 np.array(self.shape) - 1,
                 axis=0,
             )
             combs = jnp.array(
                 list(itertools.combinations(np.arange(len(c)), self.n_particles))
             )
-            all_states = c[combs].sum(axis=1, dtype=jnp.int32)
+            all_states = c[combs].sum(axis=1, dtype=self.range.dtype)
             if (np.array(self.shape) > 1).any():
                 all_states = jnp.unique(all_states, axis=0)
         all_states_fock = jnp.asarray(all_states)
-        return self.range.numbers_to_states(all_states_fock, dtype=np.int32)
+        return self.range.numbers_to_states(all_states_fock, dtype=self.range.dtype)
 
     @struct.property_cached(pytree_node=True)
     def _lookup_table(self) -> LookupTableHilbertIndex:

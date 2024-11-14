@@ -38,7 +38,7 @@ class Qubit(HomogeneousHilbert):
             >>> print(hi.size)
             100
         """
-        super().__init__(StaticRange(0, 1, 2, dtype=np.int8), N)
+        super().__init__(StaticRange(0, 1, 2, dtype=np.int8), N)  # type: ignore[arg-type]
 
     def __pow__(self, n):
         return Qubit(self.size * n)

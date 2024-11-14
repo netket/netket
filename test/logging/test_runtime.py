@@ -1,16 +1,16 @@
 import pytest
 
-
 import numpy as np
-import netket as nk
+import orjson
+
+import jax
 from jax.nn.initializers import normal
 from jax import numpy as jnp
 
-import orjson
+import netket as nk
+
 
 from .. import common
-
-pytestmark = common.skipif_distributed
 
 
 @pytest.fixture()
@@ -31,6 +31,7 @@ def vstate(request):
     )
 
 
+@common.skipif_distributed
 def test_serialize(vstate, tmp_path):
     log = nk.logging.RuntimeLog()
     e = vstate.expect(nk.operator.spin.sigmax(vstate.hilbert, 0))
@@ -116,3 +117,37 @@ def test_serialize(vstate, tmp_path):
     # check log without state specified.
     log(23, {"energy": e})
     assert len(log.data["energy"]["iters"] == 11)
+
+
+@common.onlyif_distributed
+def test_write_only_on_master(tmp_path):
+    # Check that the logger runs everywhere but serializes only on rank 0
+
+    log = nk.logging.RuntimeLog()
+
+    n_steps = 10
+    for i in range(n_steps):
+        log(
+            i,
+            {
+                "value": float(i),
+            },
+        )
+
+    assert len(log.data["value"]) == n_steps
+    np.testing.assert_allclose(log.data["value"].iters, np.arange(n_steps))
+    np.testing.assert_allclose(log.data["value"].value, np.arange(n_steps))
+
+    if nk.config.netket_experimental_sharding:
+        rank = jax.process_index()
+    else:
+        rank = nk.utils.mpi.rank
+
+    tmp_path = tmp_path / f"out_{rank}.log"
+
+    log.serialize(tmp_path)
+
+    if rank == 0:
+        assert tmp_path.exists()
+    else:
+        assert not tmp_path.exists()

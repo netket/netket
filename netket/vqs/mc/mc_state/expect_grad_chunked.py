@@ -67,8 +67,6 @@ def expect_and_grad_nonhermitian_chunk_fallback(
     **kwargs,
 ):
     warnings.warn(
-        ignore_chunk_warning(
-            vstate, Ô, chunk_size, name="expect_and_grad_nonhermitian"
-        )
+        ignore_chunk_warning(vstate, Ô, chunk_size, name="expect_and_grad_nonhermitian")
     )
     return expect_and_grad_nonhermitian(vstate, Ô, None, **kwargs)

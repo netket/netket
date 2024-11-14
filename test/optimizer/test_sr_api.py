@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 import pytest
 
 from collections.abc import Callable
@@ -29,9 +31,6 @@ pytestmark = common.skipif_distributed
 def test_qgt_partial_jacobian_sanitise(qgt):
     with pytest.raises(ValueError):
         qgt(mode="real", holomorphic=True)
-
-    with pytest.raises(ValueError):
-        qgt(diag_scale=0.02, rescale_shift=True)
 
 
 @pytest.mark.parametrize(
@@ -138,3 +137,37 @@ def test_qgt_auto_diag_scale_passed():
     # in the future this might change...
     qgt = qgt_constructor(vstate)
     assert qgt.scale is not None
+
+
+@pytest.mark.parametrize(
+    "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]
+)
+def test_sr_diag_warnings(qgt):
+    """
+    Test various scenarios for warnings related to diag_shift and diag_scale in SR.
+    """
+    warning_message = r"Constructing the SR object with `SR\(qgt= MyQGTType\({.*}\)\)` can lead to unexpected results and has been deprecated, because the keyword arguments specified in the QGTType are overwritten by those specified by the SR class and its defaults\.\n\nTo fix this, construct SR as  `SR\(qgt=MyQGTType, {.*}\)` \.\n\nIn the future, this warning will become an error\."
+
+    # Case 1: Overwriting diag_shift from SR default
+    with pytest.warns(UserWarning, match=warning_message):
+        nk.optimizer.SR(qgt=qgt(diag_shift=1e-3))
+
+    # Case 2: Overwriting diag_scale from SR default
+    with pytest.warns(UserWarning, match=warning_message):
+        nk.optimizer.SR(qgt=qgt(diag_scale=1e-4))
+
+    # Case 3: Overwriting both diag_shift and diag_scale from SR default
+    with pytest.warns(UserWarning, match=warning_message):
+        nk.optimizer.SR(qgt=qgt(diag_shift=1e-3, diag_scale=1e-4))
+
+    # Case 4: Warning with default diag_shift and diag_scale by specifying them in SR
+    with pytest.warns(UserWarning, match=warning_message):
+        nk.optimizer.SR(
+            qgt=qgt(diag_shift=1e-3, diag_scale=1e-4), diag_shift=1e-2, diag_scale=1e-3
+        )
+
+    # Case 5: No warning when diag_shift and diag_scale are specified only in SR
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        nk.optimizer.SR(qgt=qgt)
+    assert len(w) == 0, "Unexpected warning(s) raised"

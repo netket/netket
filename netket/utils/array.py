@@ -28,7 +28,7 @@ class HashableArray:
     The underlying array can also be accessed using :code:`numpy.asarray(self)`.
     """
 
-    def __init__(self, wrapped: Array):
+    def __init__(self, wrapped: Array | "HashableArray"):
         """
         Wraps an array into an object that is hashable, and that can be
         converted again into an array.

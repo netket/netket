@@ -27,14 +27,16 @@ from netket.errors import (
 )
 
 
-@struct.dataclass
-class JacobianMode:
+class JacobianMode(struct.Pytree):
     """
     Jax-compatible string type, used to return static information from a jax-jitted
     function.
     """
 
     name: str = struct.field(pytree_node=False)
+
+    def __init__(self, name: str) -> None:
+        self.name = name
 
     def __str__(self):
         return self.name
@@ -112,6 +114,9 @@ def jacobian_default_mode(
             ## all complex parameters
             mode = HolomorphicMode
     else:
+        if model_state is None:
+            model_state = {}
+
         complex_output = jax.numpy.iscomplexobj(
             jax.eval_shape(
                 apply_fun,

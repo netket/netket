@@ -23,7 +23,6 @@ from netket.nn import split_array_mpi
 from .qgt_jacobian_dense import QGTJacobianDenseT
 from .qgt_jacobian_pytree import QGTJacobianPyTreeT
 from .qgt_jacobian_common import (
-    sanitize_diag_shift,
     to_shift_offset,
     rescale,
 )
@@ -40,8 +39,8 @@ def QGTJacobian_DefaultConstructor(
     dense: bool,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift: float = 0.0,
-    diag_scale: float = 0.0,
+    diag_shift: float | None = 0.0,
+    diag_scale: float | None = None,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianDenseT | QGTJacobianPyTreeT:
@@ -91,23 +90,28 @@ def QGTJacobian_DefaultConstructor(
         # use jit so that we can do it on global shared array
         samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
 
+    jac_mode = mode
+    if mode == "imag":
+        # Imaginary mode is a specificity of the QGT, but it requires the standard complex-mode
+        # jacobian to be computed.
+        jac_mode = "complex"
+
     jacobians = nkjax.jacobian(
         apply_fun,
         parameters,
         samples,
         model_state,
-        mode=mode,
+        mode=jac_mode,
         pdf=pdf,
         chunk_size=chunk_size,
         dense=dense,
         center=True,
         _sqrt_rescale=True,
     )
-
     shift, offset = to_shift_offset(diag_shift, diag_scale)
 
     if offset is not None:
-        ndims = 1 if mode != "complex" else 2
+        ndims = 1 if (mode != "complex" and mode != "imag") else 2
         jacobians, scale = rescale(jacobians, offset, ndims=ndims)
     else:
         scale = None
@@ -127,17 +131,14 @@ def QGTJacobian_DefaultConstructor(
     )
 
 
-@partial_from_kwargs(
-    exclusive_arg_names=(("rescale_shift", "diag_scale"), ("mode", "holomorphic"))
-)
+@partial_from_kwargs(exclusive_arg_names=(("mode", "holomorphic")))
 def QGTJacobianDense(
     vstate,
     *,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift=None,
-    diag_scale=None,
-    rescale_shift=None,
+    diag_shift: float | None = 0.0,
+    diag_scale: float | None = None,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianDenseT:
@@ -177,10 +178,6 @@ def QGTJacobianDense(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
-    if rescale_shift is not None and diag_scale is not None:
-        raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
-    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
-
     # TODO: Find a better way to handle this case
     from netket.vqs import FullSumState
 
@@ -210,17 +207,14 @@ def QGTJacobianDense(
     )
 
 
-@partial_from_kwargs(
-    exclusive_arg_names=(("rescale_shift", "diag_scale"), ("mode", "holomorphic"))
-)
+@partial_from_kwargs(exclusive_arg_names=(("mode", "holomorphic")))
 def QGTJacobianPyTree(
     vstate,
     *,
     mode: str | None = None,
     holomorphic: bool | None = None,
-    diag_shift=None,
-    diag_scale=None,
-    rescale_shift=None,
+    diag_shift: float | None = 0.0,
+    diag_scale: float | None = None,
     chunk_size: int | None = None,
     **kwargs,
 ) -> QGTJacobianPyTreeT:
@@ -260,10 +254,6 @@ def QGTJacobianPyTree(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
-    if rescale_shift is not None and diag_scale is not None:
-        raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
-    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
-
     # TODO: Find a better way to handle this case
     from netket.vqs import FullSumState
 

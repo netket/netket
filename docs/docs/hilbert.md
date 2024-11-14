@@ -15,8 +15,8 @@ Classes whose edge is dashed are abstract classes, while the others are concrete
 
 ```{eval-rst}
 .. inheritance-diagram:: netket.hilbert
-	:top-classes: netket.hilbert.AbstractHilbert
-	:parts: 1
+    :top-classes: netket.hilbert.AbstractHilbert
+    :parts: 1
 
 ```
 
@@ -231,47 +231,86 @@ The constraints supported on the built-in hilbert spaces are:
  - It is also possible to define a custom (Homogeneous) hilbert space with a custom constraint. To see how to do that, check the section...
 
 
-### Defining Custom constraints
+### Using custom constraints for Discrete Hilbert spaces
 
-NetKet provides a custom class {class}`CustomHilbert`, that makes it relatively simple to define your own constraint on homogeneous Hilbert spaces.
-In this example we show how to use it to build a space that behaves like {class}`Fock`, while enforcing even parity.
+Existing Hilbert spaces such as {class}`Spin` or {class}`Fock` support natively a constraint based on the total magnetization or population. 
+However, at times you might want to work with some custom, more complex constraints. You can also specify a custom constraint by specifying the keyword argument `constraint=...` in their constructor! 
+However you must make sure that the constraint is defined according to the constraint interface, defined by the base class {class}`constraint.DiscreteHilbertConstraint`.
 
-```python
->>> import numba
->>>
->>> @numba.njit
->>> def accept_even(states):
->>> 	return states.sum(axis=-1) % 2 == 0
->>>
->>> n_max = 3; N_sites = 5
->>> hi = netket.hilbert.CustomHilbert(local_states=range(n_max), N=N_sites, constraint_fn=accept_even)
->>> hi.all_states()
-array([[0., 0., 0., 0., 0.],
-       [0., 0., 0., 0., 2.],
-       [0., 0., 0., 1., 1.],
-       [0., 0., 0., 2., 0.],
-       ...
-```
+A constraint effectively declares that the Hilbert space you are working with is smaller than the original {class}`Spin` or {class}`Fock`, for example by only considering configurations with a well defined magnetization. Those are often associated to some simmetries.
 
-The constraint function sums the basis number (a number in `range(n_max)`) and then checks if it is even. 
-Please notice how we used `@numba.njit` to speed up the constraint.
+To work with a custom constraint, you must do 2 things:
+ - Define a custom constraint class, used to specify whether a configuration is valid or not. This must be a callable class inheriting from {class}`~constraint.DiscreteHilbertConstraint` that if passed a set of configurations will return an array of boolean flags telling netket whether those configurations are valid or not.
+ - Optionally define an optimised custom {func}`random.random_state` dispatch rule specifying how to generate random configurations directly within the subspace. This is not needed, but the default fallback random state generation rule might be extremely slow for very constraining constraints. In principle this should return configurations distributed uniformly, but it is not terribly important (this is used to start the samplers, so even if it's a constant it might lead to worse warmup time but it might still work). 
 
-If you then want to sample this space, you'll encounter the following error:
+Both those methods should be implemented in such a way to be {func}`jax.jit`-table. If you can't write them in a jax-friendly way, you should call your function using {func}`jax.pure_callback`, which allows jax to call back into python functions.
+
+### Example
+
+In the following example, we will be implementing our own custom SumConstraint
 
 ```python
->>> import jax
->>> hi.random_state(jax.random.key(3), 3)
-Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-  File ".../netket/hilbert/abstract_hilbert.py", line 84, in random_state
-    return random.random_state(self, key, size, dtype=dtype)
-  File "plum/function.py", line 537, in plum.function.Function.__call__
-  File ".../netket/hilbert/random/custom.py", line 25, in random_state
-    raise NotImplementedError()
-NotImplementedError
+import jax
+import jax.numpy as jnp
+
+import netket as nk
+from netket.utils import struct
+
+
+class SumConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
+    # A simple constraint checking that the total sum of the elements
+    # in the configuration is equal to a given value.
+
+    total_sum : float = struct.field(pytree_node=False)
+
+    def __init__(self, total_sum):
+        self.total_sum = total_sum
+
+    def __call__(self, x):
+        # Makes it jax-compatible
+       return jnp.sum(x, axis=-1) == self.total_sum
+
+    def __hash__(self):
+        return hash(("SumConstraint", self.total_sum))
+
+    def __eq__(self, other):
+        if isinstance(other, SumConstraint):
+            return self.total_sum == other.total_sum
+        return False
+
+hi = nk.hilbert.Fock(n_max=2, N=5, constraint=SumConstraint(3))
 ```
 
-This is because you did not specify how to sample the space. To do so, check the documentation on defining custom Hilbert spaces.
+And if you want to define the custom constraint random state generation rule you will also have to define the following function
+
+```python
+@nk.hilbert.random.random_state.dispatch
+def random_state_sumconstraint(
+        hilb: nk.hilb.Fock, constraint: SumConstraint, key, batches: int, *, dtype=None
+    ):
+    """
+    This function should return a batch of `batches` samples distributed uniformly.
+    If batches is 3, it should return a matrix of size `(3, hilb.size)`
+
+    As it can be very hard to write those functions in jax, a typical trick is to write them in 
+    Numpy and use a pure callback
+    """
+
+    def random_constraints_py(key):
+        # Create a RNG based on the provided key for reproducibility
+        rng = np.random.default_rng(np.array(key))
+        # generate random configurations...
+        # It should be a numpy matrix with shape (batches, hilb.size) and dtype dtype
+        return ...
+
+    return jax.pure_callback(random_constraints_py,
+        jax.ShapeDtypeStruct(hilb.size, dtype),
+        jax.random.key_data(key),
+        )
+    
+
+hi = nk.hilbert.Fock(0.5, 10, constraint=SumConstraint(0))
+``` 
 
 
 ## Using Hilbert spaces with {func}`jax.jit`ted functions
@@ -282,6 +321,7 @@ You can freely use {class}`~nk.hilbert.AbstractHilbert` objects inside of {func}
 
 All attributes and methods of Hilbert spaces can be freely used inside of a {func}`jax.jit` block.
 In particular the {meth}`~DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax {func}`jax.random.PRNGKey` object as the first argument.
+
 
 ### Adapting Hilbert spaces with numpy `states_to_numbers` / `numbers_to_states`
 
@@ -347,7 +387,7 @@ class ExamplePythonHilbertSpace(DiscreteHilbert):
                 self.dtype,
             ),
             numbers,
-            vectorized=True,
+            vmap_method="expand_dims",
         )
 
     def states_to_numbers(self, states):
@@ -355,7 +395,7 @@ class ExamplePythonHilbertSpace(DiscreteHilbert):
             partial(states_to_numbers_py, self),
             jax.ShapeDtypeStruct(states.shape[:-1], jnp.int32),
             states,
-            vectorized=True,
+            vmap_method="expand_dims",
         )
 
 

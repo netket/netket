@@ -52,10 +52,10 @@ gs.run(n_iter=3, out="example_ising1d_GS", obs={"Sx": Sx})
 
 pars0 = vs.parameters
 
-# Create integrator for time propagation
-# integrator = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-4, atol=1e-4)
-integrator = nkx.dynamics.Euler(dt=0.001)
-print(integrator)
+# Create ODE solver for time propagation
+# solver = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-4, atol=1e-4)
+solver = nkx.dynamics.Euler(dt=0.001)
+print(solver)
 
 # Quenched hamiltonian: this has a different transverse field than `ha`
 ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
@@ -63,7 +63,7 @@ ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
 te = nkx.driver.TDVPSchmitt(
     ha1,
     variational_state=vs,
-    integrator=integrator,
+    ode_solver=solver,
     t0=0.0,
     error_norm="qgt",
     # snr_atol = 1e-10,

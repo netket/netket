@@ -205,7 +205,7 @@ class FiniteGroup(FiniteSemiGroup):
         return classes, representatives, inverse
 
     @struct.property_cached
-    def character_table_by_class(self) -> Array:
+    def character_table_by_class(self) -> np.ndarray:
         r"""
         Calculates the character table using Burnside's algorithm.
 
@@ -257,7 +257,7 @@ class FiniteGroup(FiniteSemiGroup):
 
         return table
 
-    def character_table(self) -> Array:
+    def character_table(self) -> np.ndarray:
         r"""
         Calculates the character table using Burnside's algorithm.
 

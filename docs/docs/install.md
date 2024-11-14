@@ -54,11 +54,11 @@ Refer to jax documentation to learn more about matching cuda versions with pytho
 ````{admonition} CUDA
 :class: warning
 
-Jax supports two ways to install the cuda-version: `cuda12_pip` and `cuda12_local`. The `_local` version will use the CUDA version installed by the user/cluster admins and pick it up through the `LD_LIBRARY_PATH`. You will need to have installed cuda, cudnn and some other dependencies. 
+Jax supports two ways to install the cuda-version: `cuda12` and `cuda12_local`. The `_local` version will use the CUDA version installed by the user/cluster admins and pick it up through the `LD_LIBRARY_PATH`. You will need to have installed cuda, cudnn and some other dependencies. 
 If you chose this approach, it is your responsability to ensure that the CUDA version is correct and all dependencies are present.
 **This approach is required if you wish to use MPI**.
 
-`_pip`, instead, will install a special CUDA version through `pip` in the current environment, and ignore the CUDA version that is installed system-wide. This approach is usually much simpler to use but **is not compatible with MPI on GPUS**. 
+`cuda12`, instead, will install a special CUDA version through `pip` in the current environment, and ignore the CUDA version that is installed system-wide. This approach is usually much simpler to use but **is not compatible with MPI on GPUS**. 
 
 Do note that if you install the `_pip` version, to switch to the `_local` version you must uninstall all nvidia-related dependencies. To do so, the simplest way is to simply delete the environment and start from scratch. If you don't want to do so, you may try to use the following command, but it might not work perfectly
 

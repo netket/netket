@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable
-from collections.abc import Iterable
+from typing import TypeVar
+from collections.abc import Callable, Iterable
 
 import abc
 import numbers
@@ -23,25 +23,28 @@ from tqdm.auto import tqdm
 
 import jax
 
+from netket import config
 from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
 from netket.utils import mpi, timing
 from netket.utils.types import Optimizer, PyTree
 from netket.vqs import VariationalState
 
+CallbackT = Callable[[int, dict, "AbstractVariationalDriver"], bool]
 
-def _to_iterable(maybe_iterable):
+T = TypeVar("T")
+
+
+def _to_iterable(maybe_iterable: T | Iterable[T]) -> tuple[T, ...]:
     """
     _to_iterable(maybe_iterable)
 
     Ensure the result is iterable. If the input is not iterable, it is wrapped into a tuple.
     """
-    if hasattr(maybe_iterable, "__iter__"):
-        surely_iterable = maybe_iterable
-    else:
-        surely_iterable = (maybe_iterable,)
+    if not isinstance(maybe_iterable, Iterable):
+        maybe_iterable = (maybe_iterable,)
 
-    return surely_iterable
+    return tuple(maybe_iterable)
 
 
 class AbstractVariationalDriver(abc.ABC):
@@ -163,7 +166,7 @@ class AbstractVariationalDriver(abc.ABC):
         """
         # Always log the acceptance.
         if hasattr(self.state, "sampler_state"):
-            acceptance = getattr(self.state.sampler_state, "acceptance", None)
+            acceptance = getattr(self.state.sampler_state, "acceptance", None)  # type: ignore
             if acceptance is not None:
                 log_dict["acceptance"] = acceptance
 
@@ -196,6 +199,11 @@ class AbstractVariationalDriver(abc.ABC):
         self._optimizer = optimizer
         if optimizer is not None:
             self._optimizer_state = optimizer.init(self.state.parameters)
+            if config.netket_experimental_sharding:
+                self._optimizer_state = jax.lax.with_sharding_constraint(
+                    self._optimizer_state,
+                    jax.sharding.PositionalSharding(jax.devices()).replicate(),
+                )
 
     @property
     def step_count(self):
@@ -221,12 +229,12 @@ class AbstractVariationalDriver(abc.ABC):
         """
         for _ in range(0, n_steps, step):
             for i in range(0, step):
-                dp = self._forward_and_backward()
+                self._dp = self._forward_and_backward()
                 if i == 0:
                     yield self.step_count
 
                 self._step_count += 1
-                self.update_parameters(dp)
+                self.update_parameters(self._dp)
 
     def advance(self, steps: int = 1):
         """
@@ -242,15 +250,13 @@ class AbstractVariationalDriver(abc.ABC):
     def run(
         self,
         n_iter: int,
-        out: Iterable[AbstractLog] | None = (),
+        out: AbstractLog | Iterable[AbstractLog] | str | None = (),
         obs: dict[str, AbstractObservable] | None = None,
         step_size: int = 1,
         show_progress: bool = True,
         save_params_every: int = 50,  # for default logger
         write_every: int = 50,  # for default logger
-        callback: Callable[
-            [int, dict, "AbstractVariationalDriver"], bool
-        ] = lambda *x: True,
+        callback: CallbackT | Iterable[CallbackT] = lambda *x: True,
         timeit: bool = False,
     ):
         """
@@ -282,6 +288,20 @@ class AbstractVariationalDriver(abc.ABC):
         also returned at the end of this function so that you can inspect the results
         without reading the json output.
 
+        When running among multiple MPI ranks/Jax devices, the logging logic is executed
+        on all nodes, but only root-rank loggers should write to files or do expensive I/O
+        operations.
+
+        .. note::
+
+            Before NetKet 3.15, loggers where automatically 'ignored' on non-root ranks.
+            However, starting with NetKet 3.15 it is the responsability of a logger to
+            check if it is executing on a non-root rank, and to 'do nothing' if that is
+            the case.
+
+            The change was required to work correctly and efficiently with sharding. It will
+            only affect users that were defining custom loggers themselves.
+
         Args:
             n_iter: the total number of iterations to be performed during this run.
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
@@ -311,29 +331,22 @@ class AbstractVariationalDriver(abc.ABC):
         elif out is None:
             out = ()
 
-        # Log only non-root nodes
-        if self._is_root:
-            loggers = _to_iterable(out)
-        else:
-            loggers = tuple()
-            show_progress = False
-
+        loggers = _to_iterable(out)
         callbacks = _to_iterable(callback)
         callback_stop = False
 
         with timing.timed_scope(force=timeit) as timer:
             with tqdm(
                 total=n_iter,
-                disable=not show_progress,
+                disable=not show_progress or not self._is_root,
                 dynamic_ncols=True,
             ) as pbar:
                 old_step = self.step_count
                 first_step = True
 
                 for step in self.iter(n_iter, step_size):
-                    with timing.timed_scope(name="observables"):
-                        log_data = self.estimate(obs)
-                        self._log_additional_data(log_data, step)
+                    log_data = self.estimate(obs)
+                    self._log_additional_data(log_data, step)
 
                     # if the cost-function is defined then report it in the progress bar
                     if self._loss_stats is not None:
@@ -379,6 +392,7 @@ class AbstractVariationalDriver(abc.ABC):
 
         return loggers
 
+    @timing.timed(name="estimate observables")
     def estimate(self, observables):
         """
         Return MCMC statistics for the expectation value of observables in the
@@ -419,4 +433,12 @@ def apply_gradient(optimizer_fun, optimizer_state, dp, params):
     updates, new_optimizer_state = optimizer_fun(dp, optimizer_state, params)
 
     new_params = optax.apply_updates(params, updates)
+
+    if config.netket_experimental_sharding:
+        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        new_optimizer_state = jax.lax.with_sharding_constraint(
+            new_optimizer_state, sharding
+        )
+        new_params = jax.lax.with_sharding_constraint(new_params, sharding)
+
     return new_optimizer_state, new_params

@@ -73,15 +73,7 @@ class HaikuFramework(ModuleFramework):
     @staticmethod
     def wrap(module):
         register_serialization_functions()
-        return HaikuWrapper(module)
-
-    @staticmethod
-    def wrap_params(variables):
-        return {"params": variables}
-
-    @staticmethod
-    def unwrap_params(wrapped_variables):
-        return wrapped_variables["params"]
+        return None, HaikuWrapper(module)
 
 
 already_registered = False

@@ -64,11 +64,11 @@ def _stop_after_one_step(step, *_):
     return step == 0
 
 
-fixed_step_integrators = [
+fixed_step_solvers = [
     pytest.param(nkx.dynamics.Euler(dt=0.01), id="Euler(dt=0.01)"),
     pytest.param(nkx.dynamics.Heun(dt=0.01), id="Heun(dt=0.01)"),
 ]
-adaptive_step_integrators = [
+adaptive_step_solvers = [
     pytest.param(
         nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-2, atol=1e-2),
         id="RK23(dt=0.01, adaptive)",
@@ -78,7 +78,7 @@ adaptive_step_integrators = [
         id="RK45(dt=0.01, adaptive)",
     ),
 ]
-all_integrators = fixed_step_integrators + adaptive_step_integrators
+all_solvers = fixed_step_solvers + adaptive_step_solvers
 
 nqs_models = [
     pytest.param(
@@ -88,15 +88,15 @@ nqs_models = [
 
 
 @pytest.mark.parametrize("model", nqs_models)
-@pytest.mark.parametrize("integrator", fixed_step_integrators)
+@pytest.mark.parametrize("solver", fixed_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
-def test_one_fixed_step(model, integrator, propagation_type):
+def test_one_fixed_step(model, solver, propagation_type):
     ha, vstate, _ = _setup_system(L=2, model=model)
     holomorphic = jnp.issubdtype(vstate.model.param_dtype, jnp.complexfloating)
     te = nkx.TDVP(
         ha,
         vstate,
-        integrator,
+        solver,
         qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=holomorphic),
         propagation_type=propagation_type,
     )
@@ -115,10 +115,10 @@ def l4_norm(x):
 
 
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
-@pytest.mark.parametrize("integrator", adaptive_step_integrators)
+@pytest.mark.parametrize("solver", adaptive_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
 @pytest.mark.parametrize("disable_jit", [False, True])
-def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit):
+def test_one_adaptive_step(solver, error_norm, propagation_type, disable_jit):
     if disable_jit:
         common.skipif_sharding()
 
@@ -127,7 +127,7 @@ def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit
         te = nkx.TDVP(
             ha,
             vstate,
-            integrator,
+            solver,
             qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
             propagation_type=propagation_type,
             error_norm=error_norm,
@@ -137,22 +137,22 @@ def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit
 
 
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
-@pytest.mark.parametrize("integrator", adaptive_step_integrators)
-def test_one_adaptive_schmitt(integrator, error_norm):
+@pytest.mark.parametrize("solver", adaptive_step_solvers)
+def test_one_adaptive_schmitt(solver, error_norm):
     with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", True):
         ha, vstate, _ = _setup_system(L=2)
         te = nkx.driver.TDVPSchmitt(
             ha,
             vstate,
-            integrator,
+            solver,
             error_norm=error_norm,
         )
         te.run(T=0.01, callback=_stop_after_one_step)
         assert te.t > 0.0
 
 
-@pytest.mark.parametrize("integrator", all_integrators)
-def test_one_step_lindbladian(integrator):
+@pytest.mark.parametrize("solver", all_solvers)
+def test_one_step_lindbladian(solver):
     def _setup_lindbladian_system():
         L = 3
         hi = nk.hilbert.Spin(s=0.5) ** L
@@ -183,7 +183,7 @@ def test_one_step_lindbladian(integrator):
     te = nkx.TDVP(
         lind,
         vstate,
-        integrator,
+        solver,
         propagation_type="real",
         linear_solver=partial(nk.optimizer.solver.svd, rcond=1e-3),
     )
@@ -193,24 +193,25 @@ def test_one_step_lindbladian(integrator):
 
 def test_dt_bounds():
     ha, vstate, _ = _setup_system(L=2, dtype=np.complex128)
-    te = nkx.TDVP(
-        ha,
-        vstate,
-        nkx.dynamics.RK23(dt=0.1, adaptive=True, dt_limits=(1e-2, None)),
-        propagation_type="real",
-    )
-    with pytest.warns(UserWarning, match="RK solver: dt reached lower bound"):
-        te.run(T=0.1, callback=_stop_after_one_step)
+    with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", True):
+        te = nkx.TDVP(
+            ha,
+            vstate,
+            nkx.dynamics.RK23(dt=0.1, adaptive=True, dt_limits=(1e-2, None)),
+            propagation_type="real",
+        )
+        with pytest.warns(UserWarning, match="ODE integrator: dt reached lower bound"):
+            te.run(T=0.1, callback=_stop_after_one_step)
 
 
-@pytest.mark.parametrize("integrator", all_integrators)
-def test_stop_times(integrator):
+@pytest.mark.parametrize("solver", all_solvers)
+def test_stop_times(solver):
     def make_driver():
         ha, vstate, _ = _setup_system(L=2)
         return nkx.TDVP(
             ha,
             vstate,
-            integrator,
+            solver,
             propagation_type="imag",
         )
 
@@ -276,7 +277,7 @@ def test_run_twice():
     np.testing.assert_allclose(driver.t, 0.06)
 
 
-def test_change_integrator():
+def test_change_solver():
     ha, vstate, _ = _setup_system(L=2)
     driver = nkx.TDVP(
         ha,
@@ -286,8 +287,9 @@ def test_change_integrator():
     driver.run(0.03)
     np.testing.assert_allclose(driver.t, 0.03)
 
-    integrator = nkx.dynamics.Euler(dt=0.05)
-    driver.integrator = integrator
+    solver = nkx.dynamics.Euler(dt=0.05)
+    driver.ode_solver = solver
+    assert driver.ode_solver is solver
     np.testing.assert_allclose(driver.t, 0.03)
     np.testing.assert_allclose(driver.dt, 0.05)
 
@@ -400,3 +402,26 @@ def test_tdvp_drivers():
 
     np.testing.assert_allclose(sx_tdvp, sx_exact)
     np.testing.assert_allclose(sy_tdvp, sy_exact)
+
+
+def test_float32_dtype():
+    # Issue https://github.com/netket/netket/issues/1916
+    # Type stability in KahnSummator and norm
+
+    import netket as nk
+    from netket import experimental
+
+    import jax.numpy as jnp
+
+    N = 3
+    hi = nk.hilbert.Spin(0.5, N)
+    ha = sum(nk.operator.spin.sigmax(hi, i) for i in range(N))
+
+    sa = nk.sampler.MetropolisLocal(hi)
+    model = nk.models.RBM(alpha=1, param_dtype=jnp.float32)
+    vstate = nk.vqs.MCState(sa, model, n_samples=1008, n_discard_per_chain=16)
+    solver = experimental.dynamics.RK12(dt=1e-2, adaptive=True, rtol=1e-5)
+    tdvp = experimental.TDVP(ha, vstate, solver, error_norm="qgt")
+
+    tdvp_log = nk.logging.RuntimeLog()
+    tdvp.run(T=0.1, out=tdvp_log)

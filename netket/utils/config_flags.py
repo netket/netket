@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import os
 import sys
 import warnings
@@ -161,6 +160,9 @@ class Config:
             txt = txt + f" - {k} = {v}\n"
 
         return txt
+
+    def __dir__(self):
+        return list(k.lower() for k in self._values.keys())
 
 
 config = Config()
@@ -352,20 +354,6 @@ config.define(
 )
 
 
-config.define(
-    "NETKET_EXPERIMENTAL_SHARDING_NUMBA_WRAPPER_WARNING",
-    bool,
-    default=True,
-    help=dedent(
-        """
-        Raise a warning when the highly experimental wrapper for numba operators
-        acting on sharded arrays is used.
-        """
-    ),
-    runtime=True,
-)
-
-
 def _recompute_default_device(val):
     if val is False:
         import jax
@@ -388,6 +376,50 @@ config.define(
         """
         If there are more than 1 device per MPI rank, and if they are GPU devices,
         Set the default device by querying the local MPI rank.
+        """
+    ),
+)
+
+
+config.define(
+    "NETKET_RANDOM_STATE_FALLBACK_WARNING",
+    bool,
+    default=True,
+    runtime=True,
+    help=dedent(
+        """
+        Print a warning every time you use a fallback that could never stop running
+        when using random_state of constrained hilbert spaces with custom
+        constraints.
+        """
+    ),
+)
+
+
+config.define(
+    "NETKET_EXPERIMENTAL_SHARDING_FAST_SERIALIZATION",
+    bool,
+    default=False,
+    runtime=True,
+    help=dedent(
+        """
+        If True (Defaults False) does not gather data on the master process when
+        using flax.serialization methods. This allows to use orbax-checkpoint with
+        higher efficiency.
+        """
+    ),
+)
+
+
+config.define(
+    "NETKET_SPIN_ORDERING_WARNING",
+    bool,
+    default=True,
+    runtime=True,
+    help=dedent(
+        """
+        If True (Defaults True) warns if the ordering of spins in the Hilbert space
+        is not declared.
         """
     ),
 )
