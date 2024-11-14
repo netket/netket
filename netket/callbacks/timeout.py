@@ -28,7 +28,7 @@ class Timeout(struct.Pytree, mutable=True):
     """Number of seconds to wait before the training will be stopped."""
 
     # caches
-    _init_time: float | None
+    _init_time: float | None = struct.field(serialize=False)
     """
     Internal field storing the time at which the first iteration has been
     performed.

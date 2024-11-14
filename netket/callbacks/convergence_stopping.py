@@ -24,14 +24,14 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
     below a certain threshold for at least `patience` steps.
     """
 
-    target: float
+    target: float = struct.field(serialize=False)
     """Target value for the monitored quantity. Training will stop if the driver drops below this value."""
-    monitor: str
+    monitor: str = struct.field(serialize=False)
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
-    smoothing_window: int
+    smoothing_window: int = struct.field(serialize=False)
     """The loss is smoothed over the last `smoothing_window` iterations to
     reduce statistical fluctuations"""
-    patience: int
+    patience: int = struct.field(serialize=False)
     """The loss must be consistently below this value for this number of
     iterations in order to stop the optimisation."""
 
@@ -83,7 +83,7 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
         Returns:
             A boolean. If True, training continues, else, it does not.
         """
-        loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
+        loss = np.asarray(np.real(getattr(log_data[driver._loss_name], self.monitor)))
 
         self._loss_window.append(loss)
         loss_smooth = np.mean(self._loss_window)
