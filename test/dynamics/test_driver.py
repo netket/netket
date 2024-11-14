@@ -57,32 +57,6 @@ def _setup_system(L, *, model=None, dtype=np.complex128, sampler="exact"):
     return ha, vs, obs
 
 
-def _exact_time_evolution(H, psi0, T, dt):
-    H_matrix = H.to_dense()
-    initial_state = psi0
-    times = np.linspace(0, T, int(T / dt) + 1)
-    sx_expectation = []
-    corr_z_expectation = []
-
-    L = H.hilbert.size
-    Sx_total = sum(nk.operator.spin.sigmax(H.hilbert, i).to_dense() for i in range(L))
-    Corr_z = (
-        nk.operator.spin.sigmaz(H.hilbert, 0).to_dense()
-        @ nk.operator.spin.sigmaz(H.hilbert, L - 1).to_dense()
-    )
-
-    for t in times:
-        U = scipy.sparse.linalg.expm(-1j * H_matrix * t)
-        psi_t = U @ initial_state
-        sx_t = np.vdot(psi_t, Sx_total @ psi_t).real
-        corr_z_t = np.vdot(psi_t, Corr_z @ psi_t).real
-
-        sx_expectation.append(sx_t)
-        corr_z_expectation.append(corr_z_t)
-
-    return sx_expectation, corr_z_expectation
-
-
 def _stop_after_one_step(step, *_):
     """
     Callback to stop the driver after the first (successful) step.
@@ -346,61 +320,83 @@ def test_change_norm():
         driver.error_norm = "assd"
 
 
-def average_difference(approx, exact):
-    min_len = min(len(approx), len(exact))
-    # Convert History object to numpy array if necessary
-    if hasattr(approx, "to_array"):
-        approx = approx.to_array()
-    return np.mean(np.abs(np.array(approx[:min_len]) - np.array(exact[:min_len])))
+def exact_time_evolution(H, psi0, T, dt, obs):
+    H_matrix = H.to_dense()
+    initial_state = psi0
+    times = np.linspace(0, T, int(T / dt) + 1)
+    expectations = {name: [] for name in obs}
+
+    # Precompute the dense matrices for the observables
+    obs_matrices = {name: op.to_dense() for name, op in obs.items()}
+
+    for t in times:
+        U = scipy.sparse.linalg.expm(-1j * H_matrix * t)
+        psi_t = U @ initial_state
+        for name, op_matrix in obs_matrices.items():
+            exp_t = np.vdot(psi_t, op_matrix @ psi_t).real
+            expectations[name].append(exp_t)
+
+    return expectations
 
 
-@pytest.mark.parametrize("L", [3])
-@pytest.mark.parametrize("total_time", [0.2])
-@pytest.mark.parametrize("dt", [0.001])
-def test_ising_time_evolution(L, total_time, dt):
+def test_tdvp_drivers():
+    """Test time evolution comparing TDVP methods against exact evolution for a mean-field"""
+
+    L = 2
+    total_time = 0.2
+    dt = 0.001
+
     hi = nk.hilbert.Spin(0.5, L)
-    H1, vs, _ = _setup_system(L=L, sampler="metropolis")
+    h = 1.0
+    J = 1.0
+    h_eff = h + J
+
+    H1 = nk.operator.LocalOperator(hi, dtype=np.complex128)
+    for i in range(L):
+        H1 -= h_eff * nk.operator.spin.sigmaz(hi, i)
+
+    modelExact = nk.models.LogStateVector(hi)
+    sa = nk.sampler.MetropolisLocal(hilbert=hi)
+
+    vs_schmitt = nk.vqs.MCState(
+        model=modelExact,
+        sampler=sa,
+        n_samples=2**10,
+        seed=214748364,
+    )
+    vs_tdvp = copy.copy(vs_schmitt)
+    vs_exact = copy.copy(vs_schmitt).to_array()
 
     obs = {
-        "sx": sum(nk.operator.spin.sigmax(hi, i) for i in range(L)),
-        "corr_z": nk.operator.spin.sigmaz(hi, 0) * nk.operator.spin.sigmaz(hi, L - 1),
+        "sum_sx": sum(nk.operator.spin.sigmax(hi, i) for i in range(L)),
+        "sum_sy": sum(nk.operator.spin.sigmay(hi, i) for i in range(L)),
     }
 
-    integrator = nkx.dynamics.Euler(dt=dt)
-    qgt = nk.optimizer.qgt.QGTJacobianDense(
-        holomorphic=True, diag_shift=0.0, diag_scale=None
-    )
+    integrator = nkx.dynamics.RK4(dt=dt)
 
-    te_schmitt = nkx.driver.TDVPSchmitt(
-        H1, copy.deepcopy(vs), integrator, holomorphic=True
-    )
-    log_schmitt = te_schmitt.run(T=total_time, out="tdvp_schmitt", obs=obs)[0]
+    # Exact time evolution
+    expectations = exact_time_evolution(H1, vs_exact, total_time, dt, obs)
+    sx_exact = expectations["sum_sx"]
+    sy_exact = expectations["sum_sy"]
 
-    te_tdvp = nkx.driver.TDVP(H1, copy.deepcopy(vs), integrator, qgt=qgt)
-    log_tdvp = te_tdvp.run(T=total_time, out="tdvp", obs=obs)[0]
+    # TDVPSchmitt time evolution
+    te_schmitt = nkx.driver.TDVPSchmitt(H1, vs_schmitt, integrator, holomorphic=True)
+    log_schmitt = nk.logging.RuntimeLog()
+    te_schmitt.run(T=total_time, out=log_schmitt, obs=obs)
 
-    sx_exact, corr_z_exact = _exact_time_evolution(
-        H1, copy.deepcopy(vs).to_array(), total_time, dt
-    )
+    # TDVP time evolution
+    te_tdvp = nkx.driver.TDVP(H1, vs_tdvp, integrator)
+    log_tdvp = nk.logging.RuntimeLog()
+    te_tdvp.run(T=total_time, out=log_tdvp, obs=obs)
 
-    avg_diff_schmitt_sx = average_difference(log_schmitt.data["sx"], sx_exact)
-    avg_diff_schmitt_corr_z = average_difference(
-        log_schmitt.data["corr_z"], corr_z_exact
-    )
+    sx_schmitt = np.array(log_schmitt.data["sum_sx"]).real
+    sy_schmitt = np.array(log_schmitt.data["sum_sy"]).real
 
-    avg_diff_tdvp_sx = average_difference(log_tdvp.data["sx"], sx_exact)
-    avg_diff_tdvp_corr_z = average_difference(log_tdvp.data["corr_z"], corr_z_exact)
+    np.testing.assert_allclose(sx_schmitt, sx_exact)
+    np.testing.assert_allclose(sy_schmitt, sy_exact)
 
-    tol = 0.05
-    assert (
-        avg_diff_schmitt_sx <= tol
-    ), f"TDVP Schmitt sx average difference ({avg_diff_schmitt_sx}) exceeds tolerance"
-    assert (
-        avg_diff_schmitt_corr_z <= tol
-    ), f"TDVP Schmitt corr_z average difference ({avg_diff_schmitt_corr_z}) exceeds tolerance"
-    assert (
-        avg_diff_tdvp_sx <= tol
-    ), f"TDVP sx average difference ({avg_diff_tdvp_sx}) exceeds tolerance"
-    assert (
-        avg_diff_tdvp_corr_z <= tol
-    ), f"TDVP corr_z average difference ({avg_diff_tdvp_corr_z}) exceeds tolerance"
+    sx_tdvp = np.array(log_tdvp.data["sum_sx"]).real
+    sy_tdvp = np.array(log_tdvp.data["sum_sy"]).real
+
+    np.testing.assert_allclose(sx_tdvp, sx_exact)
+    np.testing.assert_allclose(sy_tdvp, sy_exact)
