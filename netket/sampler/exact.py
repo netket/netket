@@ -23,13 +23,18 @@ from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
 from netket.utils.types import PyTree, SeedT, DType
+from netket.utils import struct
 
 from .base import Sampler, SamplerState
 
 
 class ExactSamplerState(SamplerState):
-    pdf: Any
-    rng: Any
+    pdf: jnp.ndarray = struct.field(serialize=False)
+    rng: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-rng-key"
+        )
+    )
 
     def __init__(self, pdf: Any, rng: Any):
         self.pdf = pdf

@@ -49,7 +49,11 @@ class MetropolisSamplerState(SamplerState):
     state of the transition rule.
     """
 
-    σ: jnp.ndarray = struct.field(sharded=True)
+    σ: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-ignore-errors"
+        )
+    )
     """Current batch of configurations in the Markov chain."""
     log_prob: jnp.ndarray = struct.field(sharded=True, serialize=False)
     """Log probabilities of the current batch of configurations σ in the Markov chain."""
