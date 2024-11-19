@@ -140,7 +140,7 @@ class Pytree(metaclass=PytreeMeta):
 
     _pytree__cachedprop_fields: tuple[str, ...]
 
-    def __init_subclass__(cls, mutable: bool = False, dynamic_nodes: bool = False):
+    def __init_subclass__(cls, mutable: bool = None, dynamic_nodes: bool = False):
         super().__init_subclass__()
 
         # gather class info
@@ -208,8 +208,17 @@ class Pytree(metaclass=PytreeMeta):
                     all_fields[field] = _value
                     data_fields.add(field)
 
+        # Set mutable to be inherited from parent, or false otherwise
+        if mutable is None:
+            for parent_class in cls.mro():
+                mutable = getattr(parent_class, "_pytree__class_is_mutable", None)
+                if mutable is not None:
+                    break
+        if mutable is None:
+            mutable = False
+
         if mutable and len(cached_prop_fields) != 0:
-            raise ValueError("cannot use cached properties with " "mutable pytrees.")
+            raise ValueError("cannot use cached properties with mutable pytrees.")
 
         if config.netket_sphinx_build:
             for k in static_fields:
@@ -481,7 +490,10 @@ class Pytree(metaclass=PytreeMeta):
 
         def __setattr__(self: P, field: str, value: tp.Any):
             if self._pytree__initializing:
+                typ = type(self)
                 if self._pytree__class_dynamic_nodes:
+                    pass
+                elif isinstance(getattr(typ, field, None), property):
                     pass
                 elif field not in self._pytree__init_fields:
                     raise NetKetPyTreeUndeclaredAttributeAssignmentError(
