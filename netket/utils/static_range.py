@@ -246,10 +246,10 @@ class StaticRange(struct.Pytree):
             )
         elif hasattr(o, "shape"):
             if self.shape == o.shape:
-                return self.__array__() == o
+                return np.all(self.__array__() == o)
         elif hasattr(o, "__array__"):
             if hasattr(o, "shape") and self.shape == o.shape:
-                return self.__array__() == o
+                return np.all(self.__array__() == o.__array__())
 
         return False
 

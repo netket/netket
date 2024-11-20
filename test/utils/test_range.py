@@ -79,6 +79,9 @@ def test_staticrange_array_interface():
         np.array(StaticRange(0, 10, 100, dtype=float).astype(int)),
     )
 
+    ran = StaticRange(0, 10, 100)
+    assert ran == np.arange(0, 1000, 10)  # start, *end*, step
+
 
 def test_staticrange_flip():
     ran = StaticRange(0, 10, 100, dtype=float)
