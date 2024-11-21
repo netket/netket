@@ -43,10 +43,15 @@ class Jastrow(nn.Module):
         )
 
         ## separate real and imaginray part in order to be effificient on GPUs
-        Wr = jnp.zeros((nv, nv), dtype=kernel.real.dtype).at[il].set(kernel.real)
-        Wi = jnp.zeros((nv, nv), dtype=kernel.imag.dtype).at[il].set(kernel.imag)
+        if jnp.issubdtype(self.param_dtype, jnp.complexfloating):
+            Wr = jnp.zeros((nv, nv), dtype=kernel.real.dtype).at[il].set(kernel.real)
+            Wi = jnp.zeros((nv, nv), dtype=kernel.imag.dtype).at[il].set(kernel.imag)
+            W = Wr + 1j * Wi
 
-        W, x_in = promote_dtype(Wr + 1j * Wi, x_in, dtype=None)
+        else:
+            W = jnp.zeros((nv, nv), dtype=self.param_dtype).at[il].set(kernel)
+
+        W, x_in = promote_dtype(W, x_in, dtype=None)
         y = jnp.einsum("...i,ij,...j", x_in, W, x_in)
 
         return y
