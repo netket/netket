@@ -45,13 +45,25 @@ class Jastrow(nn.Module):
         # .at[].set is VERY slow for complex128 numbers in jax.
         # So we do it on the real-valued real and imaginary parts separately and then join them back
         # See issue https://github.com/jax-ml/jax/issues/24872
-        if jnp.issubdtype(self.param_dtype, jnp.complexfloating):
-            Wr = jnp.zeros((nv, nv), dtype=kernel.real.dtype).at[il].set(kernel.real)
-            Wi = jnp.zeros((nv, nv), dtype=kernel.imag.dtype).at[il].set(kernel.imag)
+        if jnp.issubdtype(self.param_dtype, jnp.complex128):
+            Wr = (
+                jnp.zeros((nv, nv), dtype=kernel.real.dtype)
+                .at[il]
+                .set(kernel.real, unique_indices=True, indices_are_sorted=True)
+            )
+            Wi = (
+                jnp.zeros((nv, nv), dtype=kernel.imag.dtype)
+                .at[il]
+                .set(kernel.imag, unique_indices=True, indices_are_sorted=True)
+            )
             W = Wr + 1j * Wi
 
         else:
-            W = jnp.zeros((nv, nv), dtype=self.param_dtype).at[il].set(kernel)
+            W = (
+                jnp.zeros((nv, nv), dtype=self.param_dtype)
+                .at[il]
+                .set(kernel, unique_indices=True, indices_are_sorted=True)
+            )
 
         W, x_in = promote_dtype(W, x_in, dtype=None)
         y = jnp.einsum("...i,ij,...j", x_in, W, x_in)
