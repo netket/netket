@@ -42,7 +42,9 @@ class Jastrow(nn.Module):
             "kernel", self.kernel_init, (nv * (nv - 1) // 2,), self.param_dtype
         )
 
-        ## separate real and imaginray part in order to be effificient on GPUs
+        # .at[].set is VERY slow for complex128 numbers in jax.
+        # So we do it on the real-valued real and imaginary parts separately and then join them back
+        # See issue https://github.com/jax-ml/jax/issues/24872
         if jnp.issubdtype(self.param_dtype, jnp.complexfloating):
             Wr = jnp.zeros((nv, nv), dtype=kernel.real.dtype).at[il].set(kernel.real)
             Wi = jnp.zeros((nv, nv), dtype=kernel.imag.dtype).at[il].set(kernel.imag)
