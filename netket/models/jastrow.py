@@ -42,9 +42,11 @@ class Jastrow(nn.Module):
             "kernel", self.kernel_init, (nv * (nv - 1) // 2,), self.param_dtype
         )
 
-        W = jnp.zeros((nv, nv), dtype=self.param_dtype).at[il].set(kernel)
+        ## separate real and imaginray part in order to be effificient on GPUs
+        Wr = jnp.zeros((nv, nv), dtype=kernel.real.dtype).at[il].set(kernel.real)
+        Wi = jnp.zeros((nv, nv), dtype=kernel.imag.dtype).at[il].set(kernel.imag)
 
-        W, x_in = promote_dtype(W, x_in, dtype=None)
+        W, x_in = promote_dtype(Wr + 1j * Wi, x_in, dtype=None)
         y = jnp.einsum("...i,ij,...j", x_in, W, x_in)
 
         return y
