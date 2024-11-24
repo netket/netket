@@ -56,9 +56,16 @@ class HistoryDict:
         """
         Create a new HistoryDict instance from a dictionary of histories.
         """
-        self._data = dict(*args, **kwargs)
+        data = dict(*args, **kwargs)
+        # Do not nest HistoryDict inside Historydict!
+        for k, d in data.items():
+            if isinstance(d, HistoryDict):
+                data[k] = d.to_dict()
+        self._data = data
 
     def __setitem__(self, key: str, value: Union[History, Self]):
+        if isinstance(value, HistoryDict):
+            value = value.to_dict()
         self._data[key] = value
 
     def __getitem__(self, key: str, *, wrap_dicts=True) -> Union[History, Self]:

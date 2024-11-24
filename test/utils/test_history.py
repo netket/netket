@@ -61,6 +61,7 @@ def create_mock_data_iter(iter):
         "mockdict": MockDictType(iter, iter * 10),
         "mock": MockClass(iter),
         "matrix": np.full((3, 4), iter),
+        "empty": {},
     }
 
 
@@ -86,6 +87,9 @@ def test_accum_mvhistory():
     np.testing.assert_allclose(
         np.array(tree["frozendict"]["sub"]["int"]), np.arange(10)
     )
+
+    # Check that empty is not in the accumulated tree
+    assert "empty" not in tree
 
 
 def test_append():
@@ -130,3 +134,28 @@ def test_construct_from_dict():
     assert len(tree.iters) == len(new_tree.iters) * 2
     for key in tree.keys():
         len(tree[key]) == len(new_tree[key]) * 2
+
+
+def test_historydict():
+    L = 10
+
+    tree = nk.utils.history.HistoryDict()
+    for i in range(L):
+        tree = nk.utils.accum_histories_in_tree(tree, create_mock_data_iter(i), step=i)
+
+    # There are no HistoryDict inside
+    tree_dict = tree.to_dict()
+    leafs = jax.tree.leaves(tree_dict)
+    assert all(not isinstance(l, nk.utils.history.HistoryDict) for l in leafs)
+
+    # But they are created on the fly
+    assert isinstance(tree["dict"], nk.utils.history.HistoryDict)
+
+    assert isinstance(repr(tree), str)
+
+    # Even if you put it in, it gets out
+    new_tree = nk.utils.history.HistoryDict({"histdict": tree["dict"]})
+    assert all(
+        not isinstance(l, nk.utils.history.HistoryDict)
+        for l in jax.tree.leaves(new_tree.to_dict())
+    )

@@ -38,6 +38,10 @@ def _accum_histories_container(
     container_type: type = list,
     **kwargs,
 ):
+    # If nothing to accumulate, just return the former tree
+    if len(tree) == 0:
+        return tree_accum
+
     if tree_accum is None:
         tree_accum = [None for _ in range(len(tree))]
     return container_type(
@@ -52,12 +56,17 @@ def _accum_histories_dict(
     tree: list,
     **kwargs,
 ):
+    # If nothing to accumulate, just return the former tree
+    if len(tree.keys()) == 0:
+        return tree_accum
+
     if tree_accum is None:
         tree_accum = {}
     for key in tree.keys():
-        tree_accum[key] = accum_in_tree(
-            fun, tree_accum.get(key, None), tree[key], **kwargs
-        )
+        value = accum_in_tree(fun, tree_accum.get(key, None), tree[key], **kwargs)
+        #
+        if value is not None:
+            tree_accum[key] = value
     return tree_accum
 
 
