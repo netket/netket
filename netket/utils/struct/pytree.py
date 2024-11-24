@@ -241,6 +241,9 @@ class Pytree(metaclass=PytreeMeta):
 
         static_fields = tuple(sorted(static_fields))
         noserialize_fields = tuple(sorted(noserialize_fields))
+        serialize_rename_fields = tuple(
+            sorted(compute_serialize_rename_fields(all_fields))
+        )
         sharded_fields = tuple(sorted(sharded_fields))
 
         # init class variables
@@ -249,6 +252,7 @@ class Pytree(metaclass=PytreeMeta):
         cls._pytree__fields = all_fields
         cls._pytree__static_fields = static_fields
         cls._pytree__noserialize_fields = noserialize_fields
+        cls._pytree__serialize_rename_fields = serialize_rename_fields
         cls._pytree__sharded_fields = sharded_fields
         cls._pytree__setter_descriptors = frozenset(setter_descriptors)
         cls._pytree__default_setters = default_setters
@@ -395,6 +399,13 @@ class Pytree(metaclass=PytreeMeta):
                 continue
             state_dict[name] = to_flax_state_dict_sharding(state_dict[name])
         # End handle sharding
+
+        # rename fields if we must
+        for name, serialize_name in cls._pytree__serialize_rename_fields:
+            state_dict[serialize_name] = state_dict[name]
+            del state_dict[name]
+        # end renaming
+
         return state_dict
 
     @classmethod
@@ -407,6 +418,15 @@ class Pytree(metaclass=PytreeMeta):
         """Restore the state of a data class."""
         state = state.copy()  # copy the state so we can pop the restored fields.
         updates = {}
+
+        # rename fields if we must
+        for name, serialize_name in cls._pytree__serialize_rename_fields:
+            if serialize_name in state:
+                state[name] = state[serialize_name]
+                del state[serialize_name]
+
+        # end renaming
+
         for name in pytree.__dict__:
             if name in noserialize_field_names:
                 continue
@@ -618,6 +638,15 @@ def _inherited_defaults_setters(cls: type) -> set[Callable[[], Any]]:
                         default_setters[field.name] = field.default_factory
 
     return default_setters
+
+
+def compute_serialize_rename_fields(all_fields):
+    rename = []
+    for name, field in all_fields.items():
+        new_name = field.metadata.get("serialize_name", None)
+        if new_name is not None and new_name != name:
+            rename.append((name, new_name))
+    return tuple(sorted(rename))
 
 
 def unwrap_jax_prng_keys(maybe_key):
