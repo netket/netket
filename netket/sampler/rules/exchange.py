@@ -50,6 +50,30 @@ class ExchangeRule(MetropolisRule):
     This scheme should be used then only when sampling in a
     region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
     otherwise the sampling would be strongly not ergodic.
+
+    .. warning::
+
+        If you are working with systems where the number of nodes in the physical lattice
+        does not match the number of degrees of freedom, you must be careful!
+
+        A typical example is a system of Spin-1/2 fermions on a lattice with N sites, where the 
+        first N degrees of freedom correspond to the spin down degrees of freedom and the
+        next N degrees of freedom correspond to the spin up degrees of freedom.
+
+        In this case, you tipically want to exchange only degrees of freedom of the same type.
+        A simple way to achieve this is to double the graph:
+
+        .. code-block:: python
+
+            import netket as nk
+            g = nk.graph.Square(5)
+            hi = nkx.hilbert.SpinOrbitalFermions(g.n_nodes, s=0.5)
+
+            exchange_graph = nk.graph.disjoint_union(g, g)
+            print("Exchange graph size:", exchange_graph.n_nodes)
+
+            sa = nk.sampler.MetropolisExchange(hi, graph=exchange_graph, d_max=1)
+
     """
 
     clusters: jax.Array

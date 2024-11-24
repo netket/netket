@@ -160,6 +160,7 @@ html_context = {
     "navbar_fixed_top": True,
     "navbar_link": (f"{main_website_base_url}", True),
     "navbar_class": "navbar",
+    "default_mode": "light",
     "navbar_links": [
         ("Posts", f"{main_website_base_url}/posts/", True),
         (

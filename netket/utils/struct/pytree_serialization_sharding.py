@@ -43,19 +43,24 @@ class ShardedFieldSpec:
 
     deserialization_function: ShardedDeserializationFunction | str | None = "relaxed"
     """
-    Function to use to deserialize the data. Can be a callable with signature
-    `def f(value_target: jax.Array, value_state: jax.Array, *, name: str = ".") -> jax.Array`
-    or one of the following strings:
-        - "fail": Raise an error if the sharded data does not match the target data.
-        - "strict": Raise an error if the sharded data does not match the target data.
-        - "relaxed": Ignore extra data in the sharded data if the target data is smaller
-            than the serialised data; error if the target data is larger.
-        - "relaxed-ignore-errors": Ignore extra data in the sharded data if the target data is
-            smaller, and do nothing if the target data is larger.
-        - "relaxed-rng-key": Special case for RNG keys, where we can safely truncate the
-            serialized data if the target data is larger.
+    Function to use to deserialize the data. Can be a callable with the signature:
+    
+    ```python
+    def f(value_target: jax.Array, value_state: jax.Array, *, name: str = ".") -> jax.Array
+    ```
 
-    The default is "relaxed".
+    or one of the following strings:
+
+    - **"fail"**: Raise an error if the sharded data does not match the target data.
+    - **"strict"**: Raise an error if the sharded data does not match the target data.
+    - **"relaxed"**: Ignore extra data in the sharded data if the target data is smaller
+      than the serialized data; error if the target data is larger.
+    - **"relaxed-ignore-errors"**: Ignore extra data in the sharded data if the target data is
+      smaller, and do nothing if the target data is larger.
+    - **"relaxed-rng-key"**: Special case for RNG keys, where we can safely truncate the
+      serialized data if the target data is larger.
+
+    The default is **"relaxed"**.
     """
 
     def __post_init__(self):

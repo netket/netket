@@ -65,7 +65,7 @@ On Mac it is not possible to control this number.
 On Linux it can be controlled using `taskset` or `--bind-to core` when using `mpirun`.
 
 :::{note}
-In the [Cluster](cluster.md) section of the documentation you can find some example setup instructions of MPI+NetKet on some clusters. Those setups are intended for GPUs, and the CPU setting is much simpler as it does not need to include CUDA.
+In the [Clusters](clusters.md) section of the documentation you can find some example setup instructions of MPI+NetKet on some clusters. Those setups are intended for GPUs, and the CPU setting is much simpler as it does not need to include CUDA.
 :::
 
 
