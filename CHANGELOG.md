@@ -11,6 +11,7 @@
 * The `netket.experimental.dynamics` module has been greatly refactored, changing all internal logics but exposing a well designed, easier to extend interface. While the interface is not yet documented, it is now reasonably possible to implement new ode integrators on top of our interface to be used with {class}`~netket.experimental.driver.TDVP` or other drivers [#1933](https://github.com/netket/netket/pull/1933).
 * Timing of the run function with `timeit=True` is now more accurate, even on GPUs, but it will decrease performance [#1958](https://github.com/netket/netket/pull/1958).
 * The model {class}`netket.models.Jastrow` now constructs its kernel matrix differently, resulting in faster calculations, especially on GPUs. The usage of the class is unchanged and the internal structure of the parameters does not break from previous versions [#1964](https://github.com/netket/netket/pull/1964). 
+* Several under-the-hood changes to better serialize objects containing sharded arrays.
 
 ### Breaking Changes
 * Removed support for using Numba-operators under sharding. This has never really worked realiably and lead to uncomprehensible crashes, and was very hard to maintain so it's leaving [#1919](https://github.com/netket/netket/pull/1919).
