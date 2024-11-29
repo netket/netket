@@ -266,7 +266,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
             # equinox.error_if is broken under shard_map.
             # If we are using shard map, we skip this check
-            if sharding.SHARD_MAP_STACK_LEVEL == 0:
+            if sharding.SHARD_MAP_STACK_LEVEL == 0 and jax.device_count() == 1:
                 states = error_if(
                     states,
                     (states < start).any() | (states >= end).any(),
@@ -274,7 +274,7 @@ class HomogeneousHilbert(DiscreteHilbert):
                 )
 
         if self.constrained:
-            if sharding.SHARD_MAP_STACK_LEVEL == 0:
+            if sharding.SHARD_MAP_STACK_LEVEL == 0 and jax.device_count() == 1:
                 states = error_if(
                     states,
                     ~self.constraint(states).all(),
