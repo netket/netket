@@ -611,7 +611,7 @@ def MetropolisExchange(
         If you are working with systems where the number of nodes in the physical lattice
         does not match the number of degrees of freedom, you must be careful!
 
-        A typical example is a system of Spin-1/2 fermions on a lattice with N sites, where the 
+        A typical example is a system of Spin-1/2 fermions on a lattice with N sites, where the
         first N degrees of freedom correspond to the spin down degrees of freedom and the
         next N degrees of freedom correspond to the spin up degrees of freedom.
 

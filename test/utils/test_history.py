@@ -54,7 +54,7 @@ def create_mock_data_iter(iter):
         "int": iter,
         "complex": iter + 1j * iter,
         "npint": np.array(iter),
-        "jax-1d": jnp.full((1,), iter), # tests logging a 1D, 1 element vector
+        "jax-1d": jnp.full((1,), iter),  # tests logging a 1D, 1 element vector
         "jaxcomplex": jnp.array(iter + 1j * iter),
         "jaxcomple-1d": jnp.full((1,), iter + 1j * iter),
         "dict": {"int": iter},
