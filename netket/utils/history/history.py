@@ -154,7 +154,7 @@ class History:
 
             elif hasattr(val, "__array__"):
                 val = np.asarray(val, dtype=dtype)
-                if n_elements == 1 and len(val) != 1:
+                if n_elements == 1 and val.ndim > 0:
                     val = np.reshape(val, (1, *val.shape))
 
                 raise_if_len_not_match(len(val), n_elements, key)

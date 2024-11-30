@@ -161,7 +161,7 @@ class DiscreteHilbert(AbstractHilbert):
 
         # equinox.error_if is broken under shard_map.
         # If we are using shard map, we skip this check
-        if sharding.SHARD_MAP_STACK_LEVEL == 0:
+        if sharding.SHARD_MAP_STACK_LEVEL == 0 and jax.device_count() == 1:
             numbers = error_if(
                 numbers,
                 (numbers >= self.n_states).any() | (numbers < 0).any(),

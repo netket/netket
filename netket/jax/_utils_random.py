@@ -24,7 +24,18 @@ from netket.utils.types import PRNGKeyT, SeedT
 def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
-    The same seed will be distributed to all processes.
+
+    If using sharding, the returned key will be replicated while if using MPI
+    the key of the master rank will be broadcasted to every process.
+
+    Args:
+        seed: An optional integer value to use as seed
+        root: the master rank, used when running under MPI (defaults to 0)
+        comm: The MPI communicator to use for broadcasting, if necessary
+
+    Returns:
+        A sharded/broadcasted :ref:`jax.random.PRNGKey`.
+
     """
     if seed is None:
         seed = random_seed()
@@ -46,7 +57,11 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
     else:
         key = seed
 
-    if not config.netket_experimental_sharding:  # type: ignore[attr-defined]
+    if config.netket_experimental_sharding:
+        key = jax.lax.with_sharding_constraint(
+            key, jax.sharding.PositionalSharding(jax.devices()).replicate()
+        )
+    else:  # type: ignore[attr-defined]
         key = _bcast_key(key, root=root, comm=comm)
     return key
 

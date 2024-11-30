@@ -44,10 +44,10 @@ class ShardedFieldSpec:
     deserialization_function: ShardedDeserializationFunction | str | None = "relaxed"
     """
     Function to use to deserialize the data. Can be a callable with the signature:
-    
-    ```python
-    def f(value_target: jax.Array, value_state: jax.Array, *, name: str = ".") -> jax.Array
-    ```
+
+    .. code-block:: python
+
+        def f(value_target: jax.Array, value_state: jax.Array, *, name: str = ".") -> jax.Array
 
     or one of the following strings:
 
