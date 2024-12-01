@@ -197,7 +197,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         Returns:
             a tensor containing integer indices into the local hilbert
         """
-        return self._local_states.states_to_numbers(x)
+        return self._local_states.states_to_numbers(x, dtype=np.int32)
 
     def local_indices_to_states(self, x: Array, dtype=None):
         r"""

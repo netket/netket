@@ -24,10 +24,6 @@ from netket.utils.types import DType
 from netket.jax import canonicalize_dtypes
 
 
-def _in_int_dtype_range(num, dtype):
-    return np.iinfo(dtype).min <= num <= np.iinfo(dtype).max
-
-
 class StaticRange(struct.Pytree):
     """
     An object representing a range similar to python's range, but that
@@ -74,8 +70,6 @@ class StaticRange(struct.Pytree):
     """The first value in the range."""
     step: float = struct.field(pytree_node=False)
     """The difference between two consecutive values in the range."""
-    end: float = struct.field(pytree_node=False)
-    """The difference between two consecutive values in the range."""
     length: int = struct.field(pytree_node=False)
     """The number of entries in the range."""
     dtype: DType = struct.field(pytree_node=False)
@@ -97,7 +91,7 @@ class StaticRange(struct.Pytree):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=0, step=1, length=n_max)
-            StaticRange(start=0, step=1, end=9, length=10, dtype=int64)
+            StaticRange(start=0, step=1, length=10, dtype=int64)
 
         and the range of a Spin-1/2 Hilbert space is constructed as:
 
@@ -106,7 +100,7 @@ class StaticRange(struct.Pytree):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=-1, step=2, length=2)
-            StaticRange(start=-1, step=2, end=1, length=2, dtype=int64)
+            StaticRange(start=-1, step=2, length=2, dtype=int64)
 
         Args:
             start: Value of the first entry
@@ -114,24 +108,10 @@ class StaticRange(struct.Pytree):
             length: Length of this range
             dtype: The data type
         """
-        end = start + step * (length - 1)
-
-        if dtype is None:
-            dtype = canonicalize_dtypes(start, step, dtype=dtype)
-        else:
-            if np.issubdtype(dtype, np.integer):
-                if not _in_int_dtype_range(start, dtype):
-                    raise TypeError("The start element of dtype range.")
-                if not _in_int_dtype_range(end, dtype):
-                    raise TypeError("The end element is outside of dtype range.")
-                if not _in_int_dtype_range(length * step, dtype):
-                    raise TypeError(
-                        "Dtype has a too limited range for intermediate calculations."
-                    )
+        dtype = canonicalize_dtypes(start, step, dtype=dtype)
 
         self.start = np.array(start, dtype=dtype).item()
         self.step = np.array(step, dtype=dtype).item()
-        self.end = np.array(end, dtype=dtype).item()
         self.length = int(length)
 
         self.dtype = dtype
@@ -158,7 +138,7 @@ class StaticRange(struct.Pytree):
             raise IndexError
         return self.start + self.step * i
 
-    def states_to_numbers(self, x, dtype: DType = None):
+    def states_to_numbers(self, x, dtype: DType = int):
         """Given an element in the range, returns it's index.
 
         Args:
@@ -169,14 +149,12 @@ class StaticRange(struct.Pytree):
         Returns:
             An array of integers, which can be.
         """
-        idx = (x - self.start) // self.step
-        if dtype is None:
-            dtype = self.dtype if np.issubdtype(self.dtype, np.integer) else int
-        if not hasattr(idx, "astype"):
-            npx = jnp if isinstance(x, jax.Array) else np
-            idx = npx.array(idx, dtype=dtype)
-        else:
-            idx = idx.astype(dtype)
+        idx = (x - self.start) / self.step
+        if dtype is not None:
+            if not hasattr(idx, "astype"):
+                idx = np.array(idx, dtype=dtype)
+            else:
+                idx = idx.astype(dtype)
         return idx
 
     def numbers_to_states(self, i, dtype: DType = None):
@@ -204,7 +182,8 @@ class StaticRange(struct.Pytree):
         """Only works if this range has length 2. Given a state, returns the other state."""
         if not len(self) == 2:
             raise ValueError
-        return (self.start - state) + self.end
+        constant_sum = 2 * self.start + self.step
+        return constant_sum - state
 
     def all_states(self, dtype: DType = None):
         """Return all elements in the range. Equal to __array__
@@ -246,12 +225,12 @@ class StaticRange(struct.Pytree):
             )
         elif hasattr(o, "shape"):
             if self.shape == o.shape:
-                return np.all(self.__array__() == o)
+                return self.__array__() == o
         elif hasattr(o, "__array__"):
             if hasattr(o, "shape") and self.shape == o.shape:
-                return np.all(self.__array__() == o.__array__())
+                return self.__array__() == o
 
         return False
 
     def __repr__(self):
-        return f"StaticRange(start={self.start}, step={self.step}, end={self.end}, length={self.length}, dtype={self.dtype})"
+        return f"StaticRange(start={self.start}, step={self.step}, length={self.length}, dtype={self.dtype})"
