@@ -101,7 +101,6 @@ class Fock(HomogeneousHilbert):
             0,
             1,
             self._n_max + 1,
-            dtype=np.int8 if self._n_max < 2**6 else int,  # type: ignore[arg-type]
         )
 
         super().__init__(local_states, N, constraint=constraint)
