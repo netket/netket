@@ -22,6 +22,7 @@ import jax.numpy as jnp
 from netket.utils import struct
 from netket.utils.types import DType
 from netket.jax import canonicalize_dtypes
+from netket.jax._utils_dtype import bottom_int_dtype
 
 
 class StaticRange(struct.Pytree):
@@ -108,7 +109,11 @@ class StaticRange(struct.Pytree):
             length: Length of this range
             dtype: The data type
         """
-        dtype = canonicalize_dtypes(start, step, dtype=dtype)
+        if dtype is None:
+            end = start + step * (length - 1)
+            dtype = bottom_int_dtype(start, end)
+        else:
+            dtype = canonicalize_dtypes(start, step, dtype=dtype)
 
         self.start = np.array(start, dtype=dtype).item()
         self.step = np.array(step, dtype=dtype).item()
@@ -138,8 +143,11 @@ class StaticRange(struct.Pytree):
             raise IndexError
         return self.start + self.step * i
 
-    def states_to_numbers(self, x, dtype: DType = int):
+    def states_to_numbers(self, x, dtype: DType = None):
         """Given an element in the range, returns it's index.
+
+        If the dtype is not specified, it will be the smallest unsigned integer dtype
+        that can hold numbers in ``(0, length)``.
 
         Args:
             x: array of elements beloging to this range. No bounds checking
@@ -149,6 +157,9 @@ class StaticRange(struct.Pytree):
         Returns:
             An array of integers, which can be.
         """
+        if dtype is None:
+            dtype = bottom_int_dtype(self.length)
+
         idx = (x - self.start) / self.step
         if dtype is not None:
             if not hasattr(idx, "astype"):
