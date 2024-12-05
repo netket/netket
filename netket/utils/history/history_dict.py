@@ -148,3 +148,6 @@ class HistoryDict:
             return False
 
         return cls(jax.tree.map(_recompose, data, is_leaf=_is_leaf))
+
+    def _ipython_key_completions_(self):
+        return self._data.keys()
