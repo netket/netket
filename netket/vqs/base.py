@@ -27,6 +27,7 @@ from plum import Callable  # noqa: F401
 
 from netket.hilbert.discrete_hilbert import DiscreteHilbert
 import netket.jax as nkjax
+from netket import errors as nkerrors
 from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
 from netket.stats import Stats
@@ -68,6 +69,7 @@ class VariationalState(abc.ABC):
 
         self._model_state = {}  # type: PyTree
         self._parameters = {}  # type: PyTree
+        self._parameters_structure = None
 
     @property
     def hilbert(self) -> AbstractHilbert:
@@ -83,6 +85,15 @@ class VariationalState(abc.ABC):
 
     @parameters.setter
     def parameters(self, pars: PyTree):
+        if self._parameters_structure is None:
+            self._parameters_structure = jax.tree.structure(pars)
+        else:
+            new_structure = jax.tree.structure(pars)
+            if new_structure != self._parameters_structure:
+                raise nkerrors.ParameterMismatchError(
+                    self._parameters_structure, new_structure
+                )
+
         self._parameters = pars
         self.reset()
 
@@ -111,6 +122,15 @@ class VariationalState(abc.ABC):
 
     @variables.setter
     def variables(self, var: PyTree):
+        if "params" not in var:
+            raise ValueError(
+                """
+                The variables must be a dict containing a 'params' key with the parameters of the model,
+                but the provided variables are missing the 'params' key.
+
+                Maybe you meant to set the 'parameters' property instead?
+                """
+            )
         self.model_state, self.parameters = fcore.pop(var, "params")
 
     def init_parameters(
