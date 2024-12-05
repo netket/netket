@@ -122,6 +122,15 @@ class VariationalState(abc.ABC):
 
     @variables.setter
     def variables(self, var: PyTree):
+        if "params" not in var:
+            raise ValueError(
+                """
+                The variables must be a dict containing a 'params' key with the parameters of the model,
+                but the provided variables are missing the 'params' key.
+
+                Maybe you meant to set the 'parameters' property instead?
+                """
+            )
         self.model_state, self.parameters = fcore.pop(var, "params")
 
     def init_parameters(
