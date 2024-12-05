@@ -549,3 +549,17 @@ def test_reproducible_copy():
     # But different samples
     with pytest.raises(AssertionError):
         np.testing.assert_allclose(s1, s1_2)
+
+
+@common.skipif_distributed
+def test_error_wrong_variables():
+    hi = nk.hilbert.Spin(0.5, 4)
+    sa = nk.sampler.ExactSampler(hilbert=hi)
+    ma = nk.models.RBM(alpha=1)
+    vs = nk.vqs.MCState(sa, ma)
+    with pytest.raises(ValueError):
+        vs.variables = {"a": 1}
+    with pytest.raises(nk.errors.ParameterMismatchError):
+        vs.variables = {"params": {"a": 1}}
+    with pytest.raises(nk.errors.ParameterMismatchError):
+        vs.parameters = {"a": 1}
