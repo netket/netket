@@ -46,3 +46,5 @@ from .primitives import (
     mpi_allreduce_sum_jax,
     mpi_scatter_jax,
 )
+
+from ._logsumexp import mpi_logsumexp
