@@ -214,7 +214,6 @@ class Spin(HomogeneousHilbert):
                 local_size - 1,  # type: ignore[arg-type]
                 -2,  # type: ignore[arg-type]
                 local_size,
-                dtype=np.int8 if local_size < 2**7 else int,
             )
         else:
             # Old ordering where -1=↑ 1=↓
@@ -222,7 +221,6 @@ class Spin(HomogeneousHilbert):
                 1 - local_size,  # type: ignore[arg-type]
                 2,  # type: ignore[arg-type]
                 local_size,
-                dtype=np.int8 if local_size < 2**7 else int,
             )
 
         _check_total_sz(total_sz, s, N)
