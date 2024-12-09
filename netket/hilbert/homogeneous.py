@@ -130,14 +130,12 @@ class HomogeneousHilbert(DiscreteHilbert):
             raise TypeError("local_states must be a StaticRange.")
 
         self._local_states = local_states
-        self._local_size = len(local_states)
-        self._is_finite = self._local_size < np.iinfo(np.intp).max
 
         self._constraint = check_and_deprecate_constraint(constraint, constraint_fn)
 
         self._hilbert_index_ = None
 
-        shape = tuple(self._local_size for _ in range(N))
+        shape = tuple(len(local_states) for _ in range(N))
         super().__init__(shape=shape)
 
     @property
@@ -148,7 +146,7 @@ class HomogeneousHilbert(DiscreteHilbert):
     @property
     def local_size(self) -> int:
         r"""Size of the local degrees of freedom that make the total hilbert space."""
-        return self._local_size
+        return len(self._local_states)
 
     def size_at_index(self, i: int) -> int:
         return self.local_size
@@ -234,7 +232,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         # False we are lying because it's technically always Finite...
         #
         # Do we still need this flag?
-        return self._is_finite
+        return len(self._local_states) < np.iinfo(np.intp).max
 
     @property
     def constrained(self) -> bool:
@@ -326,7 +324,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         constr = f", constrained={self.constrained}" if self.constrained else ""
 
         clsname = type(self).__name__
-        return f"{clsname}(local_size={self._local_size}, N={self.size}{constr})"
+        return f"{clsname}(local_size={len(self._local_states)}, N={self.size}{constr})"
 
     @property
     def _attrs(self):

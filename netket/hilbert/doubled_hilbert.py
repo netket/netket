@@ -49,13 +49,12 @@ class DoubledHilbert(DiscreteHilbert):
             6
         """
         self.physical = hilb
-        self._size = 2 * hilb.size
 
         super().__init__(shape=hilb.shape * 2)
 
     @property
     def size(self):
-        return self._size
+        return 2 * self.physical.size
 
     @property
     def shape(self):
