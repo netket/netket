@@ -160,7 +160,7 @@ class History:
                 raise_if_len_not_match(len(val), n_elements, key)
 
             elif isinstance(val, list):
-                pass
+                val = np.asarray(val, dtype=dtype)
             else:
                 val = [val]
 
@@ -297,6 +297,8 @@ class History:
         fig: "matplotlib.figure.Figure | None" = None,
         show: bool = True,
         all: bool | None = None,
+        xscale: str | None = None,
+        yscale: str | None = "auto",
         **kwargs,
     ) -> "matplotlib.axes.Axes" | Iterable["matplotlib.axes.Axes"]:
         """
@@ -345,6 +347,19 @@ class History:
         for ax, key in zip(axes, keys_to_plot):
             ax.plot(self.iters, self[key], label=key, *args, **kwargs)
             ax.set_ylabel(key)
+
+            if xscale is not None:
+                ax.set_xscale(xscale)
+            if yscale is not None:
+                if yscale == "auto":
+                    if (
+                        np.all(self[key] > 0)
+                        and (np.max(self[key]) / np.min(self[key])) > 150
+                    ):
+                        yscale = "log"
+                    else:
+                        yscale = "linear"
+                ax.set_yscale(yscale)
 
         plt.xlabel("Iterations")
         plt.legend()
