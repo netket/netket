@@ -98,7 +98,7 @@ class DiscreteHilbertConstraint(struct.Pytree):
 
                 def __call__(self, x):
                     return jax.pure_callback(self._call_py,
-                                            result_shape_dtypes=(jax.ShapeDtypeStruct(x.shape[:-1], bool)),
+                                            (jax.ShapeDtypeStruct(x.shape[:-1], bool)),
                                             x,
                                             vmap_method="expand_dims")
 
