@@ -32,6 +32,8 @@ from jax.sharding import (
 )
 from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
+from jax.experimental.custom_partitioning import custom_partitioning
+
 
 from netket.utils import config, mpi
 from netket.utils.deprecation import warn_deprecation
@@ -508,3 +510,51 @@ def device_count() -> int:
         jax.device_count() if config.netket_experimental_sharding is True, and mpi.rank otherwise.
     """
     return mpi.n_nodes * device_count_per_rank()
+
+
+@partial(custom_partitioning, static_argnums=(2,))
+def batched_take_along_axis(a, indices, axis):
+    """
+    Version of jax.numpy.take_along_axis which does not cause unnecessary collective communication when using sharding.
+    """
+    return jnp.take_along_axis(a, indices, axis)
+
+
+def _batched_take_along_axis_partition(axis, mesh, arg_shapes, result_shape):
+    a_shape = arg_shapes[0]
+    a_sharding = a_shape.sharding
+
+    # enforce that axis is not sharded
+    if isinstance(a_sharding, jax.sharding.PositionalSharding):
+        s = a_sharding.replicate(axis=axis)
+    elif isinstance(a_sharding, jax.sharding.NamedSharding):
+        partitions = list(a_sharding.spec) + [
+            None for _ in range(a_shape.ndim - len(a_sharding.spec))
+        ]
+        partitions[axis] = None
+        s = jax.sharding.NamedSharding(mesh, jax.sharding.PartitionSpec(*partitions))
+    elif a_sharding is None:
+        s = jax.sharding.NamedSharding(mesh, jax.sharding.PartitionSpec())
+    else:
+        raise NotImplementedError
+    arg_shardings = (s, s)  # enforce that indices is sharded the same way as a
+    result_shardings = s
+    return (
+        mesh,
+        partial(jnp.take_along_axis, axis=axis),
+        result_shardings,
+        arg_shardings,
+    )
+
+
+def _batched_take_along_axis_infer_sharding_from_operands(
+    axis, mesh, arg_shapes, result_shape
+):
+    return _batched_take_along_axis_partition(axis, mesh, arg_shapes, result_shape)[2]
+
+
+batched_take_along_axis.def_partition(
+    infer_sharding_from_operands=_batched_take_along_axis_infer_sharding_from_operands,
+    partition=_batched_take_along_axis_partition,
+    decode_shardings=True,
+)
