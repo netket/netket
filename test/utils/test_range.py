@@ -37,7 +37,7 @@ def test_staticrange_eq():
 
 
 def test_staticrange_array_interface():
-    ran = StaticRange(0, 10, 100)
+    ran = StaticRange(0, 10, 100, dtype=int)
 
     assert ran.dtype == int
     assert ran.ndim == 1
@@ -54,7 +54,8 @@ def test_staticrange_array_interface():
     np.testing.assert_allclose(
         ran.states_to_numbers(np.array([0, 10, 100])), np.array([0, 1, 10])
     )
-    assert ran.states_to_numbers(10).dtype == int
+    assert ran.states_to_numbers(10).dtype == np.int8
+    assert ran.states_to_numbers(10, dtype=int).dtype == int
     assert ran.states_to_numbers(10, dtype=float).dtype == float
     assert isinstance(ran.states_to_numbers(10), np.ndarray)
     assert isinstance(ran.states_to_numbers(np.array([10, 20])), np.ndarray)
@@ -70,7 +71,7 @@ def test_staticrange_array_interface():
 
     ran = StaticRange(0, 10, 100, dtype=float)
     assert ran.dtype == float
-    assert ran.states_to_numbers(1).dtype == int
+    assert ran.states_to_numbers(1).dtype == np.int8
     assert ran.numbers_to_states(1).dtype == float
     assert isinstance(ran.numbers_to_states(1), float)
     assert np.array(ran).dtype == float
@@ -88,3 +89,13 @@ def test_staticrange_flip():
 
     ran = StaticRange(0, 1, 2)
     ran.flip_state(0) == 1
+
+
+def test_staticrange_auto_default_dtype():
+    ran = StaticRange(0, 10, 100)
+    assert ran.dtype == np.int16
+    assert np.asarray(ran).dtype == np.int16
+
+    ran = StaticRange(0, 1, 2)
+    assert ran.dtype == np.int8
+    assert np.asarray(ran).dtype == np.int8
