@@ -108,4 +108,46 @@ def canonicalize_dtypes(*values, dtype=None):
         dtype = jnp.result_type(*[_dtype(x) for x in values])
     # Fallback to x32 when x64 is disabled in JAX
     dtype = jax.dtypes.canonicalize_dtype(dtype)
-    return dtype
+    return jnp.dtype(dtype)
+
+
+def _in_int_dtype_range(num, dtype):
+    return np.iinfo(dtype).min <= num <= np.iinfo(dtype).max
+
+
+_int_dtypes = [np.int8, np.int16, np.int32, np.int64]
+_uint_dtypes = [np.uint8, np.uint16, np.uint32, np.uint64]
+
+
+def bottom_int_dtype(*vals, dtype=None, allow_unsigned: bool = False):
+    """
+    Find the smallest integer dtype that contains the values
+
+    If the dtype provided is floating, simply return it.
+
+    Args:
+        values: An arbitrary number of values
+        dtype: default dtype to start from
+        allow_unsigned: whether to allow unsigned dtypes
+    """
+    if dtype is None:
+        dtype = canonicalize_dtypes(*vals, dtype=dtype)
+
+    if np.issubdtype(dtype, np.floating):
+        return jnp.dtype(dtype)
+
+    # Check if all values are unsigned. If yes, work with uint types,
+    # else check int types
+    if any(v < 0 for v in vals) or not allow_unsigned:
+        dtypes_choice = _int_dtypes
+    # elif all(v in (0, 1) for v in vals):
+    #    return np.dtype(bool)
+    else:
+        dtypes_choice = _uint_dtypes
+
+    for dtyp in dtypes_choice:
+        if all(_in_int_dtype_range(v, dtyp) for v in vals):
+            return jnp.dtype(dtyp)
+    raise ValueError(
+        f"Some of the values in {vals} do not fit in any numpy integer dtype."
+    )
