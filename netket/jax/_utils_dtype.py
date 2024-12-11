@@ -108,7 +108,7 @@ def canonicalize_dtypes(*values, dtype=None):
         dtype = jnp.result_type(*[_dtype(x) for x in values])
     # Fallback to x32 when x64 is disabled in JAX
     dtype = jax.dtypes.canonicalize_dtype(dtype)
-    return dtype
+    return jnp.dtype(dtype)
 
 
 def _in_int_dtype_range(num, dtype):
@@ -134,7 +134,7 @@ def bottom_int_dtype(*vals, dtype=None, allow_unsigned: bool = False):
         dtype = canonicalize_dtypes(*vals, dtype=dtype)
 
     if np.issubdtype(dtype, np.floating):
-        return dtype
+        return jnp.dtype(dtype)
 
     # Check if all values are unsigned. If yes, work with uint types,
     # else check int types
@@ -147,7 +147,7 @@ def bottom_int_dtype(*vals, dtype=None, allow_unsigned: bool = False):
 
     for dtyp in dtypes_choice:
         if all(_in_int_dtype_range(v, dtyp) for v in vals):
-            return dtyp
+            return jnp.dtype(dtyp)
     raise ValueError(
         f"Some of the values in {vals} do not fit in any numpy integer dtype."
     )
