@@ -92,7 +92,7 @@ class StaticRange(struct.Pytree):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=0, step=1, length=n_max)
-            StaticRange(start=0, step=1, length=10, dtype=<class 'numpy.int8'>)
+            StaticRange(start=0, step=1, length=10, dtype=int8)
 
         and the range of a Spin-1/2 Hilbert space is constructed as:
 
@@ -101,7 +101,7 @@ class StaticRange(struct.Pytree):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=-1, step=2, length=2)
-            StaticRange(start=-1, step=2, length=2, dtype=<class 'numpy.int8'>)
+            StaticRange(start=-1, step=2, length=2, dtype=int8)
 
         Args:
             start: Value of the first entry
