@@ -295,6 +295,7 @@ class Lattice(Graph):
                 distance_atol,
                 max_neighbor_order,
             )
+        self._max_neighbor_order = max_neighbor_order
 
         super().__init__(colored_edges, len(self._sites))
 
@@ -353,7 +354,7 @@ class Lattice(Graph):
         ):
             raise ValueError(
                 "pbc must be either a boolean or a sequence of booleans with length"
-                "equal to  the lattice dimension"
+                f"equal to  the lattice dimension. Instead, you specified {pbc}"
             )
         else:
             return _np.asarray(pbc, dtype=bool)

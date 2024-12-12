@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from itertools import permutations
+from functools import partial
 from collections.abc import Sequence
 import numpy as np
 
@@ -116,7 +117,7 @@ def Grid(
     if color_edges:
         kwargs["custom_edges"] = [(0, 0, vec) for vec in np.eye(ndim)]
     if point_group is None:
-        point_group = lambda: _grid_point_group(extent, pbc, color_edges)
+        point_group = partial(_grid_point_group, extent, pbc, color_edges)
     return Lattice(
         basis_vectors=np.eye(ndim),
         extent=extent,
