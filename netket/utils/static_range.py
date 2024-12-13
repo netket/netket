@@ -22,6 +22,7 @@ import jax.numpy as jnp
 from netket.utils import struct
 from netket.utils.types import DType
 from netket.jax import canonicalize_dtypes
+from netket.jax._utils_dtype import bottom_int_dtype
 
 
 class StaticRange(struct.Pytree):
@@ -42,7 +43,7 @@ class StaticRange(struct.Pytree):
         >>> n_max = 10
         >>> ran = nk.utils.StaticRange(start=0, step=1, length=n_max)
         >>> np.array(ran)
-        array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=int8)
 
     And it can be used to convert between integer values starting at 0
     and the values in the range.
@@ -52,11 +53,11 @@ class StaticRange(struct.Pytree):
         >>> import netket as nk; import numpy as np
         >>> ran = nk.utils.StaticRange(start=-2, step=2, length=3)
         >>> np.array(ran)
-        array([-2,  0,  2])
+        array([-2,  0,  2], dtype=int8)
         >>> len(ran)
         3
         >>> ran.states_to_numbers(0)
-        array(1)
+        array(1, dtype=int8)
         >>> ran.numbers_to_states(0)
         -2
         >>> ran.numbers_to_states(1)
@@ -91,7 +92,7 @@ class StaticRange(struct.Pytree):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=0, step=1, length=n_max)
-            StaticRange(start=0, step=1, length=10, dtype=int64)
+            StaticRange(start=0, step=1, length=10, dtype=int8)
 
         and the range of a Spin-1/2 Hilbert space is constructed as:
 
@@ -100,7 +101,7 @@ class StaticRange(struct.Pytree):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=-1, step=2, length=2)
-            StaticRange(start=-1, step=2, length=2, dtype=int64)
+            StaticRange(start=-1, step=2, length=2, dtype=int8)
 
         Args:
             start: Value of the first entry
@@ -108,7 +109,11 @@ class StaticRange(struct.Pytree):
             length: Length of this range
             dtype: The data type
         """
-        dtype = canonicalize_dtypes(start, step, dtype=dtype)
+        if dtype is None:
+            end = start + step * (length - 1)
+            dtype = bottom_int_dtype(start, end)
+        else:
+            dtype = canonicalize_dtypes(start, step, dtype=dtype)
 
         self.start = np.array(start, dtype=dtype).item()
         self.step = np.array(step, dtype=dtype).item()
@@ -138,8 +143,11 @@ class StaticRange(struct.Pytree):
             raise IndexError
         return self.start + self.step * i
 
-    def states_to_numbers(self, x, dtype: DType = int):
+    def states_to_numbers(self, x, dtype: DType = None):
         """Given an element in the range, returns it's index.
+
+        If the dtype is not specified, it will be the smallest unsigned integer dtype
+        that can hold numbers in ``(0, length)``.
 
         Args:
             x: array of elements beloging to this range. No bounds checking
@@ -149,6 +157,9 @@ class StaticRange(struct.Pytree):
         Returns:
             An array of integers, which can be.
         """
+        if dtype is None:
+            dtype = bottom_int_dtype(self.length)
+
         idx = (x - self.start) / self.step
         if dtype is not None:
             if not hasattr(idx, "astype"):
