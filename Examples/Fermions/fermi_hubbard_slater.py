@@ -36,6 +36,9 @@ for u in g.nodes():
 
 print("Hamiltonian =", ham.operator_string())
 
+# Remark: it is more efficient to use "nk.operator.FermiHubbardJax",
+# since this is a method optimized for the Fermi-Hubbard model.
+
 # metropolis exchange moves fermions around according to a graph
 # the physical graph has LxL vertices, but the computational basis defined by the
 # hilbert space contains (2s+1)*L*L occupation numbers
@@ -45,7 +48,7 @@ print("Hamiltonian =", ham.operator_string())
 
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 # this is handled by netket by passing the keyword spin_symmetric=True
-sa = nk.sampler.MetropolisParticleExchange(
+sa = nk.sampler.MetropolisFermionHop(
     hi, graph=g, n_chains=16, spin_symmetric=True, sweep_size=64
 )
 

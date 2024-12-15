@@ -22,7 +22,7 @@ from .continuous_gaussian import GaussianRule
 from .langevin import LangevinRule
 from .tensor import TensorRule
 from .multiple import MultipleRules
-from .fermion_2nd import ParticleExchangeRule
+from .fermion_2nd import FermionHopRule
 
 # numpy backend
 from .local_numpy import LocalRuleNumpy

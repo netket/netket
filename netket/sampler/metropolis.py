@@ -23,7 +23,7 @@ import jax
 from flax import linen as nn
 from jax import numpy as jnp
 
-from netket.hilbert import AbstractHilbert, ContinuousHilbert
+from netket.hilbert import AbstractHilbert, ContinuousHilbert, SpinOrbitalFermions
 
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree, DType
@@ -666,6 +666,19 @@ def MetropolisExchange(
     """
     from .rules import ExchangeRule
 
+    if isinstance(hilbert, SpinOrbitalFermions):
+        if mpi.rank == 0:
+            import warnings
+
+            warnings.warn(
+                "Using MetropolisExchange with SpinOrbitalFermions can yield unintended behavior."
+                "Note that MetropolisExchange only exchanges fermions according to the graph edges "
+                "and might not hop fermions of all the spin sectors (see `nk.samplers.rule.FermionHopRule`). "
+                "We recommend using MetropolisFermionHop.",
+                category=UserWarning,
+                stacklevel=2,
+            )
+
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return MetropolisSampler(hilbert, rule, **kwargs)
 
@@ -782,7 +795,7 @@ def MetropolisAdjustedLangevin(
     return MetropolisSampler(hilbert, rule, **kwargs)
 
 
-def MetropolisParticleExchange(
+def MetropolisFermionHop(
     hilbert,
     *,
     clusters=None,
@@ -808,9 +821,9 @@ def MetropolisParticleExchange(
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
         dtype: The dtype of the states sampled (default = np.int8).
     """
-    from .rules import ParticleExchangeRule
+    from .rules import FermionHopRule
 
-    rule = ParticleExchangeRule(
+    rule = FermionHopRule(
         hilbert,
         clusters=clusters,
         graph=graph,

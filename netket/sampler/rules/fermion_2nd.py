@@ -6,8 +6,8 @@ from netket.graph import disjoint_union
 from netket.hilbert import SpinOrbitalFermions
 
 
-class ParticleExchangeRule(ExchangeRule):
-    """Exchange rule for particles on a lattice.
+class FermionHopRule(ExchangeRule):
+    """Hopping rule for particles on a lattice.
 
     Works similarly to :class:`netket.sampler.rules.ExchangeRule`, but
     takes into account that only occupied orbitals
@@ -26,7 +26,7 @@ class ParticleExchangeRule(ExchangeRule):
         spin_symmetric: bool = True,
     ):
         r"""
-        Constructs the ParticleExchange Rule.
+        Constructs the FermionHopRule.
 
         Particles are only exchanged between modes where the particle number is different.
         For fermions, only occupied orbitals can be exchanged with unoccupied ones.
@@ -67,4 +67,4 @@ class ParticleExchangeRule(ExchangeRule):
         super().__init__(clusters=clusters, graph=graph, d_max=d_max)
 
     def __repr__(self):
-        return f"ParticleExchangeRule(# of clusters: {len(self.clusters)})"
+        return f"FermionHopRule(# of clusters: {len(self.clusters)})"

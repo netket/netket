@@ -101,19 +101,19 @@ if not config.netket_experimental_sharding:
         )
     )
 
-samplers[
-    "Metropolis(ParticleExchange): SpinOrbitalFermions"
-] = nk.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
-samplers[
-    "Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"
-] = nk.sampler.MetropolisParticleExchange(hi_fermion_spin, graph=g, spin_symmetric=True)
+samplers["Metropolis(ParticleExchange): SpinOrbitalFermions"] = (
+    nk.sampler.MetropolisFermionHop(hi_fermion, graph=g)
+)
+samplers["Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"] = (
+    nk.sampler.MetropolisFermionHop(hi_fermion_spin, graph=g, spin_symmetric=True)
+)
 if nk.utils.module_version("jax") != (0, 4, 33):
     # this test is broken for a bug in jax 0.4.33
     # https://github.com/google/jax/issues/23727
-    samplers[
-        "Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"
-    ] = nk.sampler.MetropolisParticleExchange(
-        hi_fermion_spin_higher, graph=g, spin_symmetric=True
+    samplers["Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"] = (
+        nk.sampler.MetropolisFermionHop(
+            hi_fermion_spin_higher, graph=g, spin_symmetric=True
+        )
     )
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
@@ -599,13 +599,13 @@ def test_fermions_spin_exchange():
         g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
     )
 
-    sampler = nk.sampler.MetropolisParticleExchange(
+    sampler = nk.sampler.MetropolisFermionHop(
         hi_fermion_spin, graph=g, spin_symmetric=False
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(g.n_nodes))
 
-    sampler = nk.sampler.MetropolisParticleExchange(
+    sampler = nk.sampler.MetropolisFermionHop(
         hi_fermion_spin, graph=g, spin_symmetric=True
     )
     nodes = np.unique(sampler.rule.clusters)
@@ -615,13 +615,13 @@ def test_fermions_spin_exchange():
         g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
     )
 
-    sampler = nk.sampler.MetropolisParticleExchange(
+    sampler = nk.sampler.MetropolisFermionHop(
         hi_fermion_spin_higher, graph=g, spin_symmetric=False
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(g.n_nodes))
 
-    sampler = nk.sampler.MetropolisParticleExchange(
+    sampler = nk.sampler.MetropolisFermionHop(
         hi_fermion_spin_higher, graph=g, spin_symmetric=True
     )
     nodes = np.unique(sampler.rule.clusters)
