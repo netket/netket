@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import abc
+import warnings
 
 import numpy as np
 from scipy import sparse
@@ -207,10 +208,27 @@ class DiscreteJaxOperator(DiscreteOperator):
         # this should be fixed.
         x = self.hilbert.all_states()
         n = x.shape[0]
-        xp, mels = self.get_conn_padded(x)
+        x_prime, mels = self.get_conn_padded(x)
+
+        if self.hilbert.constrained:
+            if hasattr(self.hilbert, "constraint"):
+                x_prime_valid_mask = self.hilbert.constraint(x_prime)
+                x_prime = x_prime[x_prime_valid_mask]
+                mels = mels[x_prime_valid_mask]
+            else:
+                warnings.warn(
+                    """
+                    The Hilbert space is constrained, but no constraint was provided.
+
+                    The dense/sparse representation of the operator will include invalid states and
+                    probably be incorrect.
+                    """,
+                    RuntimeWarning,
+                )
+
         a = mels.ravel()
         i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
-        j = self.hilbert.states_to_numbers(xp).ravel()
+        j = self.hilbert.states_to_numbers(x_prime).ravel()
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
         return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
 
