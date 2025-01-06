@@ -211,6 +211,7 @@ class DiscreteOperator(AbstractOperator):
         sections1 = np.empty(sections.size + 1, dtype=np.int32)
         sections1[1:] = sections
         sections1[0] = 0
+
         # This part removes x_primes, which have mels sum 0
         # This is usefull, if inbetween states are not in the constraint hilbert space, as in this case
         # states_to_numbers will fail
@@ -220,18 +221,27 @@ class DiscreteOperator(AbstractOperator):
             for j in range(x_prime.shape[0]):
                 if (x_prime[j] == unique_x_prime[i]).all():
                     sum_mels[i] += mels[j]
+        x_primes_to_remove = unique_x_prime[sum_mels==0]
 
-        sections2 = sections1.copy()
-        removed_items = 0
         position = 0
-        for i in range(1, sections2.size):
-            if sections2[i] - sections2[i-1] > 0:
-                if sum_mels[position] ==0:
-                    mels = np.delete(mels, slice(sections2[i-1]-removed_items, sections2[i]-removed_items))
-                    x_prime = np.delete(x_prime, slice(sections2[i-1]-removed_items, sections2[i]-removed_items), axis=0)
-                    removed_items += sections2[i] - sections2[i-1]
+        while (position < x_prime.shape[0]):
+            if np.any(np.all(x_primes_to_remove == x_prime[position],axis=1)):
+                x_prime = np.delete(x_prime, position, axis=0)
+                mels = np.delete(mels, position)
+                sections1[sections1 > position] -= 1
+            else:
                 position += 1
-            sections1[i]-=removed_items
+
+        # removed_items = 0
+        # position = 0
+        # for i in range(1, sections2.size):
+        #     if sections2[i] - sections2[i-1] > 0:
+        #         if sum_mels[position] ==0:
+        #             mels = np.delete(mels, slice(sections2[i-1]-removed_items, sections2[i]-removed_items))
+        #             x_prime = np.delete(x_prime, slice(sections2[i-1]-removed_items, sections2[i]-removed_items), axis=0)
+        #             removed_items += sections2[i] - sections2[i-1]
+        #         position += 1
+        #     sections1[i]-=removed_items
 
         numbers = hilb.states_to_numbers(x_prime)
 
