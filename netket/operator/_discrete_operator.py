@@ -228,15 +228,15 @@ class DiscreteOperator(AbstractOperator):
         # x_primes_to_remove = unique_x_prime[sum_mels==0]
         
         unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
-        remove_mel = np.ones(indices.size, dtype=bool)
+        remove_mel = np.ones(unique_x_prime.shape[0], dtype=bool)
         for i in range(unique_x_prime.shape[0]):
-            for j in range(sections):
+            for j in range(len(sections)):
                 sm = 0
                 for k in range(sections1[j], sections1[j+1]):
-                    if (x_prime[k] == unique_x_prime[k]).all():
+                    if (x_prime[k] == unique_x_prime[i]).all():
                         sm += mels[k]
                 if sm != 0:
-                    remove_mel=False
+                    remove_mel[i]=False
         x_primes_to_remove = unique_x_prime[remove_mel]
 
         position = 0
