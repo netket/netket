@@ -215,13 +215,29 @@ class DiscreteOperator(AbstractOperator):
         # This part removes x_primes, which have mels sum 0
         # This is usefull, if inbetween states are not in the constraint hilbert space, as in this case
         # states_to_numbers will fail
+
+
+        # this was generaly not correct I think
+        #
+        # unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
+        # sum_mels = np.zeros(indices.size, dtype=np.complex128)
+        # for i in range(unique_x_prime.shape[0]):
+        #     for j in range(x_prime.shape[0]):
+        #         if (x_prime[j] == unique_x_prime[i]).all():
+        #             sum_mels[i] += mels[j]
+        # x_primes_to_remove = unique_x_prime[sum_mels==0]
+        
         unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
-        sum_mels = np.zeros(indices.size, dtype=np.complex128)
+        remove_mel = np.ones(indices.size, dtype=bool)
         for i in range(unique_x_prime.shape[0]):
-            for j in range(x_prime.shape[0]):
-                if (x_prime[j] == unique_x_prime[i]).all():
-                    sum_mels[i] += mels[j]
-        x_primes_to_remove = unique_x_prime[sum_mels==0]
+            for j in range(sections):
+                sm = 0
+                for k in range(sections1[j], sections1[j+1]):
+                    if (x_prime[k] == unique_x_prime[k]).all():
+                        sm += mels[k]
+                if sm != 0:
+                    remove_mel=False
+        x_primes_to_remove = unique_x_prime[remove_mel]
 
         position = 0
         while (position < x_prime.shape[0]):
@@ -231,17 +247,6 @@ class DiscreteOperator(AbstractOperator):
                 sections1[sections1 > position] -= 1
             else:
                 position += 1
-
-        # removed_items = 0
-        # position = 0
-        # for i in range(1, sections2.size):
-        #     if sections2[i] - sections2[i-1] > 0:
-        #         if sum_mels[position] ==0:
-        #             mels = np.delete(mels, slice(sections2[i-1]-removed_items, sections2[i]-removed_items))
-        #             x_prime = np.delete(x_prime, slice(sections2[i-1]-removed_items, sections2[i]-removed_items), axis=0)
-        #             removed_items += sections2[i] - sections2[i-1]
-        #         position += 1
-        #     sections1[i]-=removed_items
 
         numbers = hilb.states_to_numbers(x_prime)
 
