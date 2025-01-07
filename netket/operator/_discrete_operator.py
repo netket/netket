@@ -237,6 +237,8 @@ class DiscreteOperator(AbstractOperator):
                         sm += mels[k]
                 if sm != 0:
                     remove_mel[i]=False
+                    break
+                
         x_primes_to_remove = unique_x_prime[remove_mel]
 
         position = 0
