@@ -211,54 +211,46 @@ class DiscreteOperator(AbstractOperator):
         sections1 = np.empty(sections.size + 1, dtype=np.int32)
         sections1[1:] = sections
         sections1[0] = 0
+        # numbers = hilb.states_to_numbers(x_prime)
+        try:
+            # this is the original code, if inbetween states leave a constraint hilbert space,
+            # (due to expansion of the operator for example) the except part tries to remove the states,
+            # which are not in the constraint hilbert space. filter_jit is necessary to allow try...
+            import equinox as eqx
+            numbers = eqx.filter_jit(hilb.states_to_numbers)(x_prime)
+        except:
+            # This part removes x_primes, which have mels sum 0
+            # This is usefull, if inbetween states are not in the constraint hilbert space, as in this case
+            # states_to_numbers will fail
+            unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
+            remove_mel = np.ones(unique_x_prime.shape[0], dtype=bool)
 
-        # This part removes x_primes, which have mels sum 0
-        # This is usefull, if inbetween states are not in the constraint hilbert space, as in this case
-        # states_to_numbers will fail
+            @jit(nopython=True)
+            def prepare(unique_x_prime, x_prime, mels, sections1, remove_mel):
+                for i in range(unique_x_prime.shape[0]):
+                    for j in range(len(sections1)-1):
+                        sm = 0
+                        for k in range(sections1[j], sections1[j+1]):
+                            if (x_prime[k] == unique_x_prime[i]).all():
+                                sm += mels[k]
+                        if sm != 0:
+                            remove_mel[i]=False
+                            break
+                return remove_mel
+            remove_mel = prepare(unique_x_prime, x_prime, mels, sections1, remove_mel)
+            x_primes_to_remove = unique_x_prime[remove_mel]
 
+            position = 0
+            while (position < x_prime.shape[0]):
+                if np.any(np.all(x_primes_to_remove == x_prime[position],axis=1)):
+                    x_prime = np.delete(x_prime, position, axis=0)
+                    mels = np.delete(mels, position)
+                    sections1[sections1 > position] -= 1
+                else:
+                    position += 1
+            numbers = hilb.states_to_numbers(x_prime)
 
-        # this was generaly not correct I think
-        #
-        # unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
-        # sum_mels = np.zeros(indices.size, dtype=np.complex128)
-        # for i in range(unique_x_prime.shape[0]):
-        #     for j in range(x_prime.shape[0]):
-        #         if (x_prime[j] == unique_x_prime[i]).all():
-        #             sum_mels[i] += mels[j]
-        # x_primes_to_remove = unique_x_prime[sum_mels==0]
-        
-        unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
-        remove_mel = np.ones(unique_x_prime.shape[0], dtype=bool)
-        @jit(nopython=True)
-        def prepare(unique_x_prime, x_prime, mels, sections1, remove_mel):
-            #print("start", unique_x_prime.shape[0])
-            for i in range(unique_x_prime.shape[0]):
-                #print(i)
-                for j in range(len(sections1)-1):
-                    sm = 0
-                    for k in range(sections1[j], sections1[j+1]):
-                        if (x_prime[k] == unique_x_prime[i]).all():
-                            sm += mels[k]
-                    if sm != 0:
-                        remove_mel[i]=False
-                        break
-            #print("end")
-            return remove_mel
-        remove_mel = prepare(unique_x_prime, x_prime, mels, sections1, remove_mel)
-        x_primes_to_remove = unique_x_prime[remove_mel]
-
-        position = 0
-        while (position < x_prime.shape[0]):
-            if np.any(np.all(x_primes_to_remove == x_prime[position],axis=1)):
-                x_prime = np.delete(x_prime, position, axis=0)
-                mels = np.delete(mels, position)
-                sections1[sections1 > position] -= 1
-            else:
-                position += 1
-
-        numbers = hilb.states_to_numbers(x_prime)
-
-        ## eliminate duplicates from numbers
+        # eliminate duplicates from numbers
         # rows_indices = compute_row_indices(hilb.states_to_numbers(x), sections1)
 
         return _csr_matrix(
@@ -270,6 +262,7 @@ class DiscreteOperator(AbstractOperator):
         #    (mels, (rows_indices, numbers)),
         #    shape=(self.hilbert.n_states, self.hilbert.n_states),
         # )
+
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
