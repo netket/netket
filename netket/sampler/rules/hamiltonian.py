@@ -189,8 +189,8 @@ class HamiltonianRuleJax(HamiltonianRuleBase):
         nonzeros = jnp.abs(mels) > 0
         nonzero_i_plus1 = (jnp.cumsum(nonzeros, axis=-1)) * nonzeros
         rand_i_mask = nonzero_i_plus1 == jnp.expand_dims(rand_i + 1, -1)
-        x_proposed = (xp * jnp.expand_dims(rand_i_mask, -1)).sum(axis=1)
-
+        # .sum promotes the dtype, so we must convert it to xp dtype
+        x_proposed = (xp * jnp.expand_dims(rand_i_mask, -1)).sum(axis=1).astype(x.dtype)
         n_conn_proposed = self.operator.n_conn(x_proposed)
 
         # _, mels_proposed = self.operator.get_conn_padded(x_proposed)
