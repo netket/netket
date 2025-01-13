@@ -24,7 +24,7 @@ from flax import linen as nn
 from netket import jax as nkjax
 from netket.jax import sharding
 from netket import config
-from netket.hilbert import AbstractHilbert
+from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils import get_afun_if_module, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
@@ -60,7 +60,7 @@ class Sampler(struct.Pytree):
     machine_pow: float = struct.field(default=2.0)
     """The power to which the machine should be exponentiated to generate the pdf."""
 
-    dtype: DType = struct.field(pytree_node=False, default=float)
+    dtype: DType = struct.field(pytree_node=False, default=None)
     """The dtype of the states sampled."""
 
     def __init__(
@@ -91,6 +91,17 @@ class Sampler(struct.Pytree):
                 "reference at https://netket.readthedocs.io/en/latest/api/sampler.html"
                 "\n"
             )
+
+        if dtype is None:
+            # If dtype is not specified, if it is an Homogeneous Hilbert we can just get it off
+            # from the local states (StaticRange) otherwise we need to evaluate the shape of the
+            # result of `jax.random_state` to automatically determine it.
+            if isinstance(hilbert, HomogeneousHilbert):
+                dtype = hilbert._local_states.dtype
+            else:
+                dtype = jax.eval_shape(
+                    hilbert.random_state, jax.eval_shape(jax.random.key, 1)
+                )
 
         machine_pow = jnp.array(machine_pow)
 

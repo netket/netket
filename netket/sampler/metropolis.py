@@ -240,7 +240,7 @@ class MetropolisSampler(Sampler):
         n_chains_per_rank: int | None = None,
         chunk_size: int | None = None,
         machine_pow: int = 2,
-        dtype: DType = float,
+        dtype: DType = None,
     ):
         """
         Constructs a Metropolis Sampler.

@@ -60,7 +60,7 @@ class ExactSampler(Sampler):
         self,
         hilbert: DiscreteHilbert,
         machine_pow: int = 2,
-        dtype: DType = float,
+        dtype: DType = None,
     ):
         """
         Construct an exact sampler.
