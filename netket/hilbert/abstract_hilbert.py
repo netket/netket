@@ -17,7 +17,6 @@ import abc
 from collections.abc import Iterable
 
 import jax.numpy as jnp
-import numpy as np
 
 
 class AbstractHilbert(abc.ABC):
@@ -48,7 +47,7 @@ class AbstractHilbert(abc.ABC):
         self,
         key=None,
         size: int | None = None,
-        dtype=np.float32,
+        dtype=None,
     ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
         Runs as :code:`random_state(self, key, size=None, dtype=np.float32)` by default.
@@ -72,10 +71,10 @@ class AbstractHilbert(abc.ABC):
             >>> hi = netket.hilbert.Qubit(N=2)
             >>> k1, k2 = jax.random.split(jax.random.PRNGKey(1))
             >>> print(hi.random_state(key=k1))
-            [1. 0.]
+            [1 0]
             >>> print(hi.random_state(key=k2, size=2))
-            [[0. 0.]
-             [0. 1.]]
+            [[0 0]
+             [0 1]]
         """
         from netket.hilbert import random
 

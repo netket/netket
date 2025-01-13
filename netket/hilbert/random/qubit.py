@@ -21,6 +21,9 @@ from netket.utils.dispatch import dispatch
 
 @dispatch
 def random_state(hilb: Qubit, key, batches: int, *, dtype):
+    if dtype is None:
+        dtype = hilb._local_states.dtype
+
     rs = jax.random.randint(key, shape=(batches, hilb.size), minval=0, maxval=2)
     return jnp.asarray(rs, dtype=dtype)
 

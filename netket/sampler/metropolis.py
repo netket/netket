@@ -240,7 +240,7 @@ class MetropolisSampler(Sampler):
         n_chains_per_rank: int | None = None,
         chunk_size: int | None = None,
         machine_pow: int = 2,
-        dtype: DType = float,
+        dtype: DType = None,
     ):
         """
         Constructs a Metropolis Sampler.
@@ -654,7 +654,7 @@ def MetropolisExchange(
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = nk.sampler.MetropolisExchange(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
     """
     from .rules import ExchangeRule
 
@@ -706,7 +706,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
        >>> # Construct a MetropolisHamiltonian Sampler
        >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRuleNumba(operator=Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+       MetropolisSampler(rule = HamiltonianRuleNumba(operator=Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
     """
     from .rules import HamiltonianRule
 

@@ -55,7 +55,7 @@ class ARDirectSampler(Sampler):
         self,
         hilbert: DiscreteHilbert,
         machine_pow: None = None,
-        dtype: DType = float,
+        dtype: DType = None,
     ):
         """
         Construct an autoregressive direct sampler.
