@@ -15,7 +15,6 @@
 import netket as nk
 import numpy as np
 from scipy import sparse
-from scipy.sparse import linalg
 
 import pytest
 from pytest import approx
@@ -86,8 +85,8 @@ def test_liouvillian_no_dissipators():
 
 
 def test_lindblad_zero_eigenvalue():
-    lind_mat = lind.to_sparse()
-    w, v = linalg.eigsh(lind_mat.T.conj() * lind_mat, which="SM")
+    lind_mat = lind.to_dense()
+    w, v = np.linalg.eigh(lind_mat.T.conj() @ lind_mat)
     assert w[0] <= 10e-10
 
 
