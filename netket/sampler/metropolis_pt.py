@@ -630,7 +630,7 @@ def ParallelTemperingExchange(
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = mpt.MetropolisExchangePt(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
+          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = int8)
     """
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return ParallelTemperingSampler(hilbert, rule, *args, **kwargs)

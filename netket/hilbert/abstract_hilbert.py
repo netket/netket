@@ -71,10 +71,10 @@ class AbstractHilbert(abc.ABC):
             >>> hi = netket.hilbert.Qubit(N=2)
             >>> k1, k2 = jax.random.split(jax.random.PRNGKey(1))
             >>> print(hi.random_state(key=k1))
-            [1. 0.]
+            [1 0]
             >>> print(hi.random_state(key=k2, size=2))
-            [[0. 0.]
-             [0. 1.]]
+            [[0 0]
+             [0 1]]
         """
         from netket.hilbert import random
 
