@@ -15,17 +15,10 @@
 from typing import Optional
 from fractions import Fraction
 
-from pathlib import Path
-import os
-from datetime import datetime, timedelta
-import warnings
-import jax
 
 import numpy as np
 
-from netket import config as nkconfig
-from netket.utils import StaticRange, mpi
-from netket.errors import UndeclaredSpinOderingWarning
+from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
 from .constraint import DiscreteHilbertConstraint, SumConstraint
@@ -120,22 +113,20 @@ class Spin(HomogeneousHilbert):
         *,
         total_sz: float | None = None,
         constraint: DiscreteHilbertConstraint | None = None,
-        inverted_ordering: bool | None = None,
+        inverted_ordering: bool = False,
     ):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         .. note::
 
-            During the transition period of September-December 2024 (NetKet 3.14-3.15),
-            it will be necessary to specify the ordering of the basis of the Spin Hilbert
-            space by specifying the `inverted_ordering` flag explicitly.
+            Since NetKet 3.16 (January 2025) the default ordering of the Spin Hilbert space
+            basis has changed. The new default is such that `1=↑, -1=↓`. This change can
+            be controlled by the `inverted_ordering` flag. If you do not specify this flag,
+            you will get the new behaviour.
 
             To ensure that the old behaviour is maintained, you should specify
             `inverted_ordering=True`. If you want to opt into the new default
             you should specify `inverted_ordering=False`.
-
-            A warning will be printed if you do not specify this flag, as the default
-            will change in the future.
 
         Args:
             s: Spin at each site. Must be integer or half-integer.
@@ -166,47 +157,9 @@ class Spin(HomogeneousHilbert):
         local_size = round(2 * s + 1)
         assert int(2 * s + 1) == local_size
 
+        # TODO: Remove in NetKet 3.17
         if inverted_ordering is None:
-            inverted_ordering = True
-            # Check last edit date of ~/.netketrc, and warn if it was last
-            # touched 2 days ago or more
-
-            # Do not warn if:
-
-            skip_warn = (
-                os.environ.get("CI", False)  # runnin gin CI
-                or nkconfig.netket_spin_ordering_warning is False  # disabled warnings
-            )
-
-            force_warn = (
-                mpi.n_nodes > 1  # running in parallel with MPI
-                or jax.process_count() > 1  # running in parallel with jax
-            )
-
-            if not skip_warn and not force_warn:
-                # Define the path to the file
-                file_path = Path.home() / ".netketrc"
-
-                # Check if the file exists
-                if file_path.exists():
-                    # Get the elapsed time since modification time of the file
-                    last_modified_time = file_path.stat().st_mtime
-                    last_modified_date = datetime.fromtimestamp(last_modified_time)
-                    time_diff = datetime.now() - last_modified_date
-
-                    # Check if the file was touched 2 days ago or more
-                    if time_diff < timedelta(days=2):
-                        skip_warn = True
-                    elif time_diff >= timedelta(days=2):
-                        file_path.touch()
-                else:
-                    file_path.touch()
-
-            if force_warn or not skip_warn:
-                if mpi.rank == 0 and jax.process_index() == 0:
-                    warnings.warn(
-                        UndeclaredSpinOderingWarning(), FutureWarning, stacklevel=2
-                    )
+            inverted_ordering = False
 
         if not inverted_ordering:
             # Reasonable, new ordering where  1=↑ -1=↓
