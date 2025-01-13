@@ -103,7 +103,7 @@ version-file = "netket/_version.py"
 
 [tool.uv]
 dev-dependencies = [
-  "netket[dev]",
+  "netket[dev,docs]",
   "mpi4py>=3.0.1",
   "jax>=0.4.33"
 ]

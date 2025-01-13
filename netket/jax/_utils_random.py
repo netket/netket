@@ -34,7 +34,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
         comm: The MPI communicator to use for broadcasting, if necessary
 
     Returns:
-        A sharded/broadcasted :ref:`jax.random.PRNGKey`.
+        A sharded/broadcasted :func:`jax.random.PRNGKey`.
 
     """
     if seed is None:

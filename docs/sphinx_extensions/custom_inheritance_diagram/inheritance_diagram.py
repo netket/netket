@@ -168,7 +168,7 @@ class InheritanceGraph:
             classes, show_builtins, private_bases, parts, aliases, top_classes
         )
         if not self.class_info:
-            msg = "No classes found for inheritance diagram of {class_names}"
+            msg = f"No classes found for inheritance diagram of {class_names}"
             print(msg)
             # raise InheritanceException(msg)
 
