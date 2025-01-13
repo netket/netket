@@ -86,7 +86,7 @@ jobs:
       - name: MPI tests
         if: matrix.mpi != ''
         run: |
-          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 --jax-cpu-disable-async-dispatch --clear-cache-every 100 test
+          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 --jax-cpu-disable-async-dispatch --clear-cache-every 50 test
           coverage combine --append
 
       - name: Upload coverage reports to Codecov
