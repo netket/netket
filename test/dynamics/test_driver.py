@@ -336,9 +336,11 @@ def exact_time_evolution(H, psi0, T, dt, obs):
     return expectations
 
 
+# This test verifies a case where SNR = Rho = 0 which used to give NaNs in TDVP Schmitt but not standard TDVP.
+# See bug report https://github.com/orgs/netket/discussions/1959 and PR to fix it
+# https://github.com/netket/netket/pull/1960
 def test_tdvp_drivers():
     """Test time evolution comparing TDVP methods against exact evolution for a mean-field"""
-
     L = 2
     total_time = 0.2
     dt = 0.001
