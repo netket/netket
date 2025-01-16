@@ -225,8 +225,16 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_a
     QEdata = Q.conj() * ΔE_loc
     rho = V.conj().T @ F
 
-    # Compute the SNR according to Eq. 21
-    snr = jnp.abs(rho) * jnp.sqrt(n_samples) / jnp.sqrt(stats.var(QEdata, axis=0))
+    # Compute the SNR according to Eq. 21 but taking care of where sigma_k is zero
+    sigma_k = jnp.maximum(jnp.sqrt(stats.var(QEdata, axis=0)), rcond)
+    # Here we are hardcoding the case where rho==0 and sigma_k==0 to have infinite snr.
+    # This is an arbitrary choice, but avoids generating NaNs in the snr calculation.
+    # See netket#1959 and #1960 for more details.
+    snr = jnp.where(
+        sigma_k == 0,
+        jnp.inf,
+        jnp.abs(rho) * jnp.sqrt(n_samples) / sigma_k,
+    )
 
     # Discard eigenvalues below numerical precision
     ev_inv = jnp.where(jnp.abs(ev / ev[-1]) > rcond, 1.0 / ev, 0.0)
