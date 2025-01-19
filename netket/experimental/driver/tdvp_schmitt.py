@@ -88,16 +88,6 @@ class TDVPSchmitt(TDVPBaseDriver):
     :math:`\rho_k=V_{k,k'}^{\dagger}F_{k'}` (see
     `[arXiv:1912.08828] <https://arxiv.org/pdf/1912.08828.pdf>`_ for details).
 
-
-    .. note::
-
-        This TDVP Driver uses the time-integrators from the `nkx.dynamics` module, which are
-        automatically executed under a `jax.jit` context.
-
-        When running computations on GPU, this can lead to infinite hangs or extremely long
-        compilation times. In those cases, you might try setting the configuration variable
-        `nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
-
     """
 
     def __init__(

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from typing import Callable, Optional
-from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -27,7 +26,6 @@ from ._integrator_state import IntegratorState, IntegratorFlags
 from ._integrator_params import IntegratorParameters
 from ._solver import AbstractSolver
 from ._utils import (
-    maybe_jax_jit,
     scaled_error,
     propose_time_step,
     set_flag_jax,
@@ -217,7 +215,6 @@ class Integrator(struct.Pytree, mutable=True):
         )
 
     @staticmethod
-    @partial(maybe_jax_jit, static_argnames=["f"])
     def _step_fixed(
         solver: AbstractSolver,
         f: Callable,
@@ -263,7 +260,6 @@ class Integrator(struct.Pytree, mutable=True):
         )
 
     @staticmethod
-    @partial(maybe_jax_jit, static_argnames=["f", "norm_fn"])
     def _step_adaptive(
         solver: AbstractSolver,
         f: Callable,

@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import wraps
 
 import jax
 import jax.numpy as jnp
 
 import netket.jax as nkjax
-from netket import config
-from netket.utils.types import Array, PyTree, Callable
+from netket.utils.types import Array, PyTree
 
 
 LimitsDType = tuple[float | None, float | None]
@@ -51,29 +49,6 @@ def propose_time_step(
         limits[0],
         limits[1],
     )
-
-
-def maybe_jax_jit(fun: Callable, *jit_args, **jit_kwargs) -> Callable:
-    """
-    Only jit if `config.netket_experimental_disable_ode_jit` is False.
-
-    This is used to disable jitting when this config is set. The switch is
-    performed at runtime so that the flag can be changed as desired.
-    """
-
-    # jit the function only once:
-    jitted_fun = jax.jit(fun, *jit_args, **jit_kwargs)
-
-    @wraps(fun)
-    def _maybe_jitted_fun(*args, **kwargs):
-        if config.netket_experimental_disable_ode_jit:
-            with jax.spmd_mode("allow_all"):
-                res = fun(*args, **kwargs)
-            return res
-        else:
-            return jitted_fun(*args, **kwargs)
-
-    return _maybe_jitted_fun
 
 
 def set_flag_jax(condition, flags, flag):

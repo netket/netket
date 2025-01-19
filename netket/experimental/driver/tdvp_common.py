@@ -12,20 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from functools import partial
 import warnings
 
-import jax
 import jax.numpy as jnp
 import numpy as np
 from tqdm.auto import tqdm
 
 import netket as nk
-from netket import config
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
-from netket.jax import HashablePartial
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.utils import mpi, timing
@@ -45,15 +42,6 @@ class TDVPBaseDriver(AbstractVariationalDriver):
     Variational time evolution based on the time-dependent variational principle which,
     when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
-
-    .. note::
-        This TDVP Driver uses the time-integrators from the `nkx.dynamics` module, which are
-        automatically executed under a `jax.jit` context.
-
-        When running computations on GPU, this can lead to infinite hangs or extremely long
-        compilation times. In those cases, you might try setting the configuration variable
-        :py:`nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
-
     """
 
     def __init__(
@@ -107,8 +95,6 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self._last_qgt = None
         self._integrator = None
 
-        self._odefun = HashablePartial(odefun_host_callback, self.state, self)
-
         self.error_norm = error_norm
 
         if integrator is not None:
@@ -149,7 +135,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             t0 = self.t
 
         self._integrator = Integrator(
-            self._odefun,
+            partial(odefun, self.state, self),
             new_ode_solver,
             t0,
             self.state.parameters,
@@ -186,18 +172,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         elif error_norm == "maximum":
             self._error_norm = maximum_norm
         elif error_norm == "qgt":
-            if config.netket_experimental_disable_ode_jit:
-                self._error_norm = HashablePartial(qgt_norm, self)
-            else:
-                w = self.state.parameters
-                norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
-                # QGT norm is called via host callback since it accesses the driver
-                # TODO: make this also an hashablepartial on self to reduce recompilation
-                self._error_norm = lambda x: jax.pure_callback(
-                    HashablePartial(qgt_norm, self),
-                    jax.ShapeDtypeStruct((), norm_dtype),
-                    x,
-                )
+            self._error_norm = partial(qgt_norm, self)
         else:
             raise ValueError(
                 "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum',"
@@ -479,7 +454,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             t = self.t
         if w is None:
             w = self.state.parameters
-        return self._odefun(t, w)
+        return odefun(self.state, self, t, w)
 
 
 def qgt_norm(driver: TDVPBaseDriver, x: PyTree):
@@ -495,25 +470,3 @@ def qgt_norm(driver: TDVPBaseDriver, x: PyTree):
 def odefun(state, driver, t, w, **kwargs):
     # pylint: disable=unused-argument
     raise NotImplementedError(f"odefun not implemented for {type(state)}")
-
-
-def odefun_host_callback(state, driver, *args, **kwargs):
-    """
-    Calls odefun through a host callback in order to make the rest of the
-    ODE inteagrator jit-able.
-    """
-    if config.netket_experimental_disable_ode_jit:
-        return odefun(state, driver, *args, **kwargs)
-
-    result_shape = jax.tree_util.tree_map(
-        lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
-        state.parameters,
-    )
-
-    return jax.pure_callback(
-        lambda args_and_kw: odefun(state, driver, *args_and_kw[0], **args_and_kw[1]),
-        result_shape,
-        # pack args and kwargs together, since host_callback passes a single argument:
-        (args, kwargs),
-    )
-    return odefun(state, driver, *args, **kwargs)

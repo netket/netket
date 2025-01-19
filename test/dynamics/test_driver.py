@@ -109,41 +109,37 @@ def l4_norm(x):
     ) ** (1.0 / 4.0)
 
 
+@common.skipif_sharding
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
-@pytest.mark.parametrize("disable_jit", [False, True])
-def test_one_adaptive_step(solver, error_norm, propagation_type, disable_jit):
-    if disable_jit:
-        common.skipif_sharding()
+def test_one_adaptive_step(solver, error_norm, propagation_type):
 
-    with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", disable_jit):
-        ha, vstate, _ = _setup_system(L=2)
-        te = nkx.TDVP(
-            ha,
-            vstate,
-            solver,
-            qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
-            propagation_type=propagation_type,
-            error_norm=error_norm,
-        )
-        te.run(T=0.01, callback=_stop_after_one_step)
-        assert te.t > 0.0
+    ha, vstate, _ = _setup_system(L=2)
+    te = nkx.TDVP(
+        ha,
+        vstate,
+        solver,
+        qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+        propagation_type=propagation_type,
+        error_norm=error_norm,
+    )
+    te.run(T=0.01, callback=_stop_after_one_step)
+    assert te.t > 0.0
 
 
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 def test_one_adaptive_schmitt(solver, error_norm):
-    with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", True):
-        ha, vstate, _ = _setup_system(L=2)
-        te = nkx.driver.TDVPSchmitt(
-            ha,
-            vstate,
-            solver,
-            error_norm=error_norm,
-        )
-        te.run(T=0.01, callback=_stop_after_one_step)
-        assert te.t > 0.0
+    ha, vstate, _ = _setup_system(L=2)
+    te = nkx.driver.TDVPSchmitt(
+        ha,
+        vstate,
+        solver,
+        error_norm=error_norm,
+    )
+    te.run(T=0.01, callback=_stop_after_one_step)
+    assert te.t > 0.0
 
 
 @pytest.mark.parametrize("solver", all_solvers)
@@ -188,15 +184,14 @@ def test_one_step_lindbladian(solver):
 
 def test_dt_bounds():
     ha, vstate, _ = _setup_system(L=2, dtype=np.complex128)
-    with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", True):
-        te = nkx.TDVP(
-            ha,
-            vstate,
-            nkx.dynamics.RK23(dt=0.1, adaptive=True, dt_limits=(1e-2, None)),
-            propagation_type="real",
-        )
-        with pytest.warns(UserWarning, match="ODE integrator: dt reached lower bound"):
-            te.run(T=0.1, callback=_stop_after_one_step)
+    te = nkx.TDVP(
+        ha,
+        vstate,
+        nkx.dynamics.RK23(dt=0.1, adaptive=True, dt_limits=(1e-2, None)),
+        propagation_type="real",
+    )
+    with pytest.warns(UserWarning, match="ODE integrator: dt reached lower bound"):
+        te.run(T=0.1, callback=_stop_after_one_step)
 
 
 @pytest.mark.parametrize("solver", all_solvers)
