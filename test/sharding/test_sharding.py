@@ -344,7 +344,7 @@ def test_serialization():
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
-def test_timeevolution(ode_jit):
+def test_timeevolution():
     L = 8
     vs, _, ha = _setup(L)
     Sx = sum([nk.operator.spin.sigmax(ha.hilbert, i) for i in range(L)])
