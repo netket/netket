@@ -106,6 +106,10 @@ class UnknownFramework(ModuleFramework):
     def wrap(module) -> tuple:
         return module
 
+    @staticmethod
+    def unwrap(wrapped_module, wrapped_variables):
+        return wrapped_module
+
 
 def identify_framework(module):
     for _framework in registered_frameworks:

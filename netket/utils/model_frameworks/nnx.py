@@ -92,7 +92,7 @@ class NNXFramework(ModuleFramework):
         return isinstance(module, nnx.Module)
 
     @staticmethod
-    def wrap(module):
+    def wrap(module: "nnx.Module") -> NNXWrapper:
         from flax import nnx
 
         graphdef, params, model_state = nnx.split(module, nnx.Param, ...)
@@ -105,11 +105,11 @@ class NNXFramework(ModuleFramework):
         return variables, NNXWrapper(graphdef)
 
     @staticmethod
-    def unwrap(module, maybe_variables) -> "nnx.Module":
+    def unwrap(wrapped_module: NNXWrapper, maybe_variables) -> "nnx.Module":
         from flax import nnx
 
         model_state = maybe_variables["model_state"]
         params = maybe_variables["params"]
 
-        nnx_module = nnx.merge(module.graphdef, params, model_state)
+        nnx_module = nnx.merge(wrapped_module.graphdef, params, model_state)
         return nnx_module
