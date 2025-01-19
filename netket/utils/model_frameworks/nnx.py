@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 from functools import partial
 
 import sys
-import jax
 
 from .base import ModuleFramework, framework
 
@@ -26,10 +25,8 @@ if TYPE_CHECKING:
 
 # expose jax-stax as a flax module
 class NNXWrapper:
-    def __init__(self, graphdef, params_structdef, model_state_structdef):
+    def __init__(self, graphdef):
         self.graphdef = graphdef
-        self.params_structdef = params_structdef
-        self.model_state_structdef = model_state_structdef
 
     def init(self, rng, *args, **kwargs):
         raise RuntimeError("not allowed")
@@ -58,11 +55,8 @@ class NNXWrapper:
     def recompose(self, variables):
         from flax import nnx
 
-        model_state_leaves = variables["model_state"]
-        params_leaves = variables["params"]["leaves"]
-
-        model_state = jax.tree.unflatten(self.model_state_structdef, model_state_leaves)
-        params = jax.tree.unflatten(self.params_structdef, params_leaves)
+        model_state = variables["model_state"]
+        params = variables["params"]
 
         nnx_module = nnx.merge(self.graphdef, params, model_state)
         return nnx_module
@@ -102,27 +96,20 @@ class NNXFramework(ModuleFramework):
         from flax import nnx
 
         graphdef, params, model_state = nnx.split(module, nnx.Param, ...)
-        params_leaves, params_structdef = jax.tree.flatten(params)
-        model_state_leaves, model_state_structdef = jax.tree.flatten(model_state)
 
         variables = {
-            "model_state": tuple(model_state_leaves),
-            "params": {"leaves": tuple(params_leaves)},
+            "model_state": model_state.to_pure_dict(),
+            "params": params.to_pure_dict(),
         }
 
-        return variables, NNXWrapper(graphdef, params_structdef, model_state_structdef)
+        return variables, NNXWrapper(graphdef)
 
     @staticmethod
     def unwrap(module, maybe_variables) -> "nnx.Module":
         from flax import nnx
 
-        model_state_leaves = maybe_variables["model_state"]
-        params_leaves = maybe_variables["params"]["leaves"]
-
-        model_state = jax.tree.unflatten(
-            module.model_state_structdef, model_state_leaves
-        )
-        params = jax.tree.unflatten(module.params_structdef, params_leaves)
+        model_state = maybe_variables["model_state"]
+        params = maybe_variables["params"]
 
         nnx_module = nnx.merge(module.graphdef, params, model_state)
         return nnx_module
