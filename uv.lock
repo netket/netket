@@ -1551,7 +1551,6 @@ wheels = [
 
 [[package]]
 name = "netket"
-version = "3.15.3.dev8+g8d097c148.d20250120"
 source = { editable = "." }
 dependencies = [
     { name = "equinox" },
