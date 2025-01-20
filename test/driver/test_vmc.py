@@ -17,7 +17,7 @@ from .. import common
 
 pytestmark = common.skipif_distributed
 
-SEED = 21478364
+SEED = 21478362
 
 
 def _setup_vmc(dtype=np.float32, sr=True):
