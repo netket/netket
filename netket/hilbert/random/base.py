@@ -46,10 +46,10 @@ def random_state(hilb, key, *, size=None, dtype=np.float32):
         >>> import netket, jax
         >>> hi = netket.hilbert.Qubit(N=2)
         >>> print(hi.random_state(key=jax.random.PRNGKey(0)))
-        [1 0]
+        [1 1]
         >>> print(hi.random_state(size=2, key=jax.random.PRNGKey(1)))
         [[0 1]
-         [0 0]]
+         [1 1]]
     """
     return random_state(hilb, key, size, dtype=dtype)
 

@@ -29,7 +29,7 @@ from .. import common
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
-SEED = 2148364
+SEED = 2148365
 
 machines = {}
 

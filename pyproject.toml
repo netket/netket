@@ -4,20 +4,22 @@ build-backend = "hatchling.build"
 
 [project]
 name = "NetKet"
-description="Netket : Machine Learning toolbox for many-body quantum systems."
-authors=[
-    {name = "Giuseppe Carleo"},
-    {name = "Filippo Vicentini"},
-    {name = "The NetKet authors"},
+description = "Netket : Machine Learning toolbox for many-body quantum systems."
+authors = [
+    { name = "Giuseppe Carleo" },
+    { name = "Filippo Vicentini" },
+    { name = "The NetKet authors" },
 ]
-license = {text= "Apache 2.0"}
+license = { text = "Apache 2.0" }
 readme = "README.md"
-keywords = ["Machine Learning",
-            "Quantum",
-            "Neural Networks",
-            "Neural Quantum States",
-            "Jax",
-            "Monte Carlo"]
+keywords = [
+    "Machine Learning",
+    "Quantum",
+    "Neural Networks",
+    "Neural Quantum States",
+    "Jax",
+    "Monte Carlo",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Development Status :: 5 - Production/Stable",
@@ -34,14 +36,14 @@ dependencies = [
     "numpy>=1.20,<3.0",
     "scipy>=1.5.3, <2",
     "tqdm>=4.60, <5",
-    "rich>=10.0",
+    "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.4.16",
+    "jax>=0.4.38",
     "equinox>=0.11.3",
-    "flax>=0.7.1",
+    "flax>=0.10.2",
     "orjson>=3.4, <4",
-    "optax>=0.1.3, <0.3",
+    "optax>=0.2.2, <0.3",
     "plum-dispatch>=2.4",
 ]
 
@@ -87,10 +89,10 @@ docs = [
 ]
 
 [project.urls]
- homepage = "https://www.netket.org"
- documentation = "https://netket.readthedocs.io/en/latest/#"
- repository = "https://github.com/netket/netket"
- changelog = "https://netket.readthedocs.io/en/latest/docs/changelog.html"
+homepage = "https://www.netket.org"
+documentation = "https://netket.readthedocs.io/en/latest/#"
+repository = "https://github.com/netket/netket"
+changelog = "https://netket.readthedocs.io/en/latest/docs/changelog.html"
 
 [tool.hatch.build]
 include = ["netket*"]
@@ -171,7 +173,7 @@ ignore = ["E501", "E731", "E721", "E741"]
 #ignore = ["E266"]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E402","F401"]
+"__init__.py" = ["E402", "F401"]
 "netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
 "docs/sphinx_extensions/*" = ["UP", "D"]
