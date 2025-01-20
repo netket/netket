@@ -16,6 +16,9 @@
 ## Deprecations
 * The flag ``NETKET_DISABLE_ODE_JIT`` which has long defaulted to True, has been removed. Now ODE integrator drivers can only run outside of jit, because jax has not supported re-entrant jitting since several versions and officially removed support for it in jax 0.5.
 
+## Bug Fixes
+* A bug in the deserialization of variational states, which was not properly restoring the good sharding, has been fixed [1983](https://github.com/netket/netket/pull/1983)
+
 
 ## NetKet 3.15 (24 November 2024)
 
