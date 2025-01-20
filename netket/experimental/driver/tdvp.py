@@ -38,15 +38,6 @@ class TDVP(TDVPBaseDriver):
     Variational time evolution based on the time-dependent variational principle which,
     when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
-
-    .. note::
-        This TDVP Driver uses the time-integrators from the `nkx.dynamics` module, which are
-        automatically executed under a `jax.jit` context.
-
-        When running computations on GPU, this can lead to infinite hangs or extremely long
-        compilation times. In those cases, you might try setting the configuration variable
-        `nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
-
     """
 
     def __init__(

@@ -243,12 +243,15 @@ config.define(
     runtime=True,
 )
 
+# TODO: removed in january 2025, defaults to True now.
 config.define(
     "NETKET_EXPERIMENTAL_DISABLE_ODE_JIT",
     bool,
     default=True,
     help=dedent(
         """
+        Deprecated: jax does not support reentrant callbacks anymore.
+
         Disables the jitting of the whole ode solver, mainly used within TDVP solvers.
         The jitting is sometimes incompatible with GPU-based calculations, and on large
         calculations it gives negligible speedups so it might be beneficial to disable it.
