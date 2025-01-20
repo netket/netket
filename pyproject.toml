@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "NetKet"
-description="Netket : Machine Learning toolbox for many-body quantum systems."
-authors=[
-    {name = "Giuseppe Carleo"},
-    {name = "Filippo Vicentini"},
-    {name = "The NetKet authors"},
+description = "Netket : Machine Learning toolbox for many-body quantum systems."
+authors = [
+    { name = "Giuseppe Carleo" },
+    { name = "Filippo Vicentini" },
+    { name = "The NetKet authors" },
 ]
-license = {text= "Apache 2.0"}
+license = { text = "Apache 2.0" }
 readme = "README.md"
 keywords = [
     "Machine Learning",
@@ -18,7 +18,7 @@ keywords = [
     "Neural Networks",
     "Neural Quantum States",
     "Jax",
-    "Monte Carlo"
+    "Monte Carlo",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -89,10 +89,10 @@ docs = [
 ]
 
 [project.urls]
- homepage = "https://www.netket.org"
- documentation = "https://netket.readthedocs.io/en/latest/#"
- repository = "https://github.com/netket/netket"
- changelog = "https://netket.readthedocs.io/en/latest/docs/changelog.html"
+homepage = "https://www.netket.org"
+documentation = "https://netket.readthedocs.io/en/latest/#"
+repository = "https://github.com/netket/netket"
+changelog = "https://netket.readthedocs.io/en/latest/docs/changelog.html"
 
 [tool.hatch.build]
 include = ["netket*"]
@@ -173,7 +173,7 @@ ignore = ["E501", "E731", "E721", "E741"]
 #ignore = ["E266"]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E402","F401"]
+"__init__.py" = ["E402", "F401"]
 "netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
 "docs/sphinx_extensions/*" = ["UP", "D"]
