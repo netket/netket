@@ -46,6 +46,10 @@ class NNXWrapper:
             raise NotImplementedError()
         if method is None:
             method = "__call__"
+        elif isinstance(method, partial):
+            return method(variables, *args, **kwargs)
+        elif not isinstance(method, str):
+            raise TypeError(f"method must be a string, not {type(method)}")
 
         module = self.recompose(variables)
         fun = getattr(module, method)

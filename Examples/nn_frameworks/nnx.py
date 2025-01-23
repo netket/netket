@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2025 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from functools import partial
 
 import netket as nk
 
@@ -73,6 +75,27 @@ print(jax.tree.map(lambda x: (x.shape, x.dtype), vs.variables))
 # You can also extract the model again
 print(vs.model(xs).shape)
 print(vs.model.hidden_layer(xs).shape)
+
+
+# And to use it in your own code you can either do
+@partial(jax.jit, static_argnames="graphdef")
+def myfun(graphdef, variables, xs):
+    model = nnx.merge(graphdef, variables)
+    return model(xs)
+
+
+graphdef, variables = nnx.split(vs.model)
+myfun(graphdef, variables, xs)
+
+
+# However NetKet internally wraps the model into a linen-like model stored in vs._model
+# If you do something like that, your code will work for nnx and linen
+@partial(jax.jit, static_argnames="linen_model")
+def myfun_linen(linen_model, variables, xs):
+    return linen_model.apply(variables, xs, method=linen_model.hidden_layer)
+
+
+myfun_linen(vs._model, vs.variables, xs)
 
 # train
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
