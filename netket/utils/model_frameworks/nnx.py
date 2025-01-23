@@ -76,6 +76,14 @@ class NNXWrapper:
 class NNXFramework(ModuleFramework):
     name: str = "NNX"
 
+    @property
+    def model_contains_parameters(self) -> bool:
+        """
+        Returns True if the model contains the parameters in the model itself, False
+        if the parameters are stored separately.
+        """
+        return True
+
     @staticmethod
     def is_loaded() -> bool:
         # this should be not necessary, as netket requires and loads
@@ -89,11 +97,14 @@ class NNXFramework(ModuleFramework):
         # this will only get called if the module is loaded
         from flax import nnx
 
-        return isinstance(module, nnx.Module)
+        return isinstance(module, nnx.Module) or isinstance(module, NNXWrapper)
 
     @staticmethod
     def wrap(module: "nnx.Module") -> NNXWrapper:
         from flax import nnx
+
+        if isinstance(module, NNXWrapper):
+            return None, module
 
         graphdef, params, model_state = nnx.split(module, nnx.Param, ...)
 

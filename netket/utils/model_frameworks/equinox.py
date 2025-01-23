@@ -71,6 +71,14 @@ class EquinoxWrapper:
 class EquinoxFramework(ModuleFramework):
     name: str = "Equinox"
 
+    @property
+    def model_contains_parameters(self) -> bool:
+        """
+        Returns True if the model contains the parameters in the model itself, False
+        if the parameters are stored separately.
+        """
+        return True
+
     @staticmethod
     def is_loaded() -> bool:
         return "equinox" in sys.modules
