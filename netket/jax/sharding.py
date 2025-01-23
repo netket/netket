@@ -171,6 +171,29 @@ def extract_replicated(t):
     return jax.tree_util.tree_map(_extract_replicated, t)
 
 
+def all_gather(array):
+    """
+    Gathers the input array from all devices and replicates it across all devices.
+
+    This function uses JAX's sharding and JIT compilation to gather the input array
+    from all devices and replicate it across all devices. The output array will have
+    the same shape as the input array, but with each element replicated across all
+    devices.
+
+    Unlike `gather`, this function works under JIT compilation.
+
+    Parameters:
+    array (jax.numpy.ndarray): The input array to be gathered and replicated.
+
+    Returns:
+    jax.numpy.ndarray: The gathered and replicated array.
+    """
+    out_shardings = (
+        PositionalSharding(jax.devices()).replicate().reshape((1,) * array.ndim)
+    )
+    return jax.jit(lambda x: x, out_shardings=out_shardings)(array)
+
+
 def gather(x):
     """
     Make a sharded array fully replicated by gathering all parts on every device.
