@@ -19,8 +19,6 @@ import jax.numpy as jnp
 from flax import nnx
 import optax
 
-import numpy as np
-
 
 class RBM(nnx.Module):
     def __init__(
@@ -35,57 +33,50 @@ class RBM(nnx.Module):
             self.visible_bias = False
 
     def __call__(self, x_in):
-        y = nk.nn.log_cosh(self.linear(x_in))
+        y = self.hidden_layer(x_in)
         y = jnp.sum(y, axis=-1)
         if self.visible_bias is not None:
-            # print(y)
-            # print(self.visible_bias)
-            # print("type", type(self.visible_bias))
             y = y + jnp.dot(x_in, self.visible_bias.raw_value)
 
         return y
 
-    def another_fun(self, x_in):
+    def hidden_layer(self, x_in):
+        # You can define subfunctions, and you can use them at any point in time
+        # contrary to what happens with linen
         y = nk.nn.log_cosh(self.linear(x_in))
         return y
 
 
 # 1D Lattice
-L = 5
+L = 10
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
-
-# Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
-s = hi.numbers_to_states(np.arange(10))
-
-# Ising spin hamiltonian
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
+# Note that contrary to Flax.linen, when you construct the model you must
+# supply an RNG key, and the model is initialized eagerly, and will contain the
+# parameters!
+ma = RBM(hi.size, alpha=2, visible_bias=True, param_dtype=float, rngs=nnx.Rngs(0))
+
+# You can already use the network like the following:
 xs = hi.random_state(jax.random.key(1), (3,))
+ma(xs)
+# or
+ma.hidden_layer(xs)
 
-# RBM Spin Machine
-ma = RBM(
-    hi.size, alpha=2, visible_bias=True, param_dtype=float, rngs=nnx.Rngs(0)
-)  # eager initialization
-# model = RBM(hi.size, alpha=2, visible_bias=True, param_dtype=float, rngs=nnx.Rngs(0))  # eager initialization
-
-r = jax.jit(lambda x: ma(x))(hi.all_states())
-
-# Metropolis Local Sampling
+# Build a variational state
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
-
-# Optimizer with a decreasing learning rate
-op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
-
-# SR
-sr = nk.optimizer.SR(diag_shift=0.01)
-
-# Variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
-# Variational monte carlo driver with a variational state
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+# You can get out the variational state parameters as usual
+print(jax.tree.map(lambda x: (x.shape, x.dtype), vs.variables))
+# You can also extract the model again
+print(vs.model(xs).shape)
+print(vs.model.hidden_layer(xs).shape)
 
-# Run the optimization for 500 iterations
-log = nk.logging.JsonLog("ciao")
+# train
+op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
+sr = nk.optimizer.SR(diag_shift=0.01)
+gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+log = nk.logging.RuntimeLog()
 gs.run(n_iter=500, out=log, timeit=True)
