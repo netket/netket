@@ -171,6 +171,7 @@ def extract_replicated(t):
     return jax.tree_util.tree_map(_extract_replicated, t)
 
 
+@jax.jit
 def all_gather(array):
     """
     Gathers the input array from all devices and replicates it across all devices.
