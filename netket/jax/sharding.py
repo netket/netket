@@ -191,7 +191,7 @@ def all_gather(array):
     out_shardings = (
         PositionalSharding(jax.devices()).replicate().reshape((1,) * array.ndim)
     )
-    return jax.jit(lambda x: x, out_shardings=out_shardings)(array)
+    return jax.lax.with_sharding_constraint(array, out_shardings)
 
 
 def gather(x):
