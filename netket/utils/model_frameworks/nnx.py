@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 # expose jax-stax as a flax module
 class NNXWrapper:
+    name: str = "NNX"
+
     def __init__(self, graphdef):
         self.graphdef = graphdef
 
