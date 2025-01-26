@@ -657,7 +657,7 @@ class SymmModuleInvalidInputShape(NetketError):
 
     def __init__(self, name, x):
         super().__init__(
-            """
+            f"""
             Input to DenseSymmFFT has {x.ndim =} but 3 are required.
 
             The input format is (B,C,L), aka (batches, features/channels, length). If
