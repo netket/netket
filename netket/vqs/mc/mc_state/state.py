@@ -143,20 +143,41 @@ class MCState(VariationalState):
     but we can always regenerate them.
     """
 
+    #############
+    #  Settings #
+    #############
     _chain_length: int = 0
     """Length of the Markov chain used for sampling configurations."""
     _n_discard_per_chain: int = 0
     """Number of samples discarded at the beginning of every Markov chain."""
+    _chunk_size: int | None = None
+    """The chunk size used in the evaluation of the model."""
 
-    _samples: jax.Array | None = None
-    """Cached samples obtained with the last sampling."""
+    #####################
+    #   Model related   #
+    #####################
+    _model_framework: model_frameworks.ModuleFramework | None = None
+    """The model framework used to define the model. This is a class from {class}`netket.utils.model_frameworks`
+    that is used to convert neural networks from different frameworks into a ``flax.linen``-compatible model."""
+    _model: nn.Module
+    """The linen-compatible model definition of this variational state, which does not contain the parameters.
+    This is hashable and exposes an `.apply(variables, input)` method.
+
+    To get the 'original' model, like the nnx or equinox one that was passed to the constructor,
+    use the {attr}`~netket.vqs.MCState.model` attribute.
+    """
 
     _init_fun: Callable | None = None
-    """The function used to initialise the parameters and model_state."""
+    """The function used to initialise the parameters and model_state. This might be None if the model
+    does not define an init method (e.g. when the model is a function, or for {class}`flax.nnx.Module`)."""
     _apply_fun: Callable
     """The function used to evaluate the model."""
 
-    _chunk_size: int | None = None
+    #############
+    #   Cache   #
+    #############
+    _samples: jax.Array | None = None
+    """Cached samples obtained with the last sampling."""
 
     def __init__(
         self,
