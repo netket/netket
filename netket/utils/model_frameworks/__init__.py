@@ -37,4 +37,6 @@ from .base import (
     identify_framework as identify_framework,
 )
 
-from . import flax, jax, haiku, equinox
+from . import flax, jax, haiku, equinox, nnx
+
+from . import nnx_wrapped

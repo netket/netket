@@ -48,20 +48,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mpi = [
-    "mpi4py>=3.0.1, <5",
-    "mpi4jax>=0.3.9"
-    ]
-pyscf = [
-    "sparse>=0.12.0",
-    "pyscf>=2.0"
-]
-extra = [
-    "tensorboardx>=2.0.0",
-    "openfermion>=1.0.0",
-    "h5py>=3.7.0",
-    "qutip>=4",
-    ]
+mpi = ["mpi4py>=3.0.1, <5", "mpi4jax>=0.3.9"]
+pyscf = ["sparse>=0.12.0", "pyscf>=2.0"]
+extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4"]
 dev = [
     "networkx>=2.4",
     "matplotlib>=3",
@@ -105,9 +94,10 @@ version-file = "netket/_version.py"
 
 [tool.uv]
 dev-dependencies = [
-  "netket[dev,docs]",
-  "mpi4py>=3.0.1",
-  "jax>=0.4.33"
+    "netket[dev,docs]",
+    "mpi4py>=3.0.1",
+    "jax>=0.4.33",
+    "ipykernel>=6.20",
 ]
 
 # Development tools
@@ -157,9 +147,7 @@ filterwarnings = [
     "ignore::netket.errors.UndeclaredSpinOderingWarning",
     "ignore::netket.errors.UnoptimalSRtWarning",
 ]
-testpaths = [
-    "test",
-]
+testpaths = ["test"]
 
 [tool.ruff]
 target-version = "py310"
@@ -187,7 +175,5 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
-module = [
-    "netket"
-]
+module = ["netket"]
 ignore_missing_imports = true
