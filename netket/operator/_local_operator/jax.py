@@ -24,7 +24,7 @@ from jax.util import safe_map
 from jax.tree_util import register_pytree_node_class
 
 from netket.errors import JaxOperatorNotConvertibleToNumba
-from netket.jax.sharding import sharding_decorator
+from netket.jax.sharding import batched_take_along_axis
 
 from .base import LocalOperatorBase
 from .compile_helpers import pack_internals_jax
@@ -197,13 +197,9 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         # move nonzero mels to the front and keep exactly max_conn_size
         (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(mask)
 
-        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        xp = sharding_decorator(jax.vmap(partial(jnp.take, axis=0)), (True, True))(
-            xp, ind
-        )
-        mels = sharding_decorator(jax.vmap(partial(jnp.take, axis=0)), (True, True))(
-            mels, ind
-        )
+        # use a custom partitioned version which avoids the unnecessary all-gather emitted by jnp.take_along_axis
+        xp = batched_take_along_axis(xp, ind[..., None], -2)
+        mels = batched_take_along_axis(mels, ind, -1)
 
         return xp, mels, n_conn_total
 
