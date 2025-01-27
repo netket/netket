@@ -200,13 +200,21 @@ class Pytree(metaclass=PytreeMeta):
         # If no annotations in this class, skip, otherwise we'd process
         # parent's annotations twice
         if "__annotations__" in cls.__dict__:
-            # fields that are only type annotations, feed them forward
+            # fields that are only type annotations, but do not explicitly declare
+            # a struct.field(), feed them forward and treat as standard fields.
             for field, _ in cls.__annotations__.items():
                 if field not in all_fields:
                     _value = dataclasses.field()
                     _value.name = field
                     all_fields[field] = _value
                     data_fields.add(field)
+
+                    # If field is in class_vars, it has a default value declared.
+                    # this can be overridden by subclasses.
+                    if field in class_vars:
+                        # has default value
+                        value = class_vars[field]
+                        default_setters[field] = partial(identity, value)
 
         # Set mutable to be inherited from parent, or false otherwise
         if mutable is None:
