@@ -1,6 +1,9 @@
 from typing import Generic, TypeVar
 
+import numpy as np
+
 import jax
+import jax.numpy as jnp
 import pytest
 from flax import serialization
 
@@ -393,3 +396,21 @@ class TestMutablePytree:
         assert b.z == 5
 
         assert jax.tree_util.tree_leaves(b) == [2, 5]
+
+
+def test_serialize_unwraps_keys():
+    @dataclass
+    class TreeWithKey(Pytree):
+        a: jax.Array
+        b: jax.Array
+
+    obj = TreeWithKey(jax.random.key(1), jax.random.PRNGKey(2))
+
+    bts = serialization.to_bytes(obj)
+
+    obj_target = TreeWithKey(jax.random.key(0), jax.random.PRNGKey(2))
+    obj_load = serialization.from_bytes(obj_target, bts)
+    assert jnp.issubdtype(obj_load.a.dtype, jax.dtypes.prng_key)
+    assert np.all(jax.random.key_data(obj.a) == jax.random.key_data(obj_load.a))
+    assert not jnp.issubdtype(obj_load.b.dtype, jax.dtypes.prng_key)
+    assert np.all(obj.b == obj_load.b)

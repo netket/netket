@@ -442,10 +442,11 @@ class Pytree(metaclass=PytreeMeta):
 
             # handle PRNG arrays: if target is a prng key array we unwrap it
             _pytree_prng_orig_value = dataclasses.MISSING
-            if isinstance(pytree, jax.Array) and jnp.issubdtype(
-                pytree.dtype, jax.dtypes.prng_key
+            if isinstance(value, jax.Array) and jnp.issubdtype(
+                value.dtype, jax.dtypes.prng_key
             ):
-                value = jax.random.key_data(pytree)
+                _pytree_prng_orig_value = jax.random.key_impl(value)
+                value = jax.random.key_data(value)
                 # return jax.random.wrap_key_data(source_data, jax.random.key_impl(target_maybe_key))
                 # return jax.random.key_data(maybe_key)
 
@@ -468,7 +469,7 @@ class Pytree(metaclass=PytreeMeta):
             # rewrap prng arrays
             if _pytree_prng_orig_value is not dataclasses.MISSING:
                 updates[name] = jax.random.wrap_key_data(
-                    updates[name], impl=jax.random.key_impl(_pytree_prng_orig_value)
+                    updates[name], impl=_pytree_prng_orig_value
                 )
 
         if state:
