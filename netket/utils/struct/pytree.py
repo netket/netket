@@ -337,6 +337,20 @@ class Pytree(metaclass=PytreeMeta):
     def __post_init__(self):
         pass
 
+    def __process_deserialization_updates__(self, updates):
+        """
+        Internal function used to modify a posteriori how a
+        PyTree is deserialized.
+
+        This is fed a dictionary of {'attribute names':values}
+        that will be used to call `self.replace(**updates)`,
+        and should return a modified dictionary.
+
+        Can be for example used to support backward compatible
+        deserialization.
+        """
+        return updates
+
     @classmethod
     def _pytree__flatten(
         cls,
@@ -479,7 +493,10 @@ class Pytree(metaclass=PytreeMeta):
                 f" restoring an instance of {type(pytree).__name__}"
                 f" at path {serialization.current_path()}"
             )
-        return pytree.replace(**updates)
+
+        updates = pytree.__process_deserialization_updates__(updates)
+        new_pytree = pytree.replace(**updates)
+        return new_pytree
 
     def replace(self: P, **kwargs: tp.Any) -> P:
         """

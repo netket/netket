@@ -128,6 +128,14 @@ class MetropolisSamplerState(SamplerState):
 
         return f"{type(self).__name__}({acc_string}rng state={self.rng})"
 
+    def __process_deserialization_updates__(self, updates):
+        # In netket 3.15 we changed the default dtype of samples
+        # to integer dtypes in most of the time. Without this,
+        # deserialization of old files would be broken.
+        if self.σ.dtype != updates["σ"].dtype:
+            updates["σ"] = updates["σ"].astype(self.σ.dtype)
+        return updates
+
 
 def _assert_good_sample_shape(samples, shape, dtype, obj=""):
     canonical_dtype = jax.dtypes.canonicalize_dtype(dtype)
