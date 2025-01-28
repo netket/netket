@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
+
 L = 2  # take a 2x2 lattice
 D = 2
 t = 1  # tunneling/hopping
@@ -53,10 +54,10 @@ print("Hamiltonian =", ham.operator_string())
 # we can do this explicitly
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 disj_graph = nk.graph.disjoint_union(g, g)
-sa = nk.sampler.MetropolisParticleExchange(hi, graph=g, n_chains=16, sweep_size=64)
+sa = nk.sampler.MetropolisFermionHop(hi, graph=g, n_chains=16, sweep_size=64)
 # or let netket copy the graph per spin sector
-sa = nk.sampler.MetropolisParticleExchange(
-    hi, graph=g, n_chains=16, sweep_size=64, exchange_spins=False
+sa = nk.sampler.MetropolisFermionHop(
+    hi, graph=g, n_chains=16, sweep_size=64, spin_symmetric=True
 )
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM

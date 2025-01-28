@@ -1,13 +1,13 @@
 from netket.sampler.rules import (
-    ParticleExchangeRule as _deprecated_ParticleExchangeRule,
+    FermionHopRule as _deprecated_FermionHopRule,
 )
 
 _deprecations = {
     # June 2024, NetKet 3.13
     "ParticleExchangeRule": (
         "netket.experimental.sampler.rules.ParticleExchangeRule is deprecated: use "
-        "netket.sampler.rules.ParticleExchangeRule (netket >= 3.13)",
-        _deprecated_ParticleExchangeRule,
+        "netket.sampler.rules.FermionHopRule (netket >= 3.13)",
+        _deprecated_FermionHopRule,
     ),
 }
 

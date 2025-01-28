@@ -44,9 +44,9 @@ print("Hamiltonian =", ham.operator_string())
 # and therefore conserve the number of fermions with up and down spin
 
 # g.n_nodes == L*L --> disj_graph == 2*L*L
-# this is handled by netket by passing the keyword copy_per_spin=True
-sa = nk.sampler.MetropolisParticleExchange(
-    hi, graph=g, n_chains=16, exchange_spins=False, sweep_size=64
+# this is handled by netket by passing the keyword spin_symmetric=True
+sa = nk.sampler.MetropolisFermionHop(
+    hi, graph=g, n_chains=16, spin_symmetric=True, sweep_size=64
 )
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM
