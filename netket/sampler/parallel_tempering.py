@@ -628,7 +628,7 @@ def ParallelTemperingExchange(
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = nk.sampler.ParallelTemperingExchange(hi, graph=g)
           >>> print(sa)
-          ParallelTemperingSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+          ParallelTemperingSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
 
     """
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
@@ -676,7 +676,7 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
        >>> # Construct a MetropolisExchange Sampler
        >>> sa = nk.sampler.ParallelTemperingHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       ParallelTemperingSampler(rule = HamiltonianRuleNumba(operator=Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+       ParallelTemperingSampler(rule = HamiltonianRuleNumba(operator=Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
 
     """
     rule = HamiltonianRule(hamiltonian)
