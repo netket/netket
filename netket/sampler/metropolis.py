@@ -630,7 +630,7 @@ def MetropolisExchange(
 
             import netket as nk
             g = nk.graph.Square(5)
-            hi = nkx.hilbert.SpinOrbitalFermions(g.n_nodes, s=0.5)
+            hi = nk.hilbert.SpinOrbitalFermions(g.n_nodes, s=0.5)
 
             exchange_graph = nk.graph.disjoint_union(g, g)
             print("Exchange graph size:", exchange_graph.n_nodes)
@@ -667,7 +667,10 @@ def MetropolisExchange(
     from .rules import ExchangeRule
 
     if isinstance(hilbert, SpinOrbitalFermions):
-        if mpi.rank == 0:
+        warn = True
+        if graph is not None and graph.n_nodes < hilbert.size:
+            warn = True
+        if mpi.rank == 0 and warn:
             import warnings
 
             warnings.warn(

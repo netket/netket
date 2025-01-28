@@ -22,7 +22,7 @@ from netket.sampler import (
     ParallelTemperingSampler as _deprecated_MetropolisPtSampler,
     ParallelTemperingLocal as _deprecated_MetropolisLocalPtSampler,
     ParallelTemperingExchange as _deprecated_MetropolisExchangePtSampler,
-    MetropolisParticleExchange as _deprecated_MetropolisParticleExchange,
+    MetropolisFermionHop as _deprecated_MetropolisParticleExchange,
 )
 
 _deprecations = {
@@ -45,7 +45,7 @@ _deprecations = {
     # June 2024, NetKet 3.13
     "MetropolisParticleExchange": (
         "netket.experimental.sampler.MetropolisParticleExchange is deprecated: use "
-        "netket.sampler.MetropolisParticleExchange (netket >= 3.13)",
+        "netket.sampler.MetropolisFermionHop (netket >= 3.13)",
         _deprecated_MetropolisParticleExchange,
     ),
 }

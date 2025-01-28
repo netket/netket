@@ -125,7 +125,7 @@ Sampler. Rules with `Numpy` in their name can only be used with
   rules.HamiltonianRuleNumpy
   rules.GaussianRule
   rules.LangevinRule
-  rules.ParticleExchangeRule
+  rules.FermionHopRule
 
 ```
 
@@ -176,7 +176,7 @@ The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class
    :nosignatures:
 
 
-   MetropolisParticleExchange
+   MetropolisFermionHop
 ```
 
 And the corresponding rules
@@ -187,5 +187,5 @@ And the corresponding rules
    :nosignatures:
 
 
-   rules.ParticleExchangeRule
+   rules.FermionHopRule
 ```

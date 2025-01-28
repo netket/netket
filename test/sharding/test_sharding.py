@@ -62,7 +62,7 @@ def test_pt():
     vs, _, ha = _setup(8)
     hi = ha.hilbert
 
-    sa = nkx.sampler.MetropolisPtSampler(
+    sa = nk.sampler.MetropolisPtSampler(
         hi,
         rule=nk.sampler.rules.HamiltonianRule(ha),
         n_replicas=4,
