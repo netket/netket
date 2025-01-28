@@ -846,12 +846,12 @@ def test_doubled_hilbert_indexable():
 
 
 def test_hilbert_dtype_int8():
-    hi = nkx.hilbert.SpinOrbitalFermions(4)
+    hi = nk.hilbert.SpinOrbitalFermions(4)
     assert hi.all_states().dtype == np.int8
-    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions=2)
+    hi = nk.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions=2)
     assert hi.all_states().dtype == np.int8
 
-    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2)
+    hi = nk.hilbert.SpinOrbitalFermions(4, s=1 / 2)
     assert hi.all_states().dtype == np.int8
-    hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(2, 2))
+    hi = nk.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(2, 2))
     assert hi.all_states().dtype == np.int8
