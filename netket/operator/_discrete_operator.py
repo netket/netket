@@ -274,28 +274,36 @@ class DiscreteOperator(AbstractOperator):
 
 
             # Create a mask for elements to keep (mels_test != 0)
-            keep_mask = mels_test != 0
-
+            # keep_mask = mels_test != 0
+            removed_indices = np.where(mels_test == 0)[0]
             # Apply the mask to all arrays at once
-            x_prime = x_prime[keep_mask]
-            mels = mels[keep_mask]
+            x_prime = np.delete(x_prime, removed_indices, axis=0)
+            mels = np.delete(mels, removed_indices)
             # mels_test = mels_test[keep_mask]
 
-            position = 0
-            pindex = 0
-            # removeset = set(map(hash, map(tuple, x_primes_to_remove)))
-            for pindex in range(keep_mask.size):
-                if ~keep_mask[pindex]:
-                    # x_prime = np.delete(x_prime, position, axis=0)
-                    # mels = np.delete(mels, position)
-                    # mels_test = np.delete(mels_test, position)
-                    sections1[sections1 > position] -= 1    
-                else:
-                    position += 1
-                # pindex += 1
+        
+            # keep_mask = mels_test != 0
+            # position = 0
+            # pindex = 0
+            # # removeset = set(map(hash, map(tuple, x_primes_to_remove)))
+            # for pindex in range(keep_mask.size):
+            #     if ~keep_mask[pindex]:
+            #         # x_prime = np.delete(x_prime, position, axis=0)
+            #         # mels = np.delete(mels, position)
+            #         # mels_test = np.delete(mels_test, position)
+            #         sections1[sections1 > position] -= 1    
+            #     else:
+            #         position += 1
+            #     # pindex += 1
+            #     if position % 10000 == 0:
+            #         jax.debug.print(f"position: {position} / {x_prime.shape[0]}")
+        
+            
 
-                if position % 10000 == 0:
-                    jax.debug.print(f"position: {position} / {x_prime.shape[0]}")
+            # Adjust sections1 based on removed indices
+            adjustment = np.searchsorted(removed_indices, sections1, side='right')
+            sections1 -= adjustment
+
 
             # position = x_prime.shape[0] - 1
             # while position >= 0:
