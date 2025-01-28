@@ -217,37 +217,96 @@ class DiscreteOperator(AbstractOperator):
             # (due to expansion of the operator for example) the except part tries to remove the states,
             # which are not in the constraint hilbert space. filter_jit is necessary to allow try...
             import equinox as eqx
+            import jax
             numbers = eqx.filter_jit(hilb.states_to_numbers)(x_prime)
         except:
             # This part removes x_primes, which have mels sum 0
             # This is usefull, if inbetween states are not in the constraint hilbert space, as in this case
             # states_to_numbers will fail
-            unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
-            remove_mel = np.ones(unique_x_prime.shape[0], dtype=bool)
+            import jax
+            jax.debug.print("starting")
 
-            @jit(nopython=True)
-            def prepare(unique_x_prime, x_prime, mels, sections1, remove_mel):
-                for i in range(unique_x_prime.shape[0]):
-                    for j in range(len(sections1)-1):
-                        sm = 0
-                        for k in range(sections1[j], sections1[j+1]):
-                            if (x_prime[k] == unique_x_prime[i]).all():
-                                sm += mels[k]
-                        if sm != 0:
-                            remove_mel[i]=False
-                            break
-                return remove_mel
-            remove_mel = prepare(unique_x_prime, x_prime, mels, sections1, remove_mel)
-            x_primes_to_remove = unique_x_prime[remove_mel]
+            # test with hashes, but section 1 has to be changed as well
+            x_prime_dict = {}
+            for i in range(x_prime.shape[0]):
+                key = tuple(x_prime[i])
+                if key in x_prime_dict:
+                    x_prime_dict[key] += mels[i]
+                else:
+                    x_prime_dict[key] = mels[i]
+
+            # x_prime = np.array(list(x_prime_dict.keys()))
+            # mels = np.array(list(x_prime_dict.values()))
+            # non_zero_indices = np.nonzero(mels)[0]
+            # x_prime = x_prime[non_zero_indices]
+            # mels = mels[non_zero_indices]
+
+            # x_prime = np.array(list(x_prime_dict.keys()))
+            # mels = np.array(list(x_prime_dict.values()))
+
+            x_prime_tmp, mels_tmp = zip(*x_prime_dict.items())
+            x_prime_tmp = np.array(x_prime_tmp)
+            mels_tmp = np.array(mels_tmp)
+
+            # zero_indices = np.where(mels_tmp == 0)[0]
+            # x_primes_to_remove = x_prime_tmp[zero_indices]
+            
+            jax.debug.print("removing prepared")
+            mels_test = np.array([x_prime_dict[tuple(x_prime[i])] for i in range(x_prime.shape[0])])
+
+            # unique_x_prime, indices = np.unique(x_prime, axis=0, return_index=True)
+            # remove_mel = np.ones(unique_x_prime.shape[0], dtype=bool)
+            # @jit(nopython=True)
+            # def prepare(unique_x_prime, x_prime, mels, sections1, remove_mel):
+            #     for i in range(unique_x_prime.shape[0]):
+            #         for j in range(len(sections1)-1):
+            #             sm = 0
+            #             for k in range(sections1[j], sections1[j+1]):
+            #                 if (x_prime[k] == unique_x_prime[i]).all():
+            #                     sm += mels[k]
+            #             if sm != 0:
+            #                 remove_mel[i]=False
+            #                 break
+            #     return remove_mel
+            # remove_mel = prepare(unique_x_prime, x_prime, mels, sections1, remove_mel)
+            # x_primes_to_remove = unique_x_prime[remove_mel]
+
+
+
+            # Create a mask for elements to keep (mels_test != 0)
+            keep_mask = mels_test != 0
+
+            # Apply the mask to all arrays at once
+            x_prime = x_prime[keep_mask]
+            mels = mels[keep_mask]
+            # mels_test = mels_test[keep_mask]
 
             position = 0
-            while (position < x_prime.shape[0]):
-                if np.any(np.all(x_primes_to_remove == x_prime[position],axis=1)):
-                    x_prime = np.delete(x_prime, position, axis=0)
-                    mels = np.delete(mels, position)
-                    sections1[sections1 > position] -= 1
+            pindex = 0
+            # removeset = set(map(hash, map(tuple, x_primes_to_remove)))
+            for pindex in range(keep_mask.size):
+                if ~keep_mask[pindex]:
+                    # x_prime = np.delete(x_prime, position, axis=0)
+                    # mels = np.delete(mels, position)
+                    # mels_test = np.delete(mels_test, position)
+                    sections1[sections1 > position] -= 1    
                 else:
                     position += 1
+                # pindex += 1
+
+                if position % 10000 == 0:
+                    jax.debug.print(f"position: {position} / {x_prime.shape[0]}")
+
+            # position = x_prime.shape[0] - 1
+            # while position >= 0:
+            #     if mels[position] == 0:
+            #         x_prime = np.delete(x_prime, position, axis=0)
+            #         mels = np.delete(mels, position)
+            #         sections1[sections1 > position] -= 1
+            #     position -= 1
+
+            jax.debug.print("removed")
+
             numbers = hilb.states_to_numbers(x_prime)
 
         # eliminate duplicates from numbers
