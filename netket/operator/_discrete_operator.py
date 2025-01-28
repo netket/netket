@@ -244,9 +244,9 @@ class DiscreteOperator(AbstractOperator):
             # x_prime = np.array(list(x_prime_dict.keys()))
             # mels = np.array(list(x_prime_dict.values()))
 
-            x_prime_tmp, mels_tmp = zip(*x_prime_dict.items())
-            x_prime_tmp = np.array(x_prime_tmp)
-            mels_tmp = np.array(mels_tmp)
+            # x_prime_tmp, mels_tmp = zip(*x_prime_dict.items())
+            # x_prime_tmp = np.array(x_prime_tmp)
+            # mels_tmp = np.array(mels_tmp)
 
             # zero_indices = np.where(mels_tmp == 0)[0]
             # x_primes_to_remove = x_prime_tmp[zero_indices]
