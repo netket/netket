@@ -269,7 +269,7 @@ class DiscreteOperator(AbstractOperator):
             adjustment = np.searchsorted(removed_indices, sections1, side='left')
             sections1 -= adjustment
 
-            jax.debug.print(f"removed {sections1[:30]} {sections2[:30]}")
+            # jax.debug.print(f"removed {sections1[:30]} {sections2[:30]}")
 
             numbers = hilb.states_to_numbers(x_prime)
 
