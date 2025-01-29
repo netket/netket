@@ -24,7 +24,6 @@ import jax
 from jax.nn.initializers import normal
 
 import netket as nk
-from netket import experimental as nkx
 from netket import config
 from netket.hilbert import DiscreteHilbert, Particle
 from netket.utils import array_in, mpi
@@ -57,11 +56,11 @@ move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
-hi_fermion = nk.experimental.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
-hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
+hi_fermion = nk.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
+hi_fermion_spin = nk.hilbert.SpinOrbitalFermions(
     g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
 )
-hi_fermion_spin_higher = nk.experimental.hilbert.SpinOrbitalFermions(
+hi_fermion_spin_higher = nk.hilbert.SpinOrbitalFermions(
     g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
 )
 
@@ -103,19 +102,17 @@ if not config.netket_experimental_sharding:
     )
 
 samplers["Metropolis(ParticleExchange): SpinOrbitalFermions"] = (
-    nkx.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
+    nk.sampler.MetropolisFermionHop(hi_fermion, graph=g)
 )
 samplers["Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"] = (
-    nkx.sampler.MetropolisParticleExchange(
-        hi_fermion_spin, graph=g, exchange_spins=False
-    )
+    nk.sampler.MetropolisFermionHop(hi_fermion_spin, graph=g, spin_symmetric=True)
 )
 if nk.utils.module_version("jax") != (0, 4, 33):
     # this test is broken for a bug in jax 0.4.33
     # https://github.com/google/jax/issues/23727
     samplers["Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"] = (
-        nkx.sampler.MetropolisParticleExchange(
-            hi_fermion_spin_higher, graph=g, exchange_spins=False
+        nk.sampler.MetropolisFermionHop(
+            hi_fermion_spin_higher, graph=g, spin_symmetric=True
         )
     )
 
@@ -598,34 +595,34 @@ def test_exact_sampler(sampler):
 def test_fermions_spin_exchange():
     # test that the graph correctly creates a disjoint graph for the spinful case
     g = nk.graph.Hypercube(length=4, n_dim=1)
-    hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
+    hi_fermion_spin = nk.hilbert.SpinOrbitalFermions(
         g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
     )
 
-    sampler = nkx.sampler.MetropolisParticleExchange(
-        hi_fermion_spin, graph=g, exchange_spins=True
+    sampler = nk.sampler.MetropolisFermionHop(
+        hi_fermion_spin, graph=g, spin_symmetric=False
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(g.n_nodes))
 
-    sampler = nkx.sampler.MetropolisParticleExchange(
-        hi_fermion_spin, graph=g, exchange_spins=False
+    sampler = nk.sampler.MetropolisFermionHop(
+        hi_fermion_spin, graph=g, spin_symmetric=True
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(hi_fermion_spin.size))
 
-    hi_fermion_spin_higher = nk.experimental.hilbert.SpinOrbitalFermions(
+    hi_fermion_spin_higher = nk.hilbert.SpinOrbitalFermions(
         g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
     )
 
-    sampler = nkx.sampler.MetropolisParticleExchange(
-        hi_fermion_spin_higher, graph=g, exchange_spins=True
+    sampler = nk.sampler.MetropolisFermionHop(
+        hi_fermion_spin_higher, graph=g, spin_symmetric=False
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(g.n_nodes))
 
-    sampler = nkx.sampler.MetropolisParticleExchange(
-        hi_fermion_spin_higher, graph=g, exchange_spins=False
+    sampler = nk.sampler.MetropolisFermionHop(
+        hi_fermion_spin_higher, graph=g, spin_symmetric=True
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(hi_fermion_spin_higher.size))

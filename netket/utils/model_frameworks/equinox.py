@@ -71,6 +71,14 @@ class EquinoxWrapper:
 class EquinoxFramework(ModuleFramework):
     name: str = "Equinox"
 
+    @property
+    def model_contains_parameters(self) -> bool:
+        """
+        Returns True if the model contains the parameters in the model itself, False
+        if the parameters are stored separately.
+        """
+        return True
+
     @staticmethod
     def is_loaded() -> bool:
         return "equinox" in sys.modules
@@ -83,7 +91,7 @@ class EquinoxFramework(ModuleFramework):
         return isinstance(module, eqx.Module)
 
     @staticmethod
-    def wrap(module):
+    def wrap(module: "equinox.Module") -> tuple[dict, EquinoxWrapper]:
         import equinox as eqx
 
         params, static = eqx.partition(module, eqx.is_array)
@@ -93,11 +101,13 @@ class EquinoxFramework(ModuleFramework):
         return variables, EquinoxWrapper(static, params_treedef)
 
     @staticmethod
-    def unwrap(module, maybe_variables) -> "equinox.Module":
+    def unwrap(
+        wrapped_module: EquinoxWrapper, maybe_variables: dict
+    ) -> "equinox.Module":
         import equinox as eqx
 
         params_leaves = maybe_variables["params"]["list"]
-        params_module = jax.tree.unflatten(module.params_treedef, params_leaves)
+        params_module = jax.tree.unflatten(wrapped_module.params_treedef, params_leaves)
 
-        eqx_module = eqx.combine(params_module, module.static_module)
+        eqx_module = eqx.combine(params_module, wrapped_module.static_module)
         return eqx_module

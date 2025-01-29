@@ -56,6 +56,9 @@ class VariationalState(abc.ABC):
     """
 
     mutable: CollectionFilter
+    "Specifies which collections in the model_state should be treated as mutable. Largely unused."
+    _parameters_structure: PyTree | None = None
+    "Stores the structure of the parameters, used to check if the parameters are updated correctly."
 
     def __init__(self, hilbert: AbstractHilbert):
         """Initialize the Abstract base class of a Variational State defined

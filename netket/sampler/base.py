@@ -101,7 +101,7 @@ class Sampler(struct.Pytree):
             else:
                 dtype = jax.eval_shape(
                     hilbert.random_state, jax.eval_shape(jax.random.key, 1)
-                )
+                ).dtype
 
         machine_pow = jnp.array(machine_pow)
 

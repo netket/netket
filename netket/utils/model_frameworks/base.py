@@ -22,6 +22,15 @@ PyTree = Any
 
 @dataclasses.dataclass(frozen=True)
 class ModuleFramework(abc.ABC):
+
+    @property
+    def model_contains_parameters(self) -> bool:
+        """
+        Returns True if the model contains the parameters in the model itself, False
+        if the parameters are stored separately.
+        """
+        return False
+
     @staticmethod
     @abc.abstractmethod
     def is_loaded() -> bool:
@@ -56,7 +65,7 @@ class ModuleFramework(abc.ABC):
         Returns:
             A tuple with the parameters, if any, and the static module.
         """
-        # return None, module
+        raise NotImplementedError
 
     @staticmethod
     def unwrap(module: Any, maybe_variables: PyTree | None) -> Any:
@@ -104,7 +113,11 @@ class UnknownFramework(ModuleFramework):
 
     @staticmethod
     def wrap(module) -> tuple:
-        return module
+        return None, module
+
+    @staticmethod
+    def unwrap(wrapped_module, wrapped_variables):
+        return wrapped_module
 
 
 def identify_framework(module):

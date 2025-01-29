@@ -12,7 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.models.slater import Slater2nd, MultiSlater2nd
-
 from .rnn import RNN, LSTMNet, GRUNet1D
 from .fast_rnn import FastRNN, FastLSTMNet, FastGRUNet1D
+
+from netket.models import Slater2nd as _deprecated_Slater2nd
+from netket.models import MultiSlater2nd as _deprecated_MultiSlater2nd
+
+_deprecations = {
+    # May 2024
+    "Slater2nd": (
+        "netket.experimental.models.Slater2nd is deprecated: use "
+        "netket.models.Slater2nd (netket >= 3.12)",
+        _deprecated_Slater2nd,
+    ),
+    "MultiSlater2nd": (
+        "netket.experimental.models.MultiSlater2nd is deprecated: use "
+        "netket.models.MultiSlater2nd (netket >= 3.12)",
+        _deprecated_MultiSlater2nd,
+    ),
+}
+
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
+del _deprecation_getattr

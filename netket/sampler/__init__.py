@@ -28,9 +28,10 @@ from .metropolis import (
     MetropolisHamiltonian,
     MetropolisGaussian,
     MetropolisAdjustedLangevin,
+    MetropolisFermionHop,
 )
 
-from .metropolis_pt import (
+from .parallel_tempering import (
     ParallelTemperingSampler,
     ParallelTemperingLocal,
     ParallelTemperingExchange,

@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
-from netket import experimental as nkx
 
 L = 2  # take a 2x2 lattice
 D = 2
@@ -15,7 +14,7 @@ g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
 n_sites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
-hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
+hi = nk.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
 
 
 # create an operator representing fermi hubbard interactions
@@ -23,15 +22,15 @@ hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2
 # we will create a helper function to abbreviate the creation, destruction and number operators
 # each operator has a site and spin projection (sz) in order to find the right position in the hilbert space samples
 def c(site, sz):
-    return nkx.operator.fermion.destroy(hi, site, sz=sz)
+    return nk.operator.fermion.destroy(hi, site, sz=sz)
 
 
 def cdag(site, sz):
-    return nkx.operator.fermion.create(hi, site, sz=sz)
+    return nk.operator.fermion.create(hi, site, sz=sz)
 
 
 def nc(site, sz):
-    return nkx.operator.fermion.number(hi, site, sz=sz)
+    return nk.operator.fermion.number(hi, site, sz=sz)
 
 
 up = +1
@@ -55,10 +54,10 @@ print("Hamiltonian =", ham.operator_string())
 # we can do this explicitly
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 disj_graph = nk.graph.disjoint_union(g, g)
-sa = nkx.sampler.MetropolisParticleExchange(hi, graph=g, n_chains=16, sweep_size=64)
+sa = nk.sampler.MetropolisFermionHop(hi, graph=g, n_chains=16, sweep_size=64)
 # or let netket copy the graph per spin sector
-sa = nkx.sampler.MetropolisParticleExchange(
-    hi, graph=g, n_chains=16, sweep_size=64, exchange_spins=False
+sa = nk.sampler.MetropolisFermionHop(
+    hi, graph=g, n_chains=16, sweep_size=64, spin_symmetric=True
 )
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM

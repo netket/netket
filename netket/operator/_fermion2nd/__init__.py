@@ -12,23 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import MetropolisRule
 
-from .fixed import FixedRule
-from .local import LocalRule
-from .exchange import ExchangeRule
-from .hamiltonian import HamiltonianRule
-from .continuous_gaussian import GaussianRule
-from .langevin import LangevinRule
-from .tensor import TensorRule
-from .multiple import MultipleRules
-from .fermion_2nd import FermionHopRule
+__all__ = ["FermionOperator2nd", "FermionOperator2ndJax"]
 
-# numpy backend
-from .local_numpy import LocalRuleNumpy
-from .hamiltonian_numpy import HamiltonianRuleNumpy
-from .custom_numpy import CustomRuleNumpy
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from .numba import FermionOperator2nd
+from .jax import FermionOperator2ndJax
