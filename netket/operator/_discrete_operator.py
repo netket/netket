@@ -246,28 +246,28 @@ class DiscreteOperator(AbstractOperator):
             mels = np.delete(mels, removed_indices)
             
 
-            sections2 = sections1.copy()
             # This was the original code, but it is very slow
             #
-            keep_mask = mels_test != 0
-            position = 0
-            pindex = 0
-            # removeset = set(map(hash, map(tuple, x_primes_to_remove)))
-            for pindex in range(keep_mask.size):
-                if ~keep_mask[pindex]:
-                    # x_prime = np.delete(x_prime, position, axis=0)
-                    # mels = np.delete(mels, position)
-                    # mels_test = np.delete(mels_test, position)
-                    sections1[sections1 > position] -= 1    
-                else:
-                    position += 1
-                pindex += 1
+            # sections2 = sections1.copy()
+            # keep_mask = mels_test != 0
+            # position = 0
+            # pindex = 0
+            # # removeset = set(map(hash, map(tuple, x_primes_to_remove)))
+            # for pindex in range(keep_mask.size):
+            #     if ~keep_mask[pindex]:
+            #         # x_prime = np.delete(x_prime, position, axis=0)
+            #         # mels = np.delete(mels, position)
+            #         # mels_test = np.delete(mels_test, position)
+            #         sections2[sections1 > position] -= 1    
+            #     else:
+            #         position += 1
+            #     pindex += 1
             # 
             # from this ChatCPT generated the next two lines
             
             # Adjust sections1 based on removed indices
-            adjustment = np.searchsorted(removed_indices, sections2, side='left')
-            sections2 -= adjustment
+            adjustment = np.searchsorted(removed_indices, sections1, side='left')
+            sections1 -= adjustment
 
             jax.debug.print(f"removed {sections1[:30]} {sections2[:30]}")
 
