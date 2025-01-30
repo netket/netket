@@ -32,85 +32,169 @@ from netket.utils import mpi, timing
 from netket.utils.types import ScalarOrSchedule, Optimizer, PyTree
 from netket.vqs import MCState
 
-from jax.flatten_util import ravel_pytree
+from netket.utils.optional_deps import import_optional_dependency
+
+from netket.jax.sharding import shard_along_axis, all_gather
+
+nt = import_optional_dependency("neural_tangents", descr="neural_tangents")
+einops = import_optional_dependency("einops", descr="einops")
+
+from einops import rearrange
 
 
 @timing.timed
-@partial(jax.jit, static_argnames=("mode", "solver_fn"))
-def SRt(
-    O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure
+@partial(
+    jax.jit,
+    static_argnames=(
+        "apply_fn",
+        "nbatches",
+    ),
+)
+def SR_ntk_real(
+    samples, params, apply_fn, model_state, local_energies, diag_shift, nbatches=1
 ):
-    """
-    For more details, see `https://arxiv.org/abs/2310.05715'. In particular,
-    the following parallel implementation is described in Appendix "Distributed SR computation".
-    """
-    N_params = O_L.shape[-1]
-    N_mc = O_L.shape[0] * mpi.n_nodes
-
     local_energies = local_energies.flatten()
-
-    if e_mean is None:
-        e_mean = nkstats.mean(local_energies)
+    e_mean = nkstats.mean(local_energies)
     de = jnp.conj(local_energies - e_mean).squeeze()
 
-    # * in this case O_L should be padded with zeros
-    assert (N_params % mpi.n_nodes) == 0
+    N_mc = de.size * mpi.n_nodes
+    dv = -2.0 * de / N_mc**0.5
+    dv = dv.real
+    dv = all_gather(dv)
 
-    O_L = O_L / N_mc**0.5
+    all_samples = all_gather(samples)
+
+    kwargs = dict(
+        f=lambda params, samples: apply_fn(
+            {"params": params, **model_state}, samples
+        ).real,
+        trace_axes=(),
+        vmap_axes=0,
+    )
+    jacobian_contraction = nt.empirical_ntk_fn(
+        **kwargs, implementation=nt.NtkImplementation.JACOBIAN_CONTRACTION
+    )
+
+    if nbatches > 1:
+        all_samples = jax.tree_map(
+            lambda x: x.reshape(nbatches, -1, *x.shape[1:]), all_samples
+        )
+        aus_func = lambda batch_samples: jacobian_contraction(
+            samples, batch_samples, params
+        )
+        ntk_local = jax.lax.map(aus_func, all_samples)
+        ntk_local = rearrange(ntk_local, "nbatches i j -> i (nbatches j)")
+    else:
+        ntk_local = jacobian_contraction(
+            samples, all_samples, params
+        )  # shape [N_mc/p.size, N_mc]
+
+    ntk = all_gather(ntk_local)  # shape [N_mc, N_mc]
+
+    delta = jnp.eye(N_mc) - 1 / N_mc  # shape [N_mc, N_mc] symmetric matrix
+    ntk = delta @ ntk @ delta  # shape [N_mc, N_mc] centering the jacobian
+
+    # add diagonal shift
+    ntk = ntk / N_mc + diag_shift * jnp.eye(ntk.shape[0])
+    aus_vector = jax.scipy.linalg.solve(ntk, dv, assume_a="sym")
+    # aus_vector = jnp.linalg.inv(ntk) @ dv
+
+    aus_vector = delta @ aus_vector / N_mc**0.5  # shape [N_mc,]
+    aus_vector = shard_along_axis(aus_vector, axis=0)
+
+    f = lambda params: apply_fn({"params": params, **model_state}, samples).real
+    _, vjp_fun = jax.vjp(f, params)
+    updates = vjp_fun(aus_vector)[0]  # pytree [N_params,]
+
+    updates, _ = mpi.mpi_allreduce_sum_jax(updates)
+
+    updates = jax.tree_util.tree_map(lambda x: -x, updates)
+
+    return updates
+
+
+@timing.timed
+@partial(
+    jax.jit,
+    static_argnames=(
+        "apply_fn",
+        "nbatches",
+    ),
+)
+def SR_ntk_complex(
+    samples, params, apply_fn, model_state, local_energies, diag_shift, nbatches=1
+):
+    local_energies = local_energies.flatten()
+    e_mean = nkstats.mean(local_energies)
+    de = jnp.conj(local_energies - e_mean).squeeze()
+
+    N_mc = de.size * mpi.n_nodes
     dv = -2.0 * de / N_mc**0.5
 
-    if mode == "complex":
-        # Concatenate the real and imaginary derivatives of the ansatz
-        # O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
-        O_L = jnp.transpose(O_L, (1, 0, 2)).reshape(-1, O_L.shape[-1])
+    dv = all_gather(dv)
+    dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)  # shape [2*N_mc,]
 
-        dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
-    elif mode == "real":
-        dv = dv.real
+    all_samples = all_gather(samples)
+
+    def _apply_fn(params, samples):
+        log_amp = apply_fn({"params": params, **model_state}, samples)
+        re, im = log_amp.real, log_amp.imag
+        return jnp.concatenate((re[:, None], im[:, None]), axis=-1)  # shape [N_mc,2]
+
+    kwargs = dict(f=_apply_fn, trace_axes=(), vmap_axes=0)
+    jacobian_contraction = nt.empirical_ntk_fn(
+        **kwargs, implementation=nt.NtkImplementation.JACOBIAN_CONTRACTION
+    )
+
+    if nbatches > 1:
+        all_samples = jax.tree_map(
+            lambda x: x.reshape(nbatches, -1, *x.shape[1:]), all_samples
+        )
+        aus_func = lambda batch_lattice: jacobian_contraction(
+            samples, batch_lattice, params
+        )
+        ntk_local = jax.lax.map(aus_func, all_samples)
+        ntk_local = rearrange(ntk_local, "nbatches i j z w -> i (nbatches j) z w")
     else:
-        raise NotImplementedError()
+        ntk_local = jacobian_contraction(
+            samples, all_samples, params
+        )  # shape [N_mc/p.size, N_mc, 2, 2]
 
-    # twons, (np, n_nodes) -> twons, np, n_nodes
-    O_LT = O_L.reshape(O_L.shape[0], -1, mpi.n_nodes)
-    # twons, np, n_nodes -> n_nodes, twons, np
-    O_LT = jnp.moveaxis(O_LT, -1, 0)
+    ntk = all_gather(ntk_local)  # shape [N_mc, N_mc, 2, 2]
+    ntk = rearrange(
+        ntk, "i j z w -> (z i) (w j)"
+    )  # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
 
-    dv, token = mpi.mpi_gather_jax(dv)
-    dv = dv.reshape(-1, *dv.shape[2:])
-    O_LT, token = mpi.mpi_alltoall_jax(O_LT, token=token)
+    delta = jnp.eye(N_mc) - 1 / N_mc  # shape [N_mc, N_mc] symmetric matrix
+    delta_conc = jnp.zeros((2 * N_mc, 2 * N_mc))
+    delta_conc = delta_conc.at[:N_mc, :N_mc].set(delta)
+    delta_conc = delta_conc.at[N_mc : 2 * N_mc, N_mc : 2 * N_mc].set(
+        delta
+    )  # shape [2*N_mc, 2*N_mc]
 
-    # proc, twons, np -> (proc, twons) np
-    O_LT = O_LT.reshape(-1, O_LT.shape[-1])
+    ntk = delta_conc @ ntk @ delta_conc  # shape [2*N_mc, 2*N_mc] centering the jacobian
 
-    matrix, token = mpi.mpi_reduce_sum_jax(O_LT @ O_LT.T, token=token)
-    matrix_side = matrix.shape[-1]  # * it can be Ns or 2*Ns, depending on mode
+    # add diagonal shift
+    ntk = ntk / N_mc + diag_shift * jnp.eye(ntk.shape[0])
+    aus_vector = jax.scipy.linalg.solve(ntk, dv, assume_a="sym")
+    # aus_vector = jnp.linalg.inv(ntk) @ dv
 
-    if mpi.rank == 0:
-        matrix = matrix + diag_shift * jnp.eye(
-            matrix_side
-        )  # * shift diagonal regularization
-        aus_vector = solver_fn(matrix, dv)
-        # some solvers return a tuple, some others do not.
-        # We check and try to support both
-        if isinstance(aus_vector, tuple):
-            aus_vector, _ = aus_vector
+    aus_vector = aus_vector / N_mc**0.5  # shape [2*N_mc,]
 
-        aus_vector = aus_vector.reshape(mpi.n_nodes, -1)
-        aus_vector, token = mpi.mpi_scatter_jax(aus_vector, token=token)
-    else:
-        shape = jnp.zeros((int(matrix_side / mpi.n_nodes),), dtype=jnp.float64)
-        aus_vector, token = mpi.mpi_scatter_jax(shape, token=token)
+    aus_vector = delta_conc @ aus_vector
 
-    updates = O_L.T @ aus_vector
-    updates, token = mpi.mpi_allreduce_sum_jax(updates, token=token)
+    aus_vector = aus_vector.reshape(2, -1).T  # shape [N_mc,2]
+    aus_vector = shard_along_axis(aus_vector, axis=0)
 
-    # If complex mode and we have complex parameters, we need
-    # To repack the real coefficients in order to get complex updates
-    if mode == "complex" and nkjax.tree_leaf_iscomplex(params_structure):
-        np = updates.shape[-1] // 2
-        updates = updates[:np] + 1j * updates[np:]
+    f = lambda params: _apply_fn(params, samples)
+    _, vjp_fun = jax.vjp(f, params)
+    updates = vjp_fun(aus_vector)[0]  # pytree [N_params,]
 
-    return -updates
+    updates, _ = mpi.mpi_allreduce_sum_jax(updates)
+
+    updates = jax.tree_util.tree_map(lambda x: -x, updates)
+
+    return updates
 
 
 inv_default_solver = lambda A, b: jnp.linalg.inv(A) @ b
@@ -124,9 +208,9 @@ def _flatten_samples(x):
 
 class VMC_SRt(AbstractVariationalDriver):
     r"""
-    Energy minimization using Variational Monte Carlo (VMC) and the kernel
-    formulation of Stochastic Reconfiguration (SR). This approach lead to
-    *exactly* the same parameter updates of the standard SR with a
+    Energy minimization using Variational Monte Carlo (VMC) and the
+    Stochastic Reconfiguration (SR) based on the neural tangent kernel.
+    This approach leads to *exactly* the same parameter updates of the standard SR with a
     diagonal shift regularization. For this reason, it is equivalent to the standard
     nk.driver.VMC with the preconditioner nk.optimizer.SR(solver=netket.optimizer.solver.solvers.solve)).
     In the kernel SR framework, the updates of the parameters can be written as:
@@ -154,8 +238,9 @@ class VMC_SRt(AbstractVariationalDriver):
         *,
         diag_shift: ScalarOrSchedule,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
-        jacobian_mode: str | None = None,
+        mode: str | None = None,
         variational_state: MCState = None,
+        chunk_size_bwd: int = None,
     ):
         """
         Initializes the driver class.
@@ -169,10 +254,11 @@ class VMC_SRt(AbstractVariationalDriver):
             hamiltonian: The Hamiltonian of the system.
             linear_solver_fn: Callable to solve the linear problem associated to the
                               updates of the parameters
-            jacobian_mode: The mode used to compute the jacobian of the variational state. Can be `'real'`
+            mode: The mode used to compute the parameter update. Can be `'real'`
                     or `'complex'` (defaults to the dtype of the output of the model).
             variational_state: The :class:`netket.vqs.MCState` to be optimised. Other
                 variational states are not supported.
+            chunk_size_bwd: The size of the chunks for the ntk computation.
         """
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
@@ -213,7 +299,7 @@ class VMC_SRt(AbstractVariationalDriver):
         self._dp: PyTree = None
 
         self.diag_shift = diag_shift
-        self.jacobian_mode = jacobian_mode
+        self.mode = mode
         self._linear_solver_fn = linear_solver_fn
 
         self._params_structure = jax.tree_util.tree_map(
@@ -226,11 +312,15 @@ class VMC_SRt(AbstractVariationalDriver):
                 "contributions. Get in touch with us!)"
             )
 
-        _, unravel_params_fn = ravel_pytree(self.state.parameters)
-        self._unravel_params_fn = jax.jit(unravel_params_fn)
+        if chunk_size_bwd is None:
+            self.nbatches = 1
+        elif self.state.n_samples % chunk_size_bwd != 0:
+            raise ValueError("Chunk size must divide number of samples!")
+        else:
+            self.nbatches = self.state.n_samples // chunk_size_bwd
 
     @property
-    def jacobian_mode(self) -> str:
+    def mode(self) -> str:
         """
         The mode used to compute the jacobian of the variational state. Can be `'real'`
         or `'complex'`.
@@ -239,10 +329,10 @@ class VMC_SRt(AbstractVariationalDriver):
         This internally uses :func:`netket.jax.jacobian`. See that function for a more
         complete documentation.
         """
-        return self._jacobian_mode
+        return self._mode
 
-    @jacobian_mode.setter
-    def jacobian_mode(self, mode: str | None):
+    @mode.setter
+    def mode(self, mode: str | None):
         if mode is None:
             mode = nkjax.jacobian_default_mode(
                 self.state._apply_fun,
@@ -254,11 +344,11 @@ class VMC_SRt(AbstractVariationalDriver):
 
         if mode not in ["complex", "real"]:
             raise ValueError(
-                "`jacobian_mode` only supports 'real' for real-valued wavefunctions and"
+                "`mode` only supports 'real' for real-valued wavefunctions and"
                 "'complex'.\n\n"
                 "`holomorphic` is not yet supported, but could be contributed in the future."
             )
-        self._jacobian_mode = mode
+        self._mode = mode
 
     @timing.timed
     def _forward_and_backward(self):
@@ -277,32 +367,33 @@ class VMC_SRt(AbstractVariationalDriver):
         self._loss_stats = nkstats.statistics(local_energies)
 
         samples = _flatten_samples(self.state.samples)
-        jacobians = nkjax.jacobian(
-            self.state._apply_fun,
-            self.state.parameters,
-            samples,
-            self.state.model_state,
-            mode=self.jacobian_mode,
-            dense=True,
-            center=True,
-            chunk_size=self.state.chunk_size,
-        )  # jacobians is centered
 
         diag_shift = self.diag_shift
         if callable(self.diag_shift):
             diag_shift = diag_shift(self.step_count)
 
-        updates = SRt(
-            jacobians,
-            local_energies,
-            diag_shift,
-            mode=self.jacobian_mode,
-            solver_fn=self._linear_solver_fn,
-            e_mean=self._loss_stats.Mean,
-            params_structure=self._params_structure,
-        )
+        if self.mode == "real":
+            updates = SR_ntk_real(
+                samples,
+                self.state.parameters,
+                self.state._apply_fun,
+                self.state.model_state,
+                local_energies,
+                diag_shift,
+                nbatches=self.nbatches,
+            )
+        else:
+            updates = SR_ntk_complex(
+                samples,
+                self.state.parameters,
+                self.state._apply_fun,
+                self.state.model_state,
+                local_energies,
+                diag_shift,
+                nbatches=self.nbatches,
+            )
 
-        self._dp = self._unravel_params_fn(updates)
+        self._dp = updates
 
         return self._dp
 
