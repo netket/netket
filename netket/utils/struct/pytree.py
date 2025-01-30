@@ -1,5 +1,4 @@
 import dataclasses
-import inspect
 import typing as tp
 from typing import Any
 from collections.abc import Callable
@@ -271,32 +270,12 @@ class Pytree(metaclass=PytreeMeta):
         cls._pytree__cachedprop_fields = cached_prop_fields
         cls._pytree__init_fields = init_fields
 
-        # TODO: clean up this in the future once minimal supported version is 0.4.7
-        if (
-            "flatten_func"
-            in inspect.signature(jax.tree_util.register_pytree_with_keys).parameters
-        ):
-            jax.tree_util.register_pytree_with_keys(
-                cls,
-                partial(
-                    cls._pytree__flatten,
-                    with_key_paths=True,
-                ),
-                cls._pytree__unflatten,
-                flatten_func=partial(
-                    cls._pytree__flatten,
-                    with_key_paths=False,
-                ),
-            )
-        else:
-            jax.tree_util.register_pytree_with_keys(
-                cls,
-                partial(
-                    cls._pytree__flatten,
-                    with_key_paths=True,
-                ),
-                cls._pytree__unflatten,
-            )
+        jax.tree_util.register_pytree_with_keys(
+            cls,
+            partial(cls._pytree__flatten, with_key_paths=True),
+            cls._pytree__unflatten,
+            flatten_func=partial(cls._pytree__flatten, with_key_paths=False),
+        )
 
         serialization.register_serialization_state(
             cls,

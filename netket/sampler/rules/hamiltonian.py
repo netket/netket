@@ -118,12 +118,12 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
         σp, log_prob_correction = jax.pure_callback(
             _transition,
             (
-                jax.core.ShapedArray(σ.shape, σ.dtype),
-                jax.core.ShapedArray((σ.shape[0],), log_prob_dtype),
+                jax.ShapeDtypeStruct(σ.shape, σ.dtype),
+                jax.ShapeDtypeStruct((σ.shape[0],), log_prob_dtype),
             ),
             σ,
             rand_vec,
-            # vmap_method="expand_dims", #TODO: Make the callback work with vectorized inputs
+            vmap_method="expand_dims",
         )
 
         return σp, log_prob_correction

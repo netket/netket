@@ -406,7 +406,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         @wraps(f)
         def _fun(*args_orig):
             global SHARD_MAP_STACK_LEVEL
-            # Jax 0.4.28 does not support nested shard_map calls, so we bail out eaerly
+            # Jax does not support nested shard_map calls, so we bail out eaerly
             # if we are already inside of a shard map call
             if SHARD_MAP_STACK_LEVEL > 0:
                 return f(*args_orig)

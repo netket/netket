@@ -98,7 +98,7 @@ except ImportError:
 
                     MPI dependencies are:
                       - mpi4py>=3.0.1     ....... {"available" if _mpi4py_loaded else "missing"}
-                      - mpi4jax>=0.2.11   ....... {"available" if _mpi4jax_loaded else "missing"}
+                      - mpi4jax>=0.5.11   ....... {"available" if _mpi4jax_loaded else "missing"}
 
                     To enable MPI support, install the missing dependencies.
                     To learn more about MPI and NetKet consult the documentation at

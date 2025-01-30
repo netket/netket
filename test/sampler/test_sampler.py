@@ -107,14 +107,11 @@ samplers["Metropolis(ParticleExchange): SpinOrbitalFermions"] = (
 samplers["Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"] = (
     nk.sampler.MetropolisFermionHop(hi_fermion_spin, graph=g, spin_symmetric=True)
 )
-if nk.utils.module_version("jax") != (0, 4, 33):
-    # this test is broken for a bug in jax 0.4.33
-    # https://github.com/google/jax/issues/23727
-    samplers["Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"] = (
-        nk.sampler.MetropolisFermionHop(
-            hi_fermion_spin_higher, graph=g, spin_symmetric=True
-        )
+samplers["Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"] = (
+    nk.sampler.MetropolisFermionHop(
+        hi_fermion_spin_higher, graph=g, spin_symmetric=True
     )
+)
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
     hi,

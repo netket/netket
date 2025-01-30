@@ -83,11 +83,10 @@ def _get_basis_till_n(n=1):
         return {n: _get_pauli_basis()}
     else:
         lower_bases = _get_basis_till_n(n=n - 1)
-        # extract the basis for n-1, which is (4**(n-1), 2ⁿ, 2ⁿ) tensor
-        nm1_bases = lower_bases[n - 1]
 
+        # extract the basis for n-1, which is (4ⁿ⁻¹, 2ⁿ, 2ⁿ) tensor
         # compute the (4,4ⁿ⁻¹, 4, 4)
-        tp = _tensor_product(_get_pauli_basis(), nm1_bases)
+        tp = _tensor_product(_get_pauli_basis(), lower_bases[n - 1])
 
         # reshape everything to a single set of bases (4ⁿ, ...)
         tp = tp.reshape(-1, *tp.shape[-2:])
