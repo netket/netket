@@ -16,10 +16,12 @@ from itertools import permutations
 from functools import partial
 from collections.abc import Sequence
 import numpy as np
+import warnings
 
 from .lattice import Lattice
 
 from netket.utils.group import PointGroup, PGSymmetry, planar, cubic, Identity
+from netket.errors import InitializePeriodicLatticeOnSmallLatticeWarning
 
 
 def _perm_symm(perm: tuple) -> PGSymmetry:
@@ -110,10 +112,21 @@ def Grid(
         12
     """
     extent = np.asarray(extent, dtype=int)
-
     ndim = len(extent)
     if isinstance(pbc, bool):
         pbc = [pbc] * ndim
+    raised_periodic_lattice_on_small_lattice_warning = False
+    for i in range(ndim):
+        if (
+            extent[i] <= 2
+            and pbc[i]
+            and not raised_periodic_lattice_on_small_lattice_warning
+        ):
+            raised_periodic_lattice_on_small_lattice_warning = True
+            warnings.warn(
+                InitializePeriodicLatticeOnSmallLatticeWarning(extent[i], i),
+                UserWarning,
+            )
     if color_edges:
         kwargs["custom_edges"] = [(0, 0, vec) for vec in np.eye(ndim)]
     if point_group is None:
@@ -455,6 +468,21 @@ def Triangular(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattic
         >>> print(g.n_nodes)
         9
     """
+    ndim = len(extent)
+    raised_periodic_lattice_on_small_lattice_warning = False
+    if isinstance(pbc, bool):
+        pbc = [pbc] * ndim
+    for i in range(ndim):
+        if (
+            extent[i] <= 2
+            and pbc[i]
+            and not raised_periodic_lattice_on_small_lattice_warning
+        ):
+            raised_periodic_lattice_on_small_lattice_warning = True
+            warnings.warn(
+                InitializePeriodicLatticeOnSmallLatticeWarning(extent[i], i),
+                UserWarning,
+            )
     return _hexagonal_general(extent, site_offsets=None, pbc=pbc, **kwargs)
 
 
