@@ -19,7 +19,7 @@
 
 ## Bug Fixes
 * A bug in the deserialization of variational states, which was not properly restoring the good sharding, has been fixed [1983](https://github.com/netket/netket/pull/1983)
-
+* A performance bug that caused `.block_until_ready()` to be called in every timed function, even when not timing, was addressed [1991](https://github.com/netket/netket/pull/1991)
 
 ## NetKet 3.15 (24 November 2024)
 
