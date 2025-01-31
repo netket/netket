@@ -576,3 +576,22 @@ def test_matmul_sparse_vector(op):
 )
 def test_jax_operator_to_jax_operator(op):
     assert op == op.to_jax_operator()
+
+
+
+def test_bose_hubbard_precision():
+    N=2
+    g = nk.graph.Hypercube(length=2, n_dim=1, pbc=True)
+
+    hi = nk.hilbert.Fock(N=g.n_nodes, n_max=N, n_particles=N)
+    ha = nk.operator.BoseHubbard(hilbert=hi, graph=g, U = 1.0, J = 1.0, V = 0.0)
+    haj = nk.operator.BoseHubbardJax(hilbert=hi, graph=g, U = 1.0, J = 1.0, V = 0.0)
+
+    def gcp(s):
+        xp, mels = ha.get_conn_padded(s)
+        return jnp.asarray(mels).sort(axis=-1)
+    def gcpj(s):
+        return haj.get_conn_padded(s)[1].sort(axis=-1)
+
+    s=hi.all_states()
+    assert jax.numpy.all(gcp(s) == gcpj(s))

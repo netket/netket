@@ -104,6 +104,12 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
 
 @partial(jax.jit, static_argnames="n_max")
 def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
+    # x is int32, hence when calling jnp.sqrt(2) it'll use float32
+    # so in order to enforce 64 bit precision we need to case it to 64 bits
+    # note jax.config.update("jax_enable_x64", True) does not solve the
+    # above mentioned problem
+    x = jax.lax.convert_element_type(x, jnp.int64)
+
     i = edges[:, 0]
     j = edges[:, 1]
     n_i = jnp.vectorize(lambda x: x[i], signature="(n)->(m)")(x)
