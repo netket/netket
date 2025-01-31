@@ -26,6 +26,7 @@ Netket has the following classes of errors.
   UnoptimalSRtWarning
   SymmModuleInvalidInputShape
   ParameterMismatchError
+  InitializePeriodicLatticeOnSmallLatticeWarning
 ```
 
 ## Hilbert space errors
