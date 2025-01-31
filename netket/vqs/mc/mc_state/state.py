@@ -563,9 +563,8 @@ class MCState(VariationalState):
                     state=self.sampler_state,
                     chain_length=n_discard_per_chain,
                 )
-                # If timer is not NullTimer, we are timing, so we should block
-                if not (timer is None or isinstance(timer, timing.NullTimer)):
-                    _.block_until_ready()
+                # This won't actually block unless we are really timing
+                timer.block_until_ready(_)
 
         self._samples, self.sampler_state = self.sampler.sample(
             self._sampler_model,
