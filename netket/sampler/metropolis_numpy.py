@@ -114,6 +114,15 @@ class MetropolisSamplerNumpy(MetropolisSampler):
     very poorly on jax so this is a good workaround.
 
     See :ref:`netket.sampler.MetropolisSampler` for more information.
+
+    .. warning::
+       This sampler only works on the CPU. To use the Hamiltonian sampler with GPUs, you
+       should use :class:`netket.sampler.MetropolisHamiltonian`.
+
+       This sampler is largely outdated, and we recommend not to use them. Little effort has
+       been put into improving performance in those samplers after 2021.
+
+       If you have a complicated transitions rule, consider instead using a `jax.pure_callback`.
     """
 
     @wraps(MetropolisSampler.__init__)

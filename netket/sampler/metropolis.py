@@ -702,9 +702,6 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
     Notice that this sampler preserves by construction all the symmetries
     of the Hamiltonian. This is in generally not true for the local samplers instead.
 
-    This sampler only works on the CPU. To use the Hamiltonian sampler with GPUs,
-    you should use :class:`netket.sampler.MetropolisHamiltonianNumpy`
-
     Args:
         hilbert: The Hilbert space to sample.
         hamiltonian: The operator used to perform off-diagonal transition.
