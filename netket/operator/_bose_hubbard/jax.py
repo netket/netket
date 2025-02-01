@@ -54,11 +54,15 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
     @wraps(BoseHubbardBase.get_conn_padded)
     def get_conn_padded(self, x):
         x_ids = self.hilbert.states_to_local_indices(x)
+
+        # Note that the calculation of the matrix elements will be done
+        # in double precision, and we cast to the dtype of the oeprator
+        # only at the end. Otherwise jnp.sqrt might return 'bad' results.
         xp_ids, mels = _bh_kernel_jax(
             x_ids, self._edges, self.U, self.V, self.J, self.mu, self._n_max
         )
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
-        return xp, mels
+        return xp, mels.astype(self.dtype)
 
     def to_numba_operator(self) -> "BoseHubbard":  # noqa: F821
         """
@@ -123,16 +127,24 @@ def _bh_kernel_jax(x, edges, U, V, J, mu, n_max):
         lambda x, idx, addend: x.at[..., idx].add(addend), (-2, 0, None), -2
     )
 
+    # x might be stored in lower (int8, int16...) precision, which will
+    # cause jnp.sqrt(n) to be computed in float16, float32 precision, which
+    # we have seen to lead to some numerical precision errors.
+    # so in order to enforce 64 bit precision we need to case it to 64 bits
+    h_dtype = jnp.float64 if jax.config.jax_enable_x64 else jnp.float32
+    n_i_64 = n_i.astype(h_dtype)
+    n_j_64 = n_j.astype(h_dtype)
+
     # destroy on i create on j
     mask1 = (n_i > 0) & (n_j < n_max)
-    mels1 = mask1 * (-J * jnp.sqrt(n_i) * jnp.sqrt(n_j + 1))
+    mels1 = mask1 * (-J * jnp.sqrt(n_i_64) * jnp.sqrt(n_j_64 + 1))
     xp1 = jnp.repeat(_x, mask1.shape[-1], axis=-2)
     xp1 = add_at(xp1, i, -1)
     xp1 = add_at(xp1, j, +1)
 
     # destroy on j create on i
     mask2 = (n_j > 0) & (n_i < n_max)
-    mels2 = mask2 * (-J * jnp.sqrt(n_j) * jnp.sqrt(n_i + 1))
+    mels2 = mask2 * (-J * jnp.sqrt(n_j_64) * jnp.sqrt(n_i_64 + 1))
     xp2 = jnp.repeat(_x, mask2.shape[-1], axis=-2)
     xp2 = add_at(xp2, j, -1)
     xp2 = add_at(xp2, i, +1)
