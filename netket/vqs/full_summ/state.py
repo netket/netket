@@ -23,6 +23,7 @@ from jax import numpy as jnp
 from flax import serialization, core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
+from netket import config
 from netket import jax as nkjax
 from netket import nn as nknn
 from netket.hilbert.discrete_hilbert import DiscreteHilbert
@@ -107,6 +108,21 @@ class FullSumState(VariationalState):
         """
         super().__init__(hilbert)
         self._model_framework = None
+
+        if variables is not None:
+            # TODO: Always have shardings...
+            if config.netket_experimental_sharding:
+                par_sharding = jax.sharding.PositionalSharding(
+                    jax.devices()
+                ).replicate()
+            else:
+                par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
+            variables = jax.tree_util.tree_map(
+                lambda x: jax.lax.with_sharding_constraint(
+                    jnp.asarray(x), par_sharding
+                ),
+                variables,
+            )
 
         # Init type 1: pass in a model
         if model is not None:
