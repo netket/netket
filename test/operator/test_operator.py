@@ -579,6 +579,7 @@ def test_jax_operator_to_jax_operator(op):
     assert op == op.to_jax_operator()
 
 
+@common.skipif_distributed
 def test_bose_hubbard_precision():
     # Issue #1994
     N = 2
