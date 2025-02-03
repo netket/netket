@@ -609,15 +609,12 @@ def test_bose_hubbard_precision():
         if not name.startswith("Bose Hubbard Complex")
     ],
 )
+@common.skipif_sharding
 def test_operator_jax_n_conn(op):
     """Check that n_conn returns the same result for jax and numba operators"""
     op_jax = op.to_jax_operator()
 
     states = op.hilbert.all_states()
-
-    if nk.config.netket_experimental_sharding:
-        # TODO: shard_map breaks
-        pytest.xfail("Broken under sharding")
 
     n_conn = op.n_conn(states)
     n_conn_j = op_jax.n_conn(states)
