@@ -37,6 +37,9 @@ from netket.utils import group
 
 from .. import common
 
+import warnings
+from netket.errors import InitializePeriodicLatticeOnSmallLatticeWarning
+
 pytestmark = common.skipif_distributed
 
 graphs = [
@@ -803,3 +806,68 @@ def test_one_arm_irrep():
         sgb.space_group_irreps(pi, 0),
         sgb.one_arm_irreps(pi, 0) + sgb.one_arm_irreps(0, pi)[[0, 2, 1, 3]],
     )
+
+
+def test_small_lattice_warning_single_dim():
+    with pytest.warns(
+        InitializePeriodicLatticeOnSmallLatticeWarning,
+    ) as record:
+        nk.graph.Grid([2], pbc=True)
+        nk.graph.Chain(2, pbc=True)
+    assert len(record) == 2, "All examples above should raise warnings but some didn't."
+    with warnings.catch_warnings():  # None of the following should raise warnings
+        warnings.simplefilter("error")
+        nk.graph.Grid([2], pbc=False)
+        nk.graph.Chain(2, pbc=False)
+        nk.graph.Hypercube(2, pbc=False)
+        nk.graph.Grid([3], pbc=True)
+        nk.graph.Chain(3, pbc=True)
+        nk.graph.Hypercube(3, pbc=True)
+        nk.graph.Grid([3], pbc=False)
+        nk.graph.Chain(3, pbc=False)
+        nk.graph.Hypercube(3, pbc=False)
+
+
+def test_small_lattice_warning_higher_dim():
+    with pytest.warns(
+        InitializePeriodicLatticeOnSmallLatticeWarning,
+    ) as record:
+        nk.graph.Triangular([2, 2], pbc=True)
+        nk.graph.Triangular([2, 3], pbc=True)
+        nk.graph.Triangular([2, 3], pbc=[True, False])
+        nk.graph.Triangular([3, 2], pbc=[False, True])
+        nk.graph.Grid([2, 2], pbc=True)
+        nk.graph.Grid([2, 3], pbc=True)
+        nk.graph.Grid([2, 3], pbc=[True, False])
+        nk.graph.Grid([3, 2], pbc=[False, True])
+        nk.graph.Grid([2, 3, 2], pbc=[False, True, True])
+        nk.graph.Grid([2, 3, 2], pbc=True)
+        nk.graph.Square(2, pbc=True)
+        nk.graph.Cube(2, pbc=True)
+    assert (
+        len(record) == 12
+    ), "All examples above should raise warnings but some didn't."
+    with warnings.catch_warnings():  # None of the following should raise warnings
+        warnings.simplefilter("error")
+        nk.graph.Triangular([2, 3], pbc=False)
+        nk.graph.Triangular([3, 2], pbc=False)
+        nk.graph.Triangular([2, 3], pbc=[False, True])
+        nk.graph.Triangular([3, 2], pbc=[True, False])
+        nk.graph.Grid([2, 3], pbc=False)
+        nk.graph.Grid([3, 2], pbc=False)
+        nk.graph.Grid([2, 3], pbc=[False, True])
+        nk.graph.Grid([3, 2], pbc=[True, False])
+        nk.graph.Grid([2, 3, 2], pbc=[False, True, False])
+        nk.graph.Triangular([2, 2], pbc=False)
+        nk.graph.Triangular([3, 3], pbc=True)
+        nk.graph.Triangular([3, 3], pbc=False)
+        nk.graph.Honeycomb([2, 2], pbc=True)
+        nk.graph.Honeycomb([2, 2], pbc=False)
+        nk.graph.Honeycomb([3, 3], pbc=True)
+        nk.graph.Honeycomb([3, 3], pbc=False)
+        nk.graph.Square(2, pbc=False)
+        nk.graph.Square(3, pbc=True)
+        nk.graph.Square(3, pbc=False)
+        nk.graph.Cube(2, pbc=False)
+        nk.graph.Cube(3, pbc=True)
+        nk.graph.Cube(3, pbc=False)

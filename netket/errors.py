@@ -1128,3 +1128,38 @@ def concrete_or_error(force, value, error_class, *args, **kwargs):
         )
     except ConcretizationTypeError as err:
         raise error_class(*args, **kwargs) from err
+
+
+#################################################
+# Graph errors                                  #
+#################################################
+
+
+class InitializePeriodicLatticeOnSmallLatticeWarning(NetketWarning):
+    """
+    Warning thrown when attempting to create a periodic lattice on a lattice with less than two sites in one direction.
+
+    In a periodic lattice with two sites (a, b) in one direction,
+    the expected behavior is to have an edge connecting both a->b and b->a
+
+    However, as the lattice uses an undirected graph to represent the lattice, it does not support this behavior.
+    Hence, only one edge a->b is created, which makes the behavior equivalent to an open boundary condition in this direction.
+
+    This may cause unexpected behavior if you intend to loop over the edges to create a Hamiltonian, for example.
+
+    To avoid this warning, consider either using a lattice with more than two sites in the direction you want to be periodic,
+    or define the graph using :class:`~netket.graph.Graph` by adding the edges manually.
+    """
+
+    def __init__(self, extent, dimension):
+        super().__init__(
+            f"""
+            You are attempting to define a lattice with length {extent} in dimension {dimension} using periodic boundary condition.
+
+            Lattice with less than two sites in one direction does not support periodic boundary condition.
+            The behavior of the lattice is equivalent to an open boundary condition in this direction.
+
+            To avoid this warning, consider either using a lattice with more than two sites in the direction you want to be periodic,
+            or define the graph using :class:`~netket.graph.Graph` by adding the edges manually.
+            """
+        )
