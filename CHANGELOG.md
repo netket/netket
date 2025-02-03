@@ -20,7 +20,9 @@
 
 ## Bug Fixes
 * A bug in the deserialization of variational states, which was not properly restoring the good sharding, has been fixed [1983](https://github.com/netket/netket/pull/1983)
-* A performance bug that caused `.block_until_ready()` to be called every time we sampled, even when not timing, was addressed [1991](https://github.com/netket/netket/pull/1991)
+* A performance bug that caused `.block_until_ready()` to be called every time we sampled, even when not timing, was addressed [1991](https://github.com/netket/netket/pull/1991).
+* The default implementation of {meth}`netket.operator.DiscreteJaxOperator.n_conn` has been improved to return a more realistic value. This should mainly affect `~netket.operator.BoseHubbardJax` [1995](https://github.com/netket/netket/pull/1995).
+* A bug that caused {meth}`~netket.operator.FermionOperator2nd.n_conn` to raise an error if called immediately after constructing the operator has been addressed [1995](https://github.com/netket/netket/pull/1995).
 
 ## NetKet 3.15 (24 November 2024)
 
