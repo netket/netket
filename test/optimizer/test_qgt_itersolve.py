@@ -98,6 +98,13 @@ models = {
 }
 
 
+def _unwrap(x):
+    if isinstance(x, partial):
+        return x.func
+    else:
+        return x
+
+
 @pytest.fixture(
     params=[pytest.param(modelT, id=name) for name, modelT in models.items()]
 )
@@ -153,7 +160,13 @@ def is_complex_failing(vstate, qgt_partial):
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
 )
-def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
+def test_qgt_solve(qgt, vstate, solver, chunk_size, _mpi_size, _mpi_rank):
+    if nk.utils.mpi.n_nodes > 1:
+        if _unwrap(solver) == jax.scipy.sparse.linalg.gmres:
+            pytest.xfail("mpi4jax effects are broken in iterative solvers")
+        elif _unwrap(qgt) == nk.optimizer.qgt.QGTOnTheFly and chunk_size is not None:
+            pytest.xfail("mpi4jax effects are broken in iterative solvers")
+
     if is_complex_failing(vstate, qgt):
         with pytest.raises(
             nk.errors.IllegalHolomorphicDeclarationForRealParametersError
@@ -217,9 +230,12 @@ def test_qgt_solve_with_x0(qgt, vstate):
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
 )
-def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
+def test_qgt_matmul(qgt, vstate, chunk_size, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
         return
+    if nk.utils.mpi.n_nodes > 1:
+        if _unwrap(qgt) == nk.optimizer.qgt.QGTOnTheFly and chunk_size is not None:
+            pytest.xfail("mpi4jax effects are broken in iterative solvers")
 
     rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.param_dtype)]
 
@@ -275,9 +291,12 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
 )
-def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
+def test_qgt_dense(qgt, vstate, chunk_size, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
         return
+    if nk.utils.mpi.n_nodes > 1:
+        if _unwrap(qgt) == nk.optimizer.qgt.QGTOnTheFly and chunk_size is not None:
+            pytest.xfail("mpi4jax effects are broken in iterative solvers")
 
     rtol, atol = dense_tol[nk.jax.dtype_real(vstate.model.param_dtype)]
 
