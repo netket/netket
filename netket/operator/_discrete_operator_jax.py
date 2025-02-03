@@ -181,12 +181,15 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         Returns:
             array: The number of connected states x' for each x[i].
-
         """
+        _, mels = self.get_conn_padded(x)
+        nonzeros = jnp.abs(x) > 0
+        _n_conn = nonzeros.sum(axis=-1)
+
         if out is None:
-            out = jnp.full(x.shape[0], self.max_conn_size, dtype=np.int32)
+            out = _n_conn
         else:
-            out[:] = self.max_conn_size
+            out[:] = _n_conn
         return out
 
     def to_sparse(self) -> JAXSparse:
