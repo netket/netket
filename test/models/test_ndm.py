@@ -18,6 +18,7 @@ from .. import common
 
 
 @common.skipif_sharding  # no jax version of LocalLiouvillian
+@common.xfailif_mpi  # mpi broken in recent jax versions
 def test_ndm():
     L = 6
     g = nk.graph.Hypercube(
