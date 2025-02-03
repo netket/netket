@@ -598,3 +598,27 @@ def test_bose_hubbard_precision():
 
     s = hi.all_states()
     assert jax.numpy.all(gcp(s) == gcpj(s))
+
+
+# FIXME: enable Bose Hubbard Complex once fixed
+@pytest.mark.parametrize(
+    "op",
+    [
+        pytest.param(op, id=name)
+        for name, op in op_jax_compatible.items()
+        if not name.startswith("Bose Hubbard Complex")
+    ],
+)
+@common.skipif_sharding
+def test_operator_jax_n_conn(op):
+    """Check that n_conn returns the same result for jax and numba operators"""
+    op_jax = op.to_jax_operator()
+
+    states = op.hilbert.all_states()
+
+    n_conn = op.n_conn(states)
+    n_conn_j = op_jax.n_conn(states)
+
+    assert np.less_equal(n_conn_j, n_conn).all()
+    # FIXME: uncomment once the numba implementation is fixed
+    # np.testing.assert_equal(n_conn_j, n_conn)

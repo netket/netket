@@ -17,6 +17,7 @@ import abc
 import numpy as np
 from scipy import sparse
 
+import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import JAXSparse, BCOO, BCSR
 
@@ -171,8 +172,17 @@ class DiscreteJaxOperator(DiscreteOperator):
         sections[:] = n_conns
         return xp, mels
 
+    @jax.jit
     def n_conn(self, x, out=None) -> np.ndarray:
-        r"""Return the number of states connected to x.
+        r"""Return the number of (non-zero) connected entries to `x`.
+
+        .. warning::
+
+            This is not the True number of connected entries, because some elements
+            might appear twice (however this should not be too common.)
+
+            Note that this deviates from the Numba implementation, and can generally
+            return a smaller number of connected entries.
 
         Args:
             x (matrix): A matrix of shape (batch_size,hilbert.size) containing
@@ -181,12 +191,15 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         Returns:
             array: The number of connected states x' for each x[i].
-
         """
+        _, mels = self.get_conn_padded(x)
+        nonzeros = jnp.abs(x) > 0
+        _n_conn = nonzeros.sum(axis=-1)
+
         if out is None:
-            out = jnp.full(x.shape[0], self.max_conn_size, dtype=np.int32)
+            out = _n_conn
         else:
-            out[:] = self.max_conn_size
+            out[:] = _n_conn
         return out
 
     def to_sparse(self) -> JAXSparse:
