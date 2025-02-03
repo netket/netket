@@ -12,21 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
-import copy
-
-import pytest
-from pytest import approx, raises
 
 import jax
 import numpy as np
 from flax import serialization
 
 import netket as nk
-from jax.nn.initializers import normal
-
-from .finite_diff import expval as _expval, central_diff_grad, same_derivatives
-from .. import common
 
 
 def test_init_with_variables_deserialization():
@@ -35,15 +26,12 @@ def test_init_with_variables_deserialization():
     sa = nk.sampler.MetropolisLocal(hi)
     ma = nk.models.RBM()
     variables = ma.init(jax.random.key(1), hi.all_states())
-    
+
     variables_np = jax.tree.map(np.asarray, variables)
     vs = nk.vqs.MCState(sa, ma, n_samples=64, variables=variables_np)
 
     state_bytes = serialization.to_bytes(vs)
-    state_dict = serialization.msgpack_restore(state_bytes)
 
-    vs2 = serialization.from_bytes(vs, state_bytes)
+    _ = serialization.from_bytes(vs, state_bytes)
 
     # We simply check that this does not fail..
-
-
