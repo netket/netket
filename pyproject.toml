@@ -157,7 +157,7 @@ exclude = ["Examples/Legacy", "docs/conf.py", "*.ipynb"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "D410", "UP"]
 fixable = ["E", "F", "W", "D", "UP"]
-ignore = ["E501", "E731", "E721", "E741", "UP007", "UP038"]
+ignore = ["E501", "E731", "E721", "E741", "UP007", "UP035", "UP038"]
 #ignore = ["E266"]
 
 [tool.ruff.lint.per-file-ignores]
