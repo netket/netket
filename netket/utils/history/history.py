@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, TYPE_CHECKING
-from collections.abc import Iterable
+from typing import Any, Iterable, TYPE_CHECKING
 from numbers import Number
 
 import numpy as np
