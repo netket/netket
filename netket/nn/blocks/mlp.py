@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Callable, Sized
-from typing import Iterable
+from collections.abc import Iterable
 
 import jax
 import jax.numpy as jnp

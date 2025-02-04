@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional
+from typing import Optional
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -219,7 +220,7 @@ class Integrator(struct.Pytree, mutable=True):
         solver: AbstractSolver,
         f: Callable,
         state: IntegratorState,
-        max_dt: Optional[float],
+        max_dt: float | None,
         parameters: IntegratorParameters,
     ) -> IntegratorState:
         r"""
@@ -264,7 +265,7 @@ class Integrator(struct.Pytree, mutable=True):
         solver: AbstractSolver,
         f: Callable,
         state: IntegratorState,
-        max_dt: Optional[float],
+        max_dt: float | None,
         parameters: IntegratorParameters,
         norm_fn: Callable,
     ) -> IntegratorState:

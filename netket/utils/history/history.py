@@ -174,7 +174,7 @@ class History:
         self._keys = keys
 
     @property
-    def main_value_name(self) -> Optional[str]:
+    def main_value_name(self) -> str | None:
         """The name of the main value in this history object, if defined."""
         return self._value_name
 

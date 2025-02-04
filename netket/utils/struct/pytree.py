@@ -36,6 +36,8 @@ class PytreeMeta(ABCMeta):
     """
 
     def __call__(cls: type[P], *args: tp.Any, **kwargs: tp.Any) -> P:
+        __tracebackhide__ = True
+
         obj: P = cls.__new__(cls, *args, **kwargs)
 
         # set things before init

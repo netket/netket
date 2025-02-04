@@ -63,12 +63,12 @@ class HistoryDict:
                 data[k] = d.to_dict()
         self._data = data
 
-    def __setitem__(self, key: str, value: Union[History, Self]):
+    def __setitem__(self, key: str, value: History | Self):
         if isinstance(value, HistoryDict):
             value = value.to_dict()
         self._data[key] = value
 
-    def __getitem__(self, key: str, *, wrap_dicts=True) -> Union[History, Self]:
+    def __getitem__(self, key: str, *, wrap_dicts=True) -> History | Self:
         val = self._data[key]
         if wrap_dicts and isinstance(val, dict):
             return HistoryDict(val)
@@ -116,7 +116,7 @@ class HistoryDict:
             return HistoryDict(res)
         return res
 
-    def to_dict(self) -> dict[str, Union[dict, np.ndarray]]:
+    def to_dict(self) -> dict[str, dict | np.ndarray]:
         """
         Convert the HistoryDict to normal dictionary, with all nested HistoryDict instances.
         """
@@ -130,7 +130,7 @@ class HistoryDict:
         Args:
             fname: The name of the file to read.
         """
-        with open(fname, "r") as f:
+        with open(fname) as f:
             data = orjson.loads(f.read())
 
         from .history import History

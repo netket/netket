@@ -29,7 +29,7 @@ from .preconditioner import AbstractLinearPreconditioner
 
 def check_conflicting_args_in_partial(
     qgt: functools.partial | Any,
-    conflicting_args: List[str],
+    conflicting_args: list[str],
     warning_message: str,
 ) -> None:
     """
