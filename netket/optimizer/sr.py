@@ -14,7 +14,7 @@
 
 from collections.abc import Callable
 import functools
-from typing import Any, List
+from typing import Any
 import warnings
 
 import jax

@@ -370,9 +370,7 @@ class InheritanceGraph:
                 else:
                     this_node_attrs["style"] = '"dashed"'
 
-            res.append(
-                f'  "{name}" [{self._format_node_attrs(this_node_attrs)}];\n'
-            )
+            res.append(f'  "{name}" [{self._format_node_attrs(this_node_attrs)}];\n')
 
             # Write the edges
             for base_name in bases:

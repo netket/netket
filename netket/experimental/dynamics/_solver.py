@@ -114,9 +114,7 @@ class AbstractSolver(Pytree):
         )
 
     def __repr__(self) -> str:
-        return "{}(dt={}, adaptive={}, integrator_parameters={})".format(
-            self.__class__.__name__, self.dt, self.adaptive, self.integrator_params
-        )
+        return f"{self.__class__.__name__}(dt={self.dt}, adaptive={self.adaptive}, integrator_parameters={self.integrator_params})"
 
     @property
     def is_explicit(self) -> bool:

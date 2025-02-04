@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, TYPE_CHECKING, Union
+from typing import Any, TYPE_CHECKING
 from numbers import Number
 
 from netket.utils.optional_deps import import_optional_dependency
@@ -128,7 +128,7 @@ class TensorBoardLog(AbstractLog):
         self._init_kwargs = kwargs
         """Store the kwargs for the lazily initialized SummaryWriter's constructor."""
 
-        self._writer: Union["tensorboardX.SummaryWriter", None] = None
+        self._writer: tensorboardX.SummaryWriter | None = None
         """Lazily initialized summarywriter constructor"""
 
         self._old_step = 0
