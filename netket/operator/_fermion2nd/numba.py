@@ -147,6 +147,12 @@ class FermionOperator2nd(FermionOperator2ndBase):
         cutoff,
         pad=False,
     ):
+        def hash_raw(x):
+            r = 0
+            for u in x:
+                r = r * 7 + u
+            return r
+        
         x_prime = np.empty((x.shape[0] * max_conn, x.shape[1]), dtype=x.dtype)
         mels = np.zeros((x.shape[0] * max_conn), dtype=weights.dtype)
 
@@ -155,6 +161,9 @@ class FermionOperator2nd(FermionOperator2ndBase):
         orb_idxs_list = np.split(orb_idxs, term_split_idxs)
         daggers_list = np.split(daggers, term_split_idxs)
 
+        x_set = set()
+        for raw in x:
+            x_set.add(hash_raw(raw))
         # loop over the batch dimension
         n_c = 0
         for b in range(x.shape[0]):
@@ -179,7 +188,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
                     if not op_has_xp:
                         has_xp = False
                         continue
-                if has_xp:
+                if has_xp and hash_raw(xb) in x_set:  # np.any(np.sum(x == xb, axis=1) == x.shape[1]):  # this ignores states, which are not in the hilbert space      <-- This is changed
                     x_prime[n_c, :] = np.copy(xb)  # should be untouched
                     mels[n_c] += mel
 
@@ -203,7 +212,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
                     if not op_has_xp:  # detect zeros
                         has_xp = False
                         continue
-                if has_xp:
+                if has_xp and  hash_raw(xt) in x_set:  # np.any(np.sum(x == xt, axis=1) == x.shape[1]): # this ignores states, which are not in the hilbert space       <-- This is changed
                     x_prime[n_c, :] = np.copy(xt)  # should be different
                     mels[n_c] += mel
                     n_c += 1
