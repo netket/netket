@@ -130,6 +130,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
             self._term_split_idxs,
             self._cutoff,
             pad,
+            self.hilbert.constraint is not None,
         )
 
     @staticmethod
@@ -146,8 +147,10 @@ class FermionOperator2nd(FermionOperator2ndBase):
         term_split_idxs,
         cutoff,
         pad=False,
+        constraint=False,
     ):
         def hash_raw(x):
+            """Numba can not hash arrays, so we hash them manually"""
             r = 0
             for u in x:
                 r = r * 7 + u
@@ -161,9 +164,11 @@ class FermionOperator2nd(FermionOperator2ndBase):
         orb_idxs_list = np.split(orb_idxs, term_split_idxs)
         daggers_list = np.split(daggers, term_split_idxs)
 
-        x_set = set()
-        for raw in x:
-            x_set.add(hash_raw(raw))
+        
+        if constraint:
+            x_set = set() # set of all states in the hilbert space for quick lookup
+            for raw in x:
+                x_set.add(hash_raw(raw))
         # loop over the batch dimension
         n_c = 0
         for b in range(x.shape[0]):
@@ -188,7 +193,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
                     if not op_has_xp:
                         has_xp = False
                         continue
-                if has_xp and hash_raw(xb) in x_set:  # np.any(np.sum(x == xb, axis=1) == x.shape[1]):  # this ignores states, which are not in the hilbert space      <-- This is changed
+                if has_xp and (not constraint or hash_raw(xb) in x_set): # check if in the hilbert space
                     x_prime[n_c, :] = np.copy(xb)  # should be untouched
                     mels[n_c] += mel
 
@@ -212,7 +217,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
                     if not op_has_xp:  # detect zeros
                         has_xp = False
                         continue
-                if has_xp and  hash_raw(xt) in x_set:  # np.any(np.sum(x == xt, axis=1) == x.shape[1]): # this ignores states, which are not in the hilbert space       <-- This is changed
+                if has_xp and (not constraint or hash_raw(xt) in x_set):  # check if in the hilbert space
                     x_prime[n_c, :] = np.copy(xt)  # should be different
                     mels[n_c] += mel
                     n_c += 1
