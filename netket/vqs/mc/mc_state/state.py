@@ -36,6 +36,7 @@ from netket.utils import (
     wrap_afun,
     wrap_to_support_scalar,
     timing,
+    _serialization as serialization_utils,
 )
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
@@ -851,7 +852,9 @@ def serialize_MCState(vstate):
         sampler_state = vstate.sampler_state
 
     state_dict = {
-        "variables": serialization.to_state_dict(vstate.variables),
+        "variables": serialization.to_state_dict(
+            serialization_utils.remove_prngkeys(vstate.variables)
+        ),
         "sampler_state": serialization.to_state_dict(sampler_state),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
@@ -870,6 +873,7 @@ def deserialize_MCState(vstate, state_dict):
         jnp.asarray,
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
+    vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
     if config.netket_experimental_sharding:
         vars = jax.tree_util.tree_map(
             lambda x, y: jax.lax.with_sharding_constraint(jnp.asarray(y), x.sharding),

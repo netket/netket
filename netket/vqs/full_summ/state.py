@@ -27,7 +27,12 @@ from netket import config
 from netket import jax as nkjax
 from netket import nn as nknn
 from netket.hilbert.discrete_hilbert import DiscreteHilbert
-from netket.utils import model_frameworks, wrap_afun, wrap_to_support_scalar
+from netket.utils import (
+    model_frameworks,
+    wrap_afun,
+    wrap_to_support_scalar,
+    _serialization as serialization_utils,
+)
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -372,7 +377,9 @@ class FullSumState(VariationalState):
 
 def serialize_FullSumState(vstate):
     state_dict = {
-        "variables": serialization.to_state_dict(vstate.variables),
+        "variables": serialization.to_state_dict(
+            serialization_utils.remove_prngkeys(vstate.variables)
+        ),
     }
     return state_dict
 
@@ -383,10 +390,19 @@ def deserialize_FullSumState(vstate, state_dict):
     new_vstate = copy.copy(vstate)
     new_vstate.reset()
 
-    new_vstate.variables = jax.tree_util.tree_map(
+    vars = jax.tree_util.tree_map(
         jnp.asarray,
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
+    vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
+    if config.netket_experimental_sharding:
+        vars = jax.tree_util.tree_map(
+            lambda x, y: jax.lax.with_sharding_constraint(jnp.asarray(y), x.sharding),
+            vstate.variables,
+            vars,
+        )
+
+    new_vstate.variables = vars
     return new_vstate
 
 
