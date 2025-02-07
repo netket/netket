@@ -153,7 +153,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
             """Numba can not hash arrays, so we hash them manually"""
             r = np.uint64(0)
             for u in x:
-                r = (r * 7 + u) % 576460752303423619  # NextPrime[2^59]
+                r = (r * np.uint64(7) + np.uint64(u)) % np.uint64(576460752303423619)  # NextPrime[2^59]  (numba seems to be picky with the types)
             return r
         
         x_prime = np.empty((x.shape[0] * max_conn, x.shape[1]), dtype=x.dtype)
