@@ -188,7 +188,58 @@ class DiscreteOperator(AbstractOperator):
             low = old_out
 
         return out
+    
+    def check_out_of_hilbert(self, x_prime, mels, sections1):
+        # This function is used to remove the states that are not in the Hilbert space
+        
+        # @jit(nopython=True) # tuple is not supported by numba
+        def check_ooHS(x_prime, mels, sections1):
+            x_prime_dict = {} # dictionary to store the sum of mels for each x_prime, is checked by row
+            at_section = 0
+            x_prime_must_keep_per_row = {} # in each row, the sum for each x_prime has to be zero, to remove the x_prime
+            x_prime_must_keep = {}  # dictionary of x_prime with non zero matrix elements
+            for i in range(x_prime.shape[0]):
+                key = tuple(x_prime[i])
+                if key in x_prime_dict:
+                    x_prime_dict[key] += mels[i]
+                else:
+                    x_prime_dict[key] = mels[i]
+                x_prime_must_keep_per_row[key] = (x_prime_dict[key] != 0)
+                section_of_next = np.searchsorted(sections1, i+1, side="right") - 1
+                if section_of_next > at_section:
+                    # last in section
+                    for key in x_prime_must_keep_per_row:
+                        if not (key in x_prime_must_keep):
+                            x_prime_must_keep[key] = x_prime_must_keep_per_row[key]
+                        else:
+                            if x_prime_must_keep_per_row[key]:
+                                x_prime_must_keep[key] = True
+                    x_prime_must_keep_per_row = {}
+                    at_section = section_of_next
+            
+            mustkeep_test = np.array([x_prime_must_keep[tuple(x_prime[i])]==True for i in range(x_prime.shape[0])])
 
+            removed_indices = np.where(mustkeep_test == False)[0]
+            return removed_indices
+            
+
+        # if check_out_of_hilbert is True, it only removes states, which sum up to 0, 
+        # the operator is responsible not to generate out of Hilbert space states
+        check_out_of_hilbert = False
+        if check_out_of_hilbert:
+            removed_indices = check_ooHS(x_prime, mels, sections1)
+        else:
+            removed_indices = np.where(self.hilbert.constraint(x_prime) == False)[0]
+
+        # Apply the mask to all arrays at once
+        x_prime = np.delete(x_prime, removed_indices, axis=0)
+        mels = np.delete(mels, removed_indices)
+        
+        # Adjust sections1 based on removed indices
+        adjustment = np.searchsorted(removed_indices, sections1, side='left')
+        sections1 -= adjustment
+        return x_prime, mels, sections1
+    
     def to_sparse(self) -> _csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
@@ -213,9 +264,10 @@ class DiscreteOperator(AbstractOperator):
         sections1 = np.empty(sections.size + 1, dtype=np.int32)
         sections1[1:] = sections
         sections1[0] = 0
-
-        ## eliminate duplicates from numbers
-        # rows_indices = compute_row_indices(hilb.states_to_numbers(x), sections1)
+        # numbers = hilb.states_to_numbers(x_prime)
+        x_prime, mels, sections1 = self.check_out_of_hilbert(x_prime, mels, sections1)
+        numbers = hilb.states_to_numbers(x_prime)
+        
 
         return _csr_matrix(
             (mels, numbers, sections1),
