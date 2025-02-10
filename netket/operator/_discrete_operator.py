@@ -217,11 +217,11 @@ class DiscreteOperator(AbstractOperator):
                     x_prime_must_keep_per_row = {}
                     at_section = section_of_next
             
-            mustkeep_test = np.array([x_prime_must_keep[tuple(x_prime[i])]==True for i in range(x_prime.shape[0])])
+            mustkeep_test = np.array([x_prime_must_keep[tuple(x_prime[i])] for i in range(x_prime.shape[0])])
 
-            removed_indices = np.where(mustkeep_test == False)[0]
+            removed_indices = np.where(not mustkeep_test)[0]
             return removed_indices
-            
+
 
         # if check_out_of_hilbert is True, it only removes states, which sum up to 0, 
         # the operator is responsible not to generate out of Hilbert space states
@@ -229,7 +229,7 @@ class DiscreteOperator(AbstractOperator):
         if check_out_of_hilbert:
             removed_indices = check_ooHS(x_prime, mels, sections1)
         else:
-            removed_indices = np.where(self.hilbert.constraint(x_prime) == False)[0]
+            removed_indices = np.where(self.hilbert.constraint(x_prime) == False)[0]  # pylint: disable=E712    as pylint is wrong here
 
         # Apply the mask to all arrays at once
         x_prime = np.delete(x_prime, removed_indices, axis=0)
@@ -268,7 +268,6 @@ class DiscreteOperator(AbstractOperator):
         if hilb.constrained:
             x_prime, mels, sections1 = self.check_out_of_hilbert(x_prime, mels, sections1)
         numbers = hilb.states_to_numbers(x_prime)
-        
 
         return _csr_matrix(
             (mels, numbers, sections1),
