@@ -17,6 +17,7 @@ from netket.utils.dispatch import dispatch
 from netket.operator import (
     AbstractSuperOperator,
     DiscreteOperator,
+    DiscreteJaxOperator,
     Squared,
 )
 
@@ -43,5 +44,12 @@ def get_local_kernel(  # noqa: F811
 @dispatch
 def get_local_kernel(  # noqa: F811
     vstate: MCMixedState, Ô: DiscreteOperator, chunk_size: int
+):
+    return kernels.local_value_op_op_cost_chunked
+
+
+@dispatch
+def get_local_kernel(  # noqa: F811
+    vstate: MCMixedState, Ô: DiscreteJaxOperator, chunk_size: int
 ):
     return kernels.local_value_op_op_cost_chunked

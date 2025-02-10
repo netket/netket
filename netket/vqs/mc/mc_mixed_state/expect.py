@@ -18,6 +18,7 @@ from netket.operator import (
     DiscreteOperator,
     AbstractSuperOperator,
     Squared,
+    DiscreteJaxOperator,
 )
 
 from netket.vqs.mc import (
@@ -32,6 +33,17 @@ from .state import MCMixedState
 
 @dispatch
 def get_local_kernel_arguments(vstate: MCMixedState, Ô: DiscreteOperator):  # noqa: F811
+    check_hilbert(vstate.diagonal.hilbert, Ô.hilbert)
+
+    σ = vstate.diagonal.samples
+    σp, mels = Ô.get_conn_padded(σ)
+    return σ, (σp, mels)
+
+
+@dispatch
+def get_local_kernel_arguments(  # noqa: F811
+    vstate: MCMixedState, Ô: DiscreteJaxOperator
+):
     check_hilbert(vstate.diagonal.hilbert, Ô.hilbert)
 
     σ = vstate.diagonal.samples
@@ -56,6 +68,11 @@ def get_local_kernel(vstate: MCMixedState, Ô: AbstractSuperOperator):  # noqa: 
 
 @dispatch
 def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator):  # noqa: F811
+    return kernels.local_value_op_op_cost
+
+
+@dispatch
+def get_local_kernel(vstate: MCMixedState, Ô: DiscreteJaxOperator):  # noqa: F811
     return kernels.local_value_op_op_cost
 
 
