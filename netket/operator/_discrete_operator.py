@@ -265,7 +265,8 @@ class DiscreteOperator(AbstractOperator):
         sections1[1:] = sections
         sections1[0] = 0
         # numbers = hilb.states_to_numbers(x_prime)
-        x_prime, mels, sections1 = self.check_out_of_hilbert(x_prime, mels, sections1)
+        if hilb.constrained:
+            x_prime, mels, sections1 = self.check_out_of_hilbert(x_prime, mels, sections1)
         numbers = hilb.states_to_numbers(x_prime)
         
 
