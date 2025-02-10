@@ -259,7 +259,7 @@ class DiscreteOperator(AbstractOperator):
         sections = np.empty(x.shape[0], dtype=np.int32)
         x_prime, mels = concrete_op.get_conn_flattened(x, sections)
 
-        numbers = hilb.states_to_numbers(x_prime)
+        # numbers = hilb.states_to_numbers(x_prime)
 
         sections1 = np.empty(sections.size + 1, dtype=np.int32)
         sections1[1:] = sections
