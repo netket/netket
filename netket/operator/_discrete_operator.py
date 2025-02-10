@@ -219,7 +219,7 @@ class DiscreteOperator(AbstractOperator):
             
             mustkeep_test = np.array([x_prime_must_keep[tuple(x_prime[i])] for i in range(x_prime.shape[0])])
 
-            removed_indices = np.where(not mustkeep_test)[0]
+            removed_indices = np.where(~mustkeep_test)[0]
             return removed_indices
 
 
@@ -229,7 +229,7 @@ class DiscreteOperator(AbstractOperator):
         if check_out_of_hilbert:
             removed_indices = check_ooHS(x_prime, mels, sections1)
         else:
-            removed_indices = np.where(self.hilbert.constraint(x_prime) == False)[0]  # pylint: disable=E712    as pylint is wrong here
+            removed_indices = np.where(~self.hilbert.constraint(x_prime))[0]
 
         # Apply the mask to all arrays at once
         x_prime = np.delete(x_prime, removed_indices, axis=0)
