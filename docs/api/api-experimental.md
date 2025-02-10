@@ -19,7 +19,8 @@ import netket.experimental as nkx
 ## Drivers
 Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration with the [kernel trick](https://arxiv.org/abs/2310.05715) 
 (originally introduced under the name of [minSR by Ao Chen and Markus Heyl](https://arxiv.org/abs/2302.01941)). This is slightly more limited in
-features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters
+features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters.
+The current implementation computes the parameter update using neural tangent kernel.
 
 ```{eval-rst}
 .. autosummary::
