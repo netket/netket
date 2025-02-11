@@ -198,7 +198,7 @@ class DiscreteOperator(AbstractOperator):
         mels = np.delete(mels, removed_indices)
         
         # Adjust sections1 based on removed indices
-        adjustment = np.searchsorted(removed_indices, sections1, side='left')
+        adjustment = np.searchsorted(removed_indices, sections1, side="left")
         sections1 -= adjustment
         return x_prime, mels, sections1
     
@@ -228,7 +228,9 @@ class DiscreteOperator(AbstractOperator):
         sections1[0] = 0
         
         if hilb.constrained:
-            x_prime, mels, sections1 = self.check_out_of_hilbert(x_prime, mels, sections1)
+            x_prime, mels, sections1 = self.check_out_of_hilbert(
+                x_prime, mels, sections1
+            )
         
         numbers = hilb.states_to_numbers(x_prime)
 
