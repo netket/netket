@@ -189,19 +189,6 @@ class DiscreteOperator(AbstractOperator):
 
         return out
 
-    def check_out_of_hilbert(self, x_prime, mels, sections1):
-        # This function is used to remove the states that are not in the Hilbert space
-        removed_indices = np.where(~self.hilbert.constraint(x_prime))[0]
-
-        # Apply the mask to all arrays at once
-        x_prime = np.delete(x_prime, removed_indices, axis=0)
-        mels = np.delete(mels, removed_indices)
-
-        # Adjust sections1 based on removed indices
-        adjustment = np.searchsorted(removed_indices, sections1, side="left")
-        sections1 -= adjustment
-        return x_prime, mels, sections1
-
     def to_sparse(self) -> _csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
@@ -228,9 +215,11 @@ class DiscreteOperator(AbstractOperator):
         sections1[0] = 0
 
         if hilb.constrained:
-            x_prime, mels, sections1 = self.check_out_of_hilbert(
-                x_prime, mels, sections1
-            )
+            valid_xp = self.hilbert.constraint(x_prime)
+            # the mels of the invalid x' are set to 0
+            # the x_primes are set to a valid state
+            mels *= valid_xp
+            x_prime = np.where(valid_xp[:, None], x_prime, x[0])
 
         numbers = hilb.states_to_numbers(x_prime)
 

@@ -226,6 +226,8 @@ class DiscreteJaxOperator(DiscreteOperator):
             # drop out of Hilbert space states
             xp_flat = xp.reshape(-1, xp.shape[2])
             valid_xp = self.hilbert.constraint(xp_flat)
+            # the mels of the invalid x' are set to 0
+            # the xp are set to a valid state
             a = a * valid_xp.ravel()
             xp_flat = np.where(valid_xp[:, None], xp_flat, x[0])
             xp = xp_flat.reshape(xp.shape)
