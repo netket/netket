@@ -13,20 +13,24 @@ from .. import common
 
 operators = {}
 
+
 # Operator on constraint Hilbert space
 def c(hi, site, spin):
     return nk.operator.fermion.destroy(hi, site, spin) * (
         1 - nk.operator.fermion.number(hi, site, -spin)
-        )
+    )
+
 
 def cdag(hi, site, spin):
     return nk.operator.fermion.create(hi, site, spin) * (
         1 - nk.operator.fermion.number(hi, site, -spin)
-        )
+    )
+
 
 g = nk.graph.Grid(
     extent=(1, 2), pbc=False
-    )  # 2D square lattice with periodic boundary conditions
+)  # 2D square lattice with periodic boundary conditions
+
 
 class AvoidDoubleOccupancy(nk.hilbert.constraint.DiscreteHilbertConstraint):
     def __call__(self, x):
@@ -34,11 +38,14 @@ class AvoidDoubleOccupancy(nk.hilbert.constraint.DiscreteHilbertConstraint):
         x_sum = jnp.sum(x, axis=1)  # Shape: (batch, L1*L2)
         valid = jnp.all(x_sum <= 1, axis=-1)  # Shape: (batch,)
         return valid.reshape(-1)
+    
     def __hash__(self):
         return hash(("AvoidDoubleOccupancy",))
+    
     def __eq__(self, other):
         return isinstance(other, AvoidDoubleOccupancy)
-    
+
+
 hi = nk.hilbert.SpinOrbitalFermions(
     2, s=1 / 2, n_fermions_per_spin=(1, 1), constraint=AvoidDoubleOccupancy()
 )
@@ -554,6 +561,7 @@ def test_operator_jax_getconn(op):
 def test_operator_numba_throws(op):
     """Check that get conn throws an error"""
     from netket.errors import NumbaOperatorGetConnDuringTracingError
+
     if op.hilbert.constrained:
         pytest.skip("Hilbert space is constrained")
     state = op.hilbert.random_state(jax.random.PRNGKey(1))
