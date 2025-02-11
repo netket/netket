@@ -208,14 +208,20 @@ class DiscreteOperator(AbstractOperator):
         sections = np.empty(x.shape[0], dtype=np.int32)
         x_prime, mels = concrete_op.get_conn_flattened(x, sections)
 
-        numbers = hilb.states_to_numbers(x_prime)
+        # numbers = hilb.states_to_numbers(x_prime)
 
         sections1 = np.empty(sections.size + 1, dtype=np.int32)
         sections1[1:] = sections
         sections1[0] = 0
 
-        ## eliminate duplicates from numbers
-        # rows_indices = compute_row_indices(hilb.states_to_numbers(x), sections1)
+        if hilb.constrained:
+            valid_xp = self.hilbert.constraint(x_prime)
+            # the mels of the invalid x' are set to 0
+            # the x_primes are set to a valid state
+            mels *= valid_xp
+            x_prime = np.where(valid_xp[:, None], x_prime, x[0])
+
+        numbers = hilb.states_to_numbers(x_prime)
 
         return _csr_matrix(
             (mels, numbers, sections1),

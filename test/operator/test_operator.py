@@ -13,6 +13,47 @@ from .. import common
 
 operators = {}
 
+
+# Operator on constraint Hilbert space
+def c(hi, site, spin):
+    return nk.operator.fermion.destroy(hi, site, spin) * (
+        1 - nk.operator.fermion.number(hi, site, -spin)
+    )
+
+
+def cdag(hi, site, spin):
+    return nk.operator.fermion.create(hi, site, spin) * (
+        1 - nk.operator.fermion.number(hi, site, -spin)
+    )
+
+
+g = nk.graph.Grid(
+    extent=(1, 2), pbc=False
+)  # 2D square lattice with periodic boundary conditions
+
+
+class AvoidDoubleOccupancy(nk.hilbert.constraint.DiscreteHilbertConstraint):
+    def __call__(self, x):
+        x = x.reshape(-1, 2, 2)
+        x_sum = jnp.sum(x, axis=1)  # Shape: (batch, L1*L2)
+        valid = jnp.all(x_sum <= 1, axis=-1)  # Shape: (batch,)
+        return valid.reshape(-1)
+
+    def __hash__(self):
+        return hash(("AvoidDoubleOccupancy",))
+
+    def __eq__(self, other):
+        return isinstance(other, AvoidDoubleOccupancy)
+
+
+hi = nk.hilbert.SpinOrbitalFermions(
+    2, s=1 / 2, n_fermions_per_spin=(1, 1), constraint=AvoidDoubleOccupancy()
+)
+
+u, v = g.edges()[0]
+ha = cdag(hi, u, 1) * c(hi, v, 1) + cdag(hi, v, 1) * c(hi, u, 1)
+operators["Out of constraint space"] = ha
+
 # Ising 1D
 g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
@@ -177,6 +218,8 @@ for name, op in op_finite_size.items():
 def test_produce_elements_in_hilbert(op, attr):
     rng = nk.jax.PRNGSeq(0)
     hi = op.hilbert
+    if hi.constrained:
+        pytest.skip("Hilbert space is constrained")
     get_conn_fun = getattr(op, attr)
 
     if nk.config.netket_experimental_sharding:
@@ -206,6 +249,8 @@ def test_is_hermitian(op):
     rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
+    if hi.constrained:
+        pytest.skip("Hilbert space is constrained")
     assert len(hi.local_states) == hi.local_size
 
     def _get_nonzero_conn(op, s):
@@ -293,7 +338,8 @@ def test_repr(op):
 )
 def test_get_conn_padded(op, shape, dtype):
     hi = op.hilbert
-
+    if hi.constrained:
+        pytest.skip("Hilbert space is constrained")
     v = hi.random_state(jax.random.PRNGKey(0), shape, dtype=dtype)
 
     vp, mels = op.get_conn_padded(v)
@@ -429,6 +475,8 @@ def test_operator_on_subspace():
 )
 @common.skipif_sharding
 def test_operator_jax_conversion(op):
+    if op.hilbert.constrained:
+        pytest.skip("Hilbert space is constrained")
     op_jax = op.to_jax_operator()
     op_numba = op_jax.to_numba_operator()
 
@@ -458,6 +506,8 @@ def test_operator_jax_conversion(op):
 )
 def test_operator_jax_getconn(op):
     """Check that get_conn returns the same result for jax and numba operators"""
+    if op.hilbert.constrained:
+        pytest.skip("Hilbert space is constrained")
     op_jax = op.to_jax_operator()
 
     states = op.hilbert.all_states()
@@ -512,6 +562,8 @@ def test_operator_numba_throws(op):
     """Check that get conn throws an error"""
     from netket.errors import NumbaOperatorGetConnDuringTracingError
 
+    if op.hilbert.constrained:
+        pytest.skip("Hilbert space is constrained")
     state = op.hilbert.random_state(jax.random.PRNGKey(1))
 
     @jax.jit

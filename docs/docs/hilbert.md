@@ -204,6 +204,14 @@ of particles is conserved, and therefore respects the constraint if it is correc
 In short: when working with constrained Hilbert spaces you have to take extra care when choosing your sampler. And if you have exotic constraints you will most likely need to define your own transition kernel. But don't worry: it is very easy! (however nobody has yet written documentation for it. In the meantime, have a look at [this discussion](https://github.com/netket/netket/discussions/755#discussioncomment-858719))
 ```
 
+```{admonition} Warning: Common error
+:class: warning
+
+When you define a constrained Hilbert space and use operators in matrix representation, e.g. if you do exact diagonalization:
+
+The states the operator generates, which are not in the constraint Hilbert space, are discarded!
+```
+
 The constraints supported on the built-in hilbert spaces are:
 
  - {class}`Spin` supports an optional keyword argument `total_sz` which can be used to impose a fixed total magnetization. 

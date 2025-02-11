@@ -222,6 +222,15 @@ class DiscreteJaxOperator(DiscreteOperator):
         n = x.shape[0]
         xp, mels = self.get_conn_padded(x)
         a = mels.ravel()
+        if self.hilbert.constrained:
+            # drop out of Hilbert space states
+            xp_flat = xp.reshape(-1, xp.shape[2])
+            valid_xp = self.hilbert.constraint(xp_flat)
+            # the mels of the invalid x' are set to 0
+            # the xp are set to a valid state
+            a = a * valid_xp.ravel()
+            xp_flat = np.where(valid_xp[:, None], xp_flat, x[0])
+            xp = xp_flat.reshape(xp.shape)
         i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
         j = self.hilbert.states_to_numbers(xp).ravel()
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
