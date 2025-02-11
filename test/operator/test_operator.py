@@ -38,10 +38,10 @@ class AvoidDoubleOccupancy(nk.hilbert.constraint.DiscreteHilbertConstraint):
         x_sum = jnp.sum(x, axis=1)  # Shape: (batch, L1*L2)
         valid = jnp.all(x_sum <= 1, axis=-1)  # Shape: (batch,)
         return valid.reshape(-1)
-    
+
     def __hash__(self):
         return hash(("AvoidDoubleOccupancy",))
-    
+
     def __eq__(self, other):
         return isinstance(other, AvoidDoubleOccupancy)
 
