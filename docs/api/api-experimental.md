@@ -27,7 +27,7 @@ features than the standard Stochastic Reconfiguration implementation of {class}`
    :template: class
    :nosignatures:
 
-   driver.VMC_SRt
+   driver.VMC_SR
 ```
 
 
