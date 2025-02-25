@@ -54,9 +54,9 @@ def VMC_SRt(
 
 class VMC_SR(AbstractVariationalDriver):
     r"""
-    Energy minimization using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**. 
-    This driver is mathematically equivalent to the standard :class:`nk.driver.VMC` with the
-    preconditioner :class:`nk.optimizer.SR(solver=netket.optimizer.solvers.cholesky)`,
+    Energy minimization using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.
+    This driver is mathematically equivalent to the standard :class:`netket.driver.VMC` with the
+    preconditioner :class:`netket.optimizer.SR(solver=netket.optimizer.solvers.cholesky) <netket.optimizer.SR>`,
     but can easily switch between the standard and the kernel/minSR formulation of Natural Gradient Descent.
 
     - The standard formulation computes the updates as:
@@ -81,14 +81,14 @@ class VMC_SR(AbstractVariationalDriver):
     ----------------
 
     The matrix inversion of both methods is performed using a linear solver, which can be specified by the user.
-    This must be a function, the :code:``linear_solver_fun`` argument, which has the following signature:
+    This must be a function, the :code:`linear_solver_fun` argument, which has the following signature:
 
     .. code-block:: python
 
         linear_solver_fn(A: Matrix, b: vector) -> tuple[jax.Array[vector], dict]
 
     Where the vector is the solution and the dictionary may contain additional information about the solver or be None.
-    The standard solver is based on the Cholesky decomposition :func:`netket.optimizer.solvers.cholesky`, but any other
+    The standard solver is based on the Cholesky decomposition :func:`~netket.optimizer.solver.cholesky`, but any other
     solver from `JAX <https://jax.readthedocs.io/en/latest/jax.experimental.linalg.html>`_, NetKet or a custom-written one
     can be used.
 
@@ -97,7 +97,7 @@ class VMC_SR(AbstractVariationalDriver):
     ------------------------
 
     Stochastic Reconfiguration is equivalent to the Natural Gradient Descent method introduced by
-    <Amari 1998 https://ieeexplore.ieee.org/abstract/document/6790500/> in the context of neural network training,
+    `Amari 1998 <https://ieeexplore.ieee.org/abstract/document/6790500/>`_ in the context of neural network training,
     assuming that the *natural metric* of the space of wave-functions is the Fubini-Study metric. This was first
     stuedied by `Stokes et Al 2019 <https://arxiv.org/abs/1909.02108>`_ and called
     *quantum Natural Gradient Descent*.
@@ -105,8 +105,8 @@ class VMC_SR(AbstractVariationalDriver):
     While stochastic reconfiguration has been heavily studied in the context of VMC, there is a vast literature
     in the Machine Learning community on the use of NGD, and tuning carefully the diag shift and the learning rate.
 
-    A very good introduction to the mathematics of Information Geomtry and NGD is found in 
-    `Bai et Al <https://arxiv.org/pdf/2202.06232>`_ and further studied in < Shrestha et Al 2022 https://arxiv.org/pdf/2303.05473>`_.
+    A very good introduction to the mathematics of Information Geomtry and NGD is found in
+    `Bai et Al <https://arxiv.org/pdf/2202.06232>`_ and further studied in `Shrestha et Al 2022 <https://arxiv.org/pdf/2303.05473>`_.
     From the Physicist point of view, a good discussion on the choice of the metric function (QGT vs Fisher Matrix)
     is found in `Stokes et Al 2022 <https://arxiv.org/pdf/2203.14824>`_ (section 4 in particoular).
     For a comprehensive review of the method, we suggest the review by
@@ -132,7 +132,7 @@ class VMC_SR(AbstractVariationalDriver):
     that the theoretical analysis of this parameter is still lacking, and would welcome some contributions
     in this direction.
 
-    
+
     Implementation details
     ------------------------
     The kernel-trick/NTK based implementation can run with both a direct calculation of the jacobian
@@ -156,7 +156,7 @@ class VMC_SR(AbstractVariationalDriver):
     - The *kernel trick* which makes NGD/SR feasible in the large-parameter count limit was originally introduced
       to the field of NQS by `Chen & Heyl <https://arxiv.org/abs/2302.01941>`_ under the name of `minSR`.
       `Rende & Al <https://arxiv.org/abs/2310.05715>`_ proposed a simpler derivation in terms of the Kernel trick.
-      
+
       It's interesting to note that those tricks were first mentioned by `Ren & Goldfarb <https://arxiv.org/abs/1906.02353>`_
       in the ML community.
 
