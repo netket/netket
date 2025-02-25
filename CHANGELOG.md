@@ -9,8 +9,10 @@
 * MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
 
 ## New features
+* A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
 
 ## Deprecations and Removals
+* {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
 
 
 ## NetKet 3.18 (3 July 2025)
