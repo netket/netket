@@ -191,7 +191,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             )
 
         state.rule_state = sampler.rule.reset(sampler, machine, parameters, state)
-        state.log_prob = np.copy(
+        state.log_prob = np.array(
             sampler.machine_pow
             * apply_model(machine, parameters, state.σ, sampler.chunk_size).real
         )
@@ -228,22 +228,22 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 pspecs = jax.sharding.PartitionSpec("x")
 
                 all_samples = host_local_array_to_global_array(σ1, global_mesh, pspecs)
-                log_prob = (
+                _log_prob = (
                     mpow
                     * apply_model(
                         machine, parameters, all_samples, sampler.chunk_size
                     ).real
                 )
-                assert len(log_prob.addressable_shards) == 1
-                log_prob = global_array_to_host_local_array(
+                assert len(_log_prob.addressable_shards) == 1
+                _log_prob = global_array_to_host_local_array(
                     log_prob, global_mesh, pspecs
                 )
             else:
-                log_prob = (
+                _log_prob = (
                     mpow * apply_model(machine, parameters, σ1, sampler.chunk_size).real
                 )
 
-            log_prob_1 = np.asarray(log_prob)
+            log_prob_1 = np.copy(_log_prob)
             assert log_prob_1.shape == σ1.shape[:-1]
 
             random_uniform = rgen.uniform(0, 1, size=σ.shape[0])
