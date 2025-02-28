@@ -121,12 +121,15 @@ class MetropolisSamplerState(SamplerState):
         return res
 
     def __repr__(self):
-        if self.n_steps > 0:
-            acc_string = f"# accepted = {self.n_accepted}/{self.n_steps} ({self.acceptance * 100}%), "
-        else:
-            acc_string = ""
+        try:
+            if self.n_steps > 0:
+                acc_string = f"# accepted = {self.n_accepted}/{self.n_steps} ({self.acceptance * 100}%), "
+            else:
+                acc_string = ""
 
-        return f"{type(self).__name__}({acc_string}rng state={self.rng})"
+            return f"{type(self).__name__}({acc_string}rng state={self.rng})"
+        except TypeError:
+            return f"{type(self).__name__}(???, rng state={self.rng})"
 
     def __process_deserialization_updates__(self, updates):
         # In netket 3.15 we changed the default dtype of samples

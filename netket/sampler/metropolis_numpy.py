@@ -41,10 +41,8 @@ class MetropolisNumpySamplerState:
     σ1: np.ndarray
     """Holds a proposed configuration (preallocation)."""
 
-    log_values: np.ndarray
+    log_prob: np.ndarray
     """Holds model(pars, σ) for the current σ (preallocation)."""
-    log_values_1: np.ndarray
-    """Holds model(pars, σ1) for the last σ1 (preallocation)."""
     log_prob_corr: np.ndarray
     """Holds optional acceptance correction (preallocation)."""
 
@@ -160,8 +158,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         state = MetropolisNumpySamplerState(
             σ=σ,
             σ1=np.copy(σ),
-            log_values=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
-            log_values_1=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
+            log_prob=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
             log_prob_corr=np.zeros(
                 sampler.n_batches, dtype=nkjax.dtype_real(ma_out.dtype)
             ),
@@ -191,8 +188,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             )
 
         state.rule_state = sampler.rule.reset(sampler, machine, parameters, state)
-        state.log_values = np.copy(
-            apply_model(machine, parameters, state.σ, sampler.chunk_size)
+        state.log_prob = np.array(
+            sampler.machine_pow
+            * apply_model(machine, parameters, state.σ, sampler.chunk_size).real
         )
 
         state._accepted_samples = 0
@@ -203,8 +201,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
     def _sample_next(sampler, machine, parameters, state):
         σ = state.σ
         σ1 = state.σ1
-        log_values = state.log_values
-        log_values_1 = state.log_values_1
+        log_prob = state.log_prob
         log_prob_corr = state.log_prob_corr
         mpow = sampler.machine_pow
 
@@ -227,16 +224,23 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 pspecs = jax.sharding.PartitionSpec("x")
 
                 all_samples = host_local_array_to_global_array(σ1, global_mesh, pspecs)
-                log_psi = apply_model(
-                    machine, parameters, all_samples, sampler.chunk_size
+                _log_prob = (
+                    mpow
+                    * apply_model(
+                        machine, parameters, all_samples, sampler.chunk_size
+                    ).real
                 )
-                assert len(log_psi.addressable_shards) == 1
-                log_psi = global_array_to_host_local_array(log_psi, global_mesh, pspecs)
+                assert len(_log_prob.addressable_shards) == 1
+                _log_prob = global_array_to_host_local_array(
+                    log_prob, global_mesh, pspecs
+                )
             else:
-                log_psi = apply_model(machine, parameters, σ1, sampler.chunk_size)
+                _log_prob = (
+                    mpow * apply_model(machine, parameters, σ1, sampler.chunk_size).real
+                )
 
-            log_values_1 = np.asarray(log_psi)
-            assert log_values_1.shape == σ1.shape[:-1]
+            log_prob_1 = np.copy(_log_prob)
+            assert log_prob_1.shape == σ1.shape[:-1]
 
             random_uniform = rgen.uniform(0, 1, size=σ.shape[0])
 
@@ -244,8 +248,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             accepted += acceptance_kernel(
                 σ,
                 σ1,
-                log_values,
-                log_values_1,
+                log_prob,
+                log_prob_1,
                 log_prob_corr,
                 mpow,
                 random_uniform,
@@ -254,7 +258,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         state.n_steps_proc += sampler.sweep_size * sampler.n_chains_per_rank
         state.n_accepted_proc += accepted
 
-        return state, state.σ
+        return state, (state.σ, state.log_prob)
 
     def _sample_chain(
         sampler,
@@ -262,20 +266,27 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         parameters: PyTree,
         state: MetropolisNumpySamplerState,
         chain_length: int,
+        return_probabilties: bool = False,
     ) -> tuple[jnp.ndarray, MetropolisNumpySamplerState]:
         samples = np.empty(
             (chain_length, sampler.n_chains_per_rank, sampler.hilbert.size),
             dtype=sampler.dtype,
         )
+        log_probs = np.empty((chain_length, sampler.n_chains_per_rank), dtype=float)
 
         for i in range(chain_length):
-            state, σ = sampler.sample_next(machine, parameters, state)
+            state, (σ, log_prob) = sampler.sample_next(machine, parameters, state)
             samples[i] = σ
+            log_probs[i] = log_prob
 
         # make it (n_chains_per_rank, n_samples_per_chain, hi.size) as expected by netket.stats.statistics
         samples = np.swapaxes(samples, 0, 1)
+        log_probs = np.swapaxes(log_probs, 0, 1)
 
-        return samples, state
+        if return_probabilties:
+            return samples, log_probs, state
+        else:
+            return samples, state
 
     def __repr__(sampler):
         return (
@@ -303,18 +314,16 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
 @jit(nopython=True)
 def acceptance_kernel(
-    σ, σ1, log_values, log_values_1, log_prob_corr, machine_pow, random_uniform
+    σ, σ1, log_prob, log_prob_1, log_prob_corr, machine_pow, random_uniform
 ):
     accepted = 0
 
     for i in range(σ.shape[0]):
-        prob = np.exp(
-            machine_pow * (log_values_1[i] - log_values[i]).real + log_prob_corr[i]
-        )
+        prob = np.exp(log_prob_1[i] - log_prob[i] + log_prob_corr[i])
         assert not math.isnan(prob)
 
         if prob > random_uniform[i]:
-            log_values[i] = log_values_1[i]
+            log_prob[i] = log_prob_1[i]
             σ[i] = σ1[i]
             accepted += 1
 
