@@ -499,7 +499,7 @@ class MetropolisSampler(Sampler):
         return new_state, (new_state.σ, new_state.log_prob)
 
     @partial(
-        jax.jit, static_argnames=("machine", "chain_length", "return_probabilties")
+        jax.jit, static_argnames=("machine", "chain_length", "return_log_probabilities")
     )
     def _sample_chain(
         sampler,
@@ -507,7 +507,7 @@ class MetropolisSampler(Sampler):
         parameters,
         state,
         chain_length,
-        return_probabilties: bool = False,
+        return_log_probabilities: bool = False,
     ):
         """
         Samples `chain_length` batches of samples along the chains.
@@ -535,7 +535,7 @@ class MetropolisSampler(Sampler):
         samples = jnp.swapaxes(samples, 0, 1)
         log_probabilities = jnp.swapaxes(log_probabilities, 0, 1)
 
-        if return_probabilties:
+        if return_log_probabilities:
             return samples, state, log_probabilities
         else:
             return samples, state
