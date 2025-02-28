@@ -287,6 +287,24 @@ def test_states_in_hilbert(sampler, model_and_weights):
     #    assert np.min(sampler.acceptance) >= 0 and np.max(sampler.acceptance) <= 1.0
 
 
+def test_return_log_probabilities(sampler, model_and_weights):
+    if isinstance(sampler, nk.sampler.ARDirectSampler):
+        pytest.skip("ARDirectSampler does not support return_log_probabilities")
+
+    hi = sampler.hilbert
+    chain_length = 2
+
+    ma, w = model_and_weights(hi, sampler)
+    (samples, log_probs), _ = sampler.sample(
+        ma, w, chain_length=chain_length, return_log_probabilities=True
+    )
+    log_probs_computed = sampler.machine_pow * ma.apply(w, samples).real
+
+    assert log_probs.shape == samples.shape[:-1]
+    print(log_probs / log_probs_computed)
+    np.testing.assert_allclose(log_probs, log_probs_computed)
+
+
 def findrng(rng):
     if hasattr(rng, "_bit_generator"):
         return rng._bit_generator.state["state"]

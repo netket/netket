@@ -533,7 +533,7 @@ class MetropolisSampler(Sampler):
         log_probabilities = jnp.swapaxes(log_probabilities, 0, 1)
 
         if return_log_probabilities:
-            return samples, state, log_probabilities
+            return (samples, log_probabilities), state
         else:
             return samples, state
 

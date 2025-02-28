@@ -89,7 +89,8 @@ class ExactSampler(Sampler):
 
     def _reset(self, machine, parameters, state):
         pdf = jnp.absolute(
-            to_array(self.hilbert, machine.apply, parameters) ** self.machine_pow
+            to_array(self.hilbert, machine.apply, parameters, normalize=False)
+            ** self.machine_pow
         )
         pdf_norm = pdf.sum()
         pdf = pdf / pdf_norm
@@ -132,12 +133,12 @@ class ExactSampler(Sampler):
             )
 
         if return_log_probabilities:
-            probabilities = state.pdf[numbers] * state.pdf_norm
+            log_probabilities = jnp.log(state.pdf[numbers]) + jnp.log(state.pdf_norm)
             if config.netket_experimental_sharding:
-                probabilities = jax.lax.with_sharding_constraint(
-                    probabilities,
+                log_probabilities = jax.lax.with_sharding_constraint(
+                    log_probabilities,
                     jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1),
                 )
-            return samples, probabilities, state.replace(rng=new_rng)
+            return (samples, log_probabilities), state.replace(rng=new_rng)
         else:
             return samples, state.replace(rng=new_rng)
