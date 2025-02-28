@@ -40,6 +40,7 @@ class ExactSamplerState(SamplerState):
     def __init__(self, pdf: Any, rng: Any):
         self.pdf = pdf
         self.rng = rng
+        self.pdf_norm = jnp.zeros((), dtype=self.pdf.dtype)
         super().__init__()
 
     def __repr__(self):
@@ -95,14 +96,16 @@ class ExactSampler(Sampler):
 
         return state.replace(pdf=pdf, pdf_norm=pdf_norm)
 
-    @partial(jax.jit, static_argnums=(1, 4))
+    @partial(
+        jax.jit, static_argnames=("machine", "chain_length", "return_log_probabilities")
+    )
     def _sample_chain(
         self,
         machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
-        return_probabilties: bool = False,
+        return_log_probabilities: bool = False,
     ) -> tuple[jnp.ndarray, SamplerState]:
         # Reimplement sample_chain because we can sample the whole 'chain' in one
         # go, since it's not really a chain anyway. This will be much faster because
@@ -128,7 +131,7 @@ class ExactSampler(Sampler):
                 jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1, 1),
             )
 
-        if return_probabilties:
+        if return_log_probabilities:
             probabilities = state.pdf[numbers] * state.pdf_norm
             if config.netket_experimental_sharding:
                 probabilities = jax.lax.with_sharding_constraint(

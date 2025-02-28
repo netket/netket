@@ -105,8 +105,22 @@ class ARDirectSampler(Sampler):
     def _reset(self, model, variables, state):
         return state
 
-    @partial(jax.jit, static_argnums=(1, 4))
-    def _sample_chain(self, model, variables, state, chain_length):
+    @partial(
+        jax.jit, static_argnames=("model", "chain_length", "return_log_probabilities")
+    )
+    def _sample_chain(
+        self,
+        model,
+        variables,
+        state,
+        chain_length,
+        return_log_probabilities: bool = False,
+    ):
+        if return_log_probabilities:
+            raise NotImplementedError(
+                "return_log_probability is not implemented for ARDirectSampler"
+            )
+
         if "cache" in variables:
             variables, _ = flax.core.pop(variables, "cache")
         variables_no_cache = variables

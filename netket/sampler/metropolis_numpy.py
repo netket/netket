@@ -266,7 +266,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         parameters: PyTree,
         state: MetropolisNumpySamplerState,
         chain_length: int,
-        return_probabilties: bool = False,
+        return_log_probabilities: bool = False,
     ) -> tuple[jnp.ndarray, MetropolisNumpySamplerState]:
         samples = np.empty(
             (chain_length, self.n_chains_per_rank, self.hilbert.size),
@@ -283,7 +283,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         samples = np.swapaxes(samples, 0, 1)
         log_probs = np.swapaxes(log_probs, 0, 1)
 
-        if return_probabilties:
+        if return_log_probabilities:
             return samples, log_probs, state
         else:
             return samples, state
