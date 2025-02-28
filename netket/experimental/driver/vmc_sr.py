@@ -99,7 +99,7 @@ class VMC_SR(AbstractVariationalDriver):
     Stochastic Reconfiguration is equivalent to the Natural Gradient Descent method introduced by
     `Amari 1998 <https://ieeexplore.ieee.org/abstract/document/6790500/>`_ in the context of neural network training,
     assuming that the *natural metric* of the space of wave-functions is the Fubini-Study metric. This was first
-    stuedied by `Stokes et Al 2019 <https://arxiv.org/abs/1909.02108>`_ and called
+    studied by `Stokes et Al 2019 <https://arxiv.org/abs/1909.02108>`_ and called
     *quantum Natural Gradient Descent*.
 
     While stochastic reconfiguration has been heavily studied in the context of VMC, there is a vast literature
