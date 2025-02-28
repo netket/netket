@@ -290,12 +290,17 @@ def test_states_in_hilbert(sampler, model_and_weights):
 def test_return_log_probabilities(sampler, model_and_weights):
     if isinstance(sampler, nk.sampler.ARDirectSampler):
         pytest.skip("ARDirectSampler does not support return_log_probabilities")
+    if (
+        isinstance(sampler, nk.sampler.MetropolisNumpy)
+        and nk.config.netket_experimental_sharding
+    ):
+        pytest.skip("MetropolisNumpy does not support return_log_probabilities")
 
     hi = sampler.hilbert
     chain_length = 2
 
     ma, w = model_and_weights(hi, sampler)
-    (samples, log_probs), _ = sampler.sample(
+    (samples, log_probs), ss = sampler.sample(
         ma, w, chain_length=chain_length, return_log_probabilities=True
     )
     log_probs_computed = sampler.machine_pow * ma.apply(w, samples).real
