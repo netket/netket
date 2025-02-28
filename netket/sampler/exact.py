@@ -30,6 +30,7 @@ from .base import Sampler, SamplerState
 
 class ExactSamplerState(SamplerState):
     pdf: jnp.ndarray = struct.field(serialize=False)
+    pdf_norm: jnp.ndarray = struct.field(serialize=False)
     rng: jnp.ndarray = struct.field(
         sharded=struct.ShardedFieldSpec(
             sharded=True, deserialization_function="relaxed-rng-key"
@@ -89,9 +90,10 @@ class ExactSampler(Sampler):
         pdf = jnp.absolute(
             to_array(self.hilbert, machine.apply, parameters) ** self.machine_pow
         )
-        pdf = pdf / pdf.sum()
+        pdf_norm = pdf.sum()
+        pdf = pdf / pdf_norm
 
-        return state.replace(pdf=pdf)
+        return state.replace(pdf=pdf, pdf_norm=pdf_norm)
 
     @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(
@@ -100,6 +102,7 @@ class ExactSampler(Sampler):
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
+        return_probabilties: bool = False,
     ) -> tuple[jnp.ndarray, SamplerState]:
         # Reimplement sample_chain because we can sample the whole 'chain' in one
         # go, since it's not really a chain anyway. This will be much faster because
@@ -125,4 +128,13 @@ class ExactSampler(Sampler):
                 jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1, 1),
             )
 
-        return samples, state.replace(rng=new_rng)
+        if return_probabilties:
+            probabilities = state.pdf[numbers] * state.pdf_norm
+            if config.netket_experimental_sharding:
+                probabilities = jax.lax.with_sharding_constraint(
+                    probabilities,
+                    jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1),
+                )
+            return samples, probabilities, state.replace(rng=new_rng)
+        else:
+            return samples, state.replace(rng=new_rng)
