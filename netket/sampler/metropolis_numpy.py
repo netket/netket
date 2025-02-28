@@ -284,7 +284,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         log_probs = np.swapaxes(log_probs, 0, 1)
 
         if return_log_probabilities:
-            return samples, log_probs, state
+            return (samples, log_probs), state
         else:
             return samples, state
 
