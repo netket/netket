@@ -243,8 +243,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                     mpow * apply_model(machine, parameters, σ1, sampler.chunk_size).real
                 )
 
-            log_values_1 = np.asarray(log_psi)
-            assert log_values_1.shape == σ1.shape[:-1]
+            log_prob_1 = np.asarray(log_prob)
+            assert log_prob_1.shape == σ1.shape[:-1]
 
             random_uniform = rgen.uniform(0, 1, size=σ.shape[0])
 
