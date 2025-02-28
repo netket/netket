@@ -293,10 +293,14 @@ class Sampler(struct.Pytree):
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, then initialize and reset it.
             chain_length: The length of the chains (default = 1).
+            return_log_probabilities: If `True`, the log-probabilities are also returned.
+                Defaults to False.
 
         Returns:
-            σ: The generated batches of samples.
-            state: The new state of the sampler.
+            Returns a tuple of 'samples' and 'state'. If `return_log_probabilities` is False,
+            the samples are just the 3-rank array of samples. If `return_log_probabilities` is
+            True, the samples are a tuple of the 3-rank array of samples and the 2-rank array of
+            un-normalized log-probabilities corresponding to each sample.
         """
         if state is None:
             state = self.reset(machine, parameters)
@@ -316,7 +320,6 @@ class Sampler(struct.Pytree):
         *,
         state: SamplerState | None = None,
         chain_length: int = 1,
-        return_log_probabilities: bool = False,
     ) -> Iterator[jnp.ndarray]:
         """
         Returns a generator sampling `chain_length` batches of samples along the chains.
@@ -359,10 +362,14 @@ class Sampler(struct.Pytree):
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler.
             chain_length: The length of the chains.
+            return_log_probabilities: If `True`, the log-probabilities are also returned.
+                Defaults to False.
 
         Returns:
-            σ: The generated batches of samples.
-            state: The new state of the sampler.
+            Returns a tuple of 'samples' and 'state'. If `return_log_probabilities` is False,
+            the samples are just the 3-rank array of samples. If `return_log_probabilities` is
+            True, the samples are a tuple of the 3-rank array of samples and the 2-rank array of
+            un-normalized log-probabilities corresponding to each sample.
         """
 
     @abc.abstractmethod
