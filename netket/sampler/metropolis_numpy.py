@@ -43,8 +43,6 @@ class MetropolisNumpySamplerState:
 
     log_prob: np.ndarray
     """Holds model(pars, σ) for the current σ (preallocation)."""
-    log_prob_1: np.ndarray
-    """Holds model(pars, σ1) for the last σ1 (preallocation)."""
     log_prob_corr: np.ndarray
     """Holds optional acceptance correction (preallocation)."""
 
@@ -161,7 +159,6 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             σ=σ,
             σ1=np.copy(σ),
             log_prob=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
-            log_prob_1=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
             log_prob_corr=np.zeros(
                 sampler.n_batches, dtype=nkjax.dtype_real(ma_out.dtype)
             ),
@@ -205,7 +202,6 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         σ = state.σ
         σ1 = state.σ1
         log_prob = state.log_prob
-        log_prob_1 = state.log_prob_1
         log_prob_corr = state.log_prob_corr
         mpow = sampler.machine_pow
 
