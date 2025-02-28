@@ -496,10 +496,19 @@ class MetropolisSampler(Sampler):
             n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches,
         )
 
-        return new_state, new_state.σ
+        return new_state, (new_state.σ, new_state.log_prob)
 
-    @partial(jax.jit, static_argnums=(1, 4))
-    def _sample_chain(sampler, machine, parameters, state, chain_length):
+    @partial(
+        jax.jit, static_argnames=("machine", "chain_length", "return_probabilties")
+    )
+    def _sample_chain(
+        sampler,
+        machine,
+        parameters,
+        state,
+        chain_length,
+        return_probabilties: bool = False,
+    ):
         """
         Samples `chain_length` batches of samples along the chains.
 
@@ -516,15 +525,20 @@ class MetropolisSampler(Sampler):
             σ: The next batch of samples.
             state: The new state of the sampler
         """
-        state, samples = jax.lax.scan(
-            lambda state, _: sampler.sample_next(machine, parameters, state),
+        state, (samples, log_probabilities) = jax.lax.scan(
+            lambda state, _: sampler._sample_next(machine, parameters, state),
             state,
             xs=None,
             length=chain_length,
         )
         # make it (n_chains, n_samples_per_chain) as expected by netket.stats.statistics
         samples = jnp.swapaxes(samples, 0, 1)
-        return samples, state
+        log_probabilities = jnp.swapaxes(log_probabilities, 0, 1)
+
+        if return_probabilties:
+            return samples, state, log_probabilities
+        else:
+            return samples, state
 
     def __repr__(sampler):
         return (

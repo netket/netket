@@ -282,6 +282,7 @@ class Sampler(struct.Pytree):
         *,
         state: SamplerState | None = None,
         chain_length: int = 1,
+        return_probabilties: bool = False,
     ) -> tuple[jnp.ndarray, SamplerState]:
         """
         Samples `chain_length` batches of samples along the chains.
@@ -301,7 +302,11 @@ class Sampler(struct.Pytree):
             state = sampler.reset(machine, parameters)
 
         return sampler._sample_chain(
-            wrap_afun(machine), parameters, state, chain_length
+            wrap_afun(machine),
+            parameters,
+            state,
+            chain_length,
+            return_probabilties=return_probabilties,
         )
 
     def samples(
@@ -311,6 +316,7 @@ class Sampler(struct.Pytree):
         *,
         state: SamplerState | None = None,
         chain_length: int = 1,
+        return_probabilties: bool = False,
     ) -> Iterator[jnp.ndarray]:
         """
         Returns a generator sampling `chain_length` batches of samples along the chains.
@@ -338,6 +344,7 @@ class Sampler(struct.Pytree):
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
+        return_probabilties: bool = False,
     ) -> tuple[jnp.ndarray, SamplerState]:
         """
         Implementation of `sample` for subclasses of `Sampler`.
