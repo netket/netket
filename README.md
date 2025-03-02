@@ -4,8 +4,8 @@
 
 # __NetKet__
 
+[![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
 [![Release](https://img.shields.io/github/release/netket/netket.svg)](https://github.com/netket/netket/releases)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/netket/badges/version.svg)](https://anaconda.org/conda-forge/netket)
 [![Paper (v3)](https://img.shields.io/badge/paper%20%28v3%29-arXiv%3A2112.10526-B31B1B)](https://scipost.org/SciPostPhysCodeb.7/pdf)
 [![codecov](https://codecov.io/gh/netket/netket/branch/master/graph/badge.svg?token=gzcOlpO5lB)](https://codecov.io/gh/netket/netket)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg)](https://join.slack.com/t/mlquantum/shared_invite/zt-19wibmfdv-LLRI6i43wrLev6oQX0OfOw)
@@ -13,6 +13,8 @@
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
 It is a Python library built on [JAX](https://github.com/google/jax).
+
+NetKet is an affiliated project to [numFOCUS](https://numfocus.org).
 
 - **Homepage:** <https://www.netket.org>
 - **Citing:** <https://www.netket.org/cite/>
