@@ -120,7 +120,7 @@ def forces_expect_hermitian_chunked(
         chunk_size=chunk_size,
     )
 
-    Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
+    Ō = statistics(O_loc.reshape(σ_shape[:-1]))
 
     O_loc -= Ō.mean
 
