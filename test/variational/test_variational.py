@@ -511,9 +511,9 @@ def test_expect_chunking(vstate, operator, n_chunks):
     )
 
     vstate.chunk_size = None
-    grad_nochunk = vstate.grad(operator)
+    grad_nochunk = vstate.expect_and_grad(operator)
     vstate.chunk_size = chunk_size
-    grad_chunk = vstate.grad(operator)
+    grad_chunk = vstate.expect_and_grad(operator)
 
     jax.tree_util.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
