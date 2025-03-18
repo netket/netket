@@ -38,7 +38,17 @@ from jax.flatten_util import ravel_pytree
 @timing.timed
 @partial(jax.jit, static_argnames=("mode", "solver_fn"))
 def SRt(
-    O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure
+    O_L,
+    local_energies,
+    old_updates,
+    diag_shift,
+    proj_reg,
+    momentum,
+    *,
+    mode,
+    solver_fn,
+    e_mean=None,
+    params_structure,
 ):
     """
     For more details, see `https://arxiv.org/abs/2310.05715'. In particular,
@@ -57,11 +67,10 @@ def SRt(
     assert (N_params % mpi.n_nodes) == 0
 
     O_L = O_L / N_mc**0.5
-    dv = -2.0 * de / N_mc**0.5
+    dv = 2.0 * de / N_mc**0.5
 
     if mode == "complex":
         # Concatenate the real and imaginary derivatives of the ansatz
-        # O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
         O_L = jnp.transpose(O_L, (1, 0, 2)).reshape(-1, O_L.shape[-1])
 
         dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
@@ -69,6 +78,8 @@ def SRt(
         dv = dv.real
     else:
         raise NotImplementedError()
+
+    dv -= momentum * (O_L @ old_updates)
 
     # twons, (np, n_nodes) -> twons, np, n_nodes
     O_LT = O_L.reshape(O_L.shape[0], -1, mpi.n_nodes)
@@ -86,9 +97,8 @@ def SRt(
     matrix_side = matrix.shape[-1]  # * it can be Ns or 2*Ns, depending on mode
 
     if mpi.rank == 0:
-        matrix = matrix + diag_shift * jnp.eye(
-            matrix_side
-        )  # * shift diagonal regularization
+        matrix += diag_shift * jnp.eye(matrix_side, dtype=matrix.dtype)
+        matrix += jnp.full_like(matrix, proj_reg / matrix_side)
         aus_vector = solver_fn(matrix, dv)
         # some solvers return a tuple, some others do not.
         # We check and try to support both
@@ -104,13 +114,16 @@ def SRt(
     updates = O_L.T @ aus_vector
     updates, token = mpi.mpi_allreduce_sum_jax(updates, token=token)
 
+    updates += momentum * old_updates
+    cplx_split_updates = updates
+
     # If complex mode and we have complex parameters, we need
     # To repack the real coefficients in order to get complex updates
     if mode == "complex" and nkjax.tree_leaf_iscomplex(params_structure):
         np = updates.shape[-1] // 2
         updates = updates[:np] + 1j * updates[np:]
 
-    return -updates
+    return updates, cplx_split_updates
 
 
 inv_default_solver = lambda A, b: jnp.linalg.inv(A) @ b
@@ -145,6 +158,11 @@ class VMC_SRt(AbstractVariationalDriver):
     for a detailed description of the derivation. A similar result can be obtained by minimizing the
     Fubini-Study distance with a specific constrain, see `A.Chen and M.Heyl <https://arxiv.org/abs/2302.01941>`_
     for details.
+
+    When `momentum` is used, this driver implements the SPRING optimizer in
+    `G.Goldshlager, N.Abrahamsen and L.Lin <https://arxiv.org/abs/2401.10190>`_
+    to accumulate previous updates for better approximation of the exact SR with
+    no significant performance penalty.
     """
 
     def __init__(
@@ -153,6 +171,8 @@ class VMC_SRt(AbstractVariationalDriver):
         optimizer: Optimizer,
         *,
         diag_shift: ScalarOrSchedule,
+        proj_reg: ScalarOrSchedule = 1,
+        momentum: ScalarOrSchedule = 0.99,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
         jacobian_mode: str | None = None,
         variational_state: MCState = None,
@@ -166,6 +186,9 @@ class VMC_SRt(AbstractVariationalDriver):
                     bare energy gradient.
             diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
                         Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
+            proj_reg: Weight before the matrix `1/N_samples \\bm{1} \\bm{1}^T`
+                      used to regularize the linear solver in SPRING.
+            momentum: Momentum used to accumulate updates in SPRING.
             hamiltonian: The Hamiltonian of the system.
             linear_solver_fn: Callable to solve the linear problem associated to the
                               updates of the parameters
@@ -213,6 +236,8 @@ class VMC_SRt(AbstractVariationalDriver):
         self._dp: PyTree = None
 
         self.diag_shift = diag_shift
+        self.proj_reg = proj_reg
+        self.momentum = momentum
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
 
@@ -228,6 +253,8 @@ class VMC_SRt(AbstractVariationalDriver):
 
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
+
+        self._cplx_split_updates = None
 
     @property
     def jacobian_mode(self) -> str:
@@ -289,13 +316,27 @@ class VMC_SRt(AbstractVariationalDriver):
         )  # jacobians is centered
 
         diag_shift = self.diag_shift
-        if callable(self.diag_shift):
+        proj_reg = self.proj_reg
+        momentum = self.momentum
+        if callable(diag_shift):
             diag_shift = diag_shift(self.step_count)
+        if callable(proj_reg):
+            proj_reg = proj_reg(self.step_count)
+        if callable(momentum):
+            momentum = momentum(self.step_count)
 
-        updates = SRt(
+        if self._cplx_split_updates is None:
+            self._cplx_split_updates = jnp.zeros(
+                jacobians.shape[-1], dtype=jacobians.dtype
+            )
+
+        updates, self._cplx_split_updates = SRt(
             jacobians,
             local_energies,
+            self._cplx_split_updates,
             diag_shift,
+            proj_reg,
+            momentum,
             mode=self.jacobian_mode,
             solver_fn=self._linear_solver_fn,
             e_mean=self._loss_stats.Mean,
