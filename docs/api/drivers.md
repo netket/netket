@@ -38,3 +38,4 @@ Those are the optimization drivers already implemented in Netket:
 
 ```
 
+Also do give a look to the experimental SR driver in {class}`~netket.experimental.driver.VMC_SR` which combines VMC with SR naturally, allowing for advanced computational tricks.
