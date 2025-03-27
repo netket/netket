@@ -112,5 +112,30 @@ class AbstractOperator(AbstractObservable[HilbertType]):
     def conj(self, *, concrete=False) -> "AbstractOperator":
         return self.conjugate(concrete=False)
 
+    def __add__(self, other: "AbstractOperator") -> "AbstractOperator":
+        if isinstance(other, AbstractOperator):
+            from ._sum import SumOperator
+
+            return SumOperator(self, other)
+        return NotImplemented
+
+    def __radd__(self, other):
+        return self + other
+
+    def __sub__(self, other):
+        return self + (-other)
+
+    def __neg__(self):
+        from ._sum import SumOperator
+
+        return SumOperator(self, coefficients=[-1.0])
+
+    def __mul__(self, other: "AbstractOperator") -> "AbstractOperator":
+        if isinstance(other, (int, float, complex)):
+            from ._sum import SumOperator
+
+            return SumOperator(self, coefficients=[other])
+        return NotImplemented
+
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert}, dtype={self.dtype})"
