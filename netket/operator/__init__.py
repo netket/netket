@@ -33,6 +33,7 @@ from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
 
 from ._sum import SumOperator
+from ._prod import ProductOperator
 
 from ._fermion2nd import FermionOperator2nd, FermionOperator2ndJax
 
