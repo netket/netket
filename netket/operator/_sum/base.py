@@ -122,6 +122,9 @@ class SumOperator(ABC):
         return "\n".join(strs)
 
     def __add__(self, other):
+        if not isinstance(other, AbstractOperator):
+            return NotImplemented
+
         if isinstance(other, SumOperator):
             ops = self.operators + other.operators
             coeffs = jnp.concatenate([self.coefficients, other.coefficents])
