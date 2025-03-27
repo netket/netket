@@ -118,7 +118,15 @@ class SumOperator(ABC):
     def __repr__(self) -> str:
         strs = [f"{type(self).__name__} with terms:"]
         for op, c in zip(self.operators, self.coefficients):
-            strs.append(f" ∙ {c} * {op}")
+            op_str = str(op).splitlines()
+            # Format the first line with the coefficient and operator
+            formatted_op = f" ∙ {c} * {op_str[0]}"
+            # Add subsequent lines with proper indentation
+            if len(op_str) > 1:
+                formatted_op += "\n" + "\n".join(
+                    f"   {' ' * len(str(c))}   {line}" for line in op_str[1:]
+                )
+            strs.append(formatted_op)
         return "\n".join(strs)
 
     def __add__(self, other):
