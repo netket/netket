@@ -404,9 +404,11 @@ class PauliStringsBase(DiscreteOperator):
         return self.__iadd__(-other)
 
     def __add__(self, other: Union["PauliStringsBase", Number]):
-        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
-        op = op.__iadd__(other)
-        return op
+        if isinstance(other, PauliStringsBase):
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
+            op = op.__iadd__(other)
+            return op
+        return super().__add__(other)
 
     def __iadd__(self, other):
         if isinstance(other, PauliStringsBase):
@@ -437,7 +439,7 @@ class PauliStringsBase(DiscreteOperator):
                 return self.__iadd__(other * self.identity(self.hilbert))
             return self
 
-        raise NotImplementedError
+        return NotImplemented
 
 
 def _count_of_locations(of_qubit_operator):
