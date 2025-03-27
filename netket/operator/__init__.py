@@ -39,6 +39,7 @@ from ._fermion2nd import (
 )
 
 from ._sum import SumOperator
+from ._prod import ProductOperator
 
 
 from . import spin, boson, fermion
