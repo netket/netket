@@ -501,7 +501,9 @@ class FermionOperator2ndBase(DiscreteOperator):
             # TODO: Deprecated in September 2025
             warnings.warn(OperatorMultiplicationDeprecationWarning())
             # we will overload this as matrix multiplication
-            return self._op__matmul__(scalar)
+            res = self._op__matmul__(scalar)
+            if res is NotImplemented:
+                return super().__mul__(scalar)
         dtype = np.promote_types(self.dtype, _dtype(scalar))
         op = self.copy(dtype=dtype)
         return op.__imul__(scalar)
