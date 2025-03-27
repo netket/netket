@@ -462,7 +462,9 @@ class FermionOperator2ndBase(DiscreteOperator):
     def __mul__(self, scalar):
         if not is_scalar(scalar):
             # we will overload this as matrix multiplication
-            return self._op__matmul__(scalar)
+            res = self._op__matmul__(scalar)
+            if res is NotImplemented:
+                return super().__mul__(scalar)
         dtype = np.promote_types(self.dtype, _dtype(scalar))
         op = self.copy(dtype=dtype)
         return op.__imul__(scalar)

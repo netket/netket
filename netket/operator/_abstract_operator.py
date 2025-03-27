@@ -120,5 +120,12 @@ class AbstractOperator(AbstractObservable):
             return SumOperator(self, other)
         return NotImplemented
 
+    def __mul__(self, other: "AbstractOperator") -> "AbstractOperator":
+        if isinstance(other, AbstractOperator):
+            from ._prod import ProductOperator
+
+            return ProductOperator(self, other)
+        return NotImplemented
+
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert}, dtype={self.dtype})"
