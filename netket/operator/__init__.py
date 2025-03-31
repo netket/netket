@@ -37,6 +37,8 @@ from ._fermion2nd import FermionOperator2nd, FermionOperator2ndJax
 
 from . import spin, boson, fermion
 
+from ._quspin_operator import to_quspin_format, target_symmetry_subsector
+
 from netket.utils import _auto_export
 
 _auto_export(__name__)
