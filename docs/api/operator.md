@@ -138,3 +138,41 @@ In the experimental submodule there are also easy-to-use constructors for common
    experimental.operator.fermion.identity
    experimental.operator.fermion.number
 ```
+
+## QuSpin Integration
+
+NetKet now includes methods to convert operators to the QuSpin format and target specific symmetry subsectors.
+
+### Converting to QuSpin Format
+
+You can convert a NetKet operator to the QuSpin format using the `to_quspin_format` function. Here's an example:
+
+```python
+from netket.operator import to_quspin_format
+from netket.operator import Ising
+from netket.hilbert import Spin
+
+# Define a NetKet operator
+hilbert = Spin(s=0.5, N=10)
+operator = Ising(hilbert, h=1.0)
+
+# Convert to QuSpin format
+quspin_operator = to_quspin_format(operator)
+```
+
+### Targeting Symmetry Subsectors
+
+You can target a specific symmetry subsector for a NetKet operator using the `target_symmetry_subsector` function. Here's an example:
+
+```python
+from netket.operator import target_symmetry_subsector
+from netket.operator import Ising
+from netket.hilbert import Spin
+
+# Define a NetKet operator
+hilbert = Spin(s=0.5, N=10)
+operator = Ising(hilbert, h=1.0)
+
+# Target a specific symmetry subsector
+subsector_operator = target_symmetry_subsector(operator, subsector="translation")
+```
