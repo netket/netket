@@ -19,7 +19,7 @@ from .pyscf import from_pyscf_molecule
 from ._particle_number_conserving_fermionic import (
     ParticleNumberConservingFermioperator2ndJax,
     ParticleNumberConservingFermioperator2ndSpinJax,
-    FermiHubbardJax
+    FermiHubbardJax,
 )
 
 
