@@ -5,8 +5,12 @@ from netket.experimental.operator import (
     ParticleNumberConservingFermioperator2ndJax,
     ParticleNumberConservingFermioperator2ndSpinJax,
     FermionOperator2nd,
+    FermiHubbardJax,
 )
 from netket.hilbert import SpinOrbitalFermions
+from netket.graph import Hypercube
+from netket.operator.fermion import destroy, create, number
+
 from functools import partial
 
 import pytest
@@ -122,3 +126,35 @@ def test_pnc_spin(N, n, s):
 
     ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermiop(ha)
     np.testing.assert_allclose(ha.to_dense(), ha3.to_dense())
+
+
+def test_fermihubbard():
+    t = 1.23
+    U = 3.14
+    g = Hypercube(3, 2)
+    hi = SpinOrbitalFermions(n_orbitals=g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2))
+
+    ha = FermiHubbardJax(hilbert=hi, graph=g, t=t, U=U)
+
+    def c(site, sz):
+        return destroy(hi, site, sz=sz)
+
+    def cdag(site, sz):
+        return create(hi, site, sz=sz)
+
+    def nc(site, sz):
+        return number(hi, site, sz=sz)
+
+    ha2 = 0.0
+    for sz in (-1, 1):
+        for u, v in g.edges():
+            ha2 += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)
+    for u in g.nodes():
+        ha2 += U * nc(u, 1) * nc(u, -1)
+
+    ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermiop(ha2)
+    ha4 = ParticleNumberConservingFermioperator2ndJax.from_fermiop(ha2)
+
+    np.testing.assert_allclose(ha2.to_dense(), ha.to_dense())
+    np.testing.assert_allclose(ha2.to_dense(), ha3.to_dense())
+    np.testing.assert_allclose(ha2.to_dense(), ha4.to_dense())
