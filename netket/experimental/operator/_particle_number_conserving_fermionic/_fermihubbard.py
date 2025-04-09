@@ -3,11 +3,11 @@ from netket.graph import AbstractGraph
 from typing import Sequence
 from netket.utils.types import DType
 from netket.utils import struct
+from netket.utils.optional_deps import import_optional_dependency
 
 from . import ParticleNumberConservingFermioperator2ndSpinJax
 import jax.numpy as jnp
 import numpy as np
-import sparse
 
 
 class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax, struct.Pytree):
@@ -43,6 +43,8 @@ class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax, struct.Py
            >>> hi = nk.hilbert.SpinOrbitalFermions(n_orbitals=g.n_nodes, s=1/2, n_fermions_per_spin=(4,4))
            >>> op = netket.experimental.operator.FermiHubbardJax(hi, t=1.0, U=1.0, graph=g)
         """
+
+        sparse = import_optional_dependency("sparse")
 
         if isinstance(t, Sequence):
             assert len(t) == graph.n_edges

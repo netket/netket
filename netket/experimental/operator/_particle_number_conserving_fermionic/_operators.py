@@ -1,7 +1,6 @@
 from functools import partial
 
 import numpy as np
-import sparse
 
 import jax
 import jax.numpy as jnp
@@ -12,6 +11,7 @@ from netket.operator import DiscreteJaxOperator
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.types import PyTree
 from netket.operator import FermionOperator2ndJax
+from netket.utils.optional_deps import import_optional_dependency
 
 from .._pyscf_utils import (
     TV_from_pyscf_molecule,
@@ -298,6 +298,9 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
             mo_coeff: coefficients
                 e.g. run
         """
+
+        sparse = import_optional_dependency("sparse")
+
         n_orbitals = int(mol.nao)
         hilbert = SpinOrbitalFermions(
             n_orbitals, s=1 / 2, n_fermions_per_spin=mol.nelec
