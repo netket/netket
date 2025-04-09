@@ -2,12 +2,12 @@
 
 from functools import partial
 import numpy as np
-import sparse
 
 import jax
 import jax.numpy as jnp
 
 from netket.jax import COOTensor
+from netket.utils.optional_deps import import_optional_dependency
 
 
 def len_helper(s):
@@ -18,6 +18,9 @@ def len_helper(s):
 
 
 def _prepare_data_helper(sites_destr, sites_create, weights, n_orbitals, sparse_=True):
+
+    sparse = import_optional_dependency("sparse")
+
     # we encode sites_create==sites_destr by passing sites_create=None
     is_diagonal = sites_create is None
 
@@ -257,6 +260,9 @@ def collect_ops(operators):
     Returns:
         A dictionary of sparse matrices, one for each lenght of  c/c^\dagger
     """
+
+    sparse = import_optional_dependency("sparse")
+
     ops = {}
     for A in operators:
         if isinstance(A, sparse.COO):
@@ -314,6 +320,9 @@ def prepare_operator_data_from_coords_data_dict_spin(coords_data_sectors, n_orbi
 
 
 def sites_daggers_weights_to_sparse(sites, daggers, weights, n_orbitals):
+
+    sparse = import_optional_dependency("sparse")
+
     n = daggers.shape[-1]
     assert n % 2 == 0
     assert (daggers[:, : n // 2] == 1).all()
@@ -326,6 +335,9 @@ def _insert_append_helper(d, k, s, o, cutoff):
     # check if an element with the same matrix but different sectors exist
     # if yes append to the list of sectors
     # else insert new element into the dict
+
+    sparse = import_optional_dependency("sparse")
+
     for (k2, s2), o2 in d.items():
         same_number_of_sectors = (s == () and s2 == ()) or (
             len(s2) > 0 and len(s) > 0 and len_helper(s2[0]) == len_helper(s[0])
