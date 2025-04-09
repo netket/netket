@@ -223,7 +223,6 @@ def TV_from_pyscf_molecule(
         >>>
         >>> # compute the boys orbitals
         >>> mf = scf.RHF(mol).run()  # doctest:+ELLIPSIS
-            converged SCF energy = -7.86338...
         >>> mo_coeff = lo.Boys(mol).kernel(mf.mo_coeff)
         >>> ha = nkx.operator.pyscf.TV_from_pyscf_molecule(mol, mo_coeff)
 
