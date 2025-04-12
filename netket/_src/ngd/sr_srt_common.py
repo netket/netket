@@ -89,7 +89,7 @@ def _sr_srt_common(
     use_ntk: bool = False,
 ):
     r"""
-    Compute the Natural gradient update for the model specified by
+    Compute the SR/Natural gradient update for the model specified by
     `log_psi({parameters, model_state}, samples)` and the local gradient contributions `local_grad`.
 
     Uses a code equivalent to QGTJacobianDense by default, or with the NTK/MinSR if `use_ntk` is True.
