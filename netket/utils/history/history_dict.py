@@ -197,4 +197,6 @@ def reconstruct_history(hist_dict):
 
 
 # Register History with precedence 10
-register_historydict_deserialization_fun(is_history, reconstruct_history, precedence=-10)
+register_historydict_deserialization_fun(
+    is_history, reconstruct_history, precedence=-10
+)
