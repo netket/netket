@@ -68,6 +68,8 @@ class History:
     be `value`.
     """
 
+    __slots__ = ("_value_dict", "_value_name", "_single_value", "_keys")
+
     def __init__(
         self,
         values: Any = None,
@@ -184,7 +186,6 @@ class History:
 
         self._value_dict = value_dict
         self._value_name = main_value_name
-        self._len = n_elements
         self._single_value = single_value
         self._keys = keys
 
@@ -204,7 +205,7 @@ class History:
         return self._value_dict[self._value_name]
 
     def __len__(self) -> int:
-        return self._len
+        return len(self.iters)
 
     def __getitem__(self, key) -> Array:
         # if its an int corresponding to an element not inside the dict,
@@ -404,8 +405,6 @@ def append(self: History, val: History, it: Any):  # noqa: E0102, F811
         self._value_dict[key] = np.concatenate([self[key], val[key]])
 
     self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
-
-    self._len = len(self) + len(val)
     return self
 
 
@@ -436,7 +435,6 @@ def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
         self._value_dict["iters"] = np.resize(self.iters, (len(self.iters) + 1))
 
     self.iters[-1] = it
-    self._len += 1
     return self
 
 
