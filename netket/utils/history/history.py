@@ -44,6 +44,13 @@ def maybecopy(maybe_arr):
         return maybe_arr
 
 
+def replace_none_with_nan(item):
+    # recursively replace None with np.nan in lists
+    if isinstance(item, list):
+        return [replace_none_with_nan(subitem) for subitem in item]
+    return np.nan if item is None else item
+
+
 class History:
     """
     A class to store a time-series of arbitrary data.
@@ -114,6 +121,7 @@ class History:
         if is_scalar(iters):
             iters = np.array([iters], dtype=iter_dtype)
         elif isinstance(iters, list):
+            iters = [np.nan if x is None else x for x in iters]
             iters = np.array(iters, dtype=iter_dtype)
 
         n_elements = len(iters)
@@ -162,7 +170,12 @@ class History:
                 raise_if_len_not_match(len(val), n_elements, key)
 
             elif isinstance(val, list):
-                val = np.asarray(val, dtype=dtype)
+                # see below
+                # val = np.asarray(val, dtype=dtype)
+
+                # Recursively replace None with np.nan in nested lists
+                # only relevant for loading from json on disk
+                val = np.asarray(replace_none_with_nan(val), dtype=dtype)
             else:
                 val = [val]
 
