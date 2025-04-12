@@ -241,7 +241,7 @@ class VMC_SR(AbstractVariationalDriver):
                 SR/NGD optimization this should be an instance of `optax.sgd`, but can be
                 any other optimizer if you are brave.
             variational_state: The variational state to optimize.
-            diag_shift: The regularization parameter :math:`\lambda` for the NGD solver.
+            diag_shift: The diagonal regularization parameter :math:`\lambda` for the QGT/NTK.
             proj_reg: The regularization parameter for the projection of the updates.
                 (This usually is not very important and can be left to None)
             momentum: (SPRING, disabled by default, read above for details) a number between [0,1] 
@@ -258,11 +258,14 @@ class VMC_SR(AbstractVariationalDriver):
                 with a sign, to truncate the arbitrary phase of the wavefunction. This leads
                 to lower computational cost.
             on_the_fly: Whether to compute the QGT or NTK using lazy evaluation methods.
-                This usually requires less memory.
+                This usually requires less memory. (Defaults to None, which will
+                automatically chose the potentially best method).
             chunk_size_bwd: The number of rows of the NTK or of the Jacobian evaluated
                 in a single sweep.
             use_ntk: Wheter to compute the updates using the Neural Tangent Kernel (NTK)
-                instead of the Quantum Geometric Tensor (QGT).
+                instead of the Quantum Geometric Tensor (QGT), aka switching between
+                SR and minSR. (Defaults to None, which will automatically choose the best
+                method)
         """
         if isinstance(variational_state, FullSumState):
             raise TypeError(
