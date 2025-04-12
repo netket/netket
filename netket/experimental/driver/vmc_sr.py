@@ -89,7 +89,7 @@ class VMC_SR(AbstractVariationalDriver):
 
     Where the vector is the solution and the dictionary may contain additional information about the solver or be None.
     The standard solver is based on the Cholesky decomposition :func:`~netket.optimizer.solver.cholesky`, but any other
-    solver from `JAX <https://jax.readthedocs.io/en/latest/jax.experimental.linalg.html>`_, `netket solvers <dense-solvers>`_ or a 
+    solver from `JAX <https://jax.readthedocs.io/en/latest/jax.experimental.linalg.html>`_, `netket solvers <dense-solvers>`_ or a
     custom-written one can be used.
 
 
@@ -120,25 +120,25 @@ class VMC_SR(AbstractVariationalDriver):
     to accumulate previous updates for better approximation of the exact SR with
     no significant performance penalty.
 
-    `momentum` μ is a number between [0,1] that specifies the damping factor of 
-    the previous updates and works somewhat similarly to the beta parameter of ADAM. 
-    The difference is that rather than simply adding the damped previous update to the 
-    new update, SPRING uses the damped previous update to fill in the components of the 
-    SR direction that are not sampled by the current batch of walkers, resulting in a 
-    more accurate and less noisy estimate. Since SPRING only uses the previous update to 
-    fill in directions that are orthogonal to the current one, the maximum amplification of 
-    the step size in SPRING is :math:`A(\mu) = 1/\sqrt{1-μ^2}` rather than :math:`1/(1-μ)`. 
-    
-    Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or 
+    `momentum` μ is a number between [0,1] that specifies the damping factor of
+    the previous updates and works somewhat similarly to the beta parameter of ADAM.
+    The difference is that rather than simply adding the damped previous update to the
+    new update, SPRING uses the damped previous update to fill in the components of the
+    SR direction that are not sampled by the current batch of walkers, resulting in a
+    more accurate and less noisy estimate. Since SPRING only uses the previous update to
+    fill in directions that are orthogonal to the current one, the maximum amplification of
+    the step size in SPRING is :math:`A(\mu) = 1/\sqrt{1-μ^2}` rather than :math:`1/(1-μ)`.
+
+    Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
     :math:`A(0.99)=7.1`.
     ** Values that empirically work are around 0.8. **
 
-    Some progress has been made on theoretically analyzing this parameter, in particular 
-    `Section 3 of Epperly et Al. <https://arxiv.org/pdf/2411.19877>`_ demonstrates (albeit 
-    in a significantly  simplified linear least-squares setting) that SPRING can be interpreted 
-    as iteratively estimating a regularized SR direction, with the amount of regularization 
-    proportional to  the value of 1-momentum. Additional insights regarding the behavior of 
-    some SPRING-like algorithms, albeit still in the linear least-squares setting, are presented in 
+    Some progress has been made on theoretically analyzing this parameter, in particular
+    `Section 3 of Epperly et Al. <https://arxiv.org/pdf/2411.19877>`_ demonstrates (albeit
+    in a significantly  simplified linear least-squares setting) that SPRING can be interpreted
+    as iteratively estimating a regularized SR direction, with the amount of regularization
+    proportional to  the value of 1-momentum. Additional insights regarding the behavior of
+    some SPRING-like algorithms, albeit still in the linear least-squares setting, are presented in
     `Goldshlager et Al. <https://arxiv.org/pdf/2502.00882>`_ .
 
 
@@ -244,12 +244,12 @@ class VMC_SR(AbstractVariationalDriver):
             diag_shift: The diagonal regularization parameter :math:`\lambda` for the QGT/NTK.
             proj_reg: The regularization parameter for the projection of the updates.
                 (This usually is not very important and can be left to None)
-            momentum: (SPRING, disabled by default, read above for details) a number between [0,1] 
-                that specifies the damping factor of 
-                the previous updates and works somewhat similarly to the beta parameter of ADAM. 
-                The maximum amplification of  the step size in SPRING is 
+            momentum: (SPRING, disabled by default, read above for details) a number between [0,1]
+                that specifies the damping factor of
+                the previous updates and works somewhat similarly to the beta parameter of ADAM.
+                The maximum amplification of  the step size in SPRING is
                 :math:`A(\mu)=1/\sqrt{1-μ^2}`
-                Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or 
+                Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
                 :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
                 (Defaults to None)
             linear_solver_fn: The linear solver function to use for the NGD solver.
