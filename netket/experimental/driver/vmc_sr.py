@@ -89,8 +89,8 @@ class VMC_SR(AbstractVariationalDriver):
 
     Where the vector is the solution and the dictionary may contain additional information about the solver or be None.
     The standard solver is based on the Cholesky decomposition :func:`~netket.optimizer.solver.cholesky`, but any other
-    solver from `JAX <https://jax.readthedocs.io/en/latest/jax.experimental.linalg.html>`_, NetKet or a custom-written one
-    can be used.
+    solver from `JAX <https://jax.readthedocs.io/en/latest/jax.experimental.linalg.html>`_, `netket solvers <dense-solvers>`_ or a 
+    custom-written one can be used.
 
 
     Natural Gradient Descent
@@ -105,7 +105,7 @@ class VMC_SR(AbstractVariationalDriver):
     While stochastic reconfiguration has been heavily studied in the context of VMC, there is a vast literature
     in the Machine Learning community on the use of NGD, and tuning carefully the diag shift and the learning rate.
 
-    A very good introduction to the mathematics of Information Geomtry and NGD is found in
+    A very good introduction to the mathematics of Information Geometry and NGD is found in
     `Bai et Al <https://arxiv.org/pdf/2202.06232>`_ and further studied in `Shrestha et Al 2022 <https://arxiv.org/pdf/2303.05473>`_.
     From the Physicist point of view, a good discussion on the choice of the metric function (QGT vs Fisher Matrix)
     is found in `Stokes et Al 2022 <https://arxiv.org/pdf/2203.14824>`_ (section 4 in particoular).
@@ -113,24 +113,33 @@ class VMC_SR(AbstractVariationalDriver):
     `Martens 2014 <https://arxiv.org/abs/1412.1193>`_.
 
 
-    Momentum
+    Momentum / SPRING
     --------
     When `momentum` is used, this driver implements the SPRING optimizer in
-    `G.Goldshlager et Al. <https://arxiv.org/abs/2401.10190>`_
+    `Goldshlager et Al. <https://arxiv.org/abs/2401.10190>`_
     to accumulate previous updates for better approximation of the exact SR with
     no significant performance penalty.
 
-    `momentum` is a number between [0,1] that specifies the damping factor of the previous updates, and
-    works similarly to the beta parameter of ADAM. Therefore a value of `momentum=0.9` corresponds to a
-    moderate damping factor of 0.1, and means that if subsequent moves are close, the steps might be
-    amplified by at most a factor of 10. A value of `momentum=0.99` corresponds to a damping factor of 0.01,
-    and means that if subsequent moves are close, the steps might be amplified by at most a factor of 100.
+    `momentum` μ is a number between [0,1] that specifies the damping factor of 
+    the previous updates and works somewhat similarly to the beta parameter of ADAM. 
+    The difference is that rather than simply adding the damped previous update to the 
+    new update, SPRING uses the damped previous update to fill in the components of the 
+    SR direction that are not sampled by the current batch of walkers, resulting in a 
+    more accurate and less noisy estimate. Since SPRING only uses the previous update to 
+    fill in directions that are orthogonal to the current one, the maximum amplification of 
+    the step size in SPRING is :math:`A(\mu) = 1/\sqrt{1-μ^2}` rather than :math:`1/(1-μ)`. 
+    
+    Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or 
+    :math:`A(0.99)=7.1`.
+    ** Values that empirically work are around 0.8. **
 
-    Values that empirically work are around 0.8.
-
-    While we have found empirically that in practice momentum can be beneficial in some simulations, we find
-    that the theoretical analysis of this parameter is still lacking, and would welcome some contributions
-    in this direction.
+    Some progress has been made on theoretically analyzing this parameter, in particular 
+    `Section 3 of Epperly et Al. <https://arxiv.org/pdf/2411.19877>`_ demonstrates (albeit 
+    in a significantly  simplified linear least-squares setting) that SPRING can be interpreted 
+    as iteratively estimating a regularized SR direction, with the amount of regularization 
+    proportional to  the value of 1-momentum. Additional insights regarding the behavior of 
+    some SPRING-like algorithms, albeit still in the linear least-squares setting, are presented in 
+    `Goldshlager et Al. <https://arxiv.org/pdf/2502.00882>`_ .
 
 
     Implementation details
@@ -147,8 +156,8 @@ class VMC_SR(AbstractVariationalDriver):
 
     The default choice is to use the ``on_the_fly=True`` mode.
 
-    Citing
-    ------
+    References
+    ----------
     - Stochastic Reconfiguration was originally introduced in the QMC field by `Sorella <https://arxiv.org/abs/cond-mat/9803107>`_.
       The method was later shown to be equivalent to the Natural Gradient Descent method introduced by
       `Amari <https://ieeexplore.ieee.org/abstract/document/6790500/>`_ for the Fubini-Study metric.
@@ -235,7 +244,14 @@ class VMC_SR(AbstractVariationalDriver):
             diag_shift: The regularization parameter :math:`\lambda` for the NGD solver.
             proj_reg: The regularization parameter for the projection of the updates.
                 (This usually is not very important and can be left to None)
-            momentum: The momentum parameter for the optimizer.
+            momentum: (SPRING, disabled by default, read above for details) a number between [0,1] 
+                that specifies the damping factor of 
+                the previous updates and works somewhat similarly to the beta parameter of ADAM. 
+                The maximum amplification of  the step size in SPRING is 
+                :math:`A(\mu)=1/\sqrt{1-μ^2}`
+                Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or 
+                :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
+                (Defaults to None)
             linear_solver_fn: The linear solver function to use for the NGD solver.
             mode: The mode used to compute the jacobian of the variational state.
                 Can be `'real'` or `'complex'`. Real can be used for real-valued wavefunctions
