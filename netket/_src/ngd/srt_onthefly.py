@@ -138,15 +138,19 @@ def srt_onthefly(
         in_specs = (P("i", None), P(), P())
         out_specs = P("i", None, None, None)
 
-        # By default, I'm not sure whether the jacobian_contraction of NeuralTangents
-        # Is correctly automatically sharded across devices. So we force it to be
-        # sharded with shard map to be sure
-        if module_version("jax") < (0, 4, 38) or module_version("jax") > (0, 5, 1):
-            # shard_map is broken between 0.4.38 and 0.5.1 (maybe)
-            # if you see an error here, try to remove this block
-            jacobian_contraction = shard_map(
-                jacobian_contraction, mesh=mesh, in_specs=in_specs, out_specs=out_specs
-            )
+        # check rep:
+        check_rep = module_version("jax") < (0, 4, 38)
+        # shard_map is broken between 0.4.38 and (as of 25 march 2025) 0.5.3.
+        # We assume any version after 0.4.38 'has a bug' that shows up as
+        # None is not Iterable
+        # it's a bug in check_rep, so we disable it in this case
+        jacobian_contraction = shard_map(
+            jacobian_contraction,
+            mesh=mesh,
+            in_specs=in_specs,
+            out_specs=out_specs,
+            check_rep=check_rep,
+        )
 
     # This disables the nkjax.sharding_decorator in here, which might appear
     # in the apply function inside.
