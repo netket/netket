@@ -39,7 +39,6 @@ def get_local_kernel_arguments(vstate: MCMixedState, Ô: DiscreteOperator):  # 
     return σ, (σp, mels)
 
 
-
 @dispatch
 def get_local_kernel_arguments(  # noqa: F811
     vstate: MCMixedState, Ô: AbstractSuperOperator
