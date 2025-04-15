@@ -140,6 +140,7 @@ class HistoryDict:
         """
         with open(fname) as f:
             data = orjson.loads(f.read())
+            data = histdict_to_nparray(data)
 
         def _recompose(hist_dict):
             # hist_dict = {k: np.array(v) for k, v in hist_dict.items()}
@@ -200,3 +201,38 @@ def reconstruct_history(hist_dict):
 register_historydict_deserialization_fun(
     is_history, reconstruct_history, precedence=-10
 )
+
+
+"""
+Json serializer for complex numbers.
+
+Json does not support complex numbers, which are stored as {"real": ..., "imag": ...} dictionaries.
+This is a workaround to store complex numbers in json files.
+"""
+
+
+def _is_number_list(x):
+    return (
+        isinstance(x, list) and len(x) > 0 and isinstance(x[0], (int, float, complex))
+    )
+
+
+def _is_complex_leaf(subtree):
+    # Print only if you want to debug
+    # print("checking if subtree is leaf", subtree)
+    return (
+        isinstance(subtree, dict) and "real" in subtree and "imag" in subtree
+    ) or _is_number_list(subtree)
+
+
+def _convert_complex(subtree):
+    if isinstance(subtree, dict) and "real" in subtree and "imag" in subtree:
+        return np.array(subtree["real"]) + 1j * np.array(subtree["imag"])
+    return np.array(subtree)
+
+
+def histdict_to_nparray(hist_dict):
+    """
+    Convert the {'real': ..., 'imag': ...} dictionaries to complex numbers.
+    """
+    return jax.tree.map(_convert_complex, hist_dict, is_leaf=_is_complex_leaf)
