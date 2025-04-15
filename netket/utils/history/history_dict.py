@@ -140,7 +140,7 @@ class HistoryDict:
         """
         with open(fname) as f:
             data = orjson.loads(f.read())
-        
+
         data = histdict_to_nparray(data)
 
         def _recompose(hist_dict):
