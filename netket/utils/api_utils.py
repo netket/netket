@@ -17,6 +17,7 @@ from collections.abc import Callable
 import functools
 import inspect
 
+from netket.utils import config
 
 _KEYWORD_ONLY = inspect.Parameter.KEYWORD_ONLY
 _POSITIONAL_OR_KEYWORD = inspect.Parameter.POSITIONAL_OR_KEYWORD
@@ -37,9 +38,13 @@ def partial_from_kwargs(
             together, an error is raised.
     """
     if func is None:
-        return functools.partial(
-            partial_from_kwargs, exclusive_arg_names=exclusive_arg_names
+        return lambda func: partial_from_kwargs(
+            func, exclusive_arg_names=exclusive_arg_names
         )
+
+    # When generating docstrings, do not wrap for real the function
+    if config.netket_sphinx_build:
+        return func
 
     # Get the functions's Keyword only arguments and keyword maybe arguments
     sig = inspect.signature(func)
@@ -90,7 +95,7 @@ def partial_from_kwargs(
                 for kwarg in kwargs:
                     if kwarg not in kwargs_only:
                         raise TypeError(
-                            f"Unexpected keyword argument '{kwarg}' when calling"
+                            f"Unexpected keyword argument '{kwarg}' when calling "
                             f"{func}. Valid arguments are {kwargs_only}."
                         )
 
