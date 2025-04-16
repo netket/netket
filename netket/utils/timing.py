@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Callable
-from typing import TypeVar, ParamSpec, TYPE_CHECKING
+from typing import TypeVar, ParamSpec
 
 import time
 import inspect
@@ -25,7 +25,7 @@ import jax
 from rich.tree import Tree
 from rich.panel import Panel
 
-from netket.utils import struct, display
+from netket.utils import config, struct, display
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -280,7 +280,7 @@ def timed(
                 return result
 
     # Without this the link to code in sphinx is broken
-    if TYPE_CHECKING:
+    if config.netket_sphinx_build:
         return fun
 
     return timed_function
