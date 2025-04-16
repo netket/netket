@@ -68,6 +68,7 @@ It also provides the following implementation of the quantum geometric tensor:
    qgt.QGTJacobianDense
 ```
 
+(dense-solvers)=
 ## Dense solvers
 
 And the following dense solvers for Stochastic Reconfiguration:

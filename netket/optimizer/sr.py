@@ -66,6 +66,11 @@ class SR(AbstractLinearPreconditioner, mutable=True):
     Constructs the structure holding the parameters for using the
     Stochastic Reconfiguration/Natural gradient method.
 
+    .. note::
+
+        Consider using directly the new :class:``netket.experimental.driver.VMC_SR``
+        class instead of this one.
+
     This preconditioner changes the gradient :math:`\nabla_i E` such that the
     preconditioned gradient :math:`\Delta_j` solves the system of equations
 
