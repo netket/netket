@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Callable
-from typing import TypeVar, ParamSpec
+from typing import TypeVar, ParamSpec, TYPE_CHECKING
 
 import time
 import inspect
@@ -278,6 +278,10 @@ def timed(
                 return ts.block_until_ready(result)
             else:
                 return result
+
+    # Without this the link to code in sphinx is broken
+    if TYPE_CHECKING:
+        return fun
 
     return timed_function
 
