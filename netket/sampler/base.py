@@ -199,7 +199,7 @@ class Sampler(struct.Pytree):
 
         Args:
             model: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
 
         Returns:
             The log-probability density function.
@@ -238,7 +238,7 @@ class Sampler(struct.Pytree):
 
         Args:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
 
@@ -262,7 +262,7 @@ class Sampler(struct.Pytree):
 
         Args:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, it will be constructed
                 by calling :code:`sampler.init_state(machine, parameters)` with a random seed.
@@ -283,7 +283,7 @@ class Sampler(struct.Pytree):
         state: SamplerState | None = None,
         chain_length: int = 1,
         return_log_probabilities: bool = False,
-    ) -> tuple[jnp.ndarray, SamplerState]:
+    ) -> tuple[jax.Array, SamplerState] | tuple[tuple[jax.Array, jax.Array], SamplerState]:
         """
         Samples `chain_length` batches of samples along the chains.
 
