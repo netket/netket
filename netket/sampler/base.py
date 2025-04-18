@@ -319,8 +319,8 @@ class Sampler(struct.Pytree):
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, then initialize and reset it.
             chain_length: The length of the chains (default = 1).
-            return_log_probabilities: If `True`, the log-probabilities are also returned.
-                Defaults to False.
+            return_log_probabilities: If `True`, the log-probabilities are also returned, which is sometimes
+                useful to avoid re-evaluating the log-pdf when doing importance sampling. Defaults to False.
 
         Returns:
             Returns a tuple of 'samples' and 'state'. If `return_log_probabilities` is False,
