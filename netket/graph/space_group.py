@@ -20,13 +20,10 @@ from functools import reduce
 from math import pi
 from collections.abc import Iterable, Sequence
 
-from .lattice import Lattice
-
 from netket.utils import struct, deprecated_new_name
-from netket.utils.types import Array, Union
+from netket.utils.types import Array
 from netket.utils.float import prune_zeros
 from netket.utils.dispatch import dispatch
-
 from netket.utils.group import (
     Element,
     Identity,
@@ -34,6 +31,8 @@ from netket.utils.group import (
     Permutation,
     PermutationGroup,
 )
+
+from .lattice import Lattice
 
 
 class Translation(Permutation):
@@ -154,7 +153,7 @@ class SpaceGroupBuilder(struct.Pytree):
         """
         The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
         """
-        perms = []
+        perms: list[Element] = []
         for p in self._point_group:
             if isinstance(p, Identity):
                 perms.append(Identity())
@@ -212,7 +211,7 @@ class SpaceGroupBuilder(struct.Pytree):
         )
 
     def translation_group(
-        self, axes: Union[int, Sequence[int]] | None = None
+        self, axes: int | Sequence[int] | None = None
     ) -> PermutationGroup:
         """
         The group of valid translations of `self.lattice` as a `PermutationGroup`

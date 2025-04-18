@@ -32,7 +32,13 @@
 """
 Utilities for defining custom classes that can be used with jax transformations.
 """
+from typing import TypeVar, overload
+from collections.abc import Callable
 
+# TODO: switch to typing when we require python 3.11
+from typing_extensions import (
+    dataclass_transform,  # pytype: disable=not-supported-yet
+)
 from functools import partial
 
 import dataclasses
@@ -300,7 +306,27 @@ def replace_hash_method(data_clz, *, globals=None):
     setattr(data_clz, "__hash__", fun)
 
 
-def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
+_T = TypeVar("_T")
+
+
+@dataclass_transform(field_specifiers=(field,))  # type: ignore[literal-required]
+@overload
+def dataclass(
+    clz: _T, init_doc=MISSING, cache_hash: bool = False, _frozen: bool = True
+) -> _T: ...
+
+
+@dataclass_transform(field_specifiers=(field,))  # type: ignore[literal-required]
+@overload
+def dataclass(
+    init_doc=MISSING, cache_hash: bool = False, _frozen: bool = True
+) -> Callable[[_T], _T]: ...
+
+
+@dataclass_transform(field_specifiers=(field,))  # type: ignore[literal-required]
+def dataclass(
+    clz=None, *, init_doc=MISSING, cache_hash: bool = False, _frozen: bool = True
+):
     """
     Decorator creating a NetKet-flavour dataclass.
     This behaves as a flax dataclass, that is a Frozen python dataclass, with a twist!
@@ -339,10 +365,9 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
         _frozen: (default True) controls whether the resulting class is frozen or not.
             If it is not frozen, extra care should be taken.
     """
+    # Support passing arguments to the decorator (e.g. @dataclass(kw_only=True))
     if clz is None:
-        return partial(
-            dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen
-        )
+        return partial(dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen)  # type: ignore[bad-return-type]
 
     is_pytree = Pytree in clz.__mro__
 
