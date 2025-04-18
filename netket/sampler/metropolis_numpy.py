@@ -198,7 +198,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
         return state
 
-    def _sample_next(self, machine, parameters, state):
+    def _sample_next(
+        self, machine, parameters, state
+    ) -> tuple[MetropolisNumpySamplerState, tuple[np.ndarray, np.ndarray]]:
         σ = state.σ
         σ1 = state.σ1
         log_prob = state.log_prob
@@ -266,7 +268,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         parameters: PyTree,
         state: MetropolisNumpySamplerState,
         chain_length: int,
-        return_probabilties: bool = False,
+        return_log_probabilities: bool = False,
     ) -> tuple[jnp.ndarray, MetropolisNumpySamplerState]:
         samples = np.empty(
             (chain_length, self.n_chains_per_rank, self.hilbert.size),
@@ -283,8 +285,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         samples = np.swapaxes(samples, 0, 1)
         log_probs = np.swapaxes(log_probs, 0, 1)
 
-        if return_probabilties:
-            return samples, log_probs, state
+        if return_log_probabilities:
+            return (samples, log_probs), state
         else:
             return samples, state
 

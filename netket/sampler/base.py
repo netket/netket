@@ -15,6 +15,7 @@
 import abc
 from collections.abc import Callable
 from collections.abc import Iterator
+from typing import overload, Literal
 
 import jax
 from jax import numpy as jnp
@@ -199,7 +200,7 @@ class Sampler(struct.Pytree):
 
         Args:
             model: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
 
         Returns:
             The log-probability density function.
@@ -238,7 +239,7 @@ class Sampler(struct.Pytree):
 
         Args:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
 
@@ -262,7 +263,7 @@ class Sampler(struct.Pytree):
 
         Args:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, it will be constructed
                 by calling :code:`sampler.init_state(machine, parameters)` with a random seed.
@@ -275,6 +276,7 @@ class Sampler(struct.Pytree):
 
         return self._reset(wrap_afun(machine), parameters, state)
 
+    @overload
     def sample(
         self,
         machine: Callable | nn.Module,
@@ -282,25 +284,60 @@ class Sampler(struct.Pytree):
         *,
         state: SamplerState | None = None,
         chain_length: int = 1,
-    ) -> tuple[jnp.ndarray, SamplerState]:
+        return_log_probabilities: Literal[False] = False,
+    ) -> tuple[jax.Array, SamplerState]: ...
+
+    @overload
+    def sample(
+        self,
+        machine: Callable | nn.Module,
+        parameters: PyTree,
+        *,
+        state: SamplerState | None = None,
+        chain_length: int = 1,
+        return_log_probabilities: Literal[True],
+    ) -> tuple[tuple[jax.Array, jax.Array], SamplerState]: ...
+
+    def sample(
+        self,
+        machine: Callable | nn.Module,
+        parameters: PyTree,
+        *,
+        state: SamplerState | None = None,
+        chain_length: int = 1,
+        return_log_probabilities: bool = False,
+    ) -> (
+        tuple[jax.Array, SamplerState]
+        | tuple[tuple[jax.Array, jax.Array], SamplerState]
+    ):
         """
         Samples `chain_length` batches of samples along the chains.
 
         Arguments:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, then initialize and reset it.
             chain_length: The length of the chains (default = 1).
+            return_log_probabilities: If `True`, the log-probabilities are also returned, which is sometimes
+                useful to avoid re-evaluating the log-pdf when doing importance sampling. Defaults to False.
 
         Returns:
-            σ: The generated batches of samples.
-            state: The new state of the sampler.
+            Returns a tuple of 'samples' and 'state'. If `return_log_probabilities` is False,
+            the samples are just the 3-rank array of samples. If `return_log_probabilities` is
+            True, the samples are a tuple of the 3-rank array of samples and the 2-rank array of
+            un-normalized log-probabilities corresponding to each sample.
         """
         if state is None:
             state = self.reset(machine, parameters)
 
-        return self._sample_chain(wrap_afun(machine), parameters, state, chain_length)
+        return self._sample_chain(
+            wrap_afun(machine),
+            parameters,
+            state,
+            chain_length,
+            return_log_probabilities=return_log_probabilities,
+        )
 
     def samples(
         self,
@@ -309,13 +346,13 @@ class Sampler(struct.Pytree):
         *,
         state: SamplerState | None = None,
         chain_length: int = 1,
-    ) -> Iterator[jnp.ndarray]:
+    ) -> Iterator[jax.Array]:
         """
         Returns a generator sampling `chain_length` batches of samples along the chains.
 
         Arguments:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, then initialize and reset it.
             chain_length: The length of the chains (default = 1).
@@ -336,7 +373,11 @@ class Sampler(struct.Pytree):
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
-    ) -> tuple[jnp.ndarray, SamplerState]:
+        return_log_probabilities: bool = False,
+    ) -> (
+        tuple[jax.Array, SamplerState]
+        | tuple[tuple[jax.Array, jax.Array], SamplerState]
+    ):
         """
         Implementation of `sample` for subclasses of `Sampler`.
 
@@ -350,10 +391,14 @@ class Sampler(struct.Pytree):
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler.
             chain_length: The length of the chains.
+            return_log_probabilities: If `True`, the log-probabilities are also returned.
+                Defaults to False.
 
         Returns:
-            σ: The generated batches of samples.
-            state: The new state of the sampler.
+            Returns a tuple of 'samples' and 'state'. If `return_log_probabilities` is False,
+            the samples are just the 3-rank array of samples. If `return_log_probabilities` is
+            True, the samples are a tuple of the 3-rank array of samples and the 2-rank array of
+            un-normalized log-probabilities corresponding to each sample.
         """
 
     @abc.abstractmethod

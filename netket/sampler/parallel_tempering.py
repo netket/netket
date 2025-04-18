@@ -530,7 +530,15 @@ class ParallelTemperingSampler(MetropolisSampler):
             σ, s["beta_0_index"][:, None, None]
         )
         σ_new = jax.lax.collapse(σ_new, 0, 2)  # remove dummy replica dim
-        return new_state, σ_new
+
+        log_prob = new_state.log_prob.reshape((-1, self.n_replicas))
+        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
+        log_prob_new = sharding_decorator(
+            partial(jnp.take_along_axis, axis=1), (True, True)
+        )(log_prob, s["beta_0_index"][:, None])
+        log_prob_new = jax.lax.collapse(log_prob_new, 0, 2)  # remove dummy replica dim
+
+        return new_state, (σ_new, log_prob_new)
 
 
 def ParallelTemperingLocal(hilbert, *args, **kwargs):
