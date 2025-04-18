@@ -15,6 +15,7 @@
 import abc
 from collections.abc import Callable
 from collections.abc import Iterator
+from typing import overload, Literal
 
 import jax
 from jax import numpy as jnp
@@ -275,6 +276,28 @@ class Sampler(struct.Pytree):
 
         return self._reset(wrap_afun(machine), parameters, state)
 
+    @overload
+    def sample(
+        self,
+        machine: Callable | nn.Module,
+        parameters: PyTree,
+        *,
+        state: SamplerState | None = None,
+        chain_length: int = 1,
+        return_log_probabilities: Literal[False] = False,
+    ) -> tuple[jax.Array, SamplerState]: ...
+
+    @overload
+    def sample(
+        self,
+        machine: Callable | nn.Module,
+        parameters: PyTree,
+        *,
+        state: SamplerState | None = None,
+        chain_length: int = 1,
+        return_log_probabilities: Literal[True],
+    ) -> tuple[tuple[jax.Array, jax.Array], SamplerState]: ...
+
     def sample(
         self,
         machine: Callable | nn.Module,
@@ -283,13 +306,16 @@ class Sampler(struct.Pytree):
         state: SamplerState | None = None,
         chain_length: int = 1,
         return_log_probabilities: bool = False,
-    ) -> tuple[jax.Array, SamplerState] | tuple[tuple[jax.Array, jax.Array], SamplerState]:
+    ) -> (
+        tuple[jax.Array, SamplerState]
+        | tuple[tuple[jax.Array, jax.Array], SamplerState]
+    ):
         """
         Samples `chain_length` batches of samples along the chains.
 
         Arguments:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, then initialize and reset it.
             chain_length: The length of the chains (default = 1).
@@ -320,13 +346,13 @@ class Sampler(struct.Pytree):
         *,
         state: SamplerState | None = None,
         chain_length: int = 1,
-    ) -> Iterator[jnp.ndarray]:
+    ) -> Iterator[jax.Array]:
         """
         Returns a generator sampling `chain_length` batches of samples along the chains.
 
         Arguments:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, then initialize and reset it.
             chain_length: The length of the chains (default = 1).
@@ -348,7 +374,10 @@ class Sampler(struct.Pytree):
         state: SamplerState,
         chain_length: int,
         return_log_probabilities: bool = False,
-    ) -> tuple[jnp.ndarray, SamplerState]:
+    ) -> (
+        tuple[jax.Array, SamplerState]
+        | tuple[tuple[jax.Array, jax.Array], SamplerState]
+    ):
         """
         Implementation of `sample` for subclasses of `Sampler`.
 
