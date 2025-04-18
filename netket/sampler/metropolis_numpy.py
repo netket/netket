@@ -148,49 +148,49 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         """
         return self.n_chains_per_rank
 
-    def _init_state(sampler, machine, parameters, key):
+    def _init_state(self, machine, parameters, key):
         rgen = np.random.default_rng(np.asarray(key))
 
-        σ = np.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
+        σ = np.zeros((self.n_batches, self.hilbert.size), dtype=self.dtype)
 
         ma_out = jax.eval_shape(machine.apply, parameters, σ)
 
         state = MetropolisNumpySamplerState(
             σ=σ,
             σ1=np.copy(σ),
-            log_prob=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
+            log_prob=np.zeros(self.n_batches, dtype=ma_out.dtype),
             log_prob_corr=np.zeros(
-                sampler.n_batches, dtype=nkjax.dtype_real(ma_out.dtype)
+                self.n_batches, dtype=nkjax.dtype_real(ma_out.dtype)
             ),
             rng=rgen,
-            rule_state=sampler.rule.init_state(sampler, machine, parameters, rgen),
+            rule_state=self.rule.init_state(self, machine, parameters, rgen),
         )
 
-        if not sampler.reset_chains:
+        if not self.reset_chains:
             key = jnp.asarray(
                 state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
             )
 
             state.σ = np.copy(
-                sampler.rule.random_state(sampler, machine, parameters, state, key)
+                self.rule.random_state(self, machine, parameters, state, key)
             )
 
         return state
 
-    def _reset(sampler, machine, parameters, state):
-        if sampler.reset_chains:
+    def _reset(self, machine, parameters, state):
+        if self.reset_chains:
             # directly generate a PRNGKey which is a [2xuint32] array
             key = jnp.asarray(
                 state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
             )
             state.σ = np.copy(
-                sampler.rule.random_state(sampler, machine, parameters, state, key)
+                self.rule.random_state(self, machine, parameters, state, key)
             )
 
-        state.rule_state = sampler.rule.reset(sampler, machine, parameters, state)
+        state.rule_state = self.rule.reset(self, machine, parameters, state)
         state.log_prob = np.array(
-            sampler.machine_pow
-            * apply_model(machine, parameters, state.σ, sampler.chunk_size).real
+            self.machine_pow
+            * apply_model(machine, parameters, state.σ, self.chunk_size).real
         )
 
         state._accepted_samples = 0
@@ -198,21 +198,21 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
         return state
 
-    def _sample_next(sampler, machine, parameters, state):
+    def _sample_next(self, machine, parameters, state):
         σ = state.σ
         σ1 = state.σ1
         log_prob = state.log_prob
         log_prob_corr = state.log_prob_corr
-        mpow = sampler.machine_pow
+        mpow = self.machine_pow
 
         rgen = state.rng
 
         accepted = 0
 
-        for sweep in range(sampler.sweep_size):
+        for sweep in range(self.sweep_size):
             # Propose a new state using the transition kernel
             # σp, log_prob_correction =
-            sampler.rule.transition(sampler, machine, parameters, state, state.rng, σ)
+            self.rule.transition(self, machine, parameters, state, state.rng, σ)
 
             if config.netket_experimental_sharding:
                 from jax.experimental.multihost_utils import (
@@ -227,7 +227,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 _log_prob = (
                     mpow
                     * apply_model(
-                        machine, parameters, all_samples, sampler.chunk_size
+                        machine, parameters, all_samples, self.chunk_size
                     ).real
                 )
                 assert len(_log_prob.addressable_shards) == 1
@@ -236,7 +236,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 )
             else:
                 _log_prob = (
-                    mpow * apply_model(machine, parameters, σ1, sampler.chunk_size).real
+                    mpow * apply_model(machine, parameters, σ1, self.chunk_size).real
                 )
 
             log_prob_1 = np.copy(_log_prob)
@@ -255,13 +255,13 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 random_uniform,
             )
 
-        state.n_steps_proc += sampler.sweep_size * sampler.n_chains_per_rank
+        state.n_steps_proc += self.sweep_size * self.n_chains_per_rank
         state.n_accepted_proc += accepted
 
         return state, (state.σ, state.log_prob)
 
     def _sample_chain(
-        sampler,
+        self,
         machine: Callable,
         parameters: PyTree,
         state: MetropolisNumpySamplerState,
@@ -269,13 +269,13 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         return_probabilties: bool = False,
     ) -> tuple[jnp.ndarray, MetropolisNumpySamplerState]:
         samples = np.empty(
-            (chain_length, sampler.n_chains_per_rank, sampler.hilbert.size),
-            dtype=sampler.dtype,
+            (chain_length, self.n_chains_per_rank, self.hilbert.size),
+            dtype=self.dtype,
         )
-        log_probs = np.empty((chain_length, sampler.n_chains_per_rank), dtype=float)
+        log_probs = np.empty((chain_length, self.n_chains_per_rank), dtype=float)
 
         for i in range(chain_length):
-            state, (σ, log_prob) = sampler.sample_next(machine, parameters, state)
+            state, (σ, log_prob) = self.sample_next(machine, parameters, state)
             samples[i] = σ
             log_probs[i] = log_prob
 
@@ -288,27 +288,27 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         else:
             return samples, state
 
-    def __repr__(sampler):
+    def __repr__(self):
         return (
             "MetropolisSamplerNumpy("
-            + f"\n  hilbert = {sampler.hilbert},"
-            + f"\n  rule = {sampler.rule},"
-            + f"\n  n_chains = {sampler.n_chains},"
-            + f"\n  machine_power = {sampler.machine_pow},"
-            + f"\n  reset_chains = {sampler.reset_chains},"
-            + f"\n  sweep_size = {sampler.sweep_size},"
-            + f"\n  dtype = {sampler.dtype},"
+            + f"\n  hilbert = {self.hilbert},"
+            + f"\n  rule = {self.rule},"
+            + f"\n  n_chains = {self.n_chains},"
+            + f"\n  machine_power = {self.machine_pow},"
+            + f"\n  reset_chains = {self.reset_chains},"
+            + f"\n  sweep_size = {self.sweep_size},"
+            + f"\n  dtype = {self.dtype},"
             + ")"
         )
 
-    def __str__(sampler):
+    def __str__(self):
         return (
             "MetropolisSamplerNumpy("
-            + f"rule = {sampler.rule}, "
-            + f"n_chains = {sampler.n_chains}, "
-            + f"machine_power = {sampler.machine_pow}, "
-            + f"sweep_size = {sampler.sweep_size}, "
-            + f"dtype = {sampler.dtype})"
+            + f"rule = {self.rule}, "
+            + f"n_chains = {self.n_chains}, "
+            + f"machine_power = {self.machine_pow}, "
+            + f"sweep_size = {self.sweep_size}, "
+            + f"dtype = {self.dtype})"
         )
 
 

@@ -268,18 +268,18 @@ class ParallelTemperingSampler(MetropolisSampler):
             else:
                 raise NotImplementedError(f"distribution: {self._beta_distribution}")
 
-    def __repr__(sampler):
+    def __repr__(self):
         return (
-            f"{type(sampler).__name__}("
-            + f"\n  hilbert = {sampler.hilbert},"
-            + f"\n  rule = {sampler.rule},"
-            + f"\n  n_chains = {sampler.n_chains},"
-            + f"\n  n_replicas = {sampler.n_replicas},"
-            + f"\n  beta_distribution = {sampler._beta_distribution},"
-            + f"\n  sweep_size = {sampler.sweep_size},"
-            + f"\n  reset_chains = {sampler.reset_chains},"
-            + f"\n  machine_power = {sampler.machine_pow},"
-            + f"\n  dtype = {sampler.dtype}"
+            f"{type(self).__name__}("
+            + f"\n  hilbert = {self.hilbert},"
+            + f"\n  rule = {self.rule},"
+            + f"\n  n_chains = {self.n_chains},"
+            + f"\n  n_replicas = {self.n_replicas},"
+            + f"\n  beta_distribution = {self._beta_distribution},"
+            + f"\n  sweep_size = {self.sweep_size},"
+            + f"\n  reset_chains = {self.reset_chains},"
+            + f"\n  machine_power = {self.machine_pow},"
+            + f"\n  dtype = {self.dtype}"
             + ")"
         )
 
@@ -304,22 +304,18 @@ class ParallelTemperingSampler(MetropolisSampler):
 
     @partial(jax.jit, static_argnums=1)
     def _init_state(
-        sampler, machine, parameters: PyTree, key: PRNGKeyT
+        self, machine, parameters: PyTree, key: PRNGKeyT
     ) -> ParallelTemperingSamplerState:
         key_state, key_rule, rng = jax.random.split(key, 3)
-        rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
-        σ = sampler.rule.random_state(sampler, machine, parameters, rule_state, rng)
+        rule_state = self.rule.init_state(self, machine, parameters, key_rule)
+        σ = self.rule.random_state(self, machine, parameters, rule_state, rng)
         σ = shard_along_axis(σ, axis=0)
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
-        log_prob = jnp.full(
-            (sampler.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype)
-        )
+        log_prob = jnp.full((self.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype))
         log_prob = shard_along_axis(log_prob, axis=0)
 
-        beta = jnp.tile(
-            sampler.sorted_betas, (sampler.n_batches // sampler.n_replicas, 1)
-        )
+        beta = jnp.tile(self.sorted_betas, (self.n_batches // self.n_replicas, 1))
 
         return ParallelTemperingSamplerState(
             σ=σ,
@@ -330,9 +326,7 @@ class ParallelTemperingSampler(MetropolisSampler):
         )
 
     @partial(jax.jit, static_argnums=1)
-    def _reset(
-        sampler, machine, parameters: PyTree, state: ParallelTemperingSamplerState
-    ):
+    def _reset(self, machine, parameters: PyTree, state: ParallelTemperingSamplerState):
         state = super()._reset(machine, parameters, state)
         return state.replace(
             n_accepted_per_beta=jnp.zeros_like(state.n_accepted_per_beta),
@@ -340,11 +334,11 @@ class ParallelTemperingSampler(MetropolisSampler):
             beta_diffusion=jnp.zeros_like(state.beta_diffusion),
             exchange_steps=jnp.zeros_like(state.exchange_steps),
             # beta=beta,
-            # beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),
+            # beta_0_index=jnp.zeros((self.n_chains,), dtype=jnp.int64),
         )
 
     def _sample_next(
-        sampler, machine, parameters: PyTree, state: ParallelTemperingSamplerState
+        self, machine, parameters: PyTree, state: ParallelTemperingSamplerState
     ):
         def loop_body(i, s):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
@@ -364,12 +358,12 @@ class ParallelTemperingSampler(MetropolisSampler):
             beta = s["beta"]
 
             ## Usual Metropolis sampling
-            σp, log_prob_correction = sampler.rule.transition(
-                sampler, machine, parameters, state, key1, s["σ"]
+            σp, log_prob_correction = self.rule.transition(
+                self, machine, parameters, state, key1, s["σ"]
             )
-            proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
+            proposal_log_prob = self.machine_pow * machine.apply(parameters, σp).real
 
-            uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
+            uniform = jax.random.uniform(key2, shape=(self.n_batches,))
             if log_prob_correction is not None:
                 do_accept = uniform < jnp.exp(
                     beta.reshape((-1,))
@@ -383,7 +377,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             # do_accept must match ndim of proposal and state (which is 2)
             s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
             n_accepted_per_beta = s["n_accepted_per_beta"] + do_accept.reshape(
-                (sampler.n_batches // sampler.n_replicas, sampler.n_replicas)
+                (self.n_batches // self.n_replicas, self.n_replicas)
             )
 
             s["log_prob"] = jax.numpy.where(
@@ -397,15 +391,15 @@ class ParallelTemperingSampler(MetropolisSampler):
                 key3,
                 minval=0,
                 maxval=2,
-                shape=(sampler.n_batches // sampler.n_replicas,),
+                shape=(self.n_batches // self.n_replicas,),
             )  # 0 or 1
 
             # indices of even swapped elements (per-row)
-            idxs = jnp.arange(0, sampler.n_replicas, 2).reshape(
+            idxs = jnp.arange(0, self.n_replicas, 2).reshape(
                 (1, -1)
             ) + swap_order.reshape((-1, 1))
             # indices off odd swapped elements (per-row)
-            inn = (idxs + 1) % sampler.n_replicas
+            inn = (idxs + 1) % self.n_replicas
 
             # for every rows of the input, swap elements at idxs with elements at inn
             @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
@@ -430,7 +424,7 @@ class ParallelTemperingSampler(MetropolisSampler):
 
             # compute the probability of the swaps
             log_prob = (proposed_beta - s["beta"]) * s["log_prob"].reshape(
-                (sampler.n_batches // sampler.n_replicas, sampler.n_replicas)
+                (self.n_batches // self.n_replicas, self.n_replicas)
             )
 
             prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
@@ -438,8 +432,8 @@ class ParallelTemperingSampler(MetropolisSampler):
             uniform = jax.random.uniform(
                 key4,
                 shape=(
-                    sampler.n_batches // sampler.n_replicas,
-                    sampler.n_replicas // 2,
+                    self.n_batches // self.n_replicas,
+                    self.n_replicas // 2,
                 ),
             )
 
@@ -447,7 +441,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             do_swap = uniform < prob_rescaled
 
             do_swap = jnp.dstack((do_swap, do_swap)).reshape(
-                (-1, sampler.n_replicas)
+                (-1, self.n_replicas)
             )  # concat along last dimension
 
             # roll if swap_order is odd
@@ -469,7 +463,7 @@ class ParallelTemperingSampler(MetropolisSampler):
                 s["beta_0_index"]
                 + (-2 * jnp.mod(swap_order, 2) + 1)
                 * (-2 * jnp.mod(s["beta_0_index"], 2) + 1),
-                sampler.n_replicas,
+                self.n_replicas,
             )
 
             s["beta_0_index"] = jnp.where(
@@ -498,7 +492,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             "key": state.rng,
             "σ": state.σ,
             # Log prob is already computed in reset, so don't recompute it.
-            # "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
+            # "log_prob": self.machine_pow * apply_machine(parameters, state.σ).real,
             "log_prob": state.log_prob,
             "beta": state.beta,
             # for logging
@@ -508,7 +502,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             "beta_diffusion": state.beta_diffusion,
             "exchange_steps": state.exchange_steps,
         }
-        s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
+        s = jax.lax.fori_loop(0, self.sweep_size, loop_body, s)
 
         # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
         n_accepted_proc = sharding_decorator(jax.vmap(jnp.take), (True, True))(
@@ -520,7 +514,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             σ=s["σ"],
             log_prob=s["log_prob"],
             n_steps_proc=state.n_steps_proc
-            + sampler.sweep_size * sampler.n_batches // sampler.n_replicas,
+            + self.sweep_size * self.n_batches // self.n_replicas,
             beta=s["beta"],
             beta_0_index=s["beta_0_index"],
             beta_position=s["beta_position"],
@@ -530,7 +524,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             n_accepted_proc=n_accepted_proc,
         )
         σ_flat = new_state.σ
-        σ = σ_flat.reshape((-1, sampler.n_replicas, σ_flat.shape[-1]))
+        σ = σ_flat.reshape((-1, self.n_replicas, σ_flat.shape[-1]))
         # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
         σ_new = sharding_decorator(partial(jnp.take_along_axis, axis=1), (True, True))(
             σ, s["beta_0_index"][:, None, None]

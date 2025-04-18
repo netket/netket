@@ -339,7 +339,7 @@ class MetropolisSampler(Sampler):
         return self.sweep_size
 
     def sample_next(
-        sampler,
+        self,
         machine: Callable | nn.Module,
         parameters: PyTree,
         state: SamplerState | None = None,
@@ -363,21 +363,19 @@ class MetropolisSampler(Sampler):
             a scan function the first returned argument should be the state.
         """
         if state is None:
-            state = sampler.reset(machine, parameters)
+            state = self.reset(machine, parameters)
 
-        return sampler._sample_next(wrap_afun(machine), parameters, state)
+        return self._sample_next(wrap_afun(machine), parameters, state)
 
     @partial(jax.jit, static_argnums=1)
-    def _init_state(sampler, machine, parameters, key):
+    def _init_state(self, machine, parameters, key):
         key_state, key_rule = jax.random.split(key)
-        rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
-        σ = jnp.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
+        rule_state = self.rule.init_state(self, machine, parameters, key_rule)
+        σ = jnp.zeros((self.n_batches, self.hilbert.size), dtype=self.dtype)
         σ = shard_along_axis(σ, axis=0)
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
-        log_prob = jnp.full(
-            (sampler.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype)
-        )
+        log_prob = jnp.full((self.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype))
         log_prob = shard_along_axis(log_prob, axis=0)
 
         state = MetropolisSamplerState(
@@ -385,31 +383,31 @@ class MetropolisSampler(Sampler):
         )
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
-        if not sampler.reset_chains:
+        if not self.reset_chains:
             key_state, rng = jax.jit(jax.random.split)(key_state)
-            σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+            σ = self.rule.random_state(self, machine, parameters, state, rng)
             _assert_good_sample_shape(
                 σ,
-                (sampler.n_batches, sampler.hilbert.size),
-                sampler.dtype,
-                f"{sampler.rule}.random_state",
+                (self.n_batches, self.hilbert.size),
+                self.dtype,
+                f"{self.rule}.random_state",
             )
             σ = shard_along_axis(σ, axis=0)
             state = state.replace(σ=σ, rng=key_state)
         return state
 
     @partial(jax.jit, static_argnums=1)
-    def _reset(sampler, machine, parameters, state):
+    def _reset(self, machine, parameters, state):
         rng = state.rng
 
-        if sampler.reset_chains:
+        if self.reset_chains:
             rng, key = jax.random.split(state.rng)
-            σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+            σ = self.rule.random_state(self, machine, parameters, state, key)
             _assert_good_sample_shape(
                 σ,
-                (sampler.n_batches, sampler.hilbert.size),
-                sampler.dtype,
-                f"{sampler.rule}.random_state",
+                (self.n_batches, self.hilbert.size),
+                self.dtype,
+                f"{self.rule}.random_state",
             )
             σ = shard_along_axis(σ, axis=0)
         else:
@@ -417,11 +415,11 @@ class MetropolisSampler(Sampler):
 
         # Recompute the log_probability of the current samples
         apply_machine = apply_chunked(
-            machine.apply, in_axes=(None, 0), chunk_size=sampler.chunk_size
+            machine.apply, in_axes=(None, 0), chunk_size=self.chunk_size
         )
-        log_prob_σ = sampler.machine_pow * apply_machine(parameters, σ).real
+        log_prob_σ = self.machine_pow * apply_machine(parameters, σ).real
 
-        rule_state = sampler.rule.reset(sampler, machine, parameters, state)
+        rule_state = self.rule.reset(self, machine, parameters, state)
 
         return state.replace(
             σ=σ,
@@ -432,7 +430,7 @@ class MetropolisSampler(Sampler):
             n_accepted_proc=jnp.zeros_like(state.n_accepted_proc),
         )
 
-    def _sample_next(sampler, machine, parameters, state):
+    def _sample_next(self, machine, parameters, state):
         """
         Implementation of `sample_next` for subclasses of `MetropolisSampler`.
 
@@ -440,26 +438,26 @@ class MetropolisSampler(Sampler):
         itself, because `sample_next` contains some common logic.
         """
         apply_machine = apply_chunked(
-            machine.apply, in_axes=(None, 0), chunk_size=sampler.chunk_size
+            machine.apply, in_axes=(None, 0), chunk_size=self.chunk_size
         )
 
         def loop_body(i, s):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
             s["key"], key1, key2 = jax.random.split(s["key"], 3)
 
-            σp, log_prob_correction = sampler.rule.transition(
-                sampler, machine, parameters, state, key1, s["σ"]
+            σp, log_prob_correction = self.rule.transition(
+                self, machine, parameters, state, key1, s["σ"]
             )
             _assert_good_sample_shape(
                 σp,
-                (sampler.n_batches, sampler.hilbert.size),
-                sampler.dtype,
-                f"{sampler.rule}.transition",
+                (self.n_batches, self.hilbert.size),
+                self.dtype,
+                f"{self.rule}.transition",
             )
-            proposal_log_prob = sampler.machine_pow * apply_machine(parameters, σp).real
-            _assert_good_log_prob_shape(proposal_log_prob, sampler.n_batches, machine)
+            proposal_log_prob = self.machine_pow * apply_machine(parameters, σp).real
+            _assert_good_log_prob_shape(proposal_log_prob, self.n_batches, machine)
 
-            uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
+            uniform = jax.random.uniform(key2, shape=(self.n_batches,))
             if log_prob_correction is not None:
                 do_accept = uniform < jnp.exp(
                     proposal_log_prob - s["log_prob"] + log_prob_correction
@@ -481,32 +479,31 @@ class MetropolisSampler(Sampler):
             "key": state.rng,
             "σ": state.σ,
             # Log prob is already computed in reset, so don't recompute it.
-            # "log_prob": sampler.machine_pow * apply_machine(parameters, state.σ).real,
+            # "log_prob": self.machine_pow * apply_machine(parameters, state.σ).real,
             "log_prob": state.log_prob,
             # for logging
             "accepted": state.n_accepted_proc,
         }
-        s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
+        s = jax.lax.fori_loop(0, self.sweep_size, loop_body, s)
 
         new_state = state.replace(
             rng=s["key"],
             σ=s["σ"],
             log_prob=s["log_prob"],
             n_accepted_proc=s["accepted"],
-            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches,
+            n_steps_proc=state.n_steps_proc + self.sweep_size * self.n_batches,
         )
 
         return new_state, new_state.σ
 
     @partial(jax.jit, static_argnums=(1, 4))
-    def _sample_chain(sampler, machine, parameters, state, chain_length):
+    def _sample_chain(self, machine, parameters, state, chain_length):
         """
         Samples `chain_length` batches of samples along the chains.
 
         Internal method used for jitting calls.
 
         Arguments:
-            sampler: The Monte Carlo sampler.
             machine: A Flax module with the forward pass of the log-pdf.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler.
@@ -517,7 +514,7 @@ class MetropolisSampler(Sampler):
             state: The new state of the sampler
         """
         state, samples = jax.lax.scan(
-            lambda state, _: sampler.sample_next(machine, parameters, state),
+            lambda state, _: self.sample_next(machine, parameters, state),
             state,
             xs=None,
             length=chain_length,
@@ -526,28 +523,28 @@ class MetropolisSampler(Sampler):
         samples = jnp.swapaxes(samples, 0, 1)
         return samples, state
 
-    def __repr__(sampler):
+    def __repr__(self):
         return (
-            f"{type(sampler).__name__}("
-            + f"\n  hilbert = {sampler.hilbert},"
-            + f"\n  rule = {sampler.rule},"
-            + f"\n  n_chains = {sampler.n_chains},"
-            + f"\n  sweep_size = {sampler.sweep_size},"
-            + f"\n  reset_chains = {sampler.reset_chains},"
-            + f"\n  machine_power = {sampler.machine_pow},"
-            + f"\n  dtype = {sampler.dtype}"
+            f"{type(self).__name__}("
+            + f"\n  hilbert = {self.hilbert},"
+            + f"\n  rule = {self.rule},"
+            + f"\n  n_chains = {self.n_chains},"
+            + f"\n  sweep_size = {self.sweep_size},"
+            + f"\n  reset_chains = {self.reset_chains},"
+            + f"\n  machine_power = {self.machine_pow},"
+            + f"\n  dtype = {self.dtype}"
             + ")"
         )
 
-    def __str__(sampler):
+    def __str__(self):
         return (
-            f"{type(sampler).__name__}("
-            + f"rule = {sampler.rule}, "
-            + f"n_chains = {sampler.n_chains}, "
-            + f"sweep_size = {sampler.sweep_size}, "
-            + f"reset_chains = {sampler.reset_chains}, "
-            + f"machine_power = {sampler.machine_pow}, "
-            + f"dtype = {sampler.dtype})"
+            f"{type(self).__name__}("
+            + f"rule = {self.rule}, "
+            + f"n_chains = {self.n_chains}, "
+            + f"sweep_size = {self.sweep_size}, "
+            + f"reset_chains = {self.reset_chains}, "
+            + f"machine_power = {self.machine_pow}, "
+            + f"dtype = {self.dtype})"
         )
 
 

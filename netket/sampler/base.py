@@ -216,7 +216,7 @@ class Sampler(struct.Pytree):
         return log_pdf
 
     def init_state(
-        sampler,
+        self,
         machine: Callable | nn.Module,
         parameters: PyTree,
         seed: SeedT | None = None,
@@ -249,10 +249,10 @@ class Sampler(struct.Pytree):
         key = nkjax.PRNGKey(seed)
         key = nkjax.mpi_split(key)
 
-        return sampler._init_state(wrap_afun(machine), parameters, key)
+        return self._init_state(wrap_afun(machine), parameters, key)
 
     def reset(
-        sampler,
+        self,
         machine: Callable | nn.Module,
         parameters: PyTree,
         state: SamplerState | None = None,
@@ -271,12 +271,12 @@ class Sampler(struct.Pytree):
             A valid sampler state.
         """
         if state is None:
-            state = sampler.init_state(machine, parameters)
+            state = self.init_state(machine, parameters)
 
-        return sampler._reset(wrap_afun(machine), parameters, state)
+        return self._reset(wrap_afun(machine), parameters, state)
 
     def sample(
-        sampler,
+        self,
         machine: Callable | nn.Module,
         parameters: PyTree,
         *,
@@ -298,14 +298,12 @@ class Sampler(struct.Pytree):
             state: The new state of the sampler.
         """
         if state is None:
-            state = sampler.reset(machine, parameters)
+            state = self.reset(machine, parameters)
 
-        return sampler._sample_chain(
-            wrap_afun(machine), parameters, state, chain_length
-        )
+        return self._sample_chain(wrap_afun(machine), parameters, state, chain_length)
 
     def samples(
-        sampler,
+        self,
         machine: Callable | nn.Module,
         parameters: PyTree,
         *,
@@ -323,17 +321,17 @@ class Sampler(struct.Pytree):
             chain_length: The length of the chains (default = 1).
         """
         if state is None:
-            state = sampler.reset(machine, parameters)
+            state = self.reset(machine, parameters)
 
         machine = wrap_afun(machine)
 
         for _i in range(chain_length):
-            samples, state = sampler._sample_chain(machine, parameters, state, 1)
+            samples, state = self._sample_chain(machine, parameters, state, 1)
             yield samples[:, 0, :]
 
     @abc.abstractmethod
     def _sample_chain(
-        sampler,
+        self,
         machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
@@ -359,7 +357,7 @@ class Sampler(struct.Pytree):
         """
 
     @abc.abstractmethod
-    def _init_state(sampler, machine, params, seed) -> SamplerState:
+    def _init_state(self, machine, params, seed) -> SamplerState:
         """
         Implementation of `init_state` for subclasses of `Sampler`.
 
@@ -368,7 +366,7 @@ class Sampler(struct.Pytree):
         """
 
     @abc.abstractmethod
-    def _reset(sampler, machine, parameters, state):
+    def _reset(self, machine, parameters, state):
         """
         Implementation of `reset` for subclasses of `Sampler`.
 

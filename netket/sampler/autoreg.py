@@ -94,19 +94,19 @@ class ARDirectSampler(Sampler):
         """
         return True
 
-    def _init_cache(sampler, model, σ, key):
+    def _init_cache(self, model, σ, key):
         variables = model.init(key, σ, 0, method=model.conditional)
         cache = variables.get("cache")
         return cache
 
-    def _init_state(sampler, model, variables, key):
+    def _init_state(self, model, variables, key):
         return ARDirectSamplerState(key=key)
 
-    def _reset(sampler, model, variables, state):
+    def _reset(self, model, variables, state):
         return state
 
     @partial(jax.jit, static_argnums=(1, 4))
-    def _sample_chain(sampler, model, variables, state, chain_length):
+    def _sample_chain(self, model, variables, state, chain_length):
         if "cache" in variables:
             variables, _ = flax.core.pop(variables, "cache")
         variables_no_cache = variables
@@ -128,9 +128,7 @@ class ARDirectSampler(Sampler):
             )
             cache = mutables.get("cache")
 
-            local_states = jnp.asarray(
-                sampler.hilbert.local_states, dtype=sampler.dtype
-            )
+            local_states = jnp.asarray(self.hilbert.local_states, dtype=self.dtype)
             new_σ = nkjax.batch_choice(key, local_states, p)
             σ = σ.at[:, index].set(new_σ)
 
@@ -141,8 +139,8 @@ class ARDirectSampler(Sampler):
         # Initialize a buffer for `σ` before generating a batch of samples
         # The result should not depend on its initial content
         σ = jnp.zeros(
-            (sampler.n_batches * chain_length, sampler.hilbert.size),
-            dtype=sampler.dtype,
+            (self.n_batches * chain_length, self.hilbert.size),
+            dtype=self.dtype,
         )
 
         if config.netket_experimental_sharding:
@@ -152,16 +150,16 @@ class ARDirectSampler(Sampler):
 
         # Initialize `cache` before generating a batch of samples,
         # even if `variables` is not changed and `reset` is not called
-        cache = sampler._init_cache(model, σ, key_init)
+        cache = self._init_cache(model, σ, key_init)
         if cache:
             variables = {**variables_no_cache, "cache": cache}
         else:
             variables = variables_no_cache
 
-        indices = jnp.arange(sampler.hilbert.size)
+        indices = jnp.arange(self.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
         (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
-        σ = σ.reshape((sampler.n_batches, chain_length, sampler.hilbert.size))
+        σ = σ.reshape((self.n_batches, chain_length, self.hilbert.size))
 
         new_state = state.replace(key=new_key)
         return σ, new_state
