@@ -77,17 +77,17 @@ class ExactSampler(Sampler):
         return True
 
     def _init_state(
-        sampler,
+        self,
         machine: nn.Module,
         parameters: PyTree,
         seed: SeedT | None = None,
     ):
-        pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
+        pdf = jnp.zeros(self.hilbert.n_states, dtype=jnp.float32)
         return ExactSamplerState(pdf=pdf, rng=seed)
 
-    def _reset(sampler, machine, parameters, state):
+    def _reset(self, machine, parameters, state):
         pdf = jnp.absolute(
-            to_array(sampler.hilbert, machine.apply, parameters) ** sampler.machine_pow
+            to_array(self.hilbert, machine.apply, parameters) ** self.machine_pow
         )
         pdf = pdf / pdf.sum()
 
@@ -95,7 +95,7 @@ class ExactSampler(Sampler):
 
     @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(
-        sampler,
+        self,
         machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
@@ -107,16 +107,16 @@ class ExactSampler(Sampler):
         new_rng, rng = jax.random.split(state.rng)
         numbers = jax.random.choice(
             rng,
-            sampler.hilbert.n_states,
+            self.hilbert.n_states,
             shape=(
-                sampler.n_batches,
+                self.n_batches,
                 chain_length,
             ),
             replace=True,
             p=state.pdf,
         )
 
-        samples = sampler.hilbert.numbers_to_states(numbers).astype(sampler.dtype)
+        samples = self.hilbert.numbers_to_states(numbers).astype(self.dtype)
 
         # TODO run the part above in parallel
         if config.netket_experimental_sharding:
