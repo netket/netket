@@ -531,7 +531,7 @@ class ParallelTemperingSampler(MetropolisSampler):
         )
         σ_new = jax.lax.collapse(σ_new, 0, 2)  # remove dummy replica dim
 
-        log_prob = new_state.log_prob.reshape((-1, sampler.n_replicas))
+        log_prob = new_state.log_prob.reshape((-1, self.n_replicas))
         # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
         log_prob_new = sharding_decorator(
             partial(jnp.take_along_axis, axis=1), (True, True)
