@@ -30,6 +30,7 @@ from .base import Sampler, SamplerState
 
 class ExactSamplerState(SamplerState):
     pdf: jnp.ndarray = struct.field(serialize=False)
+    pdf_norm: jnp.ndarray = struct.field(serialize=False)
     rng: jnp.ndarray = struct.field(
         sharded=struct.ShardedFieldSpec(
             sharded=True, deserialization_function="relaxed-rng-key"
@@ -39,6 +40,7 @@ class ExactSamplerState(SamplerState):
     def __init__(self, pdf: Any, rng: Any):
         self.pdf = pdf
         self.rng = rng
+        self.pdf_norm = jnp.zeros((), dtype=self.pdf.dtype)
         super().__init__()
 
     def __repr__(self):
@@ -77,46 +79,54 @@ class ExactSampler(Sampler):
         return True
 
     def _init_state(
-        sampler,
+        self,
         machine: nn.Module,
         parameters: PyTree,
         seed: SeedT | None = None,
     ):
-        pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
+        pdf = jnp.zeros(self.hilbert.n_states, dtype=jnp.float32)
         return ExactSamplerState(pdf=pdf, rng=seed)
 
-    def _reset(sampler, machine, parameters, state):
+    def _reset(self, machine, parameters, state):
         pdf = jnp.absolute(
-            to_array(sampler.hilbert, machine.apply, parameters) ** sampler.machine_pow
+            to_array(self.hilbert, machine.apply, parameters, normalize=False)
+            ** self.machine_pow
         )
-        pdf = pdf / pdf.sum()
+        pdf_norm = pdf.sum()
+        pdf = pdf / pdf_norm
 
-        return state.replace(pdf=pdf)
+        return state.replace(pdf=pdf, pdf_norm=pdf_norm)
 
-    @partial(jax.jit, static_argnums=(1, 4))
+    @partial(
+        jax.jit, static_argnames=("machine", "chain_length", "return_log_probabilities")
+    )
     def _sample_chain(
-        sampler,
+        self,
         machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
-    ) -> tuple[jnp.ndarray, SamplerState]:
+        return_log_probabilities: bool = False,
+    ) -> (
+        tuple[jax.Array, SamplerState]
+        | tuple[tuple[jax.Array, jax.Array], SamplerState]
+    ):
         # Reimplement sample_chain because we can sample the whole 'chain' in one
         # go, since it's not really a chain anyway. This will be much faster because
         # we call into python only once.
         new_rng, rng = jax.random.split(state.rng)
         numbers = jax.random.choice(
             rng,
-            sampler.hilbert.n_states,
+            self.hilbert.n_states,
             shape=(
-                sampler.n_batches,
+                self.n_batches,
                 chain_length,
             ),
             replace=True,
             p=state.pdf,
         )
 
-        samples = sampler.hilbert.numbers_to_states(numbers).astype(sampler.dtype)
+        samples = self.hilbert.numbers_to_states(numbers).astype(self.dtype)
 
         # TODO run the part above in parallel
         if config.netket_experimental_sharding:
@@ -125,4 +135,13 @@ class ExactSampler(Sampler):
                 jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1, 1),
             )
 
-        return samples, state.replace(rng=new_rng)
+        if return_log_probabilities:
+            log_probabilities = jnp.log(state.pdf[numbers]) + jnp.log(state.pdf_norm)
+            if config.netket_experimental_sharding:
+                log_probabilities = jax.lax.with_sharding_constraint(
+                    log_probabilities,
+                    jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1),
+                )
+            return (samples, log_probabilities), state.replace(rng=new_rng)
+        else:
+            return samples, state.replace(rng=new_rng)

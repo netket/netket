@@ -44,6 +44,13 @@ def maybecopy(maybe_arr):
         return maybe_arr
 
 
+def replace_none_with_nan(item):
+    # recursively replace None with np.nan in lists
+    if isinstance(item, list):
+        return [replace_none_with_nan(subitem) for subitem in item]
+    return np.nan if item is None else item
+
+
 class History:
     """
     A class to store a time-series of arbitrary data.
@@ -60,6 +67,8 @@ class History:
     If only one time-series is provided, without a key, then its name will
     be `value`.
     """
+
+    __slots__ = ("_value_dict", "_value_name", "_single_value", "_keys")
 
     def __init__(
         self,
@@ -114,6 +123,7 @@ class History:
         if is_scalar(iters):
             iters = np.array([iters], dtype=iter_dtype)
         elif isinstance(iters, list):
+            iters = [np.nan if x is None else x for x in iters]
             iters = np.array(iters, dtype=iter_dtype)
 
         n_elements = len(iters)
@@ -162,7 +172,12 @@ class History:
                 raise_if_len_not_match(len(val), n_elements, key)
 
             elif isinstance(val, list):
-                val = np.asarray(val, dtype=dtype)
+                # see below
+                # val = np.asarray(val, dtype=dtype)
+
+                # Recursively replace None with np.nan in nested lists
+                # only relevant for loading from json on disk
+                val = np.asarray(replace_none_with_nan(val), dtype=dtype)
             else:
                 val = [val]
 
@@ -171,7 +186,6 @@ class History:
 
         self._value_dict = value_dict
         self._value_name = main_value_name
-        self._len = n_elements
         self._single_value = single_value
         self._keys = keys
 
@@ -191,7 +205,7 @@ class History:
         return self._value_dict[self._value_name]
 
     def __len__(self) -> int:
-        return self._len
+        return len(self.iters)
 
     def __getitem__(self, key) -> Array:
         # if its an int corresponding to an element not inside the dict,
@@ -391,8 +405,6 @@ def append(self: History, val: History, it: Any):  # noqa: E0102, F811
         self._value_dict[key] = np.concatenate([self[key], val[key]])
 
     self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
-
-    self._len = len(self) + len(val)
     return self
 
 
@@ -423,7 +435,6 @@ def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
         self._value_dict["iters"] = np.resize(self.iters, (len(self.iters) + 1))
 
     self.iters[-1] = it
-    self._len += 1
     return self
 
 

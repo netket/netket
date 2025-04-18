@@ -54,22 +54,6 @@ They are experimental, meaning that we could change them at some point, and we a
 
 ```
 
-### Parallel tempering samplers
-
-An experimental sampler is MetropolisSamplerPmap, which makes use of {func}`jax.pmap`
-to use different GPUs/CPUs without having to use MPI. It should scale much better over
-several CPUs, but you have to start jax with a specific environment variable.
-
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/samplers
-   :template: class
-   :nosignatures:
-
-   sampler.MetropolisSamplerPmap
-```
-
 (experimental-fermions-api)=
 ## Fermions and PyScf
 

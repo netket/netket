@@ -69,6 +69,14 @@ class HistoryDict:
         self._data[key] = value
 
     def __getitem__(self, key: str, *, wrap_dicts=True) -> History | Self:
+        if key not in self._data and "/" in key:
+            keys = key.split("/")
+            val = self._data
+            for subkey in keys:
+                val = val[subkey]  # Traverse through subdictionaries
+            if wrap_dicts and isinstance(val, dict):
+                return HistoryDict(val)
+            return val
         val = self._data[key]
         if wrap_dicts and isinstance(val, dict):
             return HistoryDict(val)
@@ -133,14 +141,14 @@ class HistoryDict:
         with open(fname) as f:
             data = orjson.loads(f.read())
 
-        from .history import History
+        data = histdict_to_nparray(data)
 
         def _recompose(hist_dict):
             # hist_dict = {k: np.array(v) for k, v in hist_dict.items()}
-            if "Mean" in hist_dict:
-                return History(hist_dict, main_value_name="Mean")
-            else:
-                return History(hist_dict)
+            for _, checker, reconstructor in DESERIALIZATION_REGISTRY:
+                if checker(hist_dict):
+                    return reconstructor(hist_dict)
+            raise ValueError("No matching type found for the given dictionary.")
 
         def _is_leaf(dic):
             if isinstance(dic, dict):
@@ -152,3 +160,80 @@ class HistoryDict:
 
     def _ipython_key_completions_(self):
         return self._data.keys()
+
+
+# Loading
+# A registry to map types to their precedence, checker, and reconstructor functions
+DESERIALIZATION_REGISTRY = []
+
+
+def register_historydict_deserialization_fun(
+    checker: callable,
+    reconstructor: callable,
+    precedence: int = 0,
+):
+    """
+    Register a type with a precedence, checker, and reconstructor.
+
+    Args:
+        checker: A callable that takes a dictionary and returns True if it matches the type.
+        reconstructor: A callable that takes a dictionary and reconstructs the object.
+        precedence: An integer indicating the precedence of this type (higher is checked first).
+    """
+    DESERIALIZATION_REGISTRY.append((precedence, checker, reconstructor))
+    # Sort the registry by precedence in descending order
+    DESERIALIZATION_REGISTRY.sort(key=lambda x: x[0], reverse=True)
+
+
+# Checker and reconstructor for History
+def is_history(hist_dict):
+    return "iters" in hist_dict
+
+
+def reconstruct_history(hist_dict):
+    from netket.utils.history.history import History
+
+    if "Mean" in hist_dict:
+        return History(hist_dict, main_value_name="Mean")
+    return History(hist_dict)
+
+
+# Register History with precedence 10
+register_historydict_deserialization_fun(
+    is_history, reconstruct_history, precedence=-10
+)
+
+
+"""
+Json serializer for complex numbers.
+
+Json does not support complex numbers, which are stored as {"real": ..., "imag": ...} dictionaries.
+This is a workaround to store complex numbers in json files.
+"""
+
+
+def _is_number_list(x):
+    return (
+        isinstance(x, list) and len(x) > 0 and isinstance(x[0], (int, float, complex))
+    )
+
+
+def _is_complex_leaf(subtree):
+    # Print only if you want to debug
+    # print("checking if subtree is leaf", subtree)
+    return (
+        isinstance(subtree, dict) and "real" in subtree and "imag" in subtree
+    ) or _is_number_list(subtree)
+
+
+def _convert_complex(subtree):
+    if isinstance(subtree, dict) and "real" in subtree and "imag" in subtree:
+        return np.array(subtree["real"]) + 1j * np.array(subtree["imag"])
+    return np.array(subtree)
+
+
+def histdict_to_nparray(hist_dict):
+    """
+    Convert the {'real': ..., 'imag': ...} dictionaries to complex numbers.
+    """
+    return jax.tree.map(_convert_complex, hist_dict, is_leaf=_is_complex_leaf)

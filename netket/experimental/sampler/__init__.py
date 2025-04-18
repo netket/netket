@@ -14,8 +14,6 @@
 
 from . import rules
 
-from .metropolis_pmap import MetropolisSamplerPmap
-
 
 # Deprecated bindings from stabilisaation
 from netket.sampler import (
@@ -23,6 +21,7 @@ from netket.sampler import (
     ParallelTemperingLocal as _deprecated_MetropolisLocalPtSampler,
     ParallelTemperingExchange as _deprecated_MetropolisExchangePtSampler,
     MetropolisFermionHop as _deprecated_MetropolisParticleExchange,
+    MetropolisSampler as _deprecated_MetropolisSampler,
 )
 
 _deprecations = {
@@ -47,6 +46,12 @@ _deprecations = {
         "netket.experimental.sampler.MetropolisParticleExchange is deprecated: use "
         "netket.sampler.MetropolisFermionHop (netket >= 3.13)",
         _deprecated_MetropolisParticleExchange,
+    ),
+    # June 2025
+    "MetropolisSamplerPmap": (
+        "netket.experimental.sampler.MetropolisSamplerPmap is deprecated: just use "
+        "netket.sampler.MetropolisSampler",
+        _deprecated_MetropolisSampler,
     ),
 }
 

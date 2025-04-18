@@ -5,11 +5,19 @@
 
 ## NetKet 3.17 (In development)
 
-### Breaking Changes
+This version (as all previous versions) are incompatible with Jax 0.6 . A future release will make it compatible.
 
-### Deprecations
+### Breaking Changes
+* The {meth}`~netket.sampler.Sampler._sample_chain` method of {class}`~netket.sampler.Sampler`, as well as {meth}`~netket.sampler.MetropolisSampler._sample_next` is now passed a new optional keyword argument, `return_log_probabilities`. This means that custom samplers will stop working unless they start accepting this new extra keyword argument. To upgrade, we suggest to simply raise an error if this extra argument is True [#2012](https://github.com/netket/netket/pull/2012).
+
+### New Features
+* The {meth}`~netket.sampler.Sampler.sample` method of {class}`~netket.sampler.Sampler` now accepts a new optional keyword argument, `return_log_probabilities` which, if specified, will make the samplers return both the samples and the corresponding log-probabilities. The default is False, and therefore the default behaviour is unchanged [#2012](https://github.com/netket/netket/pull/2012).
+
+### Improvements
+* When loading log files with {meth}`netket.utils.history.HistoryDict.from_file`, the real and imaginary part are re-joined together to reproduce the original history objects, and `np.nan` are also correctly deserialized [#2025](https://github.com/netket/netket/pull/2025).
 
 ### Bug Fixes
+* A minor bug that lead to a wrong calculation of Rhat when using chunking has been addressed [#2013](https://github.com/netket/netket/pull/2013).
 
 
 ## NetKet 3.16 (4 February 2025)
