@@ -193,7 +193,7 @@ def _split_R_hat(data, W):
 BLOCK_SIZE = 32
 
 
-def statistics(data):
+def statistics(data: jax.Array) -> Stats:
     r"""
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used

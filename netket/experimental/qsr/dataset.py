@@ -309,7 +309,10 @@ class RawQuantumDataset:
         return np.array(unique_bases)
 
     def preprocess(
-        self, *, mixed_state_target: bool = False, hilbert: AbstractHilbert = None
+        self,
+        *,
+        mixed_state_target: bool = False,
+        hilbert: AbstractHilbert | None = None,
     ):
         """
         Constructs the `ProcessedQuantumDataset` object with the entirety of this dataset.

@@ -50,8 +50,8 @@ class TDVP(TDVPBaseDriver):
         t0: float = 0.0,
         propagation_type: str = "real",
         # TODO: integrator deprecated in 3.16 (oct/nov 2024)
-        integrator: AbstractSolver = None,
-        qgt: LinearOperator = None,
+        integrator: AbstractSolver | None = None,
+        qgt: LinearOperator | None = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
         error_norm: str | Callable = "euclidean",

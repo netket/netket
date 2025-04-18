@@ -14,7 +14,7 @@
 
 import abc
 from typing import Union
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 
 
 Edge = tuple[int, int]
@@ -60,7 +60,7 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def nodes(self) -> Iterator[int]:
+    def nodes(self) -> Sequence[int]:
         r"""Iterator over the nodes of the graph"""
         raise NotImplementedError
 

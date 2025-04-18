@@ -52,7 +52,7 @@ def _batch_variance(data):
 
 
 # this is not batch_size maybe?
-def statistics(data, batch_size=32):
+def statistics(data: jax.Array, batch_size: int = 32) -> Stats:
     r"""
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
