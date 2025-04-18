@@ -107,7 +107,10 @@ class ExactSampler(Sampler):
         state: SamplerState,
         chain_length: int,
         return_log_probabilities: bool = False,
-    ) -> tuple[jnp.ndarray, SamplerState]:
+    ) -> (
+        tuple[jax.Array, SamplerState]
+        | tuple[tuple[jax.Array, jax.Array], SamplerState]
+    ):
         # Reimplement sample_chain because we can sample the whole 'chain' in one
         # go, since it's not really a chain anyway. This will be much faster because
         # we call into python only once.

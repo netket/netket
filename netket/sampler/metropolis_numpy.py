@@ -198,7 +198,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
         return state
 
-    def _sample_next(self, machine, parameters, state):
+    def _sample_next(
+        self, machine, parameters, state
+    ) -> tuple[MetropolisNumpySamplerState, tuple[np.ndarray, np.ndarray]]:
         σ = state.σ
         σ1 = state.σ1
         log_prob = state.log_prob
