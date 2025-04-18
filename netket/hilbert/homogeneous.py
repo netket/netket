@@ -133,7 +133,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         self._constraint = check_and_deprecate_constraint(constraint, constraint_fn)
 
-        self._hilbert_index_ = None
+        self._hilbert_index_: HilbertIndex | None = None
 
         shape = tuple(len(local_states) for _ in range(N))
         super().__init__(shape=shape)

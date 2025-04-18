@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
-
+from collections.abc import Sequence
+from typing_extensions import Self
 import numpy as np
 
 from netket.utils import StaticRange
@@ -81,7 +81,7 @@ class Fock(HomogeneousHilbert):
                 raise ValueError(
                     f"Number of particles must be >= 0, but received {n_particles}."
                 )
-            self._n_particles = n_particles
+            self._n_particles: int | None = n_particles
 
             if self._n_max is None:
                 self._n_max = n_particles
@@ -123,7 +123,7 @@ class Fock(HomogeneousHilbert):
 
         return NotImplemented
 
-    def _mul_sametype_(self, other: "Fock") -> "Fock":
+    def _mul_sametype_(self, other: Self) -> Self:
         assert type(self) == type(other)
         if self.n_max == other.n_max:
             if not self.constrained and not other.constrained:
@@ -131,7 +131,7 @@ class Fock(HomogeneousHilbert):
 
         return NotImplemented
 
-    def ptrace(self, sites: int | list) -> Optional["Fock"]:
+    def ptrace(self: Self, sites: int | Sequence[int]) -> Self | None:
         if isinstance(sites, int):
             sites = [sites]
 

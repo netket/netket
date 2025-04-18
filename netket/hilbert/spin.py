@@ -14,6 +14,7 @@
 
 from typing import Optional
 from fractions import Fraction
+from collections.abc import Sequence
 
 
 import numpy as np
@@ -205,7 +206,7 @@ class Spin(HomogeneousHilbert):
 
         return NotImplemented
 
-    def ptrace(self, sites: int | list) -> Optional["Spin"]:
+    def ptrace(self, sites: int | Sequence[int]) -> Optional["Spin"]:
         if isinstance(sites, int):
             sites = [sites]
 

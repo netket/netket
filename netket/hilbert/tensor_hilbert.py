@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
+from collections.abc import Sequence
 from collections.abc import Iterable
 
 from abc import ABC
@@ -110,11 +112,13 @@ class TensorHilbert(ABC):
             if i < sz:
                 return j
 
+        raise ValueError("should not arrive here.")
+
     @property
     def _attrs(self):
         return self._hilbert_spaces
 
-    def ptrace(self, sites: int | list) -> AbstractHilbert | None:
+    def ptrace(self, sites: int | Sequence[int]) -> Optional["AbstractHilbert"]:
         if isinstance(sites, int):
             sites = [sites]
 
@@ -147,13 +151,13 @@ class TensorHilbert(ABC):
 
             if len(new_hilberts) == 0:
                 return None
-            elif len(new_hilberts) >= 1:
-                hilb = new_hilberts[0]
 
-                for h in new_hilberts[1:]:
-                    hilb = hilb * h
+            hilb = new_hilberts[0]
 
-                return hilb
+            for h in new_hilberts[1:]:
+                hilb = hilb * h
+
+            return hilb
 
     def __repr__(self):
         if len(self._hilbert_spaces) == 1:

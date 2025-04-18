@@ -14,7 +14,12 @@
 
 import abc
 
-from collections.abc import Iterable
+from typing import Union
+from collections.abc import Sequence
+from typing_extensions import Self
+
+from netket.utils.types import PRNGKeyT
+
 
 import jax.numpy as jnp
 
@@ -45,7 +50,7 @@ class AbstractHilbert(abc.ABC):
 
     def random_state(
         self,
-        key=None,
+        key: PRNGKeyT = None,
         size: int | None = None,
         dtype=None,
     ) -> jnp.ndarray:
@@ -80,7 +85,7 @@ class AbstractHilbert(abc.ABC):
 
         return random.random_state(self, key, size, dtype=dtype)
 
-    def ptrace(self, sites: int | Iterable) -> "AbstractHilbert":
+    def ptrace(self, sites: int | Sequence[int]) -> Self | None:
         """Returns the hilbert space without the selected sites.
 
         Not all hilbert spaces support this operation.
@@ -107,12 +112,14 @@ class AbstractHilbert(abc.ABC):
         hash of this Hilbert space
         """
 
-    def __mul__(self, other: "AbstractHilbert") -> "AbstractHilbert":
+    def __mul__(
+        self, other: "AbstractHilbert"
+    ) -> Union[Self, "TensorGenericHilbert"]:  # noqa: F821
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
         if type(self) == type(other):
-            res = self._mul_sametype_(other)
+            res = self._mul_sametype_(other)  # type: ignore
             if res is not NotImplemented:
                 return res
 
@@ -120,7 +127,9 @@ class AbstractHilbert(abc.ABC):
 
         return TensorGenericHilbert(self, other)
 
-    def __rmul__(self, other: "AbstractHilbert") -> "AbstractHilbert":
+    def __rmul__(
+        self, other: "AbstractHilbert"
+    ) -> Union[Self, "TensorGenericHilbert"]:  # noqa: F821
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
@@ -128,7 +137,7 @@ class AbstractHilbert(abc.ABC):
 
         return TensorHilbert(other, self)  # type: ignore[return-value]
 
-    def _mul_sametype_(self, other: "AbstractHilbert") -> "AbstractHilbert":
+    def _mul_sametype_(self, other: Self) -> Self:
         """This function can be implemented by subclasses to
         specify how to multiply two Hilbert spaces of the same type.
 
@@ -152,7 +161,7 @@ class AbstractHilbert(abc.ABC):
 
         return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         if self._hash is None:
             self._hash = hash(self._attrs)
 

@@ -59,7 +59,7 @@ class Particle(ContinuousHilbert):
 
         # Assume 1D if L is a scalar
         if not hasattr(L, "__len__"):
-            L = (L,)
+            L = (L,)  # type: ignore
 
         if not hasattr(N, "__len__"):
             N = (N,)
@@ -71,7 +71,7 @@ class Particle(ContinuousHilbert):
                 raise ValueError("`pbc` must be specified if `L` is finite.")
 
         if isinstance(pbc, bool):
-            pbc = [pbc] * len(L)
+            pbc = (pbc,) * len(L)
 
         if np.any(np.logical_and(np.isinf(L), pbc)):
             raise ValueError(
