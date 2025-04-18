@@ -17,11 +17,11 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 
-from flax import struct
 from flax import linen as nn
 
 from netket import config
 from netket.hilbert import TensorHilbert
+from netket.utils import struct
 from netket.utils.types import PyTree, PRNGKeyT
 
 # Necessary for the type annotation to work

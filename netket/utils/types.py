@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union
+from typing import Any, Union, Protocol
 from collections.abc import Callable
 from collections.abc import Sequence
 
 import optax as _optax
 import jax as _jax
 import numpy as _np
+import flax as _flax
 
 PRNGKeyT = Any
 SeedT = Union[int, PRNGKeyT]
@@ -34,9 +35,13 @@ ArrayLike = Any  # Objects that are valid inputs to (np|jnp).asarray.
 NNInitFunc = Callable[[PRNGKeyT, Shape, DType], _jax.Array]
 
 PyTree = Any
+ModuleOrApplyFun = Union[_flax.linen.Module, Callable[[PyTree, Array], Array]]
+ModelStateT = dict[str, PyTree]
 
 Scalar = Any
 
 ScalarOrSchedule = Union[Scalar, _optax.Schedule]
 
 Optimizer = Any
+
+del Any, Union, Protocol, Callable, Sequence

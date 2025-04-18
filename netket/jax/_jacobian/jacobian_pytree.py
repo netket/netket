@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -22,7 +23,7 @@ import numpy as np
 
 from netket import jax as nkjax
 from netket.utils import wrap_to_support_scalar
-from netket.utils.types import Array, Callable, PyTree
+from netket.utils.types import Array, PyTree
 
 
 def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:

@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from functools import partial, wraps
 
 from typing import Any
-from collections.abc import Callable
 
 import numpy as np
 from numba import jit
@@ -26,7 +25,7 @@ import jax
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.mpi import mpi_sum, n_nodes
-from netket.utils.types import PyTree
+from netket.utils.types import PyTree, ModuleOrApplyFun
 from netket import config
 
 import netket.jax as nkjax
@@ -57,7 +56,7 @@ class MetropolisNumpySamplerState:
     """Number of accepted transitions among the chains in this process since the last reset."""
 
     @property
-    def acceptance(self) -> float:
+    def acceptance(self) -> float | None:
         """The fraction of accepted moves across all chains and MPI processes.
 
         The rate is computed since the last reset of the sampler.
@@ -199,7 +198,10 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         return state
 
     def _sample_next(
-        self, machine, parameters, state
+        self,
+        machine: ModuleOrApplyFun,
+        parameters: PyTree,
+        state: MetropolisNumpySamplerState,
     ) -> tuple[MetropolisNumpySamplerState, tuple[np.ndarray, np.ndarray]]:
         σ = state.σ
         σ1 = state.σ1
@@ -264,7 +266,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
     def _sample_chain(
         self,
-        machine: Callable,
+        machine: ModuleOrApplyFun,
         parameters: PyTree,
         state: MetropolisNumpySamplerState,
         chain_length: int,

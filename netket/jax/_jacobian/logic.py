@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Callable
 from functools import partial
 import math
 
@@ -22,7 +23,7 @@ from jax.tree_util import Partial
 from netket.utils import config
 from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi, timing
-from netket.utils.types import Array, Callable, PyTree
+from netket.utils.types import Array, PyTree
 from netket.jax import (
     tree_to_real,
     vmap_chunked,

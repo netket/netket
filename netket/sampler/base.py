@@ -27,7 +27,7 @@ from netket.jax import sharding
 from netket import config
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils import get_afun_if_module, struct, wrap_afun
-from netket.utils.types import PyTree, DType, SeedT
+from netket.utils.types import PyTree, DType, SeedT, ModuleOrApplyFun
 from netket.jax import HashablePartial
 
 
@@ -218,7 +218,7 @@ class Sampler(struct.Pytree):
 
     def init_state(
         self,
-        machine: Callable | nn.Module,
+        machine: ModuleOrApplyFun,
         parameters: PyTree,
         seed: SeedT | None = None,
     ) -> SamplerState:
@@ -254,7 +254,7 @@ class Sampler(struct.Pytree):
 
     def reset(
         self,
-        machine: Callable | nn.Module,
+        machine: ModuleOrApplyFun,
         parameters: PyTree,
         state: SamplerState | None = None,
     ) -> SamplerState:
@@ -279,7 +279,7 @@ class Sampler(struct.Pytree):
     @overload
     def sample(
         self,
-        machine: Callable | nn.Module,
+        machine: ModuleOrApplyFun,
         parameters: PyTree,
         *,
         state: SamplerState | None = None,
@@ -341,7 +341,7 @@ class Sampler(struct.Pytree):
 
     def samples(
         self,
-        machine: Callable | nn.Module,
+        machine: ModuleOrApplyFun,
         parameters: PyTree,
         *,
         state: SamplerState | None = None,

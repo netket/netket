@@ -16,7 +16,7 @@ Tools to compare and hash floating point numbers safely.
 """
 
 import numpy as np
-from netket.utils.types import Array, Union
+from netket.utils.types import Array
 
 
 def comparable(
@@ -49,7 +49,7 @@ def comparable(
 
 def comparable_periodic(
     x: Array,
-    where: Union[Array, bool] = True,
+    where: Array | bool = True,
     *,
     bin_density: int = 3326400,
     offset: float = 5413 / 15629,

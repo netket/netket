@@ -97,7 +97,7 @@ class MetropolisSamplerState(SamplerState):
         super().__init__()
 
     @property
-    def acceptance(self) -> float:
+    def acceptance(self) -> float | None:
         """The fraction of accepted moves across all chains and MPI processes.
 
         The rate is computed since the last reset of the sampler.
@@ -227,7 +227,7 @@ class MetropolisSampler(Sampler):
     The dtype of the sampled states can be chosen.
     """
 
-    rule: MetropolisRule = None
+    rule: MetropolisRule = None  # type: ignore
     """The Metropolis transition rule."""
     sweep_size: int = struct.field(pytree_node=False, default=None)
     """Number of sweeps for each step along the chain. Defaults to the number
