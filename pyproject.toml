@@ -172,7 +172,8 @@ show_error_codes = true
 disable_error_code = "attr-defined, name-defined, annotation-unchecked, import-untyped"
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+warn_unused_ignores = false
+
 
 [[tool.mypy.overrides]]
 module = ["netket"]
