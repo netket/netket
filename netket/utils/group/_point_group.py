@@ -513,7 +513,7 @@ class PointGroup(FiniteGroup):
         describe pure point-group transformations around `origin` and `out[i]`
         has the same transformation matrix as `self[i]`.
         """
-        out = []
+        out: list[Element] = []
         for elem in self.elems:
             if isinstance(elem, Identity):
                 out.append(Identity())

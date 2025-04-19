@@ -14,6 +14,7 @@
 
 import os
 import warnings
+import types
 from textwrap import dedent
 
 from netket.utils.config_flags import config
@@ -65,16 +66,16 @@ try:
 except ImportError:
     mpi4py_available = False
     mpi4jax_available = False
-    MPI_py_comm = None
-    MPI_jax_comm = None
+    MPI_py_comm = None  # type: ignore
+    MPI_jax_comm = None  # type: ignore
     n_nodes = 1
     node_number = 0
     rank = 0
 
-    class FakeMPI:
-        COMM_WORLD = None
+    FakeMPI = types.ModuleType("FakeMPI", "FakeMPI Module")
+    FakeMPI.COMM_WORLD = None
 
-    MPI = FakeMPI()
+    MPI = FakeMPI
 
     # Try to detect if we are running under MPI and warn that mpi4py is not installed
     if config.netket_mpi_warning and not config.netket_experimental_sharding:  # type: ignore

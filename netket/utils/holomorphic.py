@@ -127,4 +127,4 @@ def is_probably_holomorphic(
     # verify that ∂ᵣψᵢ == -∂ᵢψᵣ
     cond2 = jax.tree_util.tree_map(lambda x, y: jnp.allclose(x, -y), dr_dpi, di_dpr)
 
-    return jax.tree_util.tree_reduce(jnp.bitwise_and, (cond1, cond2))
+    return jax.tree_util.tree_reduce(jnp.bitwise_and, (cond1, cond2))  # type: ignore

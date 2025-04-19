@@ -74,7 +74,7 @@ class HashableArray:
             and hash(self) == hash(other)
         )
 
-    def __array__(self, dtype: DType = None):
+    def __array__(self, dtype: DType | None = None):
         if dtype is None:
             dtype = self.wrapped.dtype
         return self.wrapped.__array__(dtype)

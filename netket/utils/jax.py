@@ -14,11 +14,14 @@
 
 from collections.abc import Callable
 
+from flax.linen import Module
+
 import jax.numpy as jnp
 
-from flax import linen as nn
 
 from .partial import HashablePartial
+from .types import ModuleOrApplyFun, PyTree, Array
+
 from . import struct
 
 
@@ -34,19 +37,19 @@ def get_afun_if_module(mod_or_fun) -> Callable:
 class WrappedApplyFun:
     """Wraps a callable to be a module-like object with the method `apply`."""
 
-    apply: Callable
+    apply: Callable[[PyTree, Array], Array]
     """The wrapped callable."""
 
     def __repr__(self):
         return f"{type(self).__name__}(apply={self.apply}, hash={hash(self)})"
 
 
-def wrap_afun(mod_or_fun) -> nn.Module:
+def wrap_afun(mod_or_fun: ModuleOrApplyFun) -> Module:
     """Wraps a callable to be a module-like object with the method `apply`.
     Does nothing if it already has an apply method.
     """
     if hasattr(mod_or_fun, "apply"):
-        return mod_or_fun
+        return mod_or_fun  # type: ignore
     else:
         return WrappedApplyFun(mod_or_fun)  # type: ignore[return-type]
 

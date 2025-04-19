@@ -41,6 +41,7 @@ from typing_extensions import (
 )
 from functools import partial
 
+
 import dataclasses
 import warnings
 from dataclasses import MISSING
@@ -63,6 +64,9 @@ try:
     from dataclasses import _FIELDS
 except ImportError:
     _FIELDS = "__dataclass_fields__"
+
+_T = TypeVar("_T", bound=type)
+
 
 _CACHES = "__dataclass_caches__"
 
@@ -486,12 +490,14 @@ def dataclass(
     # flax stuff: identify states
     meta_fields = []
     data_fields = []
-    for name, field_info in getattr(data_clz, _FIELDS, {}).items():
+
+    # for name, field_info in getattr(data_clz, _FIELDS, {}).items():
+    for field_info in dataclasses.fields(data_clz):
         is_pytree_node = field_info.metadata.get("pytree_node", True)
         if is_pytree_node:
-            data_fields.append(name)
+            data_fields.append(field_info.name)
         else:
-            meta_fields.append(name)
+            meta_fields.append(field_info.name)
 
     # List the cache fields
     cache_fields = []
@@ -515,9 +521,11 @@ def dataclass(
     data_clz.replace = replace
 
     # support for jax pytree flattening unflattening
-    def iterate_clz(x):
+    def iterate_clz_with_keys(x):
         meta = tuple(getattr(x, name) for name in meta_fields)
-        data = tuple(getattr(x, name) for name in data_fields)
+        data = tuple(
+            (jax.tree_util.GetAttrKey(name), getattr(x, name)) for name in data_fields
+        )
         return data, meta
 
     def clz_from_iterable(meta, data):
@@ -526,7 +534,9 @@ def dataclass(
         kwargs = dict(meta_args + data_args)
         return data_clz(__skip_preprocess=True, **kwargs)
 
-    jax.tree_util.register_pytree_node(data_clz, iterate_clz, clz_from_iterable)
+    jax.tree_util.register_pytree_with_keys(
+        data_clz, iterate_clz_with_keys, clz_from_iterable
+    )
 
     # flax serialization
     skip_serialize_fields = []
@@ -551,19 +561,26 @@ def dataclass(
                 if name not in state:
                     raise ValueError(
                         f"Missing field {name} in state dict while restoring"
-                        f" an instance of {clz.__name__}"
+                        f" an instance of {clz.__name__},"
+                        f" at path {serialization.current_path()}"
                     )
                 value = getattr(x, name)
                 value_state = state.pop(name)
-                updates[name] = serialization.from_state_dict(value, value_state)
+                updates[name] = serialization.from_state_dict(
+                    value, value_state, name=name
+                )
         if state:
             names = ",".join(state.keys())
             raise ValueError(
                 f'Unknown field(s) "{names}" in state dict while'
                 f" restoring an instance of {clz.__name__}"
+                f" at path {serialization.current_path()}"
             )
         return x.replace(**updates)
 
     serialization.register_serialization_state(data_clz, to_state_dict, from_state_dict)
 
-    return data_clz
+    # add a _netket_dataclass flag to distinguish from regular dataclasses
+    data_clz._netket_dataclass = True
+
+    return data_clz  # type: ignore

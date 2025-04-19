@@ -24,8 +24,19 @@ import flax as _flax
 PRNGKeyT = Any
 SeedT = Union[int, PRNGKeyT]
 
+
+class _SupportsDType(Protocol):
+    @property
+    def dtype(self) -> _np.dtype: ...
+
+
 Shape = Sequence[int]
-DType = Any  # this could be a real type?
+DType = Union[
+    str,  # like 'float32', 'int32'
+    type[Any],  # like np.float32, np.int32, float, int
+    _np.dtype,  # like np.dtype('float32'), np.dtype('int32')
+    _SupportsDType,  # like jnp.float32, jnp.int32
+]
 
 Array = Union[_np.ndarray, _jax.Array]
 JaxArray = _jax.Array

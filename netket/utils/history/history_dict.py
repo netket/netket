@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from typing import Any, TYPE_CHECKING
+from collections.abc import Callable
+
 import sys
 
 import orjson
@@ -168,8 +170,8 @@ DESERIALIZATION_REGISTRY = []
 
 
 def register_historydict_deserialization_fun(
-    checker: callable,
-    reconstructor: callable,
+    checker: Callable,
+    reconstructor: Callable,
     precedence: int = 0,
 ):
     """

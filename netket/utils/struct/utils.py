@@ -65,7 +65,7 @@ def maximum_positional_args(fun) -> int | float:
     sig = inspect.signature(fun)
     parameters = sig.parameters.values()
 
-    max_positional_args = 0
+    max_positional_args: int | float = 0
     for param in parameters:
         if param.kind in [
             inspect.Parameter.POSITIONAL_ONLY,

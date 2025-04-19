@@ -35,7 +35,7 @@ def _repr_mimebundle_from_rich_(
     from rich.jupyter import _render_segments
 
     console = rich.get_console()
-    segments = list(console.render(self, console.options))  # type: ignore
+    segments = list(console.render(self, console.options))
     html = _render_segments(segments)
     text = console._render_buffer(segments)
     data = {"text/plain": text, "text/html": html}

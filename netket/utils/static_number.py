@@ -58,3 +58,6 @@ class StaticZero(Number):
         if dtype is None:
             dtype = self.dtype
         return jnp.zeros(self.shape, dtype=dtype)
+
+    def __hash__(self):
+        return hash(0)

@@ -44,9 +44,9 @@ def int_env(varname: str, default: int) -> int:
 
 def get_env(varname: str, type, default: int | bool) -> int | bool:
     if type is int:
-        return int_env(varname, default)
+        return int_env(varname, int(default))
     elif type is bool:
-        return bool_env(varname, default)  # type: ignore
+        return bool_env(varname, bool(default))
     else:
         raise TypeError(f"Unknown type {type}")
 

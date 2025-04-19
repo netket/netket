@@ -100,14 +100,13 @@ def get_local_rank_from_env() -> int | None:
     ]
 
     # testable default value:
-    local_rank = None
+    local_rank: int | None = None
     for key in local_rank_key_options:
         if key in os.environ:
-            local_rank = os.environ[key]
+            local_rank = int(os.environ[key])
             logger = logging.getLogger()
             logger.info(f"Determined local rank through environment variable {key}")
             os.environ["CUDA_VISIBLE_DEVICES"] = os.environ[key]
-            local_rank = int(local_rank)
     return local_rank
 
 
