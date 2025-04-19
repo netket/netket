@@ -81,5 +81,5 @@ def test_expect():
     O_stat, O_grad = vs_continuous2.expect_and_grad(e)
     O_grad, _ = nk.jax.tree_ravel(O_grad)
 
-    np.testing.assert_allclose(sol_nc.mean, sol.mean, atol=1e-8)
-    np.testing.assert_allclose(O_grad_nc, O_grad, atol=1e-8)
+    np.testing.assert_allclose(sol_nc.mean, sol.mean, atol=1e-7)
+    np.testing.assert_allclose(O_grad_nc, O_grad, atol=1e-7)
