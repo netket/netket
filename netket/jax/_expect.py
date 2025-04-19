@@ -168,7 +168,7 @@ def _expect(
 
     L̄_σ = mpi_statistics(L_σ)
 
-    return L̄_σ.mean, L̄_σ
+    return L̄_σ.mean, L̄_σ  # type: ignore
 
 
 def _expect_fwd(

@@ -22,7 +22,7 @@ from netket.utils.types import Array
 from ._utils_dtype import dtype_complex
 
 
-def logsumexp_cplx(a: Array, b: Array | None = None, **kwargs) -> jax.Array:
+def logsumexp_cplx(a: jax.Array, b: jax.Array | None = None, **kwargs) -> jax.Array:
     """Compute the log of the sum of exponentials of input elements, always returning a
     complex number.
 

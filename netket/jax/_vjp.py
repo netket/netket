@@ -190,7 +190,7 @@ def vjp(
 def vjp(
     fun: Callable[..., tuple[T, U]],
     *primals: Any,
-    has_aux: Literal[True],
+    has_aux: Literal[True] = True,  # Fix the default value
     conjugate: bool = False,
 ) -> tuple[T, Callable, U]: ...
 

@@ -1,3 +1,5 @@
+from typing import Any, TypeVar, Literal, overload
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -132,6 +134,36 @@ def _vjp_chunked(
             chunk_size=chunk_size,
             conjugate=conjugate,
         )
+
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+
+@overload
+def vjp_chunked(
+    fun: Callable[..., T],
+    *primals: Any,
+    has_aux: Literal[False] = False,
+    chunk_argnums: tuple[int, ...] = (),
+    chunk_size: int | None = None,
+    nondiff_argnums: tuple[int, ...] = (),
+    return_forward: Literal[False] = False,
+    conjugate: bool = False,
+) -> Callable: ...
+
+
+@overload
+def vjp_chunked(
+    fun: Callable[..., T],
+    *primals: Any,
+    has_aux: Literal[False] = False,
+    chunk_argnums: tuple[int, ...] = (),
+    chunk_size: int | None = None,
+    nondiff_argnums: tuple[int, ...] = (),
+    return_forward: Literal[True],
+    conjugate: bool = False,
+) -> Callable[..., tuple[T, Any]]: ...
 
 
 @partial(
@@ -294,7 +326,7 @@ def vjp_chunked(
             return Partial(__vjp_fun_retfwd, y, vjp_fun)
         else:
 
-            def __vjp_fun(vjp_fun, cotangents):
+            def __vjp_fun(vjp_fun, cotangents):  # type: ignore
                 res = vjp_fun(cotangents)
                 res = _trash_tuple_elements(res, nondiff_argnums)
                 return res
