@@ -27,7 +27,7 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 from netket import jax as nkjax
 from netket import nn as nknn
 from netket import config
-from netket.hilbert.discrete_hilbert import DiscreteHilbert
+from netket.hilbert import DiscreteHilbert
 from netket.stats import Stats
 from netket.operator import AbstractOperator, Squared
 from netket.sampler import Sampler, SamplerState
@@ -111,28 +111,6 @@ class MCState(VariationalState):
     The state is sampled according to the provided sampler.
     """
 
-    _model: nn.Module
-    """
-    The raw, hashable, static model definition of this variational state.
-
-    When using frameworks that encode the parameters directly into the model,
-    such as equinox or :ref:`flax.nnx`, this will return the model definition
-    wrapped into some netket structure to make it look like a `flax` model.
-
-    This is what is used internally by netket.
-    """
-
-    _model_framework: model_frameworks.ModuleFramework | None = None
-    """
-    The model framework used to define the model.
-
-    The model frameworks are used to wrap non-flax models into a flax-like
-    compatibility layer, and we keep a reference to the framework used in order
-    to unwrap the model when the user wants it.
-
-    Supported model frameworks are defined in `netket.utils.model_frameworks`.
-    """
-
     _sampler: Sampler
     """The sampler used to sample the Hilbert space."""
     sampler_state: SamplerState
@@ -158,8 +136,12 @@ class MCState(VariationalState):
     #   Model related   #
     #####################
     _model_framework: model_frameworks.ModuleFramework | None = None
-    """The model framework used to define the model. This is a class from {class}`netket.utils.model_frameworks`
-    that is used to convert neural networks from different frameworks into a ``flax.linen``-compatible model."""
+    """The model framework used to define the model.
+
+    This is a class from {class}`netket.utils.model_frameworks`
+    that is used to convert neural networks from different frameworks
+    into a ``flax.linen``-compatible model.
+    """
     _model: nn.Module
     """The linen-compatible model definition of this variational state, which does not contain the parameters.
     This is hashable and exposes an `.apply(variables, input)` method.
