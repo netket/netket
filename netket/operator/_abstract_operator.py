@@ -16,12 +16,11 @@ import abc
 
 from netket.utils.types import DType
 
-from netket.hilbert import AbstractHilbert
 
-from ._abstract_observable import AbstractObservable
+from ._abstract_observable import AbstractObservable, HilbertType
 
 
-class AbstractOperator(AbstractObservable):
+class AbstractOperator(AbstractObservable[HilbertType]):
     """Abstract class for quantum Operators.
 
     An operator is a general object that defines a linear transformation
@@ -43,7 +42,7 @@ class AbstractOperator(AbstractObservable):
     must implement to work correctly with NetKet.
     """
 
-    def __init__(self, hilbert: AbstractHilbert):
+    def __init__(self, hilbert: HilbertType):
         super().__init__(hilbert)
 
     @property

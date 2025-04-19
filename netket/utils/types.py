@@ -32,6 +32,7 @@ class _SupportsDType(Protocol):
 
 Shape = Sequence[int]
 DType = Union[
+    None,
     str,  # like 'float32', 'int32'
     type[Any],  # like np.float32, np.int32, float, int
     _np.dtype,  # like np.dtype('float32'), np.dtype('int32')

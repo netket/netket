@@ -138,7 +138,10 @@ class DiscreteJaxOperator(DiscreteOperator):
         """
 
     def get_conn_flattened(
-        self, x: np.ndarray, sections: np.ndarray
+        self,
+        x: np.ndarray,
+        sections: np.ndarray,
+        pad: bool = True,
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
@@ -165,6 +168,8 @@ class DiscreteJaxOperator(DiscreteOperator):
                 associated to each x'.
 
         """
+        del pad
+
         xp, mels = self.get_conn_padded(x)
         n_conns = mels.shape[1]
         xp = xp.reshape(-1, xp.shape[-1])

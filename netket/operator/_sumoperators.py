@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import no_type_check
 from collections.abc import Callable
 from collections.abc import Hashable, Iterable
 
@@ -44,9 +45,11 @@ class SumOperatorPyTree:
     op_data: tuple[PyTree, ...]
 
 
-def _flatten_sumoperators(operators: Iterable[ContinuousOperator], coefficients: Array):
+def _flatten_sumoperators(
+    operators: Iterable[ContinuousOperator], coefficients: Array
+) -> tuple[list[ContinuousOperator], list[complex]]:
     """Flatten sumoperators inside of operators."""
-    new_operators = []
+    new_operators: list[ContinuousOperator] = []
     new_coeffs = []
     for op, c in zip(operators, coefficients):
         if isinstance(op, SumOperator):
@@ -63,6 +66,12 @@ class SumOperator(ContinuousOperator):
     ContinuousOperator for a sum of ContinuousOperator objects.
     """
 
+    _operators: tuple[ContinuousOperator, ...]
+    _coefficients: Array
+    _is_hermitian: bool
+    __attrs: tuple[Hashable, ...]
+
+    @no_type_check
     def __init__(
         self,
         *operators: tuple[ContinuousOperator, ...],
@@ -83,16 +92,16 @@ class SumOperator(ContinuousOperator):
             )
 
         if is_scalar(coefficients):
-            coefficients = [coefficients for _ in operators]
+            coefficients = [coefficients for _ in operators]  # type: ignore
 
-        if len(operators) != len(coefficients):
+        if len(operators) != len(coefficients):  # type: ignore
             raise AssertionError("Each operator needs a coefficient")
 
         operators, coefficients = _flatten_sumoperators(operators, coefficients)
 
         dtype = canonicalize_dtypes(float, *operators, *coefficients, dtype=dtype)
 
-        self._operators = tuple(operators)
+        self._operators = tuple(operators)  # type: tuple[ContinuousOperator, ...]
         self._coefficients = jnp.asarray(coefficients, dtype=dtype)
 
         super().__init__(hi_spaces[0], self._coefficients.dtype)
@@ -116,7 +125,9 @@ class SumOperator(ContinuousOperator):
         return self._coefficients
 
     @staticmethod
-    def _expect_kernel(logpsi: Callable, params: PyTree, x: Array, data: PyTree | None):
+    def _expect_kernel(
+        logpsi: Callable, params: PyTree, x: Array, data: SumOperatorPyTree  # type: ignore
+    ):
         result = [
             data.coeffs[i] * op._expect_kernel(logpsi, params, x, op_data)
             for i, (op, op_data) in enumerate(zip(data.ops, data.op_data))
@@ -134,7 +145,7 @@ class SumOperator(ContinuousOperator):
     @property
     def _attrs(self) -> tuple[Hashable, ...]:
         if self.__attrs is None:
-            self.__attrs = (
+            self.__attrs = (  # type: ignore
                 self.hilbert,
                 self.operators,
                 HashableArray(self.coefficients),

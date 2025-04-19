@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import abc
+from abc import ABC
+from typing import Generic, TypeVar
 
 from netket.hilbert import AbstractHilbert
 
 
-class AbstractObservable(abc.ABC):
+HilbertType = TypeVar("HilbertType", bound=AbstractHilbert)
+
+
+class AbstractObservable(ABC, Generic[HilbertType]):
     """Abstract class for quantum Observables.
 
     An observable is a general object that defines a quantity that
@@ -34,14 +38,14 @@ class AbstractObservable(abc.ABC):
     must implement to work correctly with NetKet.
     """
 
-    _hilbert: AbstractHilbert
+    _hilbert: HilbertType
     r"""The hilbert space associated to this observable."""
 
-    def __init__(self, hilbert: AbstractHilbert):
+    def __init__(self, hilbert: HilbertType):
         self._hilbert = hilbert
 
     @property
-    def hilbert(self) -> AbstractHilbert:
+    def hilbert(self) -> HilbertType:
         r"""The hilbert space associated to this observable."""
         return self._hilbert
 

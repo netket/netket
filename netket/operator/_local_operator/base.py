@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, TYPE_CHECKING
+from typing import Union, SupportsFloat, SupportsComplex, TYPE_CHECKING
 
 import numbers
 
@@ -64,7 +64,7 @@ class LocalOperatorBase(DiscreteOperator):
         hilbert: AbstractHilbert,
         operators: list[Array] | Array = [],
         acting_on: list[int] | list[list[int]] = [],
-        constant: numbers.Number = 0,
+        constant: SupportsComplex | SupportsFloat = 0,
         dtype: DType | None = None,
         *,
         mel_cutoff: float = 1.0e-10,

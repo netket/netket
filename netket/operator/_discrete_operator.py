@@ -25,7 +25,7 @@ from netket.operator import AbstractOperator
 from netket.utils.optional_deps import import_optional_dependency
 
 
-class DiscreteOperator(AbstractOperator):
+class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
     r"""This class is the base class for operators defined on a
     discrete Hilbert space. Users interested in implementing new
     quantum Operators for discrete Hilbert spaces should derive
@@ -86,7 +86,7 @@ class DiscreteOperator(AbstractOperator):
         return x_primes_r, mels_r
 
     def get_conn_flattened(
-        self, x: np.ndarray, sections: np.ndarray
+        self, x: np.ndarray, sections: np.ndarray, pad: bool = False
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
@@ -105,6 +105,10 @@ class DiscreteOperator(AbstractOperator):
                 containing the batch of quantum numbers x.
             sections: An array of sections for the flattened x'.
                 See numpy.split for the meaning of sections.
+            pad: If True, the output x' is padded to the maximum
+                number of connected states. If False, the output x'
+                is not padded and the number of connected states
+                is given by the sections array. (Defaults: ``False``)
 
         Returns:
             (matrix, array): The connected states x', flattened together in
