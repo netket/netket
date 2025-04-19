@@ -21,7 +21,7 @@ from netket.utils.types import Array, PyTree, Scalar
 from netket.utils import mpi
 from netket import jax as nkjax
 
-from ..linear_operator import LinearOperator, Uninitialized
+from ..linear_operator import LinearOperator, SolverT, Uninitialized
 
 from .common import check_valid_vector_type
 
@@ -104,7 +104,9 @@ class QGTJacobianPyTreeT(LinearOperator):
         return result
 
     @jax.jit
-    def _solve(self, solve_fun, y: PyTree, *, x0: PyTree | None = None) -> PyTree:
+    def _solve(
+        self, solve_fun: SolverT, y: PyTree, *, x0: PyTree | None = None
+    ) -> PyTree:
         """
         Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterative solver.
 

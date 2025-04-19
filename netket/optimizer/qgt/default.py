@@ -108,7 +108,7 @@ class QGTAuto:
     Cached last QGT. Used when vstate == _last_vstate
     """
 
-    _kwargs = {}
+    _kwargs: dict = {}
     """
     Kwargs passed at construction. Used when constructing a QGT.
     """

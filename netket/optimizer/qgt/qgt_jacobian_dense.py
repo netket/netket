@@ -21,7 +21,7 @@ from netket.utils.types import Scalar, PyTree
 from netket.utils import mpi
 from netket import jax as nkjax
 
-from ..linear_operator import LinearOperator, Uninitialized
+from ..linear_operator import LinearOperator, SolverT, Uninitialized
 
 from .common import check_valid_vector_type
 
@@ -37,7 +37,7 @@ class QGTJacobianDenseT(LinearOperator):
     the field `sr`.
     """
 
-    O: jnp.ndarray = Uninitialized
+    O: jnp.ndarray = Uninitialized  # type: ignore
     """Gradients O_ij = ∂log ψ(σ_i)/∂p_j of the neural network
     for all samples σ_i at given values of the parameters p_j
     Average <O_j> subtracted for each parameter
@@ -90,7 +90,9 @@ class QGTJacobianDenseT(LinearOperator):
         return reassemble(result)
 
     @jax.jit
-    def _solve(self, solve_fun, y: PyTree, *, x0: PyTree | None = None) -> PyTree:
+    def _solve(
+        self, solve_fun: SolverT, y: PyTree, *, x0: PyTree | None = None
+    ) -> PyTree:
         if not hasattr(y, "ndim"):
             check_valid_vector_type(self._params_structure, y)
 
