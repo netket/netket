@@ -21,6 +21,8 @@ import jax as _jax
 import numpy as _np
 import flax as _flax
 
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+
 PRNGKeyT = Any
 SeedT = Union[int, PRNGKeyT]
 
@@ -55,5 +57,37 @@ Scalar = Any
 ScalarOrSchedule = Union[Scalar, _optax.Schedule]
 
 Optimizer = Any
+
+_deprecations = {
+    # April 2025
+    "Any": (
+        "netket.utils.types.Any is deprecated: use " "typing.Any (netket >= 3.17)",
+        Any,
+    ),
+    "Union": (
+        "netket.utils.types.Union is deprecated: use "
+        "typing.Union or `|` (netket >= 3.17)",
+        Union,
+    ),
+    "Protocol": (
+        "netket.utils.types.Protocol is deprecated: use "
+        "typing.Protocol (netket >= 3.17)",
+        Protocol,
+    ),
+    "Callable": (
+        "netket.utils.types.Callable is deprecated: use "
+        "collections.abc.Callable (netket >= 3.17)",
+        Callable,
+    ),
+    "Sequence": (
+        "netket.utils.types.Sequence is deprecated: use "
+        "collections.abc.Sequence (netket >= 3.17)",
+        Sequence,
+    ),
+}
+
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
+del _deprecation_getattr
+
 
 del Any, Union, Protocol, Callable, Sequence
