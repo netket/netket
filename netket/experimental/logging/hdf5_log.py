@@ -18,6 +18,7 @@ from flax.serialization import to_bytes
 from flax.core import pop as fpop, FrozenDict
 
 from netket.logging import AbstractLog
+from netket.jax.sharding import extract_replicated
 
 _mode_shorthands = {"write": "w", "append": "a", "fail": "x"}
 
@@ -172,22 +173,27 @@ class HDF5Log(AbstractLog):
         if self._writer is None:
             self._init_output_file()
 
+        if self._steps_notsaved_params % self._save_params_every == 0:
+            variables = variational_state.variables
+
+            # TODO: remove - FrozenDict are deprecated
+            if isinstance(variables, FrozenDict):
+                variables = variables.unfreeze()
+            variables = extract_replicated(variables)
+            self._steps_notsaved_params = 0
+        else:
+            variables = None
+
         if self._is_master_process:
             tree_log(log_data, "data", self._writer, iter=step)
 
-            if self._steps_notsaved_params % self._save_params_every == 0:
-                variables = variational_state.variables
-                # TODO: remove - FrozenDict are deprecated
-                if isinstance(variables, FrozenDict):
-                    variables = variables.unfreeze()
-
+            if variables is not None:
                 _, params = fpop(variables, "params")
                 binary_data = to_bytes(variables)
                 tree = {"model_state": binary_data, "parameters": params, "iter": step}
                 tree_log(tree, "variational_state", self._writer)
-                self._steps_notsaved_params = 0
-
             self._writer.flush()
+
         self._steps_notsaved_params += 1
 
     def flush(self, variational_state=None):
