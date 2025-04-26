@@ -34,6 +34,17 @@ else:
     History = Any
 
 
+def _format_key(k):
+    if hasattr(k, "key"):
+        return str(k.key)
+    elif hasattr(k, "idx"):
+        return str(k.idx)
+    elif hasattr(k, "name"):
+        return str(k, k.name)
+    else:
+        return str(k)  # fallback
+
+
 class HistoryDict:
     """A class that behaves like a dictionary, mapping strings to History instances or nested
     HistoryDict instances.
@@ -91,7 +102,7 @@ class HistoryDict:
 
         _repr_str = f"HistoryDict with {len(dk)} elements:"
         for keys, val in dk:
-            path = "/".join([val.key for val in keys])
+            path = "/".join([_format_key(k) for k in keys])
             _repr_str += f"\n\t'{path}' -> " + str(val)
 
         return _repr_str
