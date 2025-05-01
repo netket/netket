@@ -138,6 +138,10 @@ def srt_onthefly(
         in_specs = (P("i", None), P(), P())
         out_specs = P("i", None, None, None)
 
+        # By default, I'm not sure whether the jacobian_contraction of NeuralTangents
+        # Is correctly automatically sharded across devices. So we force it to be
+        # sharded with shard map to be sure
+
         # check rep:
         check_rep = module_version("jax") < (0, 4, 38)
         # shard_map is broken between 0.4.38 and (as of 25 march 2025) 0.5.3.
