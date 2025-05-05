@@ -18,7 +18,7 @@ from typing import Union
 from collections.abc import Sequence
 from typing_extensions import Self
 
-from netket.utils.types import PRNGKeyT
+from netket.utils.types import PRNGKeyT, ShardingT
 
 
 import jax.numpy as jnp
@@ -53,6 +53,7 @@ class AbstractHilbert(abc.ABC):
         key: PRNGKeyT = None,
         size: int | None = None,
         dtype=None,
+        out_sharding: ShardingT = None,
     ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
         Runs as :code:`random_state(self, key, size=None, dtype=np.float32)` by default.
@@ -83,7 +84,9 @@ class AbstractHilbert(abc.ABC):
         """
         from netket.hilbert import random
 
-        return random.random_state(self, key, size, dtype=dtype)
+        return random.random_state(
+            self, key, size, dtype=dtype, out_sharding=out_sharding
+        )
 
     def ptrace(self, sites: int | Sequence[int]) -> Self | None:
         """Returns the hilbert space without the selected sites.

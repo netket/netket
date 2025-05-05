@@ -74,8 +74,13 @@ def _choice(key, p):
     return (cs * p) == jax.lax.floor(r).astype(cs.dtype)[..., None]
 
 
-@partial(jax.jit, static_argnames=("n_particles", "hilb_shape", "shape", "dtype"))
-def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dtype):
+@partial(
+    jax.jit,
+    static_argnames=("n_particles", "hilb_shape", "shape", "dtype", "out_sharding"),
+)
+def _random_states_with_constraint_fock(
+    n_particles, hilb_shape, key, shape, dtype, out_sharding
+):
     # Distribute hilb.n_particles onto hilb.size sites
     # and put at most hilb.shape-1 particles in every site.
     # Note that this is NOT a uniform distribution over the
@@ -84,13 +89,22 @@ def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dty
     assert n_particles is not None
     hilb_size = len(hilb_shape)
 
+    if out_sharding is not None:
+        out_sharding = jax.sharding.NamedSharding(
+            jax.sharding.get_abstract_mesh(), out_sharding
+        )
+
     # start with all sites empty
-    init = jnp.zeros(shape + (hilb_size,), dtype=dtype)
+    init = jnp.zeros(shape + (hilb_size,), dtype=dtype, device=out_sharding)
 
     # if constrained and uniformly n_max == 2, use a trick to sample quickly
     if set(hilb_shape) == {2}:
         return jax.random.permutation(
-            key, init.at[..., :n_particles].set(1), axis=-1, independent=True
+            key,
+            init.at[..., :n_particles].set(1),
+            axis=-1,
+            independent=True,
+            out_sharding=out_sharding,
         )
 
     # shape is per site n_max

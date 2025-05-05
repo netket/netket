@@ -15,13 +15,12 @@
 from textwrap import dedent
 from typing import Union
 
-from functools import partial
 
 import jax
+from jax.sharding import PartitionSpec
 import numpy as np
 
 from netket.utils.dispatch import dispatch
-from netket.jax.sharding import sharding_decorator
 
 Dim = Union[
     tuple[int], tuple[int, int], tuple[int, int, int], tuple[int, int, int, int]
@@ -29,7 +28,9 @@ Dim = Union[
 
 
 @dispatch
-def random_state(hilb, key, *, size=None, dtype=np.float32):
+def random_state(
+    hilb, key, *, size=None, dtype=np.float32, out_sharding=None
+):  # noqa: F811
     r"""Generates either a single or a batch of uniformly distributed random states.
 
     Args:
@@ -51,27 +52,38 @@ def random_state(hilb, key, *, size=None, dtype=np.float32):
         [[0 1]
          [1 1]]
     """
-    return random_state(hilb, key, size, dtype=dtype)
+    return random_state(hilb, key, size, dtype=dtype, out_sharding=out_sharding)
 
 
 @dispatch
-def random_state(hilb, key, size, dtype):  # noqa: F811
-    return random_state(hilb, key, size, dtype=dtype)
+def random_state(hilb, key, size, dtype, out_sharding):  # noqa: F811
+    return random_state(hilb, key, size, dtype=dtype, out_sharding=out_sharding)
 
 
 @dispatch
-def random_state(hilb, key, size: None, *, dtype):  # noqa: F811
-    return random_state(hilb, key, 1, dtype=dtype)[0]
+def random_state(hilb, key, size: None, *, dtype, out_sharding):  # noqa: F811
+    return random_state(hilb, key, 1, dtype=dtype, out_sharding=out_sharding)[0]
 
 
 @dispatch
-def random_state(hilb, key, size: Dim, *, dtype):  # noqa: F811
+def random_state(hilb, key, size: Dim, *, dtype, out_sharding):  # noqa: F811
     n = int(np.prod(size))
-    return random_state(hilb, key, n, dtype=dtype).reshape(*size, -1)
+    if out_sharding is None or isinstance(out_sharding, PartitionSpec):
+        return random_state(
+            hilb, key, n, dtype=dtype, out_sharding=out_sharding
+        ).reshape(*size, -1)
+    # multiple-dimension partitionspec
+    else:
+        raise NotImplementedError(
+            "The logic to generate a non-trivial sharding for random_state is not implemented yet."
+            "Please use a single-dimension sharding or None, or open an issue on GitHub."
+            f"The current sharding is: {out_sharding}."
+        )
+        # return random_state(hilb, key, n, dtype=dtype, out_sharding=out_sharding).reshape(*size, -1)
 
 
 @dispatch
-def random_state(hilb, key, size: int, *, dtype):  # noqa: F811
+def random_state(hilb, key, size: int, *, dtype, out_sharding):  # noqa: F811
     raise NotImplementedError(
         dedent(
             f"""
@@ -118,7 +130,7 @@ def flip_state_scalar(hilb, key, state, indx):
 
 # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
 @dispatch
-@partial(sharding_decorator, sharded_args_tree=(False, "key", True, True))
+# @partial(sharding_decorator, sharded_args_tree=(False, "key", True, True))
 def flip_state_batch(hilb, key, states, indxs):
     keys = jax.random.split(key, states.shape[0])
     res = jax.vmap(flip_state_scalar, in_axes=(None, 0, 0, 0), out_axes=0)(

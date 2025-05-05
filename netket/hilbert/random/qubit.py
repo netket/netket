@@ -13,19 +13,20 @@
 # limitations under the License.
 
 import jax
-from jax import numpy as jnp
 
 from netket.hilbert import Qubit
 from netket.utils.dispatch import dispatch
 
 
 @dispatch
-def random_state(hilb: Qubit, key, batches: int, *, dtype):
+def random_state(hilb: Qubit, key, batches: int, *, dtype, out_sharding):
     if dtype is None:
         dtype = hilb._local_states.dtype
 
-    rs = jax.random.randint(key, shape=(batches, hilb.size), minval=0, maxval=2)
-    return jnp.asarray(rs, dtype=dtype)
+    rs = jax.random.randint(
+        key, shape=(batches, hilb.size), minval=0, maxval=2, out_sharding=out_sharding
+    )
+    return rs.astype(dtype)
 
 
 @dispatch
