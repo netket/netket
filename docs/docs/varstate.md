@@ -156,8 +156,7 @@ in a hot loop) by changing {py:attr}`~netket.vqs.MCState.n_samples`, and
 the number of discarded samples at the beginning of every markov chain by
 changing {py:attr}`~netket.vqs.MCState.n_discard_per_chain`.
 
-By default, {py:attr}`~netket.vqs.MCState.n_discard_per_chain` is 10% of
-{py:attr}`~netket.vqs.MCState.n_samples`.
+By default, {py:attr}`~netket.vqs.MCState.n_discard_per_chain` is set to be 5.
 
 The number of samples is then split among the number of chains/batches of the sampler.
 
@@ -175,14 +174,14 @@ print(vstate.chain_length)
 63
 
 print(vstate.n_discard_per_chain)
-50
+5
 ```
 
 You can see that 500 samples are split among 8 chains, giving $500/8=62.5$ (rounded to
 the next largest integer, 63). Therefore 8 chains of length 63 will be run.
-n_discard_per_chain gives the number of discarded steps taken in the markov chain before actually storing
-them, so the Markov Chains are actually {code}`chain_length + n_discard_per_chain` long. The default
-n_discard_per_chain is 10% of the total samples, but you can change that to any number.
+```n_discard_per_chain``` gives the number of discarded steps taken in the markov chain before actually storing
+them, so the Markov Chains are actually {code}`chain_length + n_discard_per_chain` long. The default value
+of ```n_discard_per_chain``` is set to be 5, but you can change that to any number.
 
 (warn-mpi-sampling)=
 
