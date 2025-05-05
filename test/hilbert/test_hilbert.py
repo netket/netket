@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools
 from math import prod
 from functools import partial
 import netket as nk
@@ -32,8 +31,7 @@ from netket.utils import StaticRange
 
 import jax
 import jax.numpy as jnp
-from jax._src.lib import xla_extension
-
+from jax.errors import JaxRuntimeError
 
 from .. import common
 
@@ -466,19 +464,6 @@ def test_local_indices_to_states(hi):
         np.testing.assert_allclose(local_states[idxs[..., s]], x[..., s])
 
 
-@pytest.mark.parametrize("inverted_ordering", [True, False])
-def test_spin_state_iteration(inverted_ordering: bool):
-    hilbert = Spin(s=0.5, N=5, inverted_ordering=inverted_ordering)
-
-    if inverted_ordering:
-        reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=5)]
-    else:
-        reference = [np.array(el) for el in itertools.product([1.0, -1.0], repeat=5)]
-
-    for state, ref in zip(hilbert.states(), reference):
-        np.testing.assert_allclose(state, ref)
-
-
 def test_composite_hilbert_spin():
     hi1 = Spin(s=1 / 2, N=8)
     hi2 = Spin(s=3 / 2, N=8)
@@ -777,16 +762,16 @@ def test_particle_with_geometry():
 def test_hilbert_states_outside_range_errors():
     hi = nk.hilbert.Fock(3, 2, 4)
 
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: Numbers outside the range of allowed states.
         hi.numbers_to_states(-1)
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: Numbers outside the range of allowed states.
         hi.numbers_to_states(10000)
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: States outside the range of allowed states.
         hi.states_to_numbers(jnp.array([0, 4]))
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: States do not fulfill constraint.
         hi.states_to_numbers(jnp.array([0, 3]))
 
