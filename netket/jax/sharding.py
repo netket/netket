@@ -31,12 +31,12 @@ from jax.sharding import (
     PositionalSharding,
 )
 from jax.experimental.shard_map import shard_map
-from jax.util import safe_zip
 
 from netket.utils import config, mpi
 from netket.utils.deprecation import warn_deprecation
 
 
+safe_zip = partial(zip, strict=True)
 _identity = lambda x: x
 
 

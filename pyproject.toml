@@ -39,7 +39,7 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.3.37, <0.6",
+    "jax>=0.6.0",
     "equinox>=0.11.3",
     "flax>=0.10.2",
     "orjson>=3.4, <4",
@@ -97,7 +97,7 @@ version-file = "netket/_version.py"
 dev-dependencies = [
     "netket[dev,docs]",
     "mpi4py>=3.0.1",
-    "jax>=0.4.33",
+    "jax>=0.6",
     "ipykernel>=6.20",
 ]
 
