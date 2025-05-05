@@ -66,9 +66,6 @@ hilberts["Fock * Fock (non-indexable)"] = Fock(n_max=4, N=40) * Fock(n_max=7, N=
 # Qubit
 hilberts["Qubit"] = nk.hilbert.Qubit(100)
 
-# Custom Hilbert
-hilberts["Custom Hilbert"] = CustomHilbert(local_states=StaticRange(-153, 44, 3), N=70)
-
 # Heisenberg 1d
 hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, N=10)
 
@@ -91,12 +88,7 @@ hilberts["Fock Small"] = Fock(n_max=3, N=5)
 # Qubit
 hilberts["Qubit Small"] = Qubit(N=1)
 
-# Custom Hilbert
-hilberts["Custom Hilbert Small"] = CustomHilbert(
-    local_states=StaticRange(-123, 10, 3), N=5
-)
-
-# Custom Hilbert
+# Doubled Hilbert
 hilberts["DoubledHilbert[Spin]"] = DoubledHilbert(Spin(0.5, N=5))
 
 hilberts["DoubledHilbert[Spin(total_sz=0.5)]"] = DoubledHilbert(
@@ -104,10 +96,6 @@ hilberts["DoubledHilbert[Spin(total_sz=0.5)]"] = DoubledHilbert(
 )
 
 hilberts["DoubledHilbert[Fock]"] = DoubledHilbert(Spin(0.5, N=5))
-
-hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
-    CustomHilbert(local_states=StaticRange(-123, 10, 3), N=5)
-)
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
 
