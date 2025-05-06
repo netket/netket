@@ -28,7 +28,6 @@ from netket.jax import (
     tree_to_real,
     vmap_chunked,
 )
-from netket.jax.sharding import sharding_decorator
 
 from . import jacobian_dense
 from . import jacobian_pytree
@@ -351,7 +350,6 @@ def jacobian(
         jacobian_fun,
         in_axes=(None, None, 0),
         chunk_size=chunk_size,
-        axis_0_is_sharded=_axis_0_is_sharded,
     )  # see below
     # vmap_chunked, as of 5/11/2024 (3.14.3) only passses the function through
     # a sharding_decorator if it is chunked, and not if it's not. This creates
@@ -362,13 +360,6 @@ def jacobian(
 
     # TODO: Maybe remove this and simply always sharding_decorator inside of vmap_chunked.
     # We do sharding decorator here to account for cases where the wavefunction contains
-    if _axis_0_is_sharded is True:
-        jacobian_fun = sharding_decorator(
-            jacobian_fun,
-            (False, False, True),
-            reduction_op_tree=False,
-        )
-
     jacobians = jacobian_fun(Partial(f), params, samples)
 
     if pdf is None:
