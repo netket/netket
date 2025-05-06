@@ -15,6 +15,7 @@
 
 import jax
 from jax import numpy as jnp
+from jax.sharding import PartitionSpec as P
 from flax import struct
 
 from netket.utils.types import Scalar, PyTree
@@ -154,11 +155,13 @@ class QGTJacobianDenseT(LinearOperator):
             flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
             Ol = (flip_sign * O).reshape(-1, O.shape[-1])
             Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(Ol.T @ Or)[0] + self.diag_shift * diag
+            S = jnp.einsum('ni,nj->ij', Ol, Or, out_sharding=P(None, None))
+            return mpi.mpi_sum_jax(S)[0] + self.diag_shift * diag
         else:
             # Equivalent to Jr.T@Jr + Ji.T@Ji
             O = O.reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(O.conj().T @ O)[0] + self.diag_shift * diag
+            S = jnp.einsum('ni,nj->ij', O.conj(), O, out_sharding=P(None, None))
+            return mpi.mpi_sum_jax(S)[0] + self.diag_shift * diag
 
     def to_real_part(self) -> "QGTJacobianDenseT":
         """
