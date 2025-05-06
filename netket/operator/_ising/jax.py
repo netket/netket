@@ -118,9 +118,13 @@ def _ising_mels_jax(x, edges, h, J):
         max_conn_size = 1
     else:
         max_conn_size = x.shape[-1] + 1
-    mels = jnp.zeros((*batch_dims, max_conn_size), dtype=J.dtype)
+    mels = jnp.zeros(
+        (*batch_dims, max_conn_size), dtype=J.dtype, device=jax.typeof(x).sharding
+    )
 
-    same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
+    same_spins = x.at[..., edges[:, 0]].get(
+        out_sharding=jax.typeof(x).sharding
+    ) == x.at[..., edges[:, 1]].get(out_sharding=jax.typeof(x).sharding)
     mels = mels.at[..., 0].set(J * (2 * same_spins - 1).sum(axis=-1))
     if not isinstance(h, StaticZero):
         mels = mels.at[..., 1:].set(-h)
