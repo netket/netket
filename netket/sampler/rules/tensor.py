@@ -145,4 +145,4 @@ class TensorRule(MetropolisRule):
         return σp, log_prob_corr
 
     def __repr__(self):
-        return "TensorRule(hilbert={self.hilbert}, rules={self.rules})"
+        return f"TensorRule(hilbert={self.hilbert}, rules={self.rules})"
