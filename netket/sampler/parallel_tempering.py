@@ -97,8 +97,8 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         Average variance of the position of :math:`\\beta = 1`.
         In the ideal case, this quantity should be of order ~[0.2, 1.0]
         """
-        diffusion = jnp.sqrt(
-            self.beta_diffusion / self.exchange_steps / self.beta.shape[-1]
+        diffusion = (
+            jnp.sqrt(self.beta_diffusion / self.exchange_steps) / self.beta.shape[-1]
         )
         out, _ = mpi.mpi_mean_jax(diffusion.mean())
 
