@@ -195,7 +195,7 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> tuple[Array, tuple]:
     # convert them to origin (unordered) ordering
     v_unsorted = v[:, acting_on_unsorted_ids]
     # convert the unordered bit-strings to numbers in the target space.
-    n_unsorted = hi_unsorted_subspace.states_to_numbers(v_unsorted)
+    n_unsorted = np.asarray(hi_unsorted_subspace.states_to_numbers(v_unsorted))
 
     # reorder the matrix
     if sparse.issparse(mat):
