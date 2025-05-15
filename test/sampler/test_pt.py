@@ -124,8 +124,9 @@ def test_initialization_beta_list(model_and_weights, betas):
 
 
 # This test verifies that the acceptance is indeed a float
-# It also verifies that its value is 1 for a state with flat distribution
-def test_acceptance():
+# and that its value is 1 for a state with flat distribution
+# It also verifies that the statistics of the temperatures are normalized
+def test_sampler_statistics():
     g = nk.graph.Hypercube(length=4, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
@@ -142,6 +143,10 @@ def test_acceptance():
     vs.sample()
 
     assert jnp.isclose(vs.sampler_state.acceptance, 1.0)
+
+    # check the statistics of beta=1
+    assert jnp.abs(vs.sampler_state.normalized_position) <= 1.0
+    assert vs.sampler_state.normalized_diffusion <= 1.0
 
 
 # The following fixture initialises a model and it's weights

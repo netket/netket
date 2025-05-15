@@ -62,6 +62,9 @@ This version (as all previous versions) are incompatible with Jax 0.6 . A future
 ### Deprecations
 * Constructing the {class}~`netket.optimizer.SR` object with `SR(qgt=QGTType(...))` is now deprecated. This construction can lead to unexpected results because the keyword arguments specified in the `QGTType` are overwritten by those specified by the SR class and its defaults. To fix this, construct SR as `SR(qgt=QGTType, ...)`. A warning will be raised when using the deprecated syntax, and this will become an error in a future release.
 
+### Bug Fixes
+* Fixed a bug in the default values of the normalization of the Parallel Tempering bug, present in the last few versions [#2041](https://github.com/netket/netket/pull/2041#issuecomment-2882798193)
+
 
 ## NetKet 3.14.4 (7 November 2024)
 * Fix a bug introduced in 3.14.3 when using chunking [#1943](https://github.com/netket/netket/pull/1943).
