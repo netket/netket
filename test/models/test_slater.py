@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import netket.experimental as nkx
 import numpy as np
 import jax
 import jax.numpy as jnp
