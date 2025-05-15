@@ -10,7 +10,7 @@ from netket.utils import mpi
 from netket.utils.types import Array
 
 from netket._src import distributed
-from .kwargs import ensure_accepts_kwargs
+from netket._src.ngd.kwargs import ensure_accepts_kwargs
 
 
 @partial(
