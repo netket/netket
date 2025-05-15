@@ -10,4 +10,4 @@ repos:
     rev: 25.1.0
     hooks:
     - id: black
-      args: [--config=./pyproject.toml, --force-exclude=netket/_src/external]
+      args: [--config=./pyproject.toml]
