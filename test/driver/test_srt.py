@@ -22,7 +22,7 @@ import optax
 
 import pytest
 
-from netket.experimental.driver import VMC_SRt
+from netket.experimental.driver import VMC_SR, VMC_SRt
 from netket.optimizer.solver.solvers import solve
 from netket.utils import mpi
 
@@ -110,8 +110,13 @@ def test_SRt_vs_linear_solver_complexpars():
     )
 
     H, opt, vstate_srt = _setup(machine=model)
-    gs = VMC_SRt(
-        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex"
+    gs = VMC_SR(
+        H,
+        opt,
+        variational_state=vstate_srt,
+        diag_shift=0.1,
+        mode="complex",
+        use_ntk=True,
     )
     logger_srt = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_srt)
@@ -141,8 +146,13 @@ def test_SRt_vs_linear_solver():
     n_iters = 5
 
     H, opt, vstate_srt = _setup()
-    gs = VMC_SRt(
-        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex"
+    gs = VMC_SR(
+        H,
+        opt,
+        variational_state=vstate_srt,
+        diag_shift=0.1,
+        mode="complex",
+        use_ntk=True,
     )
     logger_srt = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_srt)
@@ -167,24 +177,25 @@ def test_SRt_vs_linear_solver():
 
 def test_SRt_real_vs_complex():
     """
-    nk.driver.VMC_kernelSR must give **exactly** the same dynamics for a positive definite wave function if jacobian_mode=complex or real
+    nk.driver.VMC_kernelSR must give **exactly** the same dynamics for a positive definite wave function if mode=complex or real
     """
     n_iters = 5
 
     H, opt, vstate_complex = _setup(complex=False)
-    gs = VMC_SRt(
+    gs = VMC_SR(
         H,
         opt,
         variational_state=vstate_complex,
         diag_shift=0.1,
-        jacobian_mode="complex",
+        mode="complex",
+        use_ntk=True,
     )
     logger_complex = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_complex)
 
     H, opt, vstate_real = _setup(complex=False)
-    gs = VMC_SRt(
-        H, opt, variational_state=vstate_real, diag_shift=0.1, jacobian_mode="real"
+    gs = VMC_SR(
+        H, opt, variational_state=vstate_real, diag_shift=0.1, mode="real", use_ntk=True
     )
     logger_real = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_real)
@@ -206,19 +217,18 @@ def test_SRt_constructor_errors():
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
     H, opt, vstate_srt = _setup()
-    gs = VMC_SRt(
+    gs = VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
         diag_shift=0.1,
+        use_ntk=True,
     )
     assert gs.mode == "complex"
     gs.run(1)
 
     with pytest.raises(ValueError):
-        gs = VMC_SRt(
-            H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="belin"
-        )
+        gs = VMC_SRt(H, opt, variational_state=vstate_srt, diag_shift=0.1, mode="belin")
 
 
 def test_SRt_schedules():

@@ -37,15 +37,23 @@ def VMC_SRt(
     *,
     diag_shift: ScalarOrSchedule,
     linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = cholesky,
+    mode: str | None = None,
     jacobian_mode: str | None = None,
     variational_state: MCState = None,
 ):
+    if mode is None:
+        mode = jacobian_mode
+    elif mode is not None and jacobian_mode is not None:
+        raise ValueError(
+            "`jacobian_mode` is deprecated and renamed to `mode`. Just declare `mode`."
+        )
+
     return VMC_SR(
         hamiltonian,
         optimizer,
         diag_shift=diag_shift,
         linear_solver_fn=linear_solver_fn,
-        mode=jacobian_mode,
+        mode=mode,
         variational_state=variational_state,
         use_ntk=True,
         on_the_fly=False,

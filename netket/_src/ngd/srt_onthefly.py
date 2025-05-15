@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 from functools import partial
 
 from einops import rearrange
@@ -13,7 +13,7 @@ from jax.sharding import PartitionSpec as P
 from netket import jax as nkjax
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.utils import mpi
-from netket.utils.types import Union, Array
+from netket.utils.types import Array
 from netket.utils.version_check import module_version
 
 from netket._src import distributed as distributed
