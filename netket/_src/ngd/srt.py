@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 from functools import partial
 
 import jax
@@ -7,7 +7,7 @@ from jax.sharding import PositionalSharding
 
 from netket import jax as nkjax
 from netket.utils import mpi
-from netket.utils.types import Union, Array
+from netket.utils.types import Array
 
 from netket._src import distributed as distributed
 

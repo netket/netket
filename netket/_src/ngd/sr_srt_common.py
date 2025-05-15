@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 from functools import partial
 
 import jax
@@ -8,7 +8,7 @@ from jax.flatten_util import ravel_pytree
 import netket.jax as nkjax
 from netket.stats import mean as distributed_mean
 from netket.utils import mpi, timing
-from netket.utils.types import Union, Array, PyTree
+from netket.utils.types import Array, PyTree
 
 from netket._src.ngd.sr import _compute_sr_update
 from netket._src.ngd.srt import _compute_srt_update
