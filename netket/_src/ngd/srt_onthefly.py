@@ -17,7 +17,7 @@ from netket.utils.types import Union, Array
 from netket.utils.version_check import module_version
 
 from netket._src import distributed as distributed
-from netket._src.external import neural_tangents as nt
+from netket.jax import _ntk as nt
 
 
 @partial(
@@ -104,11 +104,10 @@ def srt_onthefly(
     # Collect all samples on all MPI ranks, those label the columns of the T matrix
     all_samples, token = distributed.allgather(samples, token=token)
 
-    _jacobian_contraction = nt.empirical_ntk_fn(
+    _jacobian_contraction = nt.empirical_ntk_by_jacobian(
         f=_apply_fn,
         trace_axes=(),
         vmap_axes=0,
-        implementation=nt.NtkImplementation.JACOBIAN_CONTRACTION,
     )
 
     def jacobian_contraction(samples, all_samples, parameters_real):
