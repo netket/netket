@@ -27,8 +27,8 @@ def test_Slater2nd():
 
     n_dets = 4
     for slater_class in [
-        nkx.models.Slater2nd,
-        partial(nkx.models.MultiSlater2nd, n_determinants=n_dets),
+        nk.models.Slater2nd,
+        partial(nk.models.MultiSlater2nd, n_determinants=n_dets),
     ]:
         hi = nk.hilbert.SpinOrbitalFermions(3, n_fermions=2)
         ma = slater_class(hi, restricted=True, param_dtype=jnp.float32)
@@ -115,7 +115,7 @@ def test_Slater2nd():
         assert out1.shape == (2, 3)
         assert out1.dtype == jnp.complex64
 
-        if isinstance(ma, nkx.models.MultiSlater2nd):
+        if isinstance(ma, nk.models.MultiSlater2nd):
             M = pars["params"]["VmapSlater2nd_0"]["M"]
             assert M.shape == (n_dets, hi.size, hi.n_fermions)
         else:
@@ -127,15 +127,15 @@ def test_Slater2nd_error():
     # Requires number of fermions
     with pytest.raises(TypeError):
         hi = nk.hilbert.SpinOrbitalFermions(3)
-        ma = nkx.models.Slater2nd(hi, restricted=True)
+        ma = nk.models.Slater2nd(hi, restricted=True)
 
     # Requires equal number of fermions
     with pytest.raises(ValueError):
         hi = nk.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 3))
-        ma = nkx.models.Slater2nd(hi, restricted=True)
+        ma = nk.models.Slater2nd(hi, restricted=True)
 
     # Wrong sample shape
     with pytest.raises(ValueError):
         hi = nk.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 2))
-        ma = nkx.models.Slater2nd(hi, restricted=True)
+        ma = nk.models.Slater2nd(hi, restricted=True)
         ma.init(jax.random.PRNGKey(1), jnp.ones((4,)))
