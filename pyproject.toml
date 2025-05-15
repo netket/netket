@@ -122,7 +122,6 @@ exclude = '''
   | buck-out
   | build
   | dist
-  | netket/_src/external
 )/
 '''
 
