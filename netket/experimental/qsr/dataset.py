@@ -42,7 +42,7 @@ def _build_rotation(
     """
     localop = LocalOperator(hi, constant=1.0, dtype=dtype)
     U_X = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
-    U_Y = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
+    U_Y = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, -1.0j], [1.0, 1.0j]])
 
     assert len(basis) == hi.size
 
