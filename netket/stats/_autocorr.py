@@ -83,4 +83,4 @@ def integrated_time(x, c=5):
     f = autocorr_1d(x)
     taus = 2.0 * jnp.cumsum(f) - 1.0
     window = auto_window(taus, c)
-    return taus[window]
+    return taus[window.astype(jnp.int32)]
