@@ -339,7 +339,7 @@ class Integrator(struct.Pytree, mutable=True):
         # accept if error is within tolerances or we are already at the minimal step
         accept_step = np.logical_or(scaled_err < 1.0, is_at_min_dt)
         # accept the time step iff it is accepted by all MPI processes
-        accept_step, _ = mpi_all(accept_step)
+        accept_step = mpi_all(accept_step)
 
         if accept_step:
             return state.replace(
