@@ -14,11 +14,11 @@
 
 from collections.abc import Callable
 
-import jax
+import numpy as np
 import jax.numpy as jnp
 
 from netket.utils.numbers import dtype as _dtype
-from netket.utils.mpi.primitives import mpi_all_jax
+from netket.utils.mpi.primitives import mpi_all
 from netket.utils import struct
 from netket.utils.types import PyTree
 
@@ -323,48 +323,39 @@ class Integrator(struct.Pytree, mutable=True):
 
         # check if next dt is NaN
         flags = set_flag_jax(
-            ~jnp.isfinite(next_dt), flags, IntegratorFlags.ERROR_INVALID_DT
+            ~np.isfinite(next_dt), flags, IntegratorFlags.ERROR_INVALID_DT
         )
 
         # check if we are at lower bound for dt
         if dt_min is not None:
-            is_at_min_dt = jnp.isclose(next_dt, dt_min)
+            is_at_min_dt = np.isclose(next_dt, dt_min)
             flags = set_flag_jax(is_at_min_dt, flags, IntegratorFlags.WARN_MIN_DT)
         else:
             is_at_min_dt = False
         if dt_max is not None:
-            is_at_max_dt = jnp.isclose(next_dt, dt_max)
+            is_at_max_dt = np.isclose(next_dt, dt_max)
             flags = set_flag_jax(is_at_max_dt, flags, IntegratorFlags.WARN_MAX_DT)
 
         # accept if error is within tolerances or we are already at the minimal step
-        accept_step = jnp.logical_or(scaled_err < 1.0, is_at_min_dt)
+        accept_step = np.logical_or(scaled_err < 1.0, is_at_min_dt)
         # accept the time step iff it is accepted by all MPI processes
-        accept_step, _ = mpi_all_jax(accept_step)
+        accept_step, _ = mpi_all(accept_step)
 
-        return jax.lax.cond(
-            accept_step,
-            # step accepted
-            lambda _: state.replace(
+        if accept_step:
+            return state.replace(
                 step_no=state.step_no + 1,
                 step_no_total=state.step_no_total + 1,
                 y=y_tp1,
                 t=state.t + actual_dt,
-                dt=jax.lax.cond(
-                    actual_dt == state.dt,
-                    lambda _: next_dt,
-                    lambda _: state.dt,
-                    None,
-                ),
+                dt=next_dt if actual_dt == state.dt else state.dt,
                 last_norm=norm_y.astype(state.last_norm.dtype),
                 last_scaled_error=scaled_err.astype(state.last_scaled_error.dtype),
                 solver_state=solver_state,
                 flags=flags | IntegratorFlags.INFO_STEP_ACCEPTED,
-            ),
-            # step rejected, repeat with lower dt
-            lambda _: state.replace(
+            )
+        else:
+            return state.replace(
                 step_no_total=state.step_no_total + 1,
                 dt=next_dt,
                 flags=flags,
-            ),
-            state,
-        )
+            )
