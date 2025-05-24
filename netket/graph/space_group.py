@@ -20,7 +20,7 @@ from functools import reduce
 from math import pi
 from collections.abc import Iterable, Sequence
 
-from netket.utils import struct, deprecated_new_name
+from netket.utils import struct, deprecated_new_name, deprecated
 from netket.utils.types import Array
 from netket.utils.float import prune_zeros
 from netket.utils.dispatch import dispatch
@@ -79,25 +79,76 @@ def _ensure_iterable(x):
         return x
 
 
+def _translations_along_axis(lattice: Lattice, axis: int) -> PermutationGroup:
+    """
+    The group of valid translations along an axis as a `PermutationGroup`
+    acting on the sites of `lattice.`
+    """
+    if lattice._pbc[axis]:
+        trans_list = [Identity()]
+        # note that we need the preimages in the permutation
+        trans_perm = lattice.id_from_position(
+            lattice.positions - lattice.basis_vectors[axis]
+        )
+        vector = np.zeros(lattice.ndim, dtype=int)
+        vector[axis] = 1
+        trans_by_one = Translation(trans_perm, vector)
+
+        for _ in range(1, lattice.extent[axis]):
+            trans_list.append(trans_list[-1] @ trans_by_one)
+
+        return PermutationGroup(trans_list, degree=lattice.n_nodes)
+    else:
+        return PermutationGroup([Identity()], degree=lattice.n_nodes)
+
+
+def _pg_to_permutation(lattice: Lattice, point_group: PointGroup) -> PermutationGroup:
+    """
+    The permutation action of `point_group` on the sites of `lattice`.
+    """
+    perms: list[Element] = []
+    for p in point_group:
+        if isinstance(p, Identity):
+            perms.append(Identity())
+        else:
+            # note that we need the preimages in the permutation
+            perm = lattice.id_from_position(p.preimage(lattice.positions))
+            perms.append(Permutation(perm, name=str(p)))
+    return PermutationGroup(perms, degree=lattice.n_nodes)
+
+
 @struct.dataclass
-class SpaceGroupBuilder(struct.Pytree):
+class SpaceGroup(PermutationGroup):
     """
     Class to handle the space group symmetries of `Lattice`.
 
-    Constructs `PermutationGroup`s that represent the action on a `Lattice` of
-    * a geometrical point group given as a constructor argument,
+    Can be used as a `PermutationGroup` representing the action of a
+    space group on a `Lattice`. The space group is generated as the
+    semidirect product of the translation group of the `Lattice` and
+    a geometrical point group given as a constructor argument.
+
+    Also generates `PermutationGroup` representations of
+    * the suuplied point group,
     * its rotational subgroup (i.e. point group symmetries with determinant +1)
-    * the translation group of the same lattice
-    * and the space group that is generated as the semidirect product of
-      the supplied point group and the translation group.
+    * the translation group of the `Lattice`
 
     Also generates space group irreps for symmetrising wave functions.
     """
 
     lattice: Lattice
+    """The lattice underlying the space group."""
     _point_group: PointGroup
+    """The geometric point group underlying the space group."""
+    point_group: PermutationGroup
+    """The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
+        
+    Group elements are listed in the order they appear in `self._point_group`."""
+    _translations_along_axis: tuple[PermutationGroup]
+    _full_translation_group: PermutationGroup
 
-    def __init__(self, lattice: Lattice, point_group: PointGroup):
+    def __pre_init__(
+        self, lattice: Lattice, point_group: PointGroup
+    ) -> tuple[tuple, dict]:
         """
         Constructs the Space Group Builder used to concretize a point group
         which knows nothing about how many sites there are in a lattice,
@@ -112,30 +163,54 @@ class SpaceGroupBuilder(struct.Pytree):
                 a permutation group
             point_group: The point group to be represented
         """
-        self.lattice = lattice
 
         if not isinstance(lattice, Lattice):
             raise TypeError(
-                "The lattice provided to Space Group Builder must "
-                "be an instance of `Lattice`. However the lattice you provided "
-                f"is of type {type(lattice)}."
+                "Expected an instance of `Lattice` as argument `lattice`, "
+                f"got {type(lattice)}."
             )
 
         if not isinstance(point_group, PointGroup):
-            extra_tip = ""
-            if isinstance(point_group, Element):
-                extra_tip = extra_tip + (
-                    "\n\n It seems you might have forgotten to wrap this "
-                    "single symmetry inside of a nk.utils.group.PointGroup."
-                )
-            raise TypeError(
-                "The point group provided to Space Group Builder must "
-                "be an instance of `PointGroup`. However the lattice you provided "
-                f"is of type {type(point_group)}. {extra_tip}"
+            msg = (
+                "Expected an instance of `PointGroup` as argument `point_group`, "
+                f"got type {type(point_group)}."
             )
+            if isinstance(point_group, Element):
+                msg += (
+                    "\n\n`point_group` appears to be a single symmetry. "
+                    "It should be wrapped into a `PointGroup` object."
+                )
+            raise TypeError(msg)
 
+        # compute point group permutations
         point_group = point_group.replace(unit_cell=lattice.basis_vectors)
-        self._point_group = point_group
+        pg_as_perm = _pg_to_permutation(lattice, point_group)
+
+        # compute translation group by axis and overall
+        translation_by_axis = [
+            _translations_along_axis(lattice, i) for i in range(lattice.ndim)
+        ]
+        translation_group = reduce(PermutationGroup.__matmul__, translation_by_axis)
+
+        # compute space group elements
+        space_group = translation_group @ pg_as_perm
+        elems = space_group.elems
+
+        return (), dict(
+            lattice=lattice,
+            _point_group=point_group,
+            point_group=pg_as_perm,
+            _translations_along_axis=translation_by_axis,
+            _full_translation_group=translation_group,
+            elems=elems,
+            degree=lattice.n_nodes,
+        )
+
+    def __repr__(self):
+        return (
+            type(self).__name__
+            + f"(lattice:\n{self.lattice}\npoint_group:\n{self._point_group})"
+        )
 
     @property
     @deprecated_new_name("_point_group", reason="Consistency")
@@ -148,67 +223,14 @@ class SpaceGroupBuilder(struct.Pytree):
         return self._point_group
 
     # TODO describe ordering of group elements here and later in docstring
-    @struct.property_cached
-    def point_group(self) -> PermutationGroup:
-        """
-        The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
-        """
-        perms: list[Element] = []
-        for p in self._point_group:
-            if isinstance(p, Identity):
-                perms.append(Identity())
-            else:
-                # note that we need the preimages in the permutation
-                perm = self.lattice.id_from_position(p.preimage(self.lattice.positions))
-                perms.append(Permutation(perm, name=str(p)))
-        return PermutationGroup(perms, degree=self.lattice.n_nodes)
 
     @struct.property_cached
     def rotation_group(self) -> PermutationGroup:
         """The group of rotations (i.e. point group symmetries with determinant +1)
-        as a `PermutationGroup` acting on the sites of `self.lattice`."""
-        perms = []
-        for p in self._point_group.rotation_group():
-            if isinstance(p, Identity):
-                perms.append(Identity())
-            else:
-                # note that we need the preimages in the permutation
-                perm = self.lattice.id_from_position(p.preimage(self.lattice.positions))
-                perms.append(Permutation(perm, name=str(p)))
-        return PermutationGroup(perms, degree=self.lattice.n_nodes)
+        as a `PermutationGroup` acting on the sites of `self.lattice`.
 
-    def _translations_along_axis(self, axis: int) -> PermutationGroup:
-        """
-        The group of valid translations along an axis as a `PermutationGroup`
-        acting on the sites of `self.lattice.`
-        """
-        if self.lattice._pbc[axis]:
-            trans_list = [Identity()]
-            # note that we need the preimages in the permutation
-            trans_perm = self.lattice.id_from_position(
-                self.lattice.positions - self.lattice.basis_vectors[axis]
-            )
-            vector = np.zeros(self.lattice.ndim, dtype=int)
-            vector[axis] = 1
-            trans_by_one = Translation(trans_perm, vector)
-
-            for _ in range(1, self.lattice.extent[axis]):
-                trans_list.append(trans_list[-1] @ trans_by_one)
-
-            return PermutationGroup(trans_list, degree=self.lattice.n_nodes)
-        else:
-            return PermutationGroup([Identity()], degree=self.lattice.n_nodes)
-
-    @struct.property_cached
-    def _full_translation_group(self) -> PermutationGroup:
-        """
-        The group of valid translations of `self.lattice` as a `PermutationGroup`
-        acting on the sites of the same.
-        """
-        return reduce(
-            PermutationGroup.__matmul__,
-            [self._translations_along_axis(i) for i in range(self.lattice.ndim)],
-        )
+        Group elements are listed in the order they appear in `self._point_group`."""
+        return _pg_to_permutation(self.lattice, self._point_group.rotation_group())
 
     def translation_group(
         self, axes: int | Sequence[int] | None = None
@@ -220,19 +242,22 @@ class SpaceGroupBuilder(struct.Pytree):
         if axes is None:
             return self._full_translation_group
         elif isinstance(axes, int):
-            return self._translations_along_axis(axes)
+            return self._translations_along_axis[axes]
         else:
             return reduce(
                 PermutationGroup.__matmul__,
-                [self._translations_along_axis(i) for i in axes],
+                [self._translations_along_axis[i] for i in axes],
             )
 
-    @struct.property_cached
+    @property
+    @deprecated(
+        reason="This `SpaceGroup` object can be used directly as a permutation group"
+    )
     def space_group(self) -> PermutationGroup:
         """
         The space group generated by `self.point_group` and `self.translation_group`.
         """
-        return self._full_translation_group @ self.point_group
+        return self
 
     def _little_group_index(self, k: Array) -> Array:
         """

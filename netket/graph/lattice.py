@@ -38,7 +38,7 @@ from ._lattice_draw import draw_lattice
 
 
 if TYPE_CHECKING:
-    from .space_group import SpaceGroupBuilder
+    from .space_group import SpaceGroup
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
@@ -509,7 +509,7 @@ class Lattice(Graph):
     # -----------------------------------------------------------------------
     def space_group_builder(
         self, point_group: PointGroup | None = None
-    ) -> "SpaceGroupBuilder":
+    ) -> "SpaceGroup":
         """
         Returns a `SpaceGroupBuilder` object that represents the spatial symmetries of
         `self`.
@@ -526,7 +526,7 @@ class Lattice(Graph):
             permutations of the sites of `self`. It also yields space group irreps
             for symmetrising wave functions.
         """
-        from .space_group import SpaceGroupBuilder
+        from .space_group import SpaceGroup
 
         if point_group is None:
             if isinstance(self._point_group, PointGroup):
@@ -539,7 +539,7 @@ class Lattice(Graph):
                     "space_group_builder() missing required argument 'point_group'\n"
                     "(lattice has no default point group)"
                 )
-        return SpaceGroupBuilder(self, point_group)
+        return SpaceGroup(self, point_group)
 
     def space_group(self, point_group: PointGroup | None = None) -> PermutationGroup:
         """
