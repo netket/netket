@@ -118,6 +118,70 @@ def _pg_to_permutation(lattice: Lattice, point_group: PointGroup) -> Permutation
 
 
 @struct.dataclass
+class TranslationGroup(PermutationGroup):
+    """
+    Class to handle translation symmetries of a `Lattice`.
+
+    Can be used as a `PermutationGroup` representing the translations,
+    but the product table is computed much more efficiently than a generic
+    `PermutationGroup`.
+    """
+
+    lattice: Lattice
+    """The lattice whose translation group is represented."""
+    axes: tuple[int]
+    """Axes translations along which are represented by the group."""
+    group_shape: tuple[int]
+    """Size of the translation group along each axis"""
+
+    def __pre_init__(
+        self, lattice: Lattice, axes: int | tuple[int] | None = None
+    ) -> tuple[tuple, dict]:
+        if axes is None:
+            axes = tuple(range(lattice.ndim))
+        elif isinstance(axes, int):
+            axes = [axes]
+        else:
+            assert all(x < lattice.ndim for x in axes)
+            assert len(set(axes)) == len(axes)
+
+        # compute translation group by axis and overall
+        translation_by_axis = [_translations_along_axis(lattice, i) for i in axes]
+        shape = tuple(len(x) for x in translation_by_axis)
+        translation_group = reduce(PermutationGroup.__matmul__, translation_by_axis)
+
+        return (), dict(
+            lattice=lattice,
+            axes=tuple(axes),
+            group_shape=shape,
+            elems=translation_group.elems,
+            degree=lattice.n_nodes,
+        )
+
+    @struct.property_cached
+    def inverse(self) -> Array:
+        ix = np.ix_(*[-np.arange(x) % x for x in self.group_shape])
+        inv = np.arange(len(self)).reshape(self.group_shape)[ix]
+        return np.ravel(inv)
+
+    @struct.property_cached
+    def product_table(self) -> Array:
+        # product table of each 1d component
+        ix = [(np.arange(x) - np.arange(x)[:, None]) % x for x in self.group_shape]
+        ix = np.ix_(*[np.ravel(x) for x in ix])
+        # product table with n_axes axes
+        # each axis stands for row and column direction along one axis
+        pt = np.arange(len(self)).reshape(self.group_shape)[ix]
+        shape = [x for x in self.group_shape for _ in range(2)]
+        # separate row and column directions
+        pt = pt.reshape(shape)
+        # bring all row and all column directions together
+        pt = pt.transpose(list(range(0, len(shape), 2)) + list(range(1, len(shape), 2)))
+
+        return pt.reshape(len(self), len(self))
+
+
+@struct.dataclass
 class SpaceGroup(PermutationGroup):
     """
     Class to handle the space group symmetries of `Lattice`.
@@ -128,7 +192,7 @@ class SpaceGroup(PermutationGroup):
     a geometrical point group given as a constructor argument.
 
     Also generates `PermutationGroup` representations of
-    * the suuplied point group,
+    * the supplied point group,
     * its rotational subgroup (i.e. point group symmetries with determinant +1)
     * the translation group of the `Lattice`
 
@@ -143,8 +207,7 @@ class SpaceGroup(PermutationGroup):
     """The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
         
     Group elements are listed in the order they appear in `self._point_group`."""
-    _translations_along_axis: tuple[PermutationGroup]
-    _full_translation_group: PermutationGroup
+    full_translation_group: PermutationGroup
 
     def __pre_init__(
         self, lattice: Lattice, point_group: PointGroup
@@ -187,10 +250,7 @@ class SpaceGroup(PermutationGroup):
         pg_as_perm = _pg_to_permutation(lattice, point_group)
 
         # compute translation group by axis and overall
-        translation_by_axis = [
-            _translations_along_axis(lattice, i) for i in range(lattice.ndim)
-        ]
-        translation_group = reduce(PermutationGroup.__matmul__, translation_by_axis)
+        translation_group = lattice.full_translation_group
 
         # compute space group elements
         space_group = translation_group @ pg_as_perm
@@ -200,8 +260,7 @@ class SpaceGroup(PermutationGroup):
             lattice=lattice,
             _point_group=point_group,
             point_group=pg_as_perm,
-            _translations_along_axis=translation_by_axis,
-            _full_translation_group=translation_group,
+            full_translation_group=translation_group,
             elems=elems,
             degree=lattice.n_nodes,
         )
@@ -234,26 +293,21 @@ class SpaceGroup(PermutationGroup):
 
     def translation_group(
         self, axes: int | Sequence[int] | None = None
-    ) -> PermutationGroup:
+    ) -> TranslationGroup:
         """
         The group of valid translations of `self.lattice` as a `PermutationGroup`
         acting on the sites of the same.
         """
         if axes is None:
-            return self._full_translation_group
-        elif isinstance(axes, int):
-            return self._translations_along_axis[axes]
+            return self.full_translation_group
         else:
-            return reduce(
-                PermutationGroup.__matmul__,
-                [self._translations_along_axis[i] for i in axes],
-            )
+            return TranslationGroup(self.lattice, axes=axes)
 
     @property
     @deprecated(
         reason="This `SpaceGroup` object can be used directly as a permutation group"
     )
-    def space_group(self) -> PermutationGroup:
+    def space_group(self) -> "SpaceGroup":
         """
         The space group generated by `self.point_group` and `self.translation_group`.
         """

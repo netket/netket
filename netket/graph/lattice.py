@@ -38,7 +38,7 @@ from ._lattice_draw import draw_lattice
 
 
 if TYPE_CHECKING:
-    from .space_group import SpaceGroup
+    from .space_group import SpaceGroup, TranslationGroup
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
@@ -576,6 +576,13 @@ class Lattice(Graph):
         """
         return self.space_group(point_group).rotation_group
 
+    @struct.property_cached
+    def full_translation_group(self) -> "TranslationGroup":
+        """The full translation group of the lattice."""
+        from .space_group import TranslationGroup
+
+        return TranslationGroup(self)
+
     def translation_group(
         self, dim: int | Sequence[int] | None = None
     ) -> PermutationGroup:
@@ -583,7 +590,13 @@ class Lattice(Graph):
         Returns the group of lattice translations of `self` as a `PermutationGroup`
         acting on the sites of `self`.
         """
-        return self.space_group(trivial_point_group(self.ndim)).translation_group(dim)
+        from .space_group import TranslationGroup
+
+        return (
+            self.full_translation_group
+            if dim is None
+            else TranslationGroup(self, axes=dim)
+        )
 
     # Output and drawing
     # ------------------------------------------------------------------------
