@@ -211,7 +211,7 @@ class SpaceGroup(PermutationGroup):
     """The geometric point group underlying the space group."""
     point_group: PermutationGroup
     """The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
-        
+
     Group elements are listed in the order they appear in `self._point_group`."""
     full_translation_group: PermutationGroup
 
