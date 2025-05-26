@@ -148,8 +148,9 @@ class StateLog(AbstractLog):
             if self._file_mode == "append":
                 files = self._tar_file.getnames()
                 file_numbers = [int(file[:-6]) for file in files]
-                file_numbers.sort()
-                self._file_step = file_numbers[-1] + 1
+                if file_numbers:
+                    file_numbers.sort()
+                    self._file_step = file_numbers[-1] + 1
 
     def _check_output_folder(self):
         self._file_step = 0
@@ -160,8 +161,9 @@ class StateLog(AbstractLog):
         elif self._file_mode == "append":
             files = glob.glob(self._prefix + "*.mpack")
             file_numbers = [int(_path.basename(file)[:-6]) for file in files]
-            file_numbers.sort()
-            self._file_step = file_numbers[-1] + 1
+            if file_numbers:
+                file_numbers.sort()
+                self._file_step = file_numbers[-1] + 1
 
     def close(self):
         if not self._closed and self._tar_file is not None:
