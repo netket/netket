@@ -194,7 +194,7 @@ class PauliStringsBase(DiscreteOperator):
         return self._operators
 
     @property
-    def weights(self) -> Iterable[str]:
+    def weights(self) -> Array:
         return self._weights
 
     @classmethod
