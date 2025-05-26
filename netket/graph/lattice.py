@@ -585,7 +585,7 @@ class Lattice(Graph):
 
     def translation_group(
         self, dim: int | Sequence[int] | None = None
-    ) -> PermutationGroup:
+    ) -> "TranslationGroup":
         """
         Returns the group of lattice translations of `self` as a `PermutationGroup`
         acting on the sites of `self`.

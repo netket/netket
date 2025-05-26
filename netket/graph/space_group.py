@@ -316,6 +316,40 @@ class SpaceGroup(PermutationGroup):
         """
         return self
 
+    @struct.property_cached
+    def product_table(self) -> Array:
+        # compute first n_PG rows of product table like in PermutationGroup
+        perms = self.to_array()
+        inverse = perms[self.inverse].squeeze()
+        n_symm = len(perms)
+        n_PG = len(self._point_group)
+        n_TG = len(self.full_translation_group)
+        lookup = np.unique(np.column_stack((perms, np.arange(len(self)))), axis=0)
+
+        PG_rows = np.zeros([n_PG, n_symm], dtype=int)
+        for i, g_inv in enumerate(inverse[:n_PG]):
+            row_perms = perms[:, g_inv]
+            row_perms = np.unique(
+                np.column_stack((row_perms, np.arange(len(self)))), axis=0
+            )
+            # row_perms should be a permutation of perms, so identical after sorting
+            if np.any(row_perms[:, :-1] != lookup[:, :-1]):
+                raise RuntimeError(
+                    "PermutationGroup is not closed under multiplication"
+                )
+            # match elements in row_perms to group indices
+            PG_rows[i, row_perms[:, -1]] = lookup[:, -1]
+
+        # PG_rows contains pg^-1 th ph - split three terms into three dimensions
+        PG_rows = PG_rows.reshape(n_PG, n_TG, n_PG)
+        # the full product table is of the form pg^-1 tg^-1 th ph
+        # the middle two terms are the product table of the TG
+        product_table = PG_rows[:, self.full_translation_group.product_table, :]
+        # reshuffle into output shape
+        product_table = product_table.transpose(1, 0, 2, 3)
+
+        return product_table.reshape(n_symm, n_symm)
+
     def _little_group_index(self, k: Array) -> Array:
         """
         Returns the indices of the elements of the little group corresponding to
