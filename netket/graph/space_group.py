@@ -134,6 +134,9 @@ class TranslationGroup(PermutationGroup):
     group_shape: tuple[int]
     """Size of the translation group along each axis"""
 
+    def __repr__(self):
+        return type(self).__name__ + f"(lattice:\n{self.lattice}\naxes:{self.axes})"
+
     def __pre_init__(
         self, lattice: Lattice, axes: int | tuple[int] | None = None
     ) -> tuple[tuple, dict]:
