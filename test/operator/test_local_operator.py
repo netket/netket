@@ -647,3 +647,15 @@ def test_pauli_strings_conversion_no_warn():
         TypeError, match=r".* hilbert spaces with local dimension != 2.*"
     ):
         nk.operator.spin.sigmax(nk.hilbert.Spin(1.0, 3), 0).to_pauli_strings()
+
+
+def test_local_operator_dtype_mismatch():
+    hi = nk.hilbert.Spin(0.5)
+    int_mat = np.eye(2, dtype=np.int32)
+    complex_mat = np.eye(2, dtype=np.complex64)
+
+    base = nk.operator.LocalOperator(hi, int_mat, [0])
+    other = nk.operator.LocalOperator(hi, complex_mat, [0])
+
+    with pytest.raises(ValueError):
+        base += other
