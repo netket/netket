@@ -25,7 +25,7 @@ import numpy as _np
 
 from netket.utils import HashableArray, deprecated_new_name, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
-from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
+from netket.utils.group import PointGroup, PermutationGroup
 
 from .graph import Graph
 from ._lattice_edge_logic import (

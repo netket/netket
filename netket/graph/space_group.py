@@ -161,6 +161,9 @@ class TranslationGroup(PermutationGroup):
             degree=lattice.n_nodes,
         )
 
+    def __hash__(self):
+        return super().__hash__()
+
     @struct.property_cached
     def inverse(self) -> Array:
         ix = np.ix_(*[-np.arange(x) % x for x in self.group_shape])
@@ -267,6 +270,9 @@ class SpaceGroup(PermutationGroup):
             elems=elems,
             degree=lattice.n_nodes,
         )
+
+    def __hash__(self):
+        return super().__hash__()
 
     def __repr__(self):
         return (
