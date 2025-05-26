@@ -328,7 +328,30 @@ class VariationalState(abc.ABC):
         qutip = import_optional_dependency("qutip", descr="to_qobj")
 
         q_dims = [list(self.hilbert.shape), [1 for i in range(self.hilbert.size)]]
-        return qutip.Qobj(np.asarray(self.to_array()), dims=q_dims)
+
+        arr = np.asarray(self.to_array())
+        if self.hilbert.constrained:
+            bare_numbers = getattr(self.hilbert._hilbert_index, "_bare_numbers", None)
+            if bare_numbers is None:
+                from netket.hilbert.index.constrained_generic import (
+                    compute_constrained_to_bare_conversion_table,
+                )
+                from netket.hilbert.index.uniform_tensor import (
+                    UniformTensorProductHilbertIndex,
+                )
+
+                bare_numbers = compute_constrained_to_bare_conversion_table(
+                    UniformTensorProductHilbertIndex(
+                        self.hilbert._local_states, self.hilbert.size
+                    ),
+                    self.hilbert.constraint,
+                )
+
+            full_arr = np.zeros(int(np.prod(self.hilbert.shape)), dtype=arr.dtype)
+            full_arr[np.asarray(bare_numbers)] = arr
+            arr = full_arr
+
+        return qutip.Qobj(arr, dims=q_dims)
 
 
 class VariationalMixedState(VariationalState):
@@ -365,7 +388,32 @@ class VariationalMixedState(VariationalState):
 
         hilbert: DiscreteHilbert = self.hilbert_physical  # type: ignore
         q_dims = [list(hilbert.shape), list(hilbert.shape)]
-        return qutip.Qobj(np.asarray(self.to_matrix()), dims=q_dims)
+
+        mat = np.asarray(self.to_matrix())
+        if hilbert.constrained:
+            bare_numbers = getattr(hilbert._hilbert_index, "_bare_numbers", None)
+            if bare_numbers is None:
+                from netket.hilbert.index.constrained_generic import (
+                    compute_constrained_to_bare_conversion_table,
+                )
+                from netket.hilbert.index.uniform_tensor import (
+                    UniformTensorProductHilbertIndex,
+                )
+
+                bare_numbers = compute_constrained_to_bare_conversion_table(
+                    UniformTensorProductHilbertIndex(
+                        hilbert._local_states, hilbert.size
+                    ),
+                    hilbert.constraint,
+                )
+
+            n_full = int(np.prod(hilbert.shape))
+            full_mat = np.zeros((n_full, n_full), dtype=mat.dtype)
+            idx = np.ix_(np.asarray(bare_numbers), np.asarray(bare_numbers))
+            full_mat[idx] = mat
+            mat = full_mat
+
+        return qutip.Qobj(mat, dims=q_dims)
 
 
 @dispatch.abstract
