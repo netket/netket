@@ -74,7 +74,6 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         return get_conn_padded_pnc(self._operator_data, x, self._hilbert.n_fermions)
 
     @property
-    @jax.jit
     def max_conn_size(self):
         x = jax.ShapeDtypeStruct((1, self._hilbert.size), dtype=jnp.uint8)
         _, mels = jax.eval_shape(self.get_conn_padded, x)
@@ -199,7 +198,6 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         return NotImplemented
 
     @property
-    @jax.jit
     def max_conn_size(self):
         x = jax.ShapeDtypeStruct((1, self._hilbert.size), dtype=jnp.uint8)
         _, mels = jax.eval_shape(self.get_conn_padded, x)
