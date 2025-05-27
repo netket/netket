@@ -773,15 +773,6 @@ def test_constrained_eq_hash():
     assert hash(hi1) != hash(hi2)
 
 
-def test_particle_alternative_constructors():
-    hi1 = nk.hilbert.Particle(N=5, geometry=nk.geometry.FreeSpace(d=2))
-    hi2 = nk.hilbert.Particle(
-        N=5,
-        geometry=nk.geometry.Cell(d=2, L=(np.inf, np.inf), pbc=False),
-    )
-    assert hi1 == hi2
-
-
 def test_particle_with_geometry():
     geo = nk.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
     hi1 = nk.hilbert.Particle(N=5, geometry=geo)

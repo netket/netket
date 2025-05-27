@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import numpy as np
 from .continuous_hilbert import ContinuousHilbert
 from netket.geometry import Cell
 
@@ -36,22 +35,17 @@ class Particle(ContinuousHilbert):
             geometry: Instance of :class:`~netket.geometry.Cell` defining the geometry.
         """
 
-        L = geometry.extent
-        pbc = geometry.pbc
-
         if not hasattr(N, "__len__"):
             N = (N,)
 
-        if np.any(np.logical_and(np.isinf(L), pbc)):
-            raise ValueError(
-                "Cannot combine periodic boundary conditions and infinite size along the same dimension."
-            )
+        if not isinstance(geometry, Cell):
+            raise TypeError("`geometry` must be an instance of `netket.geometry.Cell`.")
 
         self._N = sum(N)
         self._n_per_spin = N
         self._geometry = geometry
 
-        super().__init__(L, pbc)
+        super().__init__(geometry.extent, geometry.pbc)
 
     @property
     def size(self) -> int:
@@ -79,12 +73,11 @@ class Particle(ContinuousHilbert):
     @property
     def geometry(self) -> Cell:
         """Geometry of the continuous space."""
-
         return self._geometry
 
     @property
     def _attrs(self):
-        return (self._N, self.extent, self.pbc)
+        return (self._N, self.geometry)
 
     def __repr__(self):
         return f"ContinuousParticle(N={self.n_particles}, " f"d={len(self.extent)})"

@@ -19,8 +19,10 @@ def v2(x):
 v2_vec = jax.vmap(v2)
 
 
-hilb = netket.hilbert.Particle(N=1, L=jnp.inf, pbc=False)
-hilb2 = netket.hilbert.Particle(N=2, L=5.0, pbc=True)
+hilb = netket.hilbert.Particle(N=1, geometry=netket.geometry.FreeSpace(d=1))
+hilb2 = netket.hilbert.Particle(
+    N=2, geometry=netket.geometry.Cell(d=1, L=5.0, pbc=True)
+)
 
 # potential operators
 pot1 = netket.operator.PotentialEnergy(hilb, v1)
