@@ -3,7 +3,17 @@
 
 # Change Log
 
-## NetKet 3.17 (In development)
+## NetKet 3.18 (In development)
+
+### New Features
+* A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
+
+
+### Deprecations
+* {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
+
+
+## NetKet 3.17 (April 2025)
 
 This version (as all previous versions) are incompatible with Jax 0.6 . A future release will make it compatible.
 
