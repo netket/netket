@@ -60,7 +60,7 @@ class Cell:
         )
 
     @property
-    def d(self) -> int:
+    def dimension(self) -> int:
         return len(self.extent)
 
     def distance(
