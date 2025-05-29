@@ -45,11 +45,11 @@ class Particle(ContinuousHilbert):
         self._n_per_spin = N
         self._geometry = geometry
 
-        super().__init__(geometry.extent, geometry.pbc)
+        super().__init__(geometry.extent)
 
     @property
     def size(self) -> int:
-        return self._N * len(self._extent)
+        return self._N * len(self.domain)
 
     @property
     def n_particles(self) -> int:
@@ -80,4 +80,4 @@ class Particle(ContinuousHilbert):
         return (self._N, self.geometry)
 
     def __repr__(self):
-        return f"ContinuousParticle(N={self.n_particles}, " f"d={len(self.extent)})"
+        return f"ContinuousParticle(N={self.n_particles}, " f"d={len(self.domain)})"
