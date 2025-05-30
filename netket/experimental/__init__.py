@@ -20,24 +20,16 @@ __all__ = [
     "TDVP",
     "models",
     "hilbert",
+    "geometry",
     "operator",
     "logging",
     "observable",
 ]
 
 from . import hilbert
+from . import geometry
 from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import models
-from . import vqs
-from . import logging
-from . import qsr
-from . import observable
 
-from .driver import TDVP
-from .qsr import QSR
 
 from netket.utils import _hide_submodules
 

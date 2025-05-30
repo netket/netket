@@ -23,7 +23,7 @@ import jax
 from jax.nn.initializers import normal
 
 import netket as nk
-from netket.hilbert import Particle
+from netket.experimental.hilbert import Particle
 
 
 np.random.seed(1234)

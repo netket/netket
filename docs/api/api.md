@@ -21,7 +21,6 @@ drivers
 errors
 exact
 graph
-geometry
 hilbert
 jax
 logging

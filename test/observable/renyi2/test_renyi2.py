@@ -82,7 +82,9 @@ def test_continuous():
     pytest.importorskip("qutip")
 
     N = 3
-    hi = nk.hilbert.Particle(N, geometry=nk.geometry.Cell(d=1, L=0.0, pbc=True))
+    hi = nk.experimental.hilbert.Particle(
+        N, geometry=nk.experimental.geometry.Cell(d=1, L=0.0, pbc=True)
+    )
     subsys = [0, 1]
 
     with pytest.raises(TypeError):
