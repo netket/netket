@@ -22,7 +22,6 @@ from . import errors
 __all__ = [
     "exact",
     "graph",
-    "geometry",
     "callbacks",
     "hilbert",
     "operator",
@@ -39,7 +38,6 @@ from . import jax
 from . import stats
 
 from . import graph
-from . import geometry
 from . import hilbert
 
 from . import nn
