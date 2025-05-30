@@ -23,7 +23,8 @@ import jax
 from flax import linen as nn
 from jax import numpy as jnp
 
-from netket.hilbert import AbstractHilbert, ContinuousHilbert, SpinOrbitalFermions
+from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
+from netket.experimental.hilbert import ContinuousHilbert
 
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree, DType

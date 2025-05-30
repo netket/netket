@@ -20,24 +20,41 @@ __all__ = [
     "TDVP",
     "models",
     "hilbert",
+    "geometry",
     "operator",
     "logging",
     "observable",
 ]
 
-from . import hilbert
-from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import models
-from . import vqs
-from . import logging
-from . import qsr
-from . import observable
+import importlib
+import sys
 
-from .driver import TDVP
-from .qsr import QSR
+from . import hilbert
+from . import geometry
+
+
+def __getattr__(name):
+    if name in {
+        "driver",
+        "dynamics",
+        "sampler",
+        "vqs",
+        "models",
+        "operator",
+        "logging",
+        "observable",
+        "qsr",
+    }:
+        module = importlib.import_module(f"{__name__}.{name}")
+        setattr(sys.modules[__name__], name, module)
+        return module
+    if name == "TDVP":
+        from .driver import TDVP as _TDVP
+
+        setattr(sys.modules[__name__], "TDVP", _TDVP)
+        return _TDVP
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 from netket.utils import _hide_submodules
 

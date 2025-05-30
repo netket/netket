@@ -17,7 +17,8 @@ from jax import numpy as jnp
 import numpy as np
 
 from netket import jax as nkjax
-from netket.hilbert import ContinuousHilbert, Particle
+from ..particle import Particle
+from ..continuous_hilbert import ContinuousHilbert
 from netket.utils.dispatch import dispatch
 
 

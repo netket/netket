@@ -70,7 +70,7 @@ And those are some default implementation of Dense and Convolutional-autoregress
 
 ## Continuous degrees of freedom
 
-The following models are particularly suited for systems with continuous degrees of freedom ({class}`~netket.hilbert.Particle`)
+The following models are particularly suited for systems with continuous degrees of freedom ({class}`~netket.experimental.hilbert.Particle`)
 
 ```{eval-rst}
 .. autosummary::

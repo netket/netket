@@ -25,7 +25,8 @@ from jax.nn.initializers import normal
 
 import netket as nk
 from netket import config
-from netket.hilbert import DiscreteHilbert, Particle
+from netket.hilbert import DiscreteHilbert
+from netket.experimental.hilbert import Particle
 from netket.utils import array_in, mpi
 from netket.jax.sharding import device_count_per_rank
 
@@ -158,7 +159,9 @@ samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 
 
 # Hilbert space and sampler for particles
-hi_particles = nk.hilbert.Particle(N=3, geometry=nk.geometry.FreeSpace(d=1))
+hi_particles = nk.experimental.hilbert.Particle(
+    N=3, geometry=nk.experimental.geometry.FreeSpace(d=1)
+)
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
     hi_particles, sigma=1.0, sweep_size=hi_particles.size * 10
 )

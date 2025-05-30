@@ -10,7 +10,7 @@ from jax.nn.initializers import (
     lecun_normal,
 )
 
-from netket.hilbert import ContinuousHilbert
+from netket.experimental.hilbert import ContinuousHilbert
 import netket.nn as nknn
 
 

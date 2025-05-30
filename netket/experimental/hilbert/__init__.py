@@ -13,9 +13,14 @@
 # limitations under the License.
 
 
-__all__ = ["SpinOrbitalFermions"]
+__all__ = ["ContinuousHilbert", "Particle", "SpinOrbitalFermions"]
 
-from netket.hilbert import SpinOrbitalFermions as _deprecated_SpinOrbitalFermions
+from .continuous_hilbert import ContinuousHilbert
+from .particle import Particle
+
+from netket.hilbert.spin_orbital_fermions import (
+    SpinOrbitalFermions as _deprecated_SpinOrbitalFermions,
+)
 
 
 _deprecations = {

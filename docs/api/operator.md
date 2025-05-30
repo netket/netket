@@ -84,7 +84,7 @@ Note in particular the pyscf module that can be used to convert molecules from p
 
 ### Continuous space operators
 
-This is a list of operators that you can define on {class}`~netket.hilbert.ContinuousHilbert` spaces.
+This is a list of operators that you can define on {class}`~netket.experimental.hilbert.ContinuousHilbert` spaces.
 
 ```{eval-rst}
 .. currentmodule:: netket.operator
