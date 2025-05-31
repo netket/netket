@@ -330,9 +330,47 @@ config.define(
 
 def _setup_experimental_sharding(val):
     if val:
+        import jax
+        from jax.sharding import AxisType
+
         from jax import config as jax_config
 
         jax_config.update("jax_threefry_partitionable", True)
+
+        warnings.warn(
+            """
+            NETKET_EXPERIMENTAL_SHARDING mode detected:
+                - SHARDING IS NOW ALWAYS ENABLED, BUT TO USE MORE THAN 1 DEVICE YOU MUST
+                DEFINE THE MESH AND SPECIFY IT IN YOUR CODE.
+
+                - For backward compatibility, specifying `NETKET_EXPERIMENTAL_SHARDING` will
+                create create and set a single-axis mesh with all devices for you.
+
+                - You should UPDATE YOUR CODE to include the following lines, and stop declaring
+                `NETKET_EXPERIMENTAL_SHARDING` in your code.
+
+                import jax
+                import netket as nk
+
+                # Create a mesh with all the devices
+                mesh = jax.make_mesh(
+                    (len(jax.devices()),),  # How many devices
+                    ("S"),                  # The name of the axis. 'S' is standard for 'samples'.
+                    axis_types=(
+                        AxisType.Explicit,  # Explicit sharding is required by netket
+                    ),
+                )
+                jax.sharding.set_mesh(mesh) # Set this as the default mesh for jax.
+
+            """
+        )
+
+        mesh = jax.make_mesh(
+            (len(jax.devices()),),
+            ("S"),
+            axis_types=(AxisType.Explicit,),
+        )
+        jax.sharding.set_mesh(mesh)
 
 
 config.define(
