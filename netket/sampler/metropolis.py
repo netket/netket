@@ -81,25 +81,28 @@ class MetropolisSamplerState(SamplerState):
         rng: jnp.ndarray,
         rule_state: Any | None,
         log_prob: jnp.ndarray | None = None,
-        device="auto",
+        out_sharding: P | None = None,
     ):
         self.σ = σ
         self.rng = rng
         self.rule_state = rule_state
+        self.out_sharding = out_sharding
 
-        if device == "auto":
-            mesh = jax.sharding.get_abstract_mesh()
-            sample_axis_name = mesh.axis_names[0]
-            device = jax.sharding.NamedSharding(mesh, P(sample_axis_name))
+        # if device == "auto":
+        #    mesh = jax.sharding.get_abstract_mesh()
+        #    sample_axis_name = mesh.axis_names[0] if len(mesh.axis_names) > 0 else None
+        #    device = jax.sharding.NamedSharding(mesh, P(sample_axis_name))
 
         if log_prob is None:
-            log_prob = jnp.full(self.σ.shape[:-1], -jnp.inf, dtype=float, device=device)
+            log_prob = jnp.full(
+                self.σ.shape[:-1], -jnp.inf, dtype=float, device=out_sharding
+            )
         else:
             # TODO: Maybe ensure correctly sharded?
             pass
         self.log_prob = log_prob
 
-        self.n_accepted_proc = jnp.zeros(σ.shape[0], dtype=int, device=device)
+        self.n_accepted_proc = jnp.zeros(σ.shape[0], dtype=int, device=out_sharding)
         self.n_steps_proc = jnp.zeros((), dtype=int)
         super().__init__()
 
@@ -245,7 +248,6 @@ class MetropolisSampler(Sampler):
     """Chunk size for evaluating wave functions."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
-    out_sharding: Any = struct.field(pytree_node=False, default="auto")
 
     def __init__(
         self,
@@ -338,7 +340,6 @@ class MetropolisSampler(Sampler):
         self.reset_chains = reset_chains
         self.rule = rule
         self.sweep_size = sweep_size
-        self.out_sharding = P("S")
 
     @property
     def n_sweeps(self):
@@ -376,20 +377,20 @@ class MetropolisSampler(Sampler):
 
         return self._sample_next(wrap_afun(machine), parameters, state)
 
-    @partial(jax.jit, static_argnums=1)
-    def _init_state(self, machine, parameters, key):
+    @partial(jax.jit, static_argnames=("machine", "out_sharding"))
+    def _init_state(self, machine, parameters, key, out_sharding=None):
         key_state, key_rule = jax.random.split(key)
         rule_state = self.rule.init_state(self, machine, parameters, key_rule)
 
-        mesh = jax.sharding.get_abstract_mesh()
-        samples_axis_name = mesh.axis_names[0]
-        samples_devices = jax.sharding.NamedSharding(mesh, P(samples_axis_name, None))
-        val_devices = jax.sharding.NamedSharding(mesh, P(samples_axis_name))
+        _sharding1 = out_sharding
+        # jax.sharding.NamedSharding(
+        #     out_sharding.mesh, P(out_sharding.spec[0])
+        # )
 
         σ = jnp.zeros(
             (self.n_batches, self.hilbert.size),
             dtype=self.dtype,
-            device=samples_devices,
+            device=_sharding1,
         )
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
@@ -397,18 +398,22 @@ class MetropolisSampler(Sampler):
             (self.n_batches,),
             -jnp.inf,
             dtype=dtype_real(output_dtype),
-            device=val_devices,
+            device=_sharding1,
         )
 
         state = MetropolisSamplerState(
-            σ=σ, rng=key_state, rule_state=rule_state, log_prob=log_prob
+            σ=σ,
+            rng=key_state,
+            rule_state=rule_state,
+            log_prob=log_prob,
+            out_sharding=out_sharding,
         )
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
         if not self.reset_chains:
             key_state, rng = jax.jit(jax.random.split)(key_state)
             σ = self.rule.random_state(
-                self, machine, parameters, state, rng, out_sharding=P(samples_axis_name)
+                self, machine, parameters, state, rng, out_sharding=_sharding1
             )
             _assert_good_sample_shape(
                 σ,
@@ -424,13 +429,10 @@ class MetropolisSampler(Sampler):
     def _reset(self, machine, parameters, state):
         rng = state.rng
 
-        mesh = jax.sharding.get_abstract_mesh()
-        samples_axis_name = mesh.axis_names[0]
-
         if self.reset_chains:
             rng, key = jax.random.split(state.rng)
             σ = self.rule.random_state(
-                self, machine, parameters, state, key, out_sharding=P(samples_axis_name)
+                self, machine, parameters, state, key, out_sharding=state.out_sharding
             )
             _assert_good_sample_shape(
                 σ,

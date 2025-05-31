@@ -29,8 +29,9 @@ class ARDirectSamplerState(SamplerState):
     key: PRNGKeyT
     """state of the random number generator."""
 
-    def __init__(self, key):
+    def __init__(self, key, out_sharding=None):
         self.key = key
+        self.out_sharding = out_sharding
         super().__init__()
 
 
@@ -99,8 +100,8 @@ class ARDirectSampler(Sampler):
         cache = variables.get("cache")
         return cache
 
-    def _init_state(self, model, variables, key):
-        return ARDirectSamplerState(key=key)
+    def _init_state(self, model, variables, key, out_sharding=None):
+        return ARDirectSamplerState(key=key, out_sharding=out_sharding)
 
     def _reset(self, model, variables, state):
         return state

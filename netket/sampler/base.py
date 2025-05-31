@@ -15,12 +15,12 @@
 import abc
 from collections.abc import Callable
 from collections.abc import Iterator
-from typing import overload, Literal
+from typing import Any, overload, Literal
 
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
-
+from jax.sharding import PartitionSpec as P
 
 from netket import jax as nkjax
 from netket.jax import sharding
@@ -35,6 +35,8 @@ class SamplerState(struct.Pytree):
     """
     Base class holding the state of a sampler.
     """
+
+    out_sharding: Any = struct.field(pytree_node=False)
 
 
 class Sampler(struct.Pytree):
@@ -221,6 +223,7 @@ class Sampler(struct.Pytree):
         machine: ModuleOrApplyFun,
         parameters: PyTree,
         seed: SeedT | None = None,
+        out_sharding: Any = None,
     ) -> SamplerState:
         """
         Creates the structure holding the state of the sampler.
@@ -250,13 +253,30 @@ class Sampler(struct.Pytree):
         key = nkjax.PRNGKey(seed)
         key = nkjax.mpi_split(key)
 
-        return self._init_state(wrap_afun(machine), parameters, key)
+        if out_sharding is None:
+            mesh = jax.sharding.get_abstract_mesh()
+            if mesh.empty:
+                out_sharding = None
+            else:
+                samples_axis_name = (
+                    mesh.axis_names[0] if len(mesh.axis_names) > 0 else None
+                )
+                out_sharding = jax.sharding.NamedSharding(
+                    mesh, P(samples_axis_name, None)
+                )
+        else:
+            print("Got sharding:", out_sharding)
+
+        return self._init_state(
+            wrap_afun(machine), parameters, key, out_sharding=out_sharding
+        )
 
     def reset(
         self,
         machine: ModuleOrApplyFun,
         parameters: PyTree,
         state: SamplerState | None = None,
+        out_sharding: Any | None = None,
     ) -> SamplerState:
         """
         Resets the state of the sampler. To be used every time the parameters are changed.
@@ -272,7 +292,7 @@ class Sampler(struct.Pytree):
             A valid sampler state.
         """
         if state is None:
-            state = self.init_state(machine, parameters)
+            state = self.init_state(machine, parameters, out_sharding=out_sharding)
 
         return self._reset(wrap_afun(machine), parameters, state)
 
