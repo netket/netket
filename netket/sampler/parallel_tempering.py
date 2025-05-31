@@ -24,7 +24,7 @@ from netket import config
 from netket.utils.types import PyTree, PRNGKeyT, Array
 from netket.utils import struct, mpi
 from netket.jax import dtype_real
-from netket.jax.sharding import shard_along_axis, sharding_decorator
+from netket.jax.sharding import sharding_decorator
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
@@ -64,18 +64,22 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         rule_state: Any | None,
         beta: jnp.ndarray,
         log_prob: jnp.ndarray | None = None,
+        out_sharding: Any | None = None,
     ):
         n_chains, n_replicas = beta.shape
+        self.out_sharding = out_sharding
 
         self.beta = beta
-        self.n_accepted_per_beta = jnp.zeros((n_chains, n_replicas), dtype=int)
-        self.beta_0_index = jnp.zeros((n_chains,), dtype=int)
-        self.beta_position = jnp.zeros((n_chains,), dtype=float)
-        self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
+        self.n_accepted_per_beta = jnp.zeros(
+            (n_chains, n_replicas), dtype=int, device=out_sharding
+        )
+        self.beta_0_index = jnp.zeros((n_chains,), dtype=int, device=out_sharding)
+        self.beta_position = jnp.zeros((n_chains,), dtype=float, device=out_sharding)
+        self.beta_diffusion = jnp.zeros((n_chains,), dtype=float, device=out_sharding)
         self.exchange_steps = jnp.zeros((), dtype=int)
         super().__init__(σ, rng=rng, rule_state=rule_state, log_prob=log_prob)
         self.n_accepted_proc = jnp.zeros(
-            n_chains, dtype=int
+            n_chains, dtype=int, device=out_sharding
         )  # correct shape is (n_chains,) and not (n_batches,)
 
     def __repr__(self):
@@ -304,16 +308,23 @@ class ParallelTemperingSampler(MetropolisSampler):
 
     @partial(jax.jit, static_argnums=1)
     def _init_state(
-        self, machine, parameters: PyTree, key: PRNGKeyT
+        self, machine, parameters: PyTree, key: PRNGKeyT, out_sharding=None
     ) -> ParallelTemperingSamplerState:
         key_state, key_rule, rng = jax.random.split(key, 3)
         rule_state = self.rule.init_state(self, machine, parameters, key_rule)
-        σ = self.rule.random_state(self, machine, parameters, rule_state, rng)
-        σ = shard_along_axis(σ, axis=0)
+        σ = self.rule.random_state(
+            self, machine, parameters, rule_state, rng, out_sharding=out_sharding
+        )
+        # σ = shard_along_axis(σ, axis=0)
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
-        log_prob = jnp.full((self.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype))
-        log_prob = shard_along_axis(log_prob, axis=0)
+        log_prob = jnp.full(
+            (self.n_batches,),
+            -jnp.inf,
+            dtype=dtype_real(output_dtype),
+            device=out_sharding,
+        )
+        # log_prob = shard_along_axis(log_prob, axis=0)
 
         beta = jnp.tile(self.sorted_betas, (self.n_batches // self.n_replicas, 1))
 
@@ -323,6 +334,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             rng=key_state,
             rule_state=rule_state,
             beta=beta,
+            out_sharding=out_sharding,
         )
 
     @partial(jax.jit, static_argnums=1)

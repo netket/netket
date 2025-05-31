@@ -48,7 +48,7 @@ class LocalRule(MetropolisRule):
             shape=(n_chains,),
             minval=0,
             maxval=hilb.size,
-            out_sharding=sampler.out_sharding,
+            out_sharding=state.out_sharding,
         )
         σp, _ = flip_state(hilb, key2, σ, indxs)
 

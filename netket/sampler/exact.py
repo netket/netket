@@ -18,6 +18,7 @@ from functools import partial
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
+from jax.sharding import PartitionSpec as P
 
 from netket import config
 from netket.hilbert import DiscreteHilbert
@@ -37,10 +38,11 @@ class ExactSamplerState(SamplerState):
         )
     )
 
-    def __init__(self, pdf: Any, rng: Any):
+    def __init__(self, pdf: Any, rng: Any, out_sharding: Any = None):
         self.pdf = pdf
         self.rng = rng
         self.pdf_norm = jnp.zeros((), dtype=self.pdf.dtype)
+        self.out_sharding = out_sharding
         super().__init__()
 
     def __repr__(self):
@@ -83,9 +85,10 @@ class ExactSampler(Sampler):
         machine: nn.Module,
         parameters: PyTree,
         seed: SeedT | None = None,
+        out_sharding: Any = None,
     ):
         pdf = jnp.zeros(self.hilbert.n_states, dtype=jnp.float32)
-        return ExactSamplerState(pdf=pdf, rng=seed)
+        return ExactSamplerState(pdf=pdf, rng=seed, out_sharding=out_sharding)
 
     def _reset(self, machine, parameters, state):
         pdf = jnp.absolute(
@@ -132,7 +135,7 @@ class ExactSampler(Sampler):
         if config.netket_experimental_sharding:
             samples = jax.lax.with_sharding_constraint(
                 samples,
-                jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1, 1),
+                state.out_sharding,
             )
 
         if return_log_probabilities:
@@ -140,7 +143,9 @@ class ExactSampler(Sampler):
             if config.netket_experimental_sharding:
                 log_probabilities = jax.lax.with_sharding_constraint(
                     log_probabilities,
-                    jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1),
+                    jax.sharding.NamedSharding(
+                        state.out_sharding.mesh, P(state.out_sharding.spec[:-1])
+                    ),
                 )
             return (samples, log_probabilities), state.replace(rng=new_rng)
         else:

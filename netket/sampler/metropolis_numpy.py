@@ -147,7 +147,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         """
         return self.n_chains_per_rank
 
-    def _init_state(self, machine, parameters, key):
+    def _init_state(self, machine, parameters, key, out_sharding=None):
+        del out_sharding
         rgen = np.random.default_rng(np.asarray(key))
 
         σ = np.zeros((self.n_batches, self.hilbert.size), dtype=self.dtype)
