@@ -105,6 +105,15 @@ def _move(i: Array, j: Array, x: Array, mask: Array = None) -> Array:
     """
     move element i after element j on the last axis (batched)
     use the mask parameter to only selectively move some elements in the batch
+
+    Args:
+        i: integer array of shape (...,) with values in 0,...,n-1
+        j: integer array of shape (...,) with values in 0,...,n-1
+        x: array of shape (..., n)
+        mask: boolean array of size (...,)
+    Returns:
+        an array where the i'th element of x has been moved after the jth element if mask is True,
+        else x if mask is False
     """
     n = x.shape[-1]
     a = np.arange(n)[None]
@@ -122,6 +131,14 @@ def _move(i: Array, j: Array, x: Array, mask: Array = None) -> Array:
 def _remove(i: Array, j: Array, x: Array) -> Array:
     """
     remove element i and j on the last axis (batched)
+
+    Args:
+        i: integer array of shape (...,) with values in 0,...,n-1
+        j: integer array of shape (...,) with values in 0,...,n-1
+        x: array of shape (..., n)
+        mask: boolean array of size (...,)
+    Returns:
+        an array where the i'th and jth element of x has been removed
     """
     n = x.shape[-1]
     a = np.arange(n)[None]
