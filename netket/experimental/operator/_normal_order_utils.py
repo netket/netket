@@ -1,19 +1,35 @@
 # utilities to bring the intermediate internal representation into normal order
 
-
 import numpy as np
+from netket.utils.types import Array
 
 
-def parity(x):
+def parity(x: Array):
     """
     compute the parity of a permutation (along axis 1)
     vectorized along all leading batch dimensions
 
+    Args:
+        x: a numpy array containing the permutation (e.g. obtained from np.argsort)
+    Returns:
+        False/True depending if an even/odd number of swaps is needed to bring x into order
+
     this function is equivalent to
-    ```
-    from sympy.combinatorics.permutations import Permutation
-    parity = partial(np.apply_along_axis, lambda x: Permutation(x).parity(), -1)
-    ```
+    .. code:: python
+      import numpy as np
+      from functools import partial
+      from sympy.combinatorics.permutations import Permutation
+      parity = partial(np.apply_along_axis, lambda x: Permutation(x).parity(), -1)
+
+    Example:
+        >>> import numpy as np
+        >>> from netket.experimental.operator._normal_order_utils import parity
+        >>> print(parity(np.array([0,1,2])))
+        False
+        >>> print(parity(np.array([0,2,1])))
+        True
+        >>> print(parity(np.array([2,0,1])))
+        False
     """
     # see https://github.com/sympy/sympy/blob/96836db06ba6b78103dd4217db53db31502fb2f6/sympy/combinatorics/permutations.py#L115
 
@@ -24,9 +40,16 @@ def parity(x):
     return np.bitwise_xor.reduce(A & mask, axis=(-2, -1))
 
 
-def prune(sites, daggers, weights):
+def _prune(sites: Array, daggers: Array, weights: Array):
     """
     remove ĉᵢĉᵢ and ĉᵢ†ĉᵢ† on the same site i
+
+    Args:
+        sites: An integer array of size n_terms x n_operators containing the indices i
+        daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
+        weights: An array of size n_terms containing the weight of each term
+    Returns:
+        (sites, daggers, weights) where the terms with repeated ĉᵢĉᵢ/ĉᵢ†ĉᵢ† have been removed
     """
     mask = ~((np.diff(daggers, axis=-1) == 0) & (np.diff(sites, axis=-1) == 0)).any(
         axis=-1
@@ -34,7 +57,7 @@ def prune(sites, daggers, weights):
     return sites[mask], daggers[mask], weights[mask]
 
 
-def _move(i, j, x, mask=None):
+def _move(i: Array, j: Array, x: Array, mask: Array = None):
     """
     move element i after element j on the last axis (batched)
     use the mask parameter to only selectively move some elements in the batch
@@ -52,7 +75,7 @@ def _move(i, j, x, mask=None):
     return res * mask + (~mask) * x
 
 
-def _remove(i, j, x):
+def _remove(i: Array, j: Array, x: Array):
     """
     remove element i and j on the last axis (batched)
     """
@@ -66,13 +89,20 @@ def _remove(i, j, x):
     return (maskl * x + mask_middle * x1 + maskr * x2)[..., :-2]
 
 
-def _move_daggers_left(sites, daggers, weights):
+def _move_daggers_left(sites: Array, daggers: Array, weights: Array):
     """
     apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators (all of same length) into normal ordering (daggers to the left)
 
-    Returns a list of ((sites, daggers, weights), (sites, daggers, weights), ...)
-    of operators with the same length, length-2, ..., length 0
+
+    Args:
+        sites: An integer array of size n_terms x n_operators containing the indices i
+        daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
+        weights: An array of size n_terms containing the weight of each term
+
+    Returns:
+        a list of ((sites, daggers, weights), (sites, daggers, weights), ...)
+        of operators with the same length, length-2, ..., length 0
     """
 
     # TODO
@@ -116,7 +146,7 @@ def _move_daggers_left(sites, daggers, weights):
         new_sites2 = _remove(i[same], j[same], sites_[same])
         new_daggers2 = _remove(i[same], j[same], daggers_[same])
         new_weights2 = -(weights_ * sign)[same]
-        new_sites2, new_daggers2, new_weights2 = prune(
+        new_sites2, new_daggers2, new_weights2 = _prune(
             new_sites2, new_daggers2, new_weights2
         )
 
@@ -126,7 +156,7 @@ def _move_daggers_left(sites, daggers, weights):
             new_weights_smaller.append(new_weights2)
 
         # set variables for next iteration
-        sites_, daggers_, weights_ = prune(new_sites, new_daggers, new_weights)
+        sites_, daggers_, weights_ = _prune(new_sites, new_daggers, new_weights)
 
     if len(new_sites_smaller) > 0:
         new_sites_smaller = np.concatenate(new_sites_smaller, axis=0)
@@ -140,15 +170,16 @@ def _move_daggers_left(sites, daggers, weights):
         return ((sites_, daggers_, weights_),)
 
 
-def move_daggers_left(t):
+def move_daggers_left(t: dict[int, tuple[Array]]):
     """
     Apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators into normal ordering (daggers to the left)
 
-    t: a dictionary containing strings of different lengths, each stored as a tuple
-    (sites, daggers, weights)
-
-    Returns: a new dictionary with normal ordered strings
+    Args:
+        t: a dictionary containing strings of different lengths, each stored as a tuple
+        (sites, daggers, weights)
+    Returns:
+        a new dictionary with normal ordered strings
 
     """
     d = {}
@@ -163,10 +194,19 @@ def move_daggers_left(t):
     return d
 
 
-def _to_desc_order(sites, daggers, weights):
+def _to_desc_order(sites: Array, daggers: Array, weights: Array):
     """
     Reorder operators (all of same length) such that the ones with the larger site index are to the left
     Assumes the operators are already in normal order (daggers to the left).
+
+
+    Args:
+        sites: An integer array of size n_terms x n_operators containing the indices i
+        daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
+        weights: An array of size n_terms containing the weight of each term
+
+    Returns:
+        (sites, daggers, weights) with sites in descending order
     """
     n = daggers.shape[-1]
     if n == 0:
@@ -189,39 +229,48 @@ def _to_desc_order(sites, daggers, weights):
     weights_desc = weights * (1 - 2 * (parity(perm0) ^ parity(perm1)))
 
     # TODO also merge duplicates
-    return prune(sites_desc, daggers, weights_desc)
+    return _prune(sites_desc, daggers, weights_desc)
 
 
-def to_desc_order(t):
+def to_desc_order(t: dict[int, tuple[Array]]):
     """
     Reorder operators such that the ones with the larger site index are to the left
     Assumes the operators are already in normal order (daggers to the left).
 
-    t: a dictionary containing strings of different lengths, each stored as a tuple
-    (sites, daggers, weights)
+    Args:
+        t: a dictionary containing strings of different lengths, each stored as a tuple
+        (sites, daggers, weights)
 
-    Returns: a new dictionary with strings in descending order
-
+    Returns:
+        a new dictionary with strings in descending order
     """
     # TODO sum duplicates
     return {k: _to_desc_order(*v) for k, v in t.items()}
 
 
-def to_normal_order(t):
+def to_normal_order(t: dict[int, tuple[Array]]):
     """
     Apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators into normal ordering (daggers to the left), then
     reorder operators such that the ones with the larger site index are to the left
 
-    t: a dictionary containing strings of different lengths, each stored as a tuple
-    (sites, daggers, weights)
+    Args:
+        t: a dictionary containing strings of different lengths, each stored as a tuple
+        (sites, daggers, weights)
 
-    Returns: a new dictionary with strings in descending normal order
+    Returns:
+        a new dictionary with strings in descending normal order
     """
     return to_desc_order(move_daggers_left(t))
 
 
-def _split_spin_sectors_helper(sites, daggers, weights, n_orbitals, n_spin_subsectors):
+def _split_spin_sectors_helper(
+    sites: Array,
+    daggers: Array,
+    weights: Array,
+    n_orbitals: int,
+    n_spin_subsectors: int,
+):
     n_ops = sites.shape[1]
     if n_ops == 0:
         return sites, np.zeros_like(sites), daggers, weights
@@ -236,10 +285,19 @@ def _split_spin_sectors_helper(sites, daggers, weights, n_orbitals, n_spin_subse
     return sites, sectors, daggers, weights
 
 
-def split_spin_sectors(d, n_orbitals, n_spin_subsectors):
+def split_spin_sectors(
+    d: dict[int, tuple[Array]], n_orbitals: int, n_spin_subsectors: int
+):
     """
-    input: { size : (sites, daggers, weights) }
-    output: { size : (sites, sectors, daggers, weights) }
+    Split global site indices into spin sector and index within sector
+
+    Args:
+        d: { size : (sites, daggers, weights) }
+        n_orbitals: number of orbitals (assumed to be the same for each sector)
+        n_spin_subsectors: number of spin sectors
+    Returns:
+        A dictionary { size : (sites, sectors, daggers, weights) }
+        where the site indices have been transformed into the spin sectors and index within the sector
     """
     return {
         k: _split_spin_sectors_helper(*v, n_orbitals, n_spin_subsectors)
@@ -247,20 +305,40 @@ def split_spin_sectors(d, n_orbitals, n_spin_subsectors):
     }
 
 
-def _merge_spin_sectors_helper(sites, sectors, daggers, weights, n_orbitals):
+def _merge_spin_sectors_helper(
+    sites: array, sectors: Array, daggers: Array, weights: Array, n_orbitals: int
+):
     return sites + sectors * n_orbitals, daggers, weights
 
 
-def merge_spin_sectors(d, n_orbitals):
+def merge_spin_sectors(d: dict[int, tuple[Array]], n_orbitals):
     """
-    input: { size : (sites, sectors, daggers, weights) }
-    output: { size : (sites, daggers, weights) }
+    Merge spin sector and index within sector into global site index
+
+    Args:
+        d: { size : (sites, sectors, daggers, weights) }
+        n_orbitals: number of orbitals (assumed to be the same for each sector)
+    Returns:
+        A dictionary { size : (sites, daggers, weights) }
+        where the indices and sectors have been transformed into global site indices
     """
     return {k: _merge_spin_sectors_helper(*v, n_orbitals) for k, v in d.items()}
 
 
-def to_normal_order_sector(t, n_spin_subsectors, n_orbitals):
-    """convert to normal order with higher sector to the left"""
+def to_normal_order_sector(
+    t: dict[int, tuple[Array]], n_spin_subsectors: int, n_orbitals: int
+):
+    """convert to normal order with higher sector to the left
+
+    Args:
+        t: a dictionary containing strings of different lengths, each stored as a tuple
+        (sites, sectors, daggers, weights)
+        n_spin_subsectors: number of spin sectors
+        n_orbitals: number of orbitals (assumed to be the same for each sector)
+    Returns:
+        a new dictionary with strings in descending normal order
+
+    """
     return split_spin_sectors(
         to_normal_order(merge_spin_sectors(t, n_orbitals)),
         n_orbitals,
