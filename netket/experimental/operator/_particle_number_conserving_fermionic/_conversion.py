@@ -17,7 +17,7 @@ from netket.operator._fermion2nd.utils import OperatorTermsList, OperatorWeights
 
 
 # TODO merge this with fermionoperator2nd prepare_terms_list
-def fermiop_terms_to_sites_daggers_weights(
+def fermiop_to_pnc_format(
     terms: OperatorTermsList, weights: OperatorWeightsList
 ) -> OperatorArrayDict:
     r"""
@@ -97,7 +97,7 @@ def to_fermiop_helper(
     return terms, weights
 
 
-def fermiop_terms_to_sites_sectors_daggers_weights(
+def pnc_to_fermiop_format(
     terms: OperatorTermsList,
     weights: OperatorWeightsList,
     n_orbitals: int,
@@ -108,7 +108,7 @@ def fermiop_terms_to_sites_sectors_daggers_weights(
     """
     # output: { size : (sites, sectors, daggers, weights) }
     return split_spin_sectors(
-        fermiop_terms_to_sites_daggers_weights(terms, weights),
+        fermiop_to_pnc_format(terms, weights),
         n_orbitals,
         n_spin_subsectors,
     )

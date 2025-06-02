@@ -21,8 +21,8 @@ from .._pyscf_utils import (
 
 from .._normal_order_utils import to_normal_order, to_normal_order_sector
 from ._conversion import (
-    fermiop_terms_to_sites_daggers_weights,
-    fermiop_terms_to_sites_sectors_daggers_weights,
+    fermiop_to_pnc_format,
+    pnc_to_fermiop_format,
     to_fermiop_helper,
 )
 from ._operator_data import (
@@ -128,7 +128,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     @classmethod
     def from_fermiop(cls, ha, **kwargs):
         # ha = ha.to_normal_order()
-        t = fermiop_terms_to_sites_daggers_weights(ha.terms, ha.weights)
+        t = fermiop_to_pnc_format(ha.terms, ha.weights)
         t = to_normal_order(t)
         terms = {k: (v[0], v[2]) for k, v in t.items()}  # drop daggers
         return cls._from_coords_data_normal_order(ha.hilbert, terms, **kwargs)
@@ -335,7 +335,7 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         hilbert = ha.hilbert
         n_orbitals = hilbert.n_orbitals
         n_spin_subsectors = hilbert.n_spin_subsectors
-        t = fermiop_terms_to_sites_sectors_daggers_weights(
+        t = pnc_to_fermiop_format(
             ha.terms, ha.weights, n_orbitals, n_spin_subsectors
         )
         return cls._from_sites_sectors_daggers_weights(hilbert, t, cutoff=cutoff)
