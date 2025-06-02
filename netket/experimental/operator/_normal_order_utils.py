@@ -114,6 +114,9 @@ def _move(i: Array, j: Array, x: Array, mask: Array = None) -> Array:
     Returns:
         an array where the i'th element of x has been moved after the jth element if mask is True,
         else x if mask is False
+
+    Example: if x is a 2-dimensional matrix of shape (m,n) and i,j are vectors of size m then,
+    in each row k in 0,...,m-1, this removes the element A[k, i[k]] and inserts it after element A[k, j[k]]
     """
     n = x.shape[-1]
     a = np.arange(n)[None]
@@ -138,7 +141,11 @@ def _remove(i: Array, j: Array, x: Array) -> Array:
         x: array of shape (..., n)
         mask: boolean array of size (...,)
     Returns:
-        an array where the i'th and jth element of x has been removed
+        an array of shape (..., n-2) where the i'th and jth element of x has been removed
+
+    Example: if x is a 2-dimensional matrix of shape (m,n) and i,j are vectors of size m then,
+    in each row k in 0,...,m-1, this removes the elements in A[k, i[k]] and A[k,j[k]]
+    resulting in a (m,n-2) matrix
     """
     n = x.shape[-1]
     a = np.arange(n)[None]
