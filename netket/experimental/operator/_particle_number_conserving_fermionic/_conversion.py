@@ -7,13 +7,21 @@ import jax.numpy as jnp
 
 from netket.jax import COOTensor
 
-from .._normal_order_utils import split_spin_sectors
+from .._normal_order_utils import (
+    split_spin_sectors,
+    OperatorArrayDict,
+    SpinOperatorArrayDict,
+)
+
+from netket.operator._fermion2nd.utils import OperatorTermsList, OperatorWeightsList
 
 
 # TODO merge this with fermionoperator2nd prepare_terms_list
-def fermiop_terms_to_sites_daggers_weights(terms, weights):
+def fermiop_terms_to_sites_daggers_weights(
+    terms: OperatorTermsList, weights: OperatorWeightsList
+) -> OperatorArrayDict:
     r"""
-    helper function to turn the python dictionary of FermionOperator2nd/FermionOperator2ndJax
+    helper function to convert OperatorArrayDict to OperatorTermsList and  OperatorWeightsList of FermionOperator2nd/FermionOperator2ndJax
 
 
     Args:
@@ -51,7 +59,12 @@ def fermiop_terms_to_sites_daggers_weights(terms, weights):
     }
 
 
-def to_fermiop_helper(index_array, create_array, weight_array):
+def to_fermiop_helper(
+    index_array: Array, create_array: Array, weight_array: Array
+) -> tuple[OperatorTermsList, OperatorWeightsList]:
+    """
+    convert OperatorArrayTerms to OperatorTermsList and OperatorWeightsList
+    """
     if index_array is None:  # diagonal
         if weight_array.ndim == 0:  # const
             return np.array([()], dtype=np.int32), np.array(weight_array)
@@ -85,8 +98,14 @@ def to_fermiop_helper(index_array, create_array, weight_array):
 
 
 def fermiop_terms_to_sites_sectors_daggers_weights(
-    terms, weights, n_orbitals, n_spin_subsectors
-):
+    terms: OperatorTermsList,
+    weights: OperatorWeightsList,
+    n_orbitals: int,
+    n_spin_subsectors: int,
+) -> SpinOperatorArrayDict:
+    """
+    convert OperatorTermsList and OperatorWeightsList to SpinOperatorArrayDict
+    """
     # output: { size : (sites, sectors, daggers, weights) }
     return split_spin_sectors(
         fermiop_terms_to_sites_daggers_weights(terms, weights),
