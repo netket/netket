@@ -4,6 +4,50 @@ import numpy as np
 from netket.utils.types import Array
 
 
+# these types contain the same information as the types in netket.operator._fermion2nd.utils
+# but use arrays to store the information
+
+OperatorArrayTerms = tuple[Array]
+r"""
+A sum of n_terms fermionic operators with fixed n_operators number of creation/annihilation operators
+A tuple (sites, daggers, weights) where
+sites: An integer array of size n_terms x n_operators containing the indices i
+daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
+weights: An array of size n_terms containing the weight of each term
+
+Example:
+The operator :math:`1.0 \hat{c}_1^\dagger \hat{c}_2 + 2.0 \hat{c}_3 \hat{c}_1^\dagger` is represented by
+:code:`sites = [[1,2],[3,1]], daggers = [[1,0],[0,1]], weights = [1.0, 2.0]``
+"""
+
+OperatorArrayDict = dict[int, OperatorArrayTerms]
+r"""
+A dictionary containing OperatorArrayTerms of different lengths, where the key specifies the lenght,
+representing a generic fermionic operator in second quantization.
+"""
+
+SpinOperatorArrayTerms = tuple[Array]
+r"""
+A sum of n_terms fermionic operators with fixed n_operators number of creation/annihilation operators in n_spin_subsectors different spin secors
+A tuple(sites, sectors, daggers, weights) where
+sites: An integer array of size n_terms x n_operators containing the indices i
+sectors: An integer array of size n_terms x n_operators containing the spin sector in 0,...,n_spin_subsectors-1
+daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
+weights: An array of size n_terms containing the weight of each term
+
+Example:
+The operator :math:`1.0 \hat{c}_{1,\downarrow}^\dagger \hat{c}_{2,\downarrow} + 2.0 \hat{c}_{3,\downarrow} \hat{c}_{1,\uparrow}^\dagger` is represented by
+:code:`sites = [[1,2],[3,1]], sectors=[[0,0], [0,1]], daggers = [[1,0],[0,1]], weights = [1.0, 2.0]`
+where we encode :math:`\downarrow,\uparrow` as :code:`0,1`
+"""
+SpinOperatorArrayDict = dict[int, OperatorArrayTerms]
+r"""
+A dictionary containing OperatorArrayTerms of different lengths, where the key specifies the lenght,
+representing a generic fermionic operator in second quantization.
+Version with spin sectors.
+"""
+
+
 def parity(x: Array):
     """
     compute the parity of a permutation (along axis 1)
@@ -40,7 +84,7 @@ def parity(x: Array):
     return np.bitwise_xor.reduce(A & mask, axis=(-2, -1))
 
 
-def _prune(sites: Array, daggers: Array, weights: Array):
+def _prune(sites: Array, daggers: Array, weights: Array) -> OperatorArrayTerms:
     """
     remove ĉᵢĉᵢ and ĉᵢ†ĉᵢ† on the same site i
 
@@ -57,7 +101,7 @@ def _prune(sites: Array, daggers: Array, weights: Array):
     return sites[mask], daggers[mask], weights[mask]
 
 
-def _move(i: Array, j: Array, x: Array, mask: Array = None):
+def _move(i: Array, j: Array, x: Array, mask: Array = None) -> Array:
     """
     move element i after element j on the last axis (batched)
     use the mask parameter to only selectively move some elements in the batch
@@ -75,7 +119,7 @@ def _move(i: Array, j: Array, x: Array, mask: Array = None):
     return res * mask + (~mask) * x
 
 
-def _remove(i: Array, j: Array, x: Array):
+def _remove(i: Array, j: Array, x: Array) -> Array:
     """
     remove element i and j on the last axis (batched)
     """
@@ -89,7 +133,9 @@ def _remove(i: Array, j: Array, x: Array):
     return (maskl * x + mask_middle * x1 + maskr * x2)[..., :-2]
 
 
-def _move_daggers_left(sites: Array, daggers: Array, weights: Array):
+def _move_daggers_left(
+    sites: Array, daggers: Array, weights: Array
+) -> tuple[OperatorArrayTerms]:
     """
     apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators (all of same length) into normal ordering (daggers to the left)
@@ -101,7 +147,7 @@ def _move_daggers_left(sites: Array, daggers: Array, weights: Array):
         weights: An array of size n_terms containing the weight of each term
 
     Returns:
-        a list of ((sites, daggers, weights), (sites, daggers, weights), ...)
+        a tuple of ((sites, daggers, weights), (sites, daggers, weights), ...)
         of operators with the same length, length-2, ..., length 0
     """
 
@@ -170,7 +216,7 @@ def _move_daggers_left(sites: Array, daggers: Array, weights: Array):
         return ((sites_, daggers_, weights_),)
 
 
-def move_daggers_left(t: dict[int, tuple[Array]]):
+def move_daggers_left(t: OperatorArrayDict) -> OperatorArrayDict:
     """
     Apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators into normal ordering (daggers to the left)
@@ -194,7 +240,7 @@ def move_daggers_left(t: dict[int, tuple[Array]]):
     return d
 
 
-def _to_desc_order(sites: Array, daggers: Array, weights: Array):
+def _to_desc_order(sites: Array, daggers: Array, weights: Array) -> OperatorArrayTerms:
     """
     Reorder operators (all of same length) such that the ones with the larger site index are to the left
     Assumes the operators are already in normal order (daggers to the left).
@@ -232,7 +278,7 @@ def _to_desc_order(sites: Array, daggers: Array, weights: Array):
     return _prune(sites_desc, daggers, weights_desc)
 
 
-def to_desc_order(t: dict[int, tuple[Array]]):
+def to_desc_order(t: OperatorArrayDict) -> OperatorArrayDict:
     """
     Reorder operators such that the ones with the larger site index are to the left
     Assumes the operators are already in normal order (daggers to the left).
@@ -248,7 +294,7 @@ def to_desc_order(t: dict[int, tuple[Array]]):
     return {k: _to_desc_order(*v) for k, v in t.items()}
 
 
-def to_normal_order(t: dict[int, tuple[Array]]):
+def to_normal_order(t: OperatorArrayDict) -> OperatorArrayDict:
     """
     Apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators into normal ordering (daggers to the left), then
@@ -270,7 +316,7 @@ def _split_spin_sectors_helper(
     weights: Array,
     n_orbitals: int,
     n_spin_subsectors: int,
-):
+) -> SpinOperatorArrayTerms:
     n_ops = sites.shape[1]
     if n_ops == 0:
         return sites, np.zeros_like(sites), daggers, weights
@@ -286,8 +332,8 @@ def _split_spin_sectors_helper(
 
 
 def split_spin_sectors(
-    d: dict[int, tuple[Array]], n_orbitals: int, n_spin_subsectors: int
-):
+    d: OperatorArrayDict, n_orbitals: int, n_spin_subsectors: int
+) -> SpinOperatorArrayDict:
     """
     Split global site indices into spin sector and index within sector
 
@@ -307,11 +353,11 @@ def split_spin_sectors(
 
 def _merge_spin_sectors_helper(
     sites: array, sectors: Array, daggers: Array, weights: Array, n_orbitals: int
-):
+) -> OperatorArrayTerms:
     return sites + sectors * n_orbitals, daggers, weights
 
 
-def merge_spin_sectors(d: dict[int, tuple[Array]], n_orbitals):
+def merge_spin_sectors(d: SpinOperatorArrayDict, n_orbitals) -> OperatorArrayDict:
     """
     Merge spin sector and index within sector into global site index
 
@@ -326,8 +372,8 @@ def merge_spin_sectors(d: dict[int, tuple[Array]], n_orbitals):
 
 
 def to_normal_order_sector(
-    t: dict[int, tuple[Array]], n_spin_subsectors: int, n_orbitals: int
-):
+    t: SpinOperatorArrayDict, n_spin_subsectors: int, n_orbitals: int
+) -> SpinOperatorArrayDict:
     """convert to normal order with higher sector to the left
 
     Args:
