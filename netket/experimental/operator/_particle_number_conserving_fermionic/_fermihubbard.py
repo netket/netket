@@ -9,13 +9,13 @@ from . import ParticleNumberConservingFermioperator2ndSpinJax
 import jax.numpy as jnp
 import numpy as np
 
-
-class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax, struct.Pytree):
+@struct.dataclass
+class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax):
     r"""
     Fermi-Hubbard Hamiltonian
     """
 
-    def __init__(
+    def __pre_init__(
         self,
         hilbert: AbstractHilbert,
         graph: AbstractGraph,
@@ -76,9 +76,8 @@ class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax, struct.Py
         op = ParticleNumberConservingFermioperator2ndSpinJax._from_sparse_arrays_normal_order(
             hilbert, operators_sector
         )
-        # TODO less hacky
-        object.__setattr__(self, "_operator_data", op._operator_data)
-        object.__setattr__(self, "_hilbert", op._hilbert)
+
+        return (op._hilbert, op._operator_data), {}
 
     @property
     def is_hermitian(self):
