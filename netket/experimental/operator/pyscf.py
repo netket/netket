@@ -79,7 +79,7 @@ def from_pyscf_molecule(
         >>> geometry = [('Li', (0., 0., -bond_length/2)), ('H', (0., 0., bond_length/2))]
         >>> mol = gto.M(atom=geometry, basis='STO-3G')
         >>>
-        >>> mf = scf.RHF(mol).run()  # doctest:+ELLIPSIS
+        >>> mf = scf.RHF(mol).run(verbose=0)  # doctest:+ELLIPSIS
         >>> E_hf = sum(mf.scf_summary.values())
         >>>
         >>> E_fci = fci.FCI(mf).kernel()[0]
@@ -101,7 +101,7 @@ def from_pyscf_molecule(
         >>> mol = gto.M(atom=geometry, basis='STO-3G')
         >>>
         >>> # compute the boys orbitals
-        >>> mf = scf.RHF(mol).run()  # doctest:+ELLIPSIS
+        >>> mf = scf.RHF(mol).run(verbose=0)  # doctest:+ELLIPSIS
         >>> mo_coeff = lo.Boys(mol).kernel(mf.mo_coeff)
         >>> # use the boys orbitals to construct the netket hamiltonian
         >>> ha = nkx.operator.from_pyscf_molecule(mol, mo_coeff=mo_coeff)
