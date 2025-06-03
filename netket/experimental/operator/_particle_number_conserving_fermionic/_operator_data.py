@@ -9,14 +9,14 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
-from netket.jax import COOTensor
+from netket.jax import COOArray
 from netket.utils.types import Array
 
 import sparse
 
 from .._normal_order_utils import SpinOperatorArrayTerms
 
-PNCOperatorDataType = tuple[Union[Array, COOTensor, None], Union[Array, None], Array]
+PNCOperatorDataType = tuple[Union[Array, COOArray, None], Union[Array, None], Array]
 r"""
 Custom sparse internal data for ParticleNumberConservingFermioperator2ndJax of strings of fermionic operators of a fixed length
 
@@ -109,7 +109,7 @@ def _prepare_data_helper(
         sites_create: indices of the :math:`\hat c^\dagger`
         weights: weights of each term
         n_orbitals: number of orbitals
-        sparse_: use COOTensor for the index array
+        sparse_: use COOArray for the index array
     Returns:
         sparse operator data
     """
@@ -131,10 +131,10 @@ def _prepare_data_helper(
         assert sites_destr.max() < n_orbitals
         index_array = None
         create_array = None
-        # use sparse.COO to sort since COOTensor expects sorted indices
-        # TODO do it inside COOTensor
+        # use sparse.COO to sort since COOArray expects sorted indices
+        # TODO do it inside COOArray
         tmp = sparse.COO(sites_destr.T, weights, (n_orbitals,) * (half_n_ops))
-        weight_array = COOTensor(
+        weight_array = COOArray(
             jnp.asarray(tmp.coords.T),
             jnp.asarray(tmp.data),
             (n_orbitals,) * (half_n_ops),
@@ -188,7 +188,7 @@ def _prepare_data_helper(
         )
         ###
         # destr_unique should be already sorted at this point (in np.unique / sparse.COO)
-        index_array = COOTensor(
+        index_array = COOArray(
             jnp.asarray(destr_unique),
             jnp.arange(1, len(destr_unique) + 1),
             (n_orbitals,) * (half_n_ops),

@@ -10,7 +10,7 @@ import itertools
 import jax
 import jax.numpy as jnp
 
-from netket.jax import reduce_xor, COOTensor
+from netket.jax import reduce_xor, COOArray
 from netket.utils.types import Array
 
 from ._operator_data import PNCOperatorDataType
@@ -83,7 +83,7 @@ def _jw_kernel(
 def _get_conn_padded(
     n_fermions: int,
     x: Array,
-    index_array: Union[Array, COOTensor, None],
+    index_array: Union[Array, COOArray, None],
     create_array: Union[Array, None],
     weight_array: Array,
 ) -> tuple[Array, Array]:
@@ -194,7 +194,7 @@ def _get_conn_padded_interaction_up_down(
     nelectron_up: int,
     x_down: Array,
     x_up: Array,
-    index_array: Union[Array, COOTensor, None],
+    index_array: Union[Array, COOArray, None],
     create_array: Union[Array, None],
     weight_array: Array,
 ) -> tuple[Array, Array, Array]:

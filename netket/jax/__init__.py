@@ -59,7 +59,7 @@ from ._math import logsumexp_cplx, logdet_cmplx
 
 from ._jacobian import jacobian, jacobian_default_mode
 
-from ._sparse import COOTensor
+from ._sparse import COOArray
 from ._sort import sort, searchsorted
 from ._lax import reduce_xor
 

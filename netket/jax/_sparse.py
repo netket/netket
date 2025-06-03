@@ -8,7 +8,7 @@ from ._sort import searchsorted
 
 
 @struct.dataclass
-class COOTensor:
+class COOArray:
     _coords: Array  # needs to be unique and sorted, these are transposed w.r.t sparse
     data: Array
     shape: tuple = struct.field(pytree_node=False, default=())
