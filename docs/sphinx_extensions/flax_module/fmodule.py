@@ -75,11 +75,13 @@ def render_module(modname: str, qualname: str, app):
         template,
         template_name,
         imported_members,
-        app,
         recursive,
         context,
         modname,
         qualname,
+        config=app.config,
+        events=app.events,
+        registry=app.registry,
     )
 
 
