@@ -52,10 +52,11 @@ class GaussianRule(MetropolisRule):
         n_chains = r.shape[0]
         hilb = sampler.hilbert
 
-        pbc = np.array(hilb.n_particles * hilb.pbc, dtype=r.dtype)
+        pbc = np.array(hilb.n_particles * hilb.geometry.pbc, dtype=r.dtype)
         boundary = np.tile(pbc, (n_chains, 1))
 
-        Ls = np.array(hilb.n_particles * hilb.extent, dtype=r.dtype)
+        # TODO generalize this to the case of particles with different domains
+        Ls = np.array(hilb.n_particles * hilb.domain, dtype=r.dtype)
         modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
 
         prop = jax.random.normal(

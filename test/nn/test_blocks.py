@@ -105,8 +105,10 @@ def test_deepset():
     """Test the permutation invariance"""
     L = (1.0, 1.0)
     n_particles = 6
-    hilb = nk.hilbert.Particle(N=n_particles, L=L, pbc=True)
-    sdim = len(hilb.extent)
+    hilb = nk.hilbert.Particle(
+        N=n_particles, geometry=nk.geometry.Cell(d=len(L), L=L, pbc=True)
+    )
+    sdim = len(hilb.domain)
     key = jax.random.PRNGKey(42)
     x = hilb.random_state(key, size=1024)
     x = x.reshape(x.shape[0], n_particles, sdim)

@@ -57,8 +57,9 @@ def test_deepset_model_output():
     ],
 )
 def test_rel_dist_deepsets(cusp_exponent, L):
-    hilb = nk.hilbert.Particle(N=2, L=L, pbc=True)
-    sdim = len(hilb.extent)
+    d = len(L) if hasattr(L, "__len__") else 1
+    hilb = nk.hilbert.Particle(N=2, geometry=nk.geometry.Cell(d=d, L=L, pbc=True))
+    sdim = len(hilb.domain)
     x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)
     xp = jnp.roll(x, sdim)
     ds = nk.models.DeepSetRelDistance(
@@ -75,8 +76,8 @@ def test_rel_dist_deepsets(cusp_exponent, L):
 
 
 def test_rel_dist_deepsets_error():
-    hilb = nk.hilbert.Particle(N=2, L=1.0, pbc=True)
-    sdim = len(hilb.extent)
+    hilb = nk.hilbert.Particle(N=2, geometry=nk.geometry.Cell(d=1, L=1.0, pbc=True))
+    sdim = len(hilb.domain)
 
     x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)
     jnp.roll(x, sdim)
@@ -103,7 +104,10 @@ def test_rel_dist_deepsets_error():
 
     with pytest.raises(ValueError):
         ds = nk.models.DeepSetRelDistance(
-            hilbert=nk.hilbert.Particle(N=2, L=1.0, pbc=False),
+            hilbert=nk.hilbert.Particle(
+                N=2,
+                geometry=nk.geometry.Cell(d=1, L=1.0, pbc=False),
+            ),
             layers_phi=2,
             layers_rho=2,
             features_phi=(10, 10),
