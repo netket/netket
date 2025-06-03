@@ -69,8 +69,12 @@ def _jw_kernel(
         xd, l_create
     )
 
-    sgn_destroy = jax.lax.reduce_xor(jw_mask_destroy * x[None], axes=((jw_mask_destroy * x[None]).ndim-1,))
-    sgn_create = jax.lax.reduce_xor(jw_mask_create * xd[:, None], axes=((jw_mask_create * xd[:, None]).ndim-1,))
+    sgn_destroy = jax.lax.reduce_xor(
+        jw_mask_destroy * x[None], axes=((jw_mask_destroy * x[None]).ndim - 1,)
+    )
+    sgn_create = jax.lax.reduce_xor(
+        jw_mask_create * xd[:, None], axes=((jw_mask_create * xd[:, None]).ndim - 1,)
+    )
     sgn = sgn_create + sgn_destroy[:, None]
     sgn = jax.lax.bitwise_and(sgn, jnp.ones_like(sgn)).astype(bool)
     sign = 1 - 2 * sgn.astype(np.int8)
