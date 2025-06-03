@@ -21,9 +21,9 @@ Classes whose edge is dashed are abstract classes, while the others are concrete
 ```
 
 {class}`AbstractHilbert` makes very few assumptions on the structure of the resulting space and you will generally very rarely interact with it directly.
-Derived from {class}`AbstractHilbert` are two less generic, but still abstract, types: {class}`DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {class}`ContinuousHilbert`, representing the Hilbert spaces with continuous bases, such as particles in a box.
+Derived from {class}`AbstractHilbert` are two less generic, but still abstract, types: {class}`DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {class}`~netket.experimental.hilbert.ContinuousHilbert`, representing the Hilbert spaces with continuous bases, such as particles in a box.
 
-So far, the majority of NetKet development has focused {class}`DiscreteHilbert` spaces which therefore have a much more developed API, while {class}`ContinuousHilbert` is still experimental and does not yet support many operations.
+So far, the majority of NetKet development has focused {class}`DiscreteHilbert` spaces which therefore have a much more developed API, while {class}`~netket.experimental.hilbert.ContinuousHilbert` is still experimental and does not yet support many operations.
 
 The most important class of discrete Hilbert spaces are subclasses of {class}`HomogeneousHilbert`, which is a tensor product of a finite number of local Hilbert spaces of the same kind, each with the same number of local degrees of freedom.
 {class}`HomogeneousHilbert` has the concrete subclasses {class}`Fock`, {class}`Spin`, and {class}`Qubit`.
