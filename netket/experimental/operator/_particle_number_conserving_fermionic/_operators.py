@@ -102,8 +102,16 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 
     @classmethod
     def _from_coords_data_normal_order(
-        cls, hilbert: SpinOrbitalFermions, coords_data_dict, **kwargs
+        cls,
+        hilbert: SpinOrbitalFermions,
+        coords_data_dict: PNCOperatorArrayDict,
+        **kwargs,
     ):
+        """
+        initialize from PNCOperatorArrayDict
+
+        used internally.
+        """
         assert isinstance(hilbert, SpinOrbitalFermions)
         assert hilbert.n_fermions is not None
         n_orbitals = hilbert.n_orbitals * hilbert.n_spin_subsectors
@@ -119,6 +127,20 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         operators: list[Union[Array, sparse.COO]],
         **kwargs,
     ):
+        """
+        initialize from a list of arrays in normal order (descending)
+
+        Args:
+            hilbert: hilbert space
+            Operators: list of dense or sparse arrays, each representing an m-body operator for different m
+
+        Example:
+        Given an array A of rank 2m with shape (n_orbitals,)*(2m) this initializes the operator
+        .. :math:
+            \hat A = sum_{i_1 > \dots > i_m, j_1 > \dots > j_m} A_{i_1 \cdots i_m j_1 \cdots j_m} \hat c_{i_1}^\dagger \cdots \hat c_{i_m}^\dagger \hat c_{j_1} \cdots \hat c_{j_m}
+
+        Throws an error if the arrays are not in descending order.
+        """
         terms = sparse_arrays_to_coords_data_dict(collect_ops(operators))
 
         for k, v in terms.items():
@@ -140,6 +162,19 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         operators: list[Union[Array, sparse.COO]],
         **kwargs,
     ):
+        """
+        initialize from a list of arrays
+
+        Args:
+            hilbert: hilbert space
+            Operators: list of dense or sparse arrays, each representing an m-body operator for different m
+
+        Example:
+        Given an array A of rank 2m with shape (n_orbitals,)*(2m) this initializes the operator
+        .. :math:
+            \hat A = sum_{i_1,\dots,i_m, j_1,\dots,j_m} A_{i_1 \cdots i_m j_1 \cdots j_m} \hat c_{i_1}^\dagger \cdots \hat c_{i_m}^\dagger \hat c_{j_1} \cdots \hat c_{j_m}
+
+        """
         # daggers on the left, but not necessarily desc order
         ops = collect_ops(operators)
         cutoff = kwargs.get("cutoff", 0)
@@ -151,6 +186,14 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     def from_fermionoperator2nd(
         cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], **kwargs
     ):
+        """
+        Convert from FermionOperator2nd
+
+        Args:
+            ha : the original FermionOperator2nd/FermionOperator2ndJax operator
+
+        Throws an error if the original operator is not particle-number conserving.
+        """
         # ha = ha.to_normal_order()
         t = fermiop_to_pnc_format_helper(ha.terms, ha.weights)
         t = to_normal_order(t)
@@ -160,6 +203,9 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     def to_fermionoperator2nd(
         self, _cls=FermionOperator2ndJax
     ) -> FermionOperator2ndJax:
+        """
+        Convert to FermionOperator2ndJax
+        """
         terms = []
         weights = []
         for d in self._operator_data:
@@ -177,6 +223,13 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         cutoff: float = 1e-11,
         **kwargs,
     ):
+        """
+        Constructs the operator from a pyscf molecule
+
+        Args:
+            mol: pyscf molecule
+            mo_coeff: molecular orbital coefficients, e.g. obtained from a HF calculation
+        """
         n_orbitals = int(mol.nao)
         hi = SpinOrbitalFermions(n_orbitals, s=1 / 2, n_fermions_per_spin=mol.nelec)
         E_nuc, Tij, Vijkl = TV_from_pyscf_molecule(mol, mo_coeff, cutoff=cutoff)
@@ -333,8 +386,7 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
 
         Args:
             mol: pyscf molecule
-            mo_coeff: coefficients
-                e.g. run
+            mo_coeff: molecular orbital coefficients, e.g. obtained from a HF calculation
         """
 
         sparse = import_optional_dependency("sparse")
@@ -357,11 +409,23 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
 
     @classmethod
     def _from_sites_sectors_daggers_weights(
-        cls, hilbert: SpinOrbitalFermions, t: PNCOperatorDataDict, cutoff: float = 1e-11
+        cls,
+        hilbert: SpinOrbitalFermions,
+        t: SpinOperatorArrayDict,
+        cutoff: float = 1e-11,
     ):
-        # t: { size : (sites, sectors, daggers, weights) }
-        # arbitrary order of sites, sectors, and daggers
-        # is internally converted to the right order for the operator
+        """
+        Initialize from SpinOperatorArrayDict
+        Args:
+            hilbert : hilbert space
+            t: { size : (sites, sectors, daggers, weights) }
+            cutoff: cutoff to use when converting the operators to the internal format
+                    use a small but nonzero number, to allow for internal equality checks between arrays
+                    defaults to 1e-11
+
+        Supports arbitrary order of sites, sectors, and daggers,
+        it is internally converted to the right order for the operator
+        """
         n_orbitals = hilbert.n_orbitals
         n_spin_subsectors = hilbert.n_spin_subsectors
         tno = to_normal_order_sector(t, n_spin_subsectors, n_orbitals)
@@ -374,6 +438,17 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     def from_fermionoperator2nd(
         cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], cutoff: float = 1e-11
     ):
+        """
+        Convert from FermionOperator2nd
+
+        Args:
+            ha : the original FermionOperator2nd/FermionOperator2ndJax operator
+            cutoff: cutoff to use when converting the operators to the internal format
+                    use a small but nonzero number, to allow for internal equality checks between arrays
+                    defaults to 1e-11
+
+        Throws an error if the original operator is not particle-number conserving, or spin-Z-conserving.
+        """
         hilbert = ha.hilbert
         n_orbitals = hilbert.n_orbitals
         n_spin_subsectors = hilbert.n_spin_subsectors

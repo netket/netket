@@ -40,9 +40,9 @@ The operator :math:`1.0 \hat{c}_{1,\downarrow}^\dagger \hat{c}_{2,\downarrow} + 
 :code:`sites = [[1,2],[3,1]], sectors=[[0,0], [0,1]], daggers = [[1,0],[0,1]], weights = [1.0, 2.0]`
 where we encode :math:`\downarrow,\uparrow` as :code:`0,1`
 """
-SpinOperatorArrayDict = dict[int, OperatorArrayTerms]
+SpinOperatorArrayDict = dict[int, SpinOperatorArrayTerms]
 r"""
-A dictionary containing OperatorArrayTerms of different lengths, where the key specifies the lenght,
+A dictionary containing SpinOperatorArrayTerms of different lengths, where the key specifies the lenght,
 representing a generic fermionic operator in second quantization.
 Version with spin sectors.
 """
