@@ -80,6 +80,9 @@ def test_pnc(desc):
     ha3 = ParticleNumberConservingFermioperator2ndJax.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha3.to_dense())
 
+    ha4 = ha3.to_fermionoperator2nd()
+    np.testing.assert_allclose(ha.to_dense(), ha4.to_dense())
+
 
 @pytest.mark.parametrize("N", [5])
 @pytest.mark.parametrize("n", [2, 3])

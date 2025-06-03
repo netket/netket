@@ -231,7 +231,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         """
         terms = []
         weights = []
-        for d in self._operator_data:
+        for d in self._operator_data.values():
             for k, v in d.items():
                 t, w = pnc_format_to_fermiop_helper(*v)
                 terms = terms + t.tolist()
