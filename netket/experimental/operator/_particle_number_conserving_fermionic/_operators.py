@@ -183,15 +183,15 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         # check shapes
         n_orbitals = hilbert.size
         for op in operators:
-            if hasattr(op, "shape"):  # >= 1-body
+            if hasattr(op, "shape") and op.ndim>0:  # >= 1-body
                 s = op.shape
-                ndim = len(s)
+                ndim = op.ndim
                 if ndim % 2 != 0:
                     raise ValueError(
                         "operator array has incompatible number of dimensions"
                     )
                 if set(s) != {n_orbitals}:
-                    raise ValueError("inconsistent operator array shapes")
+                    raise ValueError(f"inconsistent operator array shapes, {n_orbitals=} but got shape {s}")
 
         ops = collect_ops(operators)
         cutoff = kwargs.get("cutoff", 0)
