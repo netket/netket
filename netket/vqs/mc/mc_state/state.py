@@ -216,20 +216,20 @@ class MCState(VariationalState):
         # jax arrays and that it has the good 'replicated sharding'
         # This assumption is needed for saving and loading of those states, and could
         # be broken if variables is malformed.
-        if variables is not None:
-            # TODO: Always have shardings...
-            if config.netket_experimental_sharding:
-                par_sharding = jax.sharding.PositionalSharding(
-                    jax.devices()
-                ).replicate()
-            else:
-                par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
-            variables = jax.tree_util.tree_map(
-                lambda x: jax.lax.with_sharding_constraint(
-                    jnp.asarray(x), par_sharding
-                ),
-                variables,
-            )
+        # if variables is not None:
+        #     # TODO: Always have shardings...
+        #     if config.netket_experimental_sharding:
+        #         par_sharding = jax.sharding.PositionalSharding(
+        #             jax.devices()
+        #         ).replicate()
+        #     else:
+        #         par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
+        #     variables = jax.tree_util.tree_map(
+        #         lambda x: jax.lax.with_sharding_constraint(
+        #             jnp.asarray(x), par_sharding
+        #         ),
+        #         variables,
+        #     )
 
         # Init type 1: pass in a model
         if model is not None:
@@ -322,13 +322,11 @@ class MCState(VariationalState):
 
         dummy_input = self.hilbert.random_state(key, 1, dtype=dtype)
 
-        if config.netket_experimental_sharding:
-            par_sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
-        else:
-            par_sharding = None
-        variables = jax.jit(self._init_fun, out_shardings=par_sharding)(
-            {"params": key}, dummy_input
-        )
+        # if config.netket_experimental_sharding:
+        #     par_sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        # else:
+        #     par_sharding = None
+        variables = jax.jit(self._init_fun)({"params": key}, dummy_input)
         self.variables = variables
 
     @property
