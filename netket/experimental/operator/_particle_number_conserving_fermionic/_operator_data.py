@@ -151,7 +151,11 @@ def _prepare_data_helper(
         # for i, d in enumerate(destr_unique):
         #     nper[i] = (d[None] == sites_destr).all(axis=-1).sum()
         ###
-        A = sparse.COO(np.concatenate([sites_destr, sites_create], axis=1).T, weights, shape=(n_orbitals,)*(2*half_n_ops))
+        A = sparse.COO(
+            np.concatenate([sites_destr, sites_create], axis=1).T,
+            weights,
+            shape=(n_orbitals,) * (2 * half_n_ops),
+        )
         axes_create = tuple(range(A.ndim // 2, A.ndim))
         n_destr = (A != 0).sum(axes_create)
         destr_unique = n_destr.coords.T
