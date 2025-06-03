@@ -21,7 +21,11 @@ from .._pyscf_utils import (
     compute_pyscf_integrals,
 )
 
-from .._normal_order_utils import to_normal_order, to_normal_order_sector, SpinOperatorArrayDict
+from .._normal_order_utils import (
+    to_normal_order,
+    to_normal_order_sector,
+    SpinOperatorArrayDict,
+)
 from ._conversion import (
     fermiop_to_pnc_format_helper,
     fermiop_to_pnc_format_spin_helper,
@@ -183,7 +187,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         # check shapes
         n_orbitals = hilbert.size
         for op in operators:
-            if hasattr(op, "shape") and op.ndim>0:  # >= 1-body
+            if hasattr(op, "shape") and op.ndim > 0:  # >= 1-body
                 s = op.shape
                 ndim = op.ndim
                 if ndim % 2 != 0:
@@ -191,7 +195,9 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
                         "operator array has incompatible number of dimensions"
                     )
                 if set(s) != {n_orbitals}:
-                    raise ValueError(f"inconsistent operator array shapes, {n_orbitals=} but got shape {s}")
+                    raise ValueError(
+                        f"inconsistent operator array shapes, {n_orbitals=} but got shape {s}"
+                    )
 
         ops = collect_ops(operators)
         cutoff = kwargs.get("cutoff", 0)
