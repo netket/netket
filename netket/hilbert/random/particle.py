@@ -18,6 +18,7 @@ import numpy as np
 
 from netket import jax as nkjax
 from netket.hilbert.continuous_hilbert import ContinuousHilbert
+from netket.hilbert import Particle
 from netket.utils.dispatch import dispatch
 
 
@@ -30,7 +31,7 @@ def take_sub(key, x, n):
 
 
 @dispatch
-def random_state(hilb: ContinuousHilbert, key, batches: int, *, dtype):
+def random_state(hilb: Particle, key, batches: int, *, dtype):
     """If no periodic boundary conditions are present particles are positioned normally distributed around the origin.
 
     If periodic boundary conditions are present the particles are positioned uniformly inside the box and a small

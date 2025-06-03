@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
+
 __all__ = [
     "driver",
     "dynamics",
@@ -23,21 +25,38 @@ __all__ = [
     "operator",
     "logging",
     "observable",
+    "QSR",
 ]
 
-from . import hilbert
-from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import models
-from . import vqs
-from . import logging
-from . import qsr
-from . import observable
+_submodules = {
+    "driver": "netket.experimental.driver",
+    "dynamics": "netket.experimental.dynamics",
+    "sampler": "netket.experimental.sampler",
+    "vqs": "netket.experimental.vqs",
+    "models": "netket.experimental.models",
+    "hilbert": "netket.experimental.hilbert",
+    "operator": "netket.experimental.operator",
+    "logging": "netket.experimental.logging",
+    "observable": "netket.experimental.observable",
+    "qsr": "netket.experimental.qsr",
+}
 
-from .driver import TDVP
-from .qsr import QSR
+
+def __getattr__(name):
+    if name == "TDVP":
+        module = importlib.import_module("netket.experimental.driver")
+        val = module.TDVP
+    elif name == "QSR":
+        module = importlib.import_module("netket.experimental.qsr")
+        val = module.QSR
+    elif name in _submodules:
+        val = importlib.import_module(_submodules[name])
+    else:
+        raise AttributeError(f"module {__name__} has no attribute {name}")
+
+    globals()[name] = val
+    return val
+
 
 from netket.utils import _hide_submodules
 
