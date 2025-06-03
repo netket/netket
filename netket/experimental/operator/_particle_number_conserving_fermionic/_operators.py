@@ -167,7 +167,10 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 
         Args:
             hilbert: hilbert space
-            Operators: list of dense or sparse arrays, each representing an m-body operator for different m
+            operators: list of dense or sparse arrays, each representing an m-body operator for different m
+            cutoff: cutoff to use when converting the operators to the internal format
+                    use a small but nonzero number, to allow for internal equality checks between arrays
+                    defaults to 1e-11
 
         Example:
         Given an array A of rank 2m with shape (n_orbitals,)*(2m) this initializes the operator
@@ -176,6 +179,20 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 
         """
         # daggers on the left, but not necessarily desc order
+
+        # check shapes
+        n_orbitals = hilbert.size
+        for op in operators:
+            if hastattr(op, "shape"):  # >= 1-body
+                s = op.shape
+                ndim = len(s)
+                if ndim % 2 != 0:
+                    raise ValueError(
+                        "operator array has incompatible number of dimensions"
+                    )
+                if set(s) != {n_orbitals}:
+                    raise ValueError("inconsistent operator array shapes")
+
         ops = collect_ops(operators)
         cutoff = kwargs.get("cutoff", 0)
         ops = jax.tree_util.tree_map(partial(to_desc_order_sparse, cutoff=cutoff), ops)
@@ -387,6 +404,9 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         Args:
             mol: pyscf molecule
             mo_coeff: molecular orbital coefficients, e.g. obtained from a HF calculation
+            cutoff: cutoff to use when converting the operators to the internal format
+                    use a small but nonzero number, to allow for internal equality checks between arrays
+                    defaults to 1e-11
         """
 
         sparse = import_optional_dependency("sparse")
