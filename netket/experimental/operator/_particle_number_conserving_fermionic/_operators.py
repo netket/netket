@@ -1,4 +1,4 @@
-from functools import partial, wraps
+from functools import partial
 from typing import Union
 
 import numpy as np
@@ -80,7 +80,6 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         PNCOperatorDataCollectionDict  # custom sparse internal representation
     )
 
-    @wraps(DiscreteJaxOperator.get_conn_padded)
     def get_conn_padded(self, x):
         return get_conn_padded_pnc(self._operator_data, x, self._hilbert.n_fermions)
 
@@ -239,7 +238,6 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         _, mels = jax.eval_shape(self.get_conn_padded, x)
         return mels.shape[-1]
 
-    @wraps(DiscreteJaxOperator.get_conn_padded)
     def get_conn_padded(self, x):
         return get_conn_padded_pnc_spin(
             self._operator_data, x, self._hilbert.n_fermions_per_spin
