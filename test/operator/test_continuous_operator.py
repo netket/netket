@@ -20,10 +20,10 @@ v2_vec = jax.vmap(v2)
 
 
 hilb = netket.experimental.hilbert.Particle(
-    N=1, geometry=netket.geometry.FreeSpace(d=1)
+    N=1, geometry=netket.experimental.geometry.FreeSpace(d=1)
 )
 hilb2 = netket.experimental.hilbert.Particle(
-    N=2, geometry=netket.geometry.Cell(d=1, L=5.0, pbc=True)
+    N=2, geometry=netket.experimental.geometry.Cell(d=1, L=5.0, pbc=True)
 )
 
 # potential operators

@@ -21,42 +21,24 @@ __all__ = [
     "vqs",
     "TDVP",
     "models",
-    "hilbert",
     "operator",
     "logging",
     "observable",
     "QSR",
 ]
 
-_submodules = {
-    "driver": "netket.experimental.driver",
-    "dynamics": "netket.experimental.dynamics",
-    "sampler": "netket.experimental.sampler",
-    "vqs": "netket.experimental.vqs",
-    "models": "netket.experimental.models",
-    "hilbert": "netket.experimental.hilbert",
-    "operator": "netket.experimental.operator",
-    "logging": "netket.experimental.logging",
-    "observable": "netket.experimental.observable",
-    "qsr": "netket.experimental.qsr",
-}
+from . import operator
+from . import driver
+from . import dynamics
+from . import sampler
+from . import models
+from . import vqs
+from . import logging
+from . import qsr
+from . import observable
 
-
-def __getattr__(name):
-    if name == "TDVP":
-        module = importlib.import_module("netket.experimental.driver")
-        val = module.TDVP
-    elif name == "QSR":
-        module = importlib.import_module("netket.experimental.qsr")
-        val = module.QSR
-    elif name in _submodules:
-        val = importlib.import_module(_submodules[name])
-    else:
-        raise AttributeError(f"module {__name__} has no attribute {name}")
-
-    globals()[name] = val
-    return val
-
+from .driver import TDVP
+from .qsr import QSR
 
 from netket.utils import _hide_submodules
 

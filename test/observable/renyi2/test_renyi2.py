@@ -83,7 +83,7 @@ def test_continuous():
 
     N = 3
     hi = nk.experimental.hilbert.Particle(
-        N, geometry=nk.geometry.Cell(d=1, L=0.0, pbc=True)
+        N, geometry=nk.experimental.geometry.Cell(d=1, L=0.0, pbc=True)
     )
     subsys = [0, 1]
 

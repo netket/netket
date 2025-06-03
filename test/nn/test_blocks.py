@@ -106,7 +106,8 @@ def test_deepset():
     L = (1.0, 1.0)
     n_particles = 6
     hilb = nk.experimental.hilbert.Particle(
-        N=n_particles, geometry=nk.geometry.Cell(d=len(L), L=L, pbc=True)
+        N=n_particles,
+        geometry=nk.experimental.geometry.Cell(d=len(L), L=L, pbc=True),
     )
     sdim = len(hilb.domain)
     key = jax.random.PRNGKey(42)

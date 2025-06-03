@@ -13,7 +13,10 @@
 # limitations under the License.
 
 
-import warnings
+__all__ = ["ContinuousHilbert", "Particle", "SpinOrbitalFermions"]
+
+from .continuous_hilbert import ContinuousHilbert
+from .particle import Particle
 
 __all__ = ["Particle", "SpinOrbitalFermions"]
 
@@ -47,6 +50,9 @@ def __getattr__(name):
     return _deprecation_getattr(__name__, _deprecations)(name)
 
 
-from netket.utils import _hide_submodules
+from netket.utils import _hide_submodules, _auto_export
 
 _hide_submodules(__name__)
+_auto_export(__name__)
+
+del _auto_export

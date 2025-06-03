@@ -128,7 +128,7 @@ hilberts["SpinOrbitalFermions (higherspin)"] = nk.hilbert.SpinOrbitalFermions(
 
 # Continuous space
 # no pbc
-geo_default = nk.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
+geo_default = nk.experimental.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
 hilberts["ContinuousSpaceHilbert"] = nk.experimental.hilbert.Particle(
     N=5, geometry=geo_default
 )
@@ -139,7 +139,7 @@ hilberts["TensorContinuous"] = nk.experimental.hilbert.Particle(
 
 N = 10
 hilberts["ContinuousHelium"] = nk.experimental.hilbert.Particle(
-    N=N, geometry=nk.geometry.Cell(d=1, L=(N / (0.3 * 2.9673),), pbc=True)
+    N=N, geometry=nk.experimental.geometry.Cell(d=1, L=(N / (0.3 * 2.9673),), pbc=True)
 )
 
 all_hilbert_params = [pytest.param(hi, id=name) for name, hi in hilberts.items()]
@@ -257,7 +257,7 @@ def test_particle_fail():
     with pytest.raises(ValueError):
         _ = Particle(
             N=5,
-            geometry=nk.geometry.Cell(d=2, L=(jnp.inf, 2.0), pbc=True),
+            geometry=nk.experimental.geometry.Cell(d=2, L=(jnp.inf, 2.0), pbc=True),
         )
 
 
@@ -778,11 +778,11 @@ def test_constrained_eq_hash():
 
 
 def test_particle_with_geometry():
-    geo = nk.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
+    geo = nk.experimental.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
     hi1 = nk.experimental.hilbert.Particle(N=5, geometry=geo)
     hi2 = nk.experimental.hilbert.Particle(N=5, geometry=geo_default)
     assert hi1 == hi2
-    geo2 = nk.geometry.Cell(d=1, L=1.0, pbc=True)
+    geo2 = nk.experimental.geometry.Cell(d=1, L=1.0, pbc=True)
     assert np.isclose(geo2.distance([0.1], [0.9]), 0.2)
 
 
