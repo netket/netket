@@ -60,17 +60,17 @@ def _jw_kernel(
     # the jordan-wigner sign of an operator does not depend on sites larger than it, therefore,
     # given it is in normal order, we can compute it all in terms of the initial state.
     # (sum the axis which is the one of the indices we destroy/create (size number of operators//2))
-    jw_mask_destroy = jax.lax.reduce_xor(k_destroy[..., None] > m, axes=0)
+    jw_mask_destroy = jax.lax.reduce_xor(k_destroy[..., None] > m, axes=(0,))
 
     # same for when we create again, except then have to apply it to the state where we already destroyed
-    jw_mask_create = jax.lax.reduce_xor(l_create[..., None] > m, axes=2)
+    jw_mask_create = jax.lax.reduce_xor(l_create[..., None] > m, axes=(2,))
 
     create_was_empty = jax.vmap(jax.vmap(lambda x, i: ~x[i].any(), in_axes=(None, 0)))(
         xd, l_create
     )
 
-    sgn_destroy = jax.lax.reduce_xor(jw_mask_destroy * x[None], axes=(jw_mask_destroy * x[None]).ndim-1)
-    sgn_create = jax.lax.reduce_xor(jw_mask_create * xd[:, None], axes=(jw_mask_create * xd[:, None]).ndim-1)
+    sgn_destroy = jax.lax.reduce_xor(jw_mask_destroy * x[None], axes=((jw_mask_destroy * x[None]).ndim-1,))
+    sgn_create = jax.lax.reduce_xor(jw_mask_create * xd[:, None], axes=((jw_mask_create * xd[:, None]).ndim-1,))
     sgn = sgn_create + sgn_destroy[:, None]
     sgn = jax.lax.bitwise_and(sgn, jnp.ones_like(sgn)).astype(bool)
     sign = 1 - 2 * sgn.astype(np.int8)
