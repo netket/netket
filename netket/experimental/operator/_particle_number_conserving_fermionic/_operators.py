@@ -21,7 +21,7 @@ from .._pyscf_utils import (
     compute_pyscf_integrals,
 )
 
-from .._normal_order_utils import to_normal_order, to_normal_order_sector
+from .._normal_order_utils import to_normal_order, to_normal_order_sector, SpinOperatorArrayDict
 from ._conversion import (
     fermiop_to_pnc_format_helper,
     fermiop_to_pnc_format_spin_helper,
@@ -34,7 +34,7 @@ from ._operator_data import (
     prepare_operator_data_from_coords_data_dict_spin,
     to_coords_data_sector,
     PNCOperatorDataCollectionDict,
-    PNCOperatorDataDict,
+    PNCOperatorArrayDict,
     CoordsDataDictSectorCooArrayType,
     CoordsDataDictSectorType,
 )
@@ -127,7 +127,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         operators: list[Union[Array, sparse.COO]],
         **kwargs,
     ):
-        """
+        r"""
         initialize from a list of arrays in normal order (descending)
 
         Args:
@@ -162,7 +162,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         operators: list[Union[Array, sparse.COO]],
         **kwargs,
     ):
-        """
+        r"""
         initialize from a list of arrays
 
         Args:
@@ -183,7 +183,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         # check shapes
         n_orbitals = hilbert.size
         for op in operators:
-            if hastattr(op, "shape"):  # >= 1-body
+            if hasattr(op, "shape"):  # >= 1-body
                 s = op.shape
                 ndim = len(s)
                 if ndim % 2 != 0:
