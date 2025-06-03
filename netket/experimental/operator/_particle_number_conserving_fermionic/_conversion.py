@@ -6,6 +6,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from netket.jax import COOTensor
+from netket.utils.types import Array
 
 from .._normal_order_utils import (
     split_spin_sectors,
@@ -17,12 +18,11 @@ from netket.operator._fermion2nd.utils import OperatorTermsList, OperatorWeights
 
 
 # TODO merge this with fermionoperator2nd prepare_terms_list
-def fermiop_to_pnc_format(
+def fermiop_to_pnc_format_helper(
     terms: OperatorTermsList, weights: OperatorWeightsList
 ) -> OperatorArrayDict:
     r"""
-    helper function to convert OperatorArrayDict to OperatorTermsList and  OperatorWeightsList of FermionOperator2nd/FermionOperator2ndJax
-
+    helper function to convert OperatorTermsList and OperatorWeightsList to OperatorArrayDict
 
     Args:
         terms: terms as specified in FermionOperator2nd/FermionOperator2ndJax
@@ -59,7 +59,24 @@ def fermiop_to_pnc_format(
     }
 
 
-def to_fermiop_helper(
+def fermiop_to_pnc_format_spin_helper(
+    terms: OperatorTermsList,
+    weights: OperatorWeightsList,
+    n_orbitals: int,
+    n_spin_subsectors: int,
+) -> SpinOperatorArrayDict:
+    """
+    convert OperatorTermsList and OperatorWeightsList to SpinOperatorArrayDict
+    """
+    # output: { size : (sites, sectors, daggers, weights) }
+    return split_spin_sectors(
+        fermiop_to_pnc_format_helper(terms, weights),
+        n_orbitals,
+        n_spin_subsectors,
+    )
+
+
+def pnc_format_to_fermiop_helper(
     index_array: Array, create_array: Array, weight_array: Array
 ) -> tuple[OperatorTermsList, OperatorWeightsList]:
     """
@@ -95,20 +112,3 @@ def to_fermiop_helper(
     terms = np.concatenate([sites[..., None], daggers[..., None]], axis=-1)
 
     return terms, weights
-
-
-def pnc_to_fermiop_format(
-    terms: OperatorTermsList,
-    weights: OperatorWeightsList,
-    n_orbitals: int,
-    n_spin_subsectors: int,
-) -> SpinOperatorArrayDict:
-    """
-    convert OperatorTermsList and OperatorWeightsList to SpinOperatorArrayDict
-    """
-    # output: { size : (sites, sectors, daggers, weights) }
-    return split_spin_sectors(
-        fermiop_to_pnc_format(terms, weights),
-        n_orbitals,
-        n_spin_subsectors,
-    )

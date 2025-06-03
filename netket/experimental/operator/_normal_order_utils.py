@@ -7,13 +7,13 @@ from netket.utils.types import Array
 # these types contain the same information as the types in netket.operator._fermion2nd.utils
 # but use arrays to store the information
 
-OperatorArrayTerms = tuple[Array]
+OperatorArrayTerms = tuple[Array, Array, Array]
 r"""
 A sum of n_terms fermionic operators with fixed n_operators number of creation/annihilation operators
 A tuple (sites, daggers, weights) where
-sites: An integer array of size n_terms x n_operators containing the indices i
-daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
-weights: An array of size n_terms containing the weight of each term
+    sites: An integer array of size n_terms x n_operators containing the indices i
+    daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
+    weights: An array of size n_terms containing the weight of each term
 
 Example:
 The operator :math:`1.0 \hat{c}_1^\dagger \hat{c}_2 + 2.0 \hat{c}_3 \hat{c}_1^\dagger` is represented by
@@ -26,14 +26,14 @@ A dictionary containing OperatorArrayTerms of different lengths, where the key s
 representing a generic fermionic operator in second quantization.
 """
 
-SpinOperatorArrayTerms = tuple[Array]
+SpinOperatorArrayTerms = tuple[Array, Array, Array, Array]
 r"""
 A sum of n_terms fermionic operators with fixed n_operators number of creation/annihilation operators in n_spin_subsectors different spin secors
 A tuple(sites, sectors, daggers, weights) where
-sites: An integer array of size n_terms x n_operators containing the indices i
-sectors: An integer array of size n_terms x n_operators containing the spin sector in 0,...,n_spin_subsectors-1
-daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
-weights: An array of size n_terms containing the weight of each term
+    sites: An integer array of size n_terms x n_operators containing the indices i
+    sectors: An integer array of size n_terms x n_operators containing the spin sector in 0,...,n_spin_subsectors-1
+    daggers: An boolean array of size n_terms x n_operators specifying if the operator is creation/destruction
+    weights: An array of size n_terms containing the weight of each term
 
 Example:
 The operator :math:`1.0 \hat{c}_{1,\downarrow}^\dagger \hat{c}_{2,\downarrow} + 2.0 \hat{c}_{3,\downarrow} \hat{c}_{1,\uparrow}^\dagger` is represented by
@@ -55,6 +55,7 @@ def parity(x: Array):
 
     Args:
         x: a numpy array containing the permutation (e.g. obtained from np.argsort)
+
     Returns:
         False/True depending if an even/odd number of swaps is needed to bring x into order
 
@@ -111,6 +112,7 @@ def _move(i: Array, j: Array, x: Array, mask: Array = None) -> Array:
         j: integer array of shape (...,) with values in 0,...,n-1
         x: array of shape (..., n)
         mask: boolean array of size (...,)
+
     Returns:
         an array where the i'th element of x has been moved after the jth element if mask is True,
         else x if mask is False
@@ -140,6 +142,7 @@ def _remove(i: Array, j: Array, x: Array) -> Array:
         j: integer array of shape (...,) with values in 0,...,n-1
         x: array of shape (..., n)
         mask: boolean array of size (...,)
+
     Returns:
         an array of shape (..., n-2) where the i'th and jth element of x has been removed
 
@@ -248,6 +251,7 @@ def move_daggers_left(t: OperatorArrayDict) -> OperatorArrayDict:
     Args:
         t: a dictionary containing strings of different lengths, each stored as a tuple
         (sites, daggers, weights)
+
     Returns:
         a new dictionary with normal ordered strings
 
@@ -376,7 +380,7 @@ def split_spin_sectors(
 
 
 def _merge_spin_sectors_helper(
-    sites: array, sectors: Array, daggers: Array, weights: Array, n_orbitals: int
+    sites: Array, sectors: Array, daggers: Array, weights: Array, n_orbitals: int
 ) -> OperatorArrayTerms:
     return sites + sectors * n_orbitals, daggers, weights
 
@@ -388,6 +392,7 @@ def merge_spin_sectors(d: SpinOperatorArrayDict, n_orbitals) -> OperatorArrayDic
     Args:
         d: { size : (sites, sectors, daggers, weights) }
         n_orbitals: number of orbitals (assumed to be the same for each sector)
+
     Returns:
         A dictionary { size : (sites, daggers, weights) }
         where the indices and sectors have been transformed into global site indices
@@ -405,6 +410,7 @@ def to_normal_order_sector(
         (sites, sectors, daggers, weights)
         n_spin_subsectors: number of spin sectors
         n_orbitals: number of orbitals (assumed to be the same for each sector)
+
     Returns:
         a new dictionary with strings in descending normal order
 

@@ -1,5 +1,7 @@
 # this file contains the logic of the operators, essentially _jw_kernel
 
+from typing import Union
+
 from functools import partial
 
 import numpy as np
@@ -8,12 +10,20 @@ import itertools
 import jax
 import jax.numpy as jnp
 
-from netket.jax import reduce_xor
+from netket.jax import reduce_xor, COOTensor
+from netket.utils.types import Array
+
+from ._operator_data import PNCOperatorDataType
 
 
-def _comb(kl, n):
+def _comb(kl: Array, n: int) -> Array:
     """
     compute all combinations of n elements from a set kl
+    Args:
+        kl: 1d array of elements
+        n: size n
+    Returns:
+        an array containg all combinations of size n of elemenets in kl
     """
     if len(kl) < n:
         return jnp.zeros((n, 0), dtype=kl.dtype)
@@ -21,7 +31,22 @@ def _comb(kl, n):
     return kl[np.array(c, dtype=kl.dtype).T[::-1]]
 
 
-def _jw_kernel(k_destroy, l_create, x):
+def _jw_kernel(
+    k_destroy: Array, l_create: Array, x: Array
+) -> tuple[Array, Array, Array]:
+    """
+    compute all matrix elements :math:`x^\\prime` such that :math:`\\langle x^\\prime | \\hat c^\\dagger_{l_m} \\cdots \\hat c^\\dagger_{l_1} \\hat c_{k_n} \\cdots \\hat c_{k_1} | x\rangle \neq 0`
+    of a batch of states x.
+
+    Args:
+        k_destroy: an array of indices of the :math:`\\hat c`
+        l_create: an array of indices of the :math:`\\hat c^\\dagger`
+        x: an array of states
+    Returns:
+        xp: matrix elements :math:`x^\\prime`
+        sign: sign (value) of the matrix element if it is nonzero, arbitrary value otherwise
+        create_was_empty: if the matrix element is zero
+    """
     # destroy
     xd = jax.vmap(lambda i: x.at[i].set(0))(k_destroy.T)
     # create
@@ -55,7 +80,25 @@ def _jw_kernel(k_destroy, l_create, x):
 
 @partial(jax.jit, static_argnums=0)
 @partial(jnp.vectorize, signature="(n)->(m,n),(m)", excluded=(0, 2, 3, 4))
-def _get_conn_padded(n_fermions, x, index_array, create_array, weight_array):
+def _get_conn_padded(
+    n_fermions: int,
+    x: Array,
+    index_array: Union[Array, COOTensor, None],
+    create_array: Union[Array, None],
+    weight_array: Array,
+) -> tuple[Array, Array]:
+    r"""
+    helper function for the matrix elements functions defined below
+
+    does not know about spin sectors
+
+    Args:
+        n_fermionsnumber of electrons
+        x: occupation vectors
+        index_array, create_array, weight_array: internal (sparse) operator data representation
+    Returns:
+        connected states and corresponding matrix elements
+    """
     assert x.ndim == 1
     if index_array is not None:
         half_n_ops = index_array.ndim
@@ -103,11 +146,15 @@ def _get_conn_padded(n_fermions, x, index_array, create_array, weight_array):
     return xp, mels
 
 
-# TODO do this in hilbert ?
 @partial(jax.jit, static_argnames="n_spin_subsectors")
-def unpack_spin_sectors(x, n_spin_subsectors=2):
+def unpack_spin_sectors(x: Array, n_spin_subsectors: int = 2):
     """
     split spin sectors of x
+
+    Args:
+        a single stacked array of occupations
+    Returns:
+        one array for each spin sector
     """
     assert x.shape[-1] % n_spin_subsectors == 0
     x_ = x.reshape(x.shape[:-1] + (n_spin_subsectors, x.shape[-1] // n_spin_subsectors))
@@ -115,9 +162,14 @@ def unpack_spin_sectors(x, n_spin_subsectors=2):
 
 
 @jax.jit
-def pack_spin_sectors(*xs):
+def pack_spin_sectors(*xs: tuple[Array]) -> Array:
     """
     flatten spin sectors of xs
+
+    Args:
+        xs: one array of occupations for each spin sector
+    Returns:
+        a single stacked array
     """
     xs = jnp.broadcast_arrays(*xs)
     xd = xs[0]
@@ -138,8 +190,25 @@ def pack_spin_sectors(*xs):
 @partial(jax.jit, static_argnums=(0, 1))
 @partial(jnp.vectorize, signature="(n),(n)->(m,n),(m,n),(m)", excluded=(0, 1, 4, 5, 6))
 def _get_conn_padded_interaction_up_down(
-    nelectron_down, nelectron_up, x_down, x_up, index_array, create_array, weight_array
-):
+    nelectron_down: int,
+    nelectron_up: int,
+    x_down: Array,
+    x_up: Array,
+    index_array: Union[Array, COOTensor, None],
+    create_array: Union[Array, None],
+    weight_array: Array,
+) -> tuple[Array, Array, Array]:
+    r"""
+    helper function for the matrix elements for a 2-body interaction term in two different spin sectors
+    i.e. of the operator :math:`\sum_{ijkl} w_{ijkl} \hat c^\dagger_{i\downarrow}  \hat c^\dagger_{j_downarrow} \hat c^\dagger_{k_uparrow} \hat c^\dagger_{l_uparrow}`
+
+    Args:
+        nelectron_down, nelectron_up: number of electrons in the down and up sector
+        x_down, x_up: occupation vectors in both sectors
+        index_array, create_array, weight_array: internal (sparse) operator data representation
+    Returns:
+        connected states and corresponding matrix elements
+    """
     dtype = x_down.dtype
 
     assert x_down.ndim == 1
@@ -195,7 +264,19 @@ def _get_conn_padded_interaction_up_down(
 
 
 @partial(jax.jit, static_argnames=("n_fermions",))
-def get_conn_padded_pnc(_operator_data, x, n_fermions):
+def get_conn_padded_pnc(
+    _operator_data: PNCOperatorDataType, x: Array, n_fermions: int
+) -> tuple[Array, Array]:
+    r"""
+    compute the connected elements for ParticleNumberConservingFermioperator2ndJax
+
+    Args:
+        _operator_data: internal sparse operator representation
+        x: occupation vectors
+        n_fermions: number of electrons
+    Returns:
+        connected states and corresponding matrix elements
+    """
     dtype = x.dtype
     if not jnp.issubdtype(dtype, jnp.integer) or jnp.issubdtype(dtype, jnp.integer):
         x = x.astype(jnp.int8)
@@ -220,7 +301,19 @@ def get_conn_padded_pnc(_operator_data, x, n_fermions):
 
 
 @partial(jax.jit, static_argnames=("n_fermions_per_spin",))
-def get_conn_padded_pnc_spin(_operator_data, x, n_fermions_per_spin):
+def get_conn_padded_pnc_spin(
+    _operator_data: PNCOperatorDataType, x: Array, n_fermions_per_spin: tuple[int]
+) -> tuple[Array, Array]:
+    r"""
+    compute the connected elements for ParticleNumberConservingFermioperator2ndSpinJax
+
+    Args:
+        _operator_data: internal sparse operator representation
+        x: occupation vectors (with concatenated spin sectors)
+        n_fermions_per_spin: number of electrons in each spin sector
+    Returns:
+        connected states and corresponding matrix elements
+    """
     n_spin_subsectors = len(n_fermions_per_spin)
     xs = unpack_spin_sectors(x, n_spin_subsectors)
     xs_diag = tuple(a[..., None, :] for a in xs)
@@ -240,6 +333,7 @@ def get_conn_padded_pnc_spin(_operator_data, x, n_fermions_per_spin):
             sectors = (0,)  # dummy sector
 
         for i in sectors:
+            # act on a single sector: we use the non-spin mel code here for the mels
             _, melsi = _get_conn_padded(n_fermions_per_spin[i], xs[i], *v)
             mels_diag = mels_diag + melsi
             xp_diag = x[..., None, :]
@@ -266,6 +360,7 @@ def get_conn_padded_pnc_spin(_operator_data, x, n_fermions_per_spin):
         # TODO make sectors a jax array and use jax loop here to compile only once ?
         # (requires n_fermions_per_spin to be the same for all sectors)
         for i in sectors:
+            # act on a single sector: we use the non-spin mel code here, and just apply an identity in the other sectors
             xpi, melsi = _get_conn_padded(n_fermions_per_spin[i], xs[i], *v)
             xpi = pack_spin_sectors(*xs_diag[:i], xpi, *xs_diag[i + 1 :])
             xp_list.append(xpi)

@@ -1,6 +1,8 @@
-from functools import partial
+from functools import partial, wraps
+from typing import Union
 
 import numpy as np
+import sparse
 
 import jax
 import jax.numpy as jnp
@@ -9,8 +11,8 @@ from flax import struct
 
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert import SpinOrbitalFermions
-from netket.utils.types import PyTree
-from netket.operator import FermionOperator2ndJax
+from netket.utils.types import Array
+from netket.operator import FermionOperator2nd, FermionOperator2ndJax
 from netket.utils.optional_deps import import_optional_dependency
 
 from .._pyscf_utils import (
@@ -21,9 +23,9 @@ from .._pyscf_utils import (
 
 from .._normal_order_utils import to_normal_order, to_normal_order_sector
 from ._conversion import (
-    fermiop_to_pnc_format,
-    pnc_to_fermiop_format,
-    to_fermiop_helper,
+    fermiop_to_pnc_format_helper,
+    fermiop_to_pnc_format_spin_helper,
+    pnc_format_to_fermiop_helper,
 )
 from ._operator_data import (
     collect_ops,
@@ -31,15 +33,21 @@ from ._operator_data import (
     prepare_operator_data_from_coords_data_dict,
     prepare_operator_data_from_coords_data_dict_spin,
     to_coords_data_sector,
+    PNCOperatorDataCollectionDict,
+    PNCOperatorDataDict,
+    CoordsDataDictSectorCooArrayType,
+    CoordsDataDictSectorType,
 )
 from ._kernels import get_conn_padded_pnc, get_conn_padded_pnc_spin
 
 
 @struct.dataclass
 class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
-    """
+    r"""
     Particle-number conserving fermionc operator
-    H = w + Σ_ij w_ij c_i^† c_j + Σ_ijkl w_ijkl  c_i^† c_j^† c_k c_l + Σ_ijklmn w_ijklmn c_i^† c_j^† c_k^† c_l c_m c_n + ...
+
+    :.. math::
+        H = w + \sum_{ij} w_{ij} \hat c_i^\dagger hat c_j + \sum_{ijkl} w_{ijkl} \hat c_i^\dagger \hat c_j^\dagger \hat c_k \hat c_l + \sum_{ijklmn} w_{ijklmn} \hat c_i^\dagger \hat c_j^\dagger c_k^\dagger \hat c_l \hat c_m \hat c_n + \dots
 
     Version without spin.
 
@@ -49,14 +57,14 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     please refer to the docstrings of prepare_data and prepare_data_diagonal for details.
 
     We provide several factory methods to create this operator:
-        - ParticleNumberConservingFermioperator2ndJax.from_fermiop:
+        - ParticleNumberConservingFermioperator2ndJax.from_fermionoperator2nd:
                Conversion form FermionOperator2nd/FermionOperator2ndJax
         - ParticleNumberConservingFermioperator2ndJax.from_sparse_arrays:
                 From sparse arrays (w, w_ij, w_ijkl, w_ijklmn, ...)
         - ParticleNumberConservingFermioperator2ndJax.from_pyscf_molecule:
                 From pyscf
 
-    Furthermore it can be converted to FermionOperator2nd/FermionOperator2ndJax using the .to_fermiop method.
+    Furthermore it can be converted to FermionOperator2nd/FermionOperator2ndJax using the .to_fermionoperator2nd() method.
     """
 
     # factory methods for internal use only:
@@ -68,8 +76,11 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     #         and only the lower triangular part is nonzero
 
     _hilbert: SpinOrbitalFermions = struct.field(pytree_node=False)
-    _operator_data: PyTree  # custom sparse internal representation
+    _operator_data: (
+        PNCOperatorDataCollectionDict  # custom sparse internal representation
+    )
 
+    @wraps(DiscreteJaxOperator.get_conn_padded)
     def get_conn_padded(self, x):
         return get_conn_padded_pnc(self._operator_data, x, self._hilbert.n_fermions)
 
@@ -81,16 +92,19 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 
     @property
     def dtype(self):
-        return NotImplemented
-        # return list(self._operator_data.values())[0][2].dtype
+        x = jax.ShapeDtypeStruct((1, self._hilbert.size), dtype=jnp.uint8)
+        _, mels = jax.eval_shape(self.get_conn_padded, x)
+        return mels.dtype
 
     @property
     def is_hermitian(self):
         # TODO more efficient implementation
-        return self.to_fermiop().is_hermitian
+        return self.to_fermionoperator2nd().is_hermitian
 
     @classmethod
-    def _from_coords_data_normal_order(cls, hilbert, coords_data_dict, **kwargs):
+    def _from_coords_data_normal_order(
+        cls, hilbert: SpinOrbitalFermions, coords_data_dict, **kwargs
+    ):
         assert isinstance(hilbert, SpinOrbitalFermions)
         assert hilbert.n_fermions is not None
         n_orbitals = hilbert.n_orbitals * hilbert.n_spin_subsectors
@@ -100,7 +114,12 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         return cls(hilbert, data)
 
     @classmethod
-    def _from_sparse_arrays_normal_order(cls, hilbert, operators, **kwargs):
+    def _from_sparse_arrays_normal_order(
+        cls,
+        hilbert: SpinOrbitalFermions,
+        operators: list[Union[Array, sparse.COO]],
+        **kwargs,
+    ):
         terms = sparse_arrays_to_coords_data_dict(collect_ops(operators))
 
         for k, v in terms.items():
@@ -116,7 +135,12 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         return cls._from_coords_data_normal_order(hilbert, terms, **kwargs)
 
     @classmethod
-    def from_sparse_arrays(cls, hilbert, operators, **kwargs):
+    def from_sparse_arrays(
+        cls,
+        hilbert: SpinOrbitalFermions,
+        operators: list[Union[Array, sparse.COO]],
+        **kwargs,
+    ):
         # daggers on the left, but not necessarily desc order
         ops = collect_ops(operators)
         cutoff = kwargs.get("cutoff", 0)
@@ -125,25 +149,35 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         return cls._from_coords_data_normal_order(hilbert, terms, **kwargs)
 
     @classmethod
-    def from_fermiop(cls, ha, **kwargs):
+    def from_fermionoperator2nd(
+        cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], **kwargs
+    ):
         # ha = ha.to_normal_order()
-        t = fermiop_to_pnc_format(ha.terms, ha.weights)
+        t = fermiop_to_pnc_format_helper(ha.terms, ha.weights)
         t = to_normal_order(t)
         terms = {k: (v[0], v[2]) for k, v in t.items()}  # drop daggers
         return cls._from_coords_data_normal_order(ha.hilbert, terms, **kwargs)
 
-    def to_fermiop(self, cls=FermionOperator2ndJax):
+    def to_fermionoperator2nd(
+        self, _cls=FermionOperator2ndJax
+    ) -> FermionOperator2ndJax:
         terms = []
         weights = []
         for d in self._operator_data:
             for k, v in d.items():
-                t, w = to_fermiop_helper(*v)
+                t, w = pnc_format_to_fermiop_helper(*v)
                 terms = terms + t.tolist()
                 weights = weights + w.tolist()
-        return cls(self._hilbert, terms, weights)
+        return _cls(self._hilbert, terms, weights)
 
     @classmethod
-    def from_pyscf_molecule(cls, mol, mo_coeff, cutoff=1e-11, **kwargs):
+    def from_pyscf_molecule(
+        cls,
+        mol: "pyscf.gto.mole.Mole",  # noqa: F821
+        mo_coeff: Array,
+        cutoff: float = 1e-11,
+        **kwargs,
+    ):
         n_orbitals = int(mol.nao)
         hi = SpinOrbitalFermions(n_orbitals, s=1 / 2, n_fermions_per_spin=mol.nelec)
         E_nuc, Tij, Vijkl = TV_from_pyscf_molecule(mol, mo_coeff, cutoff=cutoff)
@@ -152,14 +186,16 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         )
 
 
-# TODO generalize it to >4 fermionic operators
 @struct.dataclass
 class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     """
     Particle-number conserving fermionc operator
-    H = w + Σ_ijσ w_ijσ c_iσ^† c_jσ + Σ_ijklσρ w_ijklσρ  c_iσ^† c_jρ^† c_kρ c_lσ
+    .. :math:
+        H = w + \\sum_{ij \\sigma} w_{ij \\sigma} \\hat c_{i \\sigma}^\\dagger \\hat c_{j \\sigma} + \\sum_{ijkl\\simga \rho} w_{ijkl\\sigma\rho}  \\hat c_{i\\sigma}^\\dagger \\hat c_{j \rho}^\\dagger \\hat c_{k \rho} \\hat c_{l \\sigma}
 
     Version with spin.
+
+    Limited to 2-body operators if acting on > 1 sector at a time
 
     To be used with netket.hilbert.SpinOrbitalFermions with a fixed number of fermions.
 
@@ -167,7 +203,7 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     please refer to the docstrings of prepare_data and prepare_data_diagonal for details.
 
     We provide several factory methods to create this operator:
-        - ParticleNumberConservingFermioperator2ndSpinJax.from_fermiop:
+        - ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd:
                 Conversion form FermionOperator2nd/FermionOperator2ndJax (if possible)
         - ParticleNumberConservingFermioperator2ndSpinJax.from_sparse_arrays:
                 From sparse arrays for w, w_ij and w_ijkl specifying the spin sectors σ,ρ explicitly
@@ -185,16 +221,16 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     #         From a dictionary of tuples {(k, sectors): (sites, daggers, weights)} representing w, w_ijσ, w_ijklσρ
 
     _hilbert: SpinOrbitalFermions = struct.field(pytree_node=False)
-    _operator_data: PyTree
+    _operator_data: PNCOperatorDataCollectionDict
 
     @property
     def dtype(self):
-        return NotImplemented
+        x = jax.ShapeDtypeStruct((1, self._hilbert.size), dtype=jnp.uint8)
+        _, mels = jax.eval_shape(self.get_conn_padded, x)
+        return mels.dtype
 
     @property
     def is_hermitian(self):
-        # TODO actually check it is
-        # return True
         return NotImplemented
 
     @property
@@ -203,13 +239,16 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         _, mels = jax.eval_shape(self.get_conn_padded, x)
         return mels.shape[-1]
 
+    @wraps(DiscreteJaxOperator.get_conn_padded)
     def get_conn_padded(self, x):
         return get_conn_padded_pnc_spin(
             self._operator_data, x, self._hilbert.n_fermions_per_spin
         )
 
     @classmethod
-    def _from_coords_data(cls, hilbert, coords_data_sectors):
+    def _from_coords_data(
+        cls, hilbert: SpinOrbitalFermions, coords_data_sectors: CoordsDataDictSectorType
+    ):
         assert isinstance(hilbert, SpinOrbitalFermions)
         assert hilbert.n_fermions is not None
         assert hilbert.n_spin_subsectors >= 2
@@ -220,18 +259,14 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         return cls(hilbert, operator_data)
 
     @classmethod
-    def _from_sparse_arrays(cls, hilbert, operators_sector):
-        """ """
-        # TODO come up with some interface to specify the sectors
-        # then convert it to normal order here
-        # alternatively expose _from_sites_sectors_daggers_weights
-
-        raise NotImplementedError
-
-    @classmethod
-    def _from_sparse_arrays_normal_order(cls, hilbert, operators_sector):
+    def _from_sparse_arrays_normal_order(
+        cls,
+        hilbert: SpinOrbitalFermions,
+        operators_sector: CoordsDataDictSectorCooArrayType,
+    ):
         """
         Args:
+
             operators_sector:
                 dict {key: value}
                     key: a tuple (k, sectors)
@@ -241,13 +276,15 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
                          of sectors needs to be ordered in descending order
                     value: a sparse matrix of coefficeints of shape (n_orbitals,)*k
         """
-
         coords_data_sectors = sparse_arrays_to_coords_data_dict(operators_sector)
         return cls._from_coords_data(hilbert, coords_data_sectors)
 
     @classmethod
     def _from_sparse_arrays_normal_order_all_sectors(
-        cls, hilbert, operators, cutoff=1e-11
+        cls,
+        hilbert: SpinOrbitalFermions,
+        operators: list[Union[Array, sparse.COO]],
+        cutoff=1e-11,
     ):
         """
         Construct the operator from  sparse arrays for w, w_ij and w_ijkl summing over all possible values of σ,ρ,
@@ -287,7 +324,12 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         return cls._from_sparse_arrays_normal_order(hilbert, operators_sector)
 
     @classmethod
-    def from_pyscf_molecule(cls, mol, mo_coeff, cutoff=1e-11):
+    def from_pyscf_molecule(
+        cls,
+        mol: "pyscf.gto.mole.Mole",  # noqa: F821
+        mo_coeff: Array,
+        cutoff: float = 1e-11,
+    ):
         """
         Constructs the operator from a pyscf molecule
 
@@ -316,7 +358,9 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         )
 
     @classmethod
-    def _from_sites_sectors_daggers_weights(cls, hilbert, t, cutoff=1e-11):
+    def _from_sites_sectors_daggers_weights(
+        cls, hilbert: SpinOrbitalFermions, t: PNCOperatorDataDict, cutoff: float = 1e-11
+    ):
         # t: { size : (sites, sectors, daggers, weights) }
         # arbitrary order of sites, sectors, and daggers
         # is internally converted to the right order for the operator
@@ -329,11 +373,13 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         return cls._from_coords_data(hilbert, coords_data)
 
     @classmethod
-    def from_fermiop(cls, ha, cutoff=1e-11):
+    def from_fermionoperator2nd(
+        cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], cutoff: float = 1e-11
+    ):
         hilbert = ha.hilbert
         n_orbitals = hilbert.n_orbitals
         n_spin_subsectors = hilbert.n_spin_subsectors
-        t = pnc_to_fermiop_format(
+        t = fermiop_to_pnc_format_spin_helper(
             ha.terms, ha.weights, n_orbitals, n_spin_subsectors
         )
         return cls._from_sites_sectors_daggers_weights(hilbert, t, cutoff=cutoff)

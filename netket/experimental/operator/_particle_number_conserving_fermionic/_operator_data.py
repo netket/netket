@@ -1,5 +1,8 @@
 # utilities to prepare the internal datastructures
 
+
+from typing import Any, Union
+
 from functools import partial
 import numpy as np
 
@@ -7,19 +10,109 @@ import jax
 import jax.numpy as jnp
 
 from netket.jax import COOTensor
-from netket.utils.optional_deps import import_optional_dependency
+from netket.utils.types import Array
+
+import sparse
+
+from .._normal_order_utils import SpinOperatorArrayTerms
+
+PNCOperatorDataType = tuple[Union[Array, COOTensor, None], Union[Array, None], Array]
+r"""
+Custom sparse internal data for ParticleNumberConservingFermioperator2ndJax of strings of fermionic operators of a fixed length
+
+It is given by a 3-tuple for a fixed length N of string in normal ordering (containg 2N fermionic operators),
+
+Assume we are given a sequence of equal-length normal ordered strings :math:`\sum_i w_i \hat c_{a_{i1}}^\dagger \cdots \hat c_{a_{iN}}^\dagger \hat c_{b_{i1}} \cdots \hat c_{b_{iN}}`
+with :math:`2N` fermionic operators, with larger indices to the left: :math:`a_{i1} >=\cdots>=a_{iN}, b_{i1} >=\cdots>=b_{iN}`
+
+Here :math:`a \in \{1 \dots n\}`` contains the indices of the :math:`\hat c^\dagger`, b the indices of the c operators and w the corresponding weight of every string.
+where n is the number of orbitals.
+
+The 3-tuple for these operators is given by
+    index_array: shape (n,)*N+(n_max,) contains list of integer indices for all the strings for a given list of destruction operators (given by b above)
+                 can be stored either in a dense, or sparse format; is padded to the maximum number of operators n_max for a given sequence of destruction ops (b)
+                 Since the operators are assumed to be in normal order (larger sites to the left) only the lower triangular part is used.
+    create_array: shape (n_ops+1,)+(N,) for every index from index_array contains creation operators of the corresponding term (given by a above)
+    weight_array: shape (n_ops+1,)+(1,) for every index from index_array contains the weight of the corresponding term
+                  The 0 weight for the padding is stored as the last element.
+
+We optionally treat the diagonal opeators separately to the non-diagonal ones in a more efficient way:
+    index_array: None
+    create_array: None
+    weight_array: shape (n,)*N  is indexed directly with the list of destruction operators
+"""
+
+PNCOperatorDataDict = dict[Union[int, tuple[int, tuple[int]]], PNCOperatorDataType]
+r"""
+Custom sparse internal data for ParticleNumberConservingFermioperator2ndJax of strings of fermionic operators of different lengths N
+"""
+
+PNCOperatorDataCollectionDict = dict[str, PNCOperatorDataDict]
+r"""
+collection of different PNCOperatorDataDict, each with a name. E.g. for storing the diagonal and off-diagonal part of an operator separately
+"""
 
 
-def len_helper(s):
+PNCOperatorArrayTerms = tuple[Array, Array]
+r"""
+particle-number conserving equivalent of OperatorArrayTerms, without daggers array
+First Half of the operators are assumed to be creation, and the second half destruction
+A tuple (sites, weights) where
+    sites: An integer array of size n_terms x n_operators containing the indices
+    weights: An array of size n_terms containing the weight of each term
+"""
+
+PNCOperatorArrayDict = dict[int, PNCOperatorArrayTerms]
+r"""
+A dictionary containing OperatorArrayTerms of different lengths, where the key specifies the lenght,
+representing a particle-number conserving fermionic operator in second quantization.
+"""
+
+
+CoordsDataDictSectorType = dict[tuple[int, tuple[int]], tuple[Array, Array]]
+r"""
+a dict {(k, sectors) : (indices, data)}
+where k is the number of c/c^\dagger, sectors are the spin sectors acted on,
+indices contains the sites inside of each sector and data contains the weights
+"""
+
+CoordsDataDictSectorCooArrayType = dict[tuple[int, tuple[int]], sparse.COO]
+r"""
+a dict {(k, sectors) : array }
+where k is the number of c/c^\dagger, sectors are the spin sectors acted on,
+and array (of size n_orbitals^k) contains the indices and weights of the operators
+"""
+
+
+def _len_helper(s: Any) -> int:
+    """
+    return the length of the argument if it is a tuple, else return 1
+    """
     if isinstance(s, tuple):
         return len(s)
     else:
         return 1
 
 
-def _prepare_data_helper(sites_destr, sites_create, weights, n_orbitals, sparse_=True):
+def _prepare_data_helper(
+    sites_destr: Array,
+    sites_create: Array,
+    weights: Array,
+    n_orbitals: int,
+    sparse_: bool = True,
+) -> PNCOperatorDataType:
+    r"""
+    Helper function to prepare the sparse operator
 
-    sparse = import_optional_dependency("sparse")
+    Args:
+        sites_destr:  indices of the :math:`\hat c`
+        sites_create: indices of the :math:`\hat c^\dagger`
+        weights: weights of each term
+        n_orbitals: number of orbitals
+        sparse_: use COOTensor for the index array
+    Returns:
+        sparse operator data
+    """
 
     # we encode sites_create==sites_destr by passing sites_create=None
     is_diagonal = sites_create is None
@@ -106,7 +199,9 @@ def _prepare_data_helper(sites_destr, sites_create, weights, n_orbitals, sparse_
     return index_array, create_array, weight_array
 
 
-def prepare_data_diagonal(sites_destr, weights, n_orbitals, **kwargs):
+def prepare_data_diagonal(
+    sites_destr: Array, weights: Array, n_orbitals: int, **kwargs
+) -> PNCOperatorDataType:
     r"""
 
     Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax, for the diagonal part of the operator
@@ -134,7 +229,9 @@ def prepare_data_diagonal(sites_destr, weights, n_orbitals, **kwargs):
     return _prepare_data_helper(sites_destr, None, weights, n_orbitals, **kwargs)
 
 
-def prepare_data(sites, weights, n_orbitals, **kwargs):
+def prepare_data(
+    sites: Array, weights: Array, n_orbitals: int, **kwargs
+) -> PNCOperatorDataType:
     r"""
     Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax
     of strings of a fixed length
@@ -182,9 +279,17 @@ def prepare_data(sites, weights, n_orbitals, **kwargs):
     )
 
 
-def split_diag_offdiag(sites, weights):
-    """
+def split_diag_offdiag(
+    sites: Array, weights: Array
+) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
+    r"""
     Split the diagonal and off-diagonal terms
+
+    Args:
+        sites: indices of the :math:`\hat c^\dagger` and :math:`\hat c`, stored in the first and second half of the last axis of the array
+        weights: corresponding weights
+    Returns:
+        sites and weights of the diagonal and off-diagonal terms
     """
     n_terms, n_ops = sites.shape
     assert weights.shape == (n_terms,)
@@ -201,7 +306,9 @@ def split_diag_offdiag(sites, weights):
     return (diag_sites, diag_weights), (offdiag_sites, offdiag_weights)
 
 
-def prepare_operator_data_from_coords_data_dict(coords_data_dict, n_orbitals, **kwargs):
+def prepare_operator_data_from_coords_data_dict(
+    coords_data_dict: PNCOperatorArrayDict, n_orbitals: int, **kwargs
+) -> PNCOperatorDataCollectionDict:
     r"""
     Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax
 
@@ -233,7 +340,9 @@ def prepare_operator_data_from_coords_data_dict(coords_data_dict, n_orbitals, **
     return data
 
 
-def sparse_arrays_to_coords_data_dict(ops):
+def sparse_arrays_to_coords_data_dict(
+    ops: dict[Any, sparse.COO],
+) -> dict[Any, tuple[Array, Array]]:
     """
     Split dictionary values of sparse arrays into indices and data
 
@@ -242,7 +351,7 @@ def sparse_arrays_to_coords_data_dict(ops):
 
     def _unpack(k, v):
         if isinstance(k, tuple):
-            k, _ = k  # _ are the spin sectors
+            k = k[0]  # rest are e.g. the spin sectors
         if k == 0:
             return np.zeros((1, 0), dtype=int), np.array([v])
         else:
@@ -251,17 +360,17 @@ def sparse_arrays_to_coords_data_dict(ops):
     return {k: _unpack(k, v) for k, v in ops.items()}
 
 
-def collect_ops(operators):
+def collect_ops(
+    operators: list[Union[Array, sparse.COO]],
+) -> dict[int, Union[Array, sparse.COO]]:
     r"""
     sum operators with the same number of c/c^\dagger
 
     Args:
         operators: a list of scalars / sparse matrices / dense matrices
     Returns:
-        A dictionary of sparse matrices, one for each lenght of  c/c^\dagger
+        A dictionary of sparse matrices, one for each lenght of c/c^\dagger
     """
-
-    sparse = import_optional_dependency("sparse")
 
     ops = {}
     for A in operators:
@@ -287,9 +396,30 @@ def collect_ops(operators):
     return ops
 
 
-def prepare_operator_data_from_coords_data_dict_spin(coords_data_sectors, n_orbitals):
+def prepare_operator_data_from_coords_data_dict_spin(
+    coords_data_sectors: CoordsDataDictSectorType, n_orbitals: int
+) -> PNCOperatorDataCollectionDict:
+    r"""
+    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax
+    of a string of operators :math:`\sum_N \sum_i \sum_s  w_i^{(N)} \hat c_{a_{i1}^{(N)},s}^\dagger \cdots \hat c_{a_{iN}^{(N)},s}^\dagger \hat c_{b_{i1}^{(N)},s} \cdots \hat c_{b_{iN}^{(N)},s}`
+    in descending order :math:`a_{i1} >=...>=a_{iN}, b_{i1} >=...>=b_{iN}`.
+
+    Version with spin sectors.
+
+    Args:
+        coords_data_sectors: A dictionary {(N, sectors): (sites, weights)}
+            where for every length N, and tuple of spin sectors
+                sites is a matrix containing the stacked indices [[a_i1^{(N)}, ... a_iN^{(N)}, b_i1^{(N)}, ..., b_iN^{(N)}]]
+                of the c^\dagger and c
+                weights is a vector containing the corresponding weights [w_i^{(N)}]
+        n_orbitals: number of orbitals
+    Returns:
+        A dictionary {'diag': { N:  (None, None, weight_array)}, 'offdiag': { N : (index_array, create_array, weight_array)}}
+        containing the sparse representation for every lenght N of strings c_{a_i1}^\dagger ... c_{a_iN}^\dagger c_{b_i1} ... c_{b_iN}
+    """
+
     # version with sectors
-    _cond = lambda s: s == () or len_helper(s[0]) == 1
+    _cond = lambda s: s == () or _len_helper(s[0]) == 1
     coords_data_same = {
         (k, s): v for (k, s), v in coords_data_sectors.items() if _cond(s)
     }
@@ -319,28 +449,40 @@ def prepare_operator_data_from_coords_data_dict_spin(coords_data_sectors, n_orbi
     return operator_data
 
 
-def sites_daggers_weights_to_sparse(sites, daggers, weights, n_orbitals):
+def sites_daggers_weights_to_sparse(
+    sites: Array, daggers: Array, weights: Array, n_orbitals: int
+) -> sparse.COO:
+    """
+    Convert normal ordered
+    Args:
+        sites:
+        daggers: first half of the last axis needs to be 1 (create), second half 0 (destroy)
+        weights:
+    Returns:
+        a sparse.COO tensor
 
-    sparse = import_optional_dependency("sparse")
-
+    """
     n = daggers.shape[-1]
     assert n % 2 == 0
     assert (daggers[:, : n // 2] == 1).all()
     assert (daggers[:, n // 2 :] == 0).all()
-    # TODO cutoff?
     return sparse.COO(sites.T, weights, shape=(n_orbitals,) * n)
 
 
-def _insert_append_helper(d, k, s, o, cutoff):
-    # check if an element with the same matrix but different sectors exist
-    # if yes append to the list of sectors
-    # else insert new element into the dict
-
-    sparse = import_optional_dependency("sparse")
-
+def _insert_append_helper(
+    d: CoordsDataDictSectorCooArrayType,
+    k: tuple[int, tuple[int]],
+    s: tuple[int],
+    o: Union[sparse.COO, Array],
+    cutoff: float,
+):
+    """
+    check if an element with the same matrix but different sectors exist
+    if yes append to the list of sectors, else insert new element into the dict
+    """
     for (k2, s2), o2 in d.items():
         same_number_of_sectors = (s == () and s2 == ()) or (
-            len(s2) > 0 and len(s) > 0 and len_helper(s2[0]) == len_helper(s[0])
+            len(s2) > 0 and len(s) > 0 and _len_helper(s2[0]) == _len_helper(s[0])
         )
         if (
             same_number_of_sectors
@@ -353,7 +495,12 @@ def _insert_append_helper(d, k, s, o, cutoff):
         d[k, s] = o
 
 
-def to_coords_data_sector(tno_sector, n_spin_subsectors, n_orbitals, cutoff=1e-11):
+def to_coords_data_sector(
+    tno_sector: SpinOperatorArrayTerms,
+    n_spin_subsectors: int,
+    n_orbitals: int,
+    cutoff: float = 1e-11,
+) -> CoordsDataDictSectorType:
     r"""
     Args:
         tno_sector: a list of tuples [(sites, sectors, daggers, weights)]

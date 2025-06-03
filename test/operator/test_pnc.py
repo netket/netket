@@ -77,7 +77,7 @@ def test_pnc(desc):
     )
     np.testing.assert_allclose(ha.to_dense(), ha2.to_dense())
 
-    ha3 = ParticleNumberConservingFermioperator2ndJax.from_fermiop(ha)
+    ha3 = ParticleNumberConservingFermioperator2ndJax.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha3.to_dense())
 
 
@@ -124,7 +124,7 @@ def test_pnc_spin(N, n, s):
     )
     np.testing.assert_allclose(ha.to_dense(), ha2.to_dense())
 
-    ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermiop(ha)
+    ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha3.to_dense())
 
 
@@ -152,8 +152,8 @@ def test_fermihubbard():
     for u in g.nodes():
         ha2 += U * nc(u, 1) * nc(u, -1)
 
-    ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermiop(ha2)
-    ha4 = ParticleNumberConservingFermioperator2ndJax.from_fermiop(ha2)
+    ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd(ha2)
+    ha4 = ParticleNumberConservingFermioperator2ndJax.from_fermionoperator2nd(ha2)
 
     np.testing.assert_allclose(ha2.to_dense(), ha.to_dense())
     np.testing.assert_allclose(ha2.to_dense(), ha3.to_dense())
