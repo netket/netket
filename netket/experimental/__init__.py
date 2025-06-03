@@ -19,6 +19,7 @@ __all__ = [
     "vqs",
     "TDVP",
     "models",
+    "hilbert",
     "operator",
     "logging",
     "observable",
