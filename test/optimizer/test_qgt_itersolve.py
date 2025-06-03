@@ -382,8 +382,6 @@ def test_qgt_holomorphic_real_pars_throws():
     with pytest.raises(nk.errors.IllegalHolomorphicDeclarationForRealParametersError):
         vstate.quantum_geometric_tensor(qgt.QGTJacobianDense(holomorphic=True))
 
-    return vstate
-
 
 def test_qgt_onthefly_correct_chunking_selection():
     # construct a vstate
