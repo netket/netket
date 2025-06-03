@@ -55,6 +55,7 @@ docs/sharp-bits
 :caption: Tutorials
 :maxdepth: 2
 
+tutorials/variational_intro
 tutorials/gs-ising
 tutorials/gs-continuous-space
 tutorials/gs-heisenberg
