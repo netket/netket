@@ -105,7 +105,7 @@ def test_deepset():
     """Test the permutation invariance"""
     L = (1.0, 1.0)
     n_particles = 6
-    hilb = nk.hilbert.Particle(
+    hilb = nk.experimental.hilbert.Particle(
         N=n_particles, geometry=nk.geometry.Cell(d=len(L), L=L, pbc=True)
     )
     sdim = len(hilb.domain)

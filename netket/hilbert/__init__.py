@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 from . import constraint
 from . import index
 
@@ -25,7 +27,6 @@ from .doubled_hilbert import DoubledHilbert
 from .spin import Spin
 from .fock import Fock
 from .qubit import Qubit
-from .particle import Particle
 from .spin_orbital_fermions import SpinOrbitalFermions
 
 from .tensor_hilbert import TensorHilbert
@@ -49,7 +50,19 @@ _deprecations = {
 from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _hide_submodules
 
-__getattr__ = _deprecation_getattr(__name__, _deprecations)
-_hide_submodules(__name__)
 
-del _deprecation_getattr
+def __getattr__(name):
+    if name == "Particle":
+        from netket.experimental.hilbert import Particle as _Particle
+
+        warnings.warn(
+            "netket.hilbert.Particle is deprecated: use netket.experimental.hilbert.Particle (netket >= 3.12)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _Particle
+
+    return _deprecation_getattr(__name__, _deprecations)(name)
+
+
+_hide_submodules(__name__)

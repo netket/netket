@@ -6,7 +6,7 @@
 ```
 
 The :mod:`netket.geometry` module contains helper classes to describe the geometry of continuous spaces.
-These objects can be passed to {class}`~netket.hilbert.Particle` and provide utilities such as distance computations.
+These objects can be passed to {class}`~netket.experimental.hilbert.Particle` and provide utilities such as distance computations.
 
 ```{eval-rst}
 .. autosummary::

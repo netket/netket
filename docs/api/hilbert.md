@@ -11,7 +11,7 @@ All implementations of Hilbert spaces derive from the class `AbstractHilbert` an
  - discrete Hilbert spaces, which inherit from the abstract class `DiscreteHilbert` and include spin ({class}`Spin`), Fock ({class}`Fock`), and qubit ({class}`Qubit`) spaces. Discrete spaces are typically used to describe lattice systems. 
  The lattice structure itself is, however, not part of the Hilbert space class and can be defined separately.
  - continuous Hilbert spaces, which inherit from the abstract class {class}`ContinuousHilbert`. 
- Currently, the only concrete continuous space provided by NetKet is {class}`Particle`.
+ Currently, the only concrete continuous space provided by NetKet is {class}`~netket.experimental.hilbert.Particle`.
 
 
 ```{eval-rst}
@@ -38,7 +38,7 @@ Below you find a list of all concrete Hilbert spaces that you can use.
    Spin
    Qubit
    Fock
-   Particle
+   experimental.hilbert.Particle
    SpinOrbitalFermions
 ```
 

@@ -13,9 +13,11 @@
 # limitations under the License.
 
 
-__all__ = ["SpinOrbitalFermions"]
+import warnings
 
-from netket.hilbert import SpinOrbitalFermions as _deprecated_SpinOrbitalFermions
+__all__ = ["Particle", "SpinOrbitalFermions"]
+
+from .particle import Particle
 
 
 _deprecations = {
@@ -23,13 +25,28 @@ _deprecations = {
     "SpinOrbitalFermions": (
         "netket.experimental.hilbert.SpinOrbitalFermions is deprecated: use "
         "netket.hilbert.SpinOrbitalFermions (netket >= 3.12)",
-        _deprecated_SpinOrbitalFermions,
+        None,
     ),
 }
 
 from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 
-__getattr__ = _deprecation_getattr(__name__, _deprecations)
+
+def __getattr__(name):
+    if name == "SpinOrbitalFermions":
+        from netket.hilbert import SpinOrbitalFermions as _SpinOrbitalFermions
+
+        warnings.warn(
+            "netket.experimental.hilbert.SpinOrbitalFermions is deprecated: use "
+            "netket.hilbert.SpinOrbitalFermions (netket >= 3.12)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _SpinOrbitalFermions
+
+    return _deprecation_getattr(__name__, _deprecations)(name)
+
+
 del _deprecation_getattr
 
 from netket.utils import _hide_submodules
