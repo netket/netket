@@ -264,11 +264,11 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 @struct.dataclass
 class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     """
-    Particle-number conserving fermionc operator
+    Particle-number conserving and spin-Z-conserving fermionic operator
+
     .. :math:
         H = w + \\sum_{ij \\sigma} w_{ij \\sigma} \\hat c_{i \\sigma}^\\dagger \\hat c_{j \\sigma} + \\sum_{ijkl\\simga \rho} w_{ijkl\\sigma\rho}  \\hat c_{i\\sigma}^\\dagger \\hat c_{j \rho}^\\dagger \\hat c_{k \rho} \\hat c_{l \\sigma}
 
-    Version with spin.
 
     Limited to 2-body operators if acting on > 1 sector at a time
 
