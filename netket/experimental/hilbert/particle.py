@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from .continuous_hilbert import ContinuousHilbert
-from netket.geometry import Cell
+from netket.experimental.geometry import Cell
 
 
 class Particle(ContinuousHilbert):
@@ -32,14 +32,16 @@ class Particle(ContinuousHilbert):
         Args:
             N: Number of particles. If int all have the same spin. If Tuple the entry indicates how many particles
                 there are with a certain spin-projection.
-            geometry: Instance of :class:`~netket.geometry.Cell` defining the geometry.
+            geometry: Instance of :class:`~netket.experimental.geometry.Cell` defining the geometry.
         """
 
         if not hasattr(N, "__len__"):
             N = (N,)
 
         if not isinstance(geometry, Cell):
-            raise TypeError("`geometry` must be an instance of `netket.geometry.Cell`.")
+            raise TypeError(
+                "`geometry` must be an instance of `netket.experimental.geometry.Cell`."
+            )
 
         self._N = sum(N)
         self._n_per_spin = N

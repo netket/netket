@@ -33,7 +33,9 @@ def v2(x):
 
 
 def test_expect():
-    hilb = nk.hilbert.Particle(N=1, geometry=nk.geometry.Cell(d=1, L=5.0, pbc=True))
+    hilb = nk.experimental.hilbert.Particle(
+        N=1, geometry=nk.experimental.geometry.Cell(d=1, L=5.0, pbc=True)
+    )
     pot = nk.operator.PotentialEnergy(hilb, v1)
     kin = nk.operator.KineticEnergy(hilb, mass=1.0)
     e = pot + kin

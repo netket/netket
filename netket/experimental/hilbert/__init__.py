@@ -13,7 +13,10 @@
 # limitations under the License.
 
 
-__all__ = ["SpinOrbitalFermions"]
+__all__ = ["ContinuousHilbert", "Particle", "SpinOrbitalFermions"]
+
+from .continuous_hilbert import ContinuousHilbert
+from .particle import Particle
 
 from netket.hilbert import SpinOrbitalFermions as _deprecated_SpinOrbitalFermions
 
@@ -32,6 +35,9 @@ from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 __getattr__ = _deprecation_getattr(__name__, _deprecations)
 del _deprecation_getattr
 
-from netket.utils import _hide_submodules
+from netket.utils import _hide_submodules, _auto_export
 
 _hide_submodules(__name__)
+_auto_export(__name__)
+
+del _auto_export

@@ -18,14 +18,13 @@ from . import index
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
 from .homogeneous import HomogeneousHilbert
+import warnings
 
-from .continuous_hilbert import ContinuousHilbert
 
 from .doubled_hilbert import DoubledHilbert
 from .spin import Spin
 from .fock import Fock
 from .qubit import Qubit
-from .particle import Particle
 from .spin_orbital_fermions import SpinOrbitalFermions
 
 from .tensor_hilbert import TensorHilbert
@@ -46,10 +45,33 @@ _deprecations = {
     ),
 }
 
-from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+
+def __getattr__(name):
+    if name == "Particle":
+        from netket.experimental.hilbert import Particle as cls
+
+        warnings.warn(
+            "netket.hilbert.Particle is deprecated: use netket.experimental.hilbert.Particle",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls
+    if name == "ContinuousHilbert":
+        from netket.experimental.hilbert import ContinuousHilbert as cls
+
+        warnings.warn(
+            "netket.hilbert.ContinuousHilbert is deprecated: use netket.experimental.hilbert.ContinuousHilbert",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls
+    if name in _deprecations:
+        msg, obj = _deprecations[name]
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
+        return obj
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 from netket.utils import _hide_submodules
 
-__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
-
-del _deprecation_getattr

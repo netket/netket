@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .abstract_hilbert import AbstractHilbert
+from netket.hilbert.abstract_hilbert import AbstractHilbert
 
 
 class ContinuousHilbert(AbstractHilbert):
