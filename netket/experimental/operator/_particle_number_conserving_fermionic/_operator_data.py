@@ -185,9 +185,14 @@ def _prepare_data_helper(
         compressed_col_ind = a - np.repeat(a[row_start], nper)
         # +1 because of the padding
         new_coords = np.vstack([row_ind + 1, compressed_col_ind])
-        weight_array = jnp.asarray(sparse.COO(new_coords, B.data).todense())
+        weight_array = jnp.asarray(
+            sparse.COO(new_coords, B.data, shape=new_coords.max(axis=1) + 1).todense()
+        )
         create_array = jnp.concatenate(
-            [sparse.COO(new_coords, c).todense()[..., None] for c in create_indices],
+            [
+                sparse.COO(new_coords, c, shape=weight_array.shape).todense()[..., None]
+                for c in create_indices
+            ],
             axis=-1,
         )
         ###
