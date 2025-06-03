@@ -9,6 +9,7 @@ from . import ParticleNumberConservingFermioperator2ndSpinJax
 import jax.numpy as jnp
 import numpy as np
 
+
 @struct.dataclass
 class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax):
     r"""
