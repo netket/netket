@@ -20,8 +20,6 @@ from .particle import Particle
 
 __all__ = ["Particle", "SpinOrbitalFermions"]
 
-from .particle import Particle
-
 
 _deprecations = {
     # May 2024
@@ -33,6 +31,8 @@ _deprecations = {
 }
 
 from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+
+import warnings
 
 
 def __getattr__(name):

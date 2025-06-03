@@ -20,7 +20,6 @@ from . import index
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
 from .homogeneous import HomogeneousHilbert
-import warnings
 
 
 from .doubled_hilbert import DoubledHilbert
