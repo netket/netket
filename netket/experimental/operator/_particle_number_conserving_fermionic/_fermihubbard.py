@@ -13,7 +13,13 @@ import numpy as np
 @struct.dataclass
 class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax):
     r"""
-    Fermi-Hubbard Hamiltonian
+    Fermi-Hubbard Hamiltonian based on the generic ParticleNumberConservingFermioperator2ndSpinJax
+
+    .. :math:
+        \hat H = -t \sum_{<ij>,\sigma} (\hat c_{i\sigma}^\dagger \hat c_{j\sigma} + h.c.) + U \sum_{i}(\hat n_{i\uparrow} \hat n_{i\downarrow})
+
+    This implementation is more efficient than a FermionOperator2nd created using create,destroy,number from nk.operator.fermion
+    as shown in the examples, as it considers only matrix elements with the correct number of particles.
     """
 
     def __pre_init__(
