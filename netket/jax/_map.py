@@ -33,7 +33,9 @@ def map(f, x, batch_size: int | None = None):
                 x_reshape = jnp.transpose(
                     x_reshape, (1, 0) + tuple(range(2, x.ndim + 1))
                 )
-                result = jax.lax.map(f, x_reshape, batch_size=batch_size)
+                # we have added an extra axis, so we need to vmap the function to keep the
+                # same semantics as jax.lax.map
+                result = jax.lax.map(jax.vmap(f), x_reshape, batch_size=batch_size)
 
                 def _reshape_result(y):
                     # Reshape the result back to the original shape
