@@ -31,6 +31,7 @@ from .spin_orbital_fermions import SpinOrbitalFermions
 from .tensor_hilbert import TensorHilbert
 from . import tensor_hilbert_discrete
 
+from . import random
 
 # Deprecated bindings
 from .custom_hilbert import CustomHilbert as _deprecated_CustomHilbert
