@@ -82,13 +82,23 @@ def local_value_kernel_jax_conn_chunked(
     """
     local_value kernel for MCState for jax-compatible operators
     """
+
     apply_conn = lambda s: logpsi(pars, s)
-    apply_conn = nkjax.apply_chunked(apply_conn, in_axes=0, chunk_size=chunk_size)
+    # apply_conn = nkjax.apply_chunked(apply_conn, in_axes=0, chunk_size=chunk_size)
 
     σp, mel = O.get_conn_padded(σ)
 
-    logpsi_σ = apply_conn(σ)
-    logpsi_σp = apply_conn(σp.reshape(-1, σ.shape[-1])).reshape(σp.shape[:-1])
+    if chunk_size is None or chunk_size >= σ.shape[0]:
+        logpsi_σ = apply_conn(σ)
+    else:
+        logpsi_σ = nkjax.lax.map(apply_conn, σ, batch_size=chunk_size)
+
+    σp_r = σp.reshape(-1, σ.shape[-1])
+    if chunk_size is None or chunk_size >= σp_r.shape[0]:
+        logpsi_σpr = apply_conn(σp_r)
+    else:
+        logpsi_σpr = nkjax.lax.map(apply_conn, σp_r, batch_size=chunk_size)
+    logpsi_σp = logpsi_σpr.reshape(σp.shape[:-1])
 
     return jnp.sum(mel * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
 
