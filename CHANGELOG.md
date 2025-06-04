@@ -12,6 +12,8 @@ This version (as all previous versions) are incompatible with Jax 0.6 . A future
 
 ### New Features
 * The {meth}`~netket.sampler.Sampler.sample` method of {class}`~netket.sampler.Sampler` now accepts a new optional keyword argument, `return_log_probabilities` which, if specified, will make the samplers return both the samples and the corresponding log-probabilities. The default is False, and therefore the default behaviour is unchanged [#2012](https://github.com/netket/netket/pull/2012).
+* Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2ndJax` and {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2ndSpinJax`
+which are more efficient and produce fewer connected elements than the generic {class}`netket.operator.FermionOperator2ndJax` operator, and a explicit Fermi-Hubbard operator implementation {class}`netket.experimental.operator.FermiHubbardJax` based on it [#2024](https://github.com/netket/netket/pull/2024).
 
 ### Improvements
 * When loading log files with {meth}`netket.utils.history.HistoryDict.from_file`, the real and imaginary part are re-joined together to reproduce the original history objects, and `np.nan` are also correctly deserialized [#2025](https://github.com/netket/netket/pull/2025).
@@ -48,10 +50,10 @@ This version (as all previous versions) are incompatible with Jax 0.6 . A future
 * Drivers now call the loggers from all ranks, allowing more advanced logging logic (and checkpointers) to be implemented [#1920](https://github.com/netket/netket/pull/1920).
 * The `netket.experimental.dynamics` module has been greatly refactored, changing all internal logics but exposing a well designed, easier to extend interface. While the interface is not yet documented, it is now reasonably possible to implement new ode integrators on top of our interface to be used with {class}`~netket.experimental.driver.TDVP` or other drivers [#1933](https://github.com/netket/netket/pull/1933).
 * Timing of the run function with `timeit=True` is now more accurate, even on GPUs, but it will decrease performance [#1958](https://github.com/netket/netket/pull/1958).
-* The model {class}`netket.models.Jastrow` now constructs its kernel matrix differently, resulting in faster calculations, especially on GPUs. The usage of the class is unchanged and the internal structure of the parameters does not break from previous versions [#1964](https://github.com/netket/netket/pull/1964). 
+* The model {class}`netket.models.Jastrow` now constructs its kernel matrix differently, resulting in faster calculations, especially on GPUs. The usage of the class is unchanged and the internal structure of the parameters does not break from previous versions [#1964](https://github.com/netket/netket/pull/1964).
 * Several under-the-hood changes to better serialize objects containing sharded arrays.
 * The {class}`~netket.utils.history.History` objects logged into a logger are now stored in a {class}`~netket.utils.history.HistoryDict` dictionary instead of a standard dictionary. This should be a transparent change, as the ``HistoryDict`` behaves as a standard dictionary, but will allow for improved serialization and deserialization.
-* It is now possible to load a json-serialized ``.log`` file from standard loggers with the command {meth}`netket.utils.history.HistoryDict.from_file`. 
+* It is now possible to load a json-serialized ``.log`` file from standard loggers with the command {meth}`netket.utils.history.HistoryDict.from_file`.
 
 
 ### Breaking Changes
