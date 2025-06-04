@@ -5,12 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
-from netket.operator.fermion import (
-    destroy as c,
-    create as cd,
-    number as n,
-)
-
 L = 2  # take a 2x2 lattice
 D = 2
 t = 1  # tunneling/hopping
