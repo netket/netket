@@ -18,7 +18,7 @@ from .._normal_order_utils import SpinOperatorArrayTerms
 
 PNCOperatorDataType = tuple[Union[Array, COOArray, None], Union[Array, None], Array]
 r"""
-Custom sparse internal data for ParticleNumberConservingFermioperator2ndJax of strings of fermionic operators of a fixed length
+Custom sparse internal data for ParticleNumberConservingFermioperator2nd of strings of fermionic operators of a fixed length
 
 It is given by a 3-tuple for a fixed length N of string in normal ordering (containg 2N fermionic operators),
 
@@ -44,7 +44,7 @@ We optionally treat the diagonal opeators separately to the non-diagonal ones in
 
 PNCOperatorDataDict = dict[Union[int, tuple[int, tuple[int]]], PNCOperatorDataType]
 r"""
-Custom sparse internal data for ParticleNumberConservingFermioperator2ndJax of strings of fermionic operators of different lengths N
+Custom sparse internal data for ParticleNumberConservingFermioperator2nd of strings of fermionic operators of different lengths N
 """
 
 PNCOperatorDataCollectionDict = dict[str, PNCOperatorDataDict]
@@ -213,7 +213,7 @@ def prepare_data_diagonal(
 ) -> PNCOperatorDataType:
     r"""
 
-    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax, for the diagonal part of the operator
+    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2nd, for the diagonal part of the operator
     of strings of a fixed length
 
     Assume we are given a sequence of equal-length normal ordered strings \sum_i w_i c_{a_i1}^\dagger ... c_{a_iN}^\dagger c_{a_i1} ... c_{a_iN}
@@ -242,7 +242,7 @@ def prepare_data(
     sites: Array, weights: Array, n_orbitals: int, **kwargs
 ) -> PNCOperatorDataType:
     r"""
-    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax
+    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2nd
     of strings of a fixed length
 
     It is given by a 3-tuple for every length N of string in normal ordering (containg 2N fermionic operators),
@@ -319,7 +319,7 @@ def prepare_operator_data_from_coords_data_dict(
     coords_data_dict: PNCOperatorArrayDict, n_orbitals: int, **kwargs
 ) -> PNCOperatorDataCollectionDict:
     r"""
-    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax
+    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2nd
 
     of a string of operators \sum_N \sum_i w_i^{(N)} c_{a_i1^{(N)}}^\dagger ... c_{a_iN^{(N)}}^\dagger c_{b_i1^{(N)}} ... c_{b_iN^{(N)}}
     in descending order a_i1 >=...>=a_iN, b_i1 >=...>=b_iN.
@@ -409,7 +409,7 @@ def prepare_operator_data_from_coords_data_dict_spin(
     coords_data_sectors: CoordsDataDictSectorType, n_orbitals: int
 ) -> PNCOperatorDataCollectionDict:
     r"""
-    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2ndJax
+    Prepare the custom sparse internal data for ParticleNumberConservingFermioperator2nd
     of a string of operators :math:`\sum_N \sum_i \sum_s  w_i^{(N)} \hat c_{a_{i1}^{(N)},s}^\dagger \cdots \hat c_{a_{iN}^{(N)},s}^\dagger \hat c_{b_{i1}^{(N)},s} \cdots \hat c_{b_{iN}^{(N)},s}`
     in descending order :math:`a_{i1} >=...>=a_{iN}, b_{i1} >=...>=b_{iN}`.
 

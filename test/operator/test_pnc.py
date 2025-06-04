@@ -2,8 +2,8 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from netket.experimental.operator import (
-    ParticleNumberConservingFermioperator2ndJax,
-    ParticleNumberConservingFermioperator2ndSpinJax,
+    ParticleNumberConservingFermioperator2nd,
+    ParticleNumberAndSpinConservingFermioperator2nd,
     FermionOperator2nd,
     FermiHubbardJax,
 )
@@ -62,10 +62,10 @@ def test_pnc(desc):
     ha = FermionOperator2nd(hi, terms=terms, weights=weights)
     if desc:
         factory = (
-            ParticleNumberConservingFermioperator2ndJax._from_sparse_arrays_normal_order
+            ParticleNumberConservingFermioperator2nd._from_sparse_arrays_normal_order
         )
     else:
-        factory = ParticleNumberConservingFermioperator2ndJax.from_sparse_arrays
+        factory = ParticleNumberConservingFermioperator2nd.from_sparse_arrays
     ha2 = factory(
         hi,
         [
@@ -77,7 +77,7 @@ def test_pnc(desc):
     )
     np.testing.assert_allclose(ha.to_dense(), ha2.to_dense())
 
-    ha3 = ParticleNumberConservingFermioperator2ndJax.from_fermionoperator2nd(ha)
+    ha3 = ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha3.to_dense())
 
     ha4 = ha3.to_fermionoperator2nd()
@@ -122,12 +122,12 @@ def test_pnc_spin(N, n, s):
             weights = weights + list(hijkl[ijkl])
     ha = FermionOperator2nd(hi, terms=terms, weights=weights)
 
-    ha2 = ParticleNumberConservingFermioperator2ndSpinJax._from_sparse_arrays_normal_order_all_sectors(
+    ha2 = ParticleNumberAndSpinConservingFermioperator2nd._from_sparse_arrays_normal_order_all_sectors(
         hi, [c, hij * (jnp.abs(hij) > cutoff), hijkl * (jnp.abs(hijkl) > cutoff)]
     )
     np.testing.assert_allclose(ha.to_dense(), ha2.to_dense())
 
-    ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd(ha)
+    ha3 = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha3.to_dense())
 
 
@@ -155,8 +155,8 @@ def test_fermihubbard():
     for u in g.nodes():
         ha2 += U * nc(u, 1) * nc(u, -1)
 
-    ha3 = ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd(ha2)
-    ha4 = ParticleNumberConservingFermioperator2ndJax.from_fermionoperator2nd(ha2)
+    ha3 = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha2)
+    ha4 = ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(ha2)
 
     np.testing.assert_allclose(ha2.to_dense(), ha.to_dense())
     np.testing.assert_allclose(ha2.to_dense(), ha3.to_dense())

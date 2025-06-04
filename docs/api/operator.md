@@ -89,8 +89,8 @@ In the experimental submodule there is also an implementation of a particle-numb
    :toctree: _generated/operator
    :nosignatures:
 
-   experimental.operator.ParticleNumberConservingFermioperator2ndJax
-   experimental.operator.ParticleNumberConservingFermioperator2ndSpinJax
+   experimental.operator.ParticleNumberConservingFermioperator2nd
+   experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd
    experimental.operator.FermiHubbardJax
 ```
 

@@ -1,6 +1,6 @@
 from ._operators import (
-    ParticleNumberConservingFermioperator2ndJax,
-    ParticleNumberConservingFermioperator2ndSpinJax,
+    ParticleNumberConservingFermioperator2nd,
+    ParticleNumberAndSpinConservingFermioperator2nd,
 )
 
 from ._fermihubbard import FermiHubbardJax

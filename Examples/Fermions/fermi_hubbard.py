@@ -50,9 +50,9 @@ print("Hamiltonian =", ham.operator_string())
 # and thus it creates more (zero) connected elements than necessary.
 # We could set max_conn_size to remove them inside the operator, or,
 # better, directly use the a more efficient implementation included in netket:
-# Convert to ParticleNumberConservingFermioperator2ndSpinJax
+# Convert to ParticleNumberAndSpinConservingFermioperator2nd
 ham_generic = ham
-ham = nkx.operator.ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd(
+ham = nkx.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(
     ham_generic
 )
 # we see that ham.max_conn_size << ham_generic.max_conn_size

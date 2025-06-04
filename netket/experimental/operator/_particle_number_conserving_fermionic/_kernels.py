@@ -272,7 +272,7 @@ def get_conn_padded_pnc(
     _operator_data: PNCOperatorDataType, x: Array, n_fermions: int
 ) -> tuple[Array, Array]:
     r"""
-    compute the connected elements for ParticleNumberConservingFermioperator2ndJax
+    compute the connected elements for ParticleNumberConservingFermioperator2nd
 
     Args:
         _operator_data: internal sparse operator representation
@@ -309,7 +309,7 @@ def get_conn_padded_pnc_spin(
     _operator_data: PNCOperatorDataType, x: Array, n_fermions_per_spin: tuple[int]
 ) -> tuple[Array, Array]:
     r"""
-    compute the connected elements for ParticleNumberConservingFermioperator2ndSpinJax
+    compute the connected elements for ParticleNumberAndSpinConservingFermioperator2nd
 
     Args:
         _operator_data: internal sparse operator representation

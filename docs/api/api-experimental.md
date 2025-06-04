@@ -71,8 +71,8 @@ Previously we also had the remaining Fermionic functionality in the experimental
     :template: class
     :nosignatures:
 
-    operator.ParticleNumberConservingFermioperator2ndJax
-    operator.ParticleNumberConservingFermioperator2ndSpinJax
+    operator.ParticleNumberConservingFermioperator2nd
+    operator.ParticleNumberAndSpinConservingFermioperator2nd
     operator.FermiHubbardJax
 
     operator.from_pyscf_molecule

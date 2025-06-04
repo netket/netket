@@ -12,7 +12,7 @@ This version (as all previous versions) are incompatible with Jax 0.6 . A future
 
 ### New Features
 * The {meth}`~netket.sampler.Sampler.sample` method of {class}`~netket.sampler.Sampler` now accepts a new optional keyword argument, `return_log_probabilities` which, if specified, will make the samplers return both the samples and the corresponding log-probabilities. The default is False, and therefore the default behaviour is unchanged [#2012](https://github.com/netket/netket/pull/2012).
-* Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2ndJax` and {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2ndSpinJax`
+* Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2nd` and {class}`netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd`
 which are more efficient and produce fewer connected elements than the generic {class}`netket.operator.FermionOperator2ndJax` operator, and a explicit Fermi-Hubbard operator implementation {class}`netket.experimental.operator.FermiHubbardJax` based on it [#2024](https://github.com/netket/netket/pull/2024).
 
 ### Improvements

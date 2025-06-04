@@ -10,13 +10,13 @@ import jax.numpy as jnp
 from netket.utils import struct
 from netket.hilbert import SpinOrbitalFermions
 
-from . import ParticleNumberConservingFermioperator2ndSpinJax
+from . import ParticleNumberAndSpinConservingFermioperator2nd
 
 
 @struct.dataclass
-class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax):
+class FermiHubbardJax(ParticleNumberAndSpinConservingFermioperator2nd):
     r"""
-    Fermi-Hubbard Hamiltonian based on the generic ParticleNumberConservingFermioperator2ndSpinJax
+    Fermi-Hubbard Hamiltonian based on the generic ParticleNumberAndSpinConservingFermioperator2nd
 
     .. math::
         \hat H = -t \sum_{<ij>,\sigma} (\hat c_{i\sigma}^\dagger \hat c_{j\sigma} + h.c.) + U \sum_{i}(\hat n_{i\uparrow} \hat n_{i\downarrow})
@@ -81,7 +81,7 @@ class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax):
         operators_sector[2, (0, 1)] = -(t_mat + t_mat.T)
         operators_sector[4, ((1, 0),)] = U_mat
 
-        op = ParticleNumberConservingFermioperator2ndSpinJax._from_sparse_arrays_normal_order(
+        op = ParticleNumberAndSpinConservingFermioperator2nd._from_sparse_arrays_normal_order(
             hilbert, operators_sector
         )
 

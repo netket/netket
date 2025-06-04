@@ -46,7 +46,7 @@ from ._kernels import get_conn_padded_pnc, get_conn_padded_pnc_spin
 
 
 @struct.dataclass
-class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
+class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     r"""
     Particle-number conserving fermionc operator
 
@@ -60,21 +60,21 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     please refer to the docstrings of prepare_data and prepare_data_diagonal for details.
 
     We provide several factory methods to create this operator:
-        - ParticleNumberConservingFermioperator2ndJax.from_fermionoperator2nd:
+        - ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd:
                Conversion form FermionOperator2nd/FermionOperator2ndJax
-        - ParticleNumberConservingFermioperator2ndJax.from_sparse_arrays:
+        - ParticleNumberConservingFermioperator2nd.from_sparse_arrays:
                 From sparse arrays (w, w_ij, w_ijkl, w_ijklmn, ...)
-        - ParticleNumberConservingFermioperator2ndJax.from_pyscf_molecule:
+        - ParticleNumberConservingFermioperator2nd.from_pyscf_molecule:
                 From pyscf
 
     Furthermore it can be converted to FermionOperator2nd/FermionOperator2ndJax using the .to_fermionoperator2nd() method.
     """
 
     # factory methods for internal use only:
-    # - ParticleNumberConservingFermioperator2ndJax._from_coords_data_normal_order:
+    # - ParticleNumberConservingFermioperator2nd._from_coords_data_normal_order:
     #         From tuples of (sites, daggers, weights) representing w, w_ij, ...
     #         where only the lower triangular part is nonzero
-    # - ParticleNumberConservingFermioperator2ndJax._from_sparse_arrays_normal_order:
+    # - ParticleNumberConservingFermioperator2nd._from_sparse_arrays_normal_order:
     #         From sparse arrays (w, w_ij, w_ijkl, w_ijklmn) where i>=j, i>=j>=k>=l etc,
     #         and only the lower triangular part is nonzero
 
@@ -266,7 +266,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 
 
 @struct.dataclass
-class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
+class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     r"""
     Particle-number conserving and spin-Z-conserving fermionc operator
 
@@ -283,19 +283,19 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     please refer to the docstrings of prepare_data and prepare_data_diagonal for details.
 
     We provide several factory methods to create this operator:
-        - ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd:
+        - ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd:
                 Conversion form FermionOperator2nd/FermionOperator2ndJax (if possible)
-        - ParticleNumberConservingFermioperator2ndJax.from_pyscf_molecule:
+        - ParticleNumberConservingFermioperator2nd.from_pyscf_molecule:
                 From pyscf
     Furthermore it can be converted to FermionOperator2nd/FermionOperator2ndJax using the .to_fermiop method.
     """
 
     # factory methods for internal use only:
-    # - ParticleNumberConservingFermioperator2ndSpinJax._from_sites_sectors_daggers_weights:
+    # - ParticleNumberAndSpinConservingFermioperator2nd._from_sites_sectors_daggers_weights:
     #         From a dictionary of tuples {k: (sites, sectors, daggers, weights)} representing w, w_ij\sigma, w_ijkl\sigma
-    # - ParticleNumberConservingFermioperator2ndSpinJax._from_sparse_arrays_normal_order_all_sectors:
+    # - ParticleNumberAndSpinConservingFermioperator2nd._from_sparse_arrays_normal_order_all_sectors:
     #         From sparse arrays for w, w_ij and w_ijkl summing over all possible values of \sigma,\rho
-    # - ParticleNumberConservingFermioperator2ndSpinJax._from_coords_data:
+    # - ParticleNumberAndSpinConservingFermioperator2nd._from_coords_data:
     #         From a dictionary of tuples {(k, sectors): (sites, daggers, weights)} representing w, w_ij\sigma, w_ijkl\sigma\rho
 
     _hilbert: SpinOrbitalFermions = struct.field(pytree_node=False)
