@@ -44,33 +44,10 @@ _deprecations = {
     ),
 }
 
-
-def __getattr__(name):
-    if name == "Particle":
-        from netket.experimental.hilbert import Particle as cls
-
-        warnings.warn(
-            "netket.hilbert.Particle is deprecated: use netket.experimental.hilbert.Particle",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return cls
-    if name == "ContinuousHilbert":
-        from netket.experimental.hilbert import ContinuousHilbert as cls
-
-        warnings.warn(
-            "netket.hilbert.ContinuousHilbert is deprecated: use netket.experimental.hilbert.ContinuousHilbert",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return cls
-    if name in _deprecations:
-        msg, obj = _deprecations[name]
-        warnings.warn(msg, DeprecationWarning, stacklevel=2)
-        return obj
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _hide_submodules
 
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
+
+del _deprecation_getattr
