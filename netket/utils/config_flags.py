@@ -267,10 +267,9 @@ def _setup_experimental_sharding_cpu(n_procs):
             warnings.warn(
                 "must load NetKet before jax if using experimental_sharding_cpu"
             )
+    import jax
 
-        flags = os.environ.get("XLA_FLAGS", "")
-        flags = f"{flags} --xla_force_host_platform_device_count={n_procs}"
-        os.environ["XLA_FLAGS"] = flags
+    jax.config.update("jax_num_cpu_devices", n_procs)
 
 
 config.define(
