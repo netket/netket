@@ -199,11 +199,11 @@ class AbstractVariationalDriver(abc.ABC):
         self._optimizer = optimizer
         if optimizer is not None:
             self._optimizer_state = optimizer.init(self.state.parameters)
-            if config.netket_experimental_sharding:
-                self._optimizer_state = jax.lax.with_sharding_constraint(
-                    self._optimizer_state,
-                    jax.sharding.PositionalSharding(jax.devices()).replicate(),
-                )
+            # if config.netket_experimental_sharding:
+            #     self._optimizer_state = jax.lax.with_sharding_constraint(
+            #         self._optimizer_state,
+            #         jax.sharding.PositionalSharding(jax.devices()).replicate(),
+            #     )
 
     @property
     def step_count(self):
