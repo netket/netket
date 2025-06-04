@@ -57,11 +57,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
     else:
         key = seed
 
-    if config.netket_experimental_sharding:
-        key = jax.lax.with_sharding_constraint(
-            key, jax.sharding.PositionalSharding(jax.devices()).replicate()
-        )
-    else:  # type: ignore[attr-defined]
+    if not config.netket_experimental_sharding:
         key = _bcast_key(key, root=root, comm=comm)
     return key
 

@@ -29,8 +29,9 @@ class ARDirectSamplerState(SamplerState):
     key: PRNGKeyT
     """state of the random number generator."""
 
-    def __init__(self, key):
+    def __init__(self, key, out_sharding=None):
         self.key = key
+        self.out_sharding = out_sharding
         super().__init__()
 
 
@@ -99,8 +100,8 @@ class ARDirectSampler(Sampler):
         cache = variables.get("cache")
         return cache
 
-    def _init_state(self, model, variables, key):
-        return ARDirectSamplerState(key=key)
+    def _init_state(self, model, variables, key, out_sharding=None):
+        return ARDirectSamplerState(key=key, out_sharding=out_sharding)
 
     def _reset(self, model, variables, state):
         return state
@@ -158,9 +159,7 @@ class ARDirectSampler(Sampler):
         )
 
         if config.netket_experimental_sharding:
-            σ = jax.lax.with_sharding_constraint(
-                σ, jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1)
-            )
+            σ = jax.lax.with_sharding_constraint(σ, state.out_sharding)
 
         # Initialize `cache` before generating a batch of samples,
         # even if `variables` is not changed and `reset` is not called

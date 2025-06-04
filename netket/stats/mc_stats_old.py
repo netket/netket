@@ -33,7 +33,11 @@ def _get_blocks(data, block_size):
 
     n_blocks = int(np.floor(chain_length / float(block_size)))
 
-    return data[:, 0 : n_blocks * block_size].reshape((-1, block_size)).mean(axis=1)
+    return (
+        data[:, 0 : n_blocks * block_size]
+        .reshape((-1, block_size), out_sharding=jax.typeof(data).sharding)
+        .mean(axis=1)
+    )
 
 
 def _block_variance(data, l):
@@ -174,14 +178,21 @@ def _statistics(data, batch_size):
             if N % 2 == 0:
                 # split each chain in the middle,
                 # like [[1 2 3 4]] -> [[1 2][3 4]]
-                batch_var, _ = _batch_variance(
-                    data.reshape(2 * local_batch_size, N // 2)
+                data_r = data.reshape(local_batch_size, 2, N // 2)
+                data_r = data_r.reshape(
+                    local_batch_size * 2,
+                    N // 2,
                 )
+                batch_var, _ = _batch_variance(data_r)
             else:
                 # drop the last sample of each chain for an even split,
                 # like [[1 2 3 4 5]] -> [[1 2][3 4]]
                 batch_var, _ = _batch_variance(
-                    data[:, :-1].reshape(2 * local_batch_size, N // 2)
+                    data[:, :-1].reshape(
+                        2 * local_batch_size,
+                        N // 2,
+                        out_sharding=jax.typeof(data).sharding,
+                    )
                 )
 
         # V_loc = _np.var(data, axis=-1, ddof=0)

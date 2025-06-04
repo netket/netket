@@ -46,7 +46,6 @@ from ._utils_random import (
     batch_choice,
 )
 
-
 from ._vjp import vjp
 from ._grad import grad, value_and_grad
 
@@ -65,7 +64,8 @@ from ._expect import expect
 
 # internal sharding utilities
 from . import sharding
+from . import lax as lax
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__, ignore="sharding")
+_hide_submodules(__name__, ignore=("sharding", "lax"))

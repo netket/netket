@@ -351,8 +351,12 @@ class Pytree(metaclass=PytreeMeta):
         tp.Mapping[str, tp.Any],
     ]:
         all_vars = vars(pytree).copy()
-        static = {k: all_vars.pop(k) for k in pytree._pytree__static_fields}
-
+        try:
+            static = {k: all_vars.pop(k) for k in pytree._pytree__static_fields}
+        except KeyError as e:
+            raise KeyError(
+                f"Missing static field {e} in PyTree {cls.__name__} while flattening."
+            ) from e
         if with_key_paths:
             node_values = tuple(
                 (jax.tree_util.GetAttrKey(field), all_vars.pop(field))

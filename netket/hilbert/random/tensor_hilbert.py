@@ -20,11 +20,17 @@ from netket.utils.dispatch import dispatch
 
 
 @dispatch
-def random_state(hilb: TensorHilbert, key, batches: int, *, dtype):
+def random_state(hilb: TensorHilbert, key, batches: int, *, dtype, out_sharding):
     keys = jax.random.split(key, hilb._n_hilbert_spaces)
 
     vs = [
-        random_state(hilb._hilbert_spaces[i], keys[i], batches, dtype=dtype)
+        random_state(
+            hilb._hilbert_spaces[i],
+            keys[i],
+            batches,
+            dtype=dtype,
+            out_sharding=out_sharding,
+        )
         for i in range(hilb._n_hilbert_spaces)
     ]
 
