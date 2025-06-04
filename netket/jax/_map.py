@@ -1,9 +1,10 @@
-from functools import partial, wraps
+from functools import wraps
 
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import SingleDeviceSharding, NamedSharding, Mesh, PartitionSpec as P
+from jax.sharding import SingleDeviceSharding, NamedSharding
+
 
 @wraps(jax.lax.map)
 def map(f, x, batch_size: int | None = None):
@@ -12,7 +13,7 @@ def map(f, x, batch_size: int | None = None):
         return jax.lax.map(f, *x, batch_size=batch_size)
     else:
         x_aval = jax.typeof(x)
-        x_sharding = x.sharding
+        x_sharding = x_aval.sharding
         if isinstance(x_sharding, SingleDeviceSharding):
             # If the input is sharded on a single device, we can use lax.map directly
             return jax.lax.map(f, *x, batch_size=batch_size)
@@ -23,20 +24,25 @@ def map(f, x, batch_size: int | None = None):
             else:
                 mesh = x_sharding.mesh
                 n_devices_on_sharded_axis = mesh.shape[x_sharding.spec[0]]
-                x_reshape = jnp.reshape(x, (n_devices_on_sharded_axis,) + x_sharding.shard_shape(x.shape))
-                x_reshape = jnp.transpose(x_reshape, (1,0) + tuple(range(2, x.ndim+1)))
+                x_reshape = jnp.reshape(
+                    x, (n_devices_on_sharded_axis,) + x_sharding.shard_shape(x.shape)
+                )
+                x_reshape = jnp.transpose(
+                    x_reshape, (1, 0) + tuple(range(2, x.ndim + 1))
+                )
                 result = jax.lax.map(f, x_reshape, batch_size=batch_size)
+
                 def _reshape_result(y):
                     # Reshape the result back to the original shape
                     y_t = jnp.transpose(y, (1, 0) + tuple(range(2, y.ndim)))
                     return jnp.reshape(y_t, (-1,) + y.shape[2:])
+
                 return jax.tree.map(_reshape_result, result)
         else:
             raise NotImplementedError(
                 f"Unsupported sharding type: {type(x_sharding)}. "
                 "Only SingleDeviceSharding and NamedSharding are supported."
             )
-
 
 
 # import numpy as np
