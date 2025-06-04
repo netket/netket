@@ -1,4 +1,5 @@
 import netket as nk
+import netket.experimental as nkx
 import numpy as np
 import matplotlib.pyplot as plt
 import json
@@ -16,8 +17,9 @@ n_sites = g.n_nodes
 # create a hilbert space with 2 up and 2 down spins
 hi = nk.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
 
+# Option 1: create an operator representing fermi hubbard interactions by hand
 
-# create an operator representing fermi hubbard interactions
+
 # -t (i^ j + h.c.) + U (i^ i j^ j)
 # we will create a helper function to abbreviate the creation, destruction and number operators
 # each operator has a site and spin projection (sz) in order to find the right position in the hilbert space samples
@@ -43,6 +45,19 @@ for u in g.nodes():
     ham += U * nc(u, up) * nc(u, down)
 
 print("Hamiltonian =", ham.operator_string())
+
+# The Fermi-hubbard hamiltonian conserves the number of fermions, which the generic operator we just defined does not exploit,
+# and thus it creates more (zero) connected elements than necessary.
+# We could set max_conn_size to remove them inside the operator, or,
+# better, directly use the a more efficient implementation included in netket:
+# Convert to ParticleNumberConservingFermioperator2ndSpinJax
+ham_generic = ham
+ham = nkx.operator.ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd(
+    ham_generic
+)
+# we see that ham.max_conn_size << ham_generic.max_conn_size
+# alternatively we can directly construct it with the provided operator
+# ham = nkx.operator.FermiHubbardJax(hi, t=t, U=U, graph=g)
 
 # metropolis exchange moves fermions around according to a graph
 # the physical graph has LxL vertices, but the computational basis defined by the
