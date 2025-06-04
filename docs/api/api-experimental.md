@@ -17,7 +17,7 @@ import netket.experimental as nkx
 
 (experimental-drivers-api)=
 ## Drivers
-Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration with the [kernel trick](https://arxiv.org/abs/2310.05715) 
+Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration with the [kernel trick](https://arxiv.org/abs/2310.05715)
 (originally introduced under the name of [minSR by Ao Chen and Markus Heyl](https://arxiv.org/abs/2302.01941)). This is slightly more limited in
 features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters
 
@@ -57,8 +57,9 @@ They are experimental, meaning that we could change them at some point, and we a
 (experimental-fermions-api)=
 ## Fermions and PyScf
 
-This modules contains some utility functions that are used to create hamiltonians directly from some PyScf molecules. 
-Previously we also had several Fermionic functionality in the experimental namespace, but in May 2024 they were stabilised and moved to the main netket namespace.
+This modules contains operators for particle-number conserving fermionic operators as well as utility functions that are used to create hamiltonians directly from PyScf molecules.
+
+Previously we also had the remaining Fermionic functionality in the experimental namespace, but in May 2024 it was stabilised and moved to the main netket namespace.
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
@@ -69,6 +70,10 @@ Previously we also had several Fermionic functionality in the experimental names
     :toctree: _generated/operator
     :template: class
     :nosignatures:
+
+    operator.ParticleNumberConservingFermioperator2ndJax
+    operator.ParticleNumberConservingFermioperator2ndSpinJax
+    operator.FermiHubbardJax
 
     operator.from_pyscf_molecule
     operator.pyscf.TV_from_pyscf_molecule
@@ -149,10 +154,10 @@ This is a collection of ODE solvers that can be used with the TDVP driver above.
    dynamics.RK4
    dynamics.RK45
 ```
-The corresponding integrator is then automatically constructed within the TDVP driver. 
+The corresponding integrator is then automatically constructed within the TDVP driver.
 
 
-### Abstract classes 
+### Abstract classes
 Those are the abstract classes you can inherit from to implement your own solver
 ```{eval-rst}
 .. currentmodule:: netket.experimental
