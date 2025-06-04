@@ -14,6 +14,7 @@
 
 import jax
 from jax import numpy as jnp
+from jax.sharding import PartitionSpec as P, NamedSharding
 
 
 from functools import partial
@@ -90,18 +91,28 @@ def _random_states_with_constraint_fock(
     hilb_size = len(hilb_shape)
 
     if out_sharding is not None:
-        out_sharding = jax.sharding.NamedSharding(
-            jax.sharding.get_abstract_mesh(), out_sharding
-        )
+        if isinstance(out_sharding, NamedSharding):
+            out_sharding = NamedSharding(out_sharding.mesh, P(*out_sharding.spec, None))
+        elif isinstance(out_sharding, P):
+            out_sharding = NamedSharding(
+                jax.sharding.get_abstract_mesh(), P(*out_sharding, None)
+            )
+        else:
+            raise TypeError(
+                f"Unsupported out_sharding type: {type(out_sharding)}. "
+                "Expected NamedSharding or PartitionSpec."
+            )
+    elif not jax.sharding.get_abstract_mesh().empty:
+        out_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P(None, None))
 
     # start with all sites empty
     init = jnp.zeros(shape + (hilb_size,), dtype=dtype, device=out_sharding)
-
     # if constrained and uniformly n_max == 2, use a trick to sample quickly
     if set(hilb_shape) == {2}:
+        init = init.at[..., :n_particles].set(1)
         return jax.random.permutation(
             key,
-            init.at[..., :n_particles].set(1),
+            init,
             axis=-1,
             independent=True,
             out_sharding=out_sharding,
