@@ -23,8 +23,8 @@ class Particle(ContinuousHilbert):
         self,
         N: int | tuple[int, ...],
         *,
-        geometry,
-    ):
+        geometry: Cell,
+    ) -> None:
         """
         Constructs new ``Particles`` given specifications
         of the continuous space they are defined in.
@@ -82,4 +82,4 @@ class Particle(ContinuousHilbert):
         return (self._N, self.geometry)
 
     def __repr__(self):
-        return f"ContinuousParticle(N={self.n_particles}, " f"d={len(self.domain)})"
+        return f"Particle(N={self.n_particles}, d={len(self.domain)})"

@@ -26,7 +26,7 @@ class ContinuousHilbert(AbstractHilbert):
 
     def __init__(self, domain: tuple[float, ...]):
         """
-        Constructs an Hilbert space with continuos degrees of freedom, given specifications of the space.
+        Constructs an Hilbert space with continuous degrees of freedom, given specifications of the space.
 
         This object returns an Hilbert space.
 
@@ -41,5 +41,5 @@ class ContinuousHilbert(AbstractHilbert):
 
     @property
     def domain(self) -> tuple[float, ...]:
-        r"""Domain of the continuos variable, specified for each dimension"""
+        r"""Domain of the continuous variable, specified for each dimension"""
         return self._extent

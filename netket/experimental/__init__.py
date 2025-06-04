@@ -30,6 +30,7 @@ from . import driver
 from . import dynamics
 from . import sampler
 from . import models
+from . import hilbert
 from . import vqs
 from . import logging
 from . import qsr
