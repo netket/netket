@@ -23,7 +23,6 @@ from tqdm.auto import tqdm
 
 import jax
 
-from netket import config
 from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
 from netket.utils import mpi, timing
