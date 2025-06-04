@@ -14,8 +14,6 @@
 
 import jax.numpy as jnp
 
-from netket.utils import mpi
-
 
 def subtract_mean(x, axis=None):
     """
@@ -57,10 +55,7 @@ def mean(a, axis=None, keepdims: bool = False):
         The array with reduced dimensions defined by axis.
 
     """
-    out = a.mean(axis=axis, keepdims=keepdims)
-
-    out, _ = mpi.mpi_mean_jax(out)
-    return out
+    return a.mean(axis=axis, keepdims=keepdims)
 
 
 def sum(a, axis=None, keepdims: bool = False):
@@ -87,9 +82,7 @@ def sum(a, axis=None, keepdims: bool = False):
     else:
         # assume it's a scalar
         a_sum = jnp.asarray(a)
-
-    out, _ = mpi.mpi_sum_jax(a_sum)
-    return out
+    return a_sum
 
 
 def var(a, axis=None, ddof: int = 0):
@@ -150,4 +143,4 @@ def total_size(a, axis=None):
     # leads to deadlocks.
     # We should refactor all this logic.
     # return mpi_sum(l_size)
-    return l_size * mpi.n_nodes
+    return l_size

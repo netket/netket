@@ -40,7 +40,6 @@ from ._utils_tree import (
 )
 
 from ._utils_random import (
-    mpi_split,
     PRNGKey,
     PRNGSeq,
     batch_choice,

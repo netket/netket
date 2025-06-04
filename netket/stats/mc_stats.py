@@ -18,7 +18,7 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
-from netket.utils import config, mpi, struct
+from netket.utils import config, struct
 from netket.jax.sharding import extract_replicated
 
 from . import mean as _mean
@@ -198,7 +198,6 @@ def statistics(data: jax.Array) -> Stats:
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
     also for other type of time series.
-    Assumes same shape on all MPI processes.
 
     Args:
         data (vector or matrix): The input data. It can be real or complex valued.
@@ -251,8 +250,8 @@ def _statistics(data):
     variance = _var(data)
 
     taus = jax.vmap(integrated_time)(data)
-    tau_avg, _ = mpi.mpi_mean_jax(jnp.mean(taus))
-    tau_max, _ = mpi.mpi_max_jax(jnp.max(taus))
+    tau_avg = jnp.mean(taus)
+    tau_max = jnp.max(taus)
 
     batch_var, n_batches = _batch_variance(data)
     if n_batches > 1:

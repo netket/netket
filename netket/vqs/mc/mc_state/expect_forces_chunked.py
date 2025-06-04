@@ -25,7 +25,6 @@ from netket import jax as nkjax
 from netket.operator import AbstractOperator
 from netket.operator._abstract_observable import AbstractObservable
 from netket.stats import Stats, statistics
-from netket.utils import mpi
 from netket.utils.types import PyTree
 
 from netket.vqs import expect_and_forces
@@ -110,7 +109,7 @@ def forces_expect_hermitian_chunked(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    n_samples = σ.shape[0] * mpi.n_nodes
+    n_samples = σ.shape[0]
 
     O_loc = local_value_kernel_chunked(
         model_apply_fun,
@@ -141,10 +140,7 @@ def forces_expect_hermitian_chunked(
     else:
         raise NotImplementedError
 
-    Ō_grad = vjp_fun_chunked(
+    (Ō_grad,) = vjp_fun_chunked(
         (jnp.conjugate(O_loc) / n_samples),
-    )[0]
-
-    Ō_grad, _ = mpi.mpi_sum_jax(Ō_grad)
-
+    )
     return Ō, Ō_grad, new_model_state

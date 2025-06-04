@@ -4,8 +4,7 @@ Installing NetKet is very easy, but it has several complex and optional dependen
 
 ## Installing NetKet
 
-Netket requires `python>= 3.9` and can optionally benefit from a recent MPI install.
-GPUs are supported on linux.
+Netket requires `python>= 3.11`. If you are on Linux, you can install the CUDA version of Jax to benefit from GPUs.
 
 Before attempting the installation, you should update `pip` to a recent version (`>=20.3`) to avoid getting a broken install.
 To install the basic version with no optional dependencies, run the following commands:
@@ -51,90 +50,11 @@ pip install --upgrade "jax[cuda12]"
 Where the jaxlib version must correspond to the version of the existing CUDA installation you want to use. 
 Refer to jax documentation to learn more about matching cuda versions with python wheels.
 
-````{admonition} CUDA
-:class: warning
-
-Jax supports two ways to install the cuda-version: `cuda12` and `cuda12_local`. The `_local` version will use the CUDA version installed by the user/cluster admins and pick it up through the `LD_LIBRARY_PATH`. You will need to have installed cuda, cudnn and some other dependencies. 
-If you chose this approach, it is your responsability to ensure that the CUDA version is correct and all dependencies are present.
-**This approach is required if you wish to use MPI**.
-
-`cuda12`, instead, will install a special CUDA version through `pip` in the current environment, and ignore the CUDA version that is installed system-wide. This approach is usually much simpler to use but **is not compatible with MPI on GPUS**. 
-
-Do note that if you install the `_pip` version, to switch to the `_local` version you must uninstall all nvidia-related dependencies. To do so, the simplest way is to simply delete the environment and start from scratch. If you don't want to do so, you may try to use the following command, but it might not work perfectly
-
-```bash
-pip freeze | grep nvidia-cuda | xargs pip uninstall -y
-```
-````
-
-
-
-(install_mpi)=
-## MPI
-
-NetKet (due to Jax) only uses 1 or 2 CPU cores or 1 GPU by default at once unless you work on huge systems with mastodontic neural-networks. 
-If you want to use all your CPU cores, multiple GPUs, or run your code among many computers you'll need to use MPI.
-If you want to use MPI, make sure mpi is installed and can be used. 
-To know if MPI is installed, try running the following command.
-
-```
-mpicc --showme:link
-```
-
-If the command fails, you need to install MPI using your favourite package manager. 
-In general, for the love of yourself and in order to keep you sanity, *we recommend not to use `conda` together with MPI*.
-
- - On Mac, we recommend to use homebrew:
-
-```
-brew install openmpi
-```
-
- - On Linux, you can install it using your package manager:
-
-```bash
-# fedora
-sudo dnf install mpich
-# ubuntu/debian
-sudo apt-get install mpich
-```
-
-You can install the dependencies necessary to run with MPI with the following command:
-
-```bash
-pip install --upgrade
-pip install --upgrade "netket[mpi]"
-```
-
-Subsequently, NetKet will exploit MPI-level parallelism for the Monte-Carlo sampling.
-See {ref}`this block <warn-mpi-sampling>` to understand how NetKet behaves under MPI.
-
-````{admonition} CUDA
-:class: warning
-
-If you wish to use multi-GPU setups through MPI, you **must** install jax as `'jax[cuda12_local]'` and cannot use the `'jax[cuda12]'` variant. 
-
-This is because `cuda12` installs CUDA through pip, which does not include the nvidia compiler `nvcc`, which in turn it is needed to install `mpi4jax`. If, for any reason, you already have `nvcc` but are using `cuda12`, installation might not fail but you will get an error due to version mismatch of cuda versions at runtime.
-
-````
-
-
 (conda)=
 ## Conda
 
-Conda is a great package manager as long as it works. 
-But when it does not, it's a pain.
-
-NetKet is not supported if installed through Conda. 
-You should install it through `pip` and that's it.
-
-Running the well-known command below
-
-```bash
-conda install -c conda-forge netket
-```
-
-will apaprently work, but we are no longer supporting the netket version installed through it so weird errors might appear.
+NetKet no longer publishes conda versions of its package. You cannot install netket with
+`conda install`, and if you attempt, you will likely get an outdated version.
 
 ## Introduction
 
@@ -161,7 +81,7 @@ If you want to define more complex custom models, you should read Flax documenta
 If you wish, you can also use [haiku](https://github.com/deepmind/dm-haiku).
 [`netket.optimizer`](netket_optimizer_api) is a re-export of some optimizers from [optax](https://optax.readthedocs.io) together with some additional objects.
 
-Lastly, in [`netket.jax`](netket_jax_api) there are a few functions, notably `jax.grad` and `jax.vjp` adapted to work with arbitrary real or complex functions, and/or with MPI.
+Lastly, in [`netket.jax`](netket_jax_api) there are a few functions, notably `jax.grad` and `jax.vjp` adapted to work with arbitrary real or complex functions.
 
 
 ## Commented Example

@@ -20,22 +20,18 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: ""
             runscript: "run_test_sharding_1cpu.sh"
 
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: ""
             runscript: "run_test_sharding_2cpu.sh"
 
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: ""
             runscript: "run_standard_tests_with_sharding.sh"
 
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: "openmpi"
             runscript: "run_test_sharding_distributed.sh"
 
     steps:
@@ -49,22 +45,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup MPI
-        uses: mpi4py/setup-mpi@v1
-        if: matrix.mpi != ''
-        with:
-          mpi: ${{ matrix.mpi }}
-
       - name: Pip install packages
         run: |
           pip install uv
           uv pip install --system -e ".[dev,extra]"
-          # Also install mpi4py needed for cluster detection
-          if [ -z "${{ matrix.mpi }}" ]; then
-            echo "nothing else"
-          else
-            uv pip install --system mpi4py
-          fi
 
       - name: run tests
         run: |

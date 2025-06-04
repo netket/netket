@@ -22,7 +22,7 @@ from jax.tree_util import Partial
 
 from netket.utils import config
 from netket.stats import subtract_mean, sum as sum_mpi
-from netket.utils import mpi, timing
+from netket.utils import timing
 from netket.utils.types import Array, PyTree
 from netket.jax import (
     tree_to_real,
@@ -378,9 +378,7 @@ def jacobian(
             )
 
         if _sqrt_rescale:
-            sqrt_n_samp = math.sqrt(
-                samples.shape[0] * mpi.n_nodes
-            )  # maintain weak type
+            sqrt_n_samp = math.sqrt(samples.shape[0])  # maintain weak type
             jacobians = jax.tree_util.tree_map(lambda x: x / sqrt_n_samp, jacobians)
 
     else:

@@ -42,7 +42,6 @@ from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from netket.jax import sharding
 
 from netket.vqs.base import (
     VariationalState,
@@ -61,10 +60,10 @@ def compute_chain_length(n_chains, n_samples):
     chain_length = int(np.ceil(n_samples / n_chains))
 
     n_samples_new = chain_length * n_chains
-    n_samples_per_rank_new = n_samples_new // sharding.device_count()
+    n_samples_per_rank_new = n_samples_new // jax.device_count()
 
     if n_samples_new != n_samples:
-        n_samples_per_rank = n_samples // sharding.device_count()
+        n_samples_per_rank = n_samples // jax.device_count()
         warnings.warn(
             f"n_samples={n_samples} ({n_samples_per_rank} per device/MPI rank) "
             f"does not divide n_chains={n_chains}, increased to {n_samples_new} "
@@ -77,7 +76,7 @@ def compute_chain_length(n_chains, n_samples):
 
 
 def check_chunk_size(n_samples, chunk_size):
-    n_samples_per_rank = n_samples // sharding.device_count()
+    n_samples_per_rank = n_samples // jax.device_count()
 
     if chunk_size is not None:
         if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
@@ -415,7 +414,7 @@ class MCState(VariationalState):
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int):
-        self.n_samples = n_samples_per_rank * sharding.device_count()
+        self.n_samples = n_samples_per_rank * jax.device_count()
 
     @property
     def chain_length(self) -> int:

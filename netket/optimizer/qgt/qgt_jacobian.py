@@ -18,7 +18,6 @@ import jax
 from netket.utils import timing
 from netket.utils.api_utils import partial_from_kwargs
 from netket import jax as nkjax
-from netket.nn import split_array_mpi
 
 from .qgt_jacobian_dense import QGTJacobianDenseT
 from .qgt_jacobian_pytree import QGTJacobianPyTreeT
@@ -182,8 +181,8 @@ def QGTJacobianDense(
     from netket.vqs import FullSumState
 
     if isinstance(vstate, FullSumState):
-        samples = split_array_mpi(vstate._all_states)
-        pdf = split_array_mpi(vstate.probability_distribution())
+        samples = vstate._all_states
+        pdf = vstate.probability_distribution()
     else:
         samples = vstate.samples
         pdf = None
@@ -258,8 +257,8 @@ def QGTJacobianPyTree(
     from netket.vqs import FullSumState
 
     if isinstance(vstate, FullSumState):
-        samples = split_array_mpi(vstate._all_states)
-        pdf = split_array_mpi(vstate.probability_distribution())
+        samples = vstate._all_states
+        pdf = vstate.probability_distribution()
     else:
         samples = vstate.samples
         pdf = None

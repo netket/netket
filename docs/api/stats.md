@@ -7,7 +7,7 @@
 ```
 ## Stats
 
-MPI-compatible Monte Carlo statistics functions.
+Monte Carlo statistics functions.
 
 ```{eval-rst}
 .. autosummary::

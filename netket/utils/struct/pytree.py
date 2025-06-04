@@ -458,8 +458,6 @@ class Pytree(metaclass=PytreeMeta):
                 # return jax.random.key_data(maybe_key)
 
             # Handle sharding
-            # from netket.utils import mpi
-            # import jax
             if name in cls._pytree__sharded_fields:
                 updates[name] = (
                     cls._pytree__fields[name]

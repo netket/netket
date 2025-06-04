@@ -24,7 +24,6 @@ from jax import numpy as jnp
 import jax
 
 from netket.hilbert import AbstractHilbert
-from netket.utils.mpi import mpi_sum, n_nodes
 from netket.utils.types import PyTree, ModuleOrApplyFun
 from netket import config
 
@@ -70,12 +69,12 @@ class MetropolisNumpySamplerState:
     @property
     def n_steps(self) -> int:
         """Total number of moves performed across all processes since the last reset."""
-        return self.n_steps_proc * n_nodes
+        return self.n_steps_proc
 
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        return mpi_sum(self.n_accepted_proc)
+        return self.n_accepted_proc
 
     def __repr__(self):
         if self.n_steps > 0:

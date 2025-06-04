@@ -183,16 +183,6 @@ the next largest integer, 63). Therefore 8 chains of length 63 will be run.
 them, so the Markov Chains are actually {code}`chain_length + n_discard_per_chain` long. The default value
 of ```n_discard_per_chain``` is set to be 5, but you can change that to any number.
 
-(warn-mpi-sampling)=
-
-:::{warning}
-When running your code under MPI, the length of the chain is computed not only by dividing the
-total number of samples by {code}`n_chains`, but also by diving it by the number of MPI processes.
-
-Therefore, considering the number from the example above, if we had 4 MPI processes, we would have
-found a chain length of $500/(8*4) = 15.625 \rightarrow 16$.
-:::
-
 ### Collecting the state-vector
 
 A variational state can be evaluated on the whole Hilbert space in order to obtain

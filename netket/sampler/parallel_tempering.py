@@ -20,9 +20,8 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 
-from netket import config
 from netket.utils.types import PyTree, PRNGKeyT, Array
-from netket.utils import struct, mpi
+from netket.utils import struct
 from netket.jax import dtype_real
 from netket.jax.sharding import shard_along_axis
 
@@ -100,9 +99,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         diffusion = (
             jnp.sqrt(self.beta_diffusion / self.exchange_steps) / self.beta.shape[-1]
         )
-        out, _ = mpi.mpi_mean_jax(diffusion.mean())
-
-        return out
+        return diffusion.mean()
 
     @property
     def normalized_position(self):
@@ -110,9 +107,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         Average position of :math:`\\beta = 1`, normalized and centered around 0.
         """
         position = self.beta_position / float(self.beta.shape[-1] - 1) - 0.5
-        out, _ = mpi.mpi_mean_jax(position.mean())
-
-        return out
+        return position.mean()
 
 
 class ParallelTemperingSampler(MetropolisSampler):
@@ -289,18 +284,9 @@ class ParallelTemperingSampler(MetropolisSampler):
         The batch size of the configuration $\sigma$ used by this sampler on this
         jax process.
 
-        If you are not using MPI, this is equal to `n_chains * n_replicas`, but if
-        you are using MPI this is equal to `n_chains_per_rank * n_replicas`.
+        Equal `n_chains * n_replicas`.
         """
-        if config.netket_experimental_sharding:
-            n_batches = self.n_chains
-        else:
-            n_batches, remainder = divmod(self.n_chains, mpi.n_nodes)
-            if remainder != 0:
-                raise RuntimeError(
-                    "The number of chains is not a multiple of the number of mpi ranks"
-                )
-        return n_batches * self.n_replicas
+        return self.n_chains * self.n_replicas
 
     @partial(jax.jit, static_argnums=1)
     def _init_state(

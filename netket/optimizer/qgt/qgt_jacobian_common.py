@@ -17,8 +17,6 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-from netket.utils import mpi
-
 
 def to_shift_offset(
     diag_shift: float | None, diag_scale: float | None
@@ -53,10 +51,7 @@ def rescale(centered_oks, offset, *, ndims: int = 1):
     axis = tuple(range(ndims))
 
     scale = jax.tree_util.tree_map(
-        lambda x: (
-            mpi.mpi_sum_jax(jnp.sum((x * x.conj()).real, axis=axis, keepdims=True))[0]
-            + offset
-        )
+        lambda x: (jnp.sum((x * x.conj()).real, axis=axis, keepdims=True) + offset)
         ** 0.5,
         centered_oks,
     )

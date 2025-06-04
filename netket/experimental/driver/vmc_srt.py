@@ -26,7 +26,6 @@ from netket import jax as nkjax
 from netket import stats as nkstats
 from netket.driver import AbstractVariationalDriver
 from netket.errors import UnoptimalSRtWarning
-from netket.jax import sharding
 from netket.operator import AbstractOperator
 from netket.utils import mpi, timing
 from netket.utils.types import ScalarOrSchedule, Optimizer, PyTree
@@ -82,27 +81,23 @@ def SRt(
     # proc, twons, np -> (proc, twons) np
     O_LT = O_LT.reshape(-1, O_LT.shape[-1])
 
-    matrix, token = mpi.mpi_reduce_sum_jax(O_LT @ O_LT.T, token=token)
+    # TODO: better sharding
+    matrix = O_LT @ O_LT.T
     matrix_side = matrix.shape[-1]  # * it can be Ns or 2*Ns, depending on mode
 
-    if mpi.rank == 0:
-        matrix = matrix + diag_shift * jnp.eye(
-            matrix_side
-        )  # * shift diagonal regularization
-        aus_vector = solver_fn(matrix, dv)
-        # some solvers return a tuple, some others do not.
-        # We check and try to support both
-        if isinstance(aus_vector, tuple):
-            aus_vector, _ = aus_vector
+    matrix = matrix + diag_shift * jnp.eye(
+        matrix_side
+    )  # * shift diagonal regularization
+    aus_vector = solver_fn(matrix, dv)
+    # some solvers return a tuple, some others do not.
+    # We check and try to support both
+    if isinstance(aus_vector, tuple):
+        aus_vector, _ = aus_vector
 
-        aus_vector = aus_vector.reshape(mpi.n_nodes, -1)
-        aus_vector, token = mpi.mpi_scatter_jax(aus_vector, token=token)
-    else:
-        shape = jnp.zeros((int(matrix_side / mpi.n_nodes),), dtype=jnp.float64)
-        aus_vector, token = mpi.mpi_scatter_jax(shape, token=token)
+    aus_vector = aus_vector.reshape(mpi.n_nodes, -1)
+    aus_vector, token = mpi.mpi_scatter_jax(aus_vector, token=token)
 
     updates = O_L.T @ aus_vector
-    updates, token = mpi.mpi_allreduce_sum_jax(updates, token=token)
 
     # If complex mode and we have complex parameters, we need
     # To repack the real coefficients in order to get complex updates
@@ -187,14 +182,14 @@ class VMC_SRt(AbstractVariationalDriver):
                 )
             )
 
-        if self.state.n_parameters % sharding.device_count() != 0:
+        if self.state.n_parameters % jax.device_count() != 0:
             raise NotImplementedError(
                 f"""
                 VMC_SRt requires a network with a number of parameters
                 multiple of the number of MPI devices/ranks in use.
 
                 You have a network with {self.state.n_parameters}, but
-                there are {sharding.device_count()} MPI ranks in use.
+                there are {jax.device_count()} MPI ranks in use.
 
                 To fix this, either add some 'fake' parameters to your
                 network, or change the number of MPI nodes, or contribute

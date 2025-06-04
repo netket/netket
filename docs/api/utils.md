@@ -46,22 +46,6 @@ Utility functions and classes.
    
 ```
 
-## MPI-related
-
-Utility functions and classes.
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/utils
-   :nosignatures:
-
-   mpi.available
-   mpi.n_nodes
-   mpi.rank
-   mpi.MPI_jax_comm
-   mpi.MPI_py_comm
-   
-```
 
 ## Symmetry Group Manipulation
 

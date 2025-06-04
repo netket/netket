@@ -23,7 +23,6 @@ import netket.jax as nkjax
 from netket.utils import timing, HashablePartial
 from netket.utils.types import PyTree
 from netket.utils.api_utils import partial_from_kwargs
-from netket.nn import split_array_mpi
 from netket.errors import (
     IllegalHolomorphicDeclarationForRealParametersError,
     NonHolomorphicQGTOnTheFlyDenseRepresentationError,
@@ -68,8 +67,8 @@ def QGTOnTheFly(
     from netket.vqs import FullSumState
 
     if isinstance(vstate, FullSumState):
-        samples = split_array_mpi(vstate._all_states)
-        pdf = split_array_mpi(vstate.probability_distribution())
+        samples = vstate._all_states
+        pdf = vstate.probability_distribution()
     else:
         samples = vstate.samples
         pdf = None
@@ -117,7 +116,7 @@ def QGTOnTheFly_DefaultConstructor(
         # use jit so that we can do it on global shared array
         samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
 
-    n_samples_per_rank = samples.shape[0] // nkjax.sharding.device_count_per_rank()
+    n_samples_per_rank = samples.shape[0] // jax.device_count()
     if chunk_size is None or chunk_size >= n_samples_per_rank:
         mv_factory = mat_vec_factory
         chunking = False

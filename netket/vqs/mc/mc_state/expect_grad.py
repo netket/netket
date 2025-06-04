@@ -22,7 +22,7 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 from netket import jax as nkjax
 from netket import config
 from netket.stats import Stats
-from netket.utils import mpi, dispatch
+from netket.utils import dispatch
 from netket.utils.types import PyTree
 
 from netket.operator import (
@@ -160,7 +160,6 @@ def _grad_expect_nonherm_kernel(
         expect_closure_pars, parameters, has_aux=True, conjugate=True
     )
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))[0]
-    Ō_pars_grad, _ = mpi.mpi_sum_jax(Ō_pars_grad)
 
     if is_mutable:
         raise NotImplementedError(

@@ -5,6 +5,9 @@
 
 ## NetKet 3.19 (In development)
 
+## Breaking Changes
+* MPI is no longer supported as a parallelization mode for NetKet.
+
 ## New features
 
 ## Deprecations and Removals

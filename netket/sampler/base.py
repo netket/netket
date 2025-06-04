@@ -23,7 +23,6 @@ from flax import linen as nn
 
 
 from netket import jax as nkjax
-from netket.jax import sharding
 from netket import config
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils import get_afun_if_module, struct, wrap_afun
@@ -125,26 +124,25 @@ class Sampler(struct.Pytree):
     @property
     def n_chains_per_rank(self) -> int:
         """
-        The total number of independent chains per MPI rank (or jax device
-        if you set `NETKET_EXPERIMENTAL_SHARDING=1`).
+        The total number of independent chains per jax device.
 
-        If you are not distributing the calculation among different MPI ranks
-        or jax devices, this is equal to :attr:`~Sampler.n_chains`.
+        If you are not distributing the calculation among jax devices, this
+        is equal to :attr:`~Sampler.n_chains`.
 
         In general this is equal to
 
         .. code:: python
 
-            from netket.jax import sharding
-            sampler.n_chains // sharding.device_count()
+            import jax
+            sampler.n_chains // jax.device_count()
 
         """
-        n_devices = sharding.device_count()
+        n_devices = jax.device_count()
         res, remainder = divmod(self.n_chains, n_devices)
 
         if remainder != 0:
             raise RuntimeError(
-                "The number of chains is not a multiple of the number of mpi ranks"
+                "The number of chains is not a multiple of the number of the number of devices"
             )
         return res
 
@@ -153,14 +151,14 @@ class Sampler(struct.Pytree):
         """
         The total number of independent chains.
 
-        This is at least equal to the total number of MPI ranks/jax devices that
+        This is at least equal to the total number of jax devices that
         are used to distribute the calculation.
         """
         # This is the default number of chains, intended for generic non-mcmc
         # samplers which don't have a concept of chains.
-        # We assume there is 1 dummy chain per mpi rank / jax device.
+        # We assume there is 1 dummy chain per jax device.
         # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
-        return sharding.device_count()
+        return jax.device_count()
 
     @property
     def n_batches(self) -> int:
@@ -248,7 +246,6 @@ class Sampler(struct.Pytree):
             it to be in a valid state, and should reset it before use.
         """
         key = nkjax.PRNGKey(seed)
-        key = nkjax.mpi_split(key)
 
         return self._init_state(wrap_afun(machine), parameters, key)
 

@@ -25,7 +25,7 @@ from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
-from netket.utils import mpi, timing
+from netket.utils import timing
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
 from netket.utils.deprecation import warn_deprecation
@@ -374,7 +374,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                         logger(self.step_value, log_data, self.state)
 
                     if len(callbacks) > 0:
-                        if mpi.mpi_any(callback_stop):
+                        if callback_stop:
                             break
                     update_progress_bar()
 
