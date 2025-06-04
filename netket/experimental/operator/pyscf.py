@@ -19,7 +19,11 @@ import numpy as np
 from netket.operator import DiscreteOperator
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.optional_deps import import_optional_dependency
-from netket.operator import FermionOperator2nd
+from netket.operator import FermionOperator2nd, FermionOperator2ndJax
+from ._particle_number_conserving_fermionic import (
+    ParticleNumberConservingFermioperator2ndJax,
+    ParticleNumberConservingFermioperator2ndSpinJax,
+)
 
 from ._pyscf_utils import arrays_to_terms, TV_from_pyscf_molecule
 
@@ -62,7 +66,7 @@ def from_pyscf_molecule(
     mo_coeff: np.ndarray | None = None,
     *,
     cutoff: float = 1e-11,
-    implementation: DiscreteOperator = FermionOperator2nd,
+    implementation: DiscreteOperator = ParticleNumberConservingFermioperator2ndSpinJax,
 ) -> DiscreteOperator:
     r"""
     Construct a netket operator encoding the electronic hamiltonian of a pyscf
@@ -118,7 +122,7 @@ def from_pyscf_molecule(
         implementation: The particular implementation to use for the operator.
             Different fermionic operator implementation might have different
             performances. Defaults to
-            :class:`netket.experimental.operator.FermionOperator2nd` (this might
+            :class:`netket.experimental.operator.ParticleNumberConservingFermioperator2ndSpinJax` (this might
             change in the future).
 
     Returns:
@@ -131,15 +135,23 @@ def from_pyscf_molecule(
         mf = pyscf.scf.HF(molecule).run(verbose=0)
         mo_coeff = mf.mo_coeff
 
-    E_nuc, Tij, Vijkl = TV_from_pyscf_molecule(molecule, mo_coeff, cutoff=cutoff)
+    if implementation in [FermionOperator2ndJax, FermionOperator2ndJax]:
+        E_nuc, Tij, Vijkl = TV_from_pyscf_molecule(molecule, mo_coeff, cutoff=cutoff)
 
-    ha = operator_from_arrays(
-        E_nuc,
-        Tij,
-        0.5 * Vijkl,
-        molecule.nelec,
-        term_conj4=(1, 1, 0, 0),
-        cls=implementation,
-    )
-    # TODO maybe run setup and set _max_conn_size here estimating it analytially
-    return ha
+        ha = operator_from_arrays(
+            E_nuc,
+            Tij,
+            0.5 * Vijkl,
+            molecule.nelec,
+            term_conj4=(1, 1, 0, 0),
+            cls=implementation,
+        )
+        # TODO maybe run setup and set _max_conn_size here estimating it analytially
+        return ha
+    elif implementation in [
+        ParticleNumberConservingFermioperator2ndJax,
+        ParticleNumberConservingFermioperator2ndSpinJax,
+    ]:
+        return implementation.from_pyscf_molecule(molecule, mo_coeff)
+    else:
+        raise ValueError("unknown implementation")
