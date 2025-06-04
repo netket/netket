@@ -20,7 +20,7 @@ hi = nk.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2)
 
 # create an operator representing fermi hubbard interactions
 # -t (i^ j + h.c.) + U (i^ i j^ j)
-ha = nkx.operator.FermiHubbardJax(hi, t=t, U=U, graph=g)
+ham = nkx.operator.FermiHubbardJax(hi, t=t, U=U, graph=g)
 
 # metropolis exchange moves fermions around according to a graph
 # the physical graph has LxL vertices, but the computational basis defined by the
