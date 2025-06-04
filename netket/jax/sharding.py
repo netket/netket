@@ -430,9 +430,47 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 for a, c in safe_zip(args, nonarray_args)
             )
 
-            mesh = Mesh(jax.devices(), axis_names=("i"))
-            in_specs = _sele2(sharded_args, P("i"), P())
-            out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P("i")))
+            shardings = tuple(
+                jax.typeof(a).sharding for a, c in safe_zip(args, sharded_args) if c
+            )
+            meshes = tuple(s.mesh for s in shardings if hasattr(s, "mesh"))
+            if len(meshes) >= 1:
+                assert all(meshes[0] == m for m in meshes)
+                mesh = meshes[0]
+            else:
+                mesh = Mesh(jax.devices(), axis_names=("i",))
+
+            # in spec
+            in_specs = []
+            sharding_names = []
+            for sharded, arg in safe_zip(sharded_args, args):
+                if sharded:
+                    _sharding = jax.typeof(arg).sharding
+                    if isinstance(_sharding, jax.sharding.NamedSharding):
+                        in_specs.append(P(_sharding.spec[0]))
+                        if _sharding.spec[0] is not None:
+                            sharding_names.append(_sharding.spec[0])
+                    else:
+                        raise NotImplementedError(
+                            "Only NamedSharding are supported, but got: "
+                            f"{_sharding} for {arg}"
+                        )
+                else:
+                    in_specs.append(P())
+
+            if all(in_spec == P() for in_spec in in_specs):
+                # if all inputs are not sharded, we can just call the function
+                with _increase_SHARD_MAP_STACK_LEVEL():
+                    return f(*args_orig)
+            else:
+                in_specs = tuple(in_specs)
+
+            assert all(sharding_names[0] == name for name in sharding_names)
+            out_name = sharding_names[0] if len(sharding_names) > 0 else None
+
+            # mesh = Mesh(jax.devices(), axis_names=("i"))
+            # in_specs = _sele2(sharded_args, P("i"), P())
+            out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P(out_name)))
 
             @partial(
                 shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs, **kwargs
@@ -445,7 +483,6 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 args = tuple(
                     a[0] if c == "key" else a for a, c in safe_zip(args, sharded_args)
                 )
-
                 res = f(*args_treedef.unflatten(args))
 
                 # apply reductions
