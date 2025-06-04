@@ -17,7 +17,7 @@ from ._operator_data import PNCOperatorDataType
 
 
 def _comb(kl: Array, n: int) -> Array:
-    """
+    r"""
     compute all combinations of n elements from a set kl
     Args:
         kl: 1d array of elements
@@ -34,16 +34,16 @@ def _comb(kl: Array, n: int) -> Array:
 def _jw_kernel(
     k_destroy: Array, l_create: Array, x: Array
 ) -> tuple[Array, Array, Array]:
-    """
-    compute all matrix elements :math:`x^\\prime` such that :math:`\\langle x^\\prime | \\hat c^\\dagger_{l_m} \\cdots \\hat c^\\dagger_{l_1} \\hat c_{k_n} \\cdots \\hat c_{k_1} | x\rangle \neq 0`
+    r"""
+    compute all matrix elements :math:`x^\prime` such that :math:`\langle x^\prime | \hat c^\dagger_{l_m} \cdots \hat c^\dagger_{l_1} \hat c_{k_n} \cdots \hat c_{k_1} | x\rangle \neq 0`
     of a batch of states x.
 
     Args:
-        k_destroy: an array of indices of the :math:`\\hat c`
-        l_create: an array of indices of the :math:`\\hat c^\\dagger`
+        k_destroy: an array of indices of the :math:`\hat c`
+        l_create: an array of indices of the :math:`\hat c^\dagger`
         x: an array of states
     Returns:
-        xp: matrix elements :math:`x^\\prime`
+        xp: matrix elements :math:`x^\prime`
         sign: sign (value) of the matrix element if it is nonzero, arbitrary value otherwise
         create_was_empty: if the matrix element is zero
     """
@@ -152,7 +152,7 @@ def _get_conn_padded(
 
 @partial(jax.jit, static_argnames="n_spin_subsectors")
 def unpack_spin_sectors(x: Array, n_spin_subsectors: int = 2):
-    """
+    r"""
     split spin sectors of x
 
     Args:
@@ -167,7 +167,7 @@ def unpack_spin_sectors(x: Array, n_spin_subsectors: int = 2):
 
 @jax.jit
 def pack_spin_sectors(*xs: tuple[Array]) -> Array:
-    """
+    r"""
     flatten spin sectors of xs
 
     Args:

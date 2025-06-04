@@ -65,7 +65,7 @@ def fermiop_to_pnc_format_spin_helper(
     n_orbitals: int,
     n_spin_subsectors: int,
 ) -> SpinOperatorArrayDict:
-    """
+    r"""
     convert OperatorTermsList and OperatorWeightsList to SpinOperatorArrayDict
     """
     # output: { size : (sites, sectors, daggers, weights) }
@@ -79,7 +79,7 @@ def fermiop_to_pnc_format_spin_helper(
 def pnc_format_to_fermiop_helper(
     index_array: Array, create_array: Array, weight_array: Array
 ) -> tuple[OperatorTermsList, OperatorWeightsList]:
-    """
+    r"""
     convert OperatorArrayTerms to OperatorTermsList and OperatorWeightsList
     """
     if index_array is None:  # diagonal

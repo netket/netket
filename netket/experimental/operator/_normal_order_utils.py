@@ -86,7 +86,7 @@ def parity(x: Array):
 
 
 def _prune(sites: Array, daggers: Array, weights: Array) -> OperatorArrayTerms:
-    """
+    r"""
     remove ĉᵢĉᵢ and ĉᵢ†ĉᵢ† on the same site i
 
     Args:
@@ -103,7 +103,7 @@ def _prune(sites: Array, daggers: Array, weights: Array) -> OperatorArrayTerms:
 
 
 def _move(i: Array, j: Array, x: Array, mask: Array = None) -> Array:
-    """
+    r"""
     move element i after element j on the last axis (batched)
     use the mask parameter to only selectively move some elements in the batch
 
@@ -134,7 +134,7 @@ def _move(i: Array, j: Array, x: Array, mask: Array = None) -> Array:
 
 
 def _remove(i: Array, j: Array, x: Array) -> Array:
-    """
+    r"""
     remove element i and j on the last axis (batched)
 
     Args:
@@ -163,7 +163,7 @@ def _remove(i: Array, j: Array, x: Array) -> Array:
 def _move_daggers_left(
     sites: Array, daggers: Array, weights: Array
 ) -> tuple[OperatorArrayTerms]:
-    """
+    r"""
     apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators (all of same length) into normal ordering (daggers to the left)
 
@@ -244,7 +244,7 @@ def _move_daggers_left(
 
 
 def move_daggers_left(t: OperatorArrayDict) -> OperatorArrayDict:
-    """
+    r"""
     Apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators into normal ordering (daggers to the left)
 
@@ -269,7 +269,7 @@ def move_daggers_left(t: OperatorArrayDict) -> OperatorArrayDict:
 
 
 def _to_desc_order(sites: Array, daggers: Array, weights: Array) -> OperatorArrayTerms:
-    """
+    r"""
     Reorder operators (all of same length) such that the ones with the larger site index are to the left
     Assumes the operators are already in normal order (daggers to the left).
 
@@ -307,7 +307,7 @@ def _to_desc_order(sites: Array, daggers: Array, weights: Array) -> OperatorArra
 
 
 def to_desc_order(t: OperatorArrayDict) -> OperatorArrayDict:
-    """
+    r"""
     Reorder operators such that the ones with the larger site index are to the left
     Assumes the operators are already in normal order (daggers to the left).
 
@@ -323,7 +323,7 @@ def to_desc_order(t: OperatorArrayDict) -> OperatorArrayDict:
 
 
 def to_normal_order(t: OperatorArrayDict) -> OperatorArrayDict:
-    """
+    r"""
     Apply the fermionic anticommutation rules to recursively bring a set of
     fermionic operators into normal ordering (daggers to the left), then
     reorder operators such that the ones with the larger site index are to the left
@@ -362,7 +362,7 @@ def _split_spin_sectors_helper(
 def split_spin_sectors(
     d: OperatorArrayDict, n_orbitals: int, n_spin_subsectors: int
 ) -> SpinOperatorArrayDict:
-    """
+    r"""
     Split global site indices into spin sector and index within sector
 
     Args:
@@ -386,7 +386,7 @@ def _merge_spin_sectors_helper(
 
 
 def merge_spin_sectors(d: SpinOperatorArrayDict, n_orbitals) -> OperatorArrayDict:
-    """
+    r"""
     Merge spin sector and index within sector into global site index
 
     Args:
@@ -403,7 +403,7 @@ def merge_spin_sectors(d: SpinOperatorArrayDict, n_orbitals) -> OperatorArrayDic
 def to_normal_order_sector(
     t: SpinOperatorArrayDict, n_spin_subsectors: int, n_orbitals: int
 ) -> SpinOperatorArrayDict:
-    """convert to normal order with higher sector to the left
+    r"""convert to normal order with higher sector to the left
 
     Args:
         t: a dictionary containing strings of different lengths, each stored as a tuple

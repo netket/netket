@@ -352,7 +352,7 @@ def prepare_operator_data_from_coords_data_dict(
 def sparse_arrays_to_coords_data_dict(
     ops: dict[Any, sparse.COO],
 ) -> dict[Any, tuple[Array, Array]]:
-    """
+    r"""
     Split dictionary values of sparse arrays into indices and data
 
     (optionally) supports spin sectors in the key
@@ -461,7 +461,7 @@ def prepare_operator_data_from_coords_data_dict_spin(
 def sites_daggers_weights_to_sparse(
     sites: Array, daggers: Array, weights: Array, n_orbitals: int
 ) -> sparse.COO:
-    """
+    r"""
     Convert normal ordered
     Args:
         sites:
@@ -485,7 +485,7 @@ def _insert_append_helper(
     o: Union[sparse.COO, Array],
     cutoff: float,
 ):
-    """
+    r"""
     check if an element with the same matrix but different sectors exist
     if yes append to the list of sectors, else insert new element into the dict
     """

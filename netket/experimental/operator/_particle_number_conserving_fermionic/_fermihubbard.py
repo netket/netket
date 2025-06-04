@@ -18,7 +18,7 @@ class FermiHubbardJax(ParticleNumberConservingFermioperator2ndSpinJax):
     r"""
     Fermi-Hubbard Hamiltonian based on the generic ParticleNumberConservingFermioperator2ndSpinJax
 
-    .. :math:
+    .. math::
         \hat H = -t \sum_{<ij>,\sigma} (\hat c_{i\sigma}^\dagger \hat c_{j\sigma} + h.c.) + U \sum_{i}(\hat n_{i\uparrow} \hat n_{i\downarrow})
 
     This implementation is more efficient than a FermionOperator2nd created using create,destroy,number from nk.operator.fermion

@@ -50,10 +50,9 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     r"""
     Particle-number conserving fermionc operator
 
-    :.. math::
-        H = w + \sum_{ij} w_{ij} \hat c_i^\dagger hat c_j + \sum_{ijkl} w_{ijkl} \hat c_i^\dagger \hat c_j^\dagger \hat c_k \hat c_l + \sum_{ijklmn} w_{ijklmn} \hat c_i^\dagger \hat c_j^\dagger c_k^\dagger \hat c_l \hat c_m \hat c_n + \dots
+    .. math::
 
-    Version without spin.
+        \hat H = w + \sum_{ij} w_{ij} \hat c_i^\dagger \hat c_j + \sum_{ijkl} w_{ijkl} \hat c_i^\dagger \hat c_j^\dagger \hat c_k \hat c_l + \sum_{ijklmn} w_{ijklmn} \hat c_i^\dagger \hat c_j^\dagger c_k^\dagger \hat c_l \hat c_m \hat c_n + \dots
 
     To be used with netket.hilbert.SpinOrbitalFermions with a fixed number of fermions.
 
@@ -111,7 +110,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         coords_data_dict: PNCOperatorArrayDict,
         **kwargs,
     ):
-        """
+        r"""
         initialize from PNCOperatorArrayDict
 
         used internally.
@@ -140,8 +139,10 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 
         Example:
         Given an array A of rank 2m with shape (n_orbitals,)*(2m) this initializes the operator
-        .. :math:
-            \hat A = sum_{i_1 > \dots > i_m, j_1 > \dots > j_m} A_{i_1 \cdots i_m j_1 \cdots j_m} \hat c_{i_1}^\dagger \cdots \hat c_{i_m}^\dagger \hat c_{j_1} \cdots \hat c_{j_m}
+
+        .. math::
+
+            \hat A = \sum_{i_1 > \dots > i_m, j_1 > \dots > j_m} A_{i_1 \cdots i_m j_1 \cdots j_m} \hat c_{i_1}^\dagger \cdots \hat c_{i_m}^\dagger \hat c_{j_1} \cdots \hat c_{j_m}
 
         Throws an error if the arrays are not in descending order.
         """
@@ -172,14 +173,15 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         Args:
             hilbert: hilbert space
             operators: list of dense or sparse arrays, each representing an m-body operator for different m
-            cutoff: cutoff to use when converting the operators to the internal format
-                    use a small but nonzero number, to allow for internal equality checks between arrays
-                    defaults to 1e-11
+            cutoff: cutoff to use when converting the operators to the internal format.
+                    Use a small but nonzero number, to allow for internal equality checks between arrays.
 
         Example:
-        Given an array A of rank 2m with shape (n_orbitals,)*(2m) this initializes the operator
-        .. :math:
-            \hat A = sum_{i_1,\dots,i_m, j_1,\dots,j_m} A_{i_1 \cdots i_m j_1 \cdots j_m} \hat c_{i_1}^\dagger \cdots \hat c_{i_m}^\dagger \hat c_{j_1} \cdots \hat c_{j_m}
+        Given an array `A` of rank 2m with shape `(n_orbitals,)*(2m)` this initializes the operator
+
+        .. math::
+
+            \hat A = \sum_{i_1,\dots,i_m, j_1,\dots,j_m} A_{i_1 \cdots i_m j_1 \cdots j_m} \hat c_{i_1}^\dagger \cdots \hat c_{i_m}^\dagger \hat c_{j_1} \cdots \hat c_{j_m}
 
         """
         # daggers on the left, but not necessarily desc order
@@ -226,7 +228,7 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
     def to_fermionoperator2nd(
         self, _cls=FermionOperator2ndJax
     ) -> FermionOperator2ndJax:
-        """
+        r"""
         Convert to FermionOperator2ndJax
         """
         terms = []
@@ -246,12 +248,14 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
         cutoff: float = 1e-11,
         **kwargs,
     ):
-        """
+        r"""
         Constructs the operator from a pyscf molecule
 
         Args:
             mol: pyscf molecule
             mo_coeff: molecular orbital coefficients, e.g. obtained from a HF calculation
+            cutoff: cutoff to use when converting the operators to the internal format.
+                    Use a small but nonzero number, to allow for internal equality checks between arrays.
         """
         n_orbitals = int(mol.nao)
         hi = SpinOrbitalFermions(n_orbitals, s=1 / 2, n_fermions_per_spin=mol.nelec)
@@ -263,11 +267,12 @@ class ParticleNumberConservingFermioperator2ndJax(DiscreteJaxOperator):
 
 @struct.dataclass
 class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
-    """
-    Particle-number conserving and spin-Z-conserving fermionic operator
+    r"""
+    Particle-number conserving and spin-Z-conserving fermionc operator
 
-    .. :math:
-        H = w + \\sum_{ij \\sigma} w_{ij \\sigma} \\hat c_{i \\sigma}^\\dagger \\hat c_{j \\sigma} + \\sum_{ijkl\\simga \rho} w_{ijkl\\sigma\rho}  \\hat c_{i\\sigma}^\\dagger \\hat c_{j \rho}^\\dagger \\hat c_{k \rho} \\hat c_{l \\sigma}
+    .. math::
+
+        \hat H = w + \sum_{ij \sigma} w_{ij \sigma} \hat c_{i \sigma}^\dagger \hat c_{j \sigma} + \sum_{ijkl\sigma \rho} w_{ijkl\sigma\rho}  \hat c_{i\sigma}^\dagger \hat c_{j \rho}^\dagger \hat c_{k \rho} \hat c_{l \sigma}
 
 
     Limited to 2-body operators if acting on > 1 sector at a time
@@ -280,8 +285,6 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     We provide several factory methods to create this operator:
         - ParticleNumberConservingFermioperator2ndSpinJax.from_fermionoperator2nd:
                 Conversion form FermionOperator2nd/FermionOperator2ndJax (if possible)
-        - ParticleNumberConservingFermioperator2ndSpinJax.from_sparse_arrays:
-                From sparse arrays for w, w_ij and w_ijkl specifying the spin sectors σ,ρ explicitly
         - ParticleNumberConservingFermioperator2ndJax.from_pyscf_molecule:
                 From pyscf
     Furthermore it can be converted to FermionOperator2nd/FermionOperator2ndJax using the .to_fermiop method.
@@ -289,11 +292,11 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
 
     # factory methods for internal use only:
     # - ParticleNumberConservingFermioperator2ndSpinJax._from_sites_sectors_daggers_weights:
-    #         From a dictionary of tuples {k: (sites, sectors, daggers, weights)} representing w, w_ijσ, w_ijklσ
+    #         From a dictionary of tuples {k: (sites, sectors, daggers, weights)} representing w, w_ij\sigma, w_ijkl\sigma
     # - ParticleNumberConservingFermioperator2ndSpinJax._from_sparse_arrays_normal_order_all_sectors:
-    #         From sparse arrays for w, w_ij and w_ijkl summing over all possible values of σ,ρ
+    #         From sparse arrays for w, w_ij and w_ijkl summing over all possible values of \sigma,\rho
     # - ParticleNumberConservingFermioperator2ndSpinJax._from_coords_data:
-    #         From a dictionary of tuples {(k, sectors): (sites, daggers, weights)} representing w, w_ijσ, w_ijklσρ
+    #         From a dictionary of tuples {(k, sectors): (sites, daggers, weights)} representing w, w_ij\sigma, w_ijkl\sigma\rho
 
     _hilbert: SpinOrbitalFermions = struct.field(pytree_node=False)
     _operator_data: PNCOperatorDataCollectionDict
@@ -338,13 +341,13 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         hilbert: SpinOrbitalFermions,
         operators_sector: CoordsDataDictSectorCooArrayType,
     ):
-        """
+        r"""
         Args:
 
             operators_sector:
                 dict {key: value}
                     key: a tuple (k, sectors)
-                         where k is the number of c/c^†
+                         where k is the number of c/c^\dagger
                          and sectors is a tuple of tuples/numbers containing the index / sets
                          of indices of sectors the operator is acting on each element
                          of sectors needs to be ordered in descending order
@@ -360,15 +363,16 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         operators: list[Union[Array, sparse.COO]],
         cutoff=1e-11,
     ):
-        """
-        Construct the operator from  sparse arrays for w, w_ij and w_ijkl summing over all possible values of σ,ρ,
+        r"""
+        Construct the operator from  sparse arrays for :math:`w, w_ij` and :math:`w_ijkl` summing over all possible values of :math:`\sigma,\rho`,
 
-        H = w + Σ_ijσ w_ij c_iσ^† c_jσ + Σ_ijklσρ w_ijkl c_iσ^† c_jρ^† c_kρ c_lσ
+        .. math::
+            \hat H = w + \sum_{ij\sigma} w_{ij} c_{i\sigma}^\dagger c_{j\sigma} + \sigma_{ijkl\sigma\rho} w_{ijkl} c_{i\sigma}^\dagger c_{j\rho}^\dagger c_{k\rho} c_{l\sigma}
 
         Args:
             hilbert: hilbert space
-            operators: a list of sparse arrays representing w, w_ij and w_ijkl
-            cutoff: cutoff on the matirx elements, default=1e-11
+            operators: a list of sparse arrays representing :math:`w, w_ij` and :math:`w_ijkl`
+            cutoff: cutoff on the matirx elements
         """
         # operators = [const, hij, hijkl]
         # ops = {0: const, 2: hij_sparse, 4: hijkl_sparse}
@@ -391,7 +395,7 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
             elif k == 4:
                 operators_sector[4, sectors1] = to_desc_order_sparse(v, cutoff)
                 # add c_ijkl + c_jilk
-                # Σ_{σ!=ρ} c_ijkl  c_iσ^† c_jρ^† c_kρ c_lσ =  Σ_{σ>ρ} (c_ijkl + c_jilk) c_iσ^† c_jρ^† c_kρ c_lσ
+                # \sigma_{\sigma!=\rho} c_ijkl  c_i\sigma^\dagger c_j\rho^\dagger c_k\rho c_l\sigma =  \sigma_{\sigma>\rho} (c_ijkl + c_jilk) c_i\sigma^\dagger c_j\rho^\dagger c_k\rho c_l\sigma
                 operators_sector[4, sectors2] = v.swapaxes(2, 3) + v.swapaxes(0, 1)
             else:
                 raise NotImplementedError
@@ -404,15 +408,14 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         mo_coeff: Array,
         cutoff: float = 1e-11,
     ):
-        """
+        r"""
         Constructs the operator from a pyscf molecule
 
         Args:
             mol: pyscf molecule
             mo_coeff: molecular orbital coefficients, e.g. obtained from a HF calculation
-            cutoff: cutoff to use when converting the operators to the internal format
-                    use a small but nonzero number, to allow for internal equality checks between arrays
-                    defaults to 1e-11
+            cutoff: cutoff to use when converting the operators to the internal format.
+                    Use a small but nonzero number, to allow for internal equality checks between arrays.
         """
 
         sparse = import_optional_dependency("sparse")
@@ -440,14 +443,13 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
         t: SpinOperatorArrayDict,
         cutoff: float = 1e-11,
     ):
-        """
+        r"""
         Initialize from SpinOperatorArrayDict
         Args:
             hilbert : hilbert space
             t: { size : (sites, sectors, daggers, weights) }
-            cutoff: cutoff to use when converting the operators to the internal format
-                    use a small but nonzero number, to allow for internal equality checks between arrays
-                    defaults to 1e-11
+            cutoff: cutoff to use when converting the operators to the internal format.
+                    Use a small but nonzero number, to allow for internal equality checks between arrays.
 
         Supports arbitrary order of sites, sectors, and daggers,
         it is internally converted to the right order for the operator
@@ -464,14 +466,13 @@ class ParticleNumberConservingFermioperator2ndSpinJax(DiscreteJaxOperator):
     def from_fermionoperator2nd(
         cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], cutoff: float = 1e-11
     ):
-        """
+        r"""
         Convert from FermionOperator2nd
 
         Args:
             ha : the original FermionOperator2nd/FermionOperator2ndJax operator
-            cutoff: cutoff to use when converting the operators to the internal format
-                    use a small but nonzero number, to allow for internal equality checks between arrays
-                    defaults to 1e-11
+            cutoff: cutoff to use when converting the operators to the internal format.
+                    Use a small but nonzero number, to allow for internal equality checks between arrays.
 
         Throws an error if the original operator is not particle-number conserving, or spin-Z-conserving.
         """
