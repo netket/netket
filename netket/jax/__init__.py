@@ -68,4 +68,4 @@ from . import lax as lax
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__, ignore="sharding")
+_hide_submodules(__name__, ignore=("sharding", "lax"))
