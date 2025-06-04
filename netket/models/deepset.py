@@ -10,7 +10,7 @@ from jax.nn.initializers import (
     lecun_normal,
 )
 
-from netket.hilbert import ContinuousHilbert
+from netket.experimental.hilbert import ContinuousHilbert
 import netket.nn as nknn
 
 
@@ -156,7 +156,7 @@ class DeepSetRelDistance(nn.Module):
     """Initializer for the parameter in the cusp"""
 
     def setup(self):
-        if not all(self.hilbert.pbc):
+        if not all(self.hilbert.geometry.pbc):
             raise ValueError(
                 "The DeepSetRelDistance model only works with "
                 "hilbert spaces with periodic boundary conditions "
@@ -205,7 +205,7 @@ class DeepSetRelDistance(nn.Module):
         batch_shape = x.shape[:-1]
         param = self.param("cusp", self.params_init, (1,), self.param_dtype)
 
-        L = jnp.array(self.hilbert.extent)
+        L = jnp.array(self.hilbert.domain)
         sdim = L.size
 
         d = jax.vmap(self.distance, in_axes=(0, None, None))(x, sdim, L)

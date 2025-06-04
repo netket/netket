@@ -17,7 +17,7 @@ from jax import numpy as jnp
 import numpy as np
 
 from netket import jax as nkjax
-from netket.hilbert import ContinuousHilbert, Particle
+from netket.experimental.hilbert import ContinuousHilbert, Particle
 from netket.utils.dispatch import dispatch
 
 
@@ -38,10 +38,11 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     If periodic boundary conditions are chosen only for certain dimensions, the periodic initialization is used for
     all of those dimensions and the free initialization is used for all the other ones.
     """
-    pbc = np.array(hilb.n_particles * hilb.pbc)
+    pbc = np.array(hilb.n_particles * hilb.geometry.pbc)
     boundary = np.tile(pbc, (batches, 1))
 
-    Ls = np.array(hilb.n_particles * hilb.extent)
+    # TODO genearalize to particles with diferent domains
+    Ls = np.array(hilb.n_particles * hilb.domain)
 
     # If we have PBCs this defines the size of the Gaussian noise in the particle positions.
     # Without PBCs this is never needed (initialization with random Gaussian)
@@ -65,9 +66,9 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     noise = gaussian * width
 
     key = jax.random.split(key, num=batches)
-    sdim = len(hilb.extent)
+    sdim = len(hilb.domain)
     n = int(np.ceil(hilb.n_particles ** (1 / sdim)))
-    xs = jnp.linspace(0, min(hilb.extent), n)
+    xs = jnp.linspace(0, min(hilb.domain), n)
     uniform = jnp.array(jnp.meshgrid(*(sdim * [xs]))).reshape(-1, sdim)
     uniform = jnp.tile(uniform, (batches, 1, 1))
 

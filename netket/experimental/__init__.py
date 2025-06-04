@@ -23,14 +23,15 @@ __all__ = [
     "operator",
     "logging",
     "observable",
+    "QSR",
 ]
 
-from . import hilbert
 from . import operator
 from . import driver
 from . import dynamics
 from . import sampler
 from . import models
+from . import hilbert
 from . import vqs
 from . import logging
 from . import qsr
