@@ -178,9 +178,12 @@ def _statistics(data, batch_size):
             if N % 2 == 0:
                 # split each chain in the middle,
                 # like [[1 2 3 4]] -> [[1 2][3 4]]
-                batch_var, _ = _batch_variance(
-                    data.reshape(2 * local_batch_size, N // 2)
+                data_r = data.reshape(local_batch_size, 2, N // 2)
+                data_r = data_r.reshape(
+                    local_batch_size * 2,
+                    N // 2,
                 )
+                batch_var, _ = _batch_variance(data_r)
             else:
                 # drop the last sample of each chain for an even split,
                 # like [[1 2 3 4 5]] -> [[1 2][3 4]]
