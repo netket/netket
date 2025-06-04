@@ -434,11 +434,11 @@ def apply_gradient(optimizer_fun, optimizer_state, dp, params):
 
     new_params = optax.apply_updates(params, updates)
 
-    if config.netket_experimental_sharding:
-        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
-        new_optimizer_state = jax.lax.with_sharding_constraint(
-            new_optimizer_state, sharding
-        )
-        new_params = jax.lax.with_sharding_constraint(new_params, sharding)
+    # if config.netket_experimental_sharding:
+    #     sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+    #     new_optimizer_state = jax.lax.with_sharding_constraint(
+    #         new_optimizer_state, sharding
+    #     )
+    #     new_params = jax.lax.with_sharding_constraint(new_params, sharding)
 
     return new_optimizer_state, new_params
