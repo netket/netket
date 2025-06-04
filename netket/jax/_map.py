@@ -8,6 +8,9 @@ from jax.sharding import SingleDeviceSharding, NamedSharding
 
 @wraps(jax.lax.map)
 def map(f, x, batch_size: int | None = None):
+    """
+    Equivalent to jax.lax.map, but handles sharding along the first axis.
+    """
     # check sharding
     if not jax.sharding.get_abstract_mesh()._any_axis_explicit:
         return jax.lax.map(f, *x, batch_size=batch_size)
