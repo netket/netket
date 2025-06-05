@@ -45,6 +45,7 @@ dependencies = [
     "orjson>=3.4, <4",
     "optax>=0.2.2, <0.3",
     "plum-dispatch>=2.4",
+    "einops>=0.8.1",
 ]
 
 [project.optional-dependencies]
