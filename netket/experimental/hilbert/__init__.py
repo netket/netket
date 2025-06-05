@@ -17,6 +17,7 @@ __all__ = ["ContinuousHilbert", "Particle", "SpinOrbitalFermions"]
 
 from .continuous_hilbert import ContinuousHilbert
 from .particle import Particle
+from . import random
 
 __all__ = ["Particle", "SpinOrbitalFermions"]
 
