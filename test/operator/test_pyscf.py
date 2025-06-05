@@ -32,7 +32,7 @@ def test_pyscf():
     ]
     molecule = gto.M(atom=geometry, basis="STO-3G")
 
-    mf = scf.RHF(molecule).run()
+    mf = scf.RHF(molecule).run(verbose=0)
     E_fci = fci.FCI(mf).kernel()[0]
 
     ha = nkx.operator.from_pyscf_molecule(molecule, mo_coeff=mf.mo_coeff)
@@ -57,7 +57,7 @@ def test_pyscf_default():
     ]
     molecule = gto.M(atom=geometry, basis="STO-3G")
 
-    mf = scf.HF(molecule).run()
+    mf = scf.HF(molecule).run(verbose=0)
     E_fci = fci.FCI(mf).kernel()[0]
 
     ha = nkx.operator.from_pyscf_molecule(molecule)

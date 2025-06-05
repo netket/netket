@@ -1,13 +1,9 @@
 import netket as nk
+import netket.experimental as nkx
+
 import numpy as np
 import matplotlib.pyplot as plt
 import json
-
-from netket.operator.fermion import (
-    destroy as c,
-    create as cd,
-    number as n,
-)
 
 L = 2  # take a 2x2 lattice
 D = 2
@@ -24,17 +20,7 @@ hi = nk.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2)
 
 # create an operator representing fermi hubbard interactions
 # -t (i^ j + h.c.) + U (i^ i j^ j)
-
-up = +1
-down = -1
-ham = 0.0
-for sz in (up, down):
-    for u, v in g.edges():
-        ham += -t * cd(hi, u, sz) * c(hi, v, sz) - t * cd(hi, v, sz) * c(hi, u, sz)
-for u in g.nodes():
-    ham += U * n(hi, u, up) * n(hi, u, down)
-
-print("Hamiltonian =", ham.operator_string())
+ham = nkx.operator.FermiHubbardJax(hi, t=t, U=U, graph=g)
 
 # metropolis exchange moves fermions around according to a graph
 # the physical graph has LxL vertices, but the computational basis defined by the
