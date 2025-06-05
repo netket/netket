@@ -15,6 +15,7 @@
 __all__ = [
     "driver",
     "dynamics",
+    "geometry",
     "sampler",
     "vqs",
     "TDVP",
@@ -23,18 +24,20 @@ __all__ = [
     "operator",
     "logging",
     "observable",
+    "QSR",
 ]
 
+from . import geometry
 from . import hilbert
 from . import operator
 from . import driver
 from . import dynamics
 from . import sampler
-from . import models
 from . import vqs
 from . import logging
 from . import qsr
 from . import observable
+from . import models
 
 from .driver import TDVP
 from .qsr import QSR

@@ -23,7 +23,7 @@ import jax
 from flax import linen as nn
 from jax import numpy as jnp
 
-from netket.hilbert import AbstractHilbert, ContinuousHilbert, SpinOrbitalFermions
+from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
 
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree, DType
@@ -765,6 +765,8 @@ def MetropolisGaussian(hilbert, sigma=1.0, **kwargs) -> MetropolisSampler:
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
         dtype: The dtype of the states sampled (default = np.float64).
     """
+    from netket.experimental.hilbert import ContinuousHilbert
+
     if not isinstance(hilbert, ContinuousHilbert):
         raise ValueError("This sampler only works for Continuous Hilbert spaces.")
 
@@ -800,6 +802,8 @@ def MetropolisAdjustedLangevin(
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
         dtype: The dtype of the states sampled (default = np.float64).
     """
+    from netket.experimental.hilbert import ContinuousHilbert
+
     if not isinstance(hilbert, ContinuousHilbert):
         raise ValueError("This sampler only works for Continuous Hilbert spaces.")
 

@@ -58,10 +58,12 @@ def set_flag_jax(condition, flags, flag):
         if condition:
             flags |= flag
     """
-    if condition:
-        return flags | flag
-    else:
-        return flags
+    return jax.lax.cond(
+        condition,
+        lambda x: x | flag,
+        lambda x: x,
+        flags,
+    )
 
 
 def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn) -> float:

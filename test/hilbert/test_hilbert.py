@@ -21,13 +21,13 @@ import pytest
 from netket.hilbert import (
     DiscreteHilbert,
     HomogeneousHilbert,
-    Particle,
     CustomHilbert,
     DoubledHilbert,
     Fock,
     Qubit,
     Spin,
 )
+from netket.experimental.hilbert import Particle
 from netket.utils import StaticRange
 
 import jax
@@ -128,17 +128,18 @@ hilberts["SpinOrbitalFermions (higherspin)"] = nk.hilbert.SpinOrbitalFermions(
 
 # Continuous space
 # no pbc
-hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
-    N=5, L=(np.inf, 10.0), pbc=(False, True)
+geo_default = nk.experimental.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
+hilberts["ContinuousSpaceHilbert"] = nk.experimental.hilbert.Particle(
+    N=5, geometry=geo_default
 )
-hilberts["TensorContinuous"] = nk.hilbert.Particle(
-    N=2, L=(np.inf, 10.0), pbc=(False, True)
-) * nk.hilbert.Particle(N=3, L=(np.inf, 10.0), pbc=(False, True))
+hilberts["TensorContinuous"] = nk.experimental.hilbert.Particle(
+    N=2, geometry=geo_default
+) * nk.experimental.hilbert.Particle(N=3, geometry=geo_default)
 
 
 N = 10
-hilberts["ContinuousHelium"] = nk.hilbert.Particle(
-    N=N, L=(N / (0.3 * 2.9673),), pbc=True
+hilberts["ContinuousHelium"] = nk.experimental.hilbert.Particle(
+    N=N, geometry=nk.experimental.geometry.Cell(d=1, L=(N / (0.3 * 2.9673),), pbc=True)
 )
 
 all_hilbert_params = [pytest.param(hi, id=name) for name, hi in hilberts.items()]
@@ -182,7 +183,7 @@ def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
     assert hi.n_particles > 0
     assert hi.n_particles == sum(hi.n_per_spin)
-    assert len(hi.extent) == (hi.size // hi.n_particles)
+    assert len(hi.domain) == (hi.size // hi.n_particles)
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
@@ -243,8 +244,8 @@ def test_random_states_particle(hi: Particle):
 
     # check that boundary conditions are fulfilled if any are given
     state = hi.random_state(jax.random.PRNGKey(13))
-    boundary = jnp.array(hi.n_particles * hi.pbc)
-    Ls = jnp.array(hi.n_particles * hi.extent)
+    boundary = jnp.array(hi.n_particles * hi.geometry.pbc)
+    Ls = jnp.array(hi.n_particles * hi.domain)
     extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
 
     assert jnp.sum(
@@ -254,7 +255,10 @@ def test_random_states_particle(hi: Particle):
 
 def test_particle_fail():
     with pytest.raises(ValueError):
-        _ = Particle(N=5, L=(jnp.inf, 2.0), pbc=True)
+        _ = Particle(
+            N=5,
+            geometry=nk.experimental.geometry.Cell(d=2, L=(jnp.inf, 2.0), pbc=True),
+        )
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
@@ -671,7 +675,7 @@ def test_tensor_combination():
     assert len(hit._hilbert_spaces) == 5
     assert isinstance(repr(hit), str)
 
-    hi3 = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    hi3 = nk.experimental.hilbert.Particle(N=5, geometry=geo_default)
     hit2 = hi1 * hi3
     assert isinstance(hit2, nk.hilbert.TensorHilbert)
     assert hit2.size == hi1.size + hi3.size
@@ -727,7 +731,7 @@ def test_tensor_combination():
     assert isinstance(repr(hit), str)
 
     hit = nk.hilbert.TensorHilbert(
-        nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+        nk.experimental.hilbert.Particle(N=5, geometry=geo_default)
     )
     assert isinstance(hit, nk.hilbert._tensor_hilbert.TensorGenericHilbert)
     assert len(hit._hilbert_spaces) == 1
@@ -741,7 +745,7 @@ def test_errors():
     with pytest.raises(TypeError):
         hi * 1
 
-    hi = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    hi = nk.experimental.hilbert.Particle(N=5, geometry=geo_default)
     with pytest.raises(TypeError):
         1 * hi
     with pytest.raises(TypeError):
@@ -773,22 +777,13 @@ def test_constrained_eq_hash():
     assert hash(hi1) != hash(hi2)
 
 
-def test_particle_alternative_constructors():
-    hi1 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf), pbc=False)
-    hi2 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf))
+def test_particle_with_geometry():
+    geo = nk.experimental.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
+    hi1 = nk.experimental.hilbert.Particle(N=5, geometry=geo)
+    hi2 = nk.experimental.hilbert.Particle(N=5, geometry=geo_default)
     assert hi1 == hi2
-
-    hi2 = nk.hilbert.Particle(N=5, D=2)
-    assert hi1 == hi2
-
-    with pytest.raises(ValueError, match=r"Must specify at least.*"):
-        nk.hilbert.Particle(N=5)
-
-    with pytest.raises(TypeError, match=r"Cannot specify at the same time.*"):
-        nk.hilbert.Particle(N=5, L=np.inf, D=1)
-
-    with pytest.raises(ValueError, match=r".*must be specified.*"):
-        nk.hilbert.Particle(N=5, L=3)
+    geo2 = nk.experimental.geometry.Cell(d=1, L=1.0, pbc=True)
+    assert np.isclose(geo2.distance([0.1], [0.9]), 0.2)
 
 
 def test_hilbert_states_outside_range_errors():

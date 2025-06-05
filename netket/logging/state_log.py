@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Literal, Union
+from typing import Any, Literal, Union, TYPE_CHECKING
 
 import tarfile
 import time
@@ -25,7 +25,9 @@ from os import path as _path
 from flax import serialization
 
 from netket.jax.sharding import extract_replicated
-from netket.vqs import VariationalState
+
+if TYPE_CHECKING:
+    from netket.vqs import VariationalState
 
 from .base import AbstractLog
 
@@ -172,7 +174,7 @@ class StateLog(AbstractLog):
         self,
         step: int,
         item: dict[str, Any],
-        variational_state: VariationalState | None = None,
+        variational_state: "VariationalState | None" = None,
     ):
         old_step = self._old_step
 

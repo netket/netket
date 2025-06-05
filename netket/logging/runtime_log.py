@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, IO
+from typing import Any, IO, TYPE_CHECKING
 from pathlib import Path
 
 import jax
@@ -20,7 +20,9 @@ import numpy as np
 import orjson
 
 from netket.utils.history import accum_histories_in_tree, HistoryDict
-from netket.vqs import VariationalState
+
+if TYPE_CHECKING:
+    from netket.vqs import VariationalState
 
 from .base import AbstractLog
 
@@ -49,7 +51,7 @@ class RuntimeLog(AbstractLog):
         self,
         step: int,
         item: dict[str, Any],
-        variational_state: VariationalState | None = None,
+        variational_state: "VariationalState | None" = None,
     ):
         if self._data is None:
             self._data = {}
