@@ -17,6 +17,7 @@ __all__ = ["ContinuousHilbert", "Particle"]
 
 from .continuous_hilbert import ContinuousHilbert
 from .particle import Particle
+from . import random
 from netket.hilbert import SpinOrbitalFermions as _deprecated_SpinOrbitalFermions
 
 _deprecations = {
