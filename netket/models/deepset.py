@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
@@ -10,8 +11,10 @@ from jax.nn.initializers import (
     lecun_normal,
 )
 
-from netket.experimental.hilbert import ContinuousHilbert
 import netket.nn as nknn
+
+if TYPE_CHECKING:
+    from netket.hilbert import ContinuousHilbert
 
 
 class DeepSetMLP(nn.Module):
@@ -115,7 +118,7 @@ class DeepSetRelDistance(nn.Module):
 
     """
 
-    hilbert: ContinuousHilbert
+    hilbert: "ContinuousHilbert"
     """The hilbert space defining the periodic box where this ansatz is defined."""
 
     layers_phi: int
