@@ -267,9 +267,9 @@ def _setup_experimental_sharding_cpu(n_procs):
             warnings.warn(
                 "must load NetKet before jax if using experimental_sharding_cpu"
             )
-    import jax
+        import jax
 
-    jax.config.update("jax_num_cpu_devices", n_procs)
+        jax.config.update("jax_num_cpu_devices", n_procs)
 
 
 config.define(
