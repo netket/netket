@@ -153,7 +153,8 @@ def batch_choice(key, a, p):
       The generated samples as an 1D array of shape `(batch_size,)`.
     """
     p_cumsum = p.cumsum(axis=1)
-    r = p_cumsum[:, -1:] * jax.random.uniform(key, shape=(p.shape[0], 1))
+    out_sharding=jax.typeof(p_cumsum).sharding
+    r = p_cumsum.at[:, -1:].get(out_sharding=out_sharding) * jax.random.uniform(key, shape=(p.shape[0], 1), out_sharding=out_sharding)
     indices = (r > p_cumsum).sum(axis=1)
-    out = a[indices]
+    out = a.at[indices].get(out_sharding=jax.typeof(indices).sharding)
     return out

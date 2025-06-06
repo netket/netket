@@ -13,13 +13,14 @@
 # limitations under the License.
 
 from functools import partial
-from netket.jax.sharding import sharding_decorator
 import jax
 import numpy as np
 
 from jax import numpy as jnp
+from jax.experimental.shard import auto_axes
 
 from netket.graph import AbstractGraph
+from netket.jax import batch_choice
 
 from .base import MetropolisRule
 
@@ -124,37 +125,26 @@ class ExchangeRule(MetropolisRule):
         # compute a mask for the clusters that can be hopped
         hoppable_clusters = _compute_different_clusters_mask(rule.clusters, σ)
 
-        keys = jnp.asarray(jax.random.split(key, n_chains))
+        # pick a random cluster, taking into account the mask
+        n_conn = hoppable_clusters.sum(axis=-1)
 
-        # we use shard_map to avoid the all-gather coming from the batched jnp.take / indexing
-        @partial(sharding_decorator, sharded_args_tree=(True, True, True))
-        @jax.vmap
-        def _update_samples(key, σ, hoppable_clusters):
-            # pick a random cluster, taking into account the mask
-            n_conn = hoppable_clusters.sum(axis=-1)
-            cluster = jax.random.choice(
-                key,
-                a=jnp.arange(rule.clusters.shape[0]),
-                p=hoppable_clusters,
-                replace=True,
-            )
+        # TODO check its replace=True
+        cluster = batch_choice(
+            key, jnp.arange(rule.clusters.shape[0]), hoppable_clusters
+        )
 
-            # sites to be exchanged
-            si = rule.clusters[cluster, 0]
-            sj = rule.clusters[cluster, 1]
+        # sites to be exchanged
+        si = rule.clusters.at[cluster, 0].get(out_sharding=jax.typeof(cluster).sharding)
+        sj = rule.clusters.at[cluster, 1].get(out_sharding=jax.typeof(cluster).sharding)
 
-            σp = σ.at[si].set(σ[sj])
-            σp = σp.at[sj].set(σ[si])
+        σp = σ.at[si].set(σ.at[sj].get(out_sharding=jax.typeof(sj).sharding))
+        σp = σp.at[sj].set(σ.at[si].get(out_sharding=jax.typeof(si).sharding))
 
-            # compute the number of connected sites
-            hoppable_clusters_proposed = _compute_different_clusters_mask(
-                rule.clusters, σp
-            )
-            n_conn_proposed = hoppable_clusters_proposed.sum(axis=-1)
-            log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
-            return σp, log_prob_corr
-
-        return _update_samples(keys, σ, hoppable_clusters)
+        # compute the number of connected sites
+        hoppable_clusters_proposed = _compute_different_clusters_mask(rule.clusters, σp)
+        n_conn_proposed = hoppable_clusters_proposed.sum(axis=-1)
+        log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
+        return σp, log_prob_corr
 
     def __repr__(self):
         return f"ExchangeRule(# of clusters: {len(self.clusters)})"
