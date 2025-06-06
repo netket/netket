@@ -238,7 +238,7 @@ def test_lattice_symmetry(i, name):
         else:
             _ = graph.space_group(group.axial.C(5))
     # Generate space group using the preloaded point group
-    sgb = graph.space_group_builder()
+    sgb = graph.space_group()
 
     if graph._point_group.is_symmorphic:
         # Check if the point permutation group is isomorphic to geometric one
@@ -793,7 +793,7 @@ def test_lattice_k_neighbors():
 
 def test_one_arm_irrep():
     g = nk.graph.Square(6)
-    sgb = g.space_group_builder()
+    sgb = g.space_group()
     # Stars consist of one arm
     np.testing.assert_almost_equal(
         sgb.space_group_irreps(0, 0), sgb.one_arm_irreps(0, 0)
