@@ -19,12 +19,13 @@ import jax.numpy as jnp
 import numpy as np
 from numbers import Number
 
+from jax.experimental.shard import auto_axes
+from jax.sharding import NamedSharding, PartitionSpec as P
 from jax.tree_util import register_pytree_node_class
 
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.types import DType
-from netket.jax.sharding import sharding_decorator
 
 from .base import FermionOperator2ndBase
 from .utils import _is_diag_term
@@ -135,11 +136,14 @@ def _biti(i, N, dtype=np.uint8):
     n, r = divmod(N, bitwidth)
     if r > 0:
         n = n + 1  # padding
-    x = jnp.zeros(n, dtype=dtype)
+
+    out_sharding = jax.typeof(i).sharding
+    out_sharding = NamedSharding(out_sharding.mesh, P(*out_sharding.spec, None))
+    x = jnp.zeros(n, dtype=dtype, device=jax.typeof(i).sharding)
 
     i, ib = jnp.divmod(i, bitwidth)
     ib = ib.astype(dtype)
-    # x is uint there fore we take x.shape[0]-i-1, as -i-1 would underflow
+    # x is uint therefore we take x.shape[0]-i-1, as -i-1 would underflow
     return x.at[i].set(jax.lax.shift_left(dtype(1), ib)), i
 
 
@@ -462,15 +466,21 @@ def get_conn_padded_jax(
 
     n_nonzero = nonzero_mask.sum(axis=-1)
     _nonzero_fn = partial(jnp.where, size=max_conn_size, fill_value=-1)
-    (i_nonzero,) = jnp.vectorize(_nonzero_fn, signature="(i)->(j)")(nonzero_mask)
-    # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-    # (True, True) means that both arguments are sharded across devices.
-    xp_u = sharding_decorator(partial(jnp.take_along_axis, axis=-2), (True, True))(
-        xp_padded, i_nonzero[..., None]
+    _auto_axes = (
+        auto_axes
+        if not jax.sharding.get_abstract_mesh().empty
+        else lambda fun, out_sharding: fun
     )
-    mels_u = sharding_decorator(partial(jnp.take_along_axis, axis=-1), (True, True))(
-        mels_padded, i_nonzero
+    (i_nonzero,) = _auto_axes(
+        jnp.vectorize(_nonzero_fn, signature="(i)->(j)"),
+        out_sharding=jax.typeof(nonzero_mask).sharding,
+    )(nonzero_mask)
+    xp_u = _auto_axes(jnp.take_along_axis, out_sharding=jax.typeof(xp_padded).sharding)(
+        xp_padded, i_nonzero[..., None], axis=-2
     )
+    mels_u = _auto_axes(
+        jnp.take_along_axis, out_sharding=jax.typeof(mels_padded).sharding
+    )(mels_padded, i_nonzero, axis=-1)
 
     # TODO here would be the place to remove / merge repeated mels
     #
