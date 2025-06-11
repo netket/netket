@@ -15,6 +15,7 @@ This version (as all previous versions) are incompatible with Jax 0.6 . A future
 
 ### Improvements
 * When loading log files with {meth}`netket.utils.history.HistoryDict.from_file`, the real and imaginary part are re-joined together to reproduce the original history objects, and `np.nan` are also correctly deserialized [#2025](https://github.com/netket/netket/pull/2025).
+* The functionality of {class}`~netket.graph.SpaceGroupBuilder` is merged into a subclass of {class}`~netket.utils.group.PermutationGroup` called {class}`~netket.graph.SpaceGroup` that also represents the space group itself. The product table of `SpaceGroup` is implemented with reference to its structure, making group-theory calculations much faster than for a generic `PermutationGroup`. Another subclass of `PermutationGroup`, {class}`~netket.graph.TranslationGroup`, is introduced to handle translation groups efficiently. All functionality of {meth}`~netket.graph.Lattice.space_group_builder()` is taken over by {meth}`~netket.graph.Lattice.space_group()`, so the former is deprecated. [#2051](https://github.com/netket/netket/pull/2051).
 
 ### Bug Fixes
 * A minor bug that lead to a wrong calculation of Rhat when using chunking has been addressed [#2013](https://github.com/netket/netket/pull/2013).
