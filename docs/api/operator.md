@@ -80,6 +80,21 @@ Operators and functions to work with fermions are the following:
    fermion.number
 ```
 
+In the experimental submodule there is also an implementation of a particle-number conserving operator which can be more efficient than the generic  {class}`~netket.experimental.operator.FermionOperator2ndJax`.
+
+```{eval-rst}
+.. currentmodule:: netket
+
+.. autosummary::
+   :toctree: _generated/operator
+   :nosignatures:
+
+   experimental.operator.ParticleNumberConservingFermioperator2nd
+   experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd
+   experimental.operator.FermiHubbardJax
+```
+
+
 Note in particular the pyscf module that can be used to convert molecules from pyscf to netket format. The support for PyScf is still experimental, and can be found in [Fermions and PyScf](experimental-fermions-api)
 
 ### Continuous space operators
@@ -122,19 +137,4 @@ Those are easy-to-use constructors for a {class}`~netket.operator.LocalOperator`
    spin.sigmap
    spin.sigmam
 
-```
-
-In the experimental submodule there are also easy-to-use constructors for common {class}`~netket.experimental.operator.FermionOperator2nd`.
-
-```{eval-rst}
-.. currentmodule:: netket
-
-.. autosummary::
-   :toctree: _generated/operator
-   :nosignatures:
-
-   experimental.operator.fermion.create
-   experimental.operator.fermion.destroy
-   experimental.operator.fermion.identity
-   experimental.operator.fermion.number
 ```
