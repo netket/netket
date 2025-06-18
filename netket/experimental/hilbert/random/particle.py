@@ -83,7 +83,7 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
 
 
 @dispatch
-def random_state(hilb: ParticleSet, key, batches: int, *, dtype):
+def random_state(hilb: ParticleSet, key, batches: int, *, dtype):  # noqa: F811
     return random_state(hilb._impl, key, batches, dtype=dtype)
 
 

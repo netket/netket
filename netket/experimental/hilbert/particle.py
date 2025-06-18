@@ -13,6 +13,7 @@
 # limitations under the License.
 from .continuous_hilbert import ContinuousHilbert
 from netket.experimental.geometry import Cell
+from netket.hilbert import TensorHilbert
 
 
 class Particle(ContinuousHilbert):
@@ -93,7 +94,7 @@ class Particle(ContinuousHilbert):
     def __repr__(self):
         return f"Particle(d={len(self.domain)})"
 
-    def __pow__(self, n: int) -> "Particle | TensorGenericHilbert":
+    def __pow__(self, n: int) -> "Particle | TensorHilbert":
         """Return the tensor product of ``n`` identical particles."""
         from functools import reduce
 

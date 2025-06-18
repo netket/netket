@@ -130,6 +130,7 @@ hilberts["SpinOrbitalFermions (higherspin)"] = nk.hilbert.SpinOrbitalFermions(
 # Continuous space
 # no pbc
 geo_default = nkx.geometry.Cell(d=2, L=(np.inf, 10.0), pbc=(False, True))
+part = nkx.hilbert.Particle(geometry=geo_default)
 hilberts["ContinuousSpaceHilbert"] = nkx.hilbert.ParticleSet(
     [nkx.hilbert.Electron() for _ in range(5)],
     geo_default,
