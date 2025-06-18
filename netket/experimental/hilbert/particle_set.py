@@ -10,7 +10,7 @@ import numpy as np
 import netket as nk
 from netket.experimental.geometry import Cell
 from netket.experimental.hilbert import ContinuousHilbert, Particle as _ContParticle
-from netket.hilbert import Spin, DiscreteHilbert
+from netket.hilbert import Spin
 from netket.hilbert.constraint import DiscreteHilbertConstraint
 
 
