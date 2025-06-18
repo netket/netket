@@ -1,3 +1,4 @@
+import functools
 import netket as nk
 import netket.experimental as nkx
 import numpy as np
@@ -82,9 +83,8 @@ def test_continuous():
     pytest.importorskip("qutip")
 
     N = 3
-    hi = nk.experimental.hilbert.Particle(
-        N, geometry=nk.experimental.geometry.Cell(d=1, L=0.0, pbc=True)
-    )
+    part = nkx.hilbert.Particle(geometry=nkx.geometry.Cell(d=1, L=0.0, pbc=True))
+    hi = part**N
     subsys = [0, 1]
 
     with pytest.raises(TypeError):

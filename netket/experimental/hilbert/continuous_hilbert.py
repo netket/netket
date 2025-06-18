@@ -43,3 +43,8 @@ class ContinuousHilbert(AbstractHilbert):
     def domain(self) -> tuple[float, ...]:
         r"""Domain of the continuous variable, specified for each dimension"""
         return self._extent
+
+    @property
+    def spatial_dimension(self) -> int:
+        """Number of spatial dimensions."""
+        return len(self._extent)

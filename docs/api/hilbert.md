@@ -72,6 +72,8 @@ Those classes cannot be directly instantiated, but you can inherit from one of t
 
    ContinuousHilbert
    Particle
+   ParticleSet
+   SpinfulParticle
 
 ```
 

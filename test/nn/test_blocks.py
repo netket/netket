@@ -18,6 +18,7 @@ import jax
 import jax.numpy as jnp
 
 import netket as nk
+import netket.experimental as nkx
 import netket.nn as nknn
 
 
@@ -105,13 +106,14 @@ def test_deepset():
     """Test the permutation invariance"""
     L = (1.0, 1.0)
     n_particles = 6
-    hilb = nk.experimental.hilbert.Particle(
-        N=n_particles,
-        geometry=nk.experimental.geometry.Cell(d=len(L), L=L, pbc=True),
+    cell = nkx.geometry.Cell(d=len(L), L=L, pbc=True)
+    hilb = nkx.hilbert.ParticleSet(
+        [nkx.hilbert.Electron() for _ in range(n_particles)],
+        cell,
     )
-    sdim = len(hilb.domain)
+    sdim = cell.dimension
     key = jax.random.PRNGKey(42)
-    x = hilb.random_state(key, size=1024)
+    x = hilb.random_state(key, size=1024)[:, : n_particles * sdim]
     x = x.reshape(x.shape[0], n_particles, sdim)
 
     xp = jnp.roll(x, 2, axis=-2)  # permute the particles

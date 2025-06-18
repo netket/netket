@@ -52,12 +52,15 @@ class GaussianRule(MetropolisRule):
         n_chains = r.shape[0]
         hilb = sampler.hilbert
 
-        pbc = np.array(hilb.n_particles * hilb.geometry.pbc, dtype=r.dtype)
-        boundary = np.tile(pbc, (n_chains, 1))
+        pos_idx = getattr(hilb, "position_indices", tuple(range(hilb.size)))
+        pbc_vec = np.array(list(hilb.geometry.pbc) * hilb.n_particles, dtype=r.dtype)
 
-        # TODO generalize this to the case of particles with different domains
-        Ls = np.array(hilb.n_particles * hilb.domain, dtype=r.dtype)
-        modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
+        boundary = np.zeros((n_chains, hilb.size), dtype=r.dtype)
+        boundary[:, np.array(pos_idx)] = pbc_vec
+
+        Ls = np.array(list(hilb.domain) * hilb.n_particles, dtype=r.dtype)
+        modulus = np.full((hilb.size,), jnp.inf, dtype=r.dtype)
+        modulus[np.array(pos_idx)] = np.where(np.equal(pbc_vec, False), jnp.inf, Ls)
 
         prop = jax.random.normal(
             key, shape=(n_chains, hilb.size), dtype=r.dtype

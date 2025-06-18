@@ -16,70 +16,85 @@ from netket.experimental.geometry import Cell
 
 
 class Particle(ContinuousHilbert):
-    r"""Hilbert space derived from ContinuousHilbert defining N particles
-    in continuous space with or without periodic boundary conditions."""
+    """Hilbert space of a single particle in continuous space.
+
+    Parameters
+    ----------
+    geometry
+        Simulation cell describing the domain.
+    mass, charge, S, label
+        Optional physical properties attached to the particle. They are not
+        used by the Hilbert space implementation but are carried around for
+        convenience.
+    """
 
     def __init__(
         self,
-        N: int | tuple[int, ...],
         *,
         geometry: Cell,
+        mass: float | None = None,
+        charge: float | None = None,
+        S: float | None = None,
+        label: str | None = None,
     ) -> None:
-        """
-        Constructs new ``Particles`` given specifications
-        of the continuous space they are defined in.
+        """Construct a single particle confined to ``geometry``.
 
         Args:
-            N: Number of particles. If int all have the same spin. If Tuple the entry indicates how many particles
-                there are with a certain spin-projection.
-            geometry: Instance of :class:`~netket.experimental.geometry.Cell` defining the geometry.
+            geometry: Instance of :class:`~netket.experimental.geometry.Cell` defining
+                the simulation box.
         """
-
-        if not hasattr(N, "__len__"):
-            N = (N,)
 
         if not isinstance(geometry, Cell):
             raise TypeError(
                 "`geometry` must be an instance of `netket.experimental.geometry.Cell`."
             )
 
-        self._N = sum(N)
-        self._n_per_spin = N
         self._geometry = geometry
+        self.mass = mass
+        self.charge = charge
+        self.S = S
+        self.label = label
 
         super().__init__(geometry.extent)
 
     @property
     def size(self) -> int:
-        return self._N * len(self.domain)
+        return len(self.domain)
 
     @property
     def n_particles(self) -> int:
-        r"""The number of particles"""
-        return self._N
-
-    @property
-    def n_per_spin(self) -> tuple[int, ...]:
-        r"""Gives the number of particles in a specific spin
-        projection.
-
-        The length of this tuple indicates the total spin whereas
-        the position in the tuple indicates the spin projection.
-
-        Example: (10,5,3) describes 18 particles of total spin 1
-        where 10 of those have spin-projection -1, 5 have
-        spin-projection 0 and 3 have spin-projection 1.
-        """
-        return self._n_per_spin
+        """Number of particles represented by this Hilbert space."""
+        return 1
 
     @property
     def geometry(self) -> Cell:
         """Geometry of the continuous space."""
         return self._geometry
 
+    # ------------------------------------------------------------------
+    # convenience utilities used by samplers
+
+    @property
+    def position_indices(self) -> tuple[int, ...]:
+        """Indices corresponding to the particle coordinates."""
+
+        return tuple(range(self.size))
+
+    @property
+    def positions_hilbert(self) -> "Particle":
+        """Hilbert space describing only the particle coordinates."""
+
+        return self
+
     @property
     def _attrs(self):
-        return (self._N, self.geometry)
+        return (self.geometry, self.mass, self.charge, self.S, self.label)
 
     def __repr__(self):
-        return f"Particle(N={self.n_particles}, d={len(self.domain)})"
+        return f"Particle(d={len(self.domain)})"
+
+    def __pow__(self, n: int) -> "Particle | TensorGenericHilbert":
+        """Return the tensor product of ``n`` identical particles."""
+        from functools import reduce
+
+        return reduce(lambda a, b: a * b, [self] * n)

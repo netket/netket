@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 
 import netket
+import netket.experimental as nkx
 
 import pytest
 
@@ -19,11 +20,11 @@ def v2(x):
 v2_vec = jax.vmap(v2)
 
 
-hilb = netket.experimental.hilbert.Particle(
-    N=1, geometry=netket.experimental.geometry.FreeSpace(d=1)
-)
-hilb2 = netket.experimental.hilbert.Particle(
-    N=2, geometry=netket.experimental.geometry.Cell(d=1, L=5.0, pbc=True)
+hilb = nkx.hilbert.Particle(geometry=nkx.geometry.FreeSpace(d=1))
+cell = nkx.geometry.Cell(d=1, L=5.0, pbc=True)
+hilb2 = nkx.hilbert.ParticleSet(
+    [nkx.hilbert.Electron(), nkx.hilbert.Electron()],
+    cell,
 )
 
 # potential operators

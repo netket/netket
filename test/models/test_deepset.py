@@ -18,6 +18,7 @@ import jax.numpy as jnp
 import jax
 
 import netket as nk
+import netket.experimental as nkx
 import netket.nn as nknn
 
 
@@ -58,10 +59,11 @@ def test_deepset_model_output():
 )
 def test_rel_dist_deepsets(cusp_exponent, L):
     d = len(L) if hasattr(L, "__len__") else 1
-    hilb = nk.experimental.hilbert.Particle(
-        N=2, geometry=nk.experimental.geometry.Cell(d=d, L=L, pbc=True)
+    cell = nkx.geometry.Cell(d=d, L=L, pbc=True)
+    hilb = nkx.hilbert.ParticleSet(
+        [nkx.hilbert.Electron(), nkx.hilbert.Electron()], cell
     )
-    sdim = len(hilb.domain)
+    sdim = cell.dimension
     x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)
     xp = jnp.roll(x, sdim)
     ds = nk.models.DeepSetRelDistance(
@@ -78,10 +80,11 @@ def test_rel_dist_deepsets(cusp_exponent, L):
 
 
 def test_rel_dist_deepsets_error():
-    hilb = nk.experimental.hilbert.Particle(
-        N=2, geometry=nk.experimental.geometry.Cell(d=1, L=1.0, pbc=True)
+    cell = nkx.geometry.Cell(d=1, L=1.0, pbc=True)
+    hilb = nkx.hilbert.ParticleSet(
+        [nkx.hilbert.Electron(), nkx.hilbert.Electron()], cell
     )
-    sdim = len(hilb.domain)
+    sdim = cell.dimension
 
     x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)
     jnp.roll(x, sdim)
@@ -108,9 +111,9 @@ def test_rel_dist_deepsets_error():
 
     with pytest.raises(ValueError):
         ds = nk.models.DeepSetRelDistance(
-            hilbert=nk.experimental.hilbert.Particle(
-                N=2,
-                geometry=nk.experimental.geometry.Cell(d=1, L=1.0, pbc=False),
+            hilbert=nkx.hilbert.ParticleSet(
+                [nkx.hilbert.Electron(), nkx.hilbert.Electron()],
+                nkx.geometry.Cell(d=1, L=1.0, pbc=False),
             ),
             layers_phi=2,
             layers_rho=2,

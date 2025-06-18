@@ -13,10 +13,18 @@
 # limitations under the License.
 
 
-__all__ = ["ContinuousHilbert", "Particle"]
+__all__ = [
+    "ContinuousHilbert",
+    "Particle",
+    "SpinfulParticle",
+    "ParticleSet",
+    "Electron",
+    "Proton",
+]
 
 from .continuous_hilbert import ContinuousHilbert
 from .particle import Particle
+from .particle_set import SpinfulParticle, ParticleSet, Electron, Proton
 from . import random
 from netket.hilbert import SpinOrbitalFermions as _deprecated_SpinOrbitalFermions
 
