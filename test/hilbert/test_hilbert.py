@@ -14,7 +14,7 @@
 
 import itertools
 from math import prod
-from functools import partial, reduce
+from functools import partial
 import netket as nk
 import numpy as np
 import pytest
@@ -683,7 +683,7 @@ def test_tensor_combination():
     assert len(hit._hilbert_spaces) == 5
     assert isinstance(repr(hit), str)
 
-    hi3 = reduce(lambda a, b: a * b, [part] * 5)
+    hi3 = nkx.hilbert.ParticleSet([part] * 5, geo_default)
     hit2 = hi1 * hi3
     assert isinstance(hit2, nk.hilbert.TensorHilbert)
     assert hit2.size == hi1.size + hi3.size
@@ -738,7 +738,7 @@ def test_tensor_combination():
     assert len(hit._hilbert_spaces) == 1
     assert isinstance(repr(hit), str)
 
-    hit = nk.hilbert.TensorHilbert(reduce(lambda a, b: a * b, [part] * 5))
+    hit = nk.hilbert.TensorHilbert(nkx.hilbert.ParticleSet([part] * 5, geo_default))
     assert isinstance(hit, nk.hilbert._tensor_hilbert.TensorGenericHilbert)
     assert len(hit._hilbert_spaces) == 1
     assert isinstance(repr(hit), str)
@@ -751,7 +751,7 @@ def test_errors():
     with pytest.raises(TypeError):
         hi * 1
 
-    hi = reduce(lambda a, b: a * b, [part] * 5)
+    hi = nkx.hilbert.ParticleSet([part] * 5, geo_default)
     with pytest.raises(TypeError):
         1 * hi
     with pytest.raises(TypeError):
