@@ -18,13 +18,7 @@ from functools import partial
 from netket.stats import subtract_mean
 from netket.utils import mpi
 from netket.jax import tree_conj, tree_axpy
-from netket.jax import (
-    scanmap,
-    scan_reduce,
-    scan_append,
-    chunk,
-)
-from netket.jax.sharding import sharding_decorator
+from netket.jax import lax as nklax, vjp_new as nkvjp_new
 
 # Stochastic Reconfiguration with jvp and vjp
 
@@ -93,35 +87,20 @@ def mat_vec_factory(forward_fn, params, model_state, samples, pdf=None):
 # Methods below are needed for the chunked version of QGTOnTheFly
 
 
-@partial(sharding_decorator, sharded_args_tree=(False, False, True, False, False))
 def _O_jvp(forward_fn, params, samples, v, chunk_size):
-    @partial(scanmap, scan_fun=scan_append, argnums=2)
-    def __O_jvp(forward_fn, params, samples, v):
-        # TODO apply the transpose of sum_inplace (allreduce) to the arg v here
-        # in order to get correct transposition with MPI
+    def __O_jvp_single(samples):
         _, res = jax.jvp(lambda p: forward_fn(p, samples), (params,), (v,))
         return res
 
-    samples, unchunk_fn = chunk(samples, chunk_size)
-    res = __O_jvp(forward_fn, params, samples, v)
-    return unchunk_fn(res)
+    res = nklax.map(__O_jvp_single, samples, batch_size=chunk_size)
+    return res
 
 
-@partial(
-    sharding_decorator,
-    sharded_args_tree=(False, False, True, True, False),
-    reduction_op_tree=jax.lax.psum,
-)
 def _O_vjp(forward_fn, params, samples, w, chunk_size):
-    @partial(scanmap, scan_fun=scan_reduce, argnums=(2, 3))
-    def __O_vjp(forward_fn, params, samples, w):
-        _, vjp_fun = jax.vjp(forward_fn, params, samples)
-        res, _ = vjp_fun(w)
-        return res
-
-    samples, _ = chunk(samples, chunk_size)
-    w, _ = chunk(w, chunk_size)
-    res = __O_vjp(forward_fn, params, samples, w)
+    vjp_fun = nkvjp_new(
+        forward_fn, params, samples, argnums=0, batch_argnums=1, batch_size=chunk_size
+    )
+    (res,) = vjp_fun(w)
     return res
 
 
