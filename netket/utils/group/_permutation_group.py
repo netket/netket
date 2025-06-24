@@ -70,7 +70,7 @@ class Permutation(Element):
 
     def __eq__(self, other):
         if isinstance(other, Permutation):
-            return self.permutation_array == other.permutation_array
+            return np.array_equal(self.permutation_array, other.permutation_array)
         else:
             return False
     
@@ -112,7 +112,7 @@ def product(p: Permutation, x: Array):
     # direct indexing fails, so we call np.asarray on it to extract the
     # wrapped array
     # TODO make indexing work with HashableArray directly
-    return x[..., np.asarray(p.inverse_permutation_array)]
+    return x[..., p.inverse_permutation_array]
 
 
 @dispatch
