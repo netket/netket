@@ -55,7 +55,7 @@ class Permutation(Element):
             raise TypeError("Only one among `permutation`, `permutation_array` and `inverse_permutation_array` must be specified.")
 
         if permutation is not None:
-            warn_deprecation("The argument `permutation` is deprecated. In order to clarify notations, you should either pass the array of images `permutation_array` or preimages `inverse_permutation_array`")
+            warn_deprecation("The argument `permutation` is deprecated. In order to clarify notations, you should either pass the array of images `permutation_array` or preimages `inverse_permutation_array`.")
             inverse_permutation_array = permutation
         
         if permutation_array is not None:
@@ -83,7 +83,7 @@ class Permutation(Element):
         return np.asarray(self._inverse_permutation_array)
     
     @property
-    @deprecated("Bye bye")
+    @deprecated("Deprecated in favor of `permutation.inverse_permutation_array` or `permutation.permutation_array`")
     def permutation(self):
         return np.asarray(self._inverse_permutation_array)
 
@@ -91,17 +91,16 @@ class Permutation(Element):
     def _name(self):
         return self.__name
 
-    def __repr__(self): # Should it return the permutation or permutation inverse?
+    def __repr__(self):
         if self._name is not None:
             return self._name
         else:
             return f"Permutation({self.permutation_array.tolist()})"
 
-    @deprecated("Bye bye bye")
+    @deprecated("Deprecated in favor of `permutation.inverse_permutation_array`")
     def __array__(self, dtype: DType = None):
         return np.asarray(self._inverse_permutation_array, dtype)
 
-    @deprecated("Bye bye bye")
     def apply_to_id(self, x: Array):
         """Returns the image of indices `x` under the permutation"""
         return np.argsort(self.permutation)[x]
@@ -119,10 +118,8 @@ def product(p: Permutation, x: Array):
 @dispatch
 def product(p: Permutation, q: Permutation):  # noqa: F811
     name = None if p._name is None and q._name is None else f"{p} @ {q}"
-    # I don't like the __call__ here. I don't like that __call__ is a product. It goes all the way back to SemiGroup.
-    #return Permutation(p(np.asarray(q)), name=name)
-    # If it makes any difference, the product can be taken with the inverses as inverse_permutation_array=q.inverse_permutation_array[p.inverse_permutation_array]
-    return Permutation(permutation_array=p.permutation_array[q.permutation_array], name=name)
+    inverse_permutation_array = q.inverse_permutation_array[p.inverse_permutation_array]
+    return Permutation(inverse_permutation_array=inverse_permutation_array, name=name)
 
 
 @struct.dataclass
