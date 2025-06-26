@@ -137,8 +137,6 @@ def _biti(i, N, dtype=np.uint8):
     if r > 0:
         n = n + 1  # padding
 
-    out_sharding = jax.typeof(i).sharding
-    out_sharding = NamedSharding(out_sharding.mesh, P(*out_sharding.spec, None))
     x = jnp.zeros(n, dtype=dtype, device=jax.typeof(i).sharding)
 
     i, ib = jnp.divmod(i, bitwidth)
