@@ -381,10 +381,9 @@ def test_call_point(grp):
         assert_allclose(gv, g(v), rtol=1e-15)
 
 
-
 # cycle_1 and cycle_2 are deprecated
 def test_permutations():
-    
+
     cycle_array = [1, 2, 0]
 
     cycle = Permutation(permutation_array=cycle_array)

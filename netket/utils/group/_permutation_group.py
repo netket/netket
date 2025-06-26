@@ -30,13 +30,14 @@ from ._semigroup import Element
 
 
 class Permutation(Element):
-    def __init__(self,
-                 permutation: Array | None = None,
-                 *,# change one line somewhere
-                 name: str | None = None,
-                 permutation_array: Array | None = None,
-                 inverse_permutation_array: Array | None = None,
-                 ):
+    def __init__(
+        self,
+        permutation: Array | None = None,
+        *,  # change one line somewhere
+        name: str | None = None,
+        permutation_array: Array | None = None,
+        inverse_permutation_array: Array | None = None,
+    ):
         r"""
         Creates a `Permutation` from either the array of images `permutation_array` or preimages `inverse_permutation_array`. Note that the left action of a permutation on an array `a` is `a[inverse_permutation_array]`.
 
@@ -52,16 +53,22 @@ class Permutation(Element):
 
         arg_list = [permutation, permutation_array, inverse_permutation_array]
         if sum([arg is not None for arg in arg_list]) != 1:
-            raise TypeError("Only one among `permutation`, `permutation_array` and `inverse_permutation_array` must be specified.")
+            raise TypeError(
+                "Only one among `permutation`, `permutation_array` and `inverse_permutation_array` must be specified."
+            )
 
         if permutation is not None:
-            warn_deprecation("The argument `permutation` is deprecated. In order to clarify notations, you should either pass the array of images `permutation_array` or preimages `inverse_permutation_array`.")
+            warn_deprecation(
+                "The argument `permutation` is deprecated. In order to clarify notations, you should either pass the array of images `permutation_array` or preimages `inverse_permutation_array`."
+            )
             inverse_permutation_array = permutation
-        
+
         if permutation_array is not None:
             inverse_permutation_array = np.argsort(permutation_array)
-        
-        self._inverse_permutation_array = HashableArray(np.asarray(inverse_permutation_array))
+
+        self._inverse_permutation_array = HashableArray(
+            np.asarray(inverse_permutation_array)
+        )
 
         self.__name = name
 
@@ -73,17 +80,19 @@ class Permutation(Element):
             return np.array_equal(self.permutation_array, other.permutation_array)
         else:
             return False
-    
+
     @property
     def permutation_array(self):
         return np.asarray(np.argsort(self._inverse_permutation_array))
-    
+
     @property
     def inverse_permutation_array(self):
         return np.asarray(self._inverse_permutation_array)
-    
+
     @property
-    @deprecated("Deprecated in favor of `permutation.inverse_permutation_array` or `permutation.permutation_array`")
+    @deprecated(
+        "Deprecated in favor of `permutation.inverse_permutation_array` or `permutation.permutation_array`"
+    )
     def permutation(self):
         return np.asarray(self._inverse_permutation_array)
 
