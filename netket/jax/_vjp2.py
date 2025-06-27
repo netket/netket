@@ -5,8 +5,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from jax import lax
-from jax.sharding import Mesh, PartitionSpec as P, AxisType
-from jax.experimental.shard import reshard
+from jax.sharding import Mesh, PartitionSpec as P, AxisType, reshard
 from jax.experimental.shard_map import shard_map
 
 from netket.utils.jax import HashablePartial

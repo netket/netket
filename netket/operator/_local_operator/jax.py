@@ -21,8 +21,7 @@ from typing import TYPE_CHECKING
 import jax
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
-from jax.sharding import PartitionSpec as P
-from jax.experimental.shard import auto_axes
+from jax.sharding import PartitionSpec as P, auto_axes
 
 from netket.errors import JaxOperatorNotConvertibleToNumba
 

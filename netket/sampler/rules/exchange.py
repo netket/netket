@@ -17,7 +17,7 @@ import jax
 import numpy as np
 
 from jax import numpy as jnp
-from jax.experimental.shard import auto_axes
+from jax.sharding import auto_axes
 
 from netket.graph import AbstractGraph
 from netket.jax import batch_choice

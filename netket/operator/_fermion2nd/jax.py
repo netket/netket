@@ -19,8 +19,7 @@ import jax.numpy as jnp
 import numpy as np
 from numbers import Number
 
-from jax.experimental.shard import auto_axes
-from jax.sharding import NamedSharding, PartitionSpec as P
+from jax.sharding import NamedSharding, PartitionSpec as P, auto_axes
 from jax.tree_util import register_pytree_node_class
 
 from netket.operator import DiscreteJaxOperator
