@@ -200,8 +200,7 @@ def _to_array_rank(
 
     # gather/replicate
     if allgather and config.netket_experimental_sharding:  # type: ignore
-        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
-        psi = jax.lax.with_sharding_constraint(psi, sharding)
+        raise NotImplementedError # PositionalSharding is deprecated
 
     # remove fake states
     psi = psi[0:n_states]

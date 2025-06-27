@@ -28,7 +28,6 @@ from jax.tree_util import Partial
 from jax.sharding import (
     Mesh,
     PartitionSpec as P,
-    PositionalSharding,
 )
 from jax.experimental.shard_map import shard_map
 
@@ -73,40 +72,7 @@ def distribute_to_devices_along_axis(
         devices = jax.devices()
 
     if config.netket_experimental_sharding:
-        if pad:
-            n = inp_data.shape[0]
-            # pad to the next multiple of device_count
-            device_count = jax.device_count()
-            n_pad = math.ceil(inp_data.shape[0] / device_count) * device_count - n
-            inp_data = jnp.pad(inp_data, ((0, n_pad), (0, 0)))
-            if pad_value is not None and n_pad > 0:
-                inp_data = inp_data.at[-n_pad:].set(pad_value)
-
-        shape = [
-            1,
-        ] * inp_data.ndim
-        shape[axis] = -1
-        sharding = PositionalSharding(devices).reshape(shape)
-        out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
-        # TODO support gspmdsharding in numba wrapper and use this
-        # out_data = jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(
-        #     inp_data, sharding
-        # )
-
-        if pad:
-            if n_pad > 0:  # type: ignore
-                mask = jax.jit(
-                    _prepare_mask,
-                    out_shardings=sharding.reshape(-1),
-                    static_argnums=(0, 1),
-                )(
-                    n, n_pad
-                )  # type: ignore
-            else:
-                mask = None
-            return out_data, mask
-        else:
-            return out_data
+        raise NotImplementedError # TODO; PositionalSharding is deprecated
     else:
         return inp_data
 
@@ -124,13 +90,7 @@ def shard_along_axis(x, axis: int):
         axis: the axis to be sharded
     """
     if config.netket_experimental_sharding and jax.device_count() > 1:
-        # Shard shape is (1, 1, 1, -1, 1, 1) where -1 is the axis
-        shard_shape = [1 for _ in range(x.ndim)]
-        shard_shape[axis] = -1
-
-        x = jax.lax.with_sharding_constraint(
-            x, PositionalSharding(jax.devices()).reshape(tuple(shard_shape))
-        )
+        raise NotImplementedError # PositionalSharding is deprecated
     return x
 
 
@@ -188,25 +148,13 @@ def gather(x):
         raise RuntimeError("gather can only be applied to a jax.Array")
     elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
-    elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
-        # x.sharding.device_set has arbitrary order
-        # Hardcode all devices until I figure out a way to deduce the order from x
-        out_shardings = (
-            PositionalSharding(jax.devices()).replicate().reshape((1,) * x.ndim)
-        )
-        # TODO support gspmdsharding in numba wrapper and use this
-        # out_shardings = x.sharding.get_replicated(jax.devices())
-    elif isinstance(x.sharding, PositionalSharding):
-        out_shardings = x.sharding.replicate()
     else:
         raise NotImplementedError(
-            "Gather is only compatible with PositionalSharding and GSPMDSharding,"
-            f" but array has {x.sharding}. Please open a feature request."
+            "Gather is not implemented for "
+            f" {x.sharding}. Please open a feature request."
         )
+    # TODO just use reshard here
     return jax.jit(_identity, out_shardings=out_shardings)(x)
-    # TODO support gspmdsharding in numba wrapper and use this
-    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
-
 
 SHARD_MAP_STACK_LEVEL: int = 0
 """
