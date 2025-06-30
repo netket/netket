@@ -120,7 +120,8 @@ def _pg_to_permutation(lattice: Lattice, point_group: PointGroup) -> Permutation
 @struct.dataclass
 class TranslationGroup(PermutationGroup):
     """
-    Class to handle translation symmetries of a `Lattice`.
+    Class to handle translation symmetries of a `Lattice`. Corresponds to a representation of the translation group
+    on the given lattice as a permutation group of `N_sites` variables.
 
     Can be used as a `PermutationGroup` representing the translations,
     but the product table is computed much more efficiently than a generic
