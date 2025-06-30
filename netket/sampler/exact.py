@@ -18,9 +18,7 @@ from functools import partial
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
-from jax.sharding import PartitionSpec as P
 
-from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
 from netket.utils.types import PyTree, SeedT, DType
@@ -92,7 +90,15 @@ class ExactSampler(Sampler):
 
     def _reset(self, machine, parameters, state):
         pdf = jnp.absolute(
-            to_array(self.hilbert, machine.apply, parameters, normalize=False)
+            to_array(
+                self.hilbert,
+                machine.apply,
+                parameters,
+                normalize=False,
+                parallel_compute_axes=(
+                    state.out_sharding.spec[0] if state.out_sharding else None
+                ),
+            )
             ** self.machine_pow
         )
         pdf_norm = pdf.sum()
@@ -131,22 +137,8 @@ class ExactSampler(Sampler):
 
         samples = self.hilbert.numbers_to_states(numbers).astype(self.dtype)
 
-        # TODO run the part above in parallel
-        if config.netket_experimental_sharding:
-            samples = jax.lax.with_sharding_constraint(
-                samples,
-                state.out_sharding,
-            )
-
         if return_log_probabilities:
             log_probabilities = jnp.log(state.pdf[numbers]) + jnp.log(state.pdf_norm)
-            if config.netket_experimental_sharding:
-                log_probabilities = jax.lax.with_sharding_constraint(
-                    log_probabilities,
-                    jax.sharding.NamedSharding(
-                        state.out_sharding.mesh, P(state.out_sharding.spec[:-1])
-                    ),
-                )
             return (samples, log_probabilities), state.replace(rng=new_rng)
         else:
             return samples, state.replace(rng=new_rng)

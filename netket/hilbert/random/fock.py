@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 
 import jax
 from jax import numpy as jnp
 from jax.sharding import PartitionSpec as P, NamedSharding
 
-
-from functools import partial
-
+from netket.jax.sharding import canonicalize_sharding
 
 # No longer implemented. See the generic implementation in
 # homogeneous.py
@@ -90,19 +89,8 @@ def _random_states_with_constraint_fock(
     assert n_particles is not None
     hilb_size = len(hilb_shape)
 
-    if out_sharding is not None:
-        if isinstance(out_sharding, NamedSharding):
-            out_sharding = NamedSharding(out_sharding.mesh, P(*out_sharding.spec, None))
-        elif isinstance(out_sharding, P):
-            out_sharding = NamedSharding(
-                jax.sharding.get_abstract_mesh(), P(*out_sharding, None)
-            )
-        else:
-            raise TypeError(
-                f"Unsupported out_sharding type: {type(out_sharding)}. "
-                "Expected NamedSharding or PartitionSpec."
-            )
-    elif not jax.sharding.get_abstract_mesh().empty:
+    out_sharding = canonicalize_sharding(out_sharding, api_name="random_state")
+    if out_sharding is None:
         out_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P(None, None))
 
     # start with all sites empty

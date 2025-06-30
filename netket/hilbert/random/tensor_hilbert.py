@@ -41,8 +41,6 @@ def _make_subfun(hilb, i, sub_hi):
     def subfun(args):
         key, state, index = args
 
-        # jax.experimental.host_callback.id_print(index, text=f"printing subfun_{i}:")
-
         sub_state = state[hilb._cum_indices[i] : hilb._cum_sizes[i]]
         new_sub_state, old_val = flip_state_scalar(
             sub_hi, key, sub_state, index - hilb._cum_indices[i]

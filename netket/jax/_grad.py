@@ -27,7 +27,7 @@ def _ensure_index(x: Any) -> int | tuple[int, ...]:
     try:
         return operator.index(x)
     except TypeError:
-        return tuple(map(operator.index, x))
+        return tuple(safe_map(operator.index, x))
 
 
 def grad(

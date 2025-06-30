@@ -21,6 +21,7 @@ import warnings
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
+from jax.sharding import PartitionSpec as P, reshard
 
 from netket import jax as nkjax
 from netket import stats as nkstats
@@ -62,7 +63,9 @@ def SRt(
     if mode == "complex":
         # Concatenate the real and imaginary derivatives of the ansatz
         # O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
-        O_L = jnp.transpose(O_L, (1, 0, 2)).reshape(-1, O_L.shape[-1])
+        O_L = jnp.transpose(O_L, (1, 0, 2)).reshape(
+            -1, O_L.shape[-1], out_sharding=sharding.get_sharding_spec(O_L, axes=(0, 2))
+        )
 
         dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
     elif mode == "real":
@@ -75,10 +78,13 @@ def SRt(
     # twons, np, n_nodes -> n_nodes, twons, np
     O_LT = jnp.moveaxis(O_LT, -1, 0)
 
-    dv, token = mpi.mpi_gather_jax(dv)
-    dv = dv.reshape(-1, *dv.shape[2:])
-    O_LT, token = mpi.mpi_alltoall_jax(O_LT, token=token)
+    token = None
+    if sharding.is_sharded(dv):
+        dv = reshard(dv, P(None))
+    if sharding.is_sharded(O_LT):
+        O_LT = reshard(O_LT, P(None, None, None))
 
+    dv = dv.reshape(-1, *dv.shape[2:])
     # proc, twons, np -> (proc, twons) np
     O_LT = O_LT.reshape(-1, O_LT.shape[-1])
 

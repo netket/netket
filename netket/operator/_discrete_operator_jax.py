@@ -230,7 +230,13 @@ class DiscreteJaxOperator(DiscreteOperator):
         i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
         j = self.hilbert.states_to_numbers(xp).ravel()
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
+        bcoo = BCOO((a, ij), shape=(n, n))
+
+        # TODO: When jax supports scatter-add sharding rule, we can remove this.
+        # Everything is replicated anyway, so it's just their bug.
+        with jax.sharding.use_mesh(jax.make_mesh((), ())):
+            bcsr = BCSR.from_bcoo(bcoo)
+        return bcsr
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
@@ -267,6 +273,15 @@ class DiscreteJaxOperator(DiscreteOperator):
         return qutip.Qobj(
             sparse_mat_scipy, dims=[list(self.hilbert.shape), list(self.hilbert.shape)]
         )
+
+    def apply(self, v: np.ndarray) -> np.ndarray:
+        op = self.to_linear_operator()
+        if jax.sharding.get_abstract_mesh().empty:
+            return op @ v
+        else:
+            return jax.sharding.auto_axes(lambda A, b: A @ b, out_sharding=jax.P(None))(
+                op, v
+            )
 
     def __matmul__(self, other):
         if isinstance(other, JAXSparse):

@@ -13,11 +13,13 @@
 # limitations under the License.
 
 from functools import partial
+
 import jax
 import numpy as np
 
 from jax import numpy as jnp
-from jax.sharding import auto_axes
+from jax.sharding import PartitionSpec as P, NamedSharding
+from jax.experimental.shard_map import shard_map
 
 from netket.graph import AbstractGraph
 from netket.jax import batch_choice
@@ -120,31 +122,62 @@ class ExchangeRule(MetropolisRule):
         self.clusters = jnp.array(clusters)
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
-        n_chains = σ.shape[0]
+        out_sharding = jax.typeof(σ).sharding
+        if out_sharding.mesh.empty:
+            out_sharding = None
+        elif isinstance(out_sharding, NamedSharding):
+            if out_sharding.spec is None:
+                out_sharding = None
+            P0 = out_sharding.spec[0]
+            if P0 in jax.typeof(σ).vma:
+                out_sharding = None
 
-        # compute a mask for the clusters that can be hopped
-        hoppable_clusters = _compute_different_clusters_mask(rule.clusters, σ)
+        if out_sharding is None:
+            decorator = lambda f: f
+        else:
+            in_specs = jax.tree.map(
+                lambda x: jax.typeof(x).sharding.spec,
+                (rule.clusters, key, σ),
+            )
+            out_specs = (
+                jax.typeof(σ).sharding.spec,
+                P(*jax.typeof(σ).sharding.spec[:-1]),
+            )
 
-        # pick a random cluster, taking into account the mask
-        n_conn = hoppable_clusters.sum(axis=-1)
+            decorator = partial(
+                shard_map,
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=out_sharding.mesh,
+            )
 
-        # TODO check its replace=True
-        cluster = batch_choice(
-            key, jnp.arange(rule.clusters.shape[0]), hoppable_clusters
-        )
+        @decorator
+        def _transition(clusters, key, σ):
+            # compute a mask for the clusters that can be hopped
+            hoppable_clusters = _compute_different_clusters_mask(clusters, σ)
 
-        # sites to be exchanged
-        si = rule.clusters.at[cluster, 0].get(out_sharding=jax.typeof(cluster).sharding)
-        sj = rule.clusters.at[cluster, 1].get(out_sharding=jax.typeof(cluster).sharding)
+            # pick a random cluster, taking into account the mask
+            n_conn = hoppable_clusters.sum(axis=-1)
 
-        σp = σ.at[si].set(σ.at[sj].get(out_sharding=jax.typeof(sj).sharding))
-        σp = σp.at[sj].set(σ.at[si].get(out_sharding=jax.typeof(si).sharding))
+            # TODO check its replace=True
+            cluster = batch_choice(
+                key, jnp.arange(rule.clusters.shape[0]), hoppable_clusters
+            )
 
-        # compute the number of connected sites
-        hoppable_clusters_proposed = _compute_different_clusters_mask(rule.clusters, σp)
-        n_conn_proposed = hoppable_clusters_proposed.sum(axis=-1)
-        log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
-        return σp, log_prob_corr
+            # sites to be exchanged
+            si = clusters[cluster, 0]
+            sj = clusters[cluster, 1]
+
+            σp = σ.at[si].set(σ[sj])
+            σp = σp.at[sj].set(σ[si])
+
+            # compute the number of connected sites
+            hoppable_clusters_proposed = _compute_different_clusters_mask(clusters, σp)
+            n_conn_proposed = hoppable_clusters_proposed.sum(axis=-1)
+            log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
+            return σp, log_prob_corr
+
+        return _transition(rule.clusters, key, σ)
 
     def __repr__(self):
         return f"ExchangeRule(# of clusters: {len(self.clusters)})"
@@ -176,8 +209,8 @@ def compute_clusters(graph: AbstractGraph, d_max: int):
 def _compute_different_clusters_mask(clusters, σ):
     # mask the clusters to include only moves
     # where the dof changes
-    σ_0 = σ.at[..., clusters[:, 0]].get(out_sharding=jax.typeof(σ).sharding)
-    σ_1 = σ.at[..., clusters[:, 1]].get(out_sharding=jax.typeof(σ).sharding)
+    σ_0 = σ[..., clusters[:, 0]]
+    σ_1 = σ[..., clusters[:, 1]]
     if jnp.issubdtype(σ, jnp.bool) or jnp.issubdtype(σ, jnp.integer):
         hoppable_clusters_mask = σ_0 == σ_1
     else:

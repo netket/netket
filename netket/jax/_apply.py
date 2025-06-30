@@ -1,13 +1,41 @@
-from functools import wraps
-
 import jax
 import jax.numpy as jnp
-from jax.sharding import SingleDeviceSharding, NamedSharding
+from jax.sharding import SingleDeviceSharding, NamedSharding, PartitionSpec as P
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
+from jax._src.lax.control_flow.loops import _batch_and_remainder
 
-@wraps(jax.lax.map)
-def map(f, xs, *, batch_size: int | None = None):
+
+def unzip2(xys):
+    """Unzip sequence of length-2 tuples into two tuples."""
+    # Note: we deliberately don't use zip(*xys) because it is lazily evaluated,
+    # is too permissive about inputs, and does not guarantee a length-2 output.
+    xs = []
+    ys = []
+    for x, y in xys:
+        xs.append(x)
+        ys.append(y)
+    return tuple(xs), tuple(ys)
+
+
+def _apply_unsharded(f, xs, *, batch_size):
+    dim_0 = jax.tree.leaves(xs)[0].shape[0]
+    map_xs, remainder_xs = _batch_and_remainder(xs, batch_size=min(batch_size, dim_0))
+    map_ys = jax.lax.map(f, map_xs)
+    flatten = lambda x: x.reshape(-1, *x.shape[2:])
+    if remainder_xs is not None:
+        remainder_ys = f(remainder_xs)
+        ys = tree_map(
+            lambda x, y: jax.lax.concatenate([flatten(x), y], dimension=0),
+            map_ys,
+            remainder_ys,
+        )
+    else:
+        ys = tree_map(flatten, map_ys)
+    return ys
+
+
+def apply(f, xs, *, batch_size: int | None = None):
     """
     Equivalent to jax.lax.map, but supports sharded inputs on the first axis of the
     input pytree.
@@ -44,7 +72,7 @@ def map(f, xs, *, batch_size: int | None = None):
     # If no batch size is specified, just use jax.vmap which ensures the simplest
     # semantics of mapping over the first axis of the input pytree and supports sharding.
     if batch_size is None:
-        return jax.vmap(f)(xs)
+        return f(xs)
 
     # Get each leaf's aval and sharding
     xs_avals = [jax.typeof(leaf) for leaf in xs_flat]
@@ -55,7 +83,7 @@ def map(f, xs, *, batch_size: int | None = None):
     if not jax.sharding.get_abstract_mesh()._any_axis_explicit or all(
         isinstance(s, SingleDeviceSharding) for s in xs_shardings
     ):
-        return jax.lax.map(f, xs, batch_size=batch_size)
+        return _apply_unsharded(f, xs, batch_size=batch_size)
 
     # Mixed sharding types: some Named but not all
     if any(isinstance(s, NamedSharding) for s in xs_shardings) and not all(
@@ -75,7 +103,7 @@ def map(f, xs, *, batch_size: int | None = None):
         specs0 = [s.spec[0] for s in xs_shardings]
         # if *none* of them shard the first axis, direct
         if all(sp is None for sp in specs0):
-            return jax.lax.map(f, xs, batch_size=batch_size)
+            return _apply_unsharded(f, xs, batch_size=batch_size)
         # require *all* to shard the same named axis
         if any(sp is None for sp in specs0) or len({*specs0}) != 1:
             raise ValueError(
@@ -90,8 +118,12 @@ def map(f, xs, *, batch_size: int | None = None):
         def peel_and_move(leaf, sh):
             # leaf.shape = (B, *rest), where B = n_devs * local_batch
             local_shape = sh.shard_shape(leaf.shape)
+            spec = list(sh.spec)
+            spec.insert(1, None)
             # first reshape → (n_devs, local_batch, *rest)
-            y = jnp.reshape(leaf, (n_devs,) + tuple(local_shape))
+            y = jnp.reshape(
+                leaf, (n_devs,) + tuple(local_shape)
+            )  # , out_sharding=P(*spec))
             # then bring the local_batch in front → (local_batch, n_devs, *rest)
             y = jnp.transpose(y, (1, 0) + tuple(range(2, y.ndim)))
             return y
@@ -100,12 +132,20 @@ def map(f, xs, *, batch_size: int | None = None):
         xs_peeled = [peel_and_move(leaf, sh) for leaf, sh in zip(xs_flat, xs_shardings)]
 
         xs_tr = tree_unflatten(xs_tree, xs_peeled)
-        # vmap over the extra axis to emulate lax.map semantics
-        mapped = jax.lax.map(
-            jax.vmap(f),
+
+        # vmap over the extra sharded axis to 'hide' it from the function f
+        def __f_(x):
+            x = jax.tree.map(lambda x: x.transpose(1, 0, *range(2, x.ndim)), x)
+            res = jax.vmap(f, in_axes=0, out_axes=0)(x)
+            return jax.tree.map(lambda x: x.transpose(1, 0, *range(2, x.ndim)), res)
+
+        mapped = _apply_unsharded(
+            # Due to an unresolved bug in jax, the vmap does not work as it induces
+            # sharding on other axes
+            # jax.vmap(f, in_axes=1, out_axes=1), xs_tr, batch_size=batch_size
+            __f_,
             xs_tr,
-            # bug in jax/#29867
-            batch_size=min(batch_size, jax.tree.leaves(xs_tr)[0].shape[0]),
+            batch_size=batch_size,
         )
 
         # inverse reshape+transpose helper
@@ -114,7 +154,10 @@ def map(f, xs, *, batch_size: int | None = None):
             # undo transpose → (n_devs, local_batch, *rest)
             y2 = jnp.transpose(y, (1, 0) + tuple(range(2, y.ndim)))
             # flatten back → (B, *rest)
-            return jnp.reshape(y2, (-1,) + y2.shape[2:])
+            shspec = list(jax.typeof(y2).sharding.spec)
+            shspec.pop(1)
+            res = jnp.reshape(y2, (-1,) + y2.shape[2:], out_sharding=P(*shspec))
+            return res
 
         res = tree_map(reassemble, mapped)
         return res

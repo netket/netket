@@ -21,6 +21,7 @@ import numpy as np
 
 from netket import jax as nkjax
 from netket.utils import config
+from netket.jax.sharding import is_sharded, get_sharding_spec
 
 from . import mean as _mean
 from . import var as _var
@@ -33,9 +34,14 @@ def _get_blocks(data, block_size):
 
     n_blocks = int(np.floor(chain_length / float(block_size)))
 
+    out_sharding = get_sharding_spec(data)
+    if is_sharded(data) and data.shape[0] == 1:
+        if out_sharding[0] is None and out_sharding[1] is not None:
+            out_sharding = jax.P(out_sharding[1], out_sharding[0])
+
     return (
         data[:, 0 : n_blocks * block_size]
-        .reshape((-1, block_size), out_sharding=jax.typeof(data).sharding)
+        .reshape((-1, block_size), out_sharding=out_sharding)
         .mean(axis=1)
     )
 

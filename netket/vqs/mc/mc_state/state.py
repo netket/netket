@@ -211,26 +211,6 @@ class MCState(VariationalState):
         """
         super().__init__(sampler.hilbert)
 
-        # TODO: Move this somewhere else below?
-        # If variables is specified manually, we will enforce that it's leafs are
-        # jax arrays and that it has the good 'replicated sharding'
-        # This assumption is needed for saving and loading of those states, and could
-        # be broken if variables is malformed.
-        # if variables is not None:
-        #     # TODO: Always have shardings...
-        #     if config.netket_experimental_sharding:
-        #         par_sharding = jax.sharding.PositionalSharding(
-        #             jax.devices()
-        #         ).replicate()
-        #     else:
-        #         par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
-        #     variables = jax.tree_util.tree_map(
-        #         lambda x: jax.lax.with_sharding_constraint(
-        #             jnp.asarray(x), par_sharding
-        #         ),
-        #         variables,
-        #     )
-
         # Init type 1: pass in a model
         if model is not None:
             # extract init and apply functions
@@ -322,10 +302,6 @@ class MCState(VariationalState):
 
         dummy_input = self.hilbert.random_state(key, 1, dtype=dtype)
 
-        # if config.netket_experimental_sharding:
-        #     par_sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
-        # else:
-        #     par_sharding = None
         variables = jax.jit(self._init_fun)({"params": key}, dummy_input)
         self.variables = variables
 
@@ -761,13 +737,14 @@ class MCState(VariationalState):
         if not isinstance(self.hilbert, DiscreteHilbert):
             raise TypeError("Cannot convert to array a non-discrete Hilbert space.")
 
-        return nknn.to_array(  # type: ignore[return-value]
+        arr = nknn.to_array(  # type: ignore[return-value]
             self.hilbert,
             self._apply_fun,
             self.variables,
             normalize=normalize,
             chunk_size=self.chunk_size,
         )
+        return np.asarray(arr)
 
     def __repr__(self):
         return (

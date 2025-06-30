@@ -17,7 +17,6 @@ Internal utility functions to support jax sharding natively within netket.
 All functions in here are not part of the public API, internal, and may change without warning.
 """
 
-import math
 from functools import partial, wraps
 import contextlib
 
@@ -32,7 +31,15 @@ from jax.sharding import (
 from jax.experimental.shard_map import shard_map
 
 from netket.utils import config, mpi
-from netket.utils.deprecation import warn_deprecation
+
+from ._sharding_utils import (
+    auto_shard_map as auto_shard_map,
+    get_sharding_spec as get_sharding_spec,
+    is_sharded as is_sharded,
+    check_compatible_sharding as check_compatible_sharding,
+    canonicalize_sharding as canonicalize_sharding,
+    pad_axis_for_sharding as pad_axis_for_sharding,
+)
 
 
 safe_zip = partial(zip, strict=True)
@@ -72,39 +79,10 @@ def distribute_to_devices_along_axis(
         devices = jax.devices()
 
     if config.netket_experimental_sharding:
-        raise NotImplementedError # TODO; PositionalSharding is deprecated
+        return inp_data
+        raise NotImplementedError  # TODO; PositionalSharding is deprecated
     else:
         return inp_data
-
-
-# TODO consider merging this with distribute_to_devices_along_axis
-@partial(jax.jit, static_argnames="axis")
-def shard_along_axis(x, axis: int):
-    """
-    When running with experimental sharding mode, calls
-    :func:`jax.lax.with_sharding_constraint` with a
-    :class:`jax.sharding.PositionalSharding` sharded along the given axis.
-
-    Args:
-        x: An array
-        axis: the axis to be sharded
-    """
-    if config.netket_experimental_sharding and jax.device_count() > 1:
-        raise NotImplementedError # PositionalSharding is deprecated
-    return x
-
-
-@jax.jit
-def with_samples_sharding_constraint(x, shape=None):
-    """
-    ensure the input x is sharded along axis 0 on all devices
-    works both outside and inside of jit
-    """
-    warn_deprecation(
-        "with_samples_sharding_constraint is deprecated in favour of nk.jax.sharding.shard_along_axis(x, axis=0)"
-    )
-
-    return shard_along_axis(x, 0)
 
 
 def extract_replicated(t):
@@ -155,6 +133,7 @@ def gather(x):
         )
     # TODO just use reshard here
     return jax.jit(_identity, out_shardings=out_shardings)(x)
+
 
 SHARD_MAP_STACK_LEVEL: int = 0
 """

@@ -19,6 +19,7 @@ import numpy as np
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import PartitionSpec as P, get_abstract_mesh, auto_axes
 
 from netket.utils.types import Array
 from netket.utils import struct, StaticRange
@@ -160,7 +161,8 @@ def compute_constrained_to_bare_conversion_table(
             to lower the memory cost. The default chunk size has been chosen arbitrarily
             and might need tweaking depending on the particular constraint_fun.
     """
-
+    # TODO: do this in a sharded way, by splitting the hilbert space into chunks
+    # and computing the constraint function on each chunk separately.
     with jax.ensure_compile_time_eval():
         n_chunks = int(np.ceil(hilbert_index.n_states / chunk_size))
         bare_number_chunks = []
@@ -170,7 +172,11 @@ def compute_constrained_to_bare_conversion_table(
             ids = jnp.arange(id_start, id_end, dtype=jnp.int32)
             states = hilbert_index.numbers_to_states(ids)
             is_constrained = constraint_fun(states)
-            (chunk_bare_number,) = jnp.nonzero(is_constrained)
+            if get_abstract_mesh().empty:
+                nonzero = jnp.nonzero
+            else:
+                nonzero = auto_axes(jnp.nonzero, out_sharding=P(None))
+            (chunk_bare_number,) = nonzero(is_constrained)
             bare_number_chunks.append(chunk_bare_number + id_start)
         bare_numbers = jnp.concatenate(bare_number_chunks)
     return bare_numbers

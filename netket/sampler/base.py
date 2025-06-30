@@ -22,9 +22,10 @@ from jax import numpy as jnp
 from flax import linen as nn
 from jax.sharding import PartitionSpec as P
 
+from netket import config
 from netket import jax as nkjax
 from netket.jax import sharding
-from netket import config
+from netket.jax.sharding import canonicalize_sharding
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils import get_afun_if_module, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT, ModuleOrApplyFun
@@ -245,6 +246,8 @@ class Sampler(struct.Pytree):
                 If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
+            out_sharding: The sharding of the output samples. If not specified, it will be along
+                the first axis of the current mesh (if any).
 
         Returns:
             The structure holding the state of the sampler. In general you should not expect
@@ -264,8 +267,10 @@ class Sampler(struct.Pytree):
                 out_sharding = jax.sharding.NamedSharding(
                     mesh, P(samples_axis_name, None)
                 )
-        else:
-            print("Got sharding:", out_sharding)
+        out_sharding = canonicalize_sharding(
+            out_sharding, api_name="Sampler.init_state"
+        )
+        print("Achieved sharding for output samples:", out_sharding)
 
         return self._init_state(
             wrap_afun(machine), parameters, key, out_sharding=out_sharding

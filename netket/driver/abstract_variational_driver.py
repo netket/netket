@@ -198,11 +198,6 @@ class AbstractVariationalDriver(abc.ABC):
         self._optimizer = optimizer
         if optimizer is not None:
             self._optimizer_state = optimizer.init(self.state.parameters)
-            # if config.netket_experimental_sharding:
-            #     self._optimizer_state = jax.lax.with_sharding_constraint(
-            #         self._optimizer_state,
-            #         jax.sharding.PositionalSharding(jax.devices()).replicate(),
-            #     )
 
     @property
     def step_count(self):
@@ -432,12 +427,5 @@ def apply_gradient(optimizer_fun, optimizer_state, dp, params):
     updates, new_optimizer_state = optimizer_fun(dp, optimizer_state, params)
 
     new_params = optax.apply_updates(params, updates)
-
-    # if config.netket_experimental_sharding:
-    #     sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
-    #     new_optimizer_state = jax.lax.with_sharding_constraint(
-    #         new_optimizer_state, sharding
-    #     )
-    #     new_params = jax.lax.with_sharding_constraint(new_params, sharding)
 
     return new_optimizer_state, new_params

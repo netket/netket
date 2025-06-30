@@ -32,8 +32,10 @@ from netket.utils import StaticRange
 import jax
 import jax.numpy as jnp
 from jax.errors import JaxRuntimeError
+from jax.sharding import PartitionSpec as P, reshard
 
-from .. import common
+from test import common
+from test.common_mesh import with_explicit_meshes, with_explicit_mesh
 
 pytestmark = common.skipif_distributed
 
@@ -172,22 +174,56 @@ def test_consistent_size_particle(hi: Particle):
     assert len(hi.domain) == (hi.size // hi.n_particles)
 
 
+@with_explicit_meshes(
+    [
+        None,
+        ((2,), ("S",)),
+    ]
+)
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
-def test_random_states_discrete(hi: DiscreteHilbert):
-    assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
-    assert hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype == np.float32
-    assert (
-        hi.random_state(jax.random.PRNGKey(13), dtype=np.complex64).dtype
-        == np.complex64
-    )
-    assert hi.random_state(jax.random.PRNGKey(13), 10).shape == (10, hi.size)
-    assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
+def test_random_states_discrete(hi: DiscreteHilbert, mesh):
+    assert hi.random_state(jax.random.key(13)).shape == (hi.size,)
+    assert hi.random_state(jax.random.key(13), dtype=np.float32).dtype == np.float32
+    assert hi.random_state(jax.random.key(13), dtype=np.complex64).dtype == np.complex64
+    s = hi.random_state(jax.random.key(13), 10)
+    assert s.shape == (10, hi.size)
+    assert isinstance(
+        s.sharding, jax.sharding.SingleDeviceSharding
+    ) or s.sharding.spec == (None, None)
+    assert hi.random_state(jax.random.key(13), size=10).shape == (10, hi.size)
     # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
     # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
     np.testing.assert_allclose(
-        hi.random_state(jax.random.PRNGKey(13)),
-        jax.jit(hi.random_state)(jax.random.PRNGKey(13)),
+        hi.random_state(jax.random.key(13)),
+        jax.jit(hi.random_state)(jax.random.key(13)),
     )
+
+
+@with_explicit_mesh((2,), ("S",))
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_random_states_discrete_sharding(hi: DiscreteHilbert):
+    mesh = jax.sharding.get_abstract_mesh()
+    shspec = P(mesh.axis_names) if not mesh.empty else None
+
+    # check that the sharding is correct
+    s = hi.random_state(jax.random.key(13), 4, out_sharding=shspec)
+    assert s.sharding.spec == ("S", None)
+
+    # Check that no communication happens
+    @jax.jit
+    def _fun(k):
+        return hi.random_state(k, 4, out_sharding=shspec)
+
+    txt = _fun.lower(jax.random.key(13)).compile().as_text()
+    for o in [
+        "all-reduce",
+        "collective-permute",
+        "all-gather",
+        "all-to-all",
+        "reduce-scatter",
+    ]:
+        for l in txt.split("\n"):
+            assert o not in l
 
 
 @pytest.mark.parametrize("hi", discrete_indexable_hilbert_params)
@@ -248,20 +284,26 @@ def test_particle_fail():
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
-def test_flip_state_discrete(hi: DiscreteHilbert):
+@with_explicit_meshes([None, ((2,), ("S",))])
+def test_flip_state_discrete(hi: DiscreteHilbert, mesh):
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
-    states = hi.random_state(rng.next(), N_batches)
+    shspec = P(mesh.axis_names[0]) if not mesh.empty else None
+
+    states = hi.random_state(rng.next(), N_batches, out_sharding=shspec)
 
     ids = jnp.asarray(
         jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
         dtype=int,
     )
+    if shspec is not None:
+        ids = reshard(ids, P(mesh.axis_names[0]))
 
     new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
 
     assert new_states.shape == states.shape
+    assert new_states.sharding == states.sharding
 
     for state in states:
         assert all(val in hi.states_at_index(i) for i, val in enumerate(state))
@@ -291,22 +333,28 @@ def test_flip_state_particle(hi: Particle):
         nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
 
 
-def test_flip_state_fock_infinite():
+@with_explicit_meshes([None, ((2,), ("S",))])
+def test_flip_state_fock_infinite(mesh):
     hi = Fock(N=2)
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
-    states = hi.random_state(rng.next(), N_batches, dtype=jnp.int64)
+    shspec = P(mesh.axis_names[0]) if not mesh.empty else None
+    states = hi.random_state(
+        rng.next(), N_batches, dtype=jnp.int64, out_sharding=shspec
+    )
 
     ids = jnp.asarray(
         jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
         dtype=int,
     )
+    if shspec is not None:
+        ids = reshard(ids, P(mesh.axis_names[0]))
 
     new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
 
     assert new_states.shape == states.shape
-
+    assert states.sharding == new_states.sharding
     assert np.all(states >= 0)
 
     states_np = np.asarray(states)

@@ -1,12 +1,12 @@
 import pytest
 
 import jax
+from jax.sharding import SingleDeviceSharding
 import numpy as np
 import netket as nk
 import netket.experimental as nkx
 
 from flax import serialization
-from jax.sharding import PositionalSharding, SingleDeviceSharding
 
 
 def _setup(L, alpha=1, reset_chains=False):

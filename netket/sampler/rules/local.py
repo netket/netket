@@ -13,13 +13,13 @@
 # limitations under the License.
 
 import jax
-
+from jax.sharding import NamedSharding
 
 from netket.hilbert.random import flip_state
+from netket.jax.sharding import get_sharding_spec
 
 from .base import MetropolisRule
 
-from jax.sharding import NamedSharding, PartitionSpec as P
 
 class LocalRule(MetropolisRule):
     r"""
@@ -41,12 +41,12 @@ class LocalRule(MetropolisRule):
     def transition(rule, sampler, machine, parameters, state, key, σ):
         key1, key2 = jax.random.split(key, 2)
 
+        out_sharding = get_sharding_spec(σ, axes=0)
+        if out_sharding is not None:
+            out_sharding = NamedSharding(jax.typeof(σ).sharding.mesh, out_sharding)
+
         n_chains = σ.shape[0]
         hilb = sampler.hilbert
-
-        out_sharding = jax.typeof(σ).sharding
-        out_sharding = NamedSharding(out_sharding.mesh, P(out_sharding.spec[:-1]))
-
         indxs = jax.random.randint(
             key1,
             shape=(n_chains,),

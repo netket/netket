@@ -98,7 +98,13 @@ def _O_jvp(forward_fn, params, samples, v, chunk_size):
 
 def _O_vjp(forward_fn, params, samples, w, chunk_size):
     vjp_fun = nkvjp_new(
-        forward_fn, params, samples, argnums=0, batch_argnums=1, batch_size=chunk_size
+        forward_fn,
+        params,
+        samples,
+        argnums=0,
+        batch_argnums=1,
+        batch_size=chunk_size,
+        rc_vjp_is_complex=False,  # We need to project the output back to the same space as input.
     )
     (res,) = vjp_fun(w)
     return res

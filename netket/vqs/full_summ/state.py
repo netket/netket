@@ -17,6 +17,8 @@ from functools import partial
 from typing import Any
 from collections.abc import Callable
 
+import numpy as np
+
 import jax
 from jax import numpy as jnp
 
@@ -113,21 +115,6 @@ class FullSumState(VariationalState):
         """
         super().__init__(hilbert)
         self._model_framework = None
-
-        # if variables is not None:
-        #     # TODO: Always have shardings...
-        #     if config.netket_experimental_sharding:
-        #         par_sharding = jax.sharding.PositionalSharding(
-        #             jax.devices()
-        #         ).replicate()
-        #     else:
-        #         par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
-        #     variables = jax.tree_util.tree_map(
-        #         lambda x: jax.lax.with_sharding_constraint(
-        #             jnp.asarray(x), par_sharding
-        #         ),
-        #         variables,
-        #     )
 
         # Init type 1: pass in a model
         if model is not None:
@@ -333,6 +320,8 @@ class FullSumState(VariationalState):
                 allgather=allgather,
                 chunk_size=self.chunk_size,
             )
+            if allgather:
+                self._array = np.asarray(self._array)
 
         if normalize:
             arr = self._array
@@ -345,6 +334,8 @@ class FullSumState(VariationalState):
                 allgather=allgather,
                 chunk_size=self.chunk_size,
             )
+            if allgather:
+                arr = np.asarray(arr)
 
         return arr  # type: ignore
 

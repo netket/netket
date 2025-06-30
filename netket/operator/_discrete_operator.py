@@ -19,6 +19,7 @@ from numba import jit
 from scipy.sparse import csr_matrix as _csr_matrix
 from scipy.sparse import issparse
 
+
 from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator

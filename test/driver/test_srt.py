@@ -97,6 +97,7 @@ def _setup(*, complex=True, machine=None):
     return H, opt, vstate
 
 
+# TODO: add sharding tests
 def test_SRt_vs_linear_solver_complexpars():
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR

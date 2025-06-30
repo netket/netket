@@ -17,11 +17,11 @@ import warnings
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import PartitionSpec as P
 
 from netket import config
 from netket.errors import UnoptimisedCustomConstraintRandomStateMethodWarning
 from netket.hilbert import HomogeneousHilbert
+from netket.jax.sharding import get_sharding_spec
 from netket.utils.dispatch import dispatch
 from netket.hilbert.constraint import SumConstraint, SumOnPartitionConstraint
 
@@ -176,13 +176,11 @@ def flip_state_scalar(hilb: HomogeneousHilbert, key, σ, idx):  # noqa: F811
     if local_dimension < 2:
         return σ, σ[idx]
 
-    σ_sharding = jax.typeof(σ).sharding
-    if isinstance(σ_sharding, jax.sharding.SingleDeviceSharding):
+    out_sharding = get_sharding_spec(σ)
+    if len(jax.typeof(σ).vma) > 0:
+        # TODO: cleanup this in future jax version
+        # If we are inside a shard_map, disable sharding because of a jax bug
         out_sharding = None
-    else:
-        out_sharding = jax.sharding.NamedSharding(
-            σ_sharding.mesh, P(σ_sharding.spec[:-1])
-        )
 
     # Get site to flip, convert that individual site to indices
     σi_old = σ.at[idx].get(out_sharding=out_sharding)
@@ -193,7 +191,7 @@ def flip_state_scalar(hilb: HomogeneousHilbert, key, σ, idx):  # noqa: F811
         xi_new = jnp.where(xi_old == 1, 0, 1).astype(xi_old.dtype)
     else:
         # compute flipped index
-        r = jax.random.uniform(key)
+        r = jax.random.uniform(key, out_sharding=out_sharding)
         xi_new = jax.numpy.floor(r * (local_dimension - 1))
         xi_new = xi_new + (xi_new >= xi_old)
         xi_new = xi_new.astype(xi_old.dtype)

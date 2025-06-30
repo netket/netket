@@ -155,6 +155,9 @@ class DiscreteHilbert(AbstractHilbert):
         if not self.is_indexable:
             raise RuntimeError("The hilbert space is too large to be indexed.")
 
+        if isinstance(numbers, (list, tuple)):
+            numbers = jnp.array(numbers, dtype=np.int32)
+
         numbers = numbers.astype(np.int32)
 
         # equinox.error_if would cause a global reduction to check if one of the many

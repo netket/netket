@@ -142,11 +142,11 @@ def local_value_kernel_chunked(
         σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
         mels = mels.reshape(σp.shape[:-1])
 
-    logpsi_chunked = nkjax.vmap_chunked(
-        partial(logpsi, pars), in_axes=0, chunk_size=chunk_size
+    logpsi_chunked = lambda s: nkjax.lax.map(
+        partial(logpsi, pars), s, batch_size=chunk_size
     )
-    N = σ.shape[-1]
 
+    N = σ.shape[-1]
     logpsi_σ = logpsi_chunked(σ.reshape((-1, N))).reshape(σ.shape[:-1] + (1,))
     logpsi_σp = logpsi_chunked(σp.reshape((-1, N))).reshape(σp.shape[:-1])
 
@@ -216,10 +216,10 @@ def local_value_kernel_jax_chunked(
     """
     if chunk_size >= O.max_conn_size:
         local_value_kernel = lambda s: local_value_kernel_jax(logpsi, pars, s, O)
-        local_value_chunked = nkjax.apply_chunked(
+        local_value_chunked = lambda s: nkjax.lax.apply(
             local_value_kernel,
-            in_axes=0,
-            chunk_size=max(1, chunk_size // O.max_conn_size),
+            s,
+            batch_size=max(1, chunk_size // O.max_conn_size),
         )
     else:
         local_value_chunked = lambda s: local_value_kernel_jax_conn_chunked(

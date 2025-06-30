@@ -21,9 +21,10 @@ from typing import TYPE_CHECKING
 import jax
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
-from jax.sharding import PartitionSpec as P, auto_axes
+from jax.experimental.shard_map import shard_map
 
 from netket.errors import JaxOperatorNotConvertibleToNumba
+from netket.jax.sharding import get_sharding_spec, is_sharded
 
 from .base import LocalOperatorBase
 from .compile_helpers import pack_internals_jax
@@ -49,8 +50,7 @@ def _state_to_number(x_i, basis_i):
         # special case for empty operator
         if len(basis_i) == 0:
             return jnp.zeros((), dtype=basis_i.dtype)
-        out_sharding = None if jax.typeof(x_i).sharding.mesh.empty else P()
-        return basis_i[k] * x_i.at[acting_size_i - k - 1].get(out_sharding=out_sharding)
+        return basis_i[k] * x_i[acting_size_i - k - 1]
 
     # vmap over sites we are acting on, computing the contribution to the total int,
     # then taking the sum
@@ -70,8 +70,7 @@ def _index_at(diag_mels, i):
     # special case for empty operator
     if len(diag_mels) == 0:
         return jnp.zeros((), dtype=diag_mels.dtype)
-    out_sharding = None if jax.typeof(diag_mels).sharding.mesh.empty else P()
-    return diag_mels.at[i].get(out_sharding=out_sharding)
+    return diag_mels[i]
 
 
 @partial(jax.jit, static_argnums=(0, 1))
@@ -83,13 +82,14 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
 
     (
         acting_on_,
-        n_conns_,  # : list[jax.Array]
+        n_conns_,
         diag_mels_,
         x_prime_,
         mels_,
         basis_,
         constant,
     ) = op_args
+
     n_groups = len(acting_on_)
     ncmax_ = [m.shape[2] for m in mels_]
 
@@ -101,8 +101,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     for k in range(n_groups):
         # extract the local states of all sites the operators are acting on
         # and compute the corresponding number / row index
-        x_val = x.at[:, acting_on_[k]].get(out_sharding=jax.typeof(x).sharding)
-        i_row_.append(_state_to_number(x_val, basis_[k]))
+        i_row_.append(_state_to_number(x[:, acting_on_[k]], basis_[k]))
     ###
     # compute the number of connected elements
     #
@@ -142,51 +141,24 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         # (not all operators have the same number nonzeros per row, and the
         # arrays we use here are padded to the max within each group)
         # this mask is False whenever it's just padding
-        conn_maskall = (
-            jnp.arange(ncmax_[k])[None, None]
-            < n_conns_[k].at[a, i].get(out_sharding=jax.typeof(i).sharding)[:, :, None]
-        )
+        conn_maskall = jnp.arange(ncmax_[k])[None, None] < n_conns_[k][a, i][:, :, None]
 
         # set mels in the padding to 0
         # TODO check this is necessary (shouldn't it already be 0 ???)
-        out_sharding = None if jax.sharding.get_abstract_mesh().empty else P(None, None)
-        mels_offdiag = mels_[k].at[a, i].get(out_sharding=out_sharding) * conn_maskall
+        mels_offdiag = mels_[k][a, i] * conn_maskall
         #
         # compute xp
         #
         # we start from the xp for the sites the operator is acting on
-        i_shard = jax.typeof(i).sharding.spec
-        out_sharding = (
-            None if jax.sharding.get_abstract_mesh().empty else P(*i_shard[:-1])
-        )
-        new = (
-            x_prime_[k].at[a, i].get(out_sharding=out_sharding).astype(x.dtype)
-        )  # (Ns, terms, ncmax, nsitesactiongon)
+        new = x_prime_[k][a, i].astype(x.dtype)  # (Ns, terms, ncmax, nsitesactiongon)
         acting_on = acting_on_[k]
-        old = x.at[:, acting_on].get(
-            out_sharding=jax.typeof(x).sharding
-        )  # (Ns, terms, nsitesactiongon)
+        old = x[:, acting_on]  # (Ns, terms, nsitesactiongon)
         old = jnp.broadcast_to(old[:, :, None, :], new.shape)
-        mask = jnp.broadcast_to(
-            conn_maskall[:, :, :, None],
-            new.shape,
-            out_sharding=jax.typeof(new).sharding,
-        )
+        mask = jnp.broadcast_to(conn_maskall[:, :, :, None], new.shape)
         # select it only if we are not padding, otherwise keep old
         new_x_ao = jax.lax.select(mask, new, old)
         # now insert the local states into the full x
-        if jax.sharding.get_abstract_mesh().empty:
-            # if we are not sharded, we can just use the old x
-            # otherwise we need to set the new x_ao in the right place
-            xp_offdiag = _set_at(
-                x,
-                new_x_ao,
-                acting_on,
-            )
-        else:
-            xp_offdiag = auto_axes(_set_at)(
-                x, new_x_ao, acting_on, out_sharding=jax.typeof(new_x_ao).sharding
-            )
+        xp_offdiag = _set_at(x, new_x_ao, acting_on)
 
         mels_offdiag_.append(mels_offdiag)
         xp_offdiag_.append(xp_offdiag)
@@ -223,22 +195,10 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         else:
             mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
         # move nonzero mels to the front and keep exactly max_conn_size
-        _auto_axes = (
-            auto_axes
-            if not jax.sharding.get_abstract_mesh().empty
-            else lambda fun, out_sharding: fun
-        )
-        (ind,) = _auto_axes(
-            jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1)),
-            out_sharding=jax.typeof(mask).sharding,
-        )(mask)
-        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        xp = _auto_axes(
-            jax.vmap(partial(jnp.take, axis=0)), out_sharding=jax.typeof(xp).sharding
-        )(xp, ind)
-        mels = _auto_axes(
-            jax.vmap(partial(jnp.take, axis=0)), out_sharding=jax.typeof(mels).sharding
-        )(mels, ind)
+        (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(mask)
+
+        xp = jax.vmap(partial(jnp.take, axis=0))(xp, ind)
+        mels = jax.vmap(partial(jnp.take, axis=0))(mels, ind)
 
         return xp, mels, n_conn_total
 
@@ -305,11 +265,32 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         return xp, mels, n_conn
 
     def get_conn_padded(self, x):
-        xp, mels, _ = self._get_conn_padded(x)
+        if is_sharded(x):
+            in_specs = get_sharding_spec((self, x))
+            # the outputs are xp, mels and nconn which have 3,2,1 dimensions.
+            out_specs = get_sharding_spec((x, x, x.sum(axis=-1)))
+            xp, mels, _ = shard_map(
+                lambda op, x: op._get_conn_padded(x),
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(self, x)
+        else:
+            xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
     def n_conn(self, x):
-        _, _, n_conn = self._get_conn_padded(x)
+        if is_sharded(x):
+            in_specs = get_sharding_spec((self, x))
+            out_specs = get_sharding_spec((x, x, x.sum(axis=-1)))
+            _, _, n_conn = shard_map(
+                lambda op, x: op._get_conn_padded(x),
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(self, x)
+        else:
+            _, _, n_conn = self._get_conn_padded(x)
         return n_conn
 
     def tree_flatten(self):

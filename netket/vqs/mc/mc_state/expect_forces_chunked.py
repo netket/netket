@@ -125,29 +125,23 @@ def forces_expect_hermitian_chunked(
     O_loc -= Ō.mean
 
     # Then compute the vjp.
-    # Code is a bit more complex than a standard one because we support
-    # mutable state (if it's there)
     if mutable is False:
-        σr = σ.reshape((4, -1, *σ.shape[1:]))
-        σr = jnp.transpose(σr, (1,0,)+ tuple(range(2, σr.ndim)))
-        vjp_fun_chunked = nkjax.vjp_chunked(
-            lambda w, σ: model_apply_fun({"params": w, **model_state}, σ),
+        vjp_fun_chunked = nkjax.vjp_new(
+            lambda w, ms, σ: model_apply_fun({"params": w, **ms}, σ),
             parameters,
-            σr,
-            conjugate=True,
-            chunk_size=chunk_size,
-            chunk_argnums=1,
-            nondiff_argnums=1,
+            model_state,
+            σ,
+            argnums=0,
+            batch_argnums=2,
+            batch_size=chunk_size,
         )
         new_model_state = None
     else:
         raise NotImplementedError
-    O_loc = O_loc.reshape((4, -1, *O_loc.shape[1:]))
-    O_loc = jnp.transpose(O_loc, (1,0,)+ tuple(range(2, O_loc.ndim)))
-
-    Ō_grad = vjp_fun_chunked(
+    (Ō_grad,) = vjp_fun_chunked(
         (jnp.conjugate(O_loc) / n_samples),
-    )[0]
+    )
+    Ō_grad = jax.tree.map(jnp.conj, Ō_grad)
 
     Ō_grad, _ = mpi.mpi_sum_jax(Ō_grad)
 

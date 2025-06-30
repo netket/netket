@@ -17,10 +17,12 @@ from typing import Union
 
 
 import jax
-from jax.sharding import PartitionSpec
+from jax.sharding import PartitionSpec as P, reshard
+from jax.experimental.shard_map import shard_map
 import numpy as np
 
 from netket.utils.dispatch import dispatch
+from netket.jax.sharding import is_sharded, get_sharding_spec, check_compatible_sharding
 
 Dim = Union[
     tuple[int], tuple[int, int], tuple[int, int, int], tuple[int, int, int, int]
@@ -68,7 +70,7 @@ def random_state(hilb, key, size: None, *, dtype, out_sharding):  # noqa: F811
 @dispatch
 def random_state(hilb, key, size: Dim, *, dtype, out_sharding):  # noqa: F811
     n = int(np.prod(size))
-    if out_sharding is None or isinstance(out_sharding, PartitionSpec):
+    if out_sharding is None or isinstance(out_sharding, P):
         return random_state(
             hilb, key, n, dtype=dtype, out_sharding=out_sharding
         ).reshape(*size, -1)
@@ -130,10 +132,26 @@ def flip_state_scalar(hilb, key, state, indx):
 
 # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
 @dispatch
-# @partial(sharding_decorator, sharded_args_tree=(False, "key", True, True))
 def flip_state_batch(hilb, key, states, indxs):
+    assert states.ndim == 2, "states must be a 2D array (batch_size, hilbert_size)"
+    assert indxs.ndim == 1, "indxs must be a 1D array (batch_size,)"
+
+    check_compatible_sharding(states, indxs, axes=0)
+
     keys = jax.random.split(key, states.shape[0])
-    res = jax.vmap(flip_state_scalar, in_axes=(None, 0, 0, 0), out_axes=0)(
-        hilb, keys, states, indxs
+
+    _flip_state_scalar_vmap = jax.vmap(
+        lambda *args: flip_state_scalar(hilb, *args), in_axes=(0, 0, 0), out_axes=(0, 0)
     )
-    return res
+    if is_sharded(states):
+        keys = reshard(keys, get_sharding_spec(indxs))
+        in_specs = get_sharding_spec((keys, states, indxs))
+        out_specs = get_sharding_spec((states, indxs))
+        _flip_state_scalar_vmap = shard_map(
+            _flip_state_scalar_vmap,
+            in_specs=in_specs,
+            out_specs=out_specs,
+            mesh=jax.typeof(states).sharding.mesh,
+        )
+
+    return _flip_state_scalar_vmap(keys, states, indxs)

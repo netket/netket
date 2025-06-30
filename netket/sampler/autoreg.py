@@ -19,7 +19,6 @@ import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
-from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.sampler import Sampler, SamplerState
 from netket.utils.types import PRNGKeyT, DType
@@ -153,14 +152,19 @@ class ARDirectSampler(Sampler):
 
         # Initialize a buffer for `σ` before generating a batch of samples
         # The result should not depend on its initial content
+        if state.out_sharding is not None:
+            n_dev = state.out_sharding.mesh.shape[state.out_sharding.spec[0]]
+            if self.n_batches * chain_length % n_dev != 0:
+                raise ValueError(
+                    "The number of samples must be divisible by the number of devices. "
+                    f"Got {chain_length = } * {self.n_batches = } = {self.n_batches * chain_length}, "
+                    f"which is not divisible by {n_dev = }."
+                )
         σ = jnp.zeros(
             (self.n_batches * chain_length, self.hilbert.size),
             dtype=self.dtype,
+            device=state.out_sharding,
         )
-
-        if config.netket_experimental_sharding:
-            σ = jax.lax.with_sharding_constraint(σ, state.out_sharding)
-
         # Initialize `cache` before generating a batch of samples,
         # even if `variables` is not changed and `reset` is not called
         cache = self._init_cache(model, σ, key_init)
@@ -173,6 +177,5 @@ class ARDirectSampler(Sampler):
         indices = model.apply(variables, indices, method=model.reorder)
         (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
         σ = σ.reshape((self.n_batches, chain_length, self.hilbert.size))
-
         new_state = state.replace(key=new_key)
         return σ, new_state

@@ -138,6 +138,7 @@ def _bcast_key(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     return key
 
 
+# TODO: write some tests supporting different sharding modes and shard map
 def batch_choice(key, a, p):
     """
     Batched version of `jax.random.choice`.
@@ -153,8 +154,18 @@ def batch_choice(key, a, p):
       The generated samples as an 1D array of shape `(batch_size,)`.
     """
     p_cumsum = p.cumsum(axis=1)
-    out_sharding=jax.typeof(p_cumsum).sharding
-    r = p_cumsum.at[:, -1:].get(out_sharding=out_sharding) * jax.random.uniform(key, shape=(p.shape[0], 1), out_sharding=out_sharding)
+    out_sharding = jax.typeof(p_cumsum).sharding
+    if isinstance(out_sharding, jax.sharding.NamedSharding) and all(
+        s is None for s in out_sharding.spec
+    ):
+        out_sharding = None
+
+    r = p_cumsum.at[:, -1:].get(out_sharding=out_sharding) * jax.random.uniform(
+        key, shape=(p.shape[0], 1), out_sharding=out_sharding
+    )
     indices = (r > p_cumsum).sum(axis=1)
-    out = a.at[indices].get(out_sharding=jax.typeof(indices).sharding)
+    if out_sharding is not None:
+        out = a.at[indices].get(out_sharding=jax.typeof(indices).sharding)
+    else:
+        out = a[indices]
     return out

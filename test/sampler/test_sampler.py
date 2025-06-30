@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flax
-from jax import numpy as jnp
-
 import pytest
 
 import numpy as np
@@ -22,6 +19,8 @@ from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
 
 import jax
 from jax.nn.initializers import normal
+from jax import numpy as jnp
+import flax
 
 import netket as nk
 from netket import config
@@ -31,7 +30,8 @@ from netket.utils import array_in, mpi
 from netket.jax.sharding import device_count_per_rank
 
 
-from .. import common
+from test import common
+from test.common_mesh import with_explicit_meshes
 
 pytestmark = common.skipif_mpi
 
@@ -460,28 +460,39 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+@with_explicit_meshes([None, ((2,), ("S")), ((2, 2), ("S", "R"))])
+@pytest.mark.parametrize(
+    "sampler",
+    [
+        pytest.param(
+            sampl,
+            id=name,
+        )
+        for name, sampl in samplers.items()
+        if not isinstance(sampl, (nk.sampler.MetropolisNumpy, nk.sampler.ExactSampler))
+    ],
 )
-@pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
-def test_sampling_sharded_not_communicating(
-    sampler_c, model_and_weights, set_pdf_power
-):
-    if isinstance(sampler_c, nk.sampler.MetropolisNumpy):
-        pytest.skip("Not jit compatible")
-    if isinstance(sampler_c, nk.sampler.ExactSampler):
-        pytest.xfail("Error logic communicates")
-
-    sampler = set_pdf_power(sampler_c)
+def test_sampling_sharded_not_communicating(sampler, model_and_weights, mesh):
+    # if isinstance(sampler_c, nk.sampler.ExactSampler):
+    #    pytest.xfail("Error logic communicates")
     hi = sampler.hilbert
     ma, w = model_and_weights(hi, sampler)
-    sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
-    samples, sampler_state = sampler.sample(ma, w, state=sampler_state, chain_length=1)
+    sampler_state = sampler.init_state(
+        ma, w, seed=SAMPLER_SEED
+    )  # , out_sharding=P("S"))
+    samples, sampler_state = sampler.sample(ma, w, state=sampler_state, chain_length=2)
+
+    if not mesh.empty:
+        if samples.shape[0] == 1:
+            # autoregressive is complex
+            assert samples.sharding.spec[1] == mesh.axis_names[0]
+        else:
+            assert samples.sharding.spec[0] == mesh.axis_names[0]
 
     sample_jit = jax.jit(
         sampler.sample, static_argnums=0, static_argnames="chain_length"
     )
-    complied = sample_jit.lower(ma, w, state=sampler_state, chain_length=1).compile()
+    complied = sample_jit.lower(ma, w, state=sampler_state, chain_length=2).compile()
     txt = complied.as_text()
     for o in [
         "all-reduce",

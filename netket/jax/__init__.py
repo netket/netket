@@ -68,7 +68,6 @@ from . import sharding
 from . import lax as lax
 from ._vjp2 import vjp as vjp_new
 
-
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__, ignore=("sharding", "lax"))
