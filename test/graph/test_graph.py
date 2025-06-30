@@ -238,11 +238,11 @@ def test_lattice_symmetry(i, name):
         else:
             _ = graph.space_group(group.axial.C(5))
     # Generate space group using the preloaded point group
-    sgb = graph.space_group_builder()
+    sgb = graph.space_group()
 
     if graph._point_group.is_symmorphic:
         # Check if the point permutation group is isomorphic to geometric one
-        np.testing.assert_almost_equal(
+        np.testing.assert_equal(
             sgb.point_group.product_table, graph._point_group.product_table
         )
     else:
@@ -256,7 +256,7 @@ def test_lattice_symmetry(i, name):
     pt = np.kron(pt_1d, ones) * 3 + np.kron(ones, pt_1d)
     if dimension[i] == 3:
         pt = np.kron(pt, ones) * 3 + np.kron(np.ones((9, 9), dtype=int), pt_1d)
-    np.testing.assert_almost_equal(pt, sgb.translation_group().product_table)
+    np.testing.assert_equal(pt, sgb.translation_group().product_table)
 
     # ensure that all space group symmetries are unique and automorphisms
     # don't do this for pyrochlore that takes >10x longer than any other one
@@ -277,6 +277,22 @@ def test_lattice_symmetry(i, name):
     irrep_from_sg = sgb.space_group.character_table()
     for irrep in irrep_from_lg:
         assert np.any(np.all(np.isclose(irrep, irrep_from_sg), axis=1))
+
+
+@pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
+def test_space_group_pt(i, name):
+    graph = symmetric_graphs[i]
+
+    # Test space group product table against PermutationGroup
+    sg = graph.space_group()
+    sgp = group.PermutationGroup(sg.elems, degree=sg.degree)
+    np.testing.assert_equal(sg.product_table, sgp.product_table)
+
+    # Test translation group inverses and product table against PermutationGroup
+    tg = graph.translation_group()
+    tgp = group.PermutationGroup(tg.elems, degree=tg.degree)
+    np.testing.assert_equal(tg.inverse, tgp.inverse)
+    np.testing.assert_equal(tg.product_table, tgp.product_table)
 
 
 def coord2index(xs, length):
@@ -793,7 +809,7 @@ def test_lattice_k_neighbors():
 
 def test_one_arm_irrep():
     g = nk.graph.Square(6)
-    sgb = g.space_group_builder()
+    sgb = g.space_group()
     # Stars consist of one arm
     np.testing.assert_almost_equal(
         sgb.space_group_irreps(0, 0), sgb.one_arm_irreps(0, 0)
