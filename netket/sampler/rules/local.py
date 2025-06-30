@@ -19,6 +19,7 @@ from netket.hilbert.random import flip_state
 
 from .base import MetropolisRule
 
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 class LocalRule(MetropolisRule):
     r"""
@@ -43,12 +44,15 @@ class LocalRule(MetropolisRule):
         n_chains = σ.shape[0]
         hilb = sampler.hilbert
 
+        out_sharding = jax.typeof(σ).sharding
+        out_sharding = NamedSharding(out_sharding.mesh, P(out_sharding.spec[:-1]))
+
         indxs = jax.random.randint(
             key1,
             shape=(n_chains,),
             minval=0,
             maxval=hilb.size,
-            out_sharding=state.out_sharding,
+            out_sharding=out_sharding,
         )
         σp, _ = flip_state(hilb, key2, σ, indxs)
 
