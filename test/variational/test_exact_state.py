@@ -141,7 +141,7 @@ def test_qutip_conversion(vstate):
     assert q_obj.type == "ket"
     assert len(q_obj.dims) == 2
     assert q_obj.dims[0] == list(vstate.hilbert.shape)
-    assert q_obj.dims[1] == [1 for i in range(vstate.hilbert.size)]
+    assert q_obj.dims[1] == [1]
 
     assert q_obj.shape == (vstate.hilbert.n_states, 1)
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
