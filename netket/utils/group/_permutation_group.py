@@ -41,7 +41,7 @@ class Permutation(Element):
         r"""
         Creates a `Permutation` from either the array of images
         `permutation_array` or preimages `inverse_permutation_array`.
-        
+
         Exactly one argument among `permutation_array` and
         `inverse_permutation_array` (and the deprecated argument `permutation`)
         must be specified.
