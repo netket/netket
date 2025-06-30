@@ -107,8 +107,7 @@ class PermutationGroup(FiniteGroup):
 
     def __eq__(self, other: "PermutationGroup") -> bool:
         if isinstance(other, PermutationGroup):
-            if self.shape == other.shape:
-                return np.all(self.to_array() == other.to_array())
+            return np.array_equal(self.to_array(), other.to_array())
         return False
 
     def _canonical(self, x: Element) -> Array:

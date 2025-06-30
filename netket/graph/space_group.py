@@ -132,8 +132,6 @@ class TranslationGroup(PermutationGroup):
     """The lattice whose translation group is represented."""
     axes: tuple[int]
     """Axes translations along which are represented by the group."""
-    group_shape: tuple[int]
-    """Size of the translation group along each axis"""
 
     def __repr__(self):
         return type(self).__name__ + f"(lattice:\n{self.lattice}\naxes:{self.axes})"
@@ -151,19 +149,22 @@ class TranslationGroup(PermutationGroup):
 
         # compute translation group by axis and overall
         translation_by_axis = [_translations_along_axis(lattice, i) for i in axes]
-        shape = tuple(len(x) for x in translation_by_axis)
         translation_group = reduce(PermutationGroup.__matmul__, translation_by_axis)
 
         return (), dict(
             lattice=lattice,
             axes=tuple(axes),
-            group_shape=shape,
             elems=translation_group.elems,
             degree=lattice.n_nodes,
         )
 
     def __hash__(self):
         return super().__hash__()
+
+    @property
+    def group_shape(self) -> Array:
+        shape = [l if p else 1 for (l, p) in zip(self.lattice.extent, self.lattice.pbc)]
+        return np.asarray(shape)
 
     @struct.property_cached
     def inverse(self) -> Array:
