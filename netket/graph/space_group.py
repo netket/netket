@@ -214,7 +214,8 @@ class SpaceGroup(PermutationGroup):
     point_group: PermutationGroup
     """The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
 
-    Group elements are listed in the order they appear in `self._point_group`."""
+    Group elements are listed in the order they appear in `self._point_group`.
+    Computed from `_point_group` upon construction, must not be changed after."""
     full_translation_group: PermutationGroup
 
     def __pre_init__(
