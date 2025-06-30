@@ -23,7 +23,7 @@ from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
 from netket.utils.dispatch import dispatch
 
-from netket.utils import warn_deprecation, deprecated
+from netket.utils import warn_deprecation, deprecated, deprecated_new_name
 
 from ._group import FiniteGroup
 from ._semigroup import Element
@@ -39,27 +39,42 @@ class Permutation(Element):
         inverse_permutation_array: Array | None = None,
     ):
         r"""
-        Creates a `Permutation` from either the array of images `permutation_array` or preimages `inverse_permutation_array`. Note that the left action of a permutation on an array `a` is `a[inverse_permutation_array]`.
+        Creates a `Permutation` from either the array of images
+        `permutation_array` or preimages `inverse_permutation_array`.
+        
+        Exactly one argument among `permutation_array` and
+        `inverse_permutation_array` (and the deprecated argument `permutation`)
+        must be specified.
+
+        Note that the left action of a permutation on an array `a` is
+        `a[inverse_permutation_array]`.
 
         Args:
-            permutation: (deprecated) 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
+            permutation: (deprecated) 1D array listing
+                :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
             name: Optional, custom name for the permutation.
-            permutation_array: 1D array listing :math:`g(x)` for all :math:`0\le x \le N-1`.
-            inverse_permutation_array: 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
+            permutation_array: 1D array listing
+                :math:`g(x)` for all :math:`0\le x \le N-1`.
+            inverse_permutation_array: 1D array listing
+                :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
 
         Returns:
-            A `Permutation` object encoding the same permutation.
+            A `Permutation` object that encodes the specified permutation.
         """
 
         arg_list = [permutation, permutation_array, inverse_permutation_array]
         if sum([arg is not None for arg in arg_list]) != 1:
-            raise TypeError(
-                "Only one among `permutation`, `permutation_array` and `inverse_permutation_array` must be specified."
+            raise ValueError(
+                "Exactly one argument among `permutation`, `permutation_array` "
+                "and `inverse_permutation_array` must be specified."
             )
 
         if permutation is not None:
             warn_deprecation(
-                "The argument `permutation` is deprecated. In order to clarify notations, you should either pass the array of images `permutation_array` or preimages `inverse_permutation_array`."
+                "The argument `permutation` is deprecated.\n\n"
+                "In order to clarify notations, you should either pass "
+                "the array of images `permutation_array` or "
+                "preimages `inverse_permutation_array`."
             )
             inverse_permutation_array = permutation
 
@@ -91,7 +106,8 @@ class Permutation(Element):
 
     @property
     @deprecated(
-        "Deprecated in favor of `permutation.inverse_permutation_array` or `permutation.permutation_array`"
+        "Deprecated in favor of `permutation.inverse_permutation_array` or "
+        "`permutation.permutation_array`"
     )
     def permutation(self):
         return np.asarray(self._inverse_permutation_array)
@@ -106,7 +122,7 @@ class Permutation(Element):
         else:
             return f"Permutation({self.permutation_array.tolist()})"
 
-    @deprecated("Deprecated in favor of `permutation.inverse_permutation_array`")
+    @deprecated_new_name("permutation.inverse_permutation_array")
     def __array__(self, dtype: DType = None):
         return np.asarray(self._inverse_permutation_array, dtype)
 
