@@ -391,6 +391,13 @@ def test_permutations():
     cycle_2 = Permutation(permutation=np.argsort(cycle_array))
     cycle_3 = Permutation(inverse_permutation_array=np.argsort(cycle_array))
 
+    # Wrong ways of instantiating a permutation
+    with pytest.raises(ValueError):
+        Permutation()
+    with pytest.raises(ValueError):
+        Permutation(permutation_array=cycle_array,
+                    inverse_permutation_array=np.argsort(cycle_array))
+
     transposition = Permutation(permutation_array=[1, 0, 2])
 
     assert not cycle == transposition
