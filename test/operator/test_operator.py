@@ -85,7 +85,7 @@ sx = [[0, 1], [1, 0]]
 sy = [[0, -1.0j], [1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
+hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
 for name, LocalOp_impl in [
     ("numba", nk.operator.LocalOperatorNumba),
