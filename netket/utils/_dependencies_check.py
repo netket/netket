@@ -51,7 +51,7 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_nam
     )
 
 
-if not module_version("jax") >= (0, 4, 35):  # pragma: no cover
+if not module_version("jax") >= (0, 7, 0):  # pragma: no cover
     cur_version = version_string("jax")
     raise ImportError(create_msg("jax", cur_version, "0.4.35"))
 
