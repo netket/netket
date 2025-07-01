@@ -19,13 +19,11 @@ import math
 import jax
 import jax.numpy as jnp
 
-from netket.utils import config
 from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi, timing
 from netket.utils.types import Array, PyTree
-from netket.jax import (
-    tree_to_real,
-)
+from netket.utils.deprecation import warn_deprecation
+from netket.jax import tree_to_real
 
 from . import jacobian_dense
 from . import jacobian_pytree
@@ -56,7 +54,7 @@ def jacobian(
     center: bool = False,
     dense: bool = False,
     _sqrt_rescale: bool = False,
-    _axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    _axis_0_is_sharded: bool | None = None,  # type: ignore[attr-defined]
 ) -> PyTree:
     r"""
     Computes the jacobian of a NN model with respect to its parameters. This function
@@ -306,6 +304,11 @@ def jacobian(
     """
     if samples.ndim != 2:
         raise ValueError("samples must be a 2D array")
+
+    if _axis_0_is_sharded is not None:
+        warn_deprecation(
+            "axis_0_is_sharded is deprecated, and it is instead handled automatically."
+        )
 
     if model_state is None:
         model_state = {}

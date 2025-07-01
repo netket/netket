@@ -24,6 +24,7 @@ from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
 from netket.hilbert.homogeneous import HomogeneousHilbert
+from netket.jax.sharding import auto_axes_maybe, get_sharding_spec
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
 from netket.nn import activation as nkactivation
@@ -150,7 +151,9 @@ class AbstractARNN(nn.Module):
 
         log_psi = self.conditionals_log_psi(inputs)
 
-        log_psi = jnp.take_along_axis(log_psi, idx, axis=-1)
+        log_psi = auto_axes_maybe(
+            jnp.take_along_axis, out_sharding=get_sharding_spec(idx)
+        )(log_psi, idx, axis=-1)
         log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
         return log_psi
 

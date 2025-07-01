@@ -1,8 +1,9 @@
+from functools import wraps
 import numpy as np
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import PartitionSpec, get_abstract_mesh, AxisType
+from jax.sharding import PartitionSpec, get_abstract_mesh, AxisType, auto_axes
 from jax.sharding import PartitionSpec as P, NamedSharding, SingleDeviceSharding
 from jax.experimental.shard_map import shard_map
 
@@ -202,6 +203,45 @@ def canonicalize_sharding(
                 f" {sharding.mesh._name_to_type[s]}."
             )
     return sharding
+
+
+@wraps(auto_axes)
+def auto_axes_maybe(
+    fun, *, axes: str | tuple[str, ...] | None = None, out_sharding=None
+):
+    """
+    Equivalent to `jax.sharding.auto_axes` but will not raise an error if the mesh is empty.
+    Instead, it will call the function directly without sharding.
+
+    Args:
+        fun: The function to be decorated.
+        ...
+    """
+
+    @wraps(fun)
+    def wrapper(*args, **kwargs):
+        if out_sharding is None:
+            if "out_sharding" in kwargs:
+                _out_sharding = kwargs.pop("out_sharding")
+            else:
+                _out_sharding = out_sharding
+        else:
+            _out_sharding = out_sharding
+
+        cur_mesh = jax.sharding.get_abstract_mesh()
+        sharding_mesh = jax.make_mesh((), ())
+        for i in jax.tree.leaves(_out_sharding):
+            if isinstance(i, NamedSharding):
+                sharding_mesh = i.mesh.abstract_mesh
+
+        if sharding_mesh.empty and cur_mesh.empty:
+            return fun(*args, **kwargs)
+        else:
+            return auto_axes(fun, out_sharding=_out_sharding, axes=axes)(
+                *args, **kwargs
+            )
+
+    return wrapper
 
 
 def auto_sharded_function_wrapper(fun, out_specs_fun, *args):

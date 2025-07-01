@@ -473,8 +473,12 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
     ],
 )
 def test_sampling_sharded_not_communicating(sampler, model_and_weights, mesh):
-    # if isinstance(sampler_c, nk.sampler.ExactSampler):
-    #    pytest.xfail("Error logic communicates")
+    if (
+        isinstance(sampler_c, nk.sampler.MetropolisSampler)
+        and isinstance(sampler_c.rule, nk.sampler.rules.ExchangeRule)
+        and not mesh.empty
+    ):
+        pytest.xfail("Bug in jax breaking Exchange Sampelr")
     hi = sampler.hilbert
     ma, w = model_and_weights(hi, sampler)
     sampler_state = sampler.init_state(

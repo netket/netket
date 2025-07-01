@@ -23,6 +23,7 @@ from jax.experimental.sparse import JAXSparse, BCOO, BCSR
 
 from netket.operator import AbstractOperator, DiscreteOperator
 from netket.utils.optional_deps import import_optional_dependency
+from netket.jax.sharding import auto_axes_maybe
 
 
 class DiscreteJaxOperator(DiscreteOperator):
@@ -276,12 +277,7 @@ class DiscreteJaxOperator(DiscreteOperator):
 
     def apply(self, v: np.ndarray) -> np.ndarray:
         op = self.to_linear_operator()
-        if jax.sharding.get_abstract_mesh().empty:
-            return op @ v
-        else:
-            return jax.sharding.auto_axes(lambda A, b: A @ b, out_sharding=jax.P(None))(
-                op, v
-            )
+        return auto_axes_maybe(lambda A, b: A @ b, out_sharding=jax.P(None))(op, v)
 
     def __matmul__(self, other):
         if isinstance(other, JAXSparse):

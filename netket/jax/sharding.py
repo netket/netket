@@ -39,6 +39,7 @@ from ._sharding_utils import (
     check_compatible_sharding as check_compatible_sharding,
     canonicalize_sharding as canonicalize_sharding,
     pad_axis_for_sharding as pad_axis_for_sharding,
+    auto_axes_maybe as auto_axes_maybe,
 )
 
 

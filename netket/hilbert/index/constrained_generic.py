@@ -19,8 +19,9 @@ import numpy as np
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import PartitionSpec as P, get_abstract_mesh, auto_axes
+from jax.sharding import PartitionSpec as P
 
+from netket.jax.sharding import auto_axes_maybe
 from netket.utils.types import Array
 from netket.utils import struct, StaticRange
 from netket.utils.dispatch import dispatch
@@ -172,10 +173,7 @@ def compute_constrained_to_bare_conversion_table(
             ids = jnp.arange(id_start, id_end, dtype=jnp.int32)
             states = hilbert_index.numbers_to_states(ids)
             is_constrained = constraint_fun(states)
-            if get_abstract_mesh().empty:
-                nonzero = jnp.nonzero
-            else:
-                nonzero = auto_axes(jnp.nonzero, out_sharding=P(None))
+            nonzero = auto_axes_maybe(jnp.nonzero, out_sharding=P(None))
             (chunk_bare_number,) = nonzero(is_constrained)
             bare_number_chunks.append(chunk_bare_number + id_start)
         bare_numbers = jnp.concatenate(bare_number_chunks)
