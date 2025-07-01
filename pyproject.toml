@@ -39,7 +39,7 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.3.37, <0.6",
+    "jax>=0.7.0",
     "equinox>=0.11.3",
     "flax>=0.10.2",
     "orjson>=3.4, <4",
@@ -100,9 +100,11 @@ version-file = "netket/_version.py"
 [tool.uv]
 dev-dependencies = [
     "netket[dev,docs]",
-    "jax>=0.4.33",
     "ipykernel>=6.20",
 ]
+
+[tool.uv.sources]
+jax = { git = "https://github.com/jax-ml/jax" }
 
 # Development tools
 
@@ -149,6 +151,7 @@ filterwarnings = [
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
     "ignore::netket.errors.UndeclaredSpinOderingWarning",
     "ignore::netket.errors.UnoptimalSRtWarning",
+    "ignore::netket.errors.InitializePeriodicLatticeOnSmallLatticeWarning",
 ]
 testpaths = ["test"]
 
