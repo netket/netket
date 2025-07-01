@@ -30,7 +30,7 @@ from netket.experimental.hilbert import Particle
 
 import jax
 import jax.numpy as jnp
-from jax._src.lib import xla_extension
+from jax.errors import JaxRuntimeError
 
 
 from .. import common
@@ -772,16 +772,16 @@ def test_hilbert_states_outside_range_errors():
         # TODO: single host this can work
         pytest.xfail("not implemented")
 
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: Numbers outside the range of allowed states.
         hi.numbers_to_states(-1)
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: Numbers outside the range of allowed states.
         hi.numbers_to_states(10000)
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: States outside the range of allowed states.
         hi.states_to_numbers(jnp.array([0, 4]))
-    with pytest.raises(xla_extension.XlaRuntimeError):
+    with pytest.raises(JaxRuntimeError):
         # XlaRuntimeError: States do not fulfill constraint.
         hi.states_to_numbers(jnp.array([0, 3]))
 

@@ -1119,11 +1119,8 @@ def concrete_or_error(force, value, error_class, *args, **kwargs):
     import jax
     from jax.core import concrete_or_error
 
-    # TODO: remove once we require jax >= 0.5.0
-    if hasattr(jax.errors, "ConcretizationTypeError"):
-        from jax.errors import ConcretizationTypeError
-    else:
-        from jax.core import ConcretizationTypeError
+    from jax.errors import ConcretizationTypeError
+    from jax.core import concrete_or_error
 
     try:
         return concrete_or_error(
