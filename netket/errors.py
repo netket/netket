@@ -1117,7 +1117,8 @@ def concrete_or_error(force, value, error_class, *args, **kwargs):
         error type constructor.
     """
 
-    from jax.core import ConcretizationTypeError, concrete_or_error
+    from jax.errors import ConcretizationTypeError
+    from jax.core import concrete_or_error
 
     try:
         return concrete_or_error(

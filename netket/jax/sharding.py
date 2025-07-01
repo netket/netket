@@ -29,7 +29,6 @@ from jax.tree_util import Partial
 from jax.sharding import (
     Mesh,
     PartitionSpec as P,
-    PositionalSharding,
 )
 from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
@@ -39,6 +38,7 @@ from netket.utils import config
 from netket.utils.deprecation import warn_deprecation
 
 
+safe_zip = partial(zip, strict=True)
 _identity = lambda x: x
 
 
