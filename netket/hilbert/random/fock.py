@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 
 import jax
 from jax import numpy as jnp
+from jax.sharding import PartitionSpec as P, NamedSharding
 
-
-from functools import partial
-
+from netket.jax.sharding import canonicalize_sharding
 
 # No longer implemented. See the generic implementation in
 # homogeneous.py
@@ -74,8 +74,13 @@ def _choice(key, p):
     return (cs * p) == jax.lax.floor(r).astype(cs.dtype)[..., None]
 
 
-@partial(jax.jit, static_argnames=("n_particles", "hilb_shape", "shape", "dtype"))
-def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dtype):
+@partial(
+    jax.jit,
+    static_argnames=("n_particles", "hilb_shape", "shape", "dtype", "out_sharding"),
+)
+def _random_states_with_constraint_fock(
+    n_particles, hilb_shape, key, shape, dtype, out_sharding
+):
     # Distribute hilb.n_particles onto hilb.size sites
     # and put at most hilb.shape-1 particles in every site.
     # Note that this is NOT a uniform distribution over the
@@ -84,13 +89,21 @@ def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dty
     assert n_particles is not None
     hilb_size = len(hilb_shape)
 
-    # start with all sites empty
-    init = jnp.zeros(shape + (hilb_size,), dtype=dtype)
+    out_sharding = canonicalize_sharding(out_sharding, api_name="random_state")
+    if out_sharding is None:
+        out_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P(None, None))
 
+    # start with all sites empty
+    init = jnp.zeros(shape + (hilb_size,), dtype=dtype, device=out_sharding)
     # if constrained and uniformly n_max == 2, use a trick to sample quickly
     if set(hilb_shape) == {2}:
+        init = init.at[..., :n_particles].set(1)
         return jax.random.permutation(
-            key, init.at[..., :n_particles].set(1), axis=-1, independent=True
+            key,
+            init,
+            axis=-1,
+            independent=True,
+            out_sharding=out_sharding,
         )
 
     # shape is per site n_max

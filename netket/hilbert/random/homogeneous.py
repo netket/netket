@@ -21,6 +21,7 @@ import jax.numpy as jnp
 from netket import config
 from netket.errors import UnoptimisedCustomConstraintRandomStateMethodWarning
 from netket.hilbert import HomogeneousHilbert
+from netket.jax.sharding import get_sharding_spec, drop_sharding_if_auto
 from netket.utils.dispatch import dispatch
 from netket.hilbert.constraint import SumConstraint, SumOnPartitionConstraint
 
@@ -28,27 +29,41 @@ from .fock import _random_states_with_constraint_fock
 
 
 @dispatch
-def random_state(hilb: HomogeneousHilbert, key, batches: int, *, dtype=None):
-    return random_state(hilb, hilb.constraint, key, batches, dtype=dtype)
+def random_state(
+    hilb: HomogeneousHilbert, key, batches: int, *, dtype=None, out_sharding=None
+):
+    return random_state(
+        hilb, hilb.constraint, key, batches, dtype=dtype, out_sharding=out_sharding
+    )
 
 
 @dispatch
-@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+@partial(jax.jit, static_argnames=("hilb", "batches", "dtype", "out_sharding"))
 def random_state(  # noqa: F811
-    hilb: HomogeneousHilbert, constraint: None, key, batches: int, *, dtype=None
+    hilb: HomogeneousHilbert,
+    constraint: None,
+    key,
+    batches: int,
+    *,
+    dtype=None,
+    out_sharding=None,
 ):
     if dtype is None:
         dtype = hilb._local_states.dtype
 
     x_ids = jax.random.randint(
-        key, shape=(batches, hilb.size), minval=0, maxval=len(hilb._local_states)
+        key,
+        shape=(batches, hilb.size),
+        minval=0,
+        maxval=len(hilb._local_states),
+        out_sharding=out_sharding,
     )
     res = hilb.local_indices_to_states(x_ids, dtype=dtype)
     return res
 
 
 @dispatch
-@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+@partial(jax.jit, static_argnames=("hilb", "batches", "dtype", "out_sharding"))
 def random_state(  # noqa: F811
     hilb: HomogeneousHilbert,
     constraint: SumConstraint,
@@ -56,6 +71,7 @@ def random_state(  # noqa: F811
     batches: int,
     *,
     dtype=None,
+    out_sharding=None,
 ):
     local_states = hilb._local_states
     if dtype is None:
@@ -67,13 +83,13 @@ def random_state(  # noqa: F811
     ) // local_states.step
 
     samples_indx = _random_states_with_constraint_fock(
-        n_excitations, hilb.shape, key, (batches,), dtype
+        n_excitations, hilb.shape, key, (batches,), dtype, out_sharding
     )
     return hilb.local_indices_to_states(samples_indx, dtype=dtype)
 
 
 @dispatch
-@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+@partial(jax.jit, static_argnames=("hilb", "batches", "dtype", "out_sharding"))
 def random_state(  # noqa: F811
     hilb: HomogeneousHilbert,
     constraint: SumOnPartitionConstraint,
@@ -81,6 +97,7 @@ def random_state(  # noqa: F811
     batches: int,
     *,
     dtype=None,
+    out_sharding=None,
 ):
     if dtype is None:
         dtype = hilb._local_states.dtype
@@ -105,6 +122,7 @@ def random_state(  # noqa: F811
             keys[i],
             (batches,),
             dtype,
+            out_sharding=out_sharding,
         )
         for i in range(n_subspaces)
     ]
@@ -115,9 +133,15 @@ def random_state(  # noqa: F811
 
 
 @dispatch
-@partial(jax.jit, static_argnames=("hilb", "batches", "dtype"))
+@partial(jax.jit, static_argnames=("hilb", "batches", "dtype", "out_sharding"))
 def random_state(  # noqa: F811
-    hilb: HomogeneousHilbert, constraint, key, batches: int, *, dtype=None
+    hilb: HomogeneousHilbert,
+    constraint,
+    key,
+    batches: int,
+    *,
+    dtype=None,
+    out_sharding=None,
 ):
     if config.netket_random_state_fallback_warning:
         warnings.warn(
@@ -125,7 +149,9 @@ def random_state(  # noqa: F811
         )
 
     keys = jax.random.split(key, batches + 1)
-    states = random_state(hilb, None, keys[0], batches, dtype=dtype)
+    states = random_state(
+        hilb, None, keys[0], batches, dtype=dtype, out_sharding=out_sharding
+    )
 
     def _loop_until_ok(state, key):
         def __body(args):
@@ -150,8 +176,14 @@ def flip_state_scalar(hilb: HomogeneousHilbert, key, σ, idx):  # noqa: F811
     if local_dimension < 2:
         return σ, σ[idx]
 
+    out_sharding = get_sharding_spec(σ)
+    if len(jax.typeof(σ).vma) > 0:
+        # TODO: cleanup this in future jax version
+        # If we are inside a shard_map, disable sharding because of a jax bug
+        out_sharding = None
+
     # Get site to flip, convert that individual site to indices
-    σi_old = σ[idx]
+    σi_old = σ.at[idx].get(out_sharding=out_sharding)
     xi_old = hilb.states_to_local_indices(σi_old)
 
     if local_dimension == 2:
@@ -159,7 +191,7 @@ def flip_state_scalar(hilb: HomogeneousHilbert, key, σ, idx):  # noqa: F811
         xi_new = jnp.where(xi_old == 1, 0, 1).astype(xi_old.dtype)
     else:
         # compute flipped index
-        r = jax.random.uniform(key)
+        r = jax.random.uniform(key, out_sharding=drop_sharding_if_auto(out_sharding))
         xi_new = jax.numpy.floor(r * (local_dimension - 1))
         xi_new = xi_new + (xi_new >= xi_old)
         xi_new = xi_new.astype(xi_old.dtype)
