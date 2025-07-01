@@ -20,14 +20,12 @@ import pytest
 from netket.hilbert import (
     DiscreteHilbert,
     HomogeneousHilbert,
-    CustomHilbert,
     DoubledHilbert,
     Fock,
     Qubit,
     Spin,
 )
 from netket.experimental.hilbert import Particle
-from netket.utils import StaticRange
 
 import jax
 import jax.numpy as jnp
