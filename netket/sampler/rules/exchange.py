@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
-from netket.jax.sharding import sharding_decorator
 import jax
 import numpy as np
 
@@ -126,8 +124,6 @@ class ExchangeRule(MetropolisRule):
 
         keys = jnp.asarray(jax.random.split(key, n_chains))
 
-        # we use shard_map to avoid the all-gather coming from the batched jnp.take / indexing
-        @partial(sharding_decorator, sharded_args_tree=(True, True, True))
         @jax.vmap
         def _update_samples(key, σ, hoppable_clusters):
             # pick a random cluster, taking into account the mask
