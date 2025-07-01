@@ -16,6 +16,7 @@ import jax
 import jax.numpy as jnp
 
 from netket.utils import struct
+from netket.utils.static_range import StaticRange
 from netket.utils.types import Array
 
 from .base import HilbertIndex, is_indexable
@@ -31,7 +32,7 @@ class UniformTensorProductHilbertIndex(HilbertIndex):
     """
 
     # tensor product with uniform local space
-    local_index: HilbertIndex
+    local_index: HilbertIndex | StaticRange
     size: int = struct.field(pytree_node=False)
 
     @property
