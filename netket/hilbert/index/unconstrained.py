@@ -45,7 +45,9 @@ class LookupTableHilbertIndex(HilbertIndex):
 
     @jax.jit
     def numbers_to_states(self, numbers: Array) -> Array:
-        return self.all_states()[numbers]
+        return (
+            self.all_states().at[numbers].get(out_sharding=jax.typeof(numbers).sharding)
+        )
 
     @jax.jit
     def states_to_numbers(self, states: Array) -> Array:
