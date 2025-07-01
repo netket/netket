@@ -311,7 +311,8 @@ def test_repr(op):
 @with_explicit_meshes([None, ((2,), ("S",))])
 def test_get_conn_padded(op, shape, dtype, mesh):
     hi = op.hilbert
-    if hasattr(op, 'reset'): op._reset()
+    if hasattr(op, "reset"):
+        op._reset()
 
     if mesh.empty:
         out_sharding = None

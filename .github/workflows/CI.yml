@@ -38,32 +38,27 @@ jobs:
           submodules: true
           fetch-tags: true
 
-      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v5
+      - name: Set up uv and Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install packages
+      
+      - name: Install Jax from git and other dependencies
         run: |
-          pip install uv
-          uv pip install git+https://github.com/jax-ml/jax
-          if [ -z "${{ matrix.mpi }}" ]; then
-            uv pip install --system -e ".[dev,extra,pyscf]"
-          else
-            uv pip install --system -e ".[dev,mpi]"
-          fi
-          uv pip install --system dm-haiku
-
+          uv add git+https://github.com/jax-ml/jax
+          uv sync
+      
       - name: Netket tests
         # if Main tests but not MPI
         if: ${{ matrix.main_tests }} 
         run: |
           export JAX_NUM_CPU_DEVICES=4
-          pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 test
+          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 test
 
       - name: NetKet docstring tests
         if: ${{ matrix.doctest }}
         run: |
-          pytest --doctest-continue-on-failure --doctest-modules netket/
+          uv run pytest --doctest-continue-on-failure --doctest-modules netket/
 
       - name: Upload coverage reports to Codecov
         if: always()
