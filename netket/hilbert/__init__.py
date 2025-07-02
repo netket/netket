@@ -33,22 +33,6 @@ from . import tensor_hilbert_discrete
 
 from . import random
 
-# Deprecated bindings
-from .custom_hilbert import CustomHilbert as _deprecated_CustomHilbert
-
-_deprecations = {
-    # September 2024, NetKet 3.14
-    "CustomHilbert": (
-        "netket.hilbert.CustomHilbert is deprecated: use custom constraints with "
-        "existing hilbert spaces instead, or define your own hilbert space class.",
-        _deprecated_CustomHilbert,
-    ),
-}
-
-from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _hide_submodules
 
-__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
-
-del _deprecation_getattr

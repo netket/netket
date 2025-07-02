@@ -36,7 +36,7 @@ sz = [[1, 0], [0, -1]]
 sm = [[0, 0], [1, 0]]
 sp = [[0, 1], [0, 0]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(8)])
-hi = nk.hilbert.CustomHilbert(local_states=nk.utils.StaticRange(-1, 2, 2), N=g.n_nodes)
+hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
 
 sy_sparse = sparse.csr_matrix(sy)
 
