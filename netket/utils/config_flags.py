@@ -79,7 +79,7 @@ class Config:
         runtime=False,
         callback=None,
         lazy=False,
-    ):  # noqa: W0613
+    ):
         """
         Defines a new flag
 
