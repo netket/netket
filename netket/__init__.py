@@ -51,6 +51,7 @@ from . import (
     sampler,
     vqs,
     optimizer,
+    symmetry,
 )
 
 
