@@ -46,11 +46,16 @@ jobs:
       - name: Install packages
         run: |
           pip install uv
-          uv pip install --system -e ".[dev,extra,pyscf]"
+          uv pip install --system git+https://github.com/jax-ml/jax
+          if [ -z "${{ matrix.mpi }}" ]; then
+            uv pip install --system -e ".[dev,extra,pyscf]"
+          else
+            uv pip install --system -e ".[dev,mpi]"
+          fi
           uv pip install --system dm-haiku
 
       - name: Netket tests
-        if: ${{ matrix.main_tests }} 
+        if: ${{ matrix.main_tests }}
         run: |
           export NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 test
