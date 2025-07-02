@@ -71,8 +71,8 @@ def _jacobian_cplx(
     if not jnp.issubdtype(jnp.result_type(y), jnp.complexfloating):
         raise TypeError("Cannot build the complex jacobian for a real-valued function.")
 
-    (gr,) = vjp_fun(jax.lax.pvary(np.array(1.0, dtype=jnp.result_type(y)), axis="S"))
-    (gi,) = vjp_fun(jax.lax.pvary(np.array(-1.0j, dtype=jnp.result_type(y)), axis="S"))
+    (gr,) = vjp_fun(jax.lax.pvary(np.array(1.0, dtype=jnp.result_type(y)), "S"))
+    (gi,) = vjp_fun(jax.lax.pvary(np.array(-1.0j, dtype=jnp.result_type(y)), "S"))
     return _build_fn(gr, gi)
 
 
