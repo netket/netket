@@ -116,7 +116,8 @@ except Exception as e:
 # to get the data from all samples on all ranks, you can do the following: make it replicated, meaning
 # that you set the sharding to (1,1,1), which means that all data is available on all ranks.
 samples_replicated = jax.lax.with_sharding_constraint(
-    vs.samples, shardings=jax.sharding.PositionalSharding(jax.devices()).replicate()
+    vs.samples,
+    shardings=jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P()),
 )
 
 print(
