@@ -296,8 +296,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 y = y.at[i].set(f(x[i], c))
             return y
 
-        x = jax.jit(jnp.ones, out_shardings=jax.sharding.#NamedSharding(jax.devices()), static_argnums=0)(jax.device_count()*5)
-        c = jax.jit(jnp.ones, out_shardings=jax.sharding.#NamedSharding(jax.devices()).replicate(), static_argnums=0)(())
+        x = jax.jit(jnp.ones, out_shardings=jax.sharding.NamedSharding(jax.devices()), static_argnums=0)(jax.device_count()*5)
+        c = jax.jit(jnp.ones, out_shardings=jax.sharding.NamedSharding(jax.devices()).replicate(), static_argnums=0)(())
 
         # if we were to run `looped_computation(x)`` with the sharded x, it would formally be computed sequentially for all elements device per device,
         # if we  jit, i.e. `jax.jit(looped_computation)(x)`` the output sharding would just be replicated, jax just computes everything replicated on every device.
