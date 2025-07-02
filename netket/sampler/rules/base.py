@@ -126,6 +126,7 @@ class MetropolisRule(struct.Pytree):
         params: PyTree,
         sampler_state: "sampler.SamplerState",  # noqa: F821
         key: PRNGKeyT,
+        out_sharding: Any = None,
     ):
         """
         Generates a random state compatible with this rule.
@@ -140,5 +141,5 @@ class MetropolisRule(struct.Pytree):
             key: The PRNGKey to use to generate the random state.
         """
         return sampler.hilbert.random_state(
-            key, size=sampler.n_batches, dtype=sampler.dtype
+            key, size=sampler.n_batches, dtype=sampler.dtype, out_sharding=out_sharding
         )

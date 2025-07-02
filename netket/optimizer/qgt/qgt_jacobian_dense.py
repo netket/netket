@@ -15,6 +15,7 @@
 
 import jax
 from jax import numpy as jnp
+from jax.sharding import PartitionSpec as P
 from flax import struct
 
 from netket.utils.types import Scalar, PyTree
@@ -149,16 +150,19 @@ class QGTJacobianDenseT(LinearOperator):
             diag = jnp.diag(self.scale**2)
 
         # concatenate samples with real/Imaginary dimension
+        out_sharding = None if jax.sharding.get_abstract_mesh().empty else P(None, None)
         if self.mode == "imag":
             # Equivalent to Jr.T@Ji - Ji.T@Jr
             flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
             Ol = (flip_sign * O).reshape(-1, O.shape[-1])
             Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(Ol.T @ Or)[0] + self.diag_shift * diag
+            S = jnp.einsum("ni,nj->ij", Ol, Or, out_sharding=out_sharding)
+            return mpi.mpi_sum_jax(S)[0] + self.diag_shift * diag
         else:
             # Equivalent to Jr.T@Jr + Ji.T@Ji
             O = O.reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(O.conj().T @ O)[0] + self.diag_shift * diag
+            S = jnp.einsum("ni,nj->ij", O.conj(), O, out_sharding=out_sharding)
+            return mpi.mpi_sum_jax(S)[0] + self.diag_shift * diag
 
     def to_real_part(self) -> "QGTJacobianDenseT":
         """
@@ -254,7 +258,14 @@ def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar, imag: bool = False) -> PyT
         # with a vector. In the standard case, it does the multiplication equivalent
         # to J_r.T@(J_r@v_r) + J_i.T@(J_i@v_i) + diag_shift*v
         w = O @ v
-        res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
+        if w.ndim == 1:
+            res = jnp.einsum(
+                "i,i...->...", w.conj(), O, out_sharding=jax.typeof(v).sharding
+            ).conj()
+        elif w.ndim == 2:
+            res = jnp.einsum(
+                "ij,ij...->...", w.conj(), O, out_sharding=jax.typeof(v).sharding
+            ).conj()
         return mpi.mpi_sum_jax(res)[0] + diag_shift * v
     else:
         # Matrix vector product of the imaginary part of the QGT matrix
@@ -266,7 +277,14 @@ def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar, imag: bool = False) -> PyT
 
         flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
         Ol = (flip_sign * O).reshape(-1, O.shape[-1])
-        res = jnp.tensordot(w.conj(), Ol, axes=w.ndim).conj()
+        if w.ndim == 1:
+            res = jnp.einsum(
+                "i,i...->...", w.conj(), Ol, out_sharding=jax.typeof(v).sharding
+            ).conj()
+        elif w.ndim == 2:
+            res = jnp.einsum(
+                "ij,ij...->...", w.conj(), Ol, out_sharding=jax.typeof(v).sharding
+            ).conj()
         return mpi.mpi_sum_jax(res)[0] + diag_shift * v
 
 
@@ -284,9 +302,13 @@ def convert_tree_to_dense_format(vec, mode, *, disable=False):
     unravel = lambda x: x
     reassemble = lambda x: x
     if not disable:
+        print("mode", mode)
+        print("vec", jax.tree.map(jax.typeof, vec))
         if mode != "holomorphic":
             vec, reassemble = nkjax.tree_to_real(vec)
+            print("vec holo", jax.tree.map(jax.typeof, vec))
         if not hasattr(vec, "ndim"):
             vec, unravel = nkjax.tree_ravel(vec)
+            print("vec dense", jax.tree.map(jax.typeof, vec))
 
     return vec, lambda x: reassemble(unravel(x))

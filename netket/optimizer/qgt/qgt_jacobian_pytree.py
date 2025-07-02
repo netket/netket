@@ -15,6 +15,7 @@
 
 import jax
 from jax import numpy as jnp
+from jax.sharding import PartitionSpec as P
 from flax import struct
 
 from netket.utils.types import Array, PyTree, Scalar
@@ -190,15 +191,18 @@ class QGTJacobianPyTreeT(LinearOperator):
             diag = jnp.diag(scale**2)
 
         # concatenate samples with real/Imaginary dimension
+        out_sharding = None if jax.sharding.get_abstract_mesh().empty else P(None, None)
         if self.mode == "imag":
             O = O.reshape(O.shape[0] // 2, 2, -1)
 
             flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
             Ol = (flip_sign * O).reshape(-1, O.shape[-1])
             Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(Ol.T @ Or)[0] + self.diag_shift * diag
+            S = jnp.einsum("ni,nj->ij", Ol, Or, out_sharding=out_sharding)
+            return mpi.mpi_sum_jax(S)[0] + self.diag_shift * diag
         else:
-            return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag
+            S = jnp.einsum("ni,nj->ij", O.conj(), O, out_sharding=out_sharding)
+            return mpi.mpi_sum_jax(S)[0] + self.diag_shift * diag
 
     def to_real_part(self) -> "QGTJacobianPyTreeT":
         """

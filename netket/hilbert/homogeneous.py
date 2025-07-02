@@ -22,7 +22,6 @@ import jax.numpy as jnp
 from equinox import error_if
 
 from netket.errors import InvalidConstraintInterface, UnhashableConstraintError
-from netket.jax import sharding
 from netket.utils import StaticRange, warn_deprecation
 from netket.utils.types import Array
 
@@ -254,7 +253,10 @@ class HomogeneousHilbert(DiscreteHilbert):
     def _states_to_numbers(self, states: np.ndarray):
         states = jnp.asarray(states)
 
-        if self.is_finite:
+        # equinox.error_if would cause a global reduction to check if one of the many
+        # ranks has a sample out of bounds. This incurs into a cost, so we do the user-friendly
+        # check only if the samples are not sharded.
+        if self.is_finite and jax.typeof(states).sharding.is_fully_replicated:
             start = self._local_states.start
             end = start + self._local_states.step * self._local_states.length
             if self._local_states.step < 0:
@@ -262,22 +264,18 @@ class HomogeneousHilbert(DiscreteHilbert):
                 start = start - self._local_states.step
                 end = end - self._local_states.step
 
-            # equinox.error_if is broken under shard_map.
-            # If we are using shard map, we skip this check
-            if sharding.SHARD_MAP_STACK_LEVEL == 0 and jax.device_count() == 1:
-                states = error_if(
-                    states,
-                    (states < start).any() | (states >= end).any(),
-                    "States outside the range of allowed states.",
-                )
+            states = error_if(
+                states,
+                (states < start).any() | (states >= end).any(),
+                "States outside the range of allowed states.",
+            )
 
-        if self.constrained:
-            if sharding.SHARD_MAP_STACK_LEVEL == 0 and jax.device_count() == 1:
-                states = error_if(
-                    states,
-                    ~self.constraint(states).all(),
-                    "States do not fulfill constraint.",
-                )
+        if self.constrained and jax.typeof(states).sharding.is_fully_replicated:
+            states = error_if(
+                states,
+                ~self.constraint(states).all(),
+                "States do not fulfill constraint.",
+            )
 
         return self._hilbert_index.states_to_numbers(states)
 

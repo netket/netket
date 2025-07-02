@@ -17,7 +17,6 @@ Internal utility functions to support jax sharding natively within netket.
 All functions in here are not part of the public API, internal, and may change without warning.
 """
 
-import math
 from functools import partial, wraps
 import contextlib
 
@@ -28,15 +27,23 @@ from jax.tree_util import Partial
 from jax.sharding import (
     Mesh,
     PartitionSpec as P,
-    PositionalSharding,
 )
 from jax.experimental.shard_map import shard_map
-from jax.util import safe_zip
 
 from netket.utils import config, mpi
-from netket.utils.deprecation import warn_deprecation
+
+from ._sharding_utils import (
+    auto_shard_map as auto_shard_map,
+    get_sharding_spec as get_sharding_spec,
+    is_sharded as is_sharded,
+    check_compatible_sharding as check_compatible_sharding,
+    canonicalize_sharding as canonicalize_sharding,
+    pad_axis_for_sharding as pad_axis_for_sharding,
+    auto_axes_maybe as auto_axes_maybe,
+)
 
 
+safe_zip = partial(zip, strict=True)
 _identity = lambda x: x
 
 
@@ -73,78 +80,10 @@ def distribute_to_devices_along_axis(
         devices = jax.devices()
 
     if config.netket_experimental_sharding:
-        if pad:
-            n = inp_data.shape[0]
-            # pad to the next multiple of device_count
-            device_count = jax.device_count()
-            n_pad = math.ceil(inp_data.shape[0] / device_count) * device_count - n
-            inp_data = jnp.pad(inp_data, ((0, n_pad), (0, 0)))
-            if pad_value is not None and n_pad > 0:
-                inp_data = inp_data.at[-n_pad:].set(pad_value)
-
-        shape = [
-            1,
-        ] * inp_data.ndim
-        shape[axis] = -1
-        sharding = PositionalSharding(devices).reshape(shape)
-        out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
-        # TODO support gspmdsharding in numba wrapper and use this
-        # out_data = jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(
-        #     inp_data, sharding
-        # )
-
-        if pad:
-            if n_pad > 0:  # type: ignore
-                mask = jax.jit(
-                    _prepare_mask,
-                    out_shardings=sharding.reshape(-1),
-                    static_argnums=(0, 1),
-                )(
-                    n, n_pad
-                )  # type: ignore
-            else:
-                mask = None
-            return out_data, mask
-        else:
-            return out_data
+        return inp_data
+        raise NotImplementedError  # TODO; PositionalSharding is deprecated
     else:
         return inp_data
-
-
-# TODO consider merging this with distribute_to_devices_along_axis
-@partial(jax.jit, static_argnames="axis")
-def shard_along_axis(x, axis: int):
-    """
-    When running with experimental sharding mode, calls
-    :func:`jax.lax.with_sharding_constraint` with a
-    :class:`jax.sharding.PositionalSharding` sharded along the given axis.
-
-    Args:
-        x: An array
-        axis: the axis to be sharded
-    """
-    if config.netket_experimental_sharding and jax.device_count() > 1:
-        # Shard shape is (1, 1, 1, -1, 1, 1) where -1 is the axis
-        shard_shape = [1 for _ in range(x.ndim)]
-        shard_shape[axis] = -1
-
-        x = jax.lax.with_sharding_constraint(
-            x, PositionalSharding(jax.devices()).reshape(tuple(shard_shape))
-        )
-    return x
-
-
-@jax.jit
-def with_samples_sharding_constraint(x, shape=None):
-    """
-    ensure the input x is sharded along axis 0 on all devices
-    works both outside and inside of jit
-    """
-    warn_deprecation(
-        "with_samples_sharding_constraint is deprecated in favour of nk.jax.sharding.shard_along_axis(x, axis=0)"
-    )
-
-    return shard_along_axis(x, 0)
 
 
 def extract_replicated(t):
@@ -188,24 +127,13 @@ def gather(x):
         raise RuntimeError("gather can only be applied to a jax.Array")
     elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
-    elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
-        # x.sharding.device_set has arbitrary order
-        # Hardcode all devices until I figure out a way to deduce the order from x
-        out_shardings = (
-            PositionalSharding(jax.devices()).replicate().reshape((1,) * x.ndim)
-        )
-        # TODO support gspmdsharding in numba wrapper and use this
-        # out_shardings = x.sharding.get_replicated(jax.devices())
-    elif isinstance(x.sharding, PositionalSharding):
-        out_shardings = x.sharding.replicate()
     else:
         raise NotImplementedError(
-            "Gather is only compatible with PositionalSharding and GSPMDSharding,"
-            f" but array has {x.sharding}. Please open a feature request."
+            "Gather is not implemented for "
+            f" {x.sharding}. Please open a feature request."
         )
+    # TODO just use reshard here
     return jax.jit(_identity, out_shardings=out_shardings)(x)
-    # TODO support gspmdsharding in numba wrapper and use this
-    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
 SHARD_MAP_STACK_LEVEL: int = 0
@@ -430,9 +358,47 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 for a, c in safe_zip(args, nonarray_args)
             )
 
-            mesh = Mesh(jax.devices(), axis_names=("i"))
-            in_specs = _sele2(sharded_args, P("i"), P())
-            out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P("i")))
+            shardings = tuple(
+                jax.typeof(a).sharding for a, c in safe_zip(args, sharded_args) if c
+            )
+            meshes = tuple(s.mesh for s in shardings if hasattr(s, "mesh"))
+            if len(meshes) >= 1:
+                assert all(meshes[0] == m for m in meshes)
+                mesh = meshes[0]
+            else:
+                mesh = Mesh(jax.devices(), axis_names=("i",))
+
+            # in spec
+            in_specs = []
+            sharding_names = []
+            for sharded, arg in safe_zip(sharded_args, args):
+                if sharded:
+                    _sharding = jax.typeof(arg).sharding
+                    if isinstance(_sharding, jax.sharding.NamedSharding):
+                        in_specs.append(P(_sharding.spec[0]))
+                        if _sharding.spec[0] is not None:
+                            sharding_names.append(_sharding.spec[0])
+                    else:
+                        raise NotImplementedError(
+                            "Only NamedSharding are supported, but got: "
+                            f"{_sharding} for {arg}"
+                        )
+                else:
+                    in_specs.append(P())
+
+            if all(in_spec == P() for in_spec in in_specs):
+                # if all inputs are not sharded, we can just call the function
+                with _increase_SHARD_MAP_STACK_LEVEL():
+                    return f(*args_orig)
+            else:
+                in_specs = tuple(in_specs)
+
+            assert all(sharding_names[0] == name for name in sharding_names)
+            out_name = sharding_names[0] if len(sharding_names) > 0 else None
+
+            # mesh = Mesh(jax.devices(), axis_names=("i"))
+            # in_specs = _sele2(sharded_args, P("i"), P())
+            out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P(out_name)))
 
             @partial(
                 shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs, **kwargs
@@ -445,7 +411,6 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 args = tuple(
                     a[0] if c == "key" else a for a, c in safe_zip(args, sharded_args)
                 )
-
                 res = f(*args_treedef.unflatten(args))
 
                 # apply reductions

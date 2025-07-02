@@ -19,11 +19,7 @@ import operator
 
 import jax
 import jax.numpy as jnp
-from jax.util import safe_map
-
 from ._utils_tree import tree_leaf_iscomplex, eval_shape
-
-map = safe_map
 
 
 def _ensure_index(x: Any) -> int | tuple[int, ...]:
@@ -31,7 +27,7 @@ def _ensure_index(x: Any) -> int | tuple[int, ...]:
     try:
         return operator.index(x)
     except TypeError:
-        return tuple(map(operator.index, x))
+        return tuple(safe_map(operator.index, x))
 
 
 def grad(

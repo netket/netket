@@ -20,11 +20,12 @@ import numpy as np
 from numbers import Number
 
 from jax.tree_util import register_pytree_node_class
+from jax.experimental.shard_map import shard_map
 
-from netket.operator import DiscreteJaxOperator
 from netket.hilbert.abstract_hilbert import AbstractHilbert
+from netket.jax.sharding import get_sharding_spec, is_sharded
+from netket.operator import DiscreteJaxOperator
 from netket.utils.types import DType
-from netket.jax.sharding import sharding_decorator
 
 from .base import FermionOperator2ndBase
 from .utils import _is_diag_term
@@ -85,6 +86,18 @@ def _apply_term_scan(x, weight, sites, daggers, unroll=1):
 
     sgn = jnp.zeros(x.shape[:-1], dtype=jnp.bool_)
     zero = jnp.zeros(x.shape[:-1], dtype=jnp.bool_)
+
+    # TODO: If we ever remove the shard_map in the getconnpadded, we should remove this
+    # as well
+    # This is here to tell jax that those arguments are technically sharded over the samples,
+    # even if they are created inside the shard map argument.
+    vma = jax.typeof(x).vma
+    if len(vma) == 1:
+        sgn = jax.lax.pvary(sgn, tuple(vma)[0])
+        zero = jax.lax.pvary(zero, tuple(vma)[0])
+    elif len(vma) > 1:
+        raise NotImplementedError()
+
     init = x, sgn, zero
     xs = sites, daggers
 
@@ -98,7 +111,7 @@ def _apply_term_scan(x, weight, sites, daggers, unroll=1):
         # compute sign from σᶻ (stored as 0/1 for +1/-1)
         mask_all_up_to_site = jnp.arange(n_orbitals, dtype=sites.dtype) < site
         x_masked = x_ & mask_all_up_to_site
-        sgn = sgn ^ _reduce_xor(x_masked, (x_.ndim - 1,))
+        sgn = sgn ^ jax.lax.reduce_xor(x_masked, (x_.ndim - 1,))
 
         # check if we did σ⁺|1⟩=0 or σ⁻|0⟩=0
         zero = zero | (x_.at[..., site].get() == dagger)
@@ -135,11 +148,12 @@ def _biti(i, N, dtype=np.uint8):
     n, r = divmod(N, bitwidth)
     if r > 0:
         n = n + 1  # padding
-    x = jnp.zeros(n, dtype=dtype)
+
+    x = jnp.zeros(n, dtype=dtype, device=jax.typeof(i).sharding)
 
     i, ib = jnp.divmod(i, bitwidth)
     ib = ib.astype(dtype)
-    # x is uint there fore we take x.shape[0]-i-1, as -i-1 would underflow
+    # x is uint therefore we take x.shape[0]-i-1, as -i-1 would underflow
     return x.at[i].set(jax.lax.shift_left(dtype(1), ib)), i
 
 
@@ -154,14 +168,6 @@ def bituptoi(i, N, dtype=np.uint8):
     mask, byte_index = _biti(i, N, dtype=dtype)
     n = mask.shape[-1]
     return jax.lax.select(jnp.arange(n) <= byte_index, mask - dtype(1), mask)
-
-
-def _reduce_xor(x, axes):
-    return jax.lax.reduce_xor_p.bind(x, axes=tuple(axes))
-
-
-def _reduce_or(x, axes):
-    return jax.lax.reduce_or_p.bind(x, axes=tuple(axes))
 
 
 def _apply_term_scan_bits(
@@ -190,6 +196,17 @@ def _apply_term_scan_bits(
     sgn = jnp.zeros(x.shape[:-1], dtype=jnp.uint8)
     zero = jnp.zeros(x.shape[:-1], dtype=jnp.uint8)
 
+    # TODO: If we ever remove the shard_map in the getconnpadded, we should remove this
+    # as well
+    # This is here to tell jax that those arguments are technically sharded over the samples,
+    # even if they are created inside the shard map argument.
+    vma = jax.typeof(xb).vma
+    if len(vma) == 1:
+        sgn = jax.lax.pvary(sgn, tuple(vma)[0])
+        zero = jax.lax.pvary(zero, tuple(vma)[0])
+    elif len(vma) > 1:
+        raise NotImplementedError()
+
     init = xb, sgn, zero
     xs = sites, daggers
 
@@ -206,11 +223,11 @@ def _apply_term_scan_bits(
         x_new = x_ ^ site_mask
 
         # compute sign from σᶻ (stored as 0/1 for +1/-1)
-        sgn = sgn ^ _reduce_xor(x_ & sign_mask, (x_.ndim - 1,))
+        sgn = sgn ^ jax.lax.reduce_xor(x_ & sign_mask, (x_.ndim - 1,))
 
         # check if we did σ⁺|1⟩=0 or σ⁻|0⟩=0
         tmp = (x_ ^ ((1 - dagger) * 0xFF)) & site_mask
-        zero = zero | _reduce_or(tmp, axes=(tmp.ndim - 1,))
+        zero = zero | jax.lax.reduce_or(tmp, axes=(tmp.ndim - 1,))
 
         return (x_new, sgn, zero), None
 
@@ -471,14 +488,8 @@ def get_conn_padded_jax(
     n_nonzero = nonzero_mask.sum(axis=-1)
     _nonzero_fn = partial(jnp.where, size=max_conn_size, fill_value=-1)
     (i_nonzero,) = jnp.vectorize(_nonzero_fn, signature="(i)->(j)")(nonzero_mask)
-    # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-    # (True, True) means that both arguments are sharded across devices.
-    xp_u = sharding_decorator(partial(jnp.take_along_axis, axis=-2), (True, True))(
-        xp_padded, i_nonzero[..., None]
-    )
-    mels_u = sharding_decorator(partial(jnp.take_along_axis, axis=-1), (True, True))(
-        mels_padded, i_nonzero
-    )
+    xp_u = jnp.take_along_axis(xp_padded, i_nonzero[..., None], axis=-2)
+    mels_u = jnp.take_along_axis(mels_padded, i_nonzero, axis=-1)
 
     # TODO here would be the place to remove / merge repeated mels
     #
@@ -634,28 +645,30 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
 
     def get_conn_padded(self, x):
         self._setup()
-
         if self._mode == "scan":
             apply_terms_fun = apply_terms_scan_bits
         elif self._mode == "mask":
             apply_terms_fun = apply_terms_masks
 
-        xp, mels, _ = get_conn_padded_jax(
+        op_data = (self._terms_list_diag, self._terms_list_offdiag)
+        get_conn_padded_ = partial(
+            get_conn_padded_jax,
             self._max_conn_size,
             self._dtype,
-            self._terms_list_diag,
-            self._terms_list_offdiag,
-            x,
             apply_terms_fun=apply_terms_fun,
         )
-        # TODO if we are outside jit (i don't know how to detect it)
-        # we coule check here that _max_conn_size was not too small
-        #
-        # success = jax.jit(jnp.max)(n_conn) <= self._max_conn_size # jit for gda
-        # if not success:
-        #     raise ValueError("more connected elements than _max_conn_size")
-        #
-        # alternatively we could return success
+
+        if is_sharded(x):
+            in_specs = get_sharding_spec((*op_data, x))
+            out_specs = get_sharding_spec(x.sum(axis=-1))
+            xp, mels, _ = shard_map(
+                get_conn_padded_,
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(*op_data, x)
+        else:
+            xp, mels, _ = get_conn_padded_(*op_data, x)
         return xp, mels
 
     def n_conn(self, x):
@@ -665,10 +678,21 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         elif self._mode == "mask":
             apply_terms_fun = apply_terms_masks
 
-        return n_conn_jax(
+        op_data = (self._terms_list_diag, self._terms_list_offdiag)
+        n_conn_jax_ = partial(
+            n_conn_jax,
             self._dtype,
-            self._terms_list_diag,
-            self._terms_list_offdiag,
-            x,
             apply_terms_fun=apply_terms_fun,
         )
+
+        if is_sharded(x):
+            in_specs = get_sharding_spec((*op_data, x))
+            out_specs = get_sharding_spec(x.sum(axis=-1))
+            return shard_map(
+                n_conn_jax_,
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(*op_data, x)
+        else:
+            return n_conn_jax_(*op_data, x)

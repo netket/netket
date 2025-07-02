@@ -22,6 +22,7 @@ from flax import struct
 
 from .base import MetropolisRule
 import netket.jax as nkjax
+from netket.jax.sharding import get_sharding_spec
 
 
 class LangevinRule(MetropolisRule):
@@ -103,7 +104,12 @@ def _langevin_step(
     n_chains, hilb_size = r.shape
 
     # steps with Langevin dynamics
-    noise_vec = jax.random.normal(key, shape=(n_chains, hilb_size), dtype=r.dtype)
+    noise_vec = jax.random.normal(
+        key,
+        shape=(n_chains, hilb_size),
+        dtype=r.dtype,
+        out_sharding=get_sharding_spec(r),
+    )
 
     def _log_prob(x):
         """Conversion to a log probability"""
@@ -111,11 +117,14 @@ def _langevin_step(
 
     def _single_grad(x):
         """Derivative of log_prob with respect to a single sample x"""
-        x = x.reshape(x.shape[-1])
         g = nkjax.grad(lambda xi: _log_prob(xi).ravel()[0])(x)
         return g if jnp.iscomplexobj(r) else g.real
 
-    grad_logp_r = nkjax.vmap_chunked(_single_grad, chunk_size=chunk_size)(r)
+    grad_logp_r = nkjax.lax.map(
+        _single_grad,
+        r,
+        batch_size=chunk_size,
+    )
 
     rp = r + dt * grad_logp_r + jnp.sqrt(2 * dt) * noise_vec
 
@@ -123,7 +132,11 @@ def _langevin_step(
         return rp
     else:
         log_q_xp = -0.5 * jnp.sum(noise_vec**2, axis=-1)
-        grad_logp_rp = nkjax.vmap_chunked(_single_grad, chunk_size=chunk_size)(rp)
+        grad_logp_rp = nkjax.lax.map(
+            _single_grad,
+            rp,
+            batch_size=chunk_size,
+        )
         log_q_x = -jnp.sum((r - rp - dt * grad_logp_rp) ** 2, axis=-1) / (4 * dt)
 
         return rp, log_q_x - log_q_xp

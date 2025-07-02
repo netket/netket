@@ -17,18 +17,20 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import auto_axes, NamedSharding, PartitionSpec as P, reshard
 
 from flax import linen as nn
 
 from netket import config
 from netket.utils.types import Array, PyTree, PRNGKeyT
-from netket.jax.sharding import sharding_decorator
 
 # Necessary for the type annotation to work
 if config.netket_sphinx_build:
     from netket import sampler
 
 from .base import MetropolisRule
+
+batch_select = jax.vmap(partial(jnp.take, axis=0))
 
 
 class MultipleRules(MetropolisRule):
@@ -113,6 +115,7 @@ class MultipleRules(MetropolisRule):
     def transition(self, sampler, machine, parameters, state, key, σ):
         N = len(self.probabilities)
         keys = jax.random.split(key, N + 1)
+        σ_t = jax.typeof(σ)
 
         σps = []
         log_prob_corrs = []
@@ -132,24 +135,53 @@ class MultipleRules(MetropolisRule):
             N,
             shape=(sampler.n_batches,),
             p=self.probabilities,
+            # out_sharding=jax.typeof(σ).sharding.spec[0],
         )
+        # TODO: When jax.random.choice supports sharding, we should pass it above and not reshard
+        if (
+            isinstance(σ_t.sharding, NamedSharding)
+            and len(σ_t.sharding.spec) > 0
+            and not σ_t.sharding.mesh.empty
+        ):
+            indices = reshard(indices, P(σ_t.sharding.spec[0]))
 
-        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        batch_select = sharding_decorator(
-            jax.vmap(partial(jnp.take, axis=0)), (True, True)
-        )
-        σp = batch_select(jnp.stack(σps, axis=1), indices)
+            σp = auto_axes(batch_select)(
+                jnp.stack(σps, axis=1),
+                indices,
+                out_sharding=jax.typeof(indices).sharding,
+            )
+        else:
+            σp = batch_select(jnp.stack(σps, axis=1), indices)
 
         # if not all log_prob_corr are 0, convert the Nones to 0s
         if any(x is not None for x in log_prob_corrs):
+            lp0 = tuple([x for x in log_prob_corrs if x is not None])[0]
             log_prob_corrs = jnp.stack(
                 [
-                    x if x is not None else jnp.zeros((sampler.n_batches,))
+                    (
+                        x
+                        if x is not None
+                        else jnp.zeros(
+                            (sampler.n_batches,), device=jax.typeof(lp0).sharding
+                        )
+                    )
                     for x in log_prob_corrs
                 ],
                 axis=1,
             )
-            log_prob_corr = batch_select(log_prob_corrs, indices)
+            if (
+                isinstance(σ_t.sharding, NamedSharding)
+                and len(σ_t.sharding.spec) > 0
+                and not σ_t.sharding.mesh.empty
+            ):
+                log_prob_corr = auto_axes(batch_select)(
+                    log_prob_corrs, indices, out_sharding=jax.typeof(indices).sharding
+                )
+            else:
+                log_prob_corr = batch_select(
+                    log_prob_corrs,
+                    indices,
+                )
         else:
             log_prob_corr = None
 

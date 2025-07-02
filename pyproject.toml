@@ -31,7 +31,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.20,<3.0",
     "scipy>=1.5.3, <2",
@@ -39,7 +39,7 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.3.37, <0.6",
+    "jax>=0.7.0",
     "equinox>=0.11.3",
     "flax>=0.10.2",
     "orjson>=3.4, <4",
@@ -49,7 +49,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mpi = ["mpi4py>=3.0.1, <5", "mpi4jax>=0.3.9"]
 pyscf = ["pyscf>=2.0"]
 extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4"]
 dev = [
@@ -96,10 +95,12 @@ version-file = "netket/_version.py"
 [tool.uv]
 dev-dependencies = [
     "netket[dev,docs]",
-    "mpi4py>=3.0.1",
-    "jax>=0.4.33",
+    "jax>=0.6",
     "ipykernel>=6.20",
 ]
+
+[tool.uv.sources]
+jax = { git = "https://github.com/jax-ml/jax" }
 
 # Development tools
 
@@ -144,9 +145,9 @@ filterwarnings = [
     "ignore:Defaulting to `holomorphic=False`,",
     "ignore::PendingDeprecationWarning: the matrix subclass",
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
-    "ignore:netket.hilbert.CustomHilbert is deprecated",
     "ignore::netket.errors.UndeclaredSpinOderingWarning",
     "ignore::netket.errors.UnoptimalSRtWarning",
+    "ignore::netket.errors.InitializePeriodicLatticeOnSmallLatticeWarning",
 ]
 testpaths = ["test"]
 

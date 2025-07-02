@@ -37,25 +37,6 @@ def skip(request):
 graph_full = nk.graph.Graph([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
 
 partial_model_pairs = [
-    # pytest.param(
-    #     (
-    #         lambda hilbert, param_dtype, machine_pow: nk.models.ARNNDense(
-    #             hilbert=hilbert,
-    #             layers=3,
-    #             features=5,
-    #             param_dtype=param_dtype,
-    #             machine_pow=machine_pow,
-    #         ),
-    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNDense(
-    #             hilbert=hilbert,
-    #             layers=3,
-    #             features=5,
-    #             param_dtype=param_dtype,
-    #             machine_pow=machine_pow,
-    #         ),
-    #     ),
-    #     id="dense",
-    # ),
     pytest.param(
         (
             lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv1D(

@@ -36,6 +36,8 @@ from netket.vqs.mc import (
     get_local_kernel_arguments,
     get_local_kernel,
 )
+from netket.jax.sharding import is_sharded, get_sharding_spec
+from jax.sharding import reshard
 
 from .state import MCState
 
@@ -60,6 +62,15 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):  # noqa:
 
     σ = vstate.samples
     σp, mels = Ô.get_conn_padded(σ)
+    if is_sharded(σ):
+        print(
+            "Warnings: very slow reshard caused by 'Numba operators' being used with sharding over "
+            "multiple devices.\n"
+            "The code runs, but it's just for debugging purposes. You should not be doing this.\n"
+            "Open an issue if you need this to work properly."
+        )
+        σp = reshard(σp, get_sharding_spec(σ))
+        mels = reshard(mels, get_sharding_spec(σ))
     return σ, (σp, mels)
 
 

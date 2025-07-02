@@ -18,20 +18,16 @@ import math
 
 import jax
 import jax.numpy as jnp
-from jax.tree_util import Partial
 
-from netket.utils import config
 from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi, timing
 from netket.utils.types import Array, PyTree
-from netket.jax import (
-    tree_to_real,
-    vmap_chunked,
-)
-from netket.jax.sharding import sharding_decorator
+from netket.utils.deprecation import warn_deprecation
+from netket.jax import tree_to_real
 
 from . import jacobian_dense
 from . import jacobian_pytree
+from ..lax import map as lax_map_custom
 
 
 @timing.timed
@@ -58,7 +54,7 @@ def jacobian(
     center: bool = False,
     dense: bool = False,
     _sqrt_rescale: bool = False,
-    _axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    _axis_0_is_sharded: bool | None = None,  # type: ignore[attr-defined]
 ) -> PyTree:
     r"""
     Computes the jacobian of a NN model with respect to its parameters. This function
@@ -309,6 +305,11 @@ def jacobian(
     if samples.ndim != 2:
         raise ValueError("samples must be a 2D array")
 
+    if _axis_0_is_sharded is not None:
+        warn_deprecation(
+            "axis_0_is_sharded is deprecated, and it is instead handled automatically."
+        )
+
     if model_state is None:
         model_state = {}
 
@@ -345,31 +346,14 @@ def jacobian(
     # jacobians is a tree with leaf shapes:
     # - (n_samples, 2, ...) if mode complex, holding the real and imaginary jacobian
     # - (n_samples, ...) if mode real/holomorphic
-    # here we wrap f with a Partial since the shard_map inside vmap_chunked
-    # does not support non-array arguments
-    jacobian_fun = vmap_chunked(
-        jacobian_fun,
-        in_axes=(None, None, 0),
-        chunk_size=chunk_size,
-        axis_0_is_sharded=_axis_0_is_sharded,
-    )  # see below
-    # vmap_chunked, as of 5/11/2024 (3.14.3) only passses the function through
-    # a sharding_decorator if it is chunked, and not if it's not. This creates
-    # a different behaviour in the two cases. To homogenize it, we do it at the
-    # level of nkjax.jacobian.
-    # This fixes computing the jacobian of logpsi with sharded functions like
-    # for example from get_conn_padded.
-
-    # TODO: Maybe remove this and simply always sharding_decorator inside of vmap_chunked.
-    # We do sharding decorator here to account for cases where the wavefunction contains
-    if _axis_0_is_sharded is True:
-        jacobian_fun = sharding_decorator(
-            jacobian_fun,
-            (False, False, True),
-            reduction_op_tree=False,
+    if chunk_size is None or chunk_size >= samples.shape[0]:
+        # if chunk_size is None or larger than the number of samples, we can compute
+        # the jacobian in one go
+        jacobians = jax.vmap(jacobian_fun, in_axes=(None, None, 0))(f, params, samples)
+    else:
+        jacobians = lax_map_custom(
+            lambda x: jacobian_fun(f, params, x), samples, batch_size=chunk_size
         )
-
-    jacobians = jacobian_fun(Partial(f), params, samples)
 
     if pdf is None:
         if center:

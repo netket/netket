@@ -25,7 +25,8 @@ import netket as nk
 from jax.nn.initializers import normal
 
 from .finite_diff import expval as _expval, central_diff_grad, same_derivatives
-from .. import common
+from test import common
+from test.common_mesh import with_explicit_meshes
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
@@ -363,7 +364,8 @@ def test_qutip_conversion(vstate):
         for name, op in operators.items()
     ],
 )
-def test_expect(vstate, operator):
+@with_explicit_meshes([None, ((2,), ("S",))])
+def test_expect(vstate, operator, mesh):
     # Use lots of samples
     vstate.n_samples = 256 * 1024
     vstate.n_discard_per_chain = 1024
@@ -486,6 +488,7 @@ def test_expect_grad_nonhermitian_works(vstate):
 
 
 @common.skipif_mpi
+@with_explicit_meshes([None, ((2,), ("S",))])
 @pytest.mark.parametrize(
     "operator",
     [
@@ -498,7 +501,7 @@ def test_expect_grad_nonhermitian_works(vstate):
     ],
 )
 @pytest.mark.parametrize("n_chunks", [1, 2])
-def test_expect_chunking(vstate, operator, n_chunks):
+def test_expect_chunking(vstate, operator, n_chunks, mesh):
     vstate.n_samples = 200
     chunk_size = vstate.n_samples_per_rank // n_chunks
 
