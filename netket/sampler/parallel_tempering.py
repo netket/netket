@@ -24,7 +24,7 @@ from netket import config
 from netket.utils.types import PyTree, PRNGKeyT, Array
 from netket.utils import struct, mpi
 from netket.jax import dtype_real
-from netket.jax.sharding import shard_along_axis, sharding_decorator
+from netket.jax.sharding import shard_along_axis
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
@@ -455,8 +455,7 @@ class ParallelTemperingSampler(MetropolisSampler):
 
             swap_order = swap_order.reshape(-1)
 
-            # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-            beta_0_moved = sharding_decorator(jax.vmap(jnp.take), (True, True))(
+            beta_0_moved = jax.vmap(jnp.take)(
                 do_swap, s["beta_0_index"]
             )  # flag saying if beta_0 should move
             proposed_beta_0_index = jnp.mod(
@@ -504,8 +503,7 @@ class ParallelTemperingSampler(MetropolisSampler):
         }
         s = jax.lax.fori_loop(0, self.sweep_size, loop_body, s)
 
-        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        n_accepted_proc = sharding_decorator(jax.vmap(jnp.take), (True, True))(
+        n_accepted_proc = jax.vmap(jnp.take)(
             s["n_accepted_per_beta"], s["beta_0_index"]
         )
 
@@ -525,17 +523,11 @@ class ParallelTemperingSampler(MetropolisSampler):
         )
         σ_flat = new_state.σ
         σ = σ_flat.reshape((-1, self.n_replicas, σ_flat.shape[-1]))
-        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        σ_new = sharding_decorator(partial(jnp.take_along_axis, axis=1), (True, True))(
-            σ, s["beta_0_index"][:, None, None]
-        )
+        σ_new = jnp.take_along_axis(σ, s["beta_0_index"][:, None, None], axis=1)
         σ_new = jax.lax.collapse(σ_new, 0, 2)  # remove dummy replica dim
 
         log_prob = new_state.log_prob.reshape((-1, self.n_replicas))
-        # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        log_prob_new = sharding_decorator(
-            partial(jnp.take_along_axis, axis=1), (True, True)
-        )(log_prob, s["beta_0_index"][:, None])
+        log_prob_new = jnp.take_along_axis(log_prob, s["beta_0_index"][:, None], axis=1)
         log_prob_new = jax.lax.collapse(log_prob_new, 0, 2)  # remove dummy replica dim
 
         return new_state, (σ_new, log_prob_new)

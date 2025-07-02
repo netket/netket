@@ -24,7 +24,6 @@ from jax.tree_util import register_pytree_node_class
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.types import DType
-from netket.jax.sharding import sharding_decorator
 
 from .base import FermionOperator2ndBase
 from .utils import _is_diag_term
@@ -471,14 +470,8 @@ def get_conn_padded_jax(
     n_nonzero = nonzero_mask.sum(axis=-1)
     _nonzero_fn = partial(jnp.where, size=max_conn_size, fill_value=-1)
     (i_nonzero,) = jnp.vectorize(_nonzero_fn, signature="(i)->(j)")(nonzero_mask)
-    # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-    # (True, True) means that both arguments are sharded across devices.
-    xp_u = sharding_decorator(partial(jnp.take_along_axis, axis=-2), (True, True))(
-        xp_padded, i_nonzero[..., None]
-    )
-    mels_u = sharding_decorator(partial(jnp.take_along_axis, axis=-1), (True, True))(
-        mels_padded, i_nonzero
-    )
+    xp_u = jnp.take_along_axis(xp_padded, i_nonzero[..., None], axis=-2)
+    mels_u = jnp.take_along_axis(mels_padded, i_nonzero, axis=-1)
 
     # TODO here would be the place to remove / merge repeated mels
     #
