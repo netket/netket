@@ -62,7 +62,7 @@ def test_real_function_sharding(sharded):
     xs = jax.random.normal(k, (n_samples, 4))
     if sharded:
         xs = jax.lax.with_sharding_constraint(
-            xs, jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1)
+            xs, jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P("S"))
         )
 
     model_state, parameters = fcore.pop(ma.init(k, xs), "params")
@@ -94,13 +94,14 @@ def test_real_function_sharding(sharded):
     )
 
     if sharded:
-        assert jac_re.sharding.shape == (jax.device_count(), 1)
-        assert jac_2.sharding.shape == (jax.device_count(), 1)
+        assert jac_re.sharding.spec == jax.P("S", None)
+        assert jac_2.sharding.shape == jax.P("S", None)
         jac_re = jax.lax.with_sharding_constraint(
-            jac_re, jax.sharding.PositionalSharding(jax.devices()).replicate()
+            jac_re,
+            jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P()),
         )
         jac_2 = jax.lax.with_sharding_constraint(
-            jac_2, jax.sharding.PositionalSharding(jax.devices()).replicate()
+            jac_2, jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
         )
 
     np.testing.assert_allclose(jac_re, jac_2)
