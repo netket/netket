@@ -144,7 +144,6 @@ filterwarnings = [
     "ignore:Defaulting to `holomorphic=False`,",
     "ignore::PendingDeprecationWarning: the matrix subclass",
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
-    "ignore:netket.hilbert.CustomHilbert is deprecated",
     "ignore::netket.errors.UndeclaredSpinOderingWarning",
     "ignore::netket.errors.UnoptimalSRtWarning",
 ]
