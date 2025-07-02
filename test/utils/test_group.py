@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import warnings
 
 import netket as nk
 import numpy as np
@@ -387,8 +388,10 @@ def test_permutations():
     cycle_array = [1, 2, 0]
 
     cycle = Permutation(permutation_array=cycle_array)
-    cycle_1 = Permutation(np.argsort(cycle_array))
-    cycle_2 = Permutation(permutation=np.argsort(cycle_array))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        cycle_1 = Permutation(np.argsort(cycle_array))
+        cycle_2 = Permutation(permutation=np.argsort(cycle_array))
     cycle_3 = Permutation(inverse_permutation_array=np.argsort(cycle_array))
 
     # Wrong ways of instantiating a permutation
