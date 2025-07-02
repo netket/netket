@@ -20,27 +20,49 @@ class Representation:
     """
 
     group: FiniteGroup
-    hilbert: AbstractHilbert
-    representation_mapping: dict[Element, DiscreteJaxOperator]
+    hilbert_space: AbstractHilbert
+    representation_dict: dict[Element, DiscreteJaxOperator]
 
-    def __pre_init__(self, *args, **kwargs):
+    def __pre_init__(
+        self,
+        group: FiniteGroup,
+        representation_dict: dict[Element, DiscreteJaxOperator],
+    ):
+
+        # TODO: Remove group argument
+
+        # Check that this makes sense
+        for k, symmetry_operator in enumerate(representation_dict.values()):
+            if k == 0:
+                hilbert_space = symmetry_operator.hilbert
+            else:
+                assert hilbert_space == symmetry_operator.hilbert
+
         # Check that group and representation_mapping.keys() match
-        return (args, kwargs)
+
+        return (
+            (),
+            dict(
+                group=group,
+                hilbert_space=hilbert_space,
+                representation_dict=representation_dict,
+            ),
+        )
 
     """
     @property hilbert_space
     @property group
-    @property representation_mapping
+    @property representation_dict
     """
 
     def get_representation_element(self, g: Element) -> DiscreteJaxOperator:
         """
         Return the representation element of g.
         """
-        return self.representation_mapping[g]
+        return self.representation_dict[g]
 
     def get_character_table(self) -> Array:
-        return self.group.get_character_table()
+        return self.group.character_table_readable()
 
     def get_projector(self, character_index) -> DiscreteJaxOperator:
         """
@@ -74,5 +96,12 @@ class Representation:
         """
         Check whether all operators of one representation commute with all operators of
         the other.
+        """
+        pass
+
+    def check_representation(self):
+        """
+        Check whether the representation is valid by checking that the
+        multiplication table of the operators matches that of the group.
         """
         pass
