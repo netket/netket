@@ -36,6 +36,7 @@ safe_zip = partial(zip, strict=True)
 _identity = lambda x: x
 
 
+@partial(jax.jit, static_argnums=(0, 1))
 def _prepare_mask(n, n_pad):
     return jnp.ones(n + n_pad, dtype=bool).at[-n_pad:].set(0)
 
@@ -85,20 +86,10 @@ def distribute_to_devices_along_axis(
         mesh = jax.sharding.get_abstract_mesh()
         sharding = jax.sharding.NamedSharding(mesh, jax.P(*shape))
         out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
-        # TODO support gspmdsharding in numba wrapper and use this
-        # out_data = jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(
-        #     inp_data, sharding
-        # )
 
         if pad:
             if n_pad > 0:  # type: ignore
-                mask = jax.jit(
-                    _prepare_mask,
-                    out_shardings=jax.sharding.NamedSharding(mesh, jax.P("S")),
-                    static_argnums=(0, 1),
-                )(
-                    n, n_pad
-                )  # type: ignore
+                mask = _prepare_mask(n, n_pad)  # type: ignore
             else:
                 mask = None
             return out_data, mask
@@ -174,7 +165,7 @@ def gather(x):
         raise RuntimeError("gather can only be applied to a jax.Array")
     elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
-    elif isinstance(x.sharding, (jax.sharding.GSPMDSharding, NamedSharding)):
+    elif isinstance(x.sharding, NamedSharding):
         # x.sharding.device_set has arbitrary order
         # Hardcode all devices until I figure out a way to deduce the order from x
         out_shardings = jax.sharding.NamedSharding(
@@ -185,8 +176,6 @@ def gather(x):
             "Gather is not compatible with {x.sharding}. Please open a feature request."
         )
     return jax.jit(_identity, out_shardings=out_shardings)(x)
-    # TODO support gspmdsharding in numba wrapper and use this
-    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
 SHARD_MAP_STACK_LEVEL: int = 0
@@ -280,8 +269,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 y = y.at[i].set(f(x[i], c))
             return y
 
-        x = jax.jit(jnp.ones, out_shardings=jax.sharding.#NamedSharding(jax.devices()), static_argnums=0)(jax.device_count()*5)
-        c = jax.jit(jnp.ones, out_shardings=jax.sharding.#NamedSharding(jax.devices()).replicate(), static_argnums=0)(())
+        x = jax.jit(jnp.ones, out_shardings=jax.sharding.NamedSharding(jax.devices()), static_argnums=0)(jax.device_count()*5)
+        c = jax.jit(jnp.ones, out_shardings=jax.sharding.NamedSharding(jax.devices()).replicate(), static_argnums=0)(())
 
         # if we were to run `looped_computation(x)`` with the sharded x, it would formally be computed sequentially for all elements device per device,
         # if we  jit, i.e. `jax.jit(looped_computation)(x)`` the output sharding would just be replicated, jax just computes everything replicated on every device.
