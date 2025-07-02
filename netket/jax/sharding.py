@@ -206,7 +206,9 @@ def _increase_SHARD_MAP_STACK_LEVEL():
         SHARD_MAP_STACK_LEVEL -= 1
 
 
-def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
+def sharding_decorator(
+    f, sharded_args_tree, reduction_op_tree=False, pvary_args_tree=False, **kwargs
+):
     """
     A decorator which wraps a function so that it is evaluated on every shard of the distributed arguments,
     and the output is either returned sharded, or can be reduced with a collective operation.
@@ -238,7 +240,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
             reduction_op is e.g. jax.lax.psum if it is to be reduced, then f_wrapped returns a replicated array
             reduction op is False if it is not to be reduced, then f_wrapped returns a sharded array
             reduction op is True if it is not an array/pytree, then it is returned as python object
-
+        pvary_args_tree: a tuple / tuple of pyrtrees of length of the number of args in f
+            if True apply pvary to the argument, else do nothing
     Returns :
         f_wrapped: wrapped version of f
 
@@ -394,10 +397,11 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
             )
 
             # workaround for shard_map not supporting non-array args part 1/2
-            nonarray_args = tuple(not hasattr(a, "dtype") for a in args)
-            args = tuple(
-                Partial(partial(lambda x: x, a)) if c else a
-                for a, c in safe_zip(args, nonarray_args)
+            nonarray_args = jax.tree.map(lambda a: not hasattr(a, "dtype"), args)
+            args = jax.tree.map(
+                lambda c, a: Partial(partial(lambda x: x, a)) if c else a,
+                nonarray_args,
+                args,
             )
 
             mesh = jax.sharding.get_abstract_mesh()
@@ -409,14 +413,27 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
             )
             def _f(*args):
                 # workaround for shard_map not supporting non-array args part 2/2
-                args = tuple(a() if c else a for a, c in safe_zip(args, nonarray_args))
+                args = jax.tree.map(lambda c, a: a() if c else a, nonarray_args, args)
 
                 # PRNGKey treatment 2/2
                 args = tuple(
                     a[0] if c == "key" else a for a, c in safe_zip(args, sharded_args)
                 )
 
-                res = f(*args_treedef.unflatten(args))
+                args = args_treedef.unflatten(args)
+
+                # pvary
+                args = jax.tree_util.tree_map(
+                    lambda c, l: (
+                        jax.tree_util.tree_map(partial(jax.lax.pvary, axis_name="S"), l)
+                        if c
+                        else l
+                    ),
+                    pvary_args_tree,
+                    args,
+                )
+
+                res = f(*args)
 
                 # apply reductions
                 # _id = lambda x: x

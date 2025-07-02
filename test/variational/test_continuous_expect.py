@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 import numpy as np
 import netket as nk
+import netket.experimental
 
 import flax.linen as nn
 

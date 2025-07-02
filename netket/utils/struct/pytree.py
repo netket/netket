@@ -107,7 +107,7 @@ class Pytree(metaclass=PytreeMeta):
         >>>
         >>> my_pytree = MyPyTree(1, jax.numpy.ones(2))
         >>> jax.jit(lambda x: print(x))(my_pytree)  # doctest:+ELLIPSIS
-            MyPyTree(a=1, b=Traced...
+            MyPyTree(a=1, b=...
 
 
     PyTree classes by default are not mutable, therefore they

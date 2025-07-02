@@ -32,9 +32,11 @@ def jacrev(f):
         y, vjp_fun = nkjax.vjp(f, x)
         if y.size == 1:
             eye = jnp.eye(y.size, dtype=x.dtype)[0]
+            eye = jax.lax.pvary(eye, tuple(jax.typeof(y).vma))
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         else:
             eye = jnp.eye(y.size, dtype=x.dtype)
+            eye = jax.lax.pvary(eye, tuple(jax.typeof(y).vma))
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         return J
 

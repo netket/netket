@@ -94,8 +94,8 @@ def test_real_function_sharding(sharded):
     )
 
     if sharded:
-        assert jac_re.sharding == jax.P("S")
-        assert jac_2.sharding == jax.P("S")
+        assert jac_re.sharding.spec == jax.P("S")
+        assert jac_2.sharding.spec == jax.P("S")
         jac_re = jax.lax.with_sharding_constraint(
             jac_re,
             jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P()),
