@@ -131,7 +131,7 @@ class Permutation(Element):
 
     def apply_to_id(self, x: Array):
         """Returns the image of indices `x` under the permutation"""
-        return np.argsort(self.permutation)[x]
+        return self.permutation_array[x]
 
 
 @dispatch
