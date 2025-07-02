@@ -37,6 +37,7 @@ safe_zip = partial(zip, strict=True)
 _identity = lambda x: x
 
 
+@partial(jax.jit, static_argnums=(0, 1))
 def _prepare_mask(n, n_pad):
     return jnp.ones(n + n_pad, dtype=bool).at[-n_pad:].set(0)
 
@@ -93,13 +94,7 @@ def distribute_to_devices_along_axis(
 
         if pad:
             if n_pad > 0:  # type: ignore
-                mask = jax.jit(
-                    _prepare_mask,
-                    out_shardings=jax.sharding.NamedSharding(mesh, jax.P("S")),
-                    static_argnums=(0, 1),
-                )(
-                    n, n_pad
-                )  # type: ignore
+                mask = _prepare_mask(n, n_pad)  # type: ignore
             else:
                 mask = None
             return out_data, mask
