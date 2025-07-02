@@ -23,34 +23,97 @@ from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
 from netket.utils.dispatch import dispatch
 
+from netket.utils import warn_deprecation, deprecated, deprecated_new_name
+
 from ._group import FiniteGroup
 from ._semigroup import Element
 
 
 class Permutation(Element):
-    def __init__(self, permutation: Array, name: str | None = None):
+    def __init__(
+        self,
+        permutation: Array | None = None,
+        *,  # change one line somewhere
+        name: str | None = None,
+        permutation_array: Array | None = None,
+        inverse_permutation_array: Array | None = None,
+    ):
         r"""
-        Creates a `Permutation` from an array of preimages of :code:`range(N)`.
+        Creates a `Permutation` from either the array of images
+        `permutation_array` or preimages `inverse_permutation_array`.
 
-        Arguments:
-            permutation: 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x < N`
-                (i.e., :code:`V[permutation]` permutes the elements of `V` as desired)
-            name: optional, custom name for the permutation
+        Exactly one argument among `permutation_array` and
+        `inverse_permutation_array` (and the deprecated argument `permutation`)
+        must be specified.
+
+        The deprecated argument `permutation` should be substituted for
+        `inverse_permutation_array`.
+
+        Note that the left action of a permutation on an array `a` is
+        `a[inverse_permutation_array]`.
+
+        Args:
+            permutation: (deprecated) 1D array listing
+                :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
+            name: Optional, custom name for the permutation.
+            permutation_array: 1D array listing
+                :math:`g(x)` for all :math:`0\le x \le N-1`.
+            inverse_permutation_array: 1D array listing
+                :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
 
         Returns:
-            a `Permutation` object encoding the same permutation
+            A `Permutation` object that encodes the specified permutation.
         """
-        self.permutation = HashableArray(np.asarray(permutation))
+
+        arg_list = [permutation, permutation_array, inverse_permutation_array]
+        if sum([arg is not None for arg in arg_list]) != 1:
+            raise ValueError(
+                "Exactly one argument among `permutation`, `permutation_array` "
+                "and `inverse_permutation_array` must be specified."
+            )
+
+        if permutation is not None:
+            warn_deprecation(
+                "The argument `permutation` is deprecated.\n\n"
+                "In order to clarify notations, you should either pass "
+                "the array of images `permutation_array` or "
+                "preimages `inverse_permutation_array`."
+            )
+            inverse_permutation_array = permutation
+
+        if permutation_array is not None:
+            inverse_permutation_array = np.argsort(permutation_array)
+
+        self._inverse_permutation_array = HashableArray(
+            np.asarray(inverse_permutation_array)
+        )
+
         self.__name = name
 
     def __hash__(self):
-        return hash(self.permutation)
+        return hash(self._inverse_permutation_array)
 
     def __eq__(self, other):
         if isinstance(other, Permutation):
-            return self.permutation == other.permutation
+            return np.array_equal(self.permutation_array, other.permutation_array)
         else:
             return False
+
+    @property
+    def permutation_array(self):
+        return np.asarray(np.argsort(self._inverse_permutation_array))
+
+    @property
+    def inverse_permutation_array(self):
+        return np.asarray(self._inverse_permutation_array)
+
+    @property
+    @deprecated(
+        "Deprecated in favor of `permutation.inverse_permutation_array` or "
+        "`permutation.permutation_array`"
+    )
+    def permutation(self):
+        return np.asarray(self._inverse_permutation_array)
 
     @property
     def _name(self):
@@ -60,14 +123,15 @@ class Permutation(Element):
         if self._name is not None:
             return self._name
         else:
-            return f"Permutation({np.asarray(self).tolist()})"
+            return f"Permutation({self.permutation_array.tolist()})"
 
+    @deprecated_new_name("permutation.inverse_permutation_array")
     def __array__(self, dtype: DType = None):
-        return np.asarray(self.permutation, dtype)
+        return np.asarray(self._inverse_permutation_array, dtype)
 
     def apply_to_id(self, x: Array):
         """Returns the image of indices `x` under the permutation"""
-        return np.argsort(self.permutation)[x]
+        return self.permutation_array[x]
 
 
 @dispatch
@@ -76,13 +140,14 @@ def product(p: Permutation, x: Array):
     # direct indexing fails, so we call np.asarray on it to extract the
     # wrapped array
     # TODO make indexing work with HashableArray directly
-    return x[..., np.asarray(p.permutation)]
+    return x[..., p.inverse_permutation_array]
 
 
 @dispatch
 def product(p: Permutation, q: Permutation):  # noqa: F811
     name = None if p._name is None and q._name is None else f"{p} @ {q}"
-    return Permutation(p(np.asarray(q)), name)
+    inverse_permutation_array = q.inverse_permutation_array[p.inverse_permutation_array]
+    return Permutation(inverse_permutation_array=inverse_permutation_array, name=name)
 
 
 @struct.dataclass

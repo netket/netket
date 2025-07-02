@@ -64,7 +64,7 @@ def deprecated_new_name(func_name, reason=""):
     {func.__name__} has been renamed to {func_name}. The old name is
     now deprecated and will be removed in the next minor version.
 
-    Please update your code by chaing occurences of `{func.__name__}` with
+    Please update your code by changing occurences of `{func.__name__}` with
     `{func_name}`.
 
     {dedent(reason)}

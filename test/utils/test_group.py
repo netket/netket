@@ -13,12 +13,14 @@
 # limitations under the License.
 
 import pytest
+import warnings
 
 import netket as nk
 import numpy as np
 from numpy.testing import assert_equal
 
 from netket.utils import group
+from netket.utils.group import Permutation
 
 from itertools import product
 
@@ -378,3 +380,36 @@ def test_call_point(grp):
 
     for g, gv in zip(grp, apply_v):
         assert_allclose(gv, g(v), rtol=1e-15)
+
+
+# cycle_1 and cycle_2 are deprecated
+def test_permutations():
+
+    cycle_array = [1, 2, 0]
+
+    cycle = Permutation(permutation_array=cycle_array)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        cycle_1 = Permutation(np.argsort(cycle_array))
+        cycle_2 = Permutation(permutation=np.argsort(cycle_array))
+    cycle_3 = Permutation(inverse_permutation_array=np.argsort(cycle_array))
+
+    # Wrong ways of instantiating a permutation
+    with pytest.raises(ValueError):
+        Permutation()
+    with pytest.raises(ValueError):
+        Permutation(
+            permutation_array=cycle_array,
+            inverse_permutation_array=np.argsort(cycle_array),
+        )
+
+    transposition = Permutation(permutation_array=[1, 0, 2])
+
+    assert not cycle == transposition
+    assert cycle == cycle_1 == cycle_2 == cycle_3
+
+    transposition_cycle = Permutation(permutation_array=[0, 2, 1])
+    cycle_transposition = Permutation(permutation_array=[2, 1, 0])
+
+    assert cycle @ transposition == cycle_transposition
+    assert transposition @ cycle == transposition_cycle
