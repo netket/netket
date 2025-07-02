@@ -148,7 +148,7 @@ def _to_array_rank(
 
     # gather/replicate
     if allgather and config.netket_experimental_sharding:  # type: ignore
-        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        sharding = jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
         psi = jax.lax.with_sharding_constraint(psi, sharding)
 
     # remove fake states

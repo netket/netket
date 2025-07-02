@@ -6,7 +6,7 @@ import netket as nk
 import netket.experimental as nkx
 
 from flax import serialization
-from jax.sharding import PositionalSharding, SingleDeviceSharding
+from jax.sharding import NamedSharding, SingleDeviceSharding
 
 
 def _setup(L, alpha=1, reset_chains=False):
@@ -23,9 +23,10 @@ def _setup(L, alpha=1, reset_chains=False):
 
 def _check_correct_sharding(x, replicated=False):
     if jax.device_count() > 1:
-        s = PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
         if replicated:
-            s = s.replicate()
+            s = NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
+        else:
+            s = NamedSharding(jax.sharding.get_abstract_mesh(), jax.P("S"))
     else:
         s = SingleDeviceSharding(jax.devices()[0])
     assert x.sharding.is_equivalent_to(s, x.ndim)
@@ -73,8 +74,8 @@ def test_pt():
     samples = vs.sample(chain_length=10)
 
     assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
-    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+    sharding = NamedSharding(jax.sharding.get_abstract_mesh(), jax.P("S"))
+    assert samples.sharding.is_equivalent_to(sharding, 3)
 
 
 @pytest.mark.skipif(
@@ -244,8 +245,8 @@ def test_exactsampler(chunk_size):
     sa = nk.sampler.ExactSampler(hi, dtype=np.int8)
     vs = nk.vqs.MCState(sa, ma, n_samples=1024, chunk_size=chunk_size)
 
-    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+    pos_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), jax.P("S"))
+    assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
 
     ha = nk.operator.IsingJax(hilbert=vs.hilbert, graph=g, h=1.0)
     opt = nk.optimizer.Sgd(learning_rate=0.05)
@@ -269,8 +270,8 @@ def test_autoreg():
     opt = nk.optimizer.Sgd(learning_rate=0.1)
     sr = nk.optimizer.SR(diag_shift=0.01)
     vs = nk.vqs.MCState(sa, ma, n_samples=256)
-    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+    pos_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), jax.P("S"))
+    assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
     gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(n_iter=5)
 

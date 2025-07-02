@@ -26,10 +26,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.tree_util import Partial
-from jax.sharding import (
-    Mesh,
-    PartitionSpec as P,
-)
+from jax.sharding import PartitionSpec as P, NamedSharding
 from jax.experimental.shard_map import shard_map
 
 from netket.utils import config
@@ -82,10 +79,11 @@ def distribute_to_devices_along_axis(
                 inp_data = inp_data.at[-n_pad:].set(pad_value)
 
         shape = [
-            1,
+            None,
         ] * inp_data.ndim
-        shape[axis] = -1
-        sharding = PositionalSharding(devices).reshape(shape)
+        shape[axis] = "S"
+        mesh = jax.sharding.get_abstract_mesh()
+        sharding = jax.sharding.NamedSharding(mesh, jax.P(*shape))
         out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
         # TODO support gspmdsharding in numba wrapper and use this
         # out_data = jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(
@@ -96,7 +94,7 @@ def distribute_to_devices_along_axis(
             if n_pad > 0:  # type: ignore
                 mask = jax.jit(
                     _prepare_mask,
-                    out_shardings=sharding.reshape(-1),
+                    out_shardings=jax.sharding.NamedSharding(mesh, jax.P("S")),
                     static_argnums=(0, 1),
                 )(
                     n, n_pad
@@ -116,7 +114,7 @@ def shard_along_axis(x, axis: int):
     """
     When running with experimental sharding mode, calls
     :func:`jax.lax.with_sharding_constraint` with a
-    :class:`jax.sharding.PositionalSharding` sharded along the given axis.
+    :class:`jax.sharding.NamedSharding` sharded along 'S' the given axis.
 
     Args:
         x: An array
@@ -124,11 +122,13 @@ def shard_along_axis(x, axis: int):
     """
     if config.netket_experimental_sharding and jax.device_count() > 1:
         # Shard shape is (1, 1, 1, -1, 1, 1) where -1 is the axis
-        shard_shape = [1 for _ in range(x.ndim)]
-        shard_shape[axis] = -1
+        shard_shape = [None for _ in range(x.ndim)]
+        shard_shape[axis] = "S"
 
+        mesh = jax.sharding.get_abstract_mesh()
         x = jax.lax.with_sharding_constraint(
-            x, PositionalSharding(jax.devices()).reshape(tuple(shard_shape))
+            x,
+            jax.sharding.NamedSharding(mesh, jax.P(*shard_shape)),
         )
     return x
 
@@ -162,7 +162,7 @@ def gather(x):
     Make a sharded array fully replicated by gathering all parts on every device.
 
     Args:
-        x: potentially unreplicated jax.Array with PositionalSharding
+        x: potentially unreplicated jax.Array with NamedSharding(...'S')
 
     Returns:
         fully replicated array
@@ -174,20 +174,15 @@ def gather(x):
         raise RuntimeError("gather can only be applied to a jax.Array")
     elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
-    elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
+    elif isinstance(x.sharding, (jax.sharding.GSPMDSharding, NamedSharding)):
         # x.sharding.device_set has arbitrary order
         # Hardcode all devices until I figure out a way to deduce the order from x
-        out_shardings = (
-            PositionalSharding(jax.devices()).replicate().reshape((1,) * x.ndim)
+        out_shardings = jax.sharding.NamedSharding(
+            jax.sharding.get_abstract_mesh(), jax.P()
         )
-        # TODO support gspmdsharding in numba wrapper and use this
-        # out_shardings = x.sharding.get_replicated(jax.devices())
-    elif isinstance(x.sharding, PositionalSharding):
-        out_shardings = x.sharding.replicate()
     else:
         raise NotImplementedError(
-            "Gather is only compatible with PositionalSharding and GSPMDSharding,"
-            f" but array has {x.sharding}. Please open a feature request."
+            "Gather is not compatible with {x.sharding}. Please open a feature request."
         )
     return jax.jit(_identity, out_shardings=out_shardings)(x)
     # TODO support gspmdsharding in numba wrapper and use this
@@ -285,8 +280,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 y = y.at[i].set(f(x[i], c))
             return y
 
-        x = jax.jit(jnp.ones, out_shardings=jax.sharding.PositionalSharding(jax.devices()), static_argnums=0)(jax.device_count()*5)
-        c = jax.jit(jnp.ones, out_shardings=jax.sharding.PositionalSharding(jax.devices()).replicate(), static_argnums=0)(())
+        x = jax.jit(jnp.ones, out_shardings=jax.sharding.#NamedSharding(jax.devices()), static_argnums=0)(jax.device_count()*5)
+        c = jax.jit(jnp.ones, out_shardings=jax.sharding.#NamedSharding(jax.devices()).replicate(), static_argnums=0)(())
 
         # if we were to run `looped_computation(x)`` with the sharded x, it would formally be computed sequentially for all elements device per device,
         # if we  jit, i.e. `jax.jit(looped_computation)(x)`` the output sharding would just be replicated, jax just computes everything replicated on every device.
@@ -304,7 +299,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         y = jax.jit(sharding_decorator(looped_computation, sharded_args_tree=(True,)))(x)
         jax.debug.visualize_array_sharding(y)
 
-        # it also supports a mixture of arrays with PositionalSharding along an axis and replicated sharding:
+        # it also supports a mixture of arrays with NamedSharding along an axis and replicated sharding:
         y = jax.jit(sharding_decorator(looped_computation, sharded_args_tree=(True, False)))(x, c)
         jax.debug.visualize_array_sharding(y)
 
@@ -324,13 +319,13 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         y2 = jax.jit(sharding_decorator(looped_computation2, sharded_args_tree=(True,), reduction_op_tree=jax.lax.psum))(x)
 
         # which internally wraps the function like this:
-        mesh = Mesh(jax.devices(), axis_names=("i"))
-        in_specs = P("i")
+        mesh = Mesh(jax.devices(), axis_names=("S"))
+        in_specs = P("S")
         out_specs = P()
         @partial(shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
         def _f(x):
             res = looped_computation2(x)
-            res = jax.lax.psum(res, axis_name="i")
+            res = jax.lax.psum(res, axis_name="S")
             return res
 
         #
@@ -347,8 +342,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
 
         # Internally it does something like this:
 
-        mesh = Mesh(jax.devices(), axis_names=("i"))
-        in_specs = P("i")
+        mesh = Mesh(jax.devices(), axis_names=("S"))
+        in_specs = P("S")
         out_specs = P('i'), P()
         @partial(shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
         def _f(x):
@@ -416,9 +411,9 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                 for a, c in safe_zip(args, nonarray_args)
             )
 
-            mesh = Mesh(jax.devices(), axis_names=("i"))
-            in_specs = _sele2(sharded_args, P("i"), P())
-            out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P("i")))
+            mesh = jax.sharding.get_abstract_mesh()
+            in_specs = _sele2(sharded_args, P("S"), P())
+            out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P("S")))
 
             @partial(
                 shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs, **kwargs
@@ -444,7 +439,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                         return lambda x: Partial(partial(lambda x: x, x))
                     else:
                         return partial(
-                            jax.tree_util.tree_map, partial(o, axis_name="i")
+                            jax.tree_util.tree_map, partial(o, axis_name="S")
                         )
 
                 reductions = [_sele_op(o) for o in reduction_op]
