@@ -395,8 +395,10 @@ def test_permutations():
     with pytest.raises(ValueError):
         Permutation()
     with pytest.raises(ValueError):
-        Permutation(permutation_array=cycle_array,
-                    inverse_permutation_array=np.argsort(cycle_array))
+        Permutation(
+            permutation_array=cycle_array,
+            inverse_permutation_array=np.argsort(cycle_array),
+        )
 
     transposition = Permutation(permutation_array=[1, 0, 2])
 

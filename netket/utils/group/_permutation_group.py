@@ -46,6 +46,9 @@ class Permutation(Element):
         `inverse_permutation_array` (and the deprecated argument `permutation`)
         must be specified.
 
+        The deprecated argument `permutation` should be substituted for
+        `inverse_permutation_array`.
+
         Note that the left action of a permutation on an array `a` is
         `a[inverse_permutation_array]`.
 

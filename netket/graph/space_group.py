@@ -43,20 +43,46 @@ class Translation(Permutation):
     The product of two `Translation`s carries the appropriate displacement vector.
     """
 
-    def __init__(self, permutation: Array, displacement: Array):
+    def __init__(
+        self,
+        permutation: Array | None = None,
+        *,  # maybe change something
+        displacement: Array,
+        permutation_array: Array | None = None,
+        inverse_permutation_array: Array | None = None,
+    ):
         r"""
-        Creates a `Translation` from a permutation array and a displacement vector
+        Creates a `Translation` from either the array of images
+        `permutation_array` or preimages `inverse_permutation_array`,
+        and a displacement vector.
 
-        Arguments:
-            permutation: a 1D array listing :math:`g^{-1}(x)` for all
-                :math:`0\le x < N` (i.e., `V[permutation]` permutes the
-                elements of `V` as desired)
+        Exactly one argument among `permutation_array` and
+        `inverse_permutation_array` (and the deprecated argument `permutation`)
+        must be specified.
+
+        The deprecated argument `permutation` should be substituted for
+        `inverse_permutation_array`.
+
+        Note that the left action of a permutation on an array `a` is
+        `a[inverse_permutation_array]`.
+
+        Args:
+            permutation: (deprecated) 1D array listing
+                :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
             displacement: displacement vector is units of lattice basis vectors
+            permutation_array: 1D array listing
+                :math:`g(x)` for all :math:`0\le x \le N-1`.
+            inverse_permutation_array: 1D array listing
+                :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
 
         Returns:
-            a `Translation` object encoding the same information
+            A `Translation` object that encodes the specified translation.
         """
-        super().__init__(permutation)
+        super().__init__(
+            permutation_array=permutation_array,
+            inverse_permutation_array=inverse_permutation_array,
+            permutation=permutation,
+        )
         self._vector = np.asarray(displacement)
 
     @property
@@ -66,7 +92,11 @@ class Translation(Permutation):
 
 @dispatch
 def product(p: Translation, q: Translation):
-    return Translation(p(np.asarray(q)), p._vector + q._vector)
+    inverse_permutation_array = q.inverse_permutation_array[p.inverse_permutation_array]
+    return Translation(
+        inverse_permutation_array=inverse_permutation_array,
+        displacement=p._vector + q._vector,
+    )
 
 
 def _ensure_iterable(x):
@@ -79,6 +109,7 @@ def _ensure_iterable(x):
         return x
 
 
+# This function doesn't seem to be tested
 def _translations_along_axis(lattice: Lattice, axis: int) -> PermutationGroup:
     """
     The group of valid translations along an axis as a `PermutationGroup`
@@ -92,7 +123,9 @@ def _translations_along_axis(lattice: Lattice, axis: int) -> PermutationGroup:
         )
         vector = np.zeros(lattice.ndim, dtype=int)
         vector[axis] = 1
-        trans_by_one = Translation(trans_perm, vector)
+        trans_by_one = Translation(
+            inverse_permutation_array=trans_perm, displacement=vector
+        )
 
         for _ in range(1, lattice.extent[axis]):
             trans_list.append(trans_list[-1] @ trans_by_one)
@@ -102,6 +135,7 @@ def _translations_along_axis(lattice: Lattice, axis: int) -> PermutationGroup:
         return PermutationGroup([Identity()], degree=lattice.n_nodes)
 
 
+# This function doesn't seem to be tested
 def _pg_to_permutation(lattice: Lattice, point_group: PointGroup) -> PermutationGroup:
     """
     The permutation action of `point_group` on the sites of `lattice`.
@@ -113,7 +147,7 @@ def _pg_to_permutation(lattice: Lattice, point_group: PointGroup) -> Permutation
         else:
             # note that we need the preimages in the permutation
             perm = lattice.id_from_position(p.preimage(lattice.positions))
-            perms.append(Permutation(perm, name=str(p)))
+            perms.append(Permutation(inverse_permutation_array=perm, name=str(p)))
     return PermutationGroup(perms, degree=lattice.n_nodes)
 
 
