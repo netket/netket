@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any
+from functools import partial
 
 import os
 from textwrap import dedent
@@ -80,7 +81,7 @@ class Config:
         runtime=False,
         callback=None,
         lazy=False,
-    ):  # noqa: W0613
+    ):
         """
         Defines a new flag
 
@@ -267,9 +268,7 @@ def _update_x64(val):
 config.define(
     "NETKET_ENABLE_X64",
     bool,
-    default=bool_env(
-        "JAX_ENABLE_X64", True
-    ),  # respect explicit JAX_ENABLE_X64 settings
+    default=bool_env("JAX_ENABLE_X64", True),
     help=dedent(
         """
         Enables double-precision for Jax. Equivalent to `JAX_ENABLE_X64` but defaults to
@@ -310,35 +309,6 @@ def _setup_experimental_sharding(val, explicit=False):
         )
         jax.sharding.set_mesh(mesh)
 
-        # mode_type = "Explicit" if explicit else "Auto"
-        # warnings.warn(
-        #     f"""
-        #     NETKET_EXPERIMENTAL_SHARDING mode detected:
-        #         - SHARDING IS NOW ALWAYS ENABLED, BUT TO USE MORE THAN 1 DEVICE YOU MUST
-        #         DEFINE THE MESH AND SPECIFY IT IN YOUR CODE.
-
-        #         - For backward compatibility, specifying `NETKET_EXPERIMENTAL_SHARDING` will
-        #         create create and set a single-axis mesh with all devices for you.
-
-        #         - You should UPDATE YOUR CODE to include the following lines, and stop declaring
-        #         `NETKET_EXPERIMENTAL_SHARDING` in your code.
-
-        #         import jax
-        #         import netket as nk
-
-        #         # Create a mesh with all the devices
-        #         mesh = jax.make_mesh(
-        #             (len(jax.devices()),),  # How many devices
-        #             ("S"),                  # The name of the axis. 'S' is standard for 'samples'.
-        #             axis_types=(
-        #                 AxisType.{mode_type},  # Explicit/Auto sharding mode
-        #             ),
-        #         )
-        #         jax.sharding.set_mesh(mesh) # Set this as the default mesh for jax.
-
-        #     """
-        # )
-
 
 config.define(
     "NETKET_EXPERIMENTAL_SHARDING",
@@ -346,16 +316,31 @@ config.define(
     default=True,
     help=dedent(
         """
-        Enables highly expermiental support of netket for running on multiple jax devices.
+        (Deprecated, as this mode is now always on and default)
 
-        Supports both multiple local devices, as well as global ones in a multi-process environment.
-        See https://jax.readthedocs.io/en/latest/multi_process.html#initializing-the-cluster for
-        how to initialize the latter.
-        Distributes chains and samples equally among all available devices.
+        This can be used to disable sharding mode, but should not
+        be used and will be removed in the future.
+
+        Sharding by default uses the AUTOmatic sharding mode from
+        jax.
         """
     ),
     runtime=True,
     callback=_setup_experimental_sharding,
+)
+
+config.define(
+    "NETKET_EXPERIMENTAL_SHARDING_EXPLICIT",
+    bool,
+    default=False,
+    help=dedent(
+        """
+        Enables experimental 'Explicit' sharding mode. The implementation
+        is the same, but the default mesh created is Explicit.
+        """
+    ),
+    runtime=True,
+    callback=partial(_setup_experimental_sharding, explicit=True),
 )
 
 
