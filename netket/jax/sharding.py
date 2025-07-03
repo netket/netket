@@ -472,7 +472,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
 def _pvary_decorator(f):
     # assumes element-wise function with one single array argument
     def _f(x, *args, **kwargs):
-        return jax.lax.pvary(f(x, *args, **kwargs), tuple(jax.core.get_aval(x).vma))
+        return jax.lax.pvary(f(x, *args, **kwargs), tuple(jax.typeof(x).vma))
 
     return _f
 
