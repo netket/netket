@@ -469,6 +469,14 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
     return f
 
 
+def _pvary_decorator(f):
+    # assumes element-wise function with one single array argument
+    def _f(x, *args, **kwargs):
+        return jax.lax.pvary(f(x, *args, **kwargs), tuple(jax.core.get_aval(x).vma))
+
+    return _f
+
+
 def pad_axis_for_sharding(
     array: jax.Array, *, axis: int = 0, padding_value: float | jax.Array = 0
 ) -> jax.Array:

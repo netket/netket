@@ -7,9 +7,11 @@ from jax.api_util import argnums_partial
 
 from jax.extend import linear_util as lu
 
+from netket.jax.sharding import _pvary_decorator
+
 _tree_add = partial(jax.tree_util.tree_map, jax.lax.add)
 _tree_zeros_like = partial(
-    jax.tree_util.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype)
+    jax.tree_util.tree_map, _pvary_decorator(jax.lax.zeros_like_array)
 )
 
 
