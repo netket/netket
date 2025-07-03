@@ -42,7 +42,7 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
     y, vjp_fun = jax.vjp(
         lambda pars: wrap_to_support_scalar(forward_fn)(pars, samples), params
     )
-    (res,) = vjp_fun(jax.lax.pvary(np.array(1.0, dtype=jnp.result_type(y)), "S"))
+    (res,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     return res
 
 
@@ -71,8 +71,8 @@ def _jacobian_cplx(
     if not jnp.issubdtype(jnp.result_type(y), jnp.complexfloating):
         raise TypeError("Cannot build the complex jacobian for a real-valued function.")
 
-    (gr,) = vjp_fun(jax.lax.pvary(np.array(1.0, dtype=jnp.result_type(y)), "S"))
-    (gi,) = vjp_fun(jax.lax.pvary(np.array(-1.0j, dtype=jnp.result_type(y)), "S"))
+    (gr,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+    (gi,) = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
     return _build_fn(gr, gi)
 
 
