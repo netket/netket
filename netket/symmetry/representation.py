@@ -1,9 +1,12 @@
+import warnings
+
 import jax.numpy as jnp
 
 from netket.utils import struct
 
 from netket.utils.types import Array
-from netket.utils.group import FiniteGroup, Element
+from netket.utils.group import Element, Permutation, PGSymmetry
+from netket.utils.group import FiniteGroup, PermutationGroup
 from netket.hilbert import AbstractHilbert
 from netket.operator import DiscreteJaxOperator
 
@@ -25,20 +28,37 @@ class Representation:
 
     def __pre_init__(
         self,
-        group: FiniteGroup,
         representation_dict: dict[Element, DiscreteJaxOperator],
     ):
 
-        # TODO: Remove group argument
+        element, operator = next(iter(representation_dict.items))
 
-        # Check that this makes sense
-        for k, symmetry_operator in enumerate(representation_dict.values()):
-            if k == 0:
-                hilbert_space = symmetry_operator.hilbert
-            else:
-                assert hilbert_space == symmetry_operator.hilbert
+        # Add an option to detect TranslationGroup
 
-        # Check that group and representation_mapping.keys() match
+        if isinstance(element, Permutation):
+            element_cls = Permutation
+        if isinstance(element, PGSymmetry):
+            element_cls = PGSymmetry
+        if isinstance(element, Element):
+            element_cls = Element
+            warnings.warn("The group elements were not recognized")
+        else:
+            raise ValueError(
+                "The keys of the `representation_dict` should"
+                "subclass `nk.utils.group.Element`"
+            )
+
+        hilbert_space = operator.hilbert
+        group_elements = list(representation_dict.keys())
+
+        for element, symmetry_operator in representation_dict.items():
+            assert hilbert_space == symmetry_operator.hilbert
+            assert isinstance(element, element_cls)
+
+        if element_cls == Permutation:
+            group = PermutationGroup(group_elements, element.permutation_array.size)
+        if element_cls == PGSymmetry:
+            group = PGSymmetry()
 
         return (
             (),
