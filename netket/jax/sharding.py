@@ -408,10 +408,11 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
             )
 
             # workaround for shard_map not supporting non-array args part 1/2
-            nonarray_args = tuple(not hasattr(a, "dtype") for a in args)
-            args = tuple(
-                Partial(partial(lambda x: x, a)) if c else a
-                for a, c in safe_zip(args, nonarray_args)
+            nonarray_args = jax.tree.map(lambda a: not hasattr(a, "dtype"), args)
+            args = jax.tree.map(
+                lambda c, a: Partial(partial(lambda x: x, a)) if c else a,
+                nonarray_args,
+                args,
             )
 
             mesh = jax.sharding.get_abstract_mesh()
@@ -423,7 +424,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
             )
             def _f(*args):
                 # workaround for shard_map not supporting non-array args part 2/2
-                args = tuple(a() if c else a for a, c in safe_zip(args, nonarray_args))
+                args = jax.tree.map(lambda c, a: a() if c else a, nonarray_args, args)
 
                 # PRNGKey treatment 2/2
                 args = tuple(
