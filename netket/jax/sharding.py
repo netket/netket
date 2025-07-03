@@ -526,3 +526,11 @@ def inspect(name: str, tree: jax.Array):
         jax.tree.map_with_path(
             lambda path, x: _inspect(name + jax.tree_util.keystr(path), x), tree
         )
+
+
+def _pvary_decorator(f):
+    # assumes element-wise function with one single array argument
+    def _f(x, *args, **kwargs):
+        return jax.lax.pvary(f(x, *args, **kwargs), tuple(jax.core.get_aval(x).vma))
+
+    return _f
