@@ -135,15 +135,16 @@ def scanmap(fun, scan_fun, argnums=0):
             # TODO figure out why res here has the auto mesh from outside the shard_map, and not the manual mesh from x (which is currently set)
 
             # for now set the manual mesh from inside the shard_map
-            res = jax.tree.map(
-                lambda u: jax.sharding.reshard(
-                    u,
-                    jax.sharding.NamedSharding(
-                        jax.sharding.get_abstract_mesh(), jax.typeof(u).sharding.spec
+            if not jax.sharding.get_abstract_mesh().empty:
+                res = jax.tree.map(
+                    lambda u: jax.sharding.reshard(
+                        u,
+                        jax.sharding.NamedSharding(
+                            jax.sharding.get_abstract_mesh(), jax.typeof(u).sharding.spec
+                        ),
                     ),
-                ),
-                res,
-            )
+                    res,
+                )
             return res
 
         res = scan_fun(_inner, dyn_args)
