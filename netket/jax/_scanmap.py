@@ -140,7 +140,8 @@ def scanmap(fun, scan_fun, argnums=0):
                     lambda u: jax.sharding.reshard(
                         u,
                         jax.sharding.NamedSharding(
-                            jax.sharding.get_abstract_mesh(), jax.typeof(u).sharding.spec
+                            jax.sharding.get_abstract_mesh(),
+                            jax.typeof(u).sharding.spec,
                         ),
                     ),
                     res,
