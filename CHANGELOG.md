@@ -3,7 +3,37 @@
 
 # Change Log
 
-## NetKet 3.17 (In development)
+## NetKet 3.19 (In development)
+
+## New features
+
+## Deprecations and Removals
+
+
+## NetKet 3.18 (3 July 2025)
+
+This version will be the last one supporting Python 3.10 and Jax 0.5. The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly more powerful.
+
+## New features
+* Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2nd` and {class}`netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd`
+which are more efficient and produce fewer connected elements than the generic {class}`netket.operator.FermionOperator2ndJax` operator, and a explicit Fermi-Hubbard operator implementation {class}`netket.experimental.operator.FermiHubbardJax` based on it [#2024](https://github.com/netket/netket/pull/2024).
+* The functionality of {class}`~netket.graph.SpaceGroupBuilder` is merged into a subclass of {class}`~netket.utils.group.PermutationGroup` called {class}`~netket.graph.SpaceGroup` that also represents the space group itself. The product table of `SpaceGroup` is implemented with reference to its structure, making group-theory calculations much faster than for a generic `PermutationGroup`. Another subclass of `PermutationGroup`, {class}`~netket.graph.TranslationGroup`, is introduced to handle translation groups efficiently. All functionality of {meth}`~netket.graph.Lattice.space_group_builder()` is taken over by {meth}`~netket.graph.Lattice.space_group()`, so the former is deprecated [#2051](https://github.com/netket/netket/pull/2051).
+
+## Deprecations and Removals
+
+* The `nk.utils.group.Permutation` class, which was constructed by passing an _inverse permutation_, can now be constructed by passing both a _permutation_ array or an _inverse permutation_ array. It's attributes have also been updated to reflect the change. If you were operating directly on those objects you will have to update how you build them [#2067](https://github.com/netket/netket/pull/2067).
+* Removed `nk.hilbert.CustomHilbert`, as it has been deprecated for a long time and was not fully functional anymore. If you need to build a custom Hilbert space, define a class. [#2073](https://github.com/netket/netket/pull/2073).
+* Some methods specific to `SpaceGroupBuilder` have been removed as it has been merged with `SpaceGroup`. If you were manipulating this object directly you might have to update some usages. See the new feature above as well [#2051](https://github.com/netket/netket/pull/2051).
+* The Particle Hilbert space has been moved to experiemntal to reflect the fact that it has seen very little development since its inception [#2058](https://github.com/netket/netket/pull/2058).
+
+## Bug Fixes
+* Fixed a bug in the computation of the Autocorrelation time when using sharding [#2044](https://github.com/netket/netket/pull/2044).
+* When using a Parallel Tempering sampler with a custom set of diffusion parameters their normalisation was computed incorrectly. This has been fixed [#2041](https://github.com/netket/netket/pull/2041).
+
+
+### Breaking Changes
+
+## NetKet 3.17 (20 April 2025)
 
 This version (as all previous versions) are incompatible with Jax 0.6 . A future release will make it compatible.
 
@@ -12,12 +42,9 @@ This version (as all previous versions) are incompatible with Jax 0.6 . A future
 
 ### New Features
 * The {meth}`~netket.sampler.Sampler.sample` method of {class}`~netket.sampler.Sampler` now accepts a new optional keyword argument, `return_log_probabilities` which, if specified, will make the samplers return both the samples and the corresponding log-probabilities. The default is False, and therefore the default behaviour is unchanged [#2012](https://github.com/netket/netket/pull/2012).
-* Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2nd` and {class}`netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd`
-which are more efficient and produce fewer connected elements than the generic {class}`netket.operator.FermionOperator2ndJax` operator, and a explicit Fermi-Hubbard operator implementation {class}`netket.experimental.operator.FermiHubbardJax` based on it [#2024](https://github.com/netket/netket/pull/2024).
 
 ### Improvements
 * When loading log files with {meth}`netket.utils.history.HistoryDict.from_file`, the real and imaginary part are re-joined together to reproduce the original history objects, and `np.nan` are also correctly deserialized [#2025](https://github.com/netket/netket/pull/2025).
-* The functionality of {class}`~netket.graph.SpaceGroupBuilder` is merged into a subclass of {class}`~netket.utils.group.PermutationGroup` called {class}`~netket.graph.SpaceGroup` that also represents the space group itself. The product table of `SpaceGroup` is implemented with reference to its structure, making group-theory calculations much faster than for a generic `PermutationGroup`. Another subclass of `PermutationGroup`, {class}`~netket.graph.TranslationGroup`, is introduced to handle translation groups efficiently. All functionality of {meth}`~netket.graph.Lattice.space_group_builder()` is taken over by {meth}`~netket.graph.Lattice.space_group()`, so the former is deprecated. [#2051](https://github.com/netket/netket/pull/2051).
 
 ### Bug Fixes
 * A minor bug that lead to a wrong calculation of Rhat when using chunking has been addressed [#2013](https://github.com/netket/netket/pull/2013).
