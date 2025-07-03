@@ -129,6 +129,24 @@ def scanmap(fun, scan_fun, argnums=0):
         f_partial, dyn_args = argnums_partial(
             f, argnums, args, require_static_args_hashable=False
         )
-        return scan_fun(lambda x: f_partial.call_wrapped(*x), dyn_args)
+
+        def _inner(x):
+            res = f_partial.call_wrapped(*x)
+            # TODO figure out why res here has the auto mesh from outside the shard_map, and not the manual mesh from x (which is currently set)
+
+            # for now set the manual mesh from inside the shard_map
+            res = jax.tree.map(
+                lambda u: jax.sharding.reshard(
+                    u,
+                    jax.sharding.NamedSharding(
+                        jax.sharding.get_abstract_mesh(), jax.typeof(u).sharding.spec
+                    ),
+                ),
+                res,
+            )
+            return res
+
+        res = scan_fun(_inner, dyn_args)
+        return res
 
     return f_
