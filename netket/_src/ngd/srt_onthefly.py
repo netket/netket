@@ -8,15 +8,15 @@ import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from jax.experimental.shard_map import shard_map
-from jax.sharding import PartitionSpec as P
+from jax.sharding import PartitionSpec as P, PositionalSharding
 
 from netket import jax as nkjax
+from netket import config
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.utils import mpi
 from netket.utils.types import Array
 from netket.utils.version_check import module_version
 
-from netket._src import distributed as distributed
 from netket.jax import _ntk as nt
 
 
@@ -84,7 +84,6 @@ def srt_onthefly(
     else:
         dv = jnp.real(dv)  # shape [N_mc,]
 
-    token = None
     if momentum is not None:
         if old_updates is None:
             old_updates = tree_map(jnp.zeros_like, parameters_real)
@@ -93,16 +92,21 @@ def srt_onthefly(
                 jvp_f_chunk, in_axes=(None, None, 0), chunk_size=chunk_size
             )(parameters_real, old_updates, samples)
 
-            avg, token = mpi.mpi_mean_jax(jnp.mean(acc, axis=0), token=token)
+            avg = jnp.mean(acc, axis=0)
             acc = (acc - avg) / jnp.sqrt(N_mc)
             dv -= momentum * acc
 
     if mode == "complex":
-        dv = jax.lax.collapse(dv, 0, 2)  # shape [2*N_mc,]
-    dv, token = distributed.allgather(dv, token=token)  # shape [2*N_mc,] or [N_mc, ]
+        dv = jax.lax.collapse(dv, 0, 2)  # shape [2*N_mc,] or [N_mc, ] if not complex
 
     # Collect all samples on all MPI ranks, those label the columns of the T matrix
-    all_samples, token = distributed.allgather(samples, token=token)
+    if config.netket_experimental_sharding:
+        samples = jax.lax.with_sharding_constraint(
+            samples, PositionalSharding(jax.devices()).reshape(-1, 1)
+        )
+        all_samples = jax.lax.with_sharding_constraint(
+            samples, PositionalSharding(jax.devices()).replicate()
+        )
 
     _jacobian_contraction = nt.empirical_ntk_by_jacobian(
         f=_apply_fn,
@@ -129,10 +133,8 @@ def srt_onthefly(
                 return rearrange(ntk_local, "nbatches i j -> i (nbatches j)")
 
     # If we are sharding, use shard_map manually
-    if distributed.mode() == "sharding":
-        mesh = jax.make_mesh(
-            (distributed.device_count(),), ("i",), devices=jax.devices()
-        )
+    if config.netket_experimental_sharding:
+        mesh = jax.make_mesh((jax.device_count(),), ("i",), devices=jax.devices())
         # SAMPLES, ALL_SAMPLES PARAMETERS_REAL
         in_specs = (P("i", None), P(), P())
         out_specs = P("i", None, None, None)
@@ -161,7 +163,10 @@ def srt_onthefly(
         ntk_local = jacobian_contraction(samples, all_samples, parameters_real).real
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
-    ntk, token = distributed.allgather(ntk_local, token=token)
+    ntk = jax.lax.with_sharding_constraint(
+        ntk_local,
+        PositionalSharding(jax.devices()).replicate(),
+    )
     if mode == "complex":
         # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
         ntk = rearrange(ntk, "i j z w -> (i z) (j w)")
@@ -207,9 +212,13 @@ def srt_onthefly(
     # shape [N_mc,2]
     if mode == "complex":
         aus_vector = aus_vector.reshape(-1, 2)
-    aus_vector = distributed.shard_replicated(
-        aus_vector, axis=0
-    )  # shape [N_mc // p.size,2]
+    # shape [N_mc // p.size,2]
+    aus_vector = jax.lax.with_sharding_constraint(
+        aus_vector,
+        PositionalSharding(jax.devices()).reshape(
+            -1,
+        ),
+    )
 
     # _, vjp_fun = jax.vjp(f, parameters_real)
     vjp_fun = nkjax.vjp_chunked(
@@ -221,11 +230,7 @@ def srt_onthefly(
         nondiff_argnums=1,
     )
 
-    updates = vjp_fun(aus_vector)[0]  # pytree [N_params,]
-
-    # Must pool the updates among MPI ranks BEFORE caching them into
-    # old_updates, otherwise the `old_updates` will diverge among ranks
-    updates, token = mpi.mpi_allreduce_sum_jax(updates, token=token)
+    (updates,) = vjp_fun(aus_vector)  # pytree [N_params,]
 
     if momentum is not None:
         updates = tree_map(lambda x, y: x + momentum * y, updates, old_updates)

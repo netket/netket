@@ -167,7 +167,7 @@ class Sampler(struct.Pytree):
         jax process.
 
         This is used to determine the shape of the batches generated in a single process.
-        This is needed because when using JAX sharding, we must declare the full shape on every 
+        This is needed because when using JAX sharding, we must declare the full shape on every
         jax process, therefore this returns :attr:`~Sampler.n_chains`.
 
         Usage of this flag is required to support JAX sharding.

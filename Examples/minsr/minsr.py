@@ -24,7 +24,7 @@ g = nk.graph.Hypercube(length=5, n_dim=2, pbc=True)
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Ising spin hamiltonian at the critical point
-ha = nk.operator.Ising(hilbert=hi, graph=g, h=3.0)
+ha = nk.operator.IsingJax(hilbert=hi, graph=g, h=3.0)
 
 # RBM Spin Machine
 ma = nk.models.RBM(alpha=1, use_visible_bias=True, param_dtype=float)

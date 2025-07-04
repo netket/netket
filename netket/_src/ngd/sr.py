@@ -3,13 +3,12 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-
+from jax.sharding import PositionalSharding
 
 from netket import jax as nkjax
 from netket.utils import mpi
 from netket.utils.types import Array
 
-from netket._src import distributed
 from netket._src.ngd.kwargs import ensure_accepts_kwargs
 
 
@@ -77,5 +76,8 @@ def _compute_sr_update(
         num_p = updates.shape[-1] // 2
         updates = updates[:num_p] + 1j * updates[num_p:]
 
-    updates, token = distributed.allgather(updates, token=token)
+    updates = jax.lax.with_sharding_constraint(
+        updates, PositionalSharding(jax.devices()).replicate()
+    )
+
     return updates, old_updates, info

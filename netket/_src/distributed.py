@@ -6,7 +6,6 @@ import jax
 import jax.numpy as jnp
 
 from netket import config as nkconfig
-from netket.utils import mpi
 from jax.lax import with_sharding_constraint
 from jax.sharding import PositionalSharding
 
@@ -20,8 +19,6 @@ def mode() -> str:
     """
     if nkconfig.netket_experimental_sharding:
         return "sharding"
-    elif process_count() > 1:
-        return "mpi"
     else:
         return None
 
@@ -32,14 +29,13 @@ def process_count() -> int:
     Returns the total number of JAX processes running NetKet.
 
     If you are running with experimental sharding, this is
-    equivalent to ``jax.process_count()``. If you are running
-    with mpi, this is ``nk.utils.mpi.n_nodes``.
+    equivalent to ``jax.process_count()``.
     """
 
     if nkconfig.netket_experimental_sharding:
         return jax.process_count()
     else:
-        return mpi.n_nodes
+        return 1
 
 
 @lru_cache
@@ -59,8 +55,7 @@ def process_index() -> int:
     Returns the index of this process running NetKet.
 
     If you are running with experimental sharding, this is
-    equivalent to ``jax.process_index()``. If you are running
-    with mpi, this is ``nk.utils.mpi.rank``.
+    equivalent to ``jax.process_index()``.
 
     This is an integer between 0 and
     :func:`netket_pro.distributed.process_count()`.
@@ -69,7 +64,7 @@ def process_index() -> int:
     if nkconfig.netket_experimental_sharding:
         return jax.process_index()
     else:
-        return mpi.rank
+        return 0
 
 
 def is_master_process() -> bool:
@@ -81,14 +76,11 @@ def is_master_process() -> bool:
 
 def shard_replicated(array, *, axis=0):
     """
-    Shards a replicated array across MPI ranks/jax processes.
+    Shards a replicated array across jax processes.
 
     The input must be a replicated array, obtained either from
     :func:`netket_pro.distributed.broadcast`, :func:`netket_pro.distributed.allgather` or
     from executing the same function on all nodes.
-
-    When running under MPI, the output is simply a slice of the input array along the
-    specified axis (Default 0) corresponding to the rank of the process.
 
     When running under sharding, we set the sharding constraint accordingly.
 
@@ -114,10 +106,6 @@ def shard_replicated(array, *, axis=0):
                 sharding_shape
             )
             array = jax.lax.with_sharding_constraint(array, sharding)
-        elif mode() == "mpi":
-            lenght_per_proc = lenght // mpi.n_nodes
-            start, end = mpi.rank * lenght_per_proc, (mpi.rank + 1) * lenght_per_proc
-            array = array[start:end]
         else:
             pass
         return array
@@ -146,7 +134,6 @@ def allgather(array, *, axis: int = 0, token=None):
 
     Args:
         array: The array to gather.
-        token: A token to be used for MPI communication.
 
     Returns:
         A tuple of the gathered array and the token.
@@ -155,11 +142,7 @@ def allgather(array, *, axis: int = 0, token=None):
     if axis != 0:
         raise NotImplementedError("Only axis=0 is supported for now. Open a PR.")
 
-    if mode() == "mpi":
-        _a = array
-        array, token = mpi.mpi_allgather_jax(array, token=token)
-        array = jax.lax.collapse(array, 0, 2)
-    elif mode() == "sharding":
+    if mode() == "sharding":
         sharding = PositionalSharding(jax.devices()).replicate()
         sharding = sharding.reshape(tuple(1 for _ in range(array.ndim)))
         array = jax.lax.with_sharding_constraint(array, sharding)
@@ -224,7 +207,6 @@ def reshard(
         array: The array to reshard / alltoall.
         sharded_axis: The axis to be collected.
         out_sharded_axis: The axis to be distributed.
-        token: A token to be used for MPI communication.
         pad: Whether to pad the axis to be sharded to be a multiple of the number of processes. If this is
             set to `False`, the size of the sharded axis must be a multiple of the number of processes.
             (Default: `False`)
@@ -247,28 +229,7 @@ def reshard(
                 "Sharded axis size must be a multiple of the number of processes"
             )
 
-    if mode() == "mpi":
-        # Create a new shape with the axis to be sharded split into two
-        # (..., M, ...) -> (..., n, M/n, ...)
-        new_shape = list(array.shape)
-        new_shape.insert(out_sharded_axis, process_count())
-        new_shape[out_sharded_axis + 1] = -1
-        array = jnp.reshape(array, new_shape)
-
-        # Move this axis to the position 0
-        # (..., n, M/n, ...) -> (n, ..., M/n, ...)
-        array = jnp.moveaxis(array, out_sharded_axis, 0)
-        array, token = mpi.mpi_alltoall_jax(array, token=token)
-
-        # After the alltoall, the sharded axis is not split between the
-        # position 0 and the actual sharded axis, so we need to collapse them.
-        # First we move the sharded axis back to its original position
-        if sharded_axis != 0:
-            array = jnp.moveaxis(array, 0, sharded_axis)
-
-        # Then we collapse them
-        array = jax.lax.collapse(array, sharded_axis, sharded_axis + 2)
-    elif mode() == "sharding":
+    if mode() == "sharding":
         del sharded_axis  # unused
 
         sharding = PositionalSharding(jax.devices())
@@ -277,3 +238,32 @@ def reshard(
         sharding = sharding.reshape(sharding_shape)
         array = with_sharding_constraint(array, sharding)
     return array, token
+
+
+def _inspect_(name: str, x: jax.Array):
+    """
+    Internal function to inspect the sharding of an array. To be used for debugging inside
+    of :func:`jax.jit`-ted functions.
+
+    Args:
+        name: A string to identify the array, usually the name, but can contain anything else.
+        x: The array
+    """
+    if mode() == "sharding":
+
+        def _cb(y):
+            if process_index() == 0:
+                print(
+                    f"{name}: shape={x.shape}, sharding:",
+                    y,
+                    flush=True,
+                )
+
+        jax.debug.inspect_array_sharding(x, callback=_cb)
+
+
+def _inspect(name: str, tree: jax.Array):
+    if isinstance(tree, jax.Array):
+        _inspect_(name, tree)
+    else:
+        jax.tree.map_with_path(lambda path, x: _inspect_(name + str(path), x), tree)
