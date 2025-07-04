@@ -7,6 +7,8 @@
 
 ## New features
 
+* `SymmSumExp` supports specifying group characters as an array in addition to their index in the full character table. [#2075](https://github.com/netket/netket/pull/2075).
+
 ## Deprecations and Removals
 
 
