@@ -329,6 +329,7 @@ config.define(
 
 
 def _setup_experimental_sharding(val):
+    # TODO: Remove once we require jax 0.5
     if val:
         from jax import config as jax_config
 
@@ -352,7 +353,7 @@ config.define(
         disables mpi.
         """
     ),
-    runtime=False,
+    runtime=True,
     callback=_setup_experimental_sharding,
 )
 

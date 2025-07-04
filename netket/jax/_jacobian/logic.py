@@ -58,7 +58,7 @@ def jacobian(
     center: bool = False,
     dense: bool = False,
     _sqrt_rescale: bool = False,
-    _axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    _axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
 ) -> PyTree:
     r"""
     Computes the jacobian of a NN model with respect to its parameters. This function
@@ -306,6 +306,8 @@ def jacobian(
     split-to-real pytree vectors
 
     """
+    if _axis_0_is_sharded is None:
+        _axis_0_is_sharded = config.netket_experimental_sharding
     if samples.ndim != 2:
         raise ValueError("samples must be a 2D array")
 
