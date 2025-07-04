@@ -435,7 +435,7 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, pvary_args
                 args = args_treedef.unflatten(args)
 
                 # pvary
-                jax.tree_util.tree_map(lambda c, l: jax.tree_util.tree_map(partial(jax.lax.pvary, axis_name='S'), l) if c else l, pvary_args_tree, args)
+                args = jax.tree_util.tree_map(lambda c, l: jax.tree_util.tree_map(partial(jax.lax.pvary, axis_name='S'), l) if c else l, pvary_args_tree, args)
 
                 res = f(*args)
 
