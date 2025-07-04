@@ -77,7 +77,9 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
     _get_op_part = partial(_multimap, lambda c, x: x if not c else None, append_cond)
     _tree_select = partial(_multimap, lambda c, t1, t2: t1 if c else t2, append_cond)
 
-    carry_init = True, _get_op_part(zero_fun(jax.eval_shape(f, x0)))
+    # dummy_y = jax.eval_shape(f, x0)
+    dummy_y = f(x0)
+    carry_init = True, _get_op_part(zero_fun(dummy_y))
 
     def f_(carry, x):
         is_first, y_carry = carry
