@@ -26,12 +26,6 @@ bare_modules = {}
 bare_modules["RBM(real)"] = nk.models.RBM(alpha=1, param_dtype=float)
 bare_modules["RBM(complex)"] = nk.models.RBM(alpha=1, param_dtype=complex)
 
-character_ids = {}
-character_ids["Char=None"] = (None, None)
-character_ids["Idx=0"] = (0, None)
-character_ids["Idx=1"] = (1, None)
-character_ids["Char=0"] = ()
-
 ones = HashableArray(np.ones(9))
 
 
