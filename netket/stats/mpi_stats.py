@@ -18,7 +18,7 @@ import jax.numpy as jnp
 def subtract_mean(x, axis=None):
     """
     Subtracts the mean of the input array over all but the last dimension
-    and over all MPI processes from each entry.
+    and over all JAX processes from each entry.
 
     Args:
         x: Input array
@@ -38,7 +38,7 @@ def subtract_mean(x, axis=None):
 
 def mean(a, axis=None, keepdims: bool = False):
     """
-    Compute the arithmetic mean along the specified axis and over MPI processes.
+    Compute the arithmetic mean along the specified axis and over JAX processes.
 
     Returns the average of the array elements. The average is taken over the flattened
     array by default, otherwise over the specified axis. float64 intermediate and
@@ -60,7 +60,7 @@ def mean(a, axis=None, keepdims: bool = False):
 
 def sum(a, axis=None, keepdims: bool = False):
     """
-    Compute the sum along the specified axis and over MPI processes.
+    Compute the sum along the specified axis and over JAX processes.
 
     Args:
         a: The input array
@@ -87,8 +87,8 @@ def sum(a, axis=None, keepdims: bool = False):
 
 def var(a, axis=None, ddof: int = 0):
     """
-    Compute the variance mean along the specified axis and over MPI processes.
-    Assumes same shape on all MPI processes.
+    Compute the variance mean along the specified axis and over JAX processes.
+    Assumes same shape on all JAX processes.
 
     Args:
         a: The input array
@@ -122,16 +122,16 @@ def var(a, axis=None, ddof: int = 0):
 def total_size(a, axis=None):
     """
     Compute the total number of elements stored in the input array among all
-    MPI processes.
+    JAX processes.
 
-    This function essentially returns MPI_sum_among_processes(a.size).
+    This function essentially returns JAX_sum_among_processes(a.size).
 
     Args:
         a: The input array.
         axis: If specified, only considers the total size of that axis.
 
     Returns:
-        a.size or a.shape[axis], reduced among all MPI processes.
+        a.size or a.shape[axis], reduced among all JAX processes.
     """
     if axis is None:
         l_size = a.size

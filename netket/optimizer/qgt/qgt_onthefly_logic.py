@@ -46,7 +46,7 @@ def _mat_vec(jvp_fn, v, diag_shift, pdf=None):
     w = jvp_fn(v)
     if pdf is None:
         w = w * (1.0 / w.size)
-        w = subtract_mean(w)  # w/ MPI
+        w = subtract_mean(w)  # w/ JAX sharding
     else:
         w = pdf * (w - pdf @ w)
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
@@ -95,7 +95,7 @@ def _O_jvp(forward_fn, params, samples, v, chunk_size):
     @partial(scanmap, scan_fun=scan_append, argnums=2)
     def __O_jvp(forward_fn, params, samples, v):
         # TODO apply the transpose of sum_inplace (allreduce) to the arg v here
-        # in order to get correct transposition with MPI
+        # in order to get correct transposition with JAX sharding
         _, res = jax.jvp(lambda p: forward_fn(p, samples), (params,), (v,))
         return res
 
@@ -130,7 +130,7 @@ def _Odagger_DeltaO_v(forward_fn, params, samples, v, chunk_size, pdf=None):
     w = _O_jvp(forward_fn, params, samples, v, chunk_size)
     if pdf is None:
         w = w * (1.0 / samples.shape[0])
-        w = subtract_mean(w)  # w/ MPI
+        w = subtract_mean(w)  # w/ JAX sharding
     else:
         w = pdf * (w - pdf @ w)
     res = _OH_w(forward_fn, params, samples, w, chunk_size)

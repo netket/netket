@@ -167,12 +167,10 @@ class Sampler(struct.Pytree):
         jax process.
 
         This is used to determine the shape of the batches generated in a single process.
-        This is needed because when using MPI, every process must create a batch of chains
-        of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
-        mode we must declare the full shape on every jax process, therefore this returns
-        :attr:`~Sampler.n_chains`.
+        This is needed because when using JAX sharding, we must declare the full shape on every 
+        jax process, therefore this returns :attr:`~Sampler.n_chains`.
 
-        Usage of this flag is required to support both MPI and sharding.
+        Usage of this flag is required to support JAX sharding.
 
         Samplers may override this to have a larger batch size, for example to
         propagate multiple replicas (in the case of parallel tempering).
@@ -226,10 +224,10 @@ class Sampler(struct.Pytree):
         If you want reproducible samples, you should specify `seed`, otherwise the state
         will be initialised randomly.
 
-        If running across several MPI processes, all `sampler_state`s are guaranteed to be
+        If running across several JAX processes, all `sampler_state`s are guaranteed to be
         in a different (but deterministic) state.
-        This is achieved by first reducing (summing) the seed provided to every MPI rank,
-        then generating `n_rank` seeds starting from the reduced one, and every rank is
+        This is achieved by first reducing (summing) the seed provided to every JAX process,
+        then generating `n_process` seeds starting from the reduced one, and every process is
         initialized with one of those seeds.
 
         The resulting state is guaranteed to be a frozen Python dataclass (in particular,

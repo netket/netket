@@ -56,7 +56,7 @@ class MetropolisNumpySamplerState:
 
     @property
     def acceptance(self) -> float | None:
-        """The fraction of accepted moves across all chains and MPI processes.
+        """The fraction of accepted moves across all chains and JAX processes.
 
         The rate is computed since the last reset of the sampler.
         Will return None if no sampling has been performed since then.
@@ -134,12 +134,12 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         jax process.
 
         This is used to determine the shape of the batches generated in a single process.
-        This is needed because when using MPI, every process must create a batch of chains
+        This is needed because when using JAX sharding, every process must create a batch of chains
         of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
         mode we must declare the full shape on every jax process, therefore this returns
         :attr:`~Sampler.n_chains`.
 
-        Usage of this flag is required to support both MPI and sharding.
+        Usage of this flag is required to support JAX sharding.
 
         Samplers may override this to have a larger batch size, for example to
         propagate multiple replicas (in the case of parallel tempering).

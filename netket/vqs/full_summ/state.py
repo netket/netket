@@ -262,7 +262,7 @@ class FullSumState(VariationalState):
                 "For performance reasons, we suggest to use a power-of-two chunk size."
             )
 
-        # TODO MPI aware check for valid size
+        # TODO JAX aware check for valid size
         check_chunk_size(self.hilbert.n_states, chunk_size)
 
         self._chunk_size = chunk_size

@@ -168,7 +168,7 @@ class MCMixedState(VariationalMixedState, MCState):
         """
         Length of the markov chain used for sampling the diagonal configurations.
 
-        If running under MPI, the total samples will be n_nodes * chain_length * n_batches.
+        If running under JAX sharding, the total samples will be n_devices * chain_length * n_batches.
         """
         return self.diagonal.chain_length
 

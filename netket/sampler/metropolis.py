@@ -757,8 +757,8 @@ def MetropolisGaussian(hilbert, sigma=1.0, **kwargs) -> MetropolisSampler:
     Args:
         hilbert: The continuous Hilbert space to sample.
         sigma: The width of the Gaussian proposal distribution (default = 1.0).
-        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
-        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_chains: The total number of independent Markov chains across all JAX devices. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every JAX device (default = 16).
         sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
@@ -794,8 +794,8 @@ def MetropolisAdjustedLangevin(
         hilbert: The continuous Hilbert space to sample.
         dt: Time step size for the Langevin dynamics (noise with variance 2*dt).
         chunk_size: Chunk size to compute the gradients of the log probability.
-        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
-        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_chains: The total number of independent Markov chains across all JAX devices. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every JAX device (default = 16).
         sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
@@ -831,8 +831,8 @@ def MetropolisFermionHop(
         hilbert: The Hilbert space to sample.
         d_max: The maximum graph distance allowed for exchanges.
         spin_symmetric: (default True) If True, exchanges are only allowed between modes with the same spin projection.
-        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
-        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_chains: The total number of independent Markov chains across all JAX devices. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every JAX device (default = 16).
         sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).

@@ -286,7 +286,7 @@ class AbstractVariationalDriver(abc.ABC):
         also returned at the end of this function so that you can inspect the results
         without reading the json output.
 
-        When running among multiple MPI ranks/Jax devices, the logging logic is executed
+        When running among multiple JAX devices, the logging logic is executed
         on all nodes, but only root-rank loggers should write to files or do expensive I/O
         operations.
 

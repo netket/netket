@@ -9,10 +9,10 @@ NetKet normally only uses the jax default device `jax.local_devices()[0]` to per
 
 Sharding is incredibly easy to setup: install jax and you are done!
 
-However, **sharding works well only for GPUs, and CPU support is an afterthought that performs terribly**. Generally speaking, if you want to parallelize over many CPUs, you should use MPI, but if you want to use GPUs you should stick to sharding.
+However, **sharding works well only for GPUs, and CPU support is an afterthought that performs terribly**. For CPU-based workloads, performance will be limited compared to GPU-based sharding.
 We mainly only use CPU-based sharding for locally testing that our script will run before sending it to the cluster, but we never use it in production.
 
-Sharding code is also much simpler to write and maintain for us, so in the future it will be the preferred mode. Be careful that some operators based on Numba do not work with sharding, but they can all be converted to a version that works well with it.
+Sharding code is also much simpler to write and maintain for us, and is now the only supported parallelization mode. Be careful that some operators based on Numba do not work with sharding, but they can all be converted to a version that works well with it.
 :::
 
 **Chef's suggestion:**
@@ -34,14 +34,10 @@ Legend:
 (sharding)=
 ## Sharding (Native Jax parallelism)
 
-Historically the principal way to run {code}`netket` in parallel has been to use MPI via {code}`mpi4py` and {code}`mpi4jax`.
-However, recently jax gained support for shared arrays and collective operations on multiple devices/nodes (see [here](https://jax.readthedocs.io/en/latest/jax_array_migration.html#jax-array-migration) and [here](https://jax.readthedocs.io/en/latest/multi_process.html)) and we adapted {code}`netket` to support those, enabling native parallelism via jax.
+NetKet uses JAX's native parallelization capabilities through sharding. JAX provides support for shared arrays and collective operations on multiple devices/nodes (see [here](https://jax.readthedocs.io/en/latest/jax_array_migration.html#jax-array-migration) and [here](https://jax.readthedocs.io/en/latest/multi_process.html)) and NetKet is built to leverage these features for efficient distributed computing.
 
 :::{note}
-This feature is still a work in progress, but as of September 2024 it is very reliable and we are routinely using it
-for our research. We will soon declare it *stable* and stop calling it experimental.
-
-Moreover, we found that sharding leads to a consistent 5-10% speedup over MPI when using multiple GPUs.
+JAX sharding is NetKet's only supported parallelization mode. It is stable and reliable for production use, providing efficient distributed computing capabilities for both single-node and multi-node configurations.
 :::
 
 (jax_single_process)=
@@ -75,14 +71,14 @@ os.environ['NETKET_EXPERIMENTAL_SHARDING_CPU'] = '8'
 import netket as nk
 # ...
 ```
-You should only use this to test things that they work, but not for anything serious. It has relatively bad performance, and if you have many cores you would be much better off using mpi.
+You should only use this to test things that they work, but not for anything serious. It has relatively bad performance compared to GPU-based sharding.
 
 
 (jax_multi_process)=
 ### Sharding: Multiple nodes
 
-To launch netket on a multi-node cluster usually all that is required is to add a call to `jax.distributed.initialize()` at the top of the main script, see the follwing examples.
-These scripts can be conveniently launched with `srun` (on slurm clusters) or `mpirun`.
+To launch netket on a multi-node cluster usually all that is required is to add a call to `jax.distributed.initialize()` at the top of the main script, see the following examples.
+These scripts can be conveniently launched with `srun` (on slurm clusters) or with job schedulers that support multi-process execution.
 For more details and manual setups we refer to the [jax documentation](https://jax.readthedocs.io/en/latest/multi_process.html).
 
 By default, on slurm clusters, jax will see a single GPU per process so if you have 4 GPUs per node, you should launch 4 tasks per node.
@@ -128,7 +124,6 @@ jax.distributed.initialize(cluster_detection_method="mpi4py")
 print("initialization succeded...", flush=True)
 
 import os
-os.environ['NETKET_MPI'] = '0'
 os.environ['NETKET_EXPERIMENTAL_SHARDING'] = '1'
 
 import netket as nk

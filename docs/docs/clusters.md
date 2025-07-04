@@ -35,9 +35,9 @@ module load gcc/12.2.0 anaconda-py3
 # Load the conda environment or equivalent
 conda activate ENV_NAME
 
-# Tell NetKet to use experimental sharding mode.
+# Tell NetKet to use sharding mode.
 export NETKET_EXPERIMENTAL_SHARDING=1
-# Tell Jax that we want to use GPUs. THis is generally not needed but can't hurt
+# Tell Jax that we want to use GPUs. This is generally not needed but can't hurt
 export JAX_PLATFORM_NAME=gpu
 
 srun python yourscript.py

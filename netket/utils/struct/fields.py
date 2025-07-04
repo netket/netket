@@ -74,7 +74,7 @@ def field(
         cache: If True this node is a cache and will be reset every time
             fields are modified.
         sharded: a boolan or specification object specifying whether this entry is sharded.
-            Defaults to False. If True, a MPI-compatible sharding along axis 0 is assumed.
+            Defaults to False. If True, a JAX-compatible sharding along axis 0 is assumed.
     """
     if serialize is None:
         serialize = pytree_node

@@ -34,7 +34,7 @@ class AbstractLog(abc.ABC):
 
     .. note::
 
-        When using Loggers in a multi-process (MPI or Sharding) context, some care
+        When using Loggers in a multi-process (JAX Sharding) context, some care
         must be taken to ensure that they work correctly.
 
         The design philosophy adopted by NetKet follows the Jax/Orbax convention

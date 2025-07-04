@@ -6,7 +6,7 @@
 ## NetKet 3.19 (In development)
 
 ## Breaking Changes
-* MPI is no longer supported as a parallelization mode for NetKet.
+* MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
 
 ## New features
 

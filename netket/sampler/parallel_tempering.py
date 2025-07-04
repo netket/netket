@@ -46,7 +46,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
     """The inverse temperatures of the different chains."""
 
     n_accepted_per_beta: jnp.ndarray = None
-    """Total number of moves accepted per beta across all processes since the last reset."""
+    """Total number of moves accepted per beta across all JAX processes since the last reset."""
     beta_0_index: jnp.ndarray = None
     r"""Index of the position of the chain with :math:`\\beta=1`."""
     beta_position: jnp.ndarray = None
@@ -172,7 +172,7 @@ class ParallelTemperingSampler(MetropolisSampler):
                     For the explicit list of values, the length must be even and the value β=1 must
                     obligatory be an element of betas, all other temperatures must be in (0,1].
                     (default : "lin", i.e. linear distribution between (0,1]).
-            n_chains: The number of Markov Chain to be run in parallel on a single process.
+            n_chains: The number of Markov Chain to be run in parallel on a single JAX process.
             sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).

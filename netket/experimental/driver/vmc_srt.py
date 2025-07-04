@@ -186,13 +186,13 @@ class VMC_SRt(AbstractVariationalDriver):
             raise NotImplementedError(
                 f"""
                 VMC_SRt requires a network with a number of parameters
-                multiple of the number of MPI devices/ranks in use.
+                multiple of the number of JAX devices in use.
 
                 You have a network with {self.state.n_parameters}, but
-                there are {jax.device_count()} MPI ranks in use.
+                there are {jax.device_count()} JAX devices in use.
 
                 To fix this, either add some 'fake' parameters to your
-                network, or change the number of MPI nodes, or contribute
+                network, or change the number of JAX devices, or contribute
                 some padding logic to NetKet!
                 """
             )
