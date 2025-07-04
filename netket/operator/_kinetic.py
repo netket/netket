@@ -20,34 +20,9 @@ import jax
 import jax.numpy as jnp
 
 from netket.utils.types import DType, PyTree, Array
-import netket.jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
 from netket.utils import HashableArray
-
-
-def jacrev(f):
-    def jacfun(x):
-        y, vjp_fun = nkjax.vjp(f, x)
-        if y.size == 1:
-            eye = jnp.eye(y.size, dtype=x.dtype)[0]
-            J = jax.vmap(vjp_fun, in_axes=0)(eye)
-        else:
-            eye = jnp.eye(y.size, dtype=x.dtype)
-            J = jax.vmap(vjp_fun, in_axes=0)(eye)
-        return J
-
-    return jacfun
-
-
-def jacfwd(f):
-    def jacfun(x):
-        jvp_fun = lambda s: jax.jvp(f, (x,), (s,))[1]
-        eye = jnp.eye(len(x), dtype=x.dtype)
-        J = jax.vmap(jvp_fun, in_axes=0)(eye)
-        return J
-
-    return jacfun
 
 
 class KineticEnergy(ContinuousOperator):
@@ -85,14 +60,8 @@ class KineticEnergy(ContinuousOperator):
     def _expect_kernel_single(
         self, logpsi: Callable, params: PyTree, x: Array, inverse_mass: PyTree | None
     ):
-        def logpsi_x(x):
-            return logpsi(params, x)
-
-        dlogpsi_x = jacrev(logpsi_x)
-
-        dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
-        dp_dx = dlogpsi_x(x)[0][0] ** 2
-
+        dp_dx = jax.jacrev(logpsi, argnums=1)(params, x) ** 2
+        dp_dx2 = jnp.diag(jax.hessian(logpsi, argnums=1)(params, x))
         return -0.5 * jnp.sum(inverse_mass * (dp_dx2 + dp_dx), axis=-1)
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
