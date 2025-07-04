@@ -96,7 +96,7 @@ class SymmExpSum(nn.Module):
 
     chi: HashableArray | None = None
     """Character of the space group to project onto.
-    
+
     Only one of `chi` and `character_id` may be specified.
     If neither is specified, the character is taken to be all 1,
     yielding a trivially symmetric state.
