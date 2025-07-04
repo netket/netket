@@ -15,6 +15,7 @@
 import os
 from textwrap import dedent
 from functools import partial
+import warnings
 
 
 def bool_env(varname: str, default: bool) -> bool:
@@ -237,6 +238,7 @@ config.define(
 def _setup_experimental_sharding_cpu(n_procs):
     if n_procs >= 1:
         import jax
+
         jax.config.update("jax_num_cpu_devices", n_procs)
 
 
