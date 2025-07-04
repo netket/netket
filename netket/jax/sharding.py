@@ -220,7 +220,7 @@ def _increase_SHARD_MAP_STACK_LEVEL():
         SHARD_MAP_STACK_LEVEL -= 1
 
 
-def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
+def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, pvary_args_tree=False, **kwargs):
     """
     A decorator which wraps a function so that it is evaluated on every shard of the distributed arguments,
     and the output is either returned sharded, or can be reduced with a collective operation.
@@ -252,7 +252,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
             reduction_op is e.g. jax.lax.psum if it is to be reduced, then f_wrapped returns a replicated array
             reduction op is False if it is not to be reduced, then f_wrapped returns a sharded array
             reduction op is True if it is not an array/pytree, then it is returned as python object
-
+        pvary_args_tree: a tuple / tuple of pyrtrees of length of the number of args in f
+            if True apply pvary to the argument, else do nothing
     Returns :
         f_wrapped: wrapped version of f
 
@@ -431,7 +432,12 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
                     a[0] if c == "key" else a for a, c in safe_zip(args, sharded_args)
                 )
 
-                res = f(*args_treedef.unflatten(args))
+                args = args_treedef.unflatten(args)
+
+                # pvary
+                jax.tree_util.tree_map(lambda c, l: jax.tree_util.tree_map(partial(jax.lax.pvary, axis_name='S'), l) if c else l, pvary_args_tree, args)
+
+                res = f(*args)
 
                 # apply reductions
                 # _id = lambda x: x
