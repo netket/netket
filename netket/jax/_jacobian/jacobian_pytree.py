@@ -43,6 +43,7 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
     y, vjp_fun = jax.vjp(
         lambda pars: wrap_to_support_scalar(forward_fn)(pars, samples), params
     )
+    # TODO remove _pvary_decorator once jax bug is fixed
     (res,) = vjp_fun(_pvary_decorator(jax.lax.full_like)(y, 1.0))
     return res
 
@@ -72,6 +73,7 @@ def _jacobian_cplx(
     if not jnp.issubdtype(jnp.result_type(y), jnp.complexfloating):
         raise TypeError("Cannot build the complex jacobian for a real-valued function.")
 
+    # TODO remove _pvary_decorator once jax bug is fixed
     (gr,) = vjp_fun(_pvary_decorator(jax.lax.full_like)(y, 1))
     (gi,) = vjp_fun(_pvary_decorator(jax.lax.full_like)(y, -1j))
     return _build_fn(gr, gi)

@@ -222,7 +222,9 @@ def _increase_SHARD_MAP_STACK_LEVEL():
         SHARD_MAP_STACK_LEVEL -= 1
 
 
-def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, pvary_args_tree=False, **kwargs):
+def sharding_decorator(
+    f, sharded_args_tree, reduction_op_tree=False, pvary_args_tree=False, **kwargs
+):
     """
     A decorator which wraps a function so that it is evaluated on every shard of the distributed arguments,
     and the output is either returned sharded, or can be reduced with a collective operation.
@@ -437,7 +439,15 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, pvary_args
                 args = args_treedef.unflatten(args)
 
                 # pvary
-                args = jax.tree_util.tree_map(lambda c, l: jax.tree_util.tree_map(partial(jax.lax.pvary, axis_name='S'), l) if c else l, pvary_args_tree, args)
+                args = jax.tree_util.tree_map(
+                    lambda c, l: (
+                        jax.tree_util.tree_map(partial(jax.lax.pvary, axis_name="S"), l)
+                        if c
+                        else l
+                    ),
+                    pvary_args_tree,
+                    args,
+                )
 
                 res = f(*args)
 
@@ -476,12 +486,20 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, pvary_args
     return f
 
 
+# TODO remove once jax bug is addressed
 def _pvary_decorator(f):
     # assumes element-wise function with one single array argument
+    # used to wrap jax functions which don't set it correctly
     def _f(x, *args, **kwargs):
         return jax.lax.pvary(f(x, *args, **kwargs), tuple(jax.typeof(x).vma))
 
     return _f
+
+
+# TODO remove once jax bug is addressed
+def _eval_shape(fun, *args, **kwargs):
+    # used as a drop-in replacement for the jax version which does not set the vma correctly
+    return fun(*args, **kwargs)
 
 
 def pad_axis_for_sharding(

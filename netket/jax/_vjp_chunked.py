@@ -282,7 +282,7 @@ def vjp_chunked(
         # jax will psum in every vjp, but we want to do one by hand at the end
         # so we need to set the sharded args we differentiate as varying
         # see https://github.com/jax-ml/jax/discussions/29608
-        pvary_argnums = tuple(set(range(len(primals))).difference(sharded_argnums).difference(nondiff_argnums))
+        pvary_argnums = tuple(set(range(len(primals))).difference(nondiff_argnums))
         pvary_args = tuple(i in pvary_argnums for i in range(len(primals)))
 
         # check the chunk_size is not larger than the shard per device
@@ -307,7 +307,7 @@ def vjp_chunked(
                     _vjpc,
                     sharded_args_tree=(sharded_args, True),
                     reduction_op_tree=red_ops,
-                    pvary_args_tree = (pvary_args,False),
+                    pvary_args_tree=(pvary_args, False),
                 ),
                 primals,
             )
