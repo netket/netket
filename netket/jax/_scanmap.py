@@ -7,9 +7,10 @@ from jax.api_util import argnums_partial
 
 from jax.extend import linear_util as lu
 
-from netket.jax.sharding import _pvary_decorator
+from netket.jax.sharding import _pvary_decorator, _eval_shape
 
 _tree_add = partial(jax.tree_util.tree_map, jax.lax.add)
+# TODO remove _pvary_decorator once jax bug is fixed
 _tree_zeros_like = partial(
     jax.tree_util.tree_map, _pvary_decorator(jax.lax.zeros_like_array)
 )
@@ -77,8 +78,8 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
     _get_op_part = partial(_multimap, lambda c, x: x if not c else None, append_cond)
     _tree_select = partial(_multimap, lambda c, t1, t2: t1 if c else t2, append_cond)
 
-    # dummy_y = jax.eval_shape(f, x0)
-    dummy_y = f(x0)
+    # TODO use jax.eval_shape once bug is fixed
+    dummy_y = _eval_shape(f, x0)
     carry_init = True, _get_op_part(zero_fun(dummy_y))
 
     def f_(carry, x):
