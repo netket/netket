@@ -146,7 +146,7 @@ class SymmExpSum(nn.Module):
         # Compute the log-wavefunction obtaining (-1,) and reshape to (N_symm, ...)
         psi_symm = self.module(x_symm).reshape(*x_symm_shape[:-1])
 
-        characters = self._chi.reshape((-1,) + tuple(1 for _ in range(x.ndim - 1)))
+        characters = np.expand_dims(self._chi, range(1, x.ndim))
 
         # If those are all positive, then use standard logsumexp that returns a
         # real-valued, positive logsumexp
