@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2022 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tdvp import TDVP
-from .tdvp_schmitt import TDVPSchmitt
-from .vmc_srt import VMC_SRt
-from netket.utils import _hide_submodules
-from .infidelity import InfidelityOptimization
+from .infidelity_operator import InfidelityOperator
 
-_hide_submodules(__name__)
+from . import expect
+from . import exact
