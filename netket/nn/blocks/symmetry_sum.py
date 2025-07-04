@@ -20,6 +20,7 @@ from flax import linen as nn
 
 from netket.jax import logsumexp_cplx
 from netket.utils.group import PermutationGroup
+from netket.utils import HashableArray
 
 
 class SymmExpSum(nn.Module):
@@ -93,10 +94,17 @@ class SymmExpSum(nn.Module):
 
     """
 
+    chi: HashableArray | None = None
+    """Character of the space group to project onto.
+    
+    Only one of `chi` and `character_id` may be specified.
+    If neither is specified, the character is taken to be all 1,
+    yielding a trivially symmetric state.
+    """
+
     character_id: int | None = None
-    """The # identifying the target character in the character table of
-    the symmetry group. By default the characters are taken to be all
-    `1`, giving the homogeneous state.
+    """Index of the character to project onto in the character table
+    of the symmetry group.
 
     The characters are accessed as:
 
@@ -104,7 +112,22 @@ class SymmExpSum(nn.Module):
 
         symm_group.character_table()[character_id]
 
+    Only one of `chi` and `character_id` may be specified.
+    If neither is specified, the character is taken to be all 1,
+    yielding a trivially symmetric state.
     """
+
+    def setup(self):
+        if self.chi is None:
+            if self.character_id is None:
+                self._chi = np.ones(len(np.asarray(self.symm_group)))
+            else:
+                self._chi = self.symm_group.character_table()[self.character_id]
+        else:
+            if self.character_id is None:
+                self._chi = self.chi.wrapped
+            else:
+                raise AttributeError("Must not specify both `chi` and `character_id`")
 
     @nn.compact
     def __call__(self, x: jax.Array) -> jax.Array:
@@ -123,14 +146,7 @@ class SymmExpSum(nn.Module):
         # Compute the log-wavefunction obtaining (-1,) and reshape to (N_symm, ...)
         psi_symm = self.module(x_symm).reshape(*x_symm_shape[:-1])
 
-        # Extract the characters. Those are compile-time constant (a numpy array).
-        characters: np.ndarray
-        if self.character_id is None:
-            characters = np.ones(len(np.asarray(self.symm_group)))
-        else:
-            characters = self.symm_group.character_table()[self.character_id]
-
-        characters = characters.reshape((-1,) + tuple(1 for _ in range(x.ndim - 1)))
+        characters = self._chi.reshape((-1,) + tuple(1 for _ in range(x.ndim - 1)))
 
         # If those are all positive, then use standard logsumexp that returns a
         # real-valued, positive logsumexp

@@ -20,28 +20,43 @@ import jax.numpy as jnp
 
 import netket as nk
 import netket.nn as nknn
+from netket.utils import HashableArray
 
 bare_modules = {}
 bare_modules["RBM(real)"] = nk.models.RBM(alpha=1, param_dtype=float)
 bare_modules["RBM(complex)"] = nk.models.RBM(alpha=1, param_dtype=complex)
 
 character_ids = {}
-character_ids["Char=None"] = None
-character_ids["Char=0"] = 0
-character_ids["Char=1"] = 1
+character_ids["Char=None"] = (None, None)
+character_ids["Idx=0"] = (0, None)
+character_ids["Idx=1"] = (1, None)
+character_ids["Char=0"] = ()
+
+ones = HashableArray(np.ones(9))
 
 
 @pytest.mark.parametrize(
     "bare_module", [pytest.param(v, id=k) for k, v in bare_modules.items()]
 )
 @pytest.mark.parametrize(
-    "character_id", [pytest.param(v, id=k) for k, v in character_ids.items()]
+    "character_id,chi,trivial",
+    [
+        pytest.param(None, None, True, id="Char=None"),
+        pytest.param(0, None, True, id="Id=0"),
+        pytest.param(1, None, False, id="Id=1"),
+        pytest.param(None, ones, True, id="Char=Triv"),
+        pytest.param(
+            0, ones, True, marks=pytest.mark.xfail(raises=AttributeError), id="Invalid"
+        ),
+    ],
 )
-def test_symmexpsum(bare_module, character_id):
+def test_symmexpsum(bare_module, character_id, chi, trivial):
     graph = nk.graph.Square(3)
     g = graph.translation_group()
 
-    ma = nknn.blocks.SymmExpSum(bare_module, symm_group=g, character_id=character_id)
+    ma = nknn.blocks.SymmExpSum(
+        bare_module, symm_group=g, character_id=character_id, chi=chi
+    )
 
     hi = nk.hilbert.Spin(0.5, graph.n_nodes)
     vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
@@ -49,12 +64,12 @@ def test_symmexpsum(bare_module, character_id):
     log_psi = vs.log_value(hi.all_states())
     assert np.all(np.isfinite(log_psi))
 
-    if character_id != 1:
+    if trivial:
+        # check that it gives the same output for all symmetry-related inputs
         for Tg in g:
             np.testing.assert_allclose(log_psi, vs.log_value(Tg @ hi.all_states()))
 
-    if character_id == 0:
-        # check that for symmetric inputs it gives same output of original
+        # check that for symmetric inputs it gives same output as the original
         s0 = jnp.full((hi.size,), 1.3)
         out_sym = ma.apply(vs.variables, s0)
         out_bare = bare_module.apply({"params": vs.parameters["module"]}, s0)
