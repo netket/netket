@@ -1064,7 +1064,7 @@ class UndeclaredSpinOderingWarning(NetketWarning):
                 If you do not care about this warning, you can silence it by setting the environment variable
                 `NETKET_SPIN_ORDERING_WARNING=0` or by executing `nk.config.netket_spin_ordering_warning = False`
 
-                This warning will be shown once per day during interactive sessions, and always in scripts and MPI/SLURM jobs unless silenced.
+                This warning will be shown once per day during interactive sessions, and always in scripts and JAX/SLURM jobs unless silenced.
                 """
             )
         )

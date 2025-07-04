@@ -32,8 +32,9 @@ from jax.sharding import (
 )
 from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
+from jax import device_count as device_count
 
-from netket.utils import config, mpi
+from netket.utils import config
 from netket.utils.deprecation import warn_deprecation
 
 
@@ -481,30 +482,3 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         return _fun
 
     return f
-
-
-def device_count_per_rank() -> int:
-    """
-    Helper functions which returns the number of jax devices netket will use for every
-    MPI rank.
-
-    Returns:
-        jax.device_count() if config.netket_experimental_sharding is True, and 1 otherwise
-    """
-    if config.netket_experimental_sharding:  # type: ignore
-        if mpi.n_nodes > 1:
-            # this should never be triggered as we disable mpi when sharding
-            raise NotImplementedError("hybrid mpi and sharding is not not supported")
-        return jax.device_count()
-    else:  # mpi or serial
-        return 1
-
-
-def device_count() -> int:
-    """
-    Helper functions which returns the TOTAL number of jax devices netket will use.
-
-    Returns:
-        jax.device_count() if config.netket_experimental_sharding is True, and mpi.rank otherwise.
-    """
-    return mpi.n_nodes * device_count_per_rank()

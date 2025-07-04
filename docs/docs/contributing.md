@@ -75,15 +75,6 @@ Follow these steps to contribute code:
    pytest -n auto test/
    ```
 
-   If your code contribution touches parts of NetKet that are expected to work under MPI, such
-   the computation of expectation values, initialization of parameters or lazy matrix-vector products
-   you should also check that tests pass under MPI by running pytest under MPI. When doing so, you
-   should also disable pytest parallelization.
-
-   ```bash
-   mpirun -np 2 pytest -n0 test/
-   ```
-
    NetKet's test suite is quite large, so if you know the specific test file or folder that covers your changes, you can limit the tests to that, as shown in the example below:
 
    ```bash

@@ -24,7 +24,6 @@ from netket.vqs import (
     get_local_kernel_arguments,
 )
 import netket.jax as nkjax
-from netket.utils import mpi
 
 from .variance_operator import VarianceObservable
 
@@ -136,6 +135,4 @@ def expect_and_grad_inner_mc(
     )
 
     var_grad = var_vjp_fun(jnp.ones_like(var))[0]
-    var_grad = jax.tree_util.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], var_grad)
-
     return var_stats, var_grad

@@ -22,7 +22,6 @@ from functools import partial
 
 import netket as nk
 from netket.stats import statistics
-from netket.jax.sharding import device_count_per_rank
 from scipy.optimize import curve_fit
 
 from .. import common
@@ -89,10 +88,10 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
 @pytest.mark.parametrize(
     "n_chains",
     [
-        1 * device_count_per_rank(),
-        2 * device_count_per_rank(),
-        16 * device_count_per_rank(),
-        32 * device_count_per_rank(),
+        1 * jax.device_count(),
+        2 * jax.device_count(),
+        16 * jax.device_count(),
+        32 * jax.device_count(),
     ],
 )
 def test_stats_mean_std(n_chains):

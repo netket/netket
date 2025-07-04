@@ -42,7 +42,6 @@ from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from netket.jax import sharding
 
 from netket.vqs.base import (
     VariationalState,
@@ -61,14 +60,14 @@ def compute_chain_length(n_chains, n_samples):
     chain_length = int(np.ceil(n_samples / n_chains))
 
     n_samples_new = chain_length * n_chains
-    n_samples_per_rank_new = n_samples_new // sharding.device_count()
+    n_samples_per_rank_new = n_samples_new // jax.device_count()
 
     if n_samples_new != n_samples:
-        n_samples_per_rank = n_samples // sharding.device_count()
+        n_samples_per_rank = n_samples // jax.device_count()
         warnings.warn(
-            f"n_samples={n_samples} ({n_samples_per_rank} per device/MPI rank) "
+            f"n_samples={n_samples} ({n_samples_per_rank} per JAX device) "
             f"does not divide n_chains={n_chains}, increased to {n_samples_new} "
-            f"({n_samples_per_rank_new} per device/MPI rank)",
+            f"({n_samples_per_rank_new} per JAX device)",
             UserWarning,
             stacklevel=3,
         )
@@ -77,7 +76,7 @@ def compute_chain_length(n_chains, n_samples):
 
 
 def check_chunk_size(n_samples, chunk_size):
-    n_samples_per_rank = n_samples // sharding.device_count()
+    n_samples_per_rank = n_samples // jax.device_count()
 
     if chunk_size is not None:
         if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
@@ -409,20 +408,20 @@ class MCState(VariationalState):
 
     @property
     def n_samples_per_rank(self) -> int:
-        """The number of samples generated on every jax device or MPI rank
+        """The number of samples generated on every JAX device
         at every sampling step."""
         return self.chain_length * self.sampler.n_chains_per_rank
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int):
-        self.n_samples = n_samples_per_rank * sharding.device_count()
+        self.n_samples = n_samples_per_rank * jax.device_count()
 
     @property
     def chain_length(self) -> int:
         """
         Length of the markov chain used for sampling configurations.
 
-        If running under MPI, the total samples will be n_nodes * chain_length * n_batches.
+        If running under JAX sharding, the total samples will be n_devices * chain_length * n_batches.
         """
         return self._chain_length
 
@@ -533,7 +532,7 @@ class MCState(VariationalState):
 
         Args:
             chain_length: The length of the markov chains.
-            n_samples: The total number of samples across all MPI ranks.
+            n_samples: The total number of samples across all JAX devices.
             n_discard_per_chain: Number of discarded samples at the beginning of the markov chain.
         """
 
@@ -623,9 +622,9 @@ class MCState(VariationalState):
 
         .. warning::
 
-            The samples differ between MPI processes, so returned the local estimators will
+            The samples differ between JAX processes, so returned the local estimators will
             also take different values on each process. To compute sample averages and similar
-            quantities, you will need to perform explicit operations over all MPI ranks.
+            quantities, you will need to perform explicit operations over all JAX devices.
             (Use functions like :code:`self.expect` to get process-independent quantities without
             manual reductions.)
 

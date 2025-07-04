@@ -65,16 +65,6 @@ Please keep in mind that all options related to experimental or internal functio
   - yes
   - Enable experimental features such as gradients of non-hermitian operators.
 
-* - `NETKET_MPI_WARNING`
-  - **[True]**/False
-  - no
-  - Raise a warning when running python under MPI without mpi4py and other mpi dependencies installed.
-
-* - `NETKET_MPI`
-  - **[True]**/False
-  - no
-  - When true, NetKet will always attempt to load (and initialize) MPI. If this flag is `0` `mpi4py` and `mpi4jax` will not be imported. This can be used to prevent crashes with some `MPI` variants such as Cray which cannot be initialised when not running under `mpirun`.
-
 * - `NETKET_USE_PLAIN_RHAT`
   - **[True]**/False
   - yes

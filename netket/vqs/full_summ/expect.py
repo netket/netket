@@ -55,7 +55,7 @@ def expect(vstate: FullSumState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     O = sparsify(Ô)
     Ψ = vstate.to_array()
 
-    # TODO: This performs the full computation on all MPI ranks.
+    # TODO: This performs the full computation on all JAX devices.
     # It would be great if we could split the computation among ranks.
 
     OΨ = O @ Ψ

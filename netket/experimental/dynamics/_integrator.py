@@ -18,7 +18,6 @@ import jax
 import jax.numpy as jnp
 
 from netket.utils.numbers import dtype as _dtype
-from netket.utils.mpi.primitives import mpi_all_jax
 from netket.utils import struct
 from netket.utils.types import PyTree
 
@@ -338,8 +337,6 @@ class Integrator(struct.Pytree, mutable=True):
 
         # accept if error is within tolerances or we are already at the minimal step
         accept_step = jnp.logical_or(scaled_err < 1.0, is_at_min_dt)
-        # accept the time step iff it is accepted by all MPI processes
-        accept_step, _ = mpi_all_jax(accept_step)
 
         return jax.lax.cond(
             accept_step,

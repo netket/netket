@@ -24,7 +24,6 @@ from jax import numpy as jnp
 import jax
 
 from netket.hilbert import AbstractHilbert
-from netket.utils.mpi import mpi_sum, n_nodes
 from netket.utils.types import PyTree, ModuleOrApplyFun
 from netket import config
 
@@ -57,7 +56,7 @@ class MetropolisNumpySamplerState:
 
     @property
     def acceptance(self) -> float | None:
-        """The fraction of accepted moves across all chains and MPI processes.
+        """The fraction of accepted moves across all chains and JAX processes.
 
         The rate is computed since the last reset of the sampler.
         Will return None if no sampling has been performed since then.
@@ -70,12 +69,12 @@ class MetropolisNumpySamplerState:
     @property
     def n_steps(self) -> int:
         """Total number of moves performed across all processes since the last reset."""
-        return self.n_steps_proc * n_nodes
+        return self.n_steps_proc
 
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        return mpi_sum(self.n_accepted_proc)
+        return self.n_accepted_proc
 
     def __repr__(self):
         if self.n_steps > 0:
@@ -135,12 +134,12 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         jax process.
 
         This is used to determine the shape of the batches generated in a single process.
-        This is needed because when using MPI, every process must create a batch of chains
+        This is needed because when using JAX sharding, every process must create a batch of chains
         of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
         mode we must declare the full shape on every jax process, therefore this returns
         :attr:`~Sampler.n_chains`.
 
-        Usage of this flag is required to support both MPI and sharding.
+        Usage of this flag is required to support JAX sharding.
 
         Samplers may override this to have a larger batch size, for example to
         propagate multiple replicas (in the case of parallel tempering).

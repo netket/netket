@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import os
-import sys
-import warnings
 from textwrap import dedent
 
 
@@ -185,32 +183,6 @@ config.define(
 )
 
 config.define(
-    "NETKET_MPI_WARNING",
-    bool,
-    default=True,
-    help=dedent(
-        """
-        Raise a warning when running python under MPI
-        without mpi4py and other mpi dependencies installed.
-        """
-    ),
-    runtime=False,
-)
-
-config.define(
-    "NETKET_MPI",
-    bool,
-    default=True,
-    help=dedent(
-        """
-        Prevent NetKet from using (and initializing) MPI. If this flag is
-        `0` `mpi4py` and `mpi4jax` will not be imported.
-        """
-    ),
-    runtime=False,
-)
-
-config.define(
     "NETKET_USE_PLAIN_RHAT",
     bool,
     default=False,
@@ -262,15 +234,10 @@ config.define(
 
 
 def _setup_experimental_sharding_cpu(n_procs):
-    if n_procs > 1:
-        if "jax" in sys.modules:
-            warnings.warn(
-                "must load NetKet before jax if using experimental_sharding_cpu"
-            )
+    if n_procs >= 1:
+        import jax
 
-        flags = os.environ.get("XLA_FLAGS", "")
-        flags = f"{flags} --xla_force_host_platform_device_count={n_procs}"
-        os.environ["XLA_FLAGS"] = flags
+        jax.config.update("jax_num_cpu_devices", n_procs)
 
 
 config.define(
@@ -333,6 +300,7 @@ def _setup_experimental_sharding(val):
     if val:
         from jax import config as jax_config
 
+        # TODO: Remove once we require jax 0.5
         jax_config.update("jax_threefry_partitionable", True)
 
 
@@ -348,40 +316,10 @@ config.define(
         See https://jax.readthedocs.io/en/latest/multi_process.html#initializing-the-cluster for
         how to initialize the latter.
         Distributes chains and samples equally among all available devices.
-
-        Hybrid parallelization with MPI is not supported, enabling NETKET_EXPERIMENTAL_SHARDING
-        disables mpi.
         """
     ),
     runtime=True,
     callback=_setup_experimental_sharding,
-)
-
-
-def _recompute_default_device(val):
-    if val is False:
-        import jax
-
-        jax.config.update("jax_default_device", None)
-    else:
-        from netket.utils.mpi.gpu_autorank_util import autoset_default_gpu
-
-        autoset_default_gpu()
-
-
-config.define(
-    "NETKET_MPI_AUTODETECT_LOCAL_GPU",
-    bool,
-    default=False,
-    runtime=True,
-    callback=_recompute_default_device,
-    lazy=True,
-    help=dedent(
-        """
-        If there are more than 1 device per MPI rank, and if they are GPU devices,
-        Set the default device by querying the local MPI rank.
-        """
-    ),
 )
 
 

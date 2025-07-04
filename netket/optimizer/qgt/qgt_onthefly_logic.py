@@ -16,7 +16,6 @@ import jax
 from jax.tree_util import Partial
 from functools import partial
 from netket.stats import subtract_mean
-from netket.utils import mpi
 from netket.jax import tree_conj, tree_axpy
 from netket.jax import (
     scanmap,
@@ -46,15 +45,13 @@ def _mat_vec(jvp_fn, v, diag_shift, pdf=None):
 
     w = jvp_fn(v)
     if pdf is None:
-        w = w * (1.0 / (w.size * mpi.n_nodes))
-        w = subtract_mean(w)  # w/ MPI
+        w = w * (1.0 / w.size)
+        w = subtract_mean(w)  # w/ JAX sharding
     else:
-        w = pdf * (w - mpi.mpi_sum_jax(pdf @ w)[0])
+        w = pdf * (w - pdf @ w)
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
     # vjp_fn packages output into a length-1 tuple
     (res,) = tree_conj(vjp_fn(w.conjugate()))
-    res = jax.tree_util.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)
-
     return tree_axpy(diag_shift, v, res)  # res + diag_shift * v
 
 
@@ -98,7 +95,7 @@ def _O_jvp(forward_fn, params, samples, v, chunk_size):
     @partial(scanmap, scan_fun=scan_append, argnums=2)
     def __O_jvp(forward_fn, params, samples, v):
         # TODO apply the transpose of sum_inplace (allreduce) to the arg v here
-        # in order to get correct transposition with MPI
+        # in order to get correct transposition with JAX sharding
         _, res = jax.jvp(lambda p: forward_fn(p, samples), (params,), (v,))
         return res
 
@@ -132,12 +129,12 @@ def _OH_w(forward_fn, params, samples, w, chunk_size):
 def _Odagger_DeltaO_v(forward_fn, params, samples, v, chunk_size, pdf=None):
     w = _O_jvp(forward_fn, params, samples, v, chunk_size)
     if pdf is None:
-        w = w * (1.0 / (samples.shape[0] * mpi.n_nodes))
-        w = subtract_mean(w)  # w/ MPI
+        w = w * (1.0 / samples.shape[0])
+        w = subtract_mean(w)  # w/ JAX sharding
     else:
-        w = pdf * (w - mpi.mpi_sum_jax(pdf @ w)[0])
+        w = pdf * (w - pdf @ w)
     res = _OH_w(forward_fn, params, samples, w, chunk_size)
-    return jax.tree_util.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
+    return res
 
 
 # @partial(jax.jit, static_argnums=1)

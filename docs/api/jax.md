@@ -19,8 +19,6 @@ This part of the API is not public, and can change without notice.
   HashablePartial
   PRNGKey
   PRNGSeq
-  mpi_split
-
 ```
 
 ## Tree Linear Algebra

@@ -21,7 +21,6 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
 from netket.stats import Stats, statistics
-from netket.utils import mpi
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
@@ -79,7 +78,7 @@ def forces_expect_hermitian(
     if σ.ndim >= 3:
         σ = jax.lax.collapse(σ, 0, 2)
 
-    n_samples = σ.shape[0] * mpi.n_nodes
+    n_samples = σ.shape[0]
 
     O_loc = local_value_kernel(
         model_apply_fun,
@@ -103,8 +102,6 @@ def forces_expect_hermitian(
         has_aux=is_mutable,
     )
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
-
-    Ō_grad, _ = mpi.mpi_sum_jax(Ō_grad)
 
     new_model_state = new_model_state[0] if is_mutable else None
 

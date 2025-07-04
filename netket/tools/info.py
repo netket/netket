@@ -15,9 +15,8 @@
 import sys
 import platform
 
-from ._common import exec_in_terminal, version, is_available
+from ._common import version, is_available
 from ._cpu_info import cpu_info
-from ._mpi_info import get_global_mpi_info, get_link_flags
 
 PLATFORM = sys.platform
 
@@ -44,17 +43,6 @@ def _fmt_device(dev):
 
 
 def info():
-    """
-    When called via::
-
-        # python3 -m netket.tools.check_mpi
-        mpi4py_available     : True
-        mpi4jax_available : True
-        n_nodes           : 1
-
-    this will print out basic MPI information to make allow users to check whether
-    the environment has been set up correctly.
-    """
     print("====================================================")
     print("==         NetKet Diagnostic Information          ==")
     print("====================================================")
@@ -94,8 +82,6 @@ def info():
     printfmt("flax", version("flax"), indent=1)
     printfmt("optax", version("optax"), indent=1)
     printfmt("numba", version("numba"), indent=1)
-    printfmt("mpi4py", version("mpi4py"), indent=1)
-    printfmt("mpi4jax", version("mpi4jax"), indent=1)
     printfmt("netket", version("netket"), indent=1)
     print()
 
@@ -111,43 +97,6 @@ def info():
                 [_fmt_device(dev) for dev in jax.devices(backend)],
                 indent=2,
             )
-        print()
-
-    if is_available("mpi4jax"):
-        print("# MPI4JAX")
-        import mpi4jax
-
-        if hasattr(mpi4jax, "has_cuda_support"):
-            printfmt("HAS_GPU_EXT", mpi4jax.has_cuda_support(), indent=1)
-        elif hasattr(mpi4jax, "_src"):
-            if hasattr(mpi4jax._src, "xla_bridge"):
-                if hasattr(mpi4jax._src.xla_bridge, "HAS_GPU_EXT"):
-                    printfmt(
-                        "HAS_GPU_EXT", mpi4jax._src.xla_bridge.HAS_GPU_EXT, indent=1
-                    )
-        print()
-
-    if is_available("mpi4py"):
-        print("# MPI ")
-        import mpi4py
-        from mpi4py import MPI
-
-        printfmt("mpi4py", indent=1)
-        mpi4py_config = mpi4py.get_config()
-        if "mpicc" in mpi4py_config:
-            printfmt("MPICC", mpi4py_config["mpicc"], indent=1)
-            printfmt(
-                "MPI link flags",
-                get_link_flags(exec_in_terminal([mpi4py_config["mpicc"], "-show"])),
-                indent=1,
-            )
-        printfmt("MPI version", MPI.Get_version(), indent=2)
-        printfmt("MPI library_version", MPI.Get_library_version(), indent=2)
-
-        global_info = get_global_mpi_info()
-        printfmt("global", indent=1)
-        printfmt("MPICC", global_info["mpicc"], indent=2)
-        printfmt("MPI link flags", global_info["link_flags"], indent=2)
         print()
 
 

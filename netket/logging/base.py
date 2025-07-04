@@ -18,7 +18,7 @@ from typing import Any, TYPE_CHECKING
 
 import jax
 
-from netket.utils import mpi
+from netket.vqs import VariationalState
 
 if TYPE_CHECKING:
     from netket.vqs import VariationalState
@@ -34,7 +34,7 @@ class AbstractLog(abc.ABC):
 
     .. note::
 
-        When using Loggers in a multi-process (MPI or Sharding) context, some care
+        When using Loggers in a multi-process (JAX Sharding) context, some care
         must be taken to ensure that they work correctly.
 
         The design philosophy adopted by NetKet follows the Jax/Orbax convention
@@ -86,4 +86,4 @@ class AbstractLog(abc.ABC):
         """
         Returns whether this logger is the root logger in a distributed setting.
         """
-        return mpi.rank == 0 and jax.process_index() == 0
+        return jax.process_index() == 0

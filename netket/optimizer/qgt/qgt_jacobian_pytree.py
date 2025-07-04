@@ -18,7 +18,6 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import Array, PyTree, Scalar
-from netket.utils import mpi
 from netket import jax as nkjax
 
 from ..linear_operator import LinearOperator, SolverT, Uninitialized
@@ -196,9 +195,9 @@ class QGTJacobianPyTreeT(LinearOperator):
             flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
             Ol = (flip_sign * O).reshape(-1, O.shape[-1])
             Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(Ol.T @ Or)[0] + self.diag_shift * diag
+            return Ol.T @ Or + self.diag_shift * diag
         else:
-            return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag
+            return O.T.conj() @ O + self.diag_shift * diag
 
     def to_real_part(self) -> "QGTJacobianPyTreeT":
         """
@@ -300,8 +299,7 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     """
     Compute the vector-matrix product between the vector w and the pytree jacobian oks
     """
-    res = jax.tree_util.tree_map(lambda x: jnp.tensordot(w, x, axes=w.ndim), oks)
-    return jax.tree_util.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
+    return jax.tree_util.tree_map(lambda x: jnp.tensordot(w, x, axes=w.ndim), oks)
 
 
 def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:

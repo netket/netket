@@ -16,22 +16,19 @@
 import jax
 import jax.numpy as jnp
 
-from netket.utils import random_seed, mpi, config
-from netket.utils.mpi import MPI_jax_comm
+from netket.utils import random_seed, config
 from netket.utils.types import PRNGKeyT, SeedT
 
 
-def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
+def PRNGKey(seed: SeedT | None = None, *, root: int = 0) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
 
-    If using sharding, the returned key will be replicated while if using MPI
-    the key of the master rank will be broadcasted to every process.
+    If using sharding, the returned key will be replicated on every process.
 
     Args:
         seed: An optional integer value to use as seed
-        root: the master rank, used when running under MPI (defaults to 0)
-        comm: The MPI communicator to use for broadcasting, if necessary
+        root: the master rank, used when running with multiple nodes (default 0)
 
     Returns:
         A sharded/broadcasted :func:`jax.random.PRNGKey`.
@@ -62,7 +59,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0, comm=MPI_jax_comm) -> P
             key, jax.sharding.PositionalSharding(jax.devices()).replicate()
         )
     else:  # type: ignore[attr-defined]
-        key = _bcast_key(key, root=root, comm=comm)
+        key = _bcast_key(key, root=root)
     return key
 
 
@@ -97,44 +94,16 @@ class PRNGSeq:
         return keys[:-1]
 
 
-def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
+def _bcast_key(key, root=0) -> PRNGKeyT:
     """
-    Split a key across MPI nodes in the communicator.
-    Only the input key on the root process matters.
-
-    Arguments:
-        key: The key to split. Only considered the one on the root process.
-        root: (default=0) The root rank from which to take the input key.
-        comm: (default=MPI.COMM_WORLD) The MPI communicator.
-
-    Returns:
-        A PRNGKey depending on rank number and key.
-    """
-
-    # Maybe add error/warning if in_key is not the same
-    # on all MPI nodes?
-    keys = jax.random.split(key, mpi.n_nodes)
-
-    keys = _bcast_key(keys, root=root, comm=comm)
-
-    return keys[mpi.rank]
-
-
-def _bcast_key(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
-    """
-    Utility function equivalent to calling `mpi_bcast_jax` on a jax key,
-    but working around some sharding bug when not using sharding, arising
-    from MPI.
+    Utility function equivalent to broadcast a random key to multiple jax processes
+    and make sure it is the same everywhere.
     """
     is_new_style_key = jnp.issubdtype(key.dtype, jax.dtypes.prng_key)
 
     if is_new_style_key:
         _impl = jax.random.key_impl(key)
         key = jax.random.key_data(key)
-
-    key = jax.tree_util.tree_map(
-        lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key
-    )
 
     if is_new_style_key:
         key = jax.random.wrap_key_data(key, impl=_impl)  # type: ignore[arg-type]

@@ -16,10 +16,9 @@ from functools import partial
 
 import jax.numpy as jnp
 import jax
-import netket as nk
 
 from netket.vqs import MCState, expect
-from netket.stats import statistics as mpi_statistics
+from netket.stats import statistics
 from netket import jax as nkjax
 
 from .S2_operator import Renyi2EntanglementEntropy
@@ -90,7 +89,7 @@ def Renyi2_sampling_MCState(
 
     kernel_values = kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp)
 
-    Renyi2_stats = mpi_statistics(kernel_values.reshape((n_chains, -1)).T)
+    Renyi2_stats = statistics(kernel_values.reshape((n_chains, -1)).T)
 
     # Propagation of errors from S_2 to -log_2(S_2)
     Renyi2_stats = Renyi2_stats.replace(
@@ -98,9 +97,7 @@ def Renyi2_sampling_MCState(
     )
 
     Renyi2_stats = Renyi2_stats.replace(
-        error_of_mean=jnp.sqrt(
-            Renyi2_stats.variance / (n_samples * nk.utils.mpi.n_nodes)
-        )
+        error_of_mean=jnp.sqrt(Renyi2_stats.variance / n_samples)
     )
 
     Renyi2_stats = Renyi2_stats.replace(mean=-jnp.log2(Renyi2_stats.mean).real)
