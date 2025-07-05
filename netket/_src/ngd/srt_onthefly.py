@@ -13,7 +13,6 @@ from jax.sharding import PartitionSpec as P, PositionalSharding
 from netket import jax as nkjax
 from netket import config
 from netket.jax._jacobian.default_mode import JacobianMode
-from netket.utils import mpi
 from netket.utils.types import Array
 from netket.utils.version_check import module_version
 
@@ -44,7 +43,7 @@ def srt_onthefly(
     old_updates: Optional[Array] = None,
     chunk_size: Optional[int] = None,
 ):
-    N_mc = local_energies.size * mpi.n_nodes
+    N_mc = local_energies.size
 
     # Split all parameters into real and imaginary parts separately
     parameters_real, rss = nkjax.tree_to_real(parameters)

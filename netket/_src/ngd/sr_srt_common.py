@@ -6,8 +6,7 @@ import jax.numpy as jnp
 from jax.flatten_util import ravel_pytree
 
 import netket.jax as nkjax
-from netket.stats import mean as distributed_mean
-from netket.utils import mpi, timing
+from netket.utils import timing
 from netket.utils.types import Array, PyTree
 
 from netket._src.ngd.sr import _compute_sr_update
@@ -38,10 +37,10 @@ def _prepare_input(
     Returns:
         The reshaped jacobian and the reshaped local energies.
     """
-    N_mc = O_L.shape[0] * mpi.n_nodes
+    N_mc = O_L.shape[0]
 
     local_grad = local_grad.flatten()
-    de = local_grad - distributed_mean(local_grad)
+    de = local_grad - jnp.mean(local_grad)
 
     O_L = O_L / jnp.sqrt(N_mc)
     dv = 2.0 * de / jnp.sqrt(N_mc)

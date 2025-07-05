@@ -9,8 +9,6 @@ from netket import jax as nkjax
 from netket import config
 from netket.utils.types import Array
 
-from netket._src import distributed
-
 
 @partial(
     jax.jit,
@@ -38,7 +36,7 @@ def _compute_srt_update(
     # (#ns, np) -> (ns, #np)
     O_LT = O_L
     if config.netket_experimental_sharding:
-        distributed.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
+        nkjax.sharding.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
         O_LT = jax.lax.with_sharding_constraint(
             O_LT,
             PositionalSharding(jax.devices()).reshape(1, -1),

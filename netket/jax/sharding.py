@@ -21,6 +21,7 @@ import math
 from functools import partial, wraps
 import contextlib
 
+import numpy as np
 
 import jax
 import jax.numpy as jnp
@@ -482,3 +483,64 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
         return _fun
 
     return f
+
+
+def pad_axis_for_sharding(
+    array: jax.Array, *, axis: int = 0, padding_value: float | jax.Array = 0
+) -> jax.Array:
+    """
+    Pads an array along an axis to make it divisible by the number of processes.
+
+    Args:
+        array: The array to pad.
+        axis: The axis along which to pad.
+        padding_value: The value to use for padding.
+
+    Returns:
+        The padded array.
+    """
+    axis_size = array.shape[axis]
+    n_devices = jax.device_count()
+
+    if axis_size % n_devices != 0:
+        padded_axis_size = int(n_devices * np.ceil(axis_size / n_devices))
+        padding_shape = [(0, 0) for _ in range(array.ndim)]
+        padding_shape[axis] = (0, padded_axis_size - axis_size)
+
+        array = jnp.pad(
+            array,
+            padding_shape,
+            constant_values=padding_value,
+        )
+    return array
+
+
+def inspect(name: str, tree: jax.Array):
+    """
+    Internal function to inspect the sharding of an array. To be used for debugging inside
+    of :func:`jax.jit`-ted functions.
+
+    Args:
+        name: A string to identify the array, usually the name, but can contain anything else.
+        x: The array
+    """
+
+    def _inspect(name: str, x: jax.Array):
+        if config.netket_experimental_sharding:
+
+            def _cb(y):
+                if jax.process_index() == 0:
+                    print(
+                        f"{name}: shape={x.shape}, sharding:",
+                        y,
+                        flush=True,
+                    )
+
+            jax.debug.inspect_array_sharding(x, callback=_cb)
+
+    if isinstance(tree, jax.Array):
+        _inspect(name, tree)
+    else:
+        jax.tree.map_with_path(
+            lambda path, x: _inspect(name + jax.tree_util.keystr(path), x), tree
+        )

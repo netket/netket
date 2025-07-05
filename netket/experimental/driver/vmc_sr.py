@@ -337,9 +337,9 @@ class VMC_SR(AbstractVariationalDriver):
 
         # Compute the local energy estimator and average Energy
         local_energies = self.state.local_estimators(self._ham)
-
         self._loss_stats = nkstats.statistics(local_energies)
 
+        # Extract the hyperparameters which might be iteration dependent
         diag_shift = self.diag_shift
         proj_reg = self.proj_reg
         momentum = self.momentum
@@ -349,8 +349,6 @@ class VMC_SR(AbstractVariationalDriver):
             proj_reg = proj_reg(self.step_count)
         if callable(momentum):
             momentum = momentum(self.step_count)
-
-        samples = _flatten_samples(self.state.samples)
 
         if self.use_ntk:
             if self.on_the_fly:
@@ -363,6 +361,7 @@ class VMC_SR(AbstractVariationalDriver):
             else:
                 compute_sr_update_fun = sr
 
+        samples = _flatten_samples(self.state.samples)
         self._dp, self._old_updates, self.info = compute_sr_update_fun(
             self.state._apply_fun,
             local_energies,
