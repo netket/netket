@@ -1,5 +1,4 @@
 from functools import partial
-from typing import Union
 
 import numpy as np
 import sparse
@@ -127,7 +126,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     def _from_sparse_arrays_normal_order(
         cls,
         hilbert: SpinOrbitalFermions,
-        operators: list[Union[Array, sparse.COO]],
+        operators: list[Array | sparse.COO],
         **kwargs,
     ):
         r"""
@@ -164,7 +163,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     def from_sparse_arrays(
         cls,
         hilbert: SpinOrbitalFermions,
-        operators: list[Union[Array, sparse.COO]],
+        operators: list[Array | sparse.COO],
         **kwargs,
     ):
         r"""
@@ -209,7 +208,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
 
     @classmethod
     def from_fermionoperator2nd(
-        cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], **kwargs
+        cls, ha: FermionOperator2nd | FermionOperator2ndJax, **kwargs
     ):
         """
         Convert from FermionOperator2nd
@@ -360,7 +359,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     def _from_sparse_arrays_normal_order_all_sectors(
         cls,
         hilbert: SpinOrbitalFermions,
-        operators: list[Union[Array, sparse.COO]],
+        operators: list[Array | sparse.COO],
         cutoff=1e-11,
     ):
         r"""
@@ -464,7 +463,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
 
     @classmethod
     def from_fermionoperator2nd(
-        cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], cutoff: float = 1e-11
+        cls, ha: FermionOperator2nd | FermionOperator2ndJax, cutoff: float = 1e-11
     ):
         r"""
         Convert from FermionOperator2nd

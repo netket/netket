@@ -29,7 +29,8 @@ For details, please see "`Fast Finite Width Neural Tangent Kernel
 """
 
 import operator
-from typing import Any, Callable, Iterable, Optional, Protocol, TypeVar, Union
+from typing import Any, Optional, Protocol, TypeVar, Union
+from collections.abc import Callable, Iterable
 
 
 from jax import eval_shape
@@ -91,7 +92,7 @@ class EmpiricalKernelFn(Protocol):
     def __call__(
         self,
         x1: NTTree[jnp.ndarray],
-        x2: Optional[NTTree[jnp.ndarray]],
+        x2: NTTree[jnp.ndarray] | None,
         params: PyTree,
         **kwargs,
     ) -> NTTree[jnp.ndarray]: ...
@@ -233,7 +234,7 @@ def empirical_ntk_by_jacobian(
         return tree_reduce(operator.add, tree_map(contract, j1, j2))
 
     def ntk_fn(
-        x1: PyTree, x2: Optional[PyTree], params: PyTree, **apply_fn_kwargs
+        x1: PyTree, x2: PyTree | None, params: PyTree, **apply_fn_kwargs
     ) -> jnp.ndarray:
         """Computes a single sample of the empirical NTK (jacobian outer product).
 
@@ -315,17 +316,17 @@ def _ndim(x: PyTree) -> PyTree:
     return tree_map(lambda x: x.ndim, x)
 
 
-def _mod(x: Optional[PyTree], y: PyTree) -> PyTree:
+def _mod(x: PyTree | None, y: PyTree) -> PyTree:
     if x is None:
         return None
     return tree_map(operator.mod, x, y)
 
 
-def _squeeze(x: PyTree, axis: Optional[PyTree]) -> PyTree:
+def _squeeze(x: PyTree, axis: PyTree | None) -> PyTree:
     if axis is None:
         return x
 
-    def squeeze(x: jnp.ndarray, axis: Union[None, int, tuple[int, ...]]) -> jnp.ndarray:
+    def squeeze(x: jnp.ndarray, axis: None | int | tuple[int, ...]) -> jnp.ndarray:
         """`np.squeeze` analog working with 0-sized axes."""
         if isinstance(axis, int):
             axis = (axis,)
@@ -364,8 +365,8 @@ def _expand_dims_array(x: _ArrayOrShape, axis: int) -> _ArrayOrShape:
 
 
 def _expand_dims(
-    x: Union[None, PyTree, UndefinedPrimal], axis: Optional[PyTree]
-) -> Optional[PyTree]:
+    x: None | PyTree | UndefinedPrimal, axis: PyTree | None
+) -> PyTree | None:
     if axis is None or x is None or isinstance(x, UndefinedPrimal):
         return x
     return tree_map(_expand_dims_array, x, axis)
@@ -393,7 +394,7 @@ def _get_args(
 
 
 def _canonicalize_axes(
-    vmap_axes: Optional[VMapAxes], x: PyTree, fx: PyTree, **kwargs
+    vmap_axes: VMapAxes | None, x: PyTree, fx: PyTree, **kwargs
 ) -> VMapAxisTriple:
     if isinstance(vmap_axes, tuple) and len(vmap_axes) == 3:
         x_axis, fx_axis, kw_axes = vmap_axes

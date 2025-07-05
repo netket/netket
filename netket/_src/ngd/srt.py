@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -21,12 +21,12 @@ def _compute_srt_update(
     O_L,
     dv,
     *,
-    diag_shift: Union[float, Array],
+    diag_shift: float | Array,
     solver_fn: Callable[[Array, Array], Array],
     mode: str,
-    proj_reg: Optional[Union[float, Array]] = None,
-    momentum: Optional[Union[float, Array]] = None,
-    old_updates: Optional[Array] = None,
+    proj_reg: float | Array | None = None,
+    momentum: float | Array | None = None,
+    old_updates: Array | None = None,
     params_structure,
 ):
     if momentum is not None:

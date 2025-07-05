@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 from functools import partial
 
 from einops import rearrange
@@ -35,13 +35,13 @@ def srt_onthefly(
     model_state,
     samples,
     *,
-    diag_shift: Union[float, Array],
+    diag_shift: float | Array,
     solver_fn: Callable[[Array, Array], Array],
     mode: JacobianMode,
-    proj_reg: Optional[Union[float, Array]] = None,
-    momentum: Optional[Union[float, Array]] = None,
-    old_updates: Optional[Array] = None,
-    chunk_size: Optional[int] = None,
+    proj_reg: float | Array | None = None,
+    momentum: float | Array | None = None,
+    old_updates: Array | None = None,
+    chunk_size: int | None = None,
 ):
     N_mc = local_energies.size
 

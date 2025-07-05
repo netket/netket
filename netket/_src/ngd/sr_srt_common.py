@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 from functools import partial
 
 import jax
@@ -78,13 +78,13 @@ def _sr_srt_common(
     model_state,
     samples,
     *,
-    diag_shift: Union[float, Array],
+    diag_shift: float | Array,
     solver_fn: Callable[[Array, Array], Array],
     mode: str,
-    proj_reg: Optional[Union[float, Array]] = None,
-    momentum: Optional[Union[float, Array]] = None,
-    old_updates: Optional[PyTree] = None,
-    chunk_size: Optional[int] = None,
+    proj_reg: float | Array | None = None,
+    momentum: float | Array | None = None,
+    old_updates: PyTree | None = None,
+    chunk_size: int | None = None,
     use_ntk: bool = False,
 ):
     r"""

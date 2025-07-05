@@ -1,4 +1,5 @@
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 import jax
 from jax.flatten_util import ravel_pytree
@@ -204,7 +205,7 @@ class VMC_SR(AbstractVariationalDriver):
     _ham: AbstractOperator = struct.field(pytree_node=False, serialize=False)
 
     _mode: str = struct.field(serialize=False)
-    _chunk_size_bwd: Optional[int] = struct.field(serialize=False)
+    _chunk_size_bwd: int | None = struct.field(serialize=False)
     _use_ntk: bool = struct.field(serialize=False)
     _on_the_fly: bool = struct.field(serialize=False)
     _linear_solver_fn: Any = struct.field(serialize=False)
@@ -215,7 +216,7 @@ class VMC_SR(AbstractVariationalDriver):
     # Serialized state
     _old_updates: PyTree = None
     _dp: PyTree = struct.field(serialize=False)
-    info: Optional[Any] = None
+    info: Any | None = None
     """
     PyTree to pass on information from the solver,e.g, the quadratic model.
     """
@@ -226,12 +227,12 @@ class VMC_SR(AbstractVariationalDriver):
         optimizer: Optimizer,
         *,
         diag_shift: ScalarOrSchedule,
-        proj_reg: Optional[ScalarOrSchedule] = None,
-        momentum: Optional[ScalarOrSchedule] = None,
+        proj_reg: ScalarOrSchedule | None = None,
+        momentum: ScalarOrSchedule | None = None,
         linear_solver_fn: Callable[[Array, Array], Array] = cholesky,
         variational_state: MCState = None,
-        chunk_size_bwd: Optional[int] = None,
-        mode: Optional[JacobianMode] = None,
+        chunk_size_bwd: int | None = None,
+        mode: JacobianMode | None = None,
         use_ntk: bool | None = None,
         on_the_fly: bool | None = None,
     ):

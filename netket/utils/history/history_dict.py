@@ -15,7 +15,6 @@
 from typing import Any, TYPE_CHECKING
 from collections.abc import Callable
 
-import sys
 
 import orjson
 
@@ -23,10 +22,7 @@ import numpy as np
 
 import jax
 
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
+from typing import Self
 
 if TYPE_CHECKING:
     from .history import History

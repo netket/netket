@@ -20,7 +20,8 @@ If a function or class is used in multiple modules, put it here.
 import functools
 import inspect
 import operator
-from typing import Any, Callable, Iterable, Optional, Sequence, Sized, TypeVar, Union
+from typing import Any, TypeVar, Union
+from collections.abc import Callable, Iterable, Sequence, Sized
 import warnings
 
 import jax
@@ -45,8 +46,8 @@ def is_list_or_tuple(x) -> bool:
 
 
 def nt_tree_fn(
-    nargs: Optional[int] = None,
-    tree_structure_argnum: Optional[int] = None,
+    nargs: int | None = None,
+    tree_structure_argnum: int | None = None,
     reduce: Callable = lambda x: x,
 ):
     """Convert a function that acts on single inputs to one that acts on trees.
@@ -125,7 +126,7 @@ def nt_tree_fn(
     return tree_fn
 
 
-def all_none(x, attr: Optional[str] = None) -> bool:
+def all_none(x, attr: str | None = None) -> bool:
     get_fn = (lambda x: x) if attr is None else lambda x: getattr(x, attr)
     return tree_all(tree_map(lambda x: get_fn(x) is None, x))
 
@@ -144,8 +145,8 @@ def wraps(f):
 
 @nt_tree_fn(nargs=2, reduce=lambda x: jnp.all(jnp.array(x)))
 def x1_is_x2(
-    x1: jnp.ndarray, x2: Optional[jnp.ndarray] = None, eps: float = 1e-12
-) -> Union[bool, jnp.ndarray]:
+    x1: jnp.ndarray, x2: jnp.ndarray | None = None, eps: float = 1e-12
+) -> bool | jnp.ndarray:
     if not isinstance(x1, (np.ndarray, jnp.ndarray)):
         raise TypeError(f"`x1` must be an ndarray. A {type(x1)} is found.")
 
@@ -170,7 +171,7 @@ def x1_is_x2(
         return jnp.all(jnp.abs(diff) < eps)
 
 
-def _get_ndim(x: Union[int, Sized, jnp.ndarray]) -> int:
+def _get_ndim(x: int | Sized | jnp.ndarray) -> int:
     """Get number of dimensions given number of dimensions / shape / array."""
     if hasattr(x, "ndim"):
         n = x.ndim
@@ -183,7 +184,7 @@ def _get_ndim(x: Union[int, Sized, jnp.ndarray]) -> int:
     return n
 
 
-def canonicalize_axis(axis: Axes, x: Union[int, Sized, jnp.ndarray]) -> list[int]:
+def canonicalize_axis(axis: Axes, x: int | Sized | jnp.ndarray) -> list[int]:
     """Converts axis into a sorted non-negative list.
 
     Args:
@@ -199,7 +200,7 @@ def canonicalize_axis(axis: Axes, x: Union[int, Sized, jnp.ndarray]) -> list[int
 
 
 def zip_axes(
-    x: jnp.ndarray, start_axis: int = 0, end_axis: Optional[int] = None
+    x: jnp.ndarray, start_axis: int = 0, end_axis: int | None = None
 ) -> jnp.ndarray:
     """Zip (interleave) axes starting from `start_axis`.
 
@@ -218,7 +219,7 @@ def zip_axes(
 
 
 def unzip_axes(
-    x: jnp.ndarray, start_axis: int = 0, end_axis: Optional[int] = None
+    x: jnp.ndarray, start_axis: int = 0, end_axis: int | None = None
 ) -> jnp.ndarray:
     """Unzip (de-interleave) axes starting from `start_axis`.
 
@@ -239,7 +240,7 @@ def unzip_axes(
 def _zip_axes(
     x: jnp.ndarray,
     start_axis: int = 0,
-    end_axis: Optional[int] = None,
+    end_axis: int | None = None,
     unzip: bool = False,
 ) -> jnp.ndarray:
     """Zip/unzip (interleave/de-interleave) axes starting from `start_axis`.
@@ -288,7 +289,7 @@ _ArrayOrShape = TypeVar(
 
 
 def size_at(
-    x: Union[_ArrayOrShape, core.ShapedArray], axes: Optional[Iterable[int]] = None
+    x: _ArrayOrShape | core.ShapedArray, axes: Iterable[int] | None = None
 ) -> int:
     if hasattr(x, "shape"):
         x = x.shape

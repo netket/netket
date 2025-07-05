@@ -16,7 +16,7 @@ import abc
 
 from typing import Union
 from collections.abc import Sequence
-from typing_extensions import Self
+from typing import Self
 
 from netket.utils.types import PRNGKeyT
 
