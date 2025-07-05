@@ -88,19 +88,16 @@ def nt_tree_fn(
                     f"Inconsistent NTTree structure found. "
                     f"Node Types: {[type(x) for x in args]}."
                 )
-
-            """
-        Regarding the use of zip, consider an example `x1 = x2 = (1, (1, 1))`.
-        We would like to determine whether these two trees have the same
-        structure.
-
-        On the first recurrence `x1` and `x2` are both tuples so the check
-        passes and `zip(*args) = [(1, 1), ((1, 1), (1, 1))]` so that
-        `(check_tree_structure(x) for x in zip(x1, x2))` will first check that
-        the first element of `x1` has the same tree structure as the first
-        element of `x2` and then the second element and so on.
-      """
             for x in zip(*args):
+                # Regarding the use of zip, consider an example `x1 = x2 = (1, (1, 1))`.
+                # We would like to determine whether these two trees have the same
+                # structure.
+
+                # On the first recurrence `x1` and `x2` are both tuples so the check
+                # passes and `zip(*args) = [(1, 1), ((1, 1), (1, 1))]` so that
+                # `(check_tree_structure(x) for x in zip(x1, x2))` will first check that
+                # the first element of `x1` has the same tree structure as the first
+                # element of `x2` and then the second element and so on.
                 check_tree_structure(x)
 
     def tree_fn(fn):
