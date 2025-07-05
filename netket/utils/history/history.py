@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Union, TYPE_CHECKING
 from collections.abc import Iterable
 from numbers import Number
 
@@ -317,7 +317,7 @@ class History:
         xscale: str | None = None,
         yscale: str | None = "auto",
         **kwargs,
-    ) -> "matplotlib.axes.Axes" | Iterable["matplotlib.axes.Axes"]:
+    ) -> Union["matplotlib.axes.Axes", Iterable["matplotlib.axes.Axes"]]:
         """
         Plot the history object using matplotlib.
 
