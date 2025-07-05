@@ -100,6 +100,7 @@ def srt_onthefly(
         dv = jax.lax.collapse(dv, 0, 2)  # shape [2*N_mc,] or [N_mc, ] if not complex
 
     # Collect all samples on all MPI ranks, those label the columns of the T matrix
+    all_samples = samples
     if config.netket_experimental_sharding:
         samples = jax.lax.with_sharding_constraint(
             samples, PositionalSharding(jax.devices()).reshape(-1, 1)
@@ -216,7 +217,7 @@ def srt_onthefly(
     aus_vector = jax.lax.with_sharding_constraint(
         aus_vector,
         PositionalSharding(jax.devices()).reshape(
-            -1,
+            -1, *(1 for _ in range(aus_vector.ndim - 1))
         ),
     )
 
