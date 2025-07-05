@@ -218,9 +218,9 @@ class MCState(VariationalState):
         if variables is not None:
             # TODO: Always have shardings...
             if config.netket_experimental_sharding:
-                par_sharding = jax.sharding.PositionalSharding(
-                    jax.devices()
-                ).replicate()
+                par_sharding = jax.sharding.NamedSharding(
+                    jax.sharding.get_abstract_mesh(), jax.P()
+                )
             else:
                 par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
             variables = jax.tree_util.tree_map(
@@ -316,19 +316,9 @@ class MCState(VariationalState):
 
         if dtype is None:
             dtype = self.sampler.dtype
-
         key = nkjax.PRNGKey(seed)
-
         dummy_input = self.hilbert.random_state(key, 1, dtype=dtype)
-
-        if config.netket_experimental_sharding:
-            par_sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
-        else:
-            par_sharding = None
-        variables = jax.jit(self._init_fun, out_shardings=par_sharding)(
-            {"params": key}, dummy_input
-        )
-        self.variables = variables
+        self.variables = self._init_fun({"params": key}, dummy_input)
 
     @property
     def model(self) -> nn.Module:

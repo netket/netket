@@ -14,6 +14,8 @@
 
 import os
 from textwrap import dedent
+from functools import partial
+import warnings
 
 
 def bool_env(varname: str, default: bool) -> bool:
@@ -254,6 +256,20 @@ config.define(
     runtime=False,
     callback=_setup_experimental_sharding_cpu,
 )
+config.define(
+    "NETKET_EXPLICIT_SHARDING_CPU",
+    int,
+    default=0,
+    help=dedent(
+        """
+        Set to >=1 to force JAX to use multiple threads as separate devices on cpu.
+        Sets the XLA_FLAGS='--xla_force_host_platform_device_count=#' environment variable.
+        Disabled by default.
+        """
+    ),
+    runtime=False,
+    callback=_setup_experimental_sharding_cpu,
+)
 
 
 def _update_x64(val):
@@ -295,13 +311,48 @@ config.define(
 )
 
 
-def _setup_experimental_sharding(val):
-    # TODO: Remove once we require jax 0.5
+def _setup_experimental_sharding(val, explicit=False):
     if val:
-        from jax import config as jax_config
+        import jax
+        from jax.sharding import AxisType
 
-        # TODO: Remove once we require jax 0.5
-        jax_config.update("jax_threefry_partitionable", True)
+        mode_type = "Explicit" if explicit else "Auto"
+        warnings.warn(
+            f"""
+            NETKET_EXPERIMENTAL_SHARDING mode detected:
+                - SHARDING IS NOW ALWAYS ENABLED, BUT TO USE MORE THAN 1 DEVICE YOU MUST
+                DEFINE THE MESH AND SPECIFY IT IN YOUR CODE.
+
+                - For backward compatibility, specifying `NETKET_EXPERIMENTAL_SHARDING` will
+                create create and set a single-axis mesh with all devices for you.
+
+                - You should UPDATE YOUR CODE to include the following lines, and stop declaring
+                `NETKET_EXPERIMENTAL_SHARDING` in your code.
+
+                import jax
+                import netket as nk
+
+                # Create a mesh with all the devices
+                mesh = jax.make_mesh(
+                    (len(jax.devices()),),  # How many devices
+                    ("S"),                  # The name of the axis. 'S' is standard for 'samples'.
+                    axis_types=(
+                        AxisType.{mode_type},  # Explicit/Auto sharding mode
+                    ),
+                )
+                jax.sharding.set_mesh(mesh) # Set this as the default mesh for jax.
+
+            """
+        )
+        kwargs = {}
+        if explicit:
+            kwargs["axis_types"] = (AxisType.Explicit,)
+        mesh = jax.make_mesh(
+            (len(jax.devices()),),
+            ("S"),
+            **kwargs,
+        )
+        jax.sharding.set_mesh(mesh)
 
 
 config.define(
@@ -319,7 +370,16 @@ config.define(
         """
     ),
     runtime=True,
-    callback=_setup_experimental_sharding,
+    callback=partial(_setup_experimental_sharding, explicit=False),
+)
+
+config.define(
+    "NETKET_EXPLICIT_SHARDING",
+    bool,
+    default=int_env("NETKET_EXPLICIT_SHARDING_CPU", 0) > 0,
+    help=dedent("..."),
+    runtime=False,
+    callback=partial(_setup_experimental_sharding, explicit=True),
 )
 
 

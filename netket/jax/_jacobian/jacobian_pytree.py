@@ -19,11 +19,12 @@ import jax
 import jax.flatten_util
 import jax.numpy as jnp
 
-import numpy as np
 
 from netket import jax as nkjax
 from netket.utils import wrap_to_support_scalar
 from netket.utils.types import Array, PyTree
+
+from netket.jax.sharding import _pvary_decorator
 
 
 def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
@@ -42,7 +43,8 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
     y, vjp_fun = jax.vjp(
         lambda pars: wrap_to_support_scalar(forward_fn)(pars, samples), params
     )
-    (res,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+    # TODO remove _pvary_decorator once jax bug is fixed
+    (res,) = vjp_fun(_pvary_decorator(jax.lax.full_like)(y, 1.0))
     return res
 
 
@@ -71,8 +73,9 @@ def _jacobian_cplx(
     if not jnp.issubdtype(jnp.result_type(y), jnp.complexfloating):
         raise TypeError("Cannot build the complex jacobian for a real-valued function.")
 
-    (gr,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    (gi,) = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
+    # TODO remove _pvary_decorator once jax bug is fixed
+    (gr,) = vjp_fun(_pvary_decorator(jax.lax.full_like)(y, 1))
+    (gi,) = vjp_fun(_pvary_decorator(jax.lax.full_like)(y, -1j))
     return _build_fn(gr, gi)
 
 

@@ -46,6 +46,7 @@ jobs:
       - name: Install packages
         run: |
           pip install uv
+          uv pip install --system git+https://github.com/jax-ml/jax
           uv pip install --system -e ".[dev,extra,pyscf]"
           uv pip install --system dm-haiku
 
