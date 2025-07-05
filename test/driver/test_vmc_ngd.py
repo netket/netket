@@ -160,7 +160,7 @@ def test_advd_vs_nk_vmc(model, use_ntk, onthefly):
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
-    if nk._src.distributed.process_index() == 0:
+    if jax.process_index() == 0:
         energy_kernelSR = logger_srt.data["Energy"]["Mean"]
         energy_SR = logger_sr.data["Energy"]["Mean"]
 
@@ -173,8 +173,6 @@ def test_SRt_vs_SR(model, onthefly):
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
-    if nk._src.distributed.mode() == "mpi":
-        pytest.xfail("We don't know why, but it's correct.")
 
     n_iters = 5
 
@@ -209,7 +207,7 @@ def test_SRt_vs_SR(model, onthefly):
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
-    if nk._src.distributed.process_index() == 0:
+    if jax.process_index() == 0:
         energy_kernelSR = logger_srt.data["Energy"]["Mean"]
         energy_SR = logger_sr.data["Energy"]["Mean"]
 
@@ -261,7 +259,7 @@ def test_SRt_real_vs_complex(onthefly):
         np.testing.assert_allclose, vstate_complex.parameters, vstate_real.parameters
     )
 
-    if nk._src.distributed.process_index() == 0:
+    if jax.process_index() == 0:
         energy_complex = logger_complex.data["Energy"]["Mean"]
         energy_real = logger_real.data["Energy"]["Mean"]
 
@@ -366,7 +364,7 @@ def test_srt_vs_ntk(model, momentum):
         np.testing.assert_allclose, vstate_srt.parameters, vstate_ntk.parameters
     )
 
-    if nk._src.distributed.process_index() == 0:
+    if jax.process_index() == 0:
         energy_kernelSR = logger_srt.data["Energy"]["Mean"]
         energy_SR = logger_ntk.data["Energy"]["Mean"]
 
@@ -434,7 +432,7 @@ def test_SRt_chunked(use_ntk, onthefly, model, momentum, proj_reg):
         np.testing.assert_allclose, vstate.parameters, vstate_chunked.parameters
     )
 
-    if nk._src.distributed.process_index() == 0:
+    if jax.process_index() == 0:
         energy = logger.data["Energy"]["Mean"]
         energy_chunked = logger_chunked.data["Energy"]["Mean"]
 

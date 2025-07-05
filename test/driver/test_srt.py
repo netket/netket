@@ -24,7 +24,6 @@ import pytest
 
 from netket.experimental.driver import VMC_SR, VMC_SRt
 from netket.optimizer.solver.solvers import solve
-from netket.utils import mpi
 
 
 class RBM(nn.Module):
@@ -100,9 +99,6 @@ def test_SRt_vs_linear_solver_complexpars():
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
-    if nk._src.distributed.mode() == "mpi":
-        pytest.xfail("We don't know why, but it's correct.")
-
     n_iters = 5
 
     model = nk.models.RBM(
@@ -135,7 +131,7 @@ def test_SRt_vs_linear_solver_complexpars():
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
-    if mpi.rank == 0 and jax.process_count() == 0:
+    if jax.process_count() == 0:
         energy_kernelSR = logger_srt.data["Energy"]["Mean"]
         energy_SR = logger_sr.data["Energy"]["Mean"]
 
@@ -171,7 +167,7 @@ def test_SRt_vs_linear_solver():
         np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
     )
 
-    if mpi.rank == 0 and jax.process_count() == 0:
+    if jax.process_count() == 0:
         energy_kernelSR = logger_srt.data["Energy"]["Mean"]
         energy_SR = logger_sr.data["Energy"]["Mean"]
 
@@ -208,7 +204,7 @@ def test_SRt_real_vs_complex():
         np.testing.assert_allclose, vstate_complex.parameters, vstate_real.parameters
     )
 
-    if mpi.rank == 0 and jax.process_count() == 0:
+    if jax.process_count() == 0:
         energy_complex = logger_complex.data["Energy"]["Mean"]
         energy_real = logger_real.data["Energy"]["Mean"]
 
