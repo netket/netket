@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2025 The Netket Authors. - All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,38 +13,39 @@
 # limitations under the License.
 
 import netket as nk
-from netket import experimental as nkx
+import netket.experimental as nkx
 import optax
+import jax
 
-# 1D Lattice
-L = 20
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+# 2D Lattice
+g = nk.graph.Hypercube(length=5, n_dim=2, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
-# Ising spin hamiltonian
-ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
+# Ising spin hamiltonian at the critical point
+ha = nk.operator.IsingJax(hilbert=hi, graph=g, h=3.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, param_dtype=float)
+ma = nk.models.RBM(alpha=1, use_visible_bias=True, param_dtype=float)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
-# Optimizer with a decreasing learning rate
-op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
-
-# Variational state
+# The variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
+vs.init_parameters(jax.nn.initializers.normal(stddev=0.01), seed=1234)
 
-# Variational monte carlo driver with a variational state
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.01, 0.0001, 1000))
+
+# Variational monte carlo driver
 gs = nkx.driver.VMC_SR(
-    ha,
-    op,
-    variational_state=vs,
-    diag_shift=0.01,
+    ha, op, variational_state=vs, diag_shift=0.001, use_ntk=True, on_the_fly=False
 )
 
-# Run the optimization for 500 iterations
-gs.run(n_iter=500, out="test", timeit=True)
+# Create a JSON output file, and overwrite if file exists
+logger = nk.logging.JsonLog("test", "w")
+
+# Run the optimization
+gs.run(n_iter=1000, out=logger)

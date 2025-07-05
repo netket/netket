@@ -32,6 +32,12 @@ from .abstract_variational_driver import AbstractVariationalDriver
 class VMC(AbstractVariationalDriver):
     """
     Energy minimization using Variational Monte Carlo (VMC).
+
+    .. note::
+
+        Consider using directly the new :class:``netket.experimental.driver.VMC_SR``
+        class instead of this one if you want to use Stochastic Reconfiguration.
+
     """
 
     def __init__(
