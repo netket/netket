@@ -390,3 +390,47 @@ def test_srt():
         jacobian_mode="complex",
     )
     gs.run(2)
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+def test_jacobian_chunked():
+    vs, _, ha = _setup(12, alpha=2)
+    vs.n_samples = 64
+    x = jax.lax.collapse(vs.samples, 0, 2)
+
+    kwargs = {"mode": "holomorphic", "dense": False, "center": False}
+
+    j_repl = nk.jax.jacobian(
+        vs._apply_fun,
+        vs.parameters,
+        np.array(x),
+        {},
+        **kwargs,
+        chunk_size=None,
+        _axis_0_is_sharded=False,
+    )  # jacobian is centered
+
+    j = nk.jax.jacobian(
+        vs._apply_fun,
+        vs.parameters,
+        x,
+        {},
+        **kwargs,
+        chunk_size=None,
+        _axis_0_is_sharded=True,
+    )  # jacobian is centered
+
+    jc = nk.jax.jacobian(
+        vs._apply_fun,
+        vs.parameters,
+        x,
+        {},
+        **kwargs,
+        chunk_size=8,
+        _axis_0_is_sharded=True,
+    )  # jacobian is centered
+
+    jax.tree.map(np.testing.assert_allclose, j_repl, j)
+    jax.tree.map(np.testing.assert_allclose, j, jc)

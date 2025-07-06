@@ -42,6 +42,7 @@ from . import jacobian_pytree
         "center",
         "dense",
         "_sqrt_rescale",
+        "_axis_0_is_sharded",
     ),
 )
 def jacobian(

@@ -42,7 +42,15 @@ def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwar
     # by computing the vmapped_fun in chunks on every shard (which sits on a separate device)
     sharded_args_tree = tuple(i in argnums for i, a in enumerate(args))
     f = HashablePartial(_eval_fun_in_chunks, vmapped_fun, chunk_size, argnums, **kwargs)
-    return sharding_decorator(f, sharded_args_tree)(*args)
+
+    # if the vmapped_fun e.g. does a vjp we need to make the params pvary here
+    # to avoid it emitting an unwanted psum
+    pvary_argnums = tuple(set(range(len(args))).difference(argnums))
+    pvary_args_tree = tuple(i in pvary_argnums for i in range(len(args)))
+
+    return sharding_decorator(f, sharded_args_tree, pvary_args_tree=pvary_args_tree)(
+        *args
+    )
 
 
 def _chunk_vmapped_function(

@@ -39,6 +39,7 @@ from netket.utils import (
     _serialization as serialization_utils,
 )
 from netket.utils.types import PyTree, SeedT, NNInitFunc
+from netket.utils.deprecation import warn_deprecation
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
@@ -210,23 +211,42 @@ class MCState(VariationalState):
         """
         super().__init__(sampler.hilbert)
 
-        # TODO: Move this somewhere else below?
-        # If variables is specified manually, we will enforce that it's leafs are
-        # jax arrays and that it has the good 'replicated sharding'
-        # This assumption is needed for saving and loading of those states, and could
-        # be broken if variables is malformed.
-        if variables is not None:
-            # TODO: Always have shardings...
-            if config.netket_experimental_sharding:
-                par_sharding = jax.sharding.NamedSharding(
-                    jax.sharding.get_abstract_mesh(), jax.P()
-                )
-            else:
-                par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
+        if variables is not None and config.netket_experimental_sharding:
+            par_sharding = jax.sharding.NamedSharding(
+                jax.sharding.get_abstract_mesh(), jax.P()
+            )
+        else:
+            par_sharding = None
+
+        # For simplicity, we do not accept numpy inputs in variables
+        if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
+            warn_deprecation(
+                f"""
+                Constructing a {type(self).__name__} with a pytree
+                containing Numpy arrays is deprecated and will be removed in
+                the future.
+
+                To avoid breaking code, please convert your variables to
+                jax.Array by doing
+
+                variables = jax.tree.map(jnp.asarray, variables)
+
+                """
+            )
+            # resultis in SingleDeviceSharding if par_sharding is None
+            variables = jax.tree.map(
+                partial(jnp.asarray, device=par_sharding), variables
+            )
+
+        if variables is not None and config.netket_experimental_sharding:
+            # TODO: Move this somewhere else below?
+            # If variables is specified manually, we will enforce that it's leaves are
+            # jax arrays and that it has the good 'replicated sharding'
+            # This assumption is needed for saving and loading of those states, and could
+            # be broken if variables is malformed.
+
             variables = jax.tree_util.tree_map(
-                lambda x: jax.lax.with_sharding_constraint(
-                    jnp.asarray(x), par_sharding
-                ),
+                lambda x: jax.lax.with_sharding_constraint(x, par_sharding),
                 variables,
             )
 

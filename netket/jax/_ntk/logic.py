@@ -32,6 +32,7 @@ import operator
 from typing import Any, Protocol, TypeVar, Union
 from collections.abc import Callable, Iterable
 
+from functools import partial
 
 from jax import eval_shape
 from jax import jacobian
@@ -47,9 +48,10 @@ import jax.numpy as jnp
 
 from jax.tree_util import tree_map
 from jax.tree_util import tree_reduce
-from jax.util import safe_zip as zip
 
 from . import utils
+
+safe_zip = partial(zip, strict=True)
 
 PyTree = Any
 _VMapAxis = PyTree | None
