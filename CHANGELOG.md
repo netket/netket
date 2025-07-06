@@ -13,6 +13,7 @@
 
 ## Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
+* Constructing an MCState with numpy arrays as variables is deprecated. Please specify jax arrays.
 
 
 ## NetKet 3.18 (3 July 2025)

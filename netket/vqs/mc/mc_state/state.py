@@ -39,6 +39,7 @@ from netket.utils import (
     _serialization as serialization_utils,
 )
 from netket.utils.types import PyTree, SeedT, NNInitFunc
+from netket.utils.deprecation import warn_deprecation
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
@@ -209,6 +210,23 @@ class MCState(VariationalState):
                 but will trade a higher computational cost for lower memory cost.
         """
         super().__init__(sampler.hilbert)
+
+        # For simplicity, we do not accept numpy inputs in variables
+        if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
+            warn_deprecation(
+                f"""
+                Constructing a {type(self).__name__} with a pytree
+                containing Numpy arrays is deprecated and will be removed in
+                the future.
+
+                To avoid breaking code, please convert your variables to
+                jax.Array by doing
+
+                variables = jax.tree.map(jnp.asarray, variables)
+
+                """
+            )
+            variables = jax.tree.map(jnp.asarray, variables)
 
         # Init type 1: pass in a model
         if model is not None:
