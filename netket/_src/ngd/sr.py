@@ -8,6 +8,8 @@ from jax.sharding import NamedSharding
 from netket import jax as nkjax
 from netket.utils.types import Array
 
+from netket import config
+
 from netket._src.ngd.kwargs import ensure_accepts_kwargs
 
 
