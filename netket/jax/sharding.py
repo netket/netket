@@ -543,19 +543,3 @@ def inspect(name: str, tree: jax.Array):
         jax.tree.map_with_path(
             lambda path, x: _inspect(name + jax.tree_util.keystr(path), x), tree
         )
-
-
-# TODO remove once jax bug is addressed
-def _pvary_decorator(f):
-    # assumes element-wise function with one single array argument
-    # used to wrap jax functions which don't set it correctly
-    def _f(x, *args, **kwargs):
-        return jax.lax.pvary(f(x, *args, **kwargs), tuple(jax.typeof(x).vma))
-
-    return _f
-
-
-# TODO remove once jax bug is addressed
-def _eval_shape(fun, *args, **kwargs):
-    # used as a drop-in replacement for the jax version which does not set the vma correctly
-    return fun(*args, **kwargs)
