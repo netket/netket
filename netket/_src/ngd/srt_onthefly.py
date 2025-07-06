@@ -163,9 +163,12 @@ def srt_onthefly(
         ntk_local = jacobian_contraction(samples, all_samples, parameters_real).real
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
-    ntk = jax.lax.with_sharding_constraint(
-        ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P())
-    )
+    if config.netket_experimental_sharding:
+        ntk = jax.lax.with_sharding_constraint(
+            ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P())
+        )
+    else:
+        ntk = ntk_local
     if mode == "complex":
         # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
         ntk = rearrange(ntk, "i j z w -> (i z) (j w)")
@@ -212,12 +215,14 @@ def srt_onthefly(
     if mode == "complex":
         aus_vector = aus_vector.reshape(-1, 2)
     # shape [N_mc // p.size,2]
-    aus_vector = jax.lax.with_sharding_constraint(
-        aus_vector,
-        NamedSharding(
-            jax.sharding.get_abstract_mesh(), P("S", *(None,) * (aus_vector.ndim - 1))
-        ),
-    )
+    if config.netket_experimental_sharding:
+        aus_vector = jax.lax.with_sharding_constraint(
+            aus_vector,
+            NamedSharding(
+                jax.sharding.get_abstract_mesh(),
+                P("S", *(None,) * (aus_vector.ndim - 1)),
+            ),
+        )
 
     # _, vjp_fun = jax.vjp(f, parameters_real)
     vjp_fun = nkjax.vjp_chunked(
