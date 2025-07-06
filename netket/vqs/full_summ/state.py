@@ -114,22 +114,6 @@ class FullSumState(VariationalState):
         super().__init__(hilbert)
         self._model_framework = None
 
-        if variables is not None:
-            # TODO: Always have shardings...
-            if config.netket_experimental_sharding:
-                par_sharding = jax.sharding.NamedSharding(
-                    jax.sharding.get_abstract_mesh(),
-                    jax.P(),
-                )
-            else:
-                par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
-            variables = jax.tree_util.tree_map(
-                lambda x: jax.lax.with_sharding_constraint(
-                    jnp.asarray(x), par_sharding
-                ),
-                variables,
-            )
-
         # Init type 1: pass in a model
         if model is not None:
             # extract init and apply functions
