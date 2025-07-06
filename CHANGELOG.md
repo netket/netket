@@ -39,6 +39,7 @@ The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly m
 ### Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
 * Finalized deprecations from August 2024 and earlier [#2108](https://github.com/netket/netket/pull/2108).
+* Constructing an MCState with numpy arrays as variables is deprecated. Please specify jax arrays.
 
 ### Bug Fixes
 * Do not error when the `chunk_size` of a sampler is larger than the number of chains.

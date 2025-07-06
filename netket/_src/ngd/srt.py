@@ -3,7 +3,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import PositionalSharding
+from jax.sharding import NamedSharding
 
 from netket import jax as nkjax
 from netket import config
@@ -40,10 +40,10 @@ def _compute_srt_update(
         nkjax.sharding.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
         O_LT = jax.lax.with_sharding_constraint(
             O_LT,
-            PositionalSharding(jax.devices()).reshape(1, -1),
+            NamedSharding(jax.sharding.get_abstract_mesh(), jax.P("S", None)),
         )
         dv = jax.lax.with_sharding_constraint(
-            dv, PositionalSharding(jax.devices()).replicate()
+            dv, NamedSharding(jax.sharding.get_abstract_mesh(), jax.P(None))
         )
 
     # This does the contraction (ns, #np) x (#np, ns) -> (ns, ns).
@@ -85,9 +85,9 @@ def _compute_srt_update(
         updates = updates[:num_p] + 1j * updates[num_p:]
 
     if config.netket_experimental_sharding:
-        out_shardings = (
-            PositionalSharding(jax.devices()).replicate().reshape((1,) * updates.ndim)
-        ).replicate()
+        out_shardings = NamedSharding(
+            jax.sharding.get_abstract_mesh(), jax.P(*(None,) * updates.ndim)
+        )
         updates = jax.lax.with_sharding_constraint(updates, out_shardings)
 
     return updates, old_updates, info

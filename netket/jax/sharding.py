@@ -84,7 +84,7 @@ def distribute_to_devices_along_axis(
         ] * inp_data.ndim
         shape[axis] = "S"
         mesh = jax.sharding.get_abstract_mesh()
-        sharding = jax.sharding.NamedSharding(mesh, jax.P(*shape))
+        sharding = NamedSharding(mesh, jax.P(*shape))
         out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
 
         if pad:
@@ -119,7 +119,7 @@ def shard_along_axis(x, axis: int):
         mesh = jax.sharding.get_abstract_mesh()
         x = jax.lax.with_sharding_constraint(
             x,
-            jax.sharding.NamedSharding(mesh, jax.P(*shard_shape)),
+            NamedSharding(mesh, jax.P(*shard_shape)),
         )
     return x
 
@@ -168,9 +168,7 @@ def gather(x):
     elif isinstance(x.sharding, NamedSharding):
         # x.sharding.device_set has arbitrary order
         # Hardcode all devices until I figure out a way to deduce the order from x
-        out_shardings = jax.sharding.NamedSharding(
-            jax.sharding.get_abstract_mesh(), jax.P()
-        )
+        out_shardings = NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
     else:
         raise NotImplementedError(
             "Gather is not compatible with {x.sharding}. Please open a feature request."
@@ -253,12 +251,14 @@ def sharding_decorator(
 
         import jax
         import jax.numpy as jnp
-        from jax.sharding import Mesh, PartitionSpec as P
+        from jax.sharding import NamedSharding, Mesh, PartitionSpec as P
         from jax.experimental.shard_map import shard_map
         from jax.tree_util import Partial
         from functools import partial
         from netket import config
         from netket.jax.sharding import sharding_decorator
+
+        mesh = Mesh(jax.devices(), 'S')
 
         assert config.netket_experimental_sharding is True
         assert jax.device_count() > 1
@@ -272,8 +272,8 @@ def sharding_decorator(
                 y = y.at[i].set(f(x[i], c))
             return y
 
-        x = jax.jit(jnp.ones, out_shardings=jax.sharding.NamedSharding(jax.devices()), static_argnums=0)(jax.device_count()*5)
-        c = jax.jit(jnp.ones, out_shardings=jax.sharding.NamedSharding(jax.devices()).replicate(), static_argnums=0)(())
+        x = jax.jit(jnp.ones, out_shardings=NamedSharding(mesh, P('S')), static_argnums=0)(jax.device_count()*5)
+        c = jax.jit(jnp.ones, out_shardings=NamedSharding(mesh, P()).replicate(), static_argnums=0)(())
 
         # if we were to run `looped_computation(x)`` with the sharded x, it would formally be computed sequentially for all elements device per device,
         # if we  jit, i.e. `jax.jit(looped_computation)(x)`` the output sharding would just be replicated, jax just computes everything replicated on every device.
@@ -336,7 +336,7 @@ def sharding_decorator(
 
         mesh = Mesh(jax.devices(), axis_names=("S"))
         in_specs = P("S")
-        out_specs = P('i'), P()
+        out_specs = P('S'), P()
         @partial(shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
         def _f(x):
             some_python_object = {1,2,3}
