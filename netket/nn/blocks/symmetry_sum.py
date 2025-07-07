@@ -25,56 +25,65 @@ from netket.utils import HashableArray
 
 class SymmExpSum(nn.Module):
     r"""
-    A flax module symmetrizing the log-wavefunction :math:`\log\psi_\theta(\sigma)`
-    encoded into another flax module (:class:`flax.linen.Module`) by summing over
-    all possible symmetries :math:`g` in a certain discrete permutation
-    group :math:`G`.
+    A wrapper module to symmetrise a variational wave function with respect
+    to a permutation group :math:`G` by summing over all permuted inputs.
+
+    Given the characters :math:`\chi_g` of an irreducible representation
+    (irrep) of :math:`G`, a variational state that transforms according
+    to this irrep is given by the projection formula
 
     .. math::
 
-        \log\psi_\theta(\sigma) = \frac{1}{|G|}\log\sum_{g\in G}
-            \chi_g\exp[\log\psi_\theta(T_{g}\sigma)]
+        \psi_\theta(\sigma) = \frac{1}{|G|}\sum_{g\in G}
+            \chi_g \psi_\theta(T_{g}\sigma).
 
-    For the ground-state, it is usually found that :math:`\chi_g=1 \forall g\in G`.
-
-    To construct this network, one has to specify the module, the symmetry group
-    and (optionally)the id of the character to consider.
-
-    The module's :code:`.__call__` will be called.
-    The :code:`symm_group` attribute
+    Ground states usually transform according to the trivial irrep
+    :math:`\chi_g=1 \forall g\in G`.
 
     Examples:
 
-       Constructs a :ref:`netket.nn.blocks.SymmExpSum` for a bare
-       :ref:`netket.models.RBM`, summing over all translations of a
-       2D Square lattice
+        Symmetrise an :ref:`netket.models.RBM` with respect to the space
+        group of a 2D :ref:`netket.graph.Square` lattice:
 
-       >>> import netket as nk
-       >>> graph = nk.graph.Square(3)
-       >>> print("number of translational symmetries: ", len(graph.translation_group()))
-       number of translational symmetries:  9
-       >>> # Construct the bare unsymmetrized machine
-       >>> machine_no_symm = nk.models.RBM(alpha=2)
-       >>> # Symmetrize the RBM over all translations
-       >>> ma = nk.nn.blocks.SymmExpSum(module = machine_no_symm, symm_group=graph.translation_group())
+        >>> import netket as nk
+        >>> graph = nk.graph.Square(4)
+        >>> group = graph.space_group()
+        >>> print("Size of space group:", len(group))
+        Size of space group: 128
+        >>> # Construct the bare unsymmetrized machine
+        >>> machine_no_symm = nk.models.RBM(alpha=2)
+        >>> # Symmetrize the RBM over the space group
+        >>> ma = nk.nn.blocks.SymmExpSum(module = machine_no_symm, symm_group=group)
 
-       If you have a Convolutional NN that is already invariant under translations, you might
-       want to only symmetrize over the point-group (mirror symmetry and rotations).
+        Nontrivial irreps can be specified using momentum and point-group
+        quantum numbers:
 
-       >>> import netket as nk
-       >>> graph = nk.graph.Square(3)
-       >>> print("number of point-group symmetries: ", len(graph.point_group()))
-       number of point-group symmetries:  8
-       >>> # Construct the bare unsymmetrized machine
-       >>> machine_no_symm = nk.models.RBM(alpha=2)
-       >>> # Symmetrize the RBM over all translations
-       >>> ma = nk.nn.blocks.SymmExpSum(module = machine_no_symm, symm_group=graph.point_group())
+        >>> from math import pi
+        >>> print(group.little_group(pi, 0).character_table_readable())
+        (['1xId()', '1xRefl(0°)', '1xRefl(90°)', '1xRot(180°)'],
+        array([[ 1.,  1.,  1.,  1.],
+               [ 1.,  1., -1., -1.],
+               [ 1., -1.,  1., -1.],
+               [ 1., -1., -1.,  1.]]))
+        >>> chi = group.space_group_irreps(pi, 0)[1]
+        >>> ma = nk.nn.blocks.SymmExpSum(module = machine_no_symm, symm_group=group, characters=chi)
 
+        Convolutional networks are already invariant under translations,
+        so they only need to be symmetrised with respect to the point group
+        (e.g., mirrors and rotations).
+
+        >>> import netket as nk
+        >>> graph = nk.graph.Square(4)
+        >>> print("Size of the point group:", len(graph.point_group()))
+        Size of the point group: 8
+        >>> # Construct a translation-invariant RBM
+        >>> machine_trans = nk.models.RBMSymm(alpha=2, symmetries=graph.translation_group())
+        >>> # Symmetrize the RBM over the point group
+        >>> ma = nk.nn.blocks.SymmExpSum(module = machine_trans, symm_group=graph.point_group())
     """
 
     module: nn.Module
-    """The neural network architecture encoding the log-wavefunction
-    to symmetrize in the :code:`.__call__` function."""
+    """The unsymmetrised neural-network ansatz."""
 
     symm_group: PermutationGroup
     """The symmetry group to use. It should be a valid
