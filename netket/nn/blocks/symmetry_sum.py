@@ -95,7 +95,7 @@ class SymmExpSum(nn.Module):
     """
 
     characters: HashableArray | None = None
-    """Characters :math:`\chi_g` of the space group to project onto.
+    r"""Characters :math:`\chi_g` of the space group to project onto.
 
     Only one of `characters` and `character_id` may be specified.
     If neither is specified, the character is taken to be all 1,
