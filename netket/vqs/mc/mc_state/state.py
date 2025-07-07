@@ -227,6 +227,25 @@ class MCState(VariationalState):
                 """
             )
             variables = jax.tree.map(jnp.asarray, variables)
+        # TODO: Move this somewhere else below?
+        # If variables is specified manually, we will enforce that it's leafs are
+        # jax arrays and that it has the good 'replicated sharding'
+        # This assumption is needed for saving and loading of those states, and could
+        # be broken if variables is malformed.
+        if variables is not None:
+            # TODO: Always have shardings...
+            if config.netket_experimental_sharding:
+                par_sharding = jax.sharding.NamedSharding(
+                    jax.sharding.get_abstract_mesh(), jax.P()
+                )
+            else:
+                par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
+            variables = jax.tree_util.tree_map(
+                lambda x: jax.lax.with_sharding_constraint(
+                    jnp.asarray(x), par_sharding
+                ),
+                variables,
+            )
 
         # Init type 1: pass in a model
         if model is not None:
