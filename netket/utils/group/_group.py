@@ -154,7 +154,7 @@ class FiniteGroup(FiniteSemiGroup):
     @struct.property_cached
     def conjugacy_table(self) -> Array:
         r"""
-        The conjugacy table of this Permutation Group.
+        The conjugacy table of the group.
 
         Assuming the definitions
 
@@ -203,6 +203,189 @@ class FiniteGroup(FiniteSemiGroup):
         inverse = (representatives.size - 1) - inverse
 
         return classes, representatives, inverse
+
+    def check_multiplier(self, multiplier: Array, rtol=1e-10, atol=0) -> bool:
+        r"""
+        Checks the associativity constraint of Schur multipliers
+
+        .. math::
+
+            \alpha(x, y) \alpha(xy, z) = \alpha(x, yz) \alpha(y, z).
+
+
+        Arguments:
+            multiplier: the array of Schur multipliers :math:`\alpha(x,y)`
+            rtol: relative tolerance
+            atol: absolute tolerance
+
+        Returns:
+            whether `multiplier` is a valid Schur multiplier
+            up to the given tolerance
+        """
+        PT = self.product_table[self.inverse]
+        # \alpha(x, y) \alpha(xy, z)
+        left = np.expand_dims(multiplier, 2) * multiplier[PT, :]
+        # \alpha(x, yz) \alpha(y, z)
+        right = multiplier[:, PT] * np.expand_dims(multiplier, 0)
+        return np.allclose(left, right, rtol=rtol, atol=atol)
+
+    def _character_from_class_matrix(
+        self, class_matrix: Array, which_class: Array | None
+    ) -> np.ndarray:
+        r"""Given a linear combination of class matrices,
+        diagonalise it and normalise the eigenvectors as characters:
+
+        .. math::
+
+            \sum_g |\chi(g)|^2 = \sum_C |C| |\chi(c_0)|^2 = |G|.
+
+        Arguments:
+            class_matrix: square matrix diagonalised by the characters
+                :math:`\chi(c_0)` (without any further scaling).
+            which_class: (optional) boolean array, specifying which
+                conjugacy classes are represented in `class_matrix`.
+
+        Returns:
+            irrep characters obtained from the eigenvectors of `class_matrix`.
+
+            Excluded classes are filled in with zeros. The irreps are
+            sorted by dimension.
+        """
+        _, table = np.linalg.eig(class_matrix)
+        table = table.T  # want eigenvectors as rows
+
+        # normalisation
+        classes, _, _ = self.conjugacy_classes
+        class_sizes = classes.sum(axis=1)
+        if which_class is not None:
+            class_sizes = class_sizes[which_class]
+        norm = np.sum(np.abs(table) ** 2 * class_sizes, axis=1, keepdims=True)
+        norm = (norm / len(self)) ** 0.5
+        table /= norm
+        # ensure correct sign (i.e. identity should have a real character)
+        table /= _cplx_sign(table[:, 0])[:, np.newaxis]
+
+        # Sort lexicographically, ascending by first column, descending by others
+        sorting_table = np.column_stack((table.real, table.imag))
+        sorting_table[:, 1:] *= -1
+        sorting_table = comparable(sorting_table)
+        _, indices = np.unique(sorting_table, axis=0, return_index=True)
+        table = table[indices]
+
+        # Get rid of annoying nearly-zero entries
+        table = prune_zeros(table)
+
+        if which_class is not None:
+            # fill in excluded classes
+            full_table = np.zeros((len(table), len(classes)), dtype=table.dtype)
+            full_table[:, which_class] = table
+            return full_table
+        else:
+            return table
+
+    def projective_characters_by_class(
+        self, multiplier: Array | None
+    ) -> tuple[np.ndarray, np.ndarray]:
+        r"""
+        Calculates the character table of projective representations with a
+        given Schur multiplier α using a modified Burnside algorithm.
+
+        Arguments:
+            multiplier: the unitary Schur multiplier.
+                If unspecified, computes linear representation characters.
+
+        Returns:
+            - a 2D array, each row containing the characters of a
+                representative element of each conjugacy class in one
+                projective irrep with the given multiplier.
+            - a 1D array listing the ``class factors'' of each element of
+                the group. The character of each element is the product
+                of the character of the class representative with this
+                class factor. (Only returned if `multiplier is not None`.)
+
+        Note: the algorithm and the definitions above are explained in more
+        detail in https://arxiv.org/abs/2505.14790.
+        """
+        # deal with trivial multipliers
+        if multiplier is None:
+            return self.character_table_by_class
+        elif np.allclose(multiplier, 1.0, rtol=1e-10):
+            # still trivial but should conform to projective irrep return format
+            return self.character_table_by_class, np.ones(len(self))
+
+        # check unitarity
+        if not np.allclose(np.abs(multiplier), 1.0, rtol=1e-10):
+            raise ValueError("Schur multiplier must be unitary")
+
+        # compute class factors
+        class_factors = np.zeros(len(self), dtype=multiplier.dtype)
+        classes, class_reps, _ = self.conjugacy_classes
+        reg_classes = np.zeros(len(class_reps), dtype=bool)
+
+        numerator = multiplier[self.inverse, np.arange(len(self))]
+        for i, (g, cls) in enumerate(zip(class_reps, classes)):
+            # β(g, h^-1 g h) = α(h^-1, h) / α(h^-1, g) α(h^-1 g, h)
+            β = (
+                numerator
+                / multiplier[self.inverse, g]
+                / multiplier[self.product_table[:, g], np.arange(len(self))]
+            )
+
+            class_size = cls.sum()
+            centralizer_size = len(self) // class_size
+            # collate sets of h with equal h^-1 g h
+            h_sets = np.argsort(self.conjugacy_table[g]).reshape(
+                class_size, centralizer_size
+            )
+            # average β across each set
+            β = np.average(β[h_sets], axis=1)
+
+            if np.allclose(np.abs(β), 1.0, rtol=1e-10):
+                # if the class is α-regular, β for each averaged entry was equal
+                # and the array now contains unit complex numbers
+                class_factors[cls] = β
+                reg_classes[i] = True
+            elif not np.allclose(np.abs(β), 0.0, atol=1e-10):
+                # otherwise, the different β should average to zero
+                raise RuntimeError(
+                    "Class factors close to neither unity of zero\n" + repr(β)
+                )
+
+        # The algorithm hinges on the equation
+        #   \sum_C M_{ABC} \chi(c_0) = |A||B| \chi(a_0) \chi(b_0) / d_\chi,
+        # where
+        #   M_{ABC} = \sum_{a \in A, b \in B, ab \in C} α(a,b) β(ab)/β(a)β(b)
+        #
+        # From the oblique times table, we can easily extract the combination
+        #   (M'_B)_{AC} = \sum_{a \in A, ab_0 \in C} α(a, b_0) β(ab_0)/β(a)
+        #               = M_{ABC} / |B|
+        # aggregating entries with `product_table == b_0` over conjugacy classes.
+        #
+        # From this, we have the eigenvalue equation
+        #   (M_B)_{AC} := (M'_B)_{AC} / |A|
+        #   M_B \vec\chi = \chi(b_0)/d_\chi \vec\chi.
+
+        # Construct a random linear combination of the M_B
+        # array of α(a,b) β(ab)/β(a)
+        class_matrix = (
+            multiplier[np.arange(len(self))[:, None], self.product_table]
+            * class_factors
+            / class_factors[:, None]
+        )
+        # multiply with random weights for α-regular class representatives
+        # TODO should we have a term for every α-regular element?
+        weight_ = random(reg_classes.sum(), seed=0, cplx=np.iscomplexobj(multiplier))
+        weight = np.zeros(len(self), dtype=weight_.dtype)
+        weight[class_reps[reg_classes]] = weight_
+        class_matrix *= weight[self.product_table]
+        # aggregate by conjugacy class, restrict to α-regular classes, divide by |A|
+        class_matrix = classes @ class_matrix @ classes.T
+        class_matrix /= classes.sum(axis=1)[reg_classes, None]
+
+        return (
+            self._character_from_class_matrix(class_matrix, reg_classes),
+            class_factors,
+        )
 
     @struct.property_cached
     def character_table_by_class(self) -> np.ndarray:
