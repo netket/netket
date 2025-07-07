@@ -94,10 +94,10 @@ class SymmExpSum(nn.Module):
 
     """
 
-    chi: HashableArray | None = None
-    """Character of the space group to project onto.
+    characters: HashableArray | None = None
+    """Characters :math:`\chi_g` of the space group to project onto.
 
-    Only one of `chi` and `character_id` may be specified.
+    Only one of `characters` and `character_id` may be specified.
     If neither is specified, the character is taken to be all 1,
     yielding a trivially symmetric state.
     """
@@ -112,22 +112,24 @@ class SymmExpSum(nn.Module):
 
         symm_group.character_table()[character_id]
 
-    Only one of `chi` and `character_id` may be specified.
+    Only one of `characters` and `character_id` may be specified.
     If neither is specified, the character is taken to be all 1,
     yielding a trivially symmetric state.
     """
 
     def setup(self):
-        if self.chi is None:
+        if self.characters is None:
             if self.character_id is None:
                 self._chi = np.ones(len(np.asarray(self.symm_group)))
             else:
                 self._chi = self.symm_group.character_table()[self.character_id]
         else:
             if self.character_id is None:
-                self._chi = self.chi.wrapped
+                self._chi = self.characters.wrapped
             else:
-                raise AttributeError("Must not specify both `chi` and `character_id`")
+                raise AttributeError(
+                    "Must not specify both `characters` and `character_id`"
+                )
 
     @nn.compact
     def __call__(self, x: jax.Array) -> jax.Array:

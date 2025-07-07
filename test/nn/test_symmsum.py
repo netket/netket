@@ -33,7 +33,7 @@ ones = HashableArray(np.ones(9))
     "bare_module", [pytest.param(v, id=k) for k, v in bare_modules.items()]
 )
 @pytest.mark.parametrize(
-    "character_id,chi,trivial",
+    "character_id,characters,trivial",
     [
         pytest.param(None, None, True, id="Char=None"),
         pytest.param(0, None, True, id="Id=0"),
@@ -44,12 +44,12 @@ ones = HashableArray(np.ones(9))
         ),
     ],
 )
-def test_symmexpsum(bare_module, character_id, chi, trivial):
+def test_symmexpsum(bare_module, character_id, characters, trivial):
     graph = nk.graph.Square(3)
     g = graph.translation_group()
 
     ma = nknn.blocks.SymmExpSum(
-        bare_module, symm_group=g, character_id=character_id, chi=chi
+        bare_module, symm_group=g, character_id=character_id, characters=characters
     )
 
     hi = nk.hilbert.Spin(0.5, graph.n_nodes)
