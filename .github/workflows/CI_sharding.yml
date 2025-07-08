@@ -48,6 +48,7 @@ jobs:
       - name: Pip install packages
         run: |
           uv sync --extra dev --extra extra
+          uv pip install -U --pre jaxlib -i https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/
 
       - name: run tests
         run: |

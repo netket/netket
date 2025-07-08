@@ -87,9 +87,18 @@ def test_symmexpsum(bare_module, character_id, characters, trivial):
     s2 = s1.reshape((10, 10, hi.size))
     out2 = ma.apply(pars, s2)
     assert out2.shape == (10, 10)
-    np.testing.assert_allclose(out1, out2.reshape((-1,)))
+
+    def _logspace_allclose(x, y, logrcond=-10):
+        # find elements where the amplitude is not essentially zero
+        mask = x.real - x.real.max() > logrcond
+        # check amplitude and phase of nonzeros
+        np.testing.assert_allclose(x[mask], y[mask])
+        # check amplitude of zeros with looser bound
+        np.testing.assert_allclose(x[~mask].real, y[~mask].real, atol=0.5)
+
+    _logspace_allclose(out1, out2.reshape((-1,)))
 
     s3 = s1.reshape((2, 5, 10, hi.size))
     out3 = ma.apply(pars, s3)
     assert out3.shape == (2, 5, 10)
-    np.testing.assert_allclose(out1, out3.reshape((-1,)))
+    _logspace_allclose(out1, out3.reshape((-1,)))

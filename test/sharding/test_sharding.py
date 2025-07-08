@@ -1,12 +1,12 @@
 import pytest
 
 import jax
+from jax.sharding import NamedSharding, SingleDeviceSharding, PartitionSpec as P
+from flax import serialization
+
 import numpy as np
 import netket as nk
 import netket.experimental as nkx
-
-from flax import serialization
-from jax.sharding import NamedSharding, SingleDeviceSharding
 
 
 def _setup(L, alpha=1, reset_chains=False):
@@ -28,9 +28,9 @@ def _check_correct_sharding(x, replicated=False):
         mesh = jax.sharding.get_abstract_mesh()
     if jax.device_count() > 1:
         if replicated:
-            s = NamedSharding(mesh, jax.P())
+            s = NamedSharding(mesh, P())
         else:
-            s = NamedSharding(mesh, jax.P("S"))
+            s = NamedSharding(mesh, P("S"))
     else:
         s = SingleDeviceSharding(jax.devices()[0])
     assert x.sharding.is_equivalent_to(s, x.ndim)
@@ -78,7 +78,7 @@ def test_pt():
     samples = vs.sample(chain_length=10)
 
     assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
-    sharding = NamedSharding(samples.sharding.mesh, jax.P("S"))
+    sharding = NamedSharding(samples.sharding.mesh, P("S"))
     assert samples.sharding.is_equivalent_to(sharding, 3)
 
 
@@ -249,7 +249,7 @@ def test_exactsampler(chunk_size):
     sa = nk.sampler.ExactSampler(hi, dtype=np.int8)
     vs = nk.vqs.MCState(sa, ma, n_samples=1024, chunk_size=chunk_size)
 
-    pos_sharding = NamedSharding(vs.samples.sharding.mesh, jax.P("S"))
+    pos_sharding = NamedSharding(vs.samples.sharding.mesh, P("S"))
     assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
 
     ha = nk.operator.IsingJax(hilbert=vs.hilbert, graph=g, h=1.0)
@@ -274,7 +274,7 @@ def test_autoreg():
     opt = nk.optimizer.Sgd(learning_rate=0.1)
     sr = nk.optimizer.SR(diag_shift=0.01)
     vs = nk.vqs.MCState(sa, ma, n_samples=256)
-    pos_sharding = NamedSharding(vs.samples.sharding.mesh, jax.P("S"))
+    pos_sharding = NamedSharding(vs.samples.sharding.mesh, P("S"))
     assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
     gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(n_iter=5)

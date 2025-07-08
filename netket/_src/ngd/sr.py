@@ -3,7 +3,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import NamedSharding
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import jax as nkjax
 from netket.utils.types import Array
@@ -67,7 +67,7 @@ def _compute_sr_update(
 
     if config.netket_experimental_sharding:
         updates = jax.lax.with_sharding_constraint(
-            updates, NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
+            updates, NamedSharding(jax.sharding.get_abstract_mesh(), P())
         )
 
     return updates, old_updates, info
