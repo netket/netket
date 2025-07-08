@@ -356,7 +356,7 @@ class FiniteGroup(FiniteSemiGroup):
                 # and the array now contains unit complex numbers
                 class_factors[cls] = β
                 reg_classes[i] = True
-            elif not np.allclose(np.abs(β), rtol=0, atol=1e-8):
+            elif not np.allclose(np.abs(β), 0.0, rtol=0, atol=1e-8):
                 # otherwise, the different β should average to zero
                 raise RuntimeError(
                     "Class factors close to neither unity of zero\n" + repr(β)
