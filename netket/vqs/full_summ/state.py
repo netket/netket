@@ -21,6 +21,7 @@ import numpy as np
 
 import jax
 from jax import numpy as jnp
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from flax import serialization, core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
@@ -118,9 +119,7 @@ class FullSumState(VariationalState):
         self._model_framework = None
 
         if variables is not None and config.netket_experimental_sharding:
-            par_sharding = jax.sharding.NamedSharding(
-                jax.sharding.get_abstract_mesh(), jax.P()
-            )
+            par_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         else:
             par_sharding = None
 

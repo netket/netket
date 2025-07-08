@@ -103,13 +103,18 @@ version-file = "netket/_version.py"
 
 [tool.uv]
 dev-dependencies = [
-    "netket[dev,docs]",
+    "netket[pyscf,extra,dev,docs]",
     "ipykernel>=6.20",
     "pyscf>=2.9.0",
 ]
 
 [tool.uv.sources]
 jax = { git = "https://github.com/jax-ml/jax" }
+
+[[tool.uv.index]]
+name = "jax-nightly"
+url  = "https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/"
+
 
 # Development tools
 

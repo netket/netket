@@ -84,7 +84,7 @@ def distribute_to_devices_along_axis(
         ] * inp_data.ndim
         shape[axis] = "S"
         mesh = jax.sharding.get_abstract_mesh()
-        sharding = NamedSharding(mesh, jax.P(*shape))
+        sharding = NamedSharding(mesh, P(*shape))
         out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
 
         if pad:
@@ -119,7 +119,7 @@ def shard_along_axis(x, axis: int):
         mesh = jax.sharding.get_abstract_mesh()
         x = jax.lax.with_sharding_constraint(
             x,
-            NamedSharding(mesh, jax.P(*shard_shape)),
+            NamedSharding(mesh, P(*shard_shape)),
         )
     return x
 
@@ -168,7 +168,7 @@ def gather(x):
     elif isinstance(x.sharding, NamedSharding):
         # x.sharding.device_set has arbitrary order
         # Hardcode all devices until I figure out a way to deduce the order from x
-        out_shardings = NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
+        out_shardings = NamedSharding(jax.sharding.get_abstract_mesh(), P())
     else:
         raise NotImplementedError(
             "Gather is not compatible with {x.sharding}. Please open a feature request."

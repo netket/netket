@@ -26,6 +26,8 @@ import os
 os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 
 import jax
+from jax.sharding import PartitionSpec as P
+
 import netket as nk
 import numpy as np
 import optax
@@ -117,7 +119,7 @@ except Exception as e:
 # that you set the sharding to (1,1,1), which means that all data is available on all ranks.
 samples_replicated = jax.lax.with_sharding_constraint(
     vs.samples,
-    shardings=jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P()),
+    shardings=jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P()),
 )
 
 print(

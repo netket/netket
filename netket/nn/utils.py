@@ -19,6 +19,7 @@ from typing import cast
 import jax
 from jax import numpy as jnp
 from jax.core import concrete_or_error
+from jax.sharding import NamedSharding, PartitionSpec as P
 import numpy as np
 from math import prod
 
@@ -148,7 +149,7 @@ def _to_array_rank(
 
     # gather/replicate
     if allgather and config.netket_experimental_sharding:  # type: ignore
-        sharding = jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
+        sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         psi = jax.lax.with_sharding_constraint(psi, sharding)
 
     # remove fake states

@@ -18,6 +18,7 @@ from functools import partial
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import config
 from netket.hilbert import DiscreteHilbert
@@ -132,9 +133,7 @@ class ExactSampler(Sampler):
         if config.netket_experimental_sharding:
             samples = jax.lax.with_sharding_constraint(
                 samples,
-                jax.sharding.NamedSharding(
-                    jax.sharding.get_abstract_mesh(), jax.P("S")
-                ),
+                NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
             )
 
         if return_log_probabilities:
@@ -142,9 +141,7 @@ class ExactSampler(Sampler):
             if config.netket_experimental_sharding:
                 log_probabilities = jax.lax.with_sharding_constraint(
                     log_probabilities,
-                    jax.sharding.NamedSharding(
-                        jax.sharding.get_abstract_mesh(), jax.P("S")
-                    ),
+                    NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
                 )
             return (samples, log_probabilities), state.replace(rng=new_rng)
         else:
