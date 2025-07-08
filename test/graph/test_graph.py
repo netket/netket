@@ -142,6 +142,8 @@ little_group_size = [4, 2] + [6] * 3 + [1] + [8] * 5 + [16]
 
 little_group_irreps = [4, 2] + [3] * 3 + [1] + [5] * 5 + [4]
 
+nonsymmorphic_ix = [10]
+
 
 def test_next_neighbors():
     graph1 = nk.graph.Honeycomb(extent=[3, 3], max_neighbor_order=2)
@@ -303,6 +305,18 @@ def test_space_group_pt(i, name):
     tgp = group.PermutationGroup(tg.elems, degree=tg.degree)
     np.testing.assert_equal(tg.inverse, tgp.inverse)
     np.testing.assert_equal(tg.product_table, tgp.product_table)
+
+
+@pytest.mark.parametrize(
+    "i,name", [(i, symmetric_graph_names[i]) for i in nonsymmorphic_ix]
+)
+def test_schur_multiplier(i, name):
+    graph = symmetric_graphs[i]
+    sg = graph.space_group()
+    group = sg.little_group(kvec[i])
+    multiplier = sg.little_group_multipliers(kvec[i])
+    assert multiplier is not None
+    assert group.check_multiplier(multiplier)
 
 
 def coord2index(xs, length):
