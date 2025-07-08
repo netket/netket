@@ -572,8 +572,9 @@ class SpaceGroup(PermutationGroup):
         # The simplest is to do the conjugation with all of them, which
         # counts every arm |little group| times, which we divide out
         # at the end.
+        k = _ensure_iterable(k)
         chi = self.one_arm_irreps(k)[:, self._point_group_conjugacy_table]
-        return chi.sum(axis=-1) / len(self._little_group_index(k))
+        return prune_zeros(chi.sum(axis=-1) / len(self._little_group_index(k)))
 
     def one_arm_irreps(self, *k: Array) -> Array:
         """
@@ -590,7 +591,6 @@ class SpaceGroup(PermutationGroup):
             `self.little_group(k).character_table[i].
             `CT[i,j]` gives the character of `self.space_group[j]` in the same.
         """
-        # Convert k to reciprocal lattice vectors
         k = _ensure_iterable(k)
         # Little-group irrep factors
         # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
