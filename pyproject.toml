@@ -105,7 +105,6 @@ dev-dependencies = [
 
 [tool.uv.sources]
 jax = { git = "https://github.com/jax-ml/jax" }
-jaxlib = { index = "jax-nightly" }
 
 [[tool.uv.index]]
 name = "jax-nightly"
