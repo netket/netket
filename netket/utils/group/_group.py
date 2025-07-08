@@ -241,7 +241,7 @@ class FiniteGroup(FiniteSemiGroup):
         return np.allclose(left, right, rtol=rtol, atol=atol)
 
     def _character_from_class_matrix(
-        self, class_matrix: Array, which_class: Array | None
+        self, class_matrix: Array, which_class: Array | None = None
     ) -> np.ndarray:
         r"""Given a linear combination of class matrices,
         diagonalise it and normalise the eigenvectors as characters:
