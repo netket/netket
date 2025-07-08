@@ -5,11 +5,17 @@
 
 ## NetKet 3.19 (In development)
 
+In PR [#2070](https://github.com/netket/netket/pull/2070) and [#2072](https://github.com/netket/netket/pull/2072) the explicit use of `shard_map` was removed from some places throught the codebase, which leads to a simpler and more flexible code when using operators inside of complex codebases. 
+This rests upon the shoulders of improvements within jax, which are only available starting so make sure to use the most recent jax version possible.
+
 ## Breaking Changes
 * MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
+* Python 3.11 is now required and will be the minimum version required until summer 2026.
 
 ## New features
 * A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
+* Jax 0.6 and 0.7 are now supported [#2072](https://github.com/netket/netket/pull/2072).
+* Removed the use of `sharding_decorator` and `shard_map` from a few places, making those implementations more flexible and less prone to issues when mixing it in complicated code [#2070](https://github.com/netket/netket/pull/2070).
 
 ## Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
