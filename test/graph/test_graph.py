@@ -88,6 +88,7 @@ symmetric_graph_names = [
     "triangular",
     "honeycomb",
     "kagome",
+    "kitaev_honeycomb",
     "cubic",
     "bcc",
     "fcc",
@@ -142,7 +143,7 @@ little_group_size = [4, 2] + [6] * 3 + [1] + [8] * 5 + [16]
 
 little_group_irreps = [4, 2] + [3] * 3 + [1] + [5] * 5 + [4]
 
-nonsymmorphic_ix = [10]
+nonsymmorphic_ix = [11]
 
 
 def test_next_neighbors():
