@@ -204,7 +204,7 @@ class FiniteGroup(FiniteSemiGroup):
 
         return classes, representatives, inverse
 
-    def check_multiplier(self, multiplier: Array, rtol=1e-10, atol=0) -> bool:
+    def check_multiplier(self, multiplier: Array, rtol=1e-8, atol=0) -> bool:
         r"""
         Checks the associativity constraint of Schur multipliers
 
@@ -320,12 +320,12 @@ class FiniteGroup(FiniteSemiGroup):
         # deal with trivial multipliers
         if multiplier is None:
             return self.character_table_by_class
-        elif np.allclose(multiplier, 1.0, rtol=1e-10):
+        elif np.allclose(multiplier, 1.0, rtol=0, atol=1e-8):
             # still trivial but should conform to projective irrep return format
             return self.character_table_by_class, np.ones(len(self))
 
         # check unitarity
-        if not np.allclose(np.abs(multiplier), 1.0, rtol=1e-10):
+        if not np.allclose(np.abs(multiplier), 1.0, rtol=0, atol=1e-8):
             raise ValueError("Schur multiplier must be unitary")
 
         # compute class factors
@@ -351,12 +351,12 @@ class FiniteGroup(FiniteSemiGroup):
             # average β across each set
             β = np.average(β[h_sets], axis=1)
 
-            if np.allclose(np.abs(β), 1.0, rtol=1e-10):
+            if np.allclose(np.abs(β), 1.0, rtol=0, atol=1e-8):
                 # if the class is α-regular, β for each averaged entry was equal
                 # and the array now contains unit complex numbers
                 class_factors[cls] = β
                 reg_classes[i] = True
-            elif not np.allclose(np.abs(β), 0.0, atol=1e-10):
+            elif not np.allclose(np.abs(β), rtol=0, atol=1e-8):
                 # otherwise, the different β should average to zero
                 raise RuntimeError(
                     "Class factors close to neither unity of zero\n" + repr(β)
@@ -384,11 +384,9 @@ class FiniteGroup(FiniteSemiGroup):
         class_matrix = (
             multiplier[np.arange(len(self))[:, None], self.product_table]
             * class_factors
-            / class_factors[:, None]
+            # set non-regular elements to zero instead of inf/nan
+            / np.where(class_factors == 0.0, np.inf, class_factors)[:, None]
         )
-        # wipe components corresponding to non-α-regular elements
-        class_matrix[np.isclose(class_factors, 0.0)] = 0.0
-        class_matrix[:, np.isclose(class_factors, 0.0)] = 0.0
 
         # multiply with random weights for α-regular class representatives
         # TODO should we have a term for every α-regular element?
@@ -465,7 +463,7 @@ class FiniteGroup(FiniteSemiGroup):
         will be wrong.
         """
         _, _, class_idx = self.conjugacy_classes
-        if multiplier is None or np.allclose(multiplier, 1.0, rtol=1e-10):
+        if multiplier is None or np.allclose(multiplier, 1.0, rtol=0, atol=1e-8):
             # linear representations
             CT = self.character_table_by_class
             return CT[:, class_idx]
@@ -503,7 +501,7 @@ class FiniteGroup(FiniteSemiGroup):
             representatives = [
                 f"{class_sizes[cls]}x{self[rep]}" for cls, rep in enumerate(idx_repr)
             ]
-            if multiplier is None or np.allclose(multiplier, 1.0, rtol=1e-10):
+            if multiplier is None or np.allclose(multiplier, 1.0, rtol=0, atol=1e-8):
                 # linear representations
                 CT = self.character_table_by_class
             else:

@@ -17,7 +17,6 @@
 
 import numpy as np
 from functools import reduce
-from math import pi
 from collections.abc import Iterable, Sequence
 from warnings import warn
 
