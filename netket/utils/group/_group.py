@@ -221,7 +221,18 @@ class FiniteGroup(FiniteSemiGroup):
         Returns:
             whether `multiplier` is a valid Schur multiplier
             up to the given tolerance
+
+        Raises:
+            ValueError if the shape of `multiplier` does not match
+            the size of the group
         """
+        if multiplier.shape != (len(self), len(self)):
+            raise ValueError(
+                "Schur multipliers must form a square array of the same size\n"
+                f"as the group ({len(self)}, {len(self)}), "
+                f"got {multiplier.shape} instead!"
+            )
+
         PT = self.product_table[self.inverse]
         # \alpha(x, y) \alpha(xy, z)
         left = np.expand_dims(multiplier, 2) * multiplier[PT, :]
@@ -356,14 +367,17 @@ class FiniteGroup(FiniteSemiGroup):
         # where
         #   M_{ABC} = \sum_{a \in A, b \in B, ab \in C} α(a,b) β(ab)/β(a)β(b)
         #
-        # From the oblique times table, we can easily extract the combination
+        # From the oblique times table, we can easily extract the array
         #   (M'_B)_{AC} = \sum_{a \in A, ab_0 \in C} α(a, b_0) β(ab_0)/β(a)
         #               = M_{ABC} / |B|
-        # aggregating entries with `product_table == b_0` over conjugacy classes.
+        # by building an array of α(a, b_0) β(ab_0)/β(a), filtering for
+        # `product_table == b_0`, and aggregating over conjugacy classes.
         #
-        # From this, we have the eigenvalue equation
-        #   (M_B)_{AC} := (M'_B)_{AC} / |A|
-        #   M_B \vec\chi = \chi(b_0)/d_\chi \vec\chi.
+        # Defining
+        #   (M_B)_{AC} := (M'_B)_{AC} / |A|,
+        # we finally have the eigenvalue equation
+        #   M_B \vec\chi = \chi(b_0)/d_\chi \vec\chi,
+        # where \vec\chi is the vector of characters \chi(c_0).
 
         # Construct a random linear combination of the M_B
         # array of α(a,b) β(ab)/β(a)
@@ -400,45 +414,29 @@ class FiniteGroup(FiniteSemiGroup):
         """
         classes, _, _ = self.conjugacy_classes
         class_sizes = classes.sum(axis=1)
-        # Construct a random linear combination of the class matrices c_S
-        #    (c_S)_{RT} = #{r,s: r \in R, s \in S: rs = t}
-        # for conjugacy classes R,S,T, and a fixed t \in T.
+        # Burnside's algorithm hinges on the equation
+        #   \sum_C M_{ABC} \chi_C = |A||B| \chi_A \chi_B / d_\chi,
+        # where
+        #   M_{ABC} = #{a \in A, b \in B: ab \in C}.
         #
-        # From our oblique times table it is easier to calculate
-        #    (d_S)_{RT} = #{r,t: r \in R, t \in T: rs = t}
-        # for a fixed s \in S. This is just `product_table == s`, aggregated
-        # over conjugacy classes. c_S and d_S are related by
-        #    c_{RST} = |S| d_{RST} / |T|;
-        # since we only want a random linear combination, we forget about the
-        # constant |S| and only divide each column through with the appropriate |T|
+        # From the oblique times table, we can easily extract the array
+        #   (M'_B)_{AC} = #{a \in A: ab_0 \in C}
+        # by aggregating `product_table == b_0` over conjugacy classes.
+        #
+        # Defining
+        #   (M_B)_{AC} := (M'_B)_{AC} / |A|,
+        # we finally have the eigenvalue equation
+        #   M_B \vec\chi = \chi_B / d_\chi \vec\chi,
+        # where \vec\chi is the vector of characters \chi_C.
+
+        # Construct a random linear combination of the M_B
+        # i.e. weight each `product_table==b` with some random weight w(b)
         class_matrix = (
             classes @ random(len(self), seed=0)[self.product_table] @ classes.T
         )
-        class_matrix /= class_sizes
+        class_matrix /= class_sizes[:, None]
 
-        # The vectors |R|\chi(r) are (column) eigenvectors of all class matrices
-        # the random linear combination ensures (with probability 1) that
-        # none of them are degenerate
-        _, table = np.linalg.eig(class_matrix)
-        table = table.T / class_sizes
-
-        # Normalise the eigenvectors by orthogonality: \sum_g |\chi(g)|^2 = |G|
-        norm = np.sum(np.abs(table) ** 2 * class_sizes, axis=1, keepdims=True) ** 0.5
-        table /= norm
-        table /= _cplx_sign(table[:, 0])[:, np.newaxis]  # ensure correct sign
-        table *= len(self) ** 0.5
-
-        # Sort lexicographically, ascending by first column, descending by others
-        sorting_table = np.column_stack((table.real, table.imag))
-        sorting_table[:, 1:] *= -1
-        sorting_table = comparable(sorting_table)
-        _, indices = np.unique(sorting_table, axis=0, return_index=True)
-        table = table[indices]
-
-        # Get rid of annoying nearly-zero entries
-        table = prune_zeros(table)
-
-        return table
+        return self._character_from_class_matrix(class_matrix)
 
     def character_table(self) -> np.ndarray:
         r"""
