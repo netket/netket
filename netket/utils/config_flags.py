@@ -14,7 +14,7 @@
 
 import os
 from textwrap import dedent
-from typing import Any
+from functools import partial
 
 
 def bool_env(varname: str, default: bool) -> bool:
@@ -271,6 +271,20 @@ config.define(
     runtime=False,
     callback=_setup_experimental_sharding_cpu,
 )
+config.define(
+    "NETKET_EXPLICIT_SHARDING_CPU",
+    int,
+    default=0,
+    help=dedent(
+        """
+        Set to >=1 to force JAX to use multiple threads as separate devices on cpu.
+        Sets the XLA_FLAGS='--xla_force_host_platform_device_count=#' environment variable.
+        Disabled by default.
+        """
+    ),
+    runtime=False,
+    callback=_setup_experimental_sharding_cpu,
+)
 
 
 def _update_x64(val):
@@ -375,6 +389,14 @@ config.define(
     callback=_setup_experimental_sharding,
 )
 
+config.define(
+    "NETKET_EXPLICIT_SHARDING",
+    bool,
+    default=int_env("NETKET_EXPLICIT_SHARDING_CPU", 0) > 0,
+    help=dedent("..."),
+    runtime=False,
+    callback=partial(_setup_experimental_sharding, explicit=True),
+)
 
 config.define(
     "NETKET_RANDOM_STATE_FALLBACK_WARNING",
