@@ -281,7 +281,7 @@ class SpaceGroup(PermutationGroup):
 
     Group elements are listed in the order they appear in `self._point_group`.
     Computed from `_point_group` upon construction, must not be changed after."""
-    full_translation_group: PermutationGroup
+    full_translation_group: TranslationGroup
 
     def __pre_init__(
         self, lattice: Lattice, point_group: PointGroup
@@ -621,17 +621,10 @@ class SpaceGroup(PermutationGroup):
             -1j * (self._point_group.translations() @ k)
         )
         # Translational factors
-        trans_factors = []
-        for axis in range(self.lattice.ndim):
-            n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1
-            factors = np.exp(-1j * k[axis] * np.arange(n_trans))
-            shape = [1] * axis + [n_trans] + [1] * (self.lattice.ndim - 1 - axis)
-            trans_factors.append(factors.reshape(shape))
-        trans_factors = reduce(np.multiply, trans_factors).ravel()
+        trans_factors = self.full_translation_group.momentum_irrep(k)
 
         # Multiply the factors together
         # Translations are more major than point group operations
-        result = np.einsum("ig, t -> itg", point_group_factors, trans_factors).reshape(
-            point_group_factors.shape[0], -1
-        )
+        result = np.einsum("ig, t -> itg", point_group_factors, trans_factors)
+        result = result.reshape(point_group_factors.shape[0], -1)
         return prune_zeros(result)
