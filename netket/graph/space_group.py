@@ -239,13 +239,19 @@ class TranslationGroup(PermutationGroup):
         # switch to reciprocal lattice coordinates
         k = self.lattice.to_reciprocal_lattice(_ensure_iterable(k)).squeeze()
 
-        trans_factors = []
-        for axis in range(self.lattice.ndim):
-            n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1
-            factors = np.exp(-1j * k[axis] * np.arange(n_trans))
-            shape = [1] * axis + [n_trans] + [1] * (self.lattice.ndim - 1 - axis)
-            trans_factors.append(factors.reshape(shape))
-        trans_factors = reduce(np.multiply, trans_factors).ravel()
+        # prune axes with no nontrivial translations for performance
+        shape = np.asarray(self.group_shape)
+        nontrivial_axes = shape > 1
+        k = k[nontrivial_axes]
+        shape = shape[nontrivial_axes]
+
+        # phase factors for translations along each axis
+        axis_factors = [
+            np.exp(-2j * np.pi * ki * np.arange(ni) / ni) for ki, ni in zip(k, shape)
+        ]
+        axis_factors = np.ix_(*axis_factors)
+
+        return reduce(np.multiply, axis_factors).ravel()
 
 
 @struct.dataclass
