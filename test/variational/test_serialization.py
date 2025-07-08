@@ -27,8 +27,7 @@ def test_init_with_variables_deserialization():
     ma = nk.models.RBM()
     variables = ma.init(jax.random.key(1), hi.all_states())
 
-    variables_np = jax.tree.map(np.asarray, variables)
-    vs = nk.vqs.MCState(sa, ma, n_samples=64, variables=variables_np)
+    vs = nk.vqs.MCState(sa, ma, n_samples=64, variables=variables)
 
     state_bytes = serialization.to_bytes(vs)
 
