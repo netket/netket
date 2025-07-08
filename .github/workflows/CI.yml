@@ -44,12 +44,11 @@ jobs:
 
       - name: Install packages
         run: |
-          uv sync
+          uv sync --prerelease=allow
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}
         run: |
-          export NETKET_EXPERIMENTAL=1
           uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 test
 
       - name: NetKet docstring tests

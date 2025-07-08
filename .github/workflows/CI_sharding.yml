@@ -47,7 +47,7 @@ jobs:
 
       - name: Pip install packages
         run: |
-          uv sync
+          uv sync --prerelease=allow
 
       - name: run tests
         run: |
