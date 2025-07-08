@@ -50,6 +50,7 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_nam
         """
     )
 
+
 if not module_version("optax") >= (0, 2, 2):  # pragma: no cover
     cur_version = version_string("optax")
     extra = """Reason: Optax is NetKet's provider of optimisers. Versions before 0.1.1 did not

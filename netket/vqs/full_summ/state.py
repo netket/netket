@@ -119,9 +119,7 @@ class FullSumState(VariationalState):
         self._model_framework = None
 
         if variables is not None and config.netket_experimental_sharding:
-            par_sharding = NamedSharding(
-                jax.sharding.get_abstract_mesh(), P()
-            )
+            par_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         else:
             par_sharding = None
 

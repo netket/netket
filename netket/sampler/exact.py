@@ -133,9 +133,7 @@ class ExactSampler(Sampler):
         if config.netket_experimental_sharding:
             samples = jax.lax.with_sharding_constraint(
                 samples,
-                NamedSharding(
-                    jax.sharding.get_abstract_mesh(), P("S")
-                ),
+                NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
             )
 
         if return_log_probabilities:
@@ -143,9 +141,7 @@ class ExactSampler(Sampler):
             if config.netket_experimental_sharding:
                 log_probabilities = jax.lax.with_sharding_constraint(
                     log_probabilities,
-                    NamedSharding(
-                        jax.sharding.get_abstract_mesh(), P("S")
-                    ),
+                    NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
                 )
             return (samples, log_probabilities), state.replace(rng=new_rng)
         else:

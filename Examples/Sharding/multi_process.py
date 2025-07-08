@@ -27,7 +27,7 @@ os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 
 import jax
 from jax.sharding import PartitionSpec as P
-    
+
 import netket as nk
 import numpy as np
 import optax

@@ -213,9 +213,7 @@ class MCState(VariationalState):
         super().__init__(sampler.hilbert)
 
         if variables is not None and config.netket_experimental_sharding:
-            par_sharding = NamedSharding(
-                jax.sharding.get_abstract_mesh(), P()
-            )
+            par_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         else:
             par_sharding = None
 

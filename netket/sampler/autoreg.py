@@ -161,9 +161,7 @@ class ARDirectSampler(Sampler):
         if config.netket_experimental_sharding:
             σ = jax.lax.with_sharding_constraint(
                 σ,
-                NamedSharding(
-                    jax.sharding.get_abstract_mesh(), P("S")
-                ),
+                NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
             )
 
         # Initialize `cache` before generating a batch of samples,

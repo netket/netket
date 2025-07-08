@@ -201,9 +201,7 @@ class AbstractVariationalDriver(abc.ABC):
             if config.netket_experimental_sharding:
                 self._optimizer_state = jax.lax.with_sharding_constraint(
                     self._optimizer_state,
-                    NamedSharding(
-                        jax.sharding.get_abstract_mesh(), P()
-                    ),
+                    NamedSharding(jax.sharding.get_abstract_mesh(), P()),
                 )
 
     @property
