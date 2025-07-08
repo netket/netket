@@ -386,15 +386,21 @@ class FiniteGroup(FiniteSemiGroup):
             * class_factors
             / class_factors[:, None]
         )
+        # wipe components corresponding to non-α-regular elements
+        class_matrix[np.isclose(class_factors, 0.0)] = 0.0
+        class_matrix[:, np.isclose(class_factors, 0.0)] = 0.0
+
         # multiply with random weights for α-regular class representatives
         # TODO should we have a term for every α-regular element?
         weight_ = random(reg_classes.sum(), seed=0, cplx=np.iscomplexobj(multiplier))
         weight = np.zeros(len(self), dtype=weight_.dtype)
         weight[class_reps[reg_classes]] = weight_
         class_matrix *= weight[self.product_table]
-        # aggregate by conjugacy class, restrict to α-regular classes, divide by |A|
+
+        # aggregate by α-regular conjugacy class, divide by |A|
+        classes = classes[reg_classes]
         class_matrix = classes @ class_matrix @ classes.T
-        class_matrix /= classes.sum(axis=1)[reg_classes, None]
+        class_matrix /= classes.sum(axis=1)[:, None]
 
         return (
             self._character_from_class_matrix(class_matrix, reg_classes),
