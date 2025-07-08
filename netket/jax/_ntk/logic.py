@@ -29,7 +29,7 @@ For details, please see "`Fast Finite Width Neural Tangent Kernel
 """
 
 import operator
-from typing import Any, Optional, Protocol, TypeVar, Union
+from typing import Any, Protocol, TypeVar, Union
 from collections.abc import Callable, Iterable
 
 from functools import partial
@@ -54,7 +54,7 @@ from . import utils
 safe_zip = partial(zip, strict=True)
 
 PyTree = Any
-_VMapAxis = Optional[PyTree]
+_VMapAxis = PyTree | None
 VMapAxisTriple = tuple[_VMapAxis, _VMapAxis, dict[str, _VMapAxis]]
 VMapAxes = Union[_VMapAxis, VMapAxisTriple]
 AnalyticKernelFn = Any
@@ -111,7 +111,7 @@ InternalLayerMasked = tuple[InitFn, ApplyFn, LayerKernelFn, MaskFn]
 Layer = tuple[InitFn, ApplyFn, AnalyticKernelFn]
 Kernels = Union[list[Kernel], tuple[Kernel, ...]]
 "Kernel inputs/outputs of `FanOut`, `FanInSum`, etc."
-_VMapAxis = Optional[PyTree]
+_VMapAxis = PyTree | None
 "A `PyTree` of integers"
 VMapAxisTriple = tuple[_VMapAxis, _VMapAxis, dict[str, _VMapAxis]]
 VMapAxes = Union[_VMapAxis, VMapAxisTriple]
