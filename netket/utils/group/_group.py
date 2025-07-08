@@ -438,41 +438,72 @@ class FiniteGroup(FiniteSemiGroup):
 
         return self._character_from_class_matrix(class_matrix)
 
-    def character_table(self) -> np.ndarray:
+    def character_table(self, multiplier: Array | None = None) -> np.ndarray:
         r"""
         Calculates the character table using Burnside's algorithm.
 
-        Each row of the output lists the characters of all group elements
-        for one irrep, i.e. :code:`self.character_table()[i,g]` gives
-        :math:`\chi_i(g)`.
+        Arguments:
+            multiplier: (optional) Schur multiplier
 
-        Assumes that :code:`Identity() == self[0]`, if not, the sign
-        of some characters may be flipped. The irreps are sorted by dimension.
+        Returns:
+            a matrix of all linear irrep characters (if `multiplier is None`)
+            or projective irrep characters with the given `multiplier`,
+            sorted by dimension.
+
+            Each row of lists the characters of all group elements
+            for one irrep, i.e. :code:`self.character_table()[i,g]`
+            gives :math:`\chi_i(g)`.
+
+        It is assumed that :code:`Identity() == self[0]`. If not, the sign
+        of some characters may be flipped and the sorting by dimension
+        will be wrong.
         """
-        _, _, inverse = self.conjugacy_classes
-        CT = self.character_table_by_class
-        return CT[:, inverse]
+        _, _, class_idx = self.conjugacy_classes
+        if multiplier is None or np.allclose(multiplier, 1.0, rtol=1e-10):
+            # linear representations
+            CT = self.character_table_by_class
+            return CT[:, class_idx]
+        else:
+            # projective representations
+            CT, class_factor = self.projective_characters_by_class(multiplier)
+            return CT[:, class_idx] * class_factor
 
-    def character_table_readable(self) -> tuple[list[str], Array]:
+    def character_table_readable(
+        self, multiplier: Array | None = None, full: bool = False
+    ) -> tuple[list[str], Array]:
         r"""
         Returns a conventional rendering of the character table.
+
+        Arguments:
+            multiplier: (optional) Schur multiplier
+            full: whether the character table for all group elements (True)
+                or one representative per conjugacy class (False, default)
 
         Returns:
 
             A tuple containing a list of strings and an array
 
             - :code:`classes`: a text description of a representative of
-              each conjugacy class as a list
+              each conjugacy class (or each group element) as a list
             - :code:`characters`: a matrix, each row of which lists the
               characters of one irrep
         """
-        # TODO put more effort into nice rendering?
-        classes, idx_repr, _ = self.conjugacy_classes
-        class_sizes = classes.sum(axis=1)
-        representatives = [
-            f"{class_sizes[cls]}x{self[rep]}" for cls, rep in enumerate(idx_repr)
-        ]
-        return representatives, self.character_table_by_class
+        if full:
+            names = [str(g) for g in self]
+            return names, self.character_table(multiplier)
+        else:
+            classes, idx_repr, _ = self.conjugacy_classes
+            class_sizes = classes.sum(axis=1)
+            representatives = [
+                f"{class_sizes[cls]}x{self[rep]}" for cls, rep in enumerate(idx_repr)
+            ]
+            if multiplier is None or np.allclose(multiplier, 1.0, rtol=1e-10):
+                # linear representations
+                CT = self.character_table_by_class
+            else:
+                # projective representations
+                CT, _ = self.projective_characters_by_class(multiplier)
+            return representatives, CT
 
     @struct.property_cached
     def _irrep_matrices(self) -> list[Array]:
