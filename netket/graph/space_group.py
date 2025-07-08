@@ -206,7 +206,7 @@ class TranslationGroup(PermutationGroup):
         and `self.lattice.pbc[i]`, otherwise 1.
         """
         axes_bool = np.zeros(self.lattice.ndim, dtype=bool)
-        axes_bool[self.axes] = True
+        axes_bool[list(self.axes)] = True
         in_group = np.logical_and(self.lattice.pbc, axes_bool)
         shape = np.where(in_group, self.lattice.extent, 1)
         return shape
@@ -424,6 +424,15 @@ class SpaceGroup(PermutationGroup):
 
         return product_table.reshape(n_symm, n_symm)
 
+    @struct.property_cached
+    def _point_group_conjugacy_table(self) -> np.ndarray:
+        """Part of the conjugacy table :math:`h^{-1}gh` where h are
+        point-group symmetries."""
+        n_PG = len(self.point_group)
+        col_index = np.arange(n_PG)[np.newaxis, :]
+        # exploits that h^{-1}gh = (g^{-1} h)^{-1} h
+        return self.product_table[self.product_table[:, :n_PG], col_index]
+
     def _little_group_index(self, k: Array) -> Array:
         """
         Returns the indices of the elements of the little group corresponding to
@@ -557,46 +566,14 @@ class SpaceGroup(PermutationGroup):
             `self.little_group(k).character_table[i].
             `CT[i,j]` gives the character of `self.space_group[j]` in the same.
         """
-        k = _ensure_iterable(k)
-        # Wave vectors
-        big_star_Cart = np.tensordot(self._point_group.matrices(), k, axes=1)
-        big_star = self.lattice.to_reciprocal_lattice(big_star_Cart) * (
-            2 * pi / self.lattice.extent
-        )
-        # Little-group-irrep factors
-        # Conjugacy_table[g,p] lists p^{-1}gp, so point_group_factors[i,:,p]
-        #     of irrep #i for the little group of p(k) is the equivalent
-        # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
-        point_group_factors = self._little_group_irreps(k, divide=True)[
-            :, self._point_group.conjugacy_table
-        ] * np.exp(
-            -1j
-            * np.tensordot(
-                self._point_group.translations(), big_star_Cart, axes=(-1, -1)
-            )
-        )
-        # Translational factors
-        trans_factors = []
-        for axis in range(self.lattice.ndim):
-            n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1
-            factors = np.exp(-1j * np.outer(np.arange(n_trans), big_star[:, axis]))
-            shape = (
-                [1] * axis
-                + [n_trans]
-                + [1] * (self.lattice.ndim - 1 - axis)
-                + [len(self._point_group)]
-            )
-            trans_factors.append(factors.reshape(shape))
-        trans_factors = reduce(np.multiply, trans_factors).reshape(
-            -1, len(self._point_group)
-        )
-
-        # Multiply the factors together and sum over the "p" PGSymmetry axis
-        # Translations are more major than point group operations
-        result = np.einsum(
-            "igp, tp -> itg", point_group_factors, trans_factors
-        ).reshape(point_group_factors.shape[0], -1)
-        return prune_zeros(result)
+        # One-arm irreps for the other wave vectors in the star can be
+        # obtained from the arm `k` by conjugating the character with some
+        # point-group operation.
+        # The simplest is to do the conjugation with all of them, which
+        # counts every arm |little group| times, which we divide out
+        # at the end.
+        chi = self.one_arm_irreps(k)[:, self._point_group_conjugacy_table]
+        return chi.sum(axis=-1) / len(self._little_group_index(k))
 
     def one_arm_irreps(self, *k: Array) -> Array:
         """
