@@ -196,10 +196,20 @@ class TranslationGroup(PermutationGroup):
     def __hash__(self):
         return super().__hash__()
 
-    @property
+    @struct.property_cached
     def group_shape(self) -> Array:
-        shape = [l if p else 1 for (l, p) in zip(self.lattice.extent, self.lattice.pbc)]
-        return np.asarray(shape)
+        """
+        Tuple of the number of translations represented by the group along
+        each lattice direction.
+
+        `self.group_shape[i]` is `self.lattice.extent[i]` if both `i in self.axes`
+        and `self.lattice.pbc[i]`, otherwise 1.
+        """
+        axes_bool = np.zeros(self.lattice.ndim, dtype=bool)
+        axes_bool[self.axes] = True
+        in_group = np.logical_and(self.lattice.pbc, axes_bool)
+        shape = np.where(in_group, self.lattice.extent, 1)
+        return shape
 
     @struct.property_cached
     def inverse(self) -> Array:
@@ -222,6 +232,20 @@ class TranslationGroup(PermutationGroup):
         pt = pt.transpose(list(range(0, len(shape), 2)) + list(range(1, len(shape), 2)))
 
         return pt.reshape(len(self), len(self))
+
+    def momentum_irrep(self, *k: Array) -> np.ndarray:
+        """Returns the irrep characters (phase factors) corresponding to
+        crystal momentum `k`."""
+        # switch to reciprocal lattice coordinates
+        k = self.lattice.to_reciprocal_lattice(_ensure_iterable(k)).squeeze()
+
+        trans_factors = []
+        for axis in range(self.lattice.ndim):
+            n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1
+            factors = np.exp(-1j * k[axis] * np.arange(n_trans))
+            shape = [1] * axis + [n_trans] + [1] * (self.lattice.ndim - 1 - axis)
+            trans_factors.append(factors.reshape(shape))
+        trans_factors = reduce(np.multiply, trans_factors).ravel()
 
 
 @struct.dataclass
