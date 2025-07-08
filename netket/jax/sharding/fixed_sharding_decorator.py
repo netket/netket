@@ -23,7 +23,7 @@ import contextlib
 
 import jax
 from jax.tree_util import Partial
-from jax.sharding import PartitionSpec as P
+from jax.sharding import PartitionSpec as P, Mesh, NamedSharding
 from jax.experimental.shard_map import shard_map
 
 from netket.utils import config
