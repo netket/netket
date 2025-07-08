@@ -45,7 +45,7 @@ jobs:
       - name: Install packages
         run: |
           uv sync
-          uv pip install --system -U --pre jaxlib -i https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/
+          uv pip install -U --pre jaxlib -i https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/
 
 
       - name: Netket tests
