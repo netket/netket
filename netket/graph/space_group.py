@@ -19,6 +19,7 @@ import numpy as np
 from functools import reduce
 from math import pi
 from collections.abc import Iterable, Sequence
+from warnings import warn
 
 from netket.utils import struct, deprecated_new_name, deprecated
 from netket.utils.types import Array
@@ -426,18 +427,90 @@ class SpaceGroup(PermutationGroup):
             unit_cell=self.lattice.basis_vectors,
         )
 
-    def _little_group_irreps(self, k: Array, divide: bool = False) -> Array:
+    def little_group_multipliers(self, *k: Array) -> np.ndarray | None:
+        r"""Computes the Schur multiplier associated with the little group
+        given the translations associated with its elements.
+
+        The mutlipliers are given by (Bradney & Cracknell, eqs. 3.7.11-14)
+
+        .. math::
+
+            \mu(S_i, S_j) = exp(-i g_i \cdot w_j)
+
+            g_i  = S_i^{-1} k - k
+
+        and :math:`w_j` is the translation associated with symmetry `S_i`
+
+        Arguments:
+            k: the wave vector in Cartesian axes
+
+        Returns:
+            a square array of the :math:`\mu(S_i, S_j)`
+        """
+        k = _ensure_iterable(k)
+        ix = self._little_group_index(k)
+
+        # g_i  = S_i^{-1} k - k
+        matrices = self._point_group.matrices()[ix]
+        matrices = matrices.transpose(0, 2, 1)  # need S_i^{-1}
+        g = matrices @ k - k
+
+        w = self._point_group.translations()[ix]
+
+        multiplier = np.exp(-1j * (g @ w.T))
+
+        if np.allclose(multiplier, 1.0, rtol=1e-8):
+            return None
+        else:
+            return prune_zeros(multiplier)
+
+    def little_group_irreps_readable(self, *k: Array, full: bool = False):
+        """Returns a conventional rendering of little-group irrep characters.
+
+        This differs from `little_group(k).character_table_readable()
+        in that nontrivial Schur multipliers for nonsymmorphic space group
+        are automatically taken into account.
+
+        Arguments:
+            k: the wave vector in Cartesian axes
+            full: whether the character table for all group elements (True)
+                or one representative per conjugacy class (False, default)
+
+        Returns:
+
+            A tuple containing a list of strings and an array
+
+            - :code:`classes`: a text description of a representative of
+              each conjugacy class (or each element) of the little group as a list
+            - :code:`characters`: a matrix, each row of which lists the
+              characters of one irrep
+        """
+        k = _ensure_iterable(k)
+        group = self.little_group(k)
+        multiplier = self.little_group_multipliers(k)
+
+        if multiplier is not None:
+            warn(
+                "The space group is nonsymmorphic and the function will return\n"
+                "a character table of projective irreps of the little group.\n"
+                "If you want the linear irreps of the little group, use\n"
+                "`self.little_group(k).character_table_readable()` instead."
+            )
+
+        return group.character_table_readable(multiplier, full)
+
+    def _little_group_irreps(self, k: Array) -> Array:
         """
         Returns the character table of the little group embedded in the full point
         group. Symmetries outside the little group get 0.
-        If `divide` is `True`, the result gets divided by the size of the little group.
-        This is convenient when calculating space group irreps.
         """
         idx = self._little_group_index(k)
-        CT = self.little_group(k).character_table()
+        group = self.little_group(k)
+        multiplier = self.little_group_multipliers(k)
+        CT = group.character_table(multiplier)
         CT_full = np.zeros((CT.shape[0], len(self._point_group)), dtype=CT.dtype)
         CT_full[:, idx] = CT
-        return CT_full / idx.size if divide else CT_full
+        return CT_full
 
     def space_group_irreps(self, *k: Array) -> Array:
         """
