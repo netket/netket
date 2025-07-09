@@ -177,9 +177,15 @@ class TranslationGroup(PermutationGroup):
             axes = tuple(range(lattice.ndim))
         elif isinstance(axes, int):
             axes = [axes]
-        else:
-            assert all(x < lattice.ndim for x in axes)
-            assert len(set(axes)) == len(axes)
+
+        if len(set(axes)) != len(axes):
+            raise ValueError(
+                f"Axes must be unique integers, they cannot repeat (got `{axes}`)."
+            )
+        if not all(0 <= x < lattice.ndim for x in axes):
+            raise ValueError(
+                f"Axes must be integers in the range [0, {lattice.ndim}) (got `{axes}`)."
+            )
 
         # compute translation group by axis and overall
         translation_by_axis = [_translations_along_axis(lattice, i) for i in axes]
@@ -348,6 +354,11 @@ class SpaceGroup(PermutationGroup):
             return self.full_translation_group
         else:
             return TranslationGroup(self.lattice, axes=axes)
+
+    @deprecated_new_name("translation_group")
+    def _translations_along_axis(self, axis: int) -> TranslationGroup:
+        # DEPRECATED: use `self.translation_group(axes=axis)` instead
+        return self.translation_group(axes=axis)
 
     @property
     @deprecated(
