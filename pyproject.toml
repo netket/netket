@@ -39,7 +39,7 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.3.37, <0.6",
+    "jax>=0.7.0",
     "equinox>=0.11.3",
     "flax>=0.10.2",
     "orjson>=3.4, <4",
@@ -61,8 +61,8 @@ dev = [
     "pytest-json-report>=1.3",
     "coverage>=5",
     "pre-commit>=2.7",
-    "black==24.1.0",
-    "ruff==0.9.4",
+    "black==25.1.0",
+    "ruff==0.12.2",
     "qutip>=5",
     "wheel>=0.38.1",
     "build>=1",
@@ -99,16 +99,23 @@ version-file = "netket/_version.py"
 
 [tool.uv]
 dev-dependencies = [
-    "netket[dev,docs]",
-    "jax>=0.4.33",
+    "netket[pyscf,extra,dev,docs]",
     "ipykernel>=6.20",
 ]
+
+[tool.uv.sources]
+jax = { git = "https://github.com/jax-ml/jax" }
+
+[[tool.uv.index]]
+name = "jax-nightly"
+url  = "https://us-python.pkg.dev/ml-oss-artifacts-published/jax/simple/"
+
 
 # Development tools
 
 [tool.black]
 line-length = 88
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py311', 'py312', 'py313']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -149,11 +156,12 @@ filterwarnings = [
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
     "ignore::netket.errors.UndeclaredSpinOderingWarning",
     "ignore::netket.errors.UnoptimalSRtWarning",
+    "ignore::netket.errors.InitializePeriodicLatticeOnSmallLatticeWarning",
 ]
 testpaths = ["test"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 88
 exclude = ["Examples", "docs/conf.py", "*.ipynb"]
 

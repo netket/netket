@@ -24,7 +24,7 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Ising spin hamiltonian
-ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
+ha = nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
 ma = nk.models.RBM(alpha=1, param_dtype=float)
