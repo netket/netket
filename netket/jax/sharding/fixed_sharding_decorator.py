@@ -28,6 +28,7 @@ from jax.experimental.shard_map import shard_map
 
 from netket.utils import config
 
+
 safe_zip = partial(zip, strict=True)
 
 
