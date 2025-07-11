@@ -9,6 +9,9 @@ from netket.utils import HashablePartial
 from netket.utils import config
 from netket.jax.sharding import sharding_decorator
 
+from ._utils_tree import compose
+from ._scanmap import scanmap, scan_append_reduce
+from ._vjp import vjp as nkvjp
 from ._chunk_utils import _chunk as _tree_chunk, _unchunk as _tree_unchunk
 
 
@@ -361,22 +364,30 @@ def vjp_chunked(
     if chunk_size is None:
         y, vjp_fun, *aux = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
 
-            def __vjp_fun_retfwd(y, vjp_fun, cotangents):
+        if return_forward:
+
+            def __vjp_fun_retfwd(has_aux, y, vjp_fun, aux, cotangents):
                 res = vjp_fun(cotangents)
                 res = _trash_tuple_elements(res, nondiff_argnums)
-                return y, res
+                if has_aux:
+                    return y, res, *aux
+                else:
+                    return y, res
 
-            return Partial(__vjp_fun_retfwd, y, vjp_fun)
+            __vjp_fun_retfwd = HashablePartial(__vjp_fun_retfwd, has_aux)
+            return Partial(__vjp_fun_retfwd, y, vjp_fun, aux)
         else:
 
-            def __vjp_fun(vjp_fun, cotangents):  # type: ignore
+            def __vjp_fun(has_aux, vjp_fun, aux, cotangents):  # type: ignore
                 res = vjp_fun(cotangents)
                 res = _trash_tuple_elements(res, nondiff_argnums)
-                return res
-            else:
-                return r
+                if has_aux:
+                    return res, *aux
+                else:
+                    return res
 
-        return Partial(__vjp_fun, (y,) if return_forward else (), aux, vjp_fun)
+            __vjp_fun = HashablePartial(__vjp_fun, has_aux)
+            return Partial(__vjp_fun, vjp_fun, aux)
     else:
         _vjpc = _vjp_chunked(
             fun,
