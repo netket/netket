@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Ising model using autoregressive neural network with dense layers.
+
+Demonstrates direct sampling with autoregressive neural networks.
+
+Tags: ising, autoregressive, dense, direct_sampling
+"""
+
 import netket as nk
 
 # 1D Lattice

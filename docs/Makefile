@@ -21,4 +21,6 @@ help:
 clean:
 	rm -rf "$(SOURCEDIR)"/docs/_generated
 	rm -rf "$(SOURCEDIR)"/api/_generated
+	# Remove examples category directories but preserve main index.md
+	find "$(SOURCEDIR)"/examples -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

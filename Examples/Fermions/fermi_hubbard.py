@@ -1,3 +1,11 @@
+"""
+Fermi-Hubbard model ground state calculation.
+
+Demonstrates fermionic systems with particle number conservation and exchange sampling.
+
+Tags: fermions, hubbard, conservation, exchange
+"""
+
 import netket as nk
 import netket.experimental as nkx
 import numpy as np

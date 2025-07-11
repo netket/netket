@@ -1,4 +1,12 @@
-# Examples of autoregressive neural networks
+# Autoregressive Examples
+
+---
+description: Autoregressive neural networks for quantum many-body systems. These models generate quantum states by sampling particles sequentially, leveraging the autoregressive property to capture complex correlations.
+physics: Quantum many-body ground states, variational Monte Carlo
+techniques: Autoregressive neural networks, MADE, FastARNN
+---
+
+# Examples of autoregressive neural networks
 
 In this folder there are examples of autoregressive neural networks with dense and convolutional layers.
 

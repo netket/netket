@@ -5,9 +5,19 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        exclude: '^docs/'
 
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:
     - id: black
       args: [--config=./pyproject.toml]
+      exclude: '^docs/'
+
+  - repo: https://github.com/mwouts/jupytext
+    rev: 8ed836db64ad5d304f2315e6bfd9049c9142e190  # frozen: v1.16.4
+    hooks:
+    - id: jupytext
+      files: 'docs/(tutorials|advanced|user-guides|vmc-from-scratch)/.+\.(ipynb|py)$'
+      exclude: 'docs/(sphinx_extensions|conf\.py)'
+      args: [--sync]

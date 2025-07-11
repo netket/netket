@@ -2,6 +2,18 @@ h1 {
     color: #003B71 !important;
 }
 
+/* Dark mode support for h1 */
+[data-theme="dark"] h1 {
+    color: #ffffff !important;
+}
+
+/* Dark mode styling for signature objects */
+[data-theme="dark"] .sig-object {
+    background-color: #330 !important;
+}
+
+
+
 .header {
 }
 
@@ -55,5 +67,19 @@ h1 {
 .py.function > dd,
 .py.method > dd {
   padding: 1rem 1.25rem;
+}
+
+/* Ensure sidebar navigation starts collapsed */
+.bd-sidebar .list-caption-label + ul {
+  display: none;
+}
+
+.bd-sidebar .list-caption-label + ul.show {
+  display: block;
+}
+
+/* Keep only the current page's submenu expanded */
+.bd-sidebar .current > ul {
+  display: block !important;
 }
 
