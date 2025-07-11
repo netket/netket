@@ -13,12 +13,14 @@ from jax.sharding import PartitionSpec as P, PositionalSharding
 from netket import jax as nkjax
 from netket import config
 from netket.jax._jacobian.default_mode import JacobianMode
+from netket.utils import timing
 from netket.utils.types import Array
 from netket.utils.version_check import module_version
 
 from netket.jax import _ntk as nt
 
 
+@timing.timed
 @partial(
     jax.jit,
     static_argnames=(

@@ -7,9 +7,11 @@ from jax.sharding import PositionalSharding
 
 from netket import jax as nkjax
 from netket import config
+from netket.utils import timing
 from netket.utils.types import Array
 
 
+@timing.timed
 @partial(
     jax.jit,
     static_argnames=(
