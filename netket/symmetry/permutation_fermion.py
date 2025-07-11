@@ -15,6 +15,53 @@ def flatten_samples(n):
 
 
 
+
+@jax.jit
+def mergeCount(permutation: jax.Array) -> int:
+
+    """Counts the number of inversions in a permutation using a variant of the merge
+    sort algorithm. The complexity is O(n log n) where n is the size of the permutation."""
+
+    if jnp.size(permutation) == 1:
+        return 0
+
+    mid = jnp.size(permutation) // 2
+    left = permutation[:mid]
+    right = permutation[mid:]
+
+    invCountLeft = mergeCount(left)
+    invCountRight = mergeCount(right)
+
+    invCountCross = mergeAndCount(left,right)
+
+    
+    return (invCountLeft + invCountRight + invCountCross)&1
+
+
+def mergeAndCount(left: jax.Array, right: jax.Array) -> int:
+
+    n1 = jnp.size(left)
+    n2 = jnp.size(right)
+
+    def _cond_fun(val) -> bool:
+        i, j, _ = val
+        return jnp.logical_and(i < n1, j < n2)
+
+    def _body_fun(val):
+        i, j, count = val
+        cond = left[i] <= right[j]
+        i = jnp.where(cond, i + 1, i)
+        j = jnp.where(cond, j, j + 1)
+        count = jnp.where(cond, count, count + (n1 - i))
+        return i, j, count
+
+    _,_,count = jax.lax.while_loop(_cond_fun, _body_fun, (0, 0, 0))
+
+    return count
+
+
+
+
 #fonction to count the number of inversions in a permutation (parity of the permutation)
 def get_parity(permutation: jax.Array) -> int:
     """Counts the parity of a permutation.
@@ -30,7 +77,7 @@ def get_parity(permutation: jax.Array) -> int:
 
     inversion_count = jnp.sum(inversion_matrix & upper_triangular_mask)
 
-    return inversion_count % 2
+    return inversion_count&1
 
 
 
