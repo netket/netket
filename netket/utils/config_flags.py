@@ -64,6 +64,7 @@ class Config:
         self._values = {}
         self._types = {}
         self._editable_at_runtime = {}
+        self._meta = {}
 
         self._readonly = ReadOnlyDict(self._values)
         self._callbacks = {}
@@ -99,6 +100,13 @@ class Config:
         self._editable_at_runtime[name] = runtime
         self._values[name] = get_env(name, type, default)
         self._callbacks[name] = callback
+        self._meta[name] = (
+            type,
+            [],
+            {
+                "help": help,
+            },
+        )
 
         if callback is not None and not lazy:
             callback(self._values[name])

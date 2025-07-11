@@ -2,6 +2,14 @@
 
 # Quantum Geometric Tensor and Stochastic Reconfiguration
 
+```{admonition} Modern drivers
+:class: warning
+
+The code-details of this document refers to an older SR implementation based on different QGT implementations.
+For a modern and more flexible implementation, we strongly reccomend to use {class}`netket.experimental.driver.VMC_SR`.
+
+```
+
 
 ## Mathematical Background
 
@@ -173,4 +181,4 @@ It is possible to show that this equation is mathematically equivalent to
 
 where the difference is that instead of having to invert an $ N_{\textrm{parameters}} \times  N_{\textrm{parameters}} $ matrix, the QGT, one only has to invert a $N_{\textrm{samples}}\times N_{\textrm{samples}}$ object, the neural tangent kernel.
 
-This allows SR to be used for millions of parameters. To use it, have a look at {class}`netket.experimental.driver.VMC_SRt`.
+This allows SR to be used for millions of parameters. To use it, have a look at {class}`netket.experimental.driver.VMC_SR`.

@@ -49,3 +49,20 @@ If you find NaNs while training, especially if you are using your own model, the
   if you use general flax layers they might use different initializers.
   different initialisation distributions have particularly strong effects when working with complex-valued models.
   A good way to enforce the same distribution across all your weights, similar to NetKet 2 behaviour, is to use {py:meth}`~netket.vqs.VariationalState.init_parameters`.
+
+(grpc_proxy)=
+## GRPC incompatibility with HTTP proxy wildcards
+
+When using distributed computing, communication errors can arise when an HTTP proxy is used on clusters. GRPC will try to communicate with other nodes via the proxy when they are only excluded in the `no_proxy` variable via wildcards (e.g. `no_proxy=10.0.0.*`), which GRPC cannot parse. To avoid this, you need to include all addresses explicitly.
+
+Alternatively, a simple workaround is to disable the proxy completely for JAX by unsetting the respective environment variables (see [GRPC docs](https://grpc.github.io/grpc/cpp/md_doc_environment_variables.html)):
+
+```python
+import os
+del os.environ['http_proxy']
+del os.environ['https_proxy']
+del os.environ['no_proxy']
+
+import jax
+jax.distributed.initialize()
+```

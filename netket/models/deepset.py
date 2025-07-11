@@ -14,7 +14,7 @@ from jax.nn.initializers import (
 import netket.nn as nknn
 
 if TYPE_CHECKING:
-    from netket.hilbert import ContinuousHilbert
+    from netket.experimental.hilbert import ContinuousHilbert
 
 
 class DeepSetMLP(nn.Module):
