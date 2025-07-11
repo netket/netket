@@ -103,7 +103,6 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
 
         batch_shape, phys_dim = x.shape[:-1], x.shape[-1]
         x = x.reshape(-1, phys_dim)
-        print(x.shape)
         connected_elements = x.T[self.permutation].T
         print(connected_elements.shape)
         connected_elements = connected_elements.reshape((*batch_shape, 1, phys_dim))
