@@ -90,14 +90,15 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
         return int
 
     def get_conn_padded(self, x):
-        """The action of a permutation operator on a state x is defined as Ps |x> = |x ∘ s^{-1}> where 
-        s^{-1} is the inverse permutation. This function computes <x|Ps = <x ∘ s|, 
+        r"""
+        The action of a permutation operator on a state x is defined as Ps |x> = |x o s^{-1}> where 
+        s^{-1} is the inverse permutation. This function computes <x|Ps = <x o s|, 
         which is the same as applying the permutation to the state x.
 
         For a fermionic state, one must also take into account the sign of the permutation,
         which is given by the parity of the inverse permutation restricted to the occupied orbitals.
 
-        <n |P_s = <n ∘ s | \xi_{s^{-1}}(n).
+        <n |P_s = <n o s | \xi_{s^{-1}}(n).
         """
 
 
