@@ -28,6 +28,7 @@ _deprecations = {
 
 from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _hide_submodules
+from .infidelity import InfidelityOptimization
 
 __getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
