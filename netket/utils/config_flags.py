@@ -307,7 +307,7 @@ def _setup_experimental_sharding(val):
 config.define(
     "NETKET_EXPERIMENTAL_SHARDING",
     bool,
-    default=int_env("NETKET_EXPERIMENTAL_SHARDING_CPU", 0) > 0,
+    default=True,
     help=dedent(
         """
         Enables highly expermiental support of netket for running on multiple jax devices.
