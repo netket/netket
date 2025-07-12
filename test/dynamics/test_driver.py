@@ -109,7 +109,7 @@ def l4_norm(x):
     ) ** (1.0 / 4.0)
 
 
-@common.skipif_sharding
+@common.skipif_distributed
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])

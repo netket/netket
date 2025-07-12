@@ -74,30 +74,28 @@ xfailif_mpi = pytest.mark.xfail(
 at least 2 MPI processes.
 """
 
-skipif_sharding = pytest.mark.skipif(
-    nk.config.netket_experimental_sharding, reason="Only run without sharding"
-)
-"""Use as a decorator to mark a test to be skipped when running under Sharding."""
 
 xfailif_sharding = pytest.mark.xfail(
-    nk.config.netket_experimental_sharding, reason="This test is broken under sharding."
+    nk.config.netket_experimental_sharding and len(jax.devices()) > 1, 
+    reason="This test is broken under sharding with multiple devices."
 )
 """Use as a decorator to mark a test to be expected to fail only when running with
 Sharding.
 """
 onlyif_sharding = pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with Sharding"
+    not (nk.config.netket_experimental_sharding and len(jax.devices()) > 1), 
+    reason="Only run with Sharding on multiple devices"
 )
 
 skipif_distributed = pytest.mark.skipif(
-    nk.utils.mpi.n_nodes > 1 or nk.config.netket_experimental_sharding,
+    nk.utils.mpi.n_nodes > 1 or (nk.config.netket_experimental_sharding and len(jax.devices()) > 1),
     reason="Skip if distributed",
 )
 """Use as a decorator to mark a test to be skipped when running under MPI or Sharding."""
 
 
 onlyif_distributed = pytest.mark.skipif(
-    nk.utils.mpi.n_nodes == 1 and not nk.config.netket_experimental_sharding,
+    nk.utils.mpi.n_nodes == 1 and not (nk.config.netket_experimental_sharding and len(jax.devices()) > 1),
     reason="Only if distributed",
 )
 

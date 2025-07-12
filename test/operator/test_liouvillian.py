@@ -23,7 +23,7 @@ from netket.operator import spin
 
 from .. import common
 
-pytestmark = common.skipif_sharding
+pytestmark = common.skipif_distributed
 
 np.set_printoptions(linewidth=180)
 

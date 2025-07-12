@@ -20,7 +20,7 @@ from .. import common
 
 
 @common.xfailif_mpi  # Broken
-@common.skipif_sharding  # no jax version of LocalLiouvillian
+@common.skipif_distributed  # no jax version of LocalLiouvillian
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 def test_mpdo_periodic(dtype):
     L = 6
@@ -47,7 +47,7 @@ def test_mpdo_periodic(dtype):
 
 
 @common.xfailif_mpi  # Broken
-@common.skipif_sharding  # no jax version of LocalLiouvillian
+@common.skipif_distributed  # no jax version of LocalLiouvillian
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 def test_mpdo_open(dtype):
     L = 6
