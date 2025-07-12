@@ -253,7 +253,7 @@ def jacobian(
 
       samples = samples.reshape(-1, samples.shape[-1])
       # tree_to_real splits the parameters in a tuple like
-      # {'real': jax.tree.map(jnp.real, pars), 'imag': jax.tree.map(jnp.imag, pars)}
+      # {'real': jax.tree_util.tree_map(jnp.real, pars), 'imag': jax.tree_util.tree_map(jnp.imag, pars)}
       pars_real, reconstruct = nk.jax.tree_to_real(parameters)
       Or_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).real)(
                         pars_real)
