@@ -442,7 +442,7 @@ def test_is_hermitian_generic_op(ops):
     "jax",
     [pytest.param(op) for op in [True, False]],
 )
-@common.skipif_sharding
+@common.skipif_distributed
 def test_qutip_conversion(jax):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -542,7 +542,7 @@ def test_identity():
     assert_same_matrices(I @ X, X)
 
 
-@common.skipif_sharding
+@common.skipif_distributed
 def test_not_recompiling():
     hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
     op = bcreate(hi, 0) * bdestroy(hi, 2)

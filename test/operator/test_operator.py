@@ -429,7 +429,7 @@ def test_operator_on_subspace():
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
-@common.skipif_sharding
+@common.skipif_distributed
 def test_operator_jax_conversion(op):
     op_jax = op.to_jax_operator()
     op_numba = op_jax.to_numba_operator()
@@ -611,7 +611,7 @@ def test_bose_hubbard_precision():
         if not name.startswith("Bose Hubbard Complex")
     ],
 )
-@common.skipif_sharding
+@common.skipif_distributed
 def test_operator_jax_n_conn(op):
     """Check that n_conn returns the same result for jax and numba operators"""
     op_jax = op.to_jax_operator()
