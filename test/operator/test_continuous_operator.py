@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 
 import netket
+import netket as nk
 from netket import experimental as nkx
 
 import pytest
