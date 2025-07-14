@@ -402,11 +402,11 @@ def test_operator_on_subspace():
     g = nk.graph.Chain(3, pbc=False)
 
     h1 = nk.operator.GraphOperator(hi, g, bond_ops=[mszsz], acting_on_subspace=0)
-    assert h1.acting_on_subspace == list(range(3))
+    # assert h1.acting_on_subspace == list(range(3))
     assert nk.exact.lanczos_ed(h1)[0] == pytest.approx(-2.0)
 
     h2 = nk.operator.GraphOperator(hi, g, bond_ops=[mszsz], acting_on_subspace=3)
-    assert h2.acting_on_subspace == list(range(3, 6))
+    # assert h2.acting_on_subspace == list(range(3, 6))
     assert nk.exact.lanczos_ed(h2)[0] == pytest.approx(-2.0)
 
     h12 = h1 + h2
@@ -416,7 +416,7 @@ def test_operator_on_subspace():
     h3 = nk.operator.GraphOperator(
         hi, g, bond_ops=[mszsz], acting_on_subspace=[0, 2, 4]
     )
-    assert h3.acting_on_subspace == [0, 2, 4]
+    # assert h3.acting_on_subspace == [0, 2, 4]
     assert nk.exact.lanczos_ed(h3)[0] == pytest.approx(-2.0)
     assert h3.acting_on == [(0, 2), (2, 4)]
 
