@@ -17,6 +17,9 @@ import numpy as np
 
 from numbers import Number
 
+import warnings
+from textwrap import dedent
+
 from netket.utils.types import DType
 from netket.operator import DiscreteOperator, Transpose
 from netket.operator._pauli_strings.base import _count_of_locations
@@ -24,7 +27,8 @@ from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
 
-from netket.hilbert import SpinOrbitalFermions
+from netket.hilbert import Fock, SpinOrbitalFermions
+
 
 from .utils import (
     _convert_terms_to_spin_blocks,
@@ -110,6 +114,33 @@ class FermionOperator2ndBase(DiscreteOperator):
         """
         super().__init__(hilbert)
 
+        if (
+            isinstance(hilbert, SpinOrbitalFermions)
+            and hilbert.n_fermions_per_spin is not None
+        ):
+            warnings.warn(
+                dedent(
+                    """
+                    WARNING: Initializing `netket.operator.FermionOperator2nd` with hilbert space with a fixed number of fermions.
+                    Consider using `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd` to reduce the number of connected elements.
+                    You can convert this operator by calling `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd`.
+                    """
+                ),
+                stacklevel=2,
+            )
+        elif (
+            isinstance(hilbert, SpinOrbitalFermions) and hilbert.n_fermions is not None
+        ) or (isinstance(hilbert, Fock) and hilbert.n_particles is not None):
+            warnings.warn(
+                dedent(
+                    """
+                    WARNING: Initializing `netket.operator.FermionOperator2nd` with hilbert space with a fixed number of fermions.
+                    Consider using `netket.experimental.operator.ParticleNumberConservingFermioperator2nd` to reduce the number of connected elements.
+                    You can convert this operator by calling `netket.experimental.operator.ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd`.
+                    """
+                ),
+                stacklevel=2,
+            )
         if not np.isscalar(cutoff) or cutoff < 0:
             raise ValueError(f"invalid cutoff in FermionOperator2ndBase: {cutoff}.")
         self._cutoff = cutoff
