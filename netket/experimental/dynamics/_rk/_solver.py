@@ -53,7 +53,7 @@ class RKExplicitSolver(AbstractSolver):
     [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002).
     """
 
-    tableau: TableauRKExplicit = field(pytree_node=False)
+    tableau: TableauRKExplicit = field(static=True)
     """The Butcher tableau containing all coefficients for solving the ODE."""
 
     def __init__(self, dt, tableau, adaptive=False, **kwargs):

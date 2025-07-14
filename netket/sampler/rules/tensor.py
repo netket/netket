@@ -36,7 +36,7 @@ class TensorRule(MetropolisRule):
     on different subspaces of the same tensor-hilbert space.
     """
 
-    hilbert: TensorHilbert = struct.field(pytree_node=False)
+    hilbert: TensorHilbert = struct.field(static=True)
     """The hilbert space upon which this rule is defined. This
     must be a :class:`nk.hilbert.TensorHilbert` with the same
     size as the expected input samples.

@@ -33,7 +33,7 @@ class HamiltonianRuleBase(MetropolisRule):
     Rule proposing moves according to the terms in an operator.
     """
 
-    # operator: AbstractOperator = struct.field(pytree_node=False / True depending on jax or not jax)
+    # operator: AbstractOperator = struct.field(static=True / False depending on jax or not jax)
     """The (hermitian) operator giving the transition amplitudes."""
 
     def init_state(self, sampler, machine, params, key):
@@ -63,7 +63,7 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
     together with the numpy metropolis sampler :class:`netket.sampler.MetropolisSamplerNumpy`.
     """
 
-    operator: DiscreteOperator = struct.field(pytree_node=False)
+    operator: DiscreteOperator = struct.field(static=True)
     """The (hermitian) operator giving the transition amplitudes."""
 
     def __init__(self, operator: DiscreteOperator):

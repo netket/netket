@@ -39,11 +39,11 @@ class AbstractSolver(Pytree):
     ``_init_state``.
     """
 
-    dt: float = field(pytree_node=False)
+    dt: float = field(static=True)
     """The intial time-step size."""
-    adaptive: bool = field(pytree_node=False, default=False)
+    adaptive: bool = field(static=True, default=False)
     """The flag whether to use adaptive time-stepping."""
-    integrator_params: IntegratorParameters = field(pytree_node=False)
+    integrator_params: IntegratorParameters = field(static=True)
     """Any additional arguments to pass to the Integrator"""
 
     def __init__(self, dt, adaptive=False, **kwargs):

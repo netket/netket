@@ -53,10 +53,10 @@ class DiscreteHilbertConstraint(struct.Pytree):
                 # A simple constraint checking that the total sum of the elements
                 # in the configuration is equal to a given value.
 
-                # The value must be set as a pytree_node=False field, meaning
+                # The value must be set as a static=True field, meaning
                 # that it is a constant and changes to this value represent different
                 # constraints.
-                total_sum : float = struct.field(pytree_node=False)
+                total_sum : float = struct.field(static=True)
 
                 def __init__(self, total_sum):
                     self.total_sum = total_sum
@@ -91,7 +91,7 @@ class DiscreteHilbertConstraint(struct.Pytree):
                 # A simple constraint checking that the total sum of the elements
                 # in the configuration is equal to a given value.
 
-                total_sum : float = struct.field(pytree_node=False)
+                total_sum : float = struct.field(static=True)
 
                 def __init__(self, total_sum):
                     self.total_sum = total_sum

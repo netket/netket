@@ -99,7 +99,7 @@ def _set_annotation(clz, attr, typ):
 def process_cached_properties(clz, globals=None):
     """Looks for all attributes in clz, if anyone is a CachedProperty instance,
     which is a sential wrapper for methods, then create a cached attribute using
-    dataclass language, set them as pytree_node=False so they are untracked.
+    dataclass language, set them as static=True so they are untracked.
     """
 
     if globals is None:
@@ -168,7 +168,7 @@ def process_cached_properties(clz, globals=None):
 
         # Create the dataclass attribute
         _cache = field(
-            pytree_node=cp.pytree_node,
+            static=not cp.pytree_node,
             serialize=False,
             cache=True,
             default=Uninitialized,

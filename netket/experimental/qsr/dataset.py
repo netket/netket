@@ -355,11 +355,11 @@ class ProcessedQuantumDataset:
     secs: Array
     """The secs"""
 
-    max_len: int = struct.field(pytree_node=False)
+    max_len: int = struct.field(static=True)
 
-    # training_samples_n : int = struct.field(pytree_node=False)
+    # training_samples_n : int = struct.field(static=True)
 
-    mixed_state_target: bool = struct.field(pytree_node=False)
+    mixed_state_target: bool = struct.field(static=True)
 
     @property
     def size(self) -> int:

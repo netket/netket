@@ -40,7 +40,7 @@ class Integrator(struct.Pytree, mutable=True):
     at the next time step :math:`y_{t+1}`.
     """
 
-    f: Callable = struct.field(pytree_node=False)
+    f: Callable = struct.field(static=True)
     """The ODE function."""
 
     _state: IntegratorState
@@ -50,9 +50,9 @@ class Integrator(struct.Pytree, mutable=True):
     _parameters: IntegratorParameters
     """The options of the integration."""
 
-    use_adaptive: bool = struct.field(pytree_node=False)
+    use_adaptive: bool = struct.field(static=True)
     """Boolean indicating whether to use an adaptative scheme."""
-    norm: Callable = struct.field(pytree_node=False)
+    norm: Callable = struct.field(static=True)
     """The norm used to estimate the error."""
 
     def __init__(

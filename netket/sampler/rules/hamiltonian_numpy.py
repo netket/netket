@@ -43,7 +43,7 @@ class HamiltonianRuleNumpy(MetropolisRule):
 
     """
 
-    operator: DiscreteOperator = struct.field(pytree_node=False)
+    operator: DiscreteOperator = struct.field(static=True)
     """The (hermitian) operator giving the transition amplitudes."""
 
     def __init__(self, operator: DiscreteOperator):

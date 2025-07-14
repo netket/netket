@@ -28,7 +28,7 @@ class SumConstraint(DiscreteHilbertConstraint):
     while for Spin-like spaces this is the magnetisation.
     """
 
-    sum_value: Scalar = struct.field(pytree_node=False)
+    sum_value: Scalar = struct.field(static=True)
 
     def __init__(self, sum_value: Scalar):
         if sum_value is None:

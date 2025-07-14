@@ -224,14 +224,14 @@ class MetropolisSampler(Sampler):
 
     rule: MetropolisRule = None  # type: ignore
     """The Metropolis transition rule."""
-    sweep_size: int = struct.field(pytree_node=False, default=None)
+    sweep_size: int = struct.field(static=True, default=None)
     """Number of sweeps for each step along the chain. Defaults to the number
     of sites in the Hilbert space."""
-    n_chains: int = struct.field(pytree_node=False)
+    n_chains: int = struct.field(static=True)
     """Total number of independent chains across all devices."""
-    chunk_size: int | None = struct.field(pytree_node=False, default=None)
+    chunk_size: int | None = struct.field(static=True, default=None)
     """Chunk size for evaluating wave functions."""
-    reset_chains: bool = struct.field(pytree_node=False, default=False)
+    reset_chains: bool = struct.field(static=True, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
     def __init__(

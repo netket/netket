@@ -40,7 +40,7 @@ class SumOperatorPyTree:
     even if it is identical
     """
 
-    ops: tuple[ContinuousOperator, ...] = struct.field(pytree_node=False)
+    ops: tuple[ContinuousOperator, ...] = struct.field(static=True)
     coeffs: Array
     op_data: tuple[PyTree, ...]
 

@@ -36,8 +36,8 @@ class SumOnPartitionConstraint(DiscreteHilbertConstraint):
     on different parts.
     """
 
-    sum_values: tuple[Scalar, ...] = struct.field(pytree_node=False)
-    sizes: tuple[int, ...] = struct.field(pytree_node=False, default=None)
+    sum_values: tuple[Scalar, ...] = struct.field(static=True)
+    sizes: tuple[int, ...] = struct.field(static=True, default=None)
 
     def __init__(self, sum_values, sizes):
         if not (isinstance(sum_values, tuple) and isinstance(sizes, tuple)):

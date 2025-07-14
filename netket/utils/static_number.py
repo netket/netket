@@ -31,7 +31,7 @@ class StaticZero(Number):
     Used to be able to test for hard-zeros in jax code
     """
 
-    dtype: DType = struct.field(pytree_node=False, default=bool)
+    dtype: DType = struct.field(static=True, default=bool)
 
     shape = property(lambda _: ())
     ndim = property(lambda _: 0)

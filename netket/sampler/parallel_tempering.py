@@ -121,7 +121,7 @@ class ParallelTemperingSampler(MetropolisSampler):
     The Metropolis Hastings acceptance rule is correted with a temperature.
     """
 
-    n_replicas: int = struct.field(pytree_node=False, default=32)
+    n_replicas: int = struct.field(static=True, default=32)
     """
     The number of replicas evolving with different temperatures for every
     _physical_ markov chain.
@@ -132,7 +132,7 @@ class ParallelTemperingSampler(MetropolisSampler):
     """
     An internal cache for the user-specified betas, sorted.
     """
-    _beta_distribution: str = struct.field(pytree_node=False, default="linear")
+    _beta_distribution: str = struct.field(static=True, default="linear")
     """
     An internal for the user-specified distribution of betas.
     """

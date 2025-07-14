@@ -34,7 +34,7 @@ class LookupTableHilbertIndex(HilbertIndex):
     Lookup of states not in all_states results in undefined behaviour.
     """
 
-    _all_states: HashableArray = struct.field(pytree_node=False)
+    _all_states: HashableArray = struct.field(static=True)
 
     def __init__(self, all_states: Array):
         self._all_states = HashableArray(all_states)

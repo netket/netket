@@ -83,7 +83,7 @@ class Pytree(metaclass=PytreeMeta):
 
     Static fields must be specified as class attributes, by specifying
     the :func:`netket.utils.struct.field` as
-    :code:`struct.field(pytree_node=False)`.
+    :code:`struct.field(static=True)`.
 
     Example:
         Construct a PyTree with a 'constant' value
@@ -92,7 +92,7 @@ class Pytree(metaclass=PytreeMeta):
         >>> import jax
         >>>
         >>> class MyPyTree(Pytree):
-        ...     a: int = field(pytree_node=False)
+        ...     a: int = field(static=True)
         ...     b: jax.Array
         ...     def __init__(self, a, b):
         ...         self.a = a
@@ -115,7 +115,7 @@ class Pytree(metaclass=PytreeMeta):
         >>> from netket.utils.struct import field, Pytree
         >>>
         >>> class MyPyTree(Pytree, mutable=True):
-        ...     a: int = field(pytree_node=False)
+        ...     a: int = field(static=True)
         ...     ...
 
     By default only the fields declared as class attributes

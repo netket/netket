@@ -42,7 +42,7 @@ class Sampler(struct.Pytree):
 
     It contains the fields that all of them should possess, defining the common
     API.
-    Note that fields marked with `pytree_node=False` are treated as static arguments
+    Note that fields marked with `static=True` are treated as static arguments
     when jitting.
 
     Subclasses should be NetKet dataclasses and they should define the `_init_state`,
@@ -54,13 +54,13 @@ class Sampler(struct.Pytree):
     and simplify the definition of a new sampler.
     """
 
-    hilbert: AbstractHilbert = struct.field(pytree_node=False)
+    hilbert: AbstractHilbert = struct.field(static=True)
     """The Hilbert space to sample."""
 
     machine_pow: float = struct.field(default=2.0)
     """The power to which the machine should be exponentiated to generate the pdf."""
 
-    dtype: DType = struct.field(pytree_node=False, default=None)
+    dtype: DType = struct.field(static=True, default=None)
     """The dtype of the states sampled."""
 
     def __init__(

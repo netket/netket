@@ -33,7 +33,7 @@ class JacobianMode(struct.Pytree):
     function.
     """
 
-    name: str = struct.field(pytree_node=False)
+    name: str = struct.field(static=True)
 
     def __init__(self, name: str) -> None:
         self.name = name

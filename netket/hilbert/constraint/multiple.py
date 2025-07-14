@@ -35,8 +35,8 @@ class ExtraConstraint(DiscreteHilbertConstraint):
     one.
     """
 
-    base_constraint: DiscreteHilbertConstraint = struct.field(pytree_node=False)
-    extra_constraint: DiscreteHilbertConstraint = struct.field(pytree_node=False)
+    base_constraint: DiscreteHilbertConstraint = struct.field(static=True)
+    extra_constraint: DiscreteHilbertConstraint = struct.field(static=True)
 
     def __call__(self, x: jax.Array) -> jax.Array:
         conditions = jnp.stack(

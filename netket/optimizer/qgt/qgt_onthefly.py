@@ -183,10 +183,10 @@ class QGTOnTheFlyT(LinearOperator):
     """The first input to apply_fun (parameters of the ansatz).
     Only used as a shape placeholder."""
 
-    _chunking: bool = struct.field(pytree_node=False, default=False)
+    _chunking: bool = struct.field(static=True, default=False)
     """Whether the implementation with chunks is used which currently does not support vmapping over it"""
 
-    _mode: str = struct.field(pytree_node=False, default=None)
+    _mode: str = struct.field(static=True, default=None)
     """Differentiation mode:
         - "real": for real-valued R->R and C->R Ansätze, splits the complex inputs
                   into real and imaginary part.

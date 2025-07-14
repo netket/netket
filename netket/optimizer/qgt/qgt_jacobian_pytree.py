@@ -48,7 +48,7 @@ class QGTJacobianPyTreeT(LinearOperator):
     i.e., the sqrt of the diagonal elements of the S matrix
     """
 
-    mode: str = struct.field(pytree_node=False, default=Uninitialized)
+    mode: str = struct.field(static=True, default=Uninitialized)
     """Differentiation mode:
         - "real": for real-valued R->R and C->R Ansätze, splits the complex inputs
                   into real and imaginary part.
@@ -60,10 +60,10 @@ class QGTJacobianPyTreeT(LinearOperator):
         - "auto": autoselect real or complex.
     """
 
-    _params_structure: PyTree = struct.field(pytree_node=False, default=Uninitialized)
+    _params_structure: PyTree = struct.field(static=True, default=Uninitialized)
     """Parameters of the network. Its only purpose is to represent its own shape."""
 
-    _in_solve: bool = struct.field(pytree_node=False, default=False)
+    _in_solve: bool = struct.field(static=True, default=False)
     """Internal flag used to signal that we are inside the _solve method and matmul should
     not take apart into real and complex parts the other vector"""
 

@@ -39,7 +39,7 @@ class SumOnPartitionConstrainedHilbertIndex(HilbertIndex):
     Does not require the unconstrained space to be indexable.
     """
 
-    sub_indices: list[SumConstrainedHilbertIndex] = struct.field(pytree_node=False)
+    sub_indices: list[SumConstrainedHilbertIndex] = struct.field(static=True)
 
     @property
     def size(self) -> int:

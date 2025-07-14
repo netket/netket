@@ -38,7 +38,7 @@ class PotentialOperatorPyTree:
     even if it is identical
     """
 
-    potential_fun: Callable = struct.field(pytree_node=False)
+    potential_fun: Callable = struct.field(static=True)
     coefficient: Array
 
 

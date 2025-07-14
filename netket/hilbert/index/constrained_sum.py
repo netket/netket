@@ -41,8 +41,8 @@ class SumConstrainedHilbertIndex(HilbertIndex):
     """
 
     range: StaticRange = struct.field(pytree_node=True)
-    size: int = struct.field(pytree_node=False)
-    sum_value: int = struct.field(pytree_node=False)
+    size: int = struct.field(static=True)
+    sum_value: int = struct.field(static=True)
 
     @property
     def shape(self):

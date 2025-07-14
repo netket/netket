@@ -55,7 +55,7 @@ class TableauRKExplicit:
     c: jax.numpy.ndarray = field(repr=False)
     """Coefficients of the intermediate times."""
 
-    name: str = field(pytree_node=False, default="RKTableau")
+    name: str = field(static=True, default="RKTableau")
     """The name of the tableau."""
 
     def __repr__(self):

@@ -28,7 +28,7 @@ class IntegratorParameters(struct.Pytree):
     rtol: float
     """The tolerance for the relative error on the solution."""
 
-    dt_limits: LimitsDType | None = struct.field(pytree_node=False)
+    dt_limits: LimitsDType | None = struct.field(static=True)
     """The extremal accepted values for the time-step size `dt`."""
 
     def __init__(

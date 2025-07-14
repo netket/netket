@@ -25,7 +25,7 @@ class COOArray:
         Array  # needs to be unique and sorted, these are transposed w.r.t sparse.COO
     )
     data: Array
-    shape: tuple = struct.field(pytree_node=False, default=())
+    shape: tuple = struct.field(static=True, default=())
     fill_value: Array = 0
 
     def __getitem__(self, *idx):

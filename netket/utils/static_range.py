@@ -67,13 +67,13 @@ class StaticRange(struct.Pytree):
 
     """
 
-    start: float = struct.field(pytree_node=False)
+    start: float = struct.field(static=True)
     """The first value in the range."""
-    step: float = struct.field(pytree_node=False)
+    step: float = struct.field(static=True)
     """The difference between two consecutive values in the range."""
-    length: int = struct.field(pytree_node=False)
+    length: int = struct.field(static=True)
     """The number of entries in the range."""
-    dtype: DType = struct.field(pytree_node=False)
+    dtype: DType = struct.field(static=True)
     """The dtype of the range."""
 
     def __init__(self, start: Number, step: Number, length: int, dtype: DType = None):

@@ -32,7 +32,7 @@ class UniformTensorProductHilbertIndex(HilbertIndex):
 
     # tensor product with uniform local space
     local_index: HilbertIndex
-    size: int = struct.field(pytree_node=False)
+    size: int = struct.field(static=True)
 
     @property
     def local_size(self) -> int:

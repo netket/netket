@@ -81,7 +81,7 @@ class ConstrainedHilbertIndex(HilbertIndex):
     """
 
     unconstrained_index: HilbertIndex
-    constraint_fun: DiscreteHilbertConstraint = struct.field(pytree_node=False)
+    constraint_fun: DiscreteHilbertConstraint = struct.field(static=True)
 
     @property
     def _bare_numbers(self) -> Array:
@@ -150,9 +150,9 @@ def compute_constrained_to_bare_conversion_table(
 
     Args:
         hilbert_index:
-            A dataclass with only metadata (only pytree_node=False)
+            A dataclass with only metadata (only static=True)
         constraint_fun:
-            A dataclass with only metadata (only pytree_node=False) and __call__ attribute
+            A dataclass with only metadata (only static=True) and __call__ attribute
             Python functions can be used by wrapping them in a jax.tree_util.Partial
             with no args and keywords.
         chunk_size: (optional, default=65536)

@@ -724,7 +724,7 @@ class UnhashableConstraintError(NetketError):
 
     This error is thrown when a constraint is a PyTree with some leaf nodes.
     This usually happens because you did not mark all the pytree fields in your constraint
-    as `struct.field(pytree_node=False)`.
+    as `struct.field(static=True)`.
 
     For a good example, see the documentation of :class:`netket.hilbert.constraint.DiscreteHilbertConstraint`.
     Below, you find a coincise example of how to fix this error:
@@ -736,8 +736,8 @@ class UnhashableConstraintError(NetketError):
         from netket.hilbert.index.constraints import DiscreteHilbertConstraint
 
         class MyCustomConstraint(DiscreteHilbertConstraint):
-            fieldA: Any = struct.field(pytree_node=False)
-            fieldB: Any = struct.field(pytree_node=False)
+            fieldA: Any = struct.field(static=True)
+            fieldB: Any = struct.field(static=True)
             def __init__(self, fieldA, fieldB):
                 self.fieldA = fieldA
                 self.fieldB = fieldB
@@ -763,15 +763,15 @@ class UnhashableConstraintError(NetketError):
             safely passed to jax as a static argument.
 
             This probably happened because some of the fields in your constraint are not marked as
-            `nk.utils.struct.field(pytree_node=False)`.
+            `nk.utils.struct.field(static=True)`.
 
             To fix this error, you should mark all fields in your constraint as per the example below:
                 from typing import Any
                 from netket.utils import struct
 
                 class MyCustomConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
-                    fieldA: Any = struct.field(pytree_node=False)
-                    fieldB: Any = struct.field(pytree_node=False)
+                    fieldA: Any = struct.field(static=True)
+                    fieldB: Any = struct.field(static=True)
                     def __init__(self, fieldA, fieldB):
                         self.fieldA = fieldA
                         self.fieldB = fieldB
@@ -920,7 +920,7 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
 
         class MyPytree(struct.Pytree):
             my_dynamic_attribute: jax.Array
-            my_static_attribute : int = struct.field(pytree_node=False)
+            my_static_attribute : int = struct.field(static=True)
 
             def __init__(self, dyn_val, static_val):
                 self.my_dynamic_attribute = dyn_val
@@ -972,7 +972,7 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
 
                 class MyPytree(struct.Pytree):
                     my_dynamic_attribute: jax.Array
-                    my_static_attribute : int = struct.field(pytree_node=False)
+                    my_static_attribute : int = struct.field(static=True)
 
                     def __init__(self, dyn_val, static_val):
                         self.my_dynamic_attribute = dyn_val

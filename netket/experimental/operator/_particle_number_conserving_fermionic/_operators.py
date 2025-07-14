@@ -77,7 +77,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     #         From sparse arrays (w, w_ij, w_ijkl, w_ijklmn) where i>=j, i>=j>=k>=l etc,
     #         and only the lower triangular part is nonzero
 
-    _hilbert: SpinOrbitalFermions = struct.field(pytree_node=False)
+    _hilbert: SpinOrbitalFermions = struct.field(static=True)
     _operator_data: (
         PNCOperatorDataCollectionDict  # custom sparse internal representation
     )
@@ -299,7 +299,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     # - ParticleNumberAndSpinConservingFermioperator2nd._from_coords_data:
     #         From a dictionary of tuples {(k, sectors): (sites, daggers, weights)} representing w, w_ij\sigma, w_ijkl\sigma\rho
 
-    _hilbert: SpinOrbitalFermions = struct.field(pytree_node=False)
+    _hilbert: SpinOrbitalFermions = struct.field(static=True)
     _operator_data: PNCOperatorDataCollectionDict
 
     @property

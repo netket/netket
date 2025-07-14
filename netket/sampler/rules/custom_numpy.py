@@ -33,8 +33,8 @@ class CustomRuleState:
 
 
 class CustomRuleNumpy(MetropolisRule):
-    operator: Any = struct.field(pytree_node=False)
-    weight_list: Any = struct.field(pytree_node=False)
+    operator: Any = struct.field(static=True)
+    weight_list: Any = struct.field(static=True)
 
     def __init__(self, operator: DiscreteOperator, weight_list: Array = None):
         """

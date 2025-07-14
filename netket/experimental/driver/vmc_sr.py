@@ -202,7 +202,7 @@ class VMC_SR(AbstractVariationalDriver):
     no significant performance penalty.
     """
 
-    _ham: AbstractOperator = struct.field(pytree_node=False, serialize=False)
+    _ham: AbstractOperator = struct.field(static=True, serialize=False)
 
     _mode: str = struct.field(serialize=False)
     _chunk_size_bwd: int | None = struct.field(serialize=False)
