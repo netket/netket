@@ -31,18 +31,31 @@ def test_pauli_algebra(S):
         sm = spin.sigmam(hi, i)
         sp = spin.sigmap(hi, i)
 
-        assert_almost_equal(0.5 * (sx - 1j * sy).to_dense(), sm.to_dense())
-        assert_almost_equal(0.5 * (sx + 1j * sy).to_dense(), sp.to_dense())
-        assert_almost_equal(0.5 * (sx.to_dense() - 1j * sy.to_dense()), sm.to_dense())
-        assert_almost_equal(0.5 * (sx.to_dense() + 1j * sy.to_dense()), sp.to_dense())
+        assert_almost_equal(
+            np.array(0.5 * (sx - 1j * sy).to_dense()), np.array(sm.to_dense())
+        )
+        assert_almost_equal(
+            np.array(0.5 * (sx + 1j * sy).to_dense()), np.array(sp.to_dense())
+        )
+        assert_almost_equal(
+            np.array(0.5 * (sx.to_dense() - 1j * sy.to_dense())),
+            np.array(sm.to_dense()),
+        )
+        assert_almost_equal(
+            np.array(0.5 * (sx.to_dense() + 1j * sy.to_dense())),
+            np.array(sp.to_dense()),
+        )
 
         if S == 1 / 2:
             Imat = np.eye(hi.n_states)
 
             # check that -i sx sy sz = I
-            assert_almost_equal((-1j * sx @ sy @ sz).to_dense(), Imat)
             assert_almost_equal(
-                (-1j * sx.to_dense() @ sy.to_dense() @ sz.to_dense()), Imat
+                np.array((-1j * sx @ sy @ sz).to_dense()), np.array(Imat)
+            )
+            assert_almost_equal(
+                np.array(-1j * sx.to_dense() @ sy.to_dense() @ sz.to_dense()),
+                np.array(Imat),
             )
 
 
