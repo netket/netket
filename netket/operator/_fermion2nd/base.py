@@ -114,33 +114,6 @@ class FermionOperator2ndBase(DiscreteOperator):
         """
         super().__init__(hilbert)
 
-        if (
-            isinstance(hilbert, SpinOrbitalFermions)
-            and hilbert.n_fermions_per_spin is not None
-        ):
-            warnings.warn(
-                dedent(
-                    """
-                    WARNING: Initializing `netket.operator.FermionOperator2nd` with hilbert space with a fixed number of fermions.
-                    Consider using `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd` to reduce the number of connected elements.
-                    You can convert this operator by calling `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd`.
-                    """
-                ),
-                stacklevel=2,
-            )
-        elif (
-            isinstance(hilbert, SpinOrbitalFermions) and hilbert.n_fermions is not None
-        ) or (isinstance(hilbert, Fock) and hilbert.n_particles is not None):
-            warnings.warn(
-                dedent(
-                    """
-                    WARNING: Initializing `netket.operator.FermionOperator2nd` with hilbert space with a fixed number of fermions.
-                    Consider using `netket.experimental.operator.ParticleNumberConservingFermioperator2nd` to reduce the number of connected elements.
-                    You can convert this operator by calling `netket.experimental.operator.ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd`.
-                    """
-                ),
-                stacklevel=2,
-            )
         if not np.isscalar(cutoff) or cutoff < 0:
             raise ValueError(f"invalid cutoff in FermionOperator2ndBase: {cutoff}.")
         self._cutoff = cutoff
@@ -168,7 +141,34 @@ class FermionOperator2ndBase(DiscreteOperator):
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
-        raise NotImplementedError  # pragma: no cover
+        if (
+            isinstance(self.hilbert, SpinOrbitalFermions)
+            and self.hilbert.n_fermions_per_spin is not None
+        ):
+            warnings.warn(
+                dedent(
+                    """
+                    WARNING: Initializing `netket.operator.FermionOperator2nd` for a Hilbert space with a fixed number of fermions.
+                    Consider using `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd` to reduce the number of connected elements.
+                    You can convert this operator by calling `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd`.
+                    """
+                ),
+                stacklevel=2,
+            )
+        elif (
+            isinstance(self.hilbert, SpinOrbitalFermions)
+            and self.hilbert.n_fermions is not None
+        ) or (isinstance(self.hilbert, Fock) and self.hilbert.n_particles is not None):
+            warnings.warn(
+                dedent(
+                    """
+                    WARNING: Initializing `netket.operator.FermionOperator2nd` for a Hilbert space with a fixed number of fermions.
+                    Consider using `netket.experimental.operator.ParticleNumberConservingFermioperator2nd` to reduce the number of connected elements.
+                    You can convert this operator by calling `netket.experimental.operator.ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd`.
+                    """
+                ),
+                stacklevel=2,
+            )
 
     @classmethod
     def from_openfermion(

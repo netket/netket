@@ -52,6 +52,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
+            super()._setup(self)
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._operators, self._dtype)
