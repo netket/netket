@@ -149,7 +149,8 @@ class FermionOperator2ndBase(DiscreteOperator):
                 dedent(
                     """
                     WARNING: Initializing `netket.operator.FermionOperator2nd` for a Hilbert space with a fixed number of fermions.
-                    Consider using `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd` to reduce the number of connected elements.
+                    Consider using `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd` to reduce the number of connected elements and
+                    considerably reduce the computational cost.
                     You can convert this operator by calling `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd`.
                     """
                 ),
@@ -163,7 +164,8 @@ class FermionOperator2ndBase(DiscreteOperator):
                 dedent(
                     """
                     WARNING: Initializing `netket.operator.FermionOperator2nd` for a Hilbert space with a fixed number of fermions.
-                    Consider using `netket.experimental.operator.ParticleNumberConservingFermioperator2nd` to reduce the number of connected elements.
+                    Consider using `netket.experimental.operator.ParticleNumberConservingFermioperator2nd` to reduce the number of connected elements and
+                    considerably reduce the computational cost.
                     You can convert this operator by calling `netket.experimental.operator.ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd`.
                     """
                 ),
