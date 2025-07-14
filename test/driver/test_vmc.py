@@ -30,12 +30,12 @@ def _setup_vmc(dtype=np.float32, sr=True):
 
     vs = nk.vqs.MCState(sa, ma, n_samples=10000, seed=SEED)
 
-    ha = nk.operator.Ising(hi, graph=g, h=1.0)
+    ha = nk.operator.IsingNumba(hi, graph=g, h=1.0)
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
-    sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
+    sx = nk.operator.LocalOperatorNumba(hi, [X] * L, [[i] for i in range(L)])
 
     if sr:
         sr_config = nk.optimizer.SR(holomorphic=True if dtype is complex else False)

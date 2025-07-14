@@ -46,7 +46,7 @@ def _setup_system(L, *, model=None, dtype=np.complex128):
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
-    sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(g.n_nodes)])
+    sx = nk.operator.LocalOperatorNumba(hi, [X] * L, [[i] for i in range(g.n_nodes)])
     obs = {"sx": sx}
 
     return ha, vs, obs
@@ -148,7 +148,7 @@ def test_one_step_lindbladian(solver):
     def _setup_lindbladian_system():
         L = 3
         hi = nk.hilbert.Spin(s=0.5) ** L
-        ha = nk.operator.LocalOperator(hi)
+        ha = nk.operator.LocalOperatorNumba(hi)
         j_ops = []
         for i in range(L):
             ha += (0.3 / 2.0) * nk.operator.spin.sigmax(hi, i)
@@ -347,7 +347,7 @@ def test_tdvp_drivers():
     J = 1.0
     h_eff = h + J
 
-    H1 = nk.operator.LocalOperator(hi, dtype=np.complex128)
+    H1 = nk.operator.LocalOperatorNumba(hi, dtype=np.complex128)
     for i in range(L):
         H1 -= h_eff * nk.operator.spin.sigmaz(hi, i)
 
