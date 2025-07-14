@@ -98,7 +98,7 @@ def GraphOperator(
      >>> op = nk.operator.GraphOperator(
      ... hi, site_ops=[sigmax], bond_ops=[mszsz], graph=g)
      >>> print(op)
-     GraphOperator(dim=20, #acting_on=40 locations, constant=0.0, dtype=float64, graph=Graph(n_nodes=20, n_edges=20))
+     LocalOperator(dim=20, #acting_on=40 locations, constant=0.0, dtype=float64)
     """
     acting_on_subspace = check_acting_on_subspace(acting_on_subspace, hilbert, graph)
 

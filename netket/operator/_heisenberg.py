@@ -72,7 +72,7 @@ def Heisenberg(
         >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
         >>> op = nk.operator.Heisenberg(hilbert=hi, graph=g)
         >>> print(op)
-        Heisenberg(J=1.0, sign_rule=True; dim=20)
+        LocalOperator(dim=20, #acting_on=20 locations, constant=0.0, dtype=float64)
     """
     if isinstance(J, Sequence):
         # check that the number of Js matches the number of colours
