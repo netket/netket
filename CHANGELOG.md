@@ -11,12 +11,14 @@
 
 ## New features
 * A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
-
-* `SymmSumExp` supports specifying group characters as an array in addition to their index in the full character table. [#2075](https://github.com/netket/netket/pull/2075).
+* {class}`netket.nn.blocks.SymmExpSum` supports specifying group characters as an array in addition to their index in the full character table [#2075](https://github.com/netket/netket/pull/2075).
+* {class}`netket.utils.group.FiniteGroup` can now compute projective irrep characters of groups in addition to standard linear irreps [#2080](https://github.com/netket/netket/pull/2080).
 
 ## Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
 
+## Bug Fixes
+* {class}`netket.graph.SpaceGroup` now generates correct space-group irreps for nonsymmorphic space groups [#2080](https://github.com/netket/netket/pull/2080).
 
 ## NetKet 3.18 (3 July 2025)
 
