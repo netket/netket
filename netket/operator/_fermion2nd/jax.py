@@ -558,6 +558,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
+            super()._setup(self)
             # TODO ideally we would set dagger_dtype to the same as x
             # however, unfortunately, the dtype of the states in netket
             # is stored in the sampler and not in hilbert, so we don't know it at this stage
