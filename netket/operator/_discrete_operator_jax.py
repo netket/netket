@@ -230,10 +230,6 @@ class DiscreteJaxOperator(DiscreteOperator):
         i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
         j = self.hilbert.states_to_numbers(xp).ravel()
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        # remove hard zeros originating from the padding
-        mask = jnp.nonzero(a)
-        ij = ij[mask]
-        a = a[mask]
         A = BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)).sum_duplicates())
         if not jax_:
             # convert to scipy
