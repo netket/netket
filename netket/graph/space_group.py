@@ -483,7 +483,11 @@ class SpaceGroup(PermutationGroup):
             k: the wave vector in Cartesian axes
 
         Returns:
-            a square array of the :math:`\mu(S_i, S_j)`
+            A square array of the :math:`\mu(S_i, S_j)`.
+
+            If all multipliers are +1, `None` is returned instead:
+            this signals to `FiniteGroup.character_table()` etc. that
+            linear (not projective) representations are required.
         """
         k = _ensure_iterable(k)
         ix = self._little_group_index(k)
