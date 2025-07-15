@@ -206,7 +206,7 @@ class FiniteGroup(FiniteSemiGroup):
 
     def check_multiplier(self, multiplier: Array, rtol=1e-8, atol=0) -> bool:
         r"""
-        Checks the associativity constraint of Schur multipliers
+        Checks the associativity constraint of Schur multipliers.
 
         .. math::
 
@@ -219,12 +219,13 @@ class FiniteGroup(FiniteSemiGroup):
             atol: absolute tolerance
 
         Returns:
-            whether `multiplier` is a valid Schur multiplier
+            whether :code:`multiplier` is a valid Schur multiplier
             up to the given tolerance
 
         Raises:
-            ValueError if the shape of `multiplier` does not match
-            the size of the group
+            :class:`ValueError`
+                if the shape of `multiplier` does not match
+                the size of the group
         """
         if multiplier.shape != (len(self), len(self)):
             raise ValueError(
@@ -306,13 +307,16 @@ class FiniteGroup(FiniteSemiGroup):
                 If unspecified, computes linear representation characters.
 
         Returns:
-            - a 2D array, each row containing the characters of a
+            - :code:`characters_by_class`
+                a 2D array, each row containing the characters of a
                 representative element of each conjugacy class in one
                 projective irrep with the given multiplier.
-            - a 1D array listing the ``class factors'' of each element of
+            - :code:`class_factors`
+                a 1D array listing the "class factors" of each element of
                 the group. The character of each element is the product
                 of the character of the class representative with this
-                class factor. (Only returned if `multiplier is not None`.)
+                class factor.
+                (Only returned if :code:`multiplier` is not :code:`None`.)
 
         Note: the algorithm and the definitions above are explained in more
         detail in https://arxiv.org/abs/2505.14790.
@@ -411,7 +415,7 @@ class FiniteGroup(FiniteSemiGroup):
         Calculates the character table using Burnside's algorithm.
 
         Each row of the output lists the characters of one irrep in the order the
-        conjugacy classes are listed in `self.conjugacy_classes`.
+        conjugacy classes are listed in :attr:`conjugacy_classes`.
 
         Assumes that :code:`Identity() == self[0]`, if not, the sign of some
         characters may be flipped. The irreps are sorted by dimension.
@@ -450,8 +454,8 @@ class FiniteGroup(FiniteSemiGroup):
             multiplier: (optional) Schur multiplier
 
         Returns:
-            a matrix of all linear irrep characters (if `multiplier is None`)
-            or projective irrep characters with the given `multiplier`,
+            a matrix of all linear irrep characters (if :code:`multiplier is None`)
+            or projective irrep characters with the given :code:`multiplier`,
             sorted by dimension.
 
             Each row of lists the characters of all group elements
@@ -589,9 +593,9 @@ class FiniteGroup(FiniteSemiGroup):
         Returns matrices that realise all irreps of the group.
 
         Returns:
-            A list of 3D arrays such that `self.irrep_matrices()[i][g]` contains
-            the representation of `self[g]` consistent with the characters in
-            `self.character_table()[i]`.
+            A list of 3D arrays such that :code:`self.irrep_matrices()[i][g]`
+            contains the representation of :code:`self[g]` consistent with
+            the characters in :code:`self.character_table()[i]`.
         """
         return self._irrep_matrices
 
