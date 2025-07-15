@@ -1116,8 +1116,14 @@ def concrete_or_error(force, value, error_class, *args, **kwargs):
       *args: any additional argument and keyword argument to pass to the custom
         error type constructor.
     """
+    import jax
+    from jax.core import concrete_or_error
 
-    from jax.core import ConcretizationTypeError, concrete_or_error
+    # TODO: remove once we require jax >= 0.5.0
+    if hasattr(jax.errors, "ConcretizationTypeError"):
+        from jax.errors import ConcretizationTypeError
+    else:
+        from jax.core import ConcretizationTypeError
 
     try:
         return concrete_or_error(

@@ -25,9 +25,9 @@ from jax import numpy as jnp
 
 from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
 
+from netket import config
 from netket.utils import wrap_afun
 from netket.utils.types import PyTree, DType
-
 from netket.utils.deprecation import warn_deprecation
 from netket.utils import struct
 
@@ -298,19 +298,27 @@ class MetropolisSampler(Sampler):
             # TODO set it to a few hundred if on GPU?
             n_chains_per_rank = 16
 
+        if config.netket_experimental_sharding:
+            device_count = jax.device_count()
+        else:
+            device_count = 1
+
         n_chains = _round_n_chains_to_next_multiple(
             n_chains,
             n_chains_per_rank,
-            jax.device_count(),
+            device_count,
             "rank",
         )
-        n_chains_per_rank = n_chains // jax.device_count()
+        n_chains_per_rank = n_chains // device_count
 
-        if chunk_size is not None and n_chains_per_rank % chunk_size != 0:
+        if (
+            chunk_size is not None
+            and n_chains_per_rank > chunk_size
+            and n_chains_per_rank % chunk_size != 0
+        ):
             raise ValueError(
                 f"Chunk size must divide number of chains per rank, {n_chains_per_rank}"
             )
-        self.chunk_size = chunk_size
 
         super().__init__(
             hilbert=hilbert,

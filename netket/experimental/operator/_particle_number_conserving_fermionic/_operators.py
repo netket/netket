@@ -282,10 +282,12 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     please refer to the docstrings of prepare_data and prepare_data_diagonal for details.
 
     We provide several factory methods to create this operator:
-        - ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd:
-                Conversion form FermionOperator2nd/FermionOperator2ndJax (if possible)
-        - ParticleNumberConservingFermioperator2nd.from_pyscf_molecule:
-                From pyscf
+
+    - ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd:
+            Conversion form FermionOperator2nd/FermionOperator2ndJax (if possible)
+    - ParticleNumberConservingFermioperator2nd.from_pyscf_molecule:
+            From pyscf
+
     Furthermore it can be converted to FermionOperator2nd/FermionOperator2ndJax using the .to_fermiop method.
     """
 

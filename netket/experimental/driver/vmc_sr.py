@@ -123,9 +123,9 @@ class VMC_SR(AbstractVariationalDriver):
 
 
     Momentum / SPRING
-    --------
+    -----------------
     When `momentum` is used, this driver implements the SPRING optimizer in
-    `Goldshlager et Al. <https://arxiv.org/abs/2401.10190>`_
+    `Goldshlager et Al. (2024) <https://arxiv.org/abs/2401.10190>`_
     to accumulate previous updates for better approximation of the exact SR with
     no significant performance penalty.
 
@@ -148,7 +148,7 @@ class VMC_SR(AbstractVariationalDriver):
     as iteratively estimating a regularized SR direction, with the amount of regularization
     proportional to  the value of 1-momentum. Additional insights regarding the behavior of
     some SPRING-like algorithms, albeit still in the linear least-squares setting, are presented in
-    `Goldshlager et Al. <https://arxiv.org/pdf/2502.00882>`_ .
+    `Goldshlager et Al. (2025) <https://arxiv.org/pdf/2502.00882>`_ .
 
 
     Implementation details
@@ -178,7 +178,7 @@ class VMC_SR(AbstractVariationalDriver):
       It's interesting to note that those tricks were first mentioned by `Ren & Goldfarb <https://arxiv.org/abs/1906.02353>`_
       in the ML community.
 
-    - When using Momentum you should cite `G.Goldshlager et Al. <https://arxiv.org/abs/2401.10190>`_.
+    - When using Momentum you should cite `G.Goldshlager et Al. (2024) <https://arxiv.org/abs/2401.10190>`_.
     """
 
     # Settings set by user

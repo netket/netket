@@ -137,7 +137,10 @@ class Sampler(struct.Pytree):
             sampler.n_chains // jax.device_count()
 
         """
-        n_devices = jax.device_count()
+        if config.netket_experimental_sharding:
+            n_devices = jax.device_count()
+        else:
+            n_devices = 1
         res, remainder = divmod(self.n_chains, n_devices)
 
         if remainder != 0:
@@ -158,7 +161,10 @@ class Sampler(struct.Pytree):
         # samplers which don't have a concept of chains.
         # We assume there is 1 dummy chain per jax device.
         # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
-        return jax.device_count()
+        if config.netket_experimental_sharding:
+            return jax.device_count()
+        else:
+            return 1
 
     @property
     def n_batches(self) -> int:

@@ -113,7 +113,7 @@ class Permutation(Element):
         "`permutation.permutation_array`"
     )
     def permutation(self):
-        return np.asarray(self._inverse_permutation_array)
+        return self._inverse_permutation_array
 
     @property
     def _name(self):

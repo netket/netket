@@ -101,7 +101,7 @@ The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class
    :nosignatures:
 
 
-   MetropolisParticleExchange
+   MetropolisFermionHop
 ```
 
 ### Transition Rules

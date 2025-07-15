@@ -46,21 +46,20 @@ def to_array(
 ) -> Array:
     """
     Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
-      the results as a vector.
-
+    the results as a vector.
 
     Args:
         normalize: If True, the vector is normalized to have L2-norm 1.
         allgather:
-            If allgather=True, the final wave function is a fully replicated array
+            If allgather=True, the final wave function is a fully replicated array.
             If allgather=False, the final wave function is a sharded array, padded
-                with zeros to the next multiple of the number of devices
+            with zeros to the next multiple of the number of devices.
         chunk_size: Optional integer to specify the largest chunks of samples that
             the model will be evaluated upon. By default it is `None`, and when specified
             samples are split into chunks of at most `chunk_size`.
 
     Returns:
-
+        Array: The computed array.
     """
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")

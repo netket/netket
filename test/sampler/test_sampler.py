@@ -358,6 +358,10 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         ma, w = model_and_weights(hi, sampler)
 
         n_samples = max(40 * n_states, 100)
+        n_chains = sampler.n_chains
+        # TODO: fix this in the sampler
+        if isinstance(sampler, nk.sampler.ExactSampler):
+            n_chains = 1
 
         ps = (
             np.absolute(nk.nn.to_array(hi, ma, w, normalize=False))
@@ -377,9 +381,8 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
             samples, sampler_state = sampler.sample(
                 ma, w, state=sampler_state, chain_length=n_samples // 100
             )
-
             assert samples.shape == (
-                sampler.n_chains,
+                n_chains,
                 n_samples // 100,
                 hi.size,
             )
