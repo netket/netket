@@ -226,11 +226,14 @@ class DiscreteJaxOperator(DiscreteOperator):
         x = self.hilbert.all_states()
         n = x.shape[0]
         xp, mels = self.get_conn_padded(x)
-        a = mels.ravel()
-        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
-        j = self.hilbert.states_to_numbers(xp).ravel()
-        ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        A = BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)).sum_duplicates())
+        ip = self.hilbert.states_to_numbers(xp)
+        # sum duplicates and remove zeros in every row
+        # this also sorts the indices
+        A = BCOO((mels, ip[:, :, None]), shape=(n, n)).sum_duplicates()
+        # remove batching and turn it into a normal COO matrix
+        A = A.update_layout(n_batch=0)
+        # turn it into BCSR
+        A = BCSR.from_bcoo(A)
         if not jax_:
             # convert to scipy
             return _csr_matrix(
