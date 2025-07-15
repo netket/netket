@@ -207,7 +207,7 @@ class DiscreteJaxOperator(DiscreteOperator):
             out[:] = _n_conn
         return out
 
-    def to_sparse(self) -> JAXSparse:
+    def to_sparse(self, jax:bool=False) -> JAXSparse:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -215,22 +215,28 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         This method requires an indexable Hilbert space.
 
+        Args:
+            jax: If True, returns an experimental Jax sparse matrix. If False,
+                returns a normal scipy CSR matrix. False by default.
+
         Returns:
             The sparse jax matrix representation of the operator.
         """
-
-        # TODO: If the operator get_conn_padded uses shard_map, the
-        # replication of all_states will lead to a crash when
-        # the n_samples cannot be divided by the number of ranks.
-        # this should be fixed.
-        x = self.hilbert.all_states()
-        n = x.shape[0]
-        xp, mels = self.get_conn_padded(x)
-        a = mels.ravel()
-        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
-        j = self.hilbert.states_to_numbers(xp).ravel()
-        ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
+        if not jax:
+            return super().to_sparse()
+        else:
+            # TODO: If the operator get_conn_padded uses shard_map, the
+            # replication of all_states will lead to a crash when
+            # the n_samples cannot be divided by the number of ranks.
+            # this should be fixed.
+            x = self.hilbert.all_states()
+            n = x.shape[0]
+            xp, mels = self.get_conn_padded(x)
+            a = mels.ravel()
+            i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
+            j = self.hilbert.states_to_numbers(xp).ravel()
+            ij = np.concatenate((i[:, None], j[:, None]), axis=1)
+            return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
