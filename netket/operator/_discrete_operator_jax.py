@@ -207,7 +207,7 @@ class DiscreteJaxOperator(DiscreteOperator):
             out[:] = _n_conn
         return out
 
-    def to_sparse(self, jax:bool=False) -> JAXSparse:
+    def to_sparse(self, jax: bool = False) -> JAXSparse:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
