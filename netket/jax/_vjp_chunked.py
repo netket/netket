@@ -340,7 +340,6 @@ def vjp_chunked(
             if return_forward:
                 reduction_op_tree = (False, *reduction_op_tree)
             if len(reduction_op_tree) == 1:  # not (has_aux or return_forward)
-                # reduction_op_tree = red_ops
                 (reduction_op_tree,) = reduction_op_tree
 
             vjp_fun_sh = Partial(
