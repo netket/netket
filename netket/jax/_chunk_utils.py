@@ -55,16 +55,19 @@ def _chunk_size(x):
     return b.pop()[1]
 
 
-def __chunk(x, chunk_size):
+def _chunk_without_rest(x, chunk_size):
     x_chunks, x_rest = _chunk(x, chunk_size)
-    n_rest = jax.tree_util.tree_reduce(
-        max, jax.tree_util.tree_map(lambda x: x.size, x_rest)
-    )
-    if n_rest != 0:
-        raise ValueError(
-            "The first dimension of x must be divisible by chunk_size."
-            + f"\n            Got x.shape={x.shape} but chunk_size={chunk_size}."
-        )
+
+    # error if we have rest
+    def _check(x, x_rest):
+        if x_rest.size != 0:
+            raise ValueError(
+                "The first dimension of x must be divisible by chunk_size."
+                + f"\nGot x.shape={x.shape} but chunk_size={chunk_size}."
+            )
+        return x
+
+    jax.tree.map(_check, x, x_rest)
     return x_chunks
 
 
@@ -77,7 +80,9 @@ def unchunk(x_chunked):
         where x is x_chunked reshaped to (-1,)+x.shape[2:]
         and chunk_fn is a function which restores x given x_chunked
     """
-    return _unchunk(x_chunked), partial(__chunk, chunk_size=_chunk_size(x_chunked))
+    return _unchunk(x_chunked), partial(
+        _chunk_without_rest, chunk_size=_chunk_size(x_chunked)
+    )
 
 
 def chunk(x, chunk_size=None):
@@ -94,4 +99,4 @@ def chunk(x, chunk_size=None):
         - unchunk_fn is a function which restores x given x_chunked
     """
 
-    return __chunk(x, chunk_size), _unchunk
+    return _chunk_without_rest(x, chunk_size), _unchunk
