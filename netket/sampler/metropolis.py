@@ -311,11 +311,14 @@ class MetropolisSampler(Sampler):
         )
         n_chains_per_rank = n_chains // device_count
 
-        if chunk_size is not None and n_chains_per_rank % chunk_size != 0:
+        if (
+            chunk_size is not None
+            and n_chains_per_rank > chunk_size
+            and n_chains_per_rank % chunk_size != 0
+        ):
             raise ValueError(
                 f"Chunk size must divide number of chains per rank, {n_chains_per_rank}"
             )
-        self.chunk_size = chunk_size
 
         super().__init__(
             hilbert=hilbert,
