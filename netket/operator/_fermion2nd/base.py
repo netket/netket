@@ -160,7 +160,9 @@ class FermionOperator2ndBase(DiscreteOperator):
             elif (
                 isinstance(self.hilbert, SpinOrbitalFermions)
                 and self.hilbert.n_fermions is not None
-            ) or (isinstance(self.hilbert, Fock) and self.hilbert.n_particles is not None):
+            ) or (
+                isinstance(self.hilbert, Fock) and self.hilbert.n_particles is not None
+            ):
                 warnings.warn(
                     dedent(
                         """
