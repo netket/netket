@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-import numpy as np
+import warnings
+from textwrap import dedent
 
 from numbers import Number
 
-import warnings
-from textwrap import dedent
+import numpy as np
+
+import jax
 
 from netket.utils.types import DType
 from netket.operator import DiscreteOperator, Transpose
