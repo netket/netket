@@ -15,7 +15,7 @@
 import abc
 
 import numpy as np
-from scipy import sparse
+from scipy.sparse import csr_matrix as _csr_matrix
 
 import jax
 import jax.numpy as jnp
@@ -207,7 +207,7 @@ class DiscreteJaxOperator(DiscreteOperator):
             out[:] = _n_conn
         return out
 
-    def to_sparse(self, jax: bool = False) -> JAXSparse:
+    def to_sparse(self, jax_: bool = False) -> JAXSparse:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -216,29 +216,34 @@ class DiscreteJaxOperator(DiscreteOperator):
         This method requires an indexable Hilbert space.
 
         Args:
-            jax: If True, returns an experimental Jax sparse matrix. If False,
+            jax_: If True, returns an experimental Jax sparse matrix. If False,
                 returns a normal scipy CSR matrix. False by default.
 
         Returns:
             The sparse jax matrix representation of the operator.
         """
-        if not jax:
-            return super().to_sparse()
-        else:
-            # TODO: If the operator get_conn_padded uses shard_map, the
-            # replication of all_states will lead to a crash when
-            # the n_samples cannot be divided by the number of ranks.
-            # this should be fixed.
-            x = self.hilbert.all_states()
-            n = x.shape[0]
-            xp, mels = self.get_conn_padded(x)
-            a = mels.ravel()
-            i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
-            j = self.hilbert.states_to_numbers(xp).ravel()
-            ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-            return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
 
-    def to_dense(self) -> np.ndarray:
+        x = self.hilbert.all_states()
+        n = x.shape[0]
+        xp, mels = self.get_conn_padded(x)
+        a = mels.ravel()
+        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
+        j = self.hilbert.states_to_numbers(xp).ravel()
+        ij = np.concatenate((i[:, None], j[:, None]), axis=1)
+        # remove hard zeros originating from the padding
+        mask = jnp.nonzero(a)
+        ij = ij[mask]
+        a = a[mask]
+        A = BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)).sum_duplicates())
+        if not jax_:
+            # convert to scipy
+            return _csr_matrix(
+                (np.array(A.data), np.array(A.indices), np.array(A.indptr)),
+                shape=A.shape,
+            )
+        return A
+
+    def to_dense(self) -> jax.Array:
         r"""Returns the dense matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -249,7 +254,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             The dense matrix representation of the operator as a jax Array.
         """
-        return self.to_sparse().todense()
+        return self.to_sparse(jax_=True).todense()
 
     def to_qobj(self):  # -> "qutip.Qobj"
         r"""Convert the operator to a qutip's Qobj.
@@ -259,17 +264,8 @@ class DiscreteJaxOperator(DiscreteOperator):
         """
         qutip = import_optional_dependency("qutip", descr="to_qobj")
 
-        # QuTiP does not like jax sparse matrices, so we convert to scipy sparse
-        # by hand
-        sparse_mat_jax = self.to_sparse()
-        sparse_mat_scipy = sparse.csr_matrix(
-            (
-                sparse_mat_jax.data,
-                sparse_mat_jax.indices,
-                sparse_mat_jax.indptr,
-            ),
-            shape=sparse_mat_jax.shape,
-        )
+        sparse_mat_scipy = self.to_sparse(jax_=False)
+
         return qutip.Qobj(
             sparse_mat_scipy, dims=[list(self.hilbert.shape), list(self.hilbert.shape)]
         )
