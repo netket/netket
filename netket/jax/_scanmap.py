@@ -29,7 +29,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
     Args:
         f: a function that takes elements of the leading dimension of x
         x: a pytree where each leaf array has the same leading dimension
-        append_cond_tree: a bool (if f returns just one result) or a tuple/pytree of bools (if f returns multiple values)
+        append_cond: a bool (if f returns just one result) or a tuple/pytree of bools (if f returns multiple values)
             which indicates whether the individual result should be appended or reduced
         op: a function to (pairwise) reduce the specified results. Defaults to a sum.
         zero_fun: a function which prepares the zero element of op for a given input shape/dtype tree. Defaults to zeros.
