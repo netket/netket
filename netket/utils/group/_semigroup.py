@@ -138,6 +138,7 @@ class FiniteSemiGroup:
     """
 
     elems: list[Element]
+    """List of group elements."""
 
     def __post_init__(self):
         # manually assign self.__hash == ... for frozen dataclass,

@@ -11,12 +11,14 @@
 
 ## New features
 * A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
-
-* `SymmSumExp` supports specifying group characters as an array in addition to their index in the full character table. [#2075](https://github.com/netket/netket/pull/2075).
+* {class}`netket.nn.blocks.SymmExpSum` supports specifying group characters as an array in addition to their index in the full character table [#2075](https://github.com/netket/netket/pull/2075).
+* {class}`netket.utils.group.FiniteGroup` can now compute projective irrep characters of groups in addition to standard linear irreps [#2080](https://github.com/netket/netket/pull/2080).
 
 ## Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
 
+## Bug Fixes
+* {class}`netket.graph.space_group.SpaceGroup` now generates correct space-group irreps for nonsymmorphic space groups [#2080](https://github.com/netket/netket/pull/2080).
 
 ## NetKet 3.18 (3 July 2025)
 
@@ -25,13 +27,13 @@ This version will be the last one supporting Python 3.10 and Jax 0.5. The next N
 ## New features
 * Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2nd` and {class}`netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd`
 which are more efficient and produce fewer connected elements than the generic {class}`netket.operator.FermionOperator2ndJax` operator, and a explicit Fermi-Hubbard operator implementation {class}`netket.experimental.operator.FermiHubbardJax` based on it [#2024](https://github.com/netket/netket/pull/2024).
-* The functionality of {class}`~netket.graph.SpaceGroupBuilder` is merged into a subclass of {class}`~netket.utils.group.PermutationGroup` called {class}`~netket.graph.SpaceGroup` that also represents the space group itself. The product table of `SpaceGroup` is implemented with reference to its structure, making group-theory calculations much faster than for a generic `PermutationGroup`. Another subclass of `PermutationGroup`, {class}`~netket.graph.TranslationGroup`, is introduced to handle translation groups efficiently. All functionality of {meth}`~netket.graph.Lattice.space_group_builder()` is taken over by {meth}`~netket.graph.Lattice.space_group()`, so the former is deprecated [#2051](https://github.com/netket/netket/pull/2051).
+* The functionality of {class}`netket.graph.space_group.SpaceGroupBuilder` is merged into a subclass of {class}`~netket.utils.group.PermutationGroup` called {class}`~netket.graph.space_group.SpaceGroup` that also represents the space group itself. The product table of {class}`~netket.graph.space_group.SpaceGroup` is implemented with reference to its structure, making group-theory calculations much faster than for a generic {class}`~netket.utils.group.PermutationGroup`. Another subclass of {class}`~netket.utils.group.PermutationGroup`, {class}`~netket.graph.space_group.TranslationGroup`, is introduced to handle translation groups efficiently. All functionality of {meth}`~netket.graph.Lattice.space_group_builder()` is taken over by {meth}`~netket.graph.Lattice.space_group()`, so the former is deprecated [#2051](https://github.com/netket/netket/pull/2051).
 
 ## Deprecations and Removals
 
 * The `nk.utils.group.Permutation` class, which was constructed by passing an _inverse permutation_, can now be constructed by passing both a _permutation_ array or an _inverse permutation_ array. It's attributes have also been updated to reflect the change. If you were operating directly on those objects you will have to update how you build them [#2067](https://github.com/netket/netket/pull/2067).
 * Removed `nk.hilbert.CustomHilbert`, as it has been deprecated for a long time and was not fully functional anymore. If you need to build a custom Hilbert space, define a class. [#2073](https://github.com/netket/netket/pull/2073).
-* Some methods specific to `SpaceGroupBuilder` have been removed as it has been merged with `SpaceGroup`. If you were manipulating this object directly you might have to update some usages. See the new feature above as well [#2051](https://github.com/netket/netket/pull/2051).
+* Some methods specific to {class}`netket.graph.space_group.SpaceGroupBuilder` have been removed as it has been merged with {class}`~netket.graph.space_group.SpaceGroup`. If you were manipulating this object directly you might have to update some usages. See the new feature above as well [#2051](https://github.com/netket/netket/pull/2051).
 * The Particle Hilbert space has been moved to experiemntal to reflect the fact that it has seen very little development since its inception [#2058](https://github.com/netket/netket/pull/2058).
 
 ## Bug Fixes
