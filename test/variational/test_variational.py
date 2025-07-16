@@ -210,12 +210,8 @@ def test_chunk_size_api(vstate, _mpi_size):
     vstate.n_samples = 1008
 
     # does not divide n_samples
-    with raises(
-        ValueError,
-    ):
-        vstate.chunk_size = 100
-
-    assert vstate.chunk_size is None
+    vstate.chunk_size = 100
+    assert vstate.chunk_size == 100
 
     vstate.chunk_size = 126
     assert vstate.chunk_size == 126
