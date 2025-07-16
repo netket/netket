@@ -141,7 +141,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         self,
         x: np.ndarray,
         sections: np.ndarray,
-        pad: bool = False,
+        pad: bool = True,
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
@@ -174,7 +174,7 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         if pad:
             n_conns = mels.shape[-1]
-            sections[:] = np.arange(len(x)) * n_conns
+            sections[:] = np.arange(1, len(x)+1) * n_conns
         else:
             n_conns = np.count_nonzero(mels, axis=-1)
             sections[:] = np.cumsum(n_conns)
