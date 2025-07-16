@@ -1,12 +1,10 @@
-import warnings
-
 import jax.numpy as jnp
 
 from netket.utils import struct
 
 from netket.utils.types import Array
-from netket.utils.group import Element, Permutation, PGSymmetry
-from netket.utils.group import FiniteGroup, PermutationGroup
+from netket.utils.group import Element
+from netket.utils.group import FiniteGroup
 from netket.hilbert import AbstractHilbert
 from netket.operator import DiscreteJaxOperator
 
@@ -28,37 +26,16 @@ class Representation:
 
     def __pre_init__(
         self,
+        group: FiniteGroup,
         representation_dict: dict[Element, DiscreteJaxOperator],
     ):
 
-        element, operator = next(iter(representation_dict.items))
-
-        # Add an option to detect TranslationGroup
-
-        if isinstance(element, Permutation):
-            element_cls = Permutation
-        if isinstance(element, PGSymmetry):
-            element_cls = PGSymmetry
-        if isinstance(element, Element):
-            element_cls = Element
-            warnings.warn("The group elements were not recognized")
-        else:
-            raise ValueError(
-                "The keys of the `representation_dict` should"
-                "subclass `nk.utils.group.Element`"
-            )
-
+        operator = next(iter(representation_dict.values()))
         hilbert_space = operator.hilbert
-        group_elements = list(representation_dict.keys())
 
-        for element, symmetry_operator in representation_dict.items():
-            assert hilbert_space == symmetry_operator.hilbert
-            assert isinstance(element, element_cls)
-
-        if element_cls == Permutation:
-            group = PermutationGroup(group_elements, element.permutation_array.size)
-        if element_cls == PGSymmetry:
-            group = PGSymmetry()
+        for element, operator in representation_dict.items():
+            assert hilbert_space == operator.hilbert
+            assert element in group.elems
 
         return (
             (),
@@ -76,18 +53,15 @@ class Representation:
     """
 
     def get_representation_element(self, g: Element) -> DiscreteJaxOperator:
-        """
-        Return the representation element of g.
-        """
+        """Return the operator corresponding to the group element g."""
         return self.representation_dict[g]
 
     def get_character_table(self) -> Array:
+        """Return the character table of the group of this representation."""
         return self.group.character_table_readable()
 
     def get_projector(self, character_index) -> DiscreteJaxOperator:
-        """
-        Build the projector operator corresponding to a given irreducible representation.
-        """
+        """Build the projector operator corresponding to a given irreducible representation."""
         character_table = self.get_character_table()
         return sum(
             [
@@ -117,7 +91,9 @@ class Representation:
         Check whether all operators of one representation commute with all operators of
         the other.
         """
-        pass
+        for operator_1 in self.representation_dict.values():
+            for operator_2 in other.representation_dict.values():
+                assert operator_1 @ operator_2 - operator_2 @ operator_1 == 0
 
     def check_representation(self):
         """
