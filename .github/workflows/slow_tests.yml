@@ -1,19 +1,66 @@
 name: Slow Tests
 
 on:
+  issue_comment:
+    types: [created]
   workflow_dispatch:
+  push:
+    branches:
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-
 jobs:
   slow_tests:
+    # Only run on pull request comments from users with write access, or on workflow_dispatch, or on push to master
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event.issue.pull_request &&
+       (contains(github.event.comment.body, '/run-slow-tests') || contains(github.event.comment.body, '/slow-tests')) &&
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+    
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Add reaction to comment
+        if: github.event_name == 'issue_comment'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: "+1"
+
+      - name: Get PR details
+        id: pr
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            return {
+              ref: pr.head.ref,
+              sha: pr.head.sha,
+              repo_full_name: pr.head.repo.full_name
+            };
+
+      - name: Checkout PR branch
+        if: github.event_name == 'issue_comment'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ fromJSON(steps.pr.outputs.result).repo_full_name }}
+          ref: ${{ fromJSON(steps.pr.outputs.result).sha }}
+          submodules: true
+          fetch-tags: true
+
+      - name: Checkout current branch
+        if: github.event_name != 'issue_comment'
+        uses: actions/checkout@v4
         with:
           submodules: true
           fetch-tags: true
@@ -29,6 +76,16 @@ jobs:
           uv pip install --system -e ".[dev,extra,pyscf]"
           uv pip install --system dm-haiku
 
+      - name: Comment start
+        if: github.event_name == 'issue_comment'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            🧪 **Slow tests started** for commit ${{ fromJSON(steps.pr.outputs.result).sha }}
+            
+            This may take 20+ minutes to complete. You can monitor progress in the [Actions tab](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+
       - name: NetKet slow tests
         run: |
           export NETKET_EXPERIMENTAL=1
@@ -40,3 +97,23 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # required
           verbose: true # optional (default = false)
+
+      - name: Comment success
+        if: success() && github.event_name == 'issue_comment'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ✅ **Slow tests passed** for commit ${{ fromJSON(steps.pr.outputs.result).sha }}
+            
+            All slow tests completed successfully! 🎉
+
+      - name: Comment failure
+        if: failure() && github.event_name == 'issue_comment'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ❌ **Slow tests failed** for commit ${{ fromJSON(steps.pr.outputs.result).sha }}
+            
+            Some slow tests failed. Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
