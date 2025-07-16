@@ -15,7 +15,6 @@
 import abc
 
 import numpy as np
-from scipy.sparse import csr_matrix as _csr_matrix
 
 import jax
 import jax.numpy as jnp
@@ -209,6 +208,10 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             array: The number of connected states x' for each x[i].
         """
+
+        _, mels = self.get_conn_padded(x)
+        nonzeros = jnp.abs(x) > 0
+        _n_conn = nonzeros.sum(axis=-1)
 
         if out is None:
             out = _n_conn
