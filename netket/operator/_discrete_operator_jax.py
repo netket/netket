@@ -247,13 +247,6 @@ class DiscreteJaxOperator(DiscreteOperator):
         A = BCOO((mels, ip[:, :, None]), shape=(n, n)).sum_duplicates()
         # remove batching and turn it into a normal COO matrix
         A = A.update_layout(n_batch=0)
-        # A = A.sum_duplicates()  # slow
-        # instead we remove the zeros by hand:
-        mask = jnp.nonzero(A.data)
-        A.data = A.data[mask]
-        A.indices = A.indices[mask]
-        A.indices_sorted = True
-        A.unique_indices = True
         # turn it into BCSR
         A = BCSR.from_bcoo(A)
         return A
