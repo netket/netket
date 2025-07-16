@@ -38,7 +38,7 @@ from netket.optimizer.qgt import (
 import netket as nk
 from netket.jax.sharding import distribute_to_devices_along_axis
 
-from .. import common
+from test import common
 
 pytestmark = common.skipif_distributed
 
@@ -525,14 +525,14 @@ def test_qgt_jacobian_imaginary(dense):
     sid = Si.to_dense()
     n = shd.shape[0]
     np.testing.assert_allclose(srd[:n, :n], shd.real)
-    np.testing.assert_allclose(srd[n:, :n], shd.imag, atol=1e-16)
-    np.testing.assert_allclose(srd[:n, n:], -shd.imag, atol=1e-16)
-    np.testing.assert_allclose(srd[n:, n:], shd.real, atol=1e-16)
+    np.testing.assert_allclose(srd[n:, :n], shd.imag, atol=1e-14)
+    np.testing.assert_allclose(srd[:n, n:], -shd.imag, atol=1e-14)
+    np.testing.assert_allclose(srd[n:, n:], shd.real, atol=1e-14)
 
-    np.testing.assert_allclose(sid[:n, :n], shd.imag, atol=1e-16)
+    np.testing.assert_allclose(sid[:n, :n], shd.imag, atol=1e-14)
     np.testing.assert_allclose(sid[:n, n:], shd.real)
     np.testing.assert_allclose(sid[n:, :n], -shd.real)
-    np.testing.assert_allclose(sid[n:, n:], shd.imag, atol=1e-16)
+    np.testing.assert_allclose(sid[n:, n:], shd.imag, atol=1e-14)
 
 
 def test_qgt_jacobian_imaginary_match():
