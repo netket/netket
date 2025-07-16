@@ -16,33 +16,14 @@ from typing import no_type_check
 from collections.abc import Callable
 from collections.abc import Hashable, Iterable
 
+import jax.numpy as jnp
+
 from netket.utils.numbers import is_scalar
 from netket.utils.types import DType, PyTree, Array
 
 from netket.jax import canonicalize_dtypes
 from netket.operator import ContinuousOperator
-from netket.utils import struct, HashableArray
-
-import jax.numpy as jnp
-
-
-@struct.dataclass
-class SumOperatorPyTree:
-    """Internal class used to pass data from the operator to the jax kernel.
-
-    This is used such that we can pass a PyTree containing some static data.
-    We could avoid this if the operator itself was a pytree, but as this is not
-    the case we need to pass as a separte object all fields that are used in
-    the kernel.
-
-    We could forego this, but then the kernel could not be marked as
-    @staticmethod and we would recompile every time we construct a new operator,
-    even if it is identical
-    """
-
-    ops: tuple[ContinuousOperator, ...] = struct.field(pytree_node=False)
-    coeffs: Array
-    op_data: tuple[PyTree, ...]
+from netket.utils import HashableArray, struct
 
 
 def _flatten_sumoperators(
@@ -68,8 +49,7 @@ class SumOperator(ContinuousOperator):
 
     _operators: tuple[ContinuousOperator, ...]
     _coefficients: Array
-    _is_hermitian: bool
-    __attrs: tuple[Hashable, ...]
+    _is_hermitian: bool = struct.static_field()
 
     @no_type_check
     def __init__(
@@ -103,11 +83,8 @@ class SumOperator(ContinuousOperator):
 
         self._operators = tuple(operators)  # type: tuple[ContinuousOperator, ...]
         self._coefficients = jnp.asarray(coefficients, dtype=dtype)
-
-        super().__init__(hi_spaces[0], self._coefficients.dtype)
-
         self._is_hermitian = all([op.is_hermitian for op in operators])
-        self.__attrs = None
+        super().__init__(hi_spaces[0], self._coefficients.dtype)
 
     @property
     def is_hermitian(self) -> bool:
@@ -124,34 +101,26 @@ class SumOperator(ContinuousOperator):
     def coefficients(self) -> Array:
         return self._coefficients
 
-    @staticmethod
     def _expect_kernel(
-        logpsi: Callable, params: PyTree, x: Array, data: SumOperatorPyTree  # type: ignore
-    ):
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
+    ) -> Array:
         result = [
-            data.coeffs[i] * op._expect_kernel(logpsi, params, x, op_data)
-            for i, (op, op_data) in enumerate(zip(data.ops, data.op_data))
+            self.coefficients[i] * op._expect_kernel(logpsi, params, x)
+            for i, op in enumerate(self.operators)
         ]
-
         return sum(result)
 
-    def _pack_arguments(self) -> SumOperatorPyTree:
-        return SumOperatorPyTree(
-            self.operators,
-            self.coefficients,
-            tuple(op._pack_arguments() for op in self.operators),
-        )
-
-    @property
+    @struct.property_cached(pytree_ignore=True)
     def _attrs(self) -> tuple[Hashable, ...]:
-        if self.__attrs is None:
-            self.__attrs = (  # type: ignore
-                self.hilbert,
-                self.operators,
-                HashableArray(self.coefficients),
-                self.dtype,
-            )
-        return self.__attrs
+        return (  # type: ignore
+            self.hilbert,
+            self.operators,
+            HashableArray(self.coefficients),
+            self.dtype,
+        )
 
     def __repr__(self):
         return (

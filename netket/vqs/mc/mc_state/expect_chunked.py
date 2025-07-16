@@ -77,7 +77,7 @@ def _local_continuous_kernel(kernel, logpsi, pars, σ, args, *, chunk_size=None)
 def get_local_kernel(  # noqa: F811
     vstate: MCState, Ô: ContinuousOperator, chunk_size: int
 ):
-    return nkjax.HashablePartial(_local_continuous_kernel, Ô._expect_kernel)
+    return _local_continuous_kernel
 
 
 # If batch_size is unspecified, set it to None
