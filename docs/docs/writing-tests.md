@@ -21,3 +21,26 @@ Common functions and methods used throughout our testing infrastructure are defi
 `test/common.py` and every test is expected to use them if necessary. 
 Some common fixtures are also defined inside `test/conftest.py` and are available to all tests.
 Those do not need to be imported explicitly, as pytest will take care of it.
+
+## Test Markers
+
+NetKet uses pytest markers to categorize tests. Currently, the following markers are defined:
+
+- `@pytest.mark.slow`: Marks tests that take a long time to run (typically >15 seconds). These tests are excluded from CI to keep build times reasonable, but are run locally during development.
+
+### Running Tests
+
+To run all tests including slow ones:
+```bash
+pytest test/
+```
+
+To run tests excluding slow ones (same as CI):
+```bash
+pytest -m "not slow" test/
+```
+
+To run only slow tests:
+```bash
+pytest -m "slow" test/
+```

@@ -26,6 +26,7 @@ def _cast_normal_order(A):
     return A.at[idx[mask].T].set(0)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("desc", [True, False])
 def test_pnc(desc):
     N = 5
@@ -84,6 +85,7 @@ def test_pnc(desc):
     np.testing.assert_allclose(ha.to_dense(), ha4.to_dense())
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("N", [5])
 @pytest.mark.parametrize("n", [2, 3])
 @pytest.mark.parametrize("s", [1 / 2, 1, 3 / 2])

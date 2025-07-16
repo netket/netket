@@ -203,6 +203,7 @@ def test_solver_t0_is_integer():
     assert integrator.t > 0.0
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("solver", explicit_adaptive_solvers_params)
 def test_adaptive_solver(solver):
     tol = 1e-7
