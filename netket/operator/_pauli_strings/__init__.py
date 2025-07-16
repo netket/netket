@@ -16,4 +16,4 @@ from .base import PauliStringsBase
 from .numba import PauliStringsNumba
 from .jax import PauliStringsJax
 
-PauliStrings = PauliStringsNumba
+PauliStrings = PauliStringsJax

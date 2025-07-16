@@ -50,15 +50,15 @@ Below you find a list of all concrete Operators that you can create on {class}`~
    :nosignatures:
 
    BoseHubbard
-   BoseHubbardJax
+   BoseHubbardNumba
    GraphOperator
    LocalOperator
-   LocalOperatorJax
+   LocalOperatorNumba
    Ising
-   IsingJax
+   IsingNumba
    Heisenberg
    PauliStrings
-   PauliStringsJax
+   PauliStringsNumba
    LocalLiouvillian
 
 ```
@@ -74,7 +74,7 @@ Operators and functions to work with fermions are the following:
    :nosignatures:
 
    FermionOperator2nd
-   FermionOperator2ndJax
+   FermionOperator2ndNumba
    fermion.create
    fermion.destroy
    fermion.number

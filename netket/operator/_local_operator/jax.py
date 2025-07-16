@@ -267,7 +267,9 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
-    def n_conn(self, x):
+    def n_conn(self, x, out=None):
+        if out is not None:
+            raise NotImplementedError()
         _, _, n_conn = self._get_conn_padded(x)
         return n_conn
 

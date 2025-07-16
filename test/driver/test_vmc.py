@@ -99,7 +99,7 @@ def test_vmc_functions():
     for op, name in (ha, "ha"), (sx, "sx"):
         print(f"Testing expectation of op={name}")
 
-        exact_ex = (state.T.conj() @ op.to_linear_operator() @ state).real
+        exact_ex = (state.T.conj() @ (op.to_linear_operator() @ state)).real
 
         op_stats = ma.expect(op)
 

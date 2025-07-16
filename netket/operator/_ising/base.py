@@ -62,7 +62,7 @@ class IsingBase(SpecialHamiltonian):
             >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5, graph=g)
             >>> print(op)
-            IsingNumba(J=0.5, h=1.321; dim=20)
+            IsingJax(J=0.5, h=1.321; dim=20)
         """
         if len(hilbert.local_states) != 2:
             raise ValueError("Ising only supports Spin-1/2 hilbert spaces.")

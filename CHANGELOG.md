@@ -8,6 +8,7 @@
 ## Breaking Changes
 * MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
 * {func}`netket.operator.GraphOperator` is now a function and not a class anymore.
+* The default implementation of all NetKet operator constructed has been swapped from the previous Numba implementation to the Jax one. The class names `LocalOperator`, `PauliStrings` and `FermionOperator2nd` are now aliases for `LocalOperatorJax`, `PaulistringsJax` and  `FermionOperator2ndJax`. To use the previous operators, you should use `FermionOperator2ndNumba`, `LocalOperatorNumba` and so on.
 
 ## New features
 * A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).

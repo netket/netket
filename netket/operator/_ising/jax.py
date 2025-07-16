@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from netket.graph import AbstractGraph
-from netket.hilbert import AbstractHilbert
+from netket.hilbert import DiscreteHilbert
 from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
@@ -41,7 +41,7 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
     @wraps(IsingBase.__init__)
     def __init__(
         self,
-        hilbert: AbstractHilbert,
+        hilbert: DiscreteHilbert,
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
@@ -65,7 +65,12 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
 
     @jax.jit
     @wraps(IsingBase.n_conn)
-    def n_conn(self, x):
+    def n_conn(self, x, out=None):
+        if out is not None:
+            raise NotImplementedError(
+                "jax operators do not support passing the `out` argument "
+                "to operator.n_conn()."
+            )
         x_ids = self.hilbert.states_to_local_indices(x)
         return _ising_n_conn_jax(x_ids, self._edges, self.h, self.J)
 

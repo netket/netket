@@ -656,7 +656,7 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
        >>> # Construct a MetropolisExchange Sampler
        >>> sa = nk.sampler.ParallelTemperingHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       ParallelTemperingSampler(rule = HamiltonianRuleNumba(operator=IsingNumba(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
+       ParallelTemperingSampler(rule = HamiltonianRuleJax(operator=IsingJax(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
 
     """
     rule = HamiltonianRule(hamiltonian)
