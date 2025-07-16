@@ -15,7 +15,6 @@
 import abc
 
 import numpy as np
-from scipy import sparse
 
 import jax
 import jax.numpy as jnp
@@ -141,7 +140,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         self,
         x: np.ndarray,
         sections: np.ndarray,
-        pad: bool = True,
+        pad: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
@@ -168,17 +167,29 @@ class DiscreteJaxOperator(DiscreteOperator):
                 associated to each x'.
 
         """
-        del pad
-
         xp, mels = self.get_conn_padded(x)
-        n_conns = mels.shape[1]
+        xp = np.array(xp)
+        mels = np.array(mels)
+
+        if pad:
+            n_conns = mels.shape[-1]
+            sections[:] = np.arange(1, len(x) + 1) * n_conns
+        else:
+            n_conns = np.count_nonzero(mels, axis=-1)
+            sections[:] = np.cumsum(n_conns)
+
         xp = xp.reshape(-1, xp.shape[-1])
         mels = mels.reshape(-1)
-        sections[:] = n_conns
+
+        if not pad:
+            mask = np.where(mels != 0)
+            xp = xp[mask]
+            mels = mels[mask]
+
         return xp, mels
 
     @jax.jit
-    def n_conn(self, x, out=None) -> np.ndarray:
+    def n_conn(self, x, out=None) -> jax.Array:
         r"""Return the number of (non-zero) connected entries to `x`.
 
         .. warning::
@@ -197,6 +208,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             array: The number of connected states x' for each x[i].
         """
+
         _, mels = self.get_conn_padded(x)
         nonzeros = jnp.abs(x) > 0
         _n_conn = nonzeros.sum(axis=-1)
@@ -204,10 +216,12 @@ class DiscreteJaxOperator(DiscreteOperator):
         if out is None:
             out = _n_conn
         else:
-            out[:] = _n_conn
+            raise ValueError("The out argument is not supported for jax operators.")
+            # cannot do this inside of jit
+            # out[:] = _n_conn
         return out
 
-    def to_sparse(self) -> JAXSparse:
+    def to_sparse(self, jax_: bool = False) -> JAXSparse:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -215,24 +229,32 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         This method requires an indexable Hilbert space.
 
+        Args:
+            jax_: If True, returns an experimental Jax sparse matrix. If False,
+                returns a normal scipy CSR matrix. False by default.
+
         Returns:
             The sparse jax matrix representation of the operator.
         """
 
-        # TODO: If the operator get_conn_padded uses shard_map, the
-        # replication of all_states will lead to a crash when
-        # the n_samples cannot be divided by the number of ranks.
-        # this should be fixed.
+        if not jax_:
+            # calls the get_conn_flattened code path
+            return super().to_sparse()
+
         x = self.hilbert.all_states()
         n = x.shape[0]
         xp, mels = self.get_conn_padded(x)
-        a = mels.ravel()
-        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
-        j = self.hilbert.states_to_numbers(xp).ravel()
-        ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        return BCSR.from_bcoo(BCOO((a, ij), shape=(n, n)))
+        ip = self.hilbert.states_to_numbers(xp)
+        # sum duplicates and remove zeros in every row
+        # this also sorts the indices
+        A = BCOO((mels, ip[:, :, None]), shape=(n, n)).sum_duplicates()
+        # remove batching and turn it into a normal COO matrix
+        A = A.update_layout(n_batch=0)
+        # turn it into BCSR
+        A = BCSR.from_bcoo(A)
+        return A
 
-    def to_dense(self) -> np.ndarray:
+    def to_dense(self) -> jax.Array:
         r"""Returns the dense matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -243,7 +265,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             The dense matrix representation of the operator as a jax Array.
         """
-        return self.to_sparse().todense()
+        return self.to_sparse(jax_=True).todense()
 
     def to_qobj(self):  # -> "qutip.Qobj"
         r"""Convert the operator to a qutip's Qobj.
@@ -253,17 +275,8 @@ class DiscreteJaxOperator(DiscreteOperator):
         """
         qutip = import_optional_dependency("qutip", descr="to_qobj")
 
-        # QuTiP does not like jax sparse matrices, so we convert to scipy sparse
-        # by hand
-        sparse_mat_jax = self.to_sparse()
-        sparse_mat_scipy = sparse.csr_matrix(
-            (
-                sparse_mat_jax.data,
-                sparse_mat_jax.indices,
-                sparse_mat_jax.indptr,
-            ),
-            shape=sparse_mat_jax.shape,
-        )
+        sparse_mat_scipy = self.to_sparse(jax_=False)
+
         return qutip.Qobj(
             sparse_mat_scipy, dims=[list(self.hilbert.shape), list(self.hilbert.shape)]
         )
