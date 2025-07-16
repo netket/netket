@@ -21,14 +21,17 @@ from functools import partial
 import pytest
 
 
-@pytest.mark.parametrize("slater_class", [
-    nk.models.Slater2nd,
-    partial(nk.models.MultiSlater2nd, n_determinants=4),
-])
+@pytest.mark.parametrize(
+    "slater_class",
+    [
+        nk.models.Slater2nd,
+        partial(nk.models.MultiSlater2nd, n_determinants=4),
+    ],
+)
 def test_Slater2nd(slater_class):
     k = jax.random.PRNGKey(1)
     n_dets = 4
-    
+
     hi = nk.hilbert.SpinOrbitalFermions(3, n_fermions=2)
     ma = slater_class(hi, restricted=True, param_dtype=jnp.float32)
 
