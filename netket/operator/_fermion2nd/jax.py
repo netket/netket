@@ -658,8 +658,10 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         # alternatively we could return success
         return xp, mels
 
-    def n_conn(self, x):
+    def n_conn(self, x, out=None):
         self._setup()
+        if out is not None:
+            raise NotImplementedError()
         if self._mode == "scan":
             apply_terms_fun = apply_terms_scan_bits
         elif self._mode == "mask":

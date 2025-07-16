@@ -65,7 +65,12 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
 
     @jax.jit
     @wraps(IsingBase.n_conn)
-    def n_conn(self, x):
+    def n_conn(self, x, out=None):
+        if out is not None:
+            raise NotImplementedError(
+                "jax operators do not support passing the `out` argument "
+                "to operator.n_conn()."
+            )
         x_ids = self.hilbert.states_to_local_indices(x)
         return _ising_n_conn_jax(x_ids, self._edges, self.h, self.J)
 
