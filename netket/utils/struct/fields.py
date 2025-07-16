@@ -110,7 +110,7 @@ class CachedProperty:
         self.method = method
         self.pytree_node = pytree_node
         self.type = method.__annotations__.get("return", MISSING)
-        self.doc = method.__doc__
+        self.__doc__ = method.__doc__
 
         if self.type is MISSING:
             raise TypeError(

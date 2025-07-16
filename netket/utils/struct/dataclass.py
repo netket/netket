@@ -149,7 +149,7 @@ def process_cached_properties(clz, globals=None):
             body_lines,
             return_type=cp.type,
             globals=globals,
-            doc=cp.doc,
+            doc=cp.__doc__,
         )
         prop_fun = property(fun)
         setattr(clz, name, prop_fun)
