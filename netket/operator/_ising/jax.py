@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from netket.graph import AbstractGraph
-from netket.hilbert import AbstractHilbert
+from netket.hilbert import DiscreteHilbert
 from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
@@ -41,7 +41,7 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
     @wraps(IsingBase.__init__)
     def __init__(
         self,
-        hilbert: AbstractHilbert,
+        hilbert: DiscreteHilbert,
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,

@@ -46,7 +46,7 @@ def _setup_system(L, *, model=None, dtype=np.complex128):
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
-    sx = nk.operator.LocalOperatorNumba(hi, [X] * L, [[i] for i in range(g.n_nodes)])
+    sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(g.n_nodes)])
     obs = {"sx": sx}
 
     return ha, vs, obs
@@ -314,7 +314,8 @@ def test_change_norm():
 
 
 def exact_time_evolution(H, psi0, T, dt, obs):
-    H_matrix = H.to_dense()
+    # expm prefers csc format
+    H_matrix = H.to_sparse().tocsc()
     initial_state = psi0
     times = np.linspace(0, T, int(T / dt) + 1)
     expectations = {name: [] for name in obs}
@@ -347,7 +348,7 @@ def test_tdvp_drivers():
     J = 1.0
     h_eff = h + J
 
-    H1 = nk.operator.LocalOperatorNumba(hi, dtype=np.complex128)
+    H1 = nk.operator.LocalOperator(hi, dtype=np.complex128)
     for i in range(L):
         H1 -= h_eff * nk.operator.spin.sigmaz(hi, i)
 

@@ -236,8 +236,6 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             The sparse jax matrix representation of the operator.
         """
-        if not jax_ and hasattr(self, "to_numba_operator"):
-            return self.to_numba_operator().to_sparse()
 
         if not jax_:
             # calls the get_conn_flattened code path
