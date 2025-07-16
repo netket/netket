@@ -100,7 +100,7 @@ def __vjp_fun_chunked(
             if c:
                 return _tree_unchunk(l, r)
             else:
-                return jax.tree_map(jax.lax.add, l, r)
+                return jax.tree_util.tree_map(jax.lax.add, l, r)
 
         return jax.tree_util.tree_map(_f, append_cond, res_chunk, res_rest)
     elif n_chunks > 0:
