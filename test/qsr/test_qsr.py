@@ -17,16 +17,16 @@ SEED = 214748364
 
 
 def _build_rotation(hi, basis, dtype=np.complex64):
-    localop = op.LocalOperator(hi, constant=1.0, dtype=dtype)
+    localop = op.LocalOperatorNumba(hi, constant=1.0, dtype=dtype)
     U_X = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
     U_Y = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
 
     assert len(basis) == hi.size
     for j in range(hi.size):
         if basis[j] == "X":
-            localop *= op.LocalOperator(hi, U_X, [j])
+            localop *= op.LocalOperatorNumba(hi, U_X, [j])
         if basis[j] == "Y":
-            localop *= op.LocalOperator(hi, U_Y, [j])
+            localop *= op.LocalOperatorNumba(hi, U_Y, [j])
     return localop
 
 
