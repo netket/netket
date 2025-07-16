@@ -141,7 +141,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         self,
         x: np.ndarray,
         sections: np.ndarray,
-        pad: bool = True,
+        pad: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
