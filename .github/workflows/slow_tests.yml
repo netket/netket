@@ -1,0 +1,42 @@
+name: Slow Tests
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  slow_tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-tags: true
+
+      - name: Set up Python 3.13 on ubuntu-latest
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install packages
+        run: |
+          pip install uv
+          uv pip install --system -e ".[dev,extra,pyscf]"
+          uv pip install --system dm-haiku
+
+      - name: NetKet slow tests
+        run: |
+          export NETKET_EXPERIMENTAL=1
+          pytest --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "slow" test
+
+      - name: Upload coverage reports to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }} # required
+          verbose: true # optional (default = false)

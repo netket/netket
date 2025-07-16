@@ -85,6 +85,7 @@ def test_pnc(desc):
     np.testing.assert_allclose(ha.to_dense(), ha4.to_dense())
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("N", [5])
 @pytest.mark.parametrize("n", [2, 3])
 @pytest.mark.parametrize("s", [1 / 2, 1, 3 / 2])
