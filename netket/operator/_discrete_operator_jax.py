@@ -190,7 +190,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         return xp, mels
 
     @jax.jit
-    def n_conn(self, x, out=None) -> np.ndarray:
+    def n_conn(self, x, out=None) -> jax.Array:
         r"""Return the number of (non-zero) connected entries to `x`.
 
         .. warning::
@@ -209,14 +209,13 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             array: The number of connected states x' for each x[i].
         """
-        _, mels = self.get_conn_padded(x)
-        nonzeros = jnp.abs(x) > 0
-        _n_conn = nonzeros.sum(axis=-1)
 
         if out is None:
             out = _n_conn
         else:
-            out[:] = _n_conn
+            raise ValueError("The out argument is not supported for jax operators.")
+            # cannot do this inside of jit
+            # out[:] = _n_conn
         return out
 
     def to_sparse(self, jax_: bool = False) -> JAXSparse:
