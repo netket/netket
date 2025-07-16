@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from .jax import FermionOperator2ndJax
 
 
-class FermionOperator2nd(FermionOperator2ndBase):
+class FermionOperator2ndNumba(FermionOperator2ndBase):
     r"""
     A fermionic operator in :math:`2^{nd}` quantization, using Numba
     for indexing.

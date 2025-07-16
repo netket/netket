@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
+from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
@@ -27,6 +28,9 @@ from netket.utils.types import DType
 
 from .base import FermionOperator2ndBase
 from .utils import _is_diag_term
+
+if TYPE_CHECKING:
+    from .numba import FermionOperator2ndNumba  # noqa: F401
 
 
 @partial(jax.vmap, in_axes=(0, None, None))
@@ -614,14 +618,16 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         (op._terms_list_diag, op._terms_list_offdiag) = data
         return op
 
-    def to_numba_operator(self) -> "FermionOperator2nd":  # noqa: F821
+    def to_numba_operator(self) -> "FermionOperator2ndNumba":  # noqa: F821
         """
         Returns the standard numba version of this operator, which is an
         instance of :class:`netket.operator.FermionOperator2nd`.
         """
-        from .numba import FermionOperator2nd
+        from .numba import FermionOperator2ndNumba
 
-        new_op = FermionOperator2nd(self.hilbert, cutoff=self._cutoff, dtype=self.dtype)
+        new_op = FermionOperator2ndNumba(
+            self.hilbert, cutoff=self._cutoff, dtype=self.dtype
+        )
         new_op._operators = self._operators.copy()
         return new_op
 

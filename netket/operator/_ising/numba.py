@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from .jax import IsingJax
 
 
-class Ising(IsingBase):
+class IsingNumba(IsingBase):
     r"""
     The Transverse-Field Ising Hamiltonian :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.
 
@@ -65,7 +65,7 @@ class Ising(IsingBase):
             >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5, graph=g)
             >>> print(op)
-            Ising(J=0.5, h=1.321; dim=20)
+            IsingNumba(J=0.5, h=1.321; dim=20)
         """
         if not isinstance(hilbert, Spin):
             raise TypeError(
@@ -80,8 +80,6 @@ class Ising(IsingBase):
                 workaround.
                 """
             )
-        if len(hilbert.local_states) != 2:
-            raise ValueError("Ising only supports Spin-1/2 hilbert spaces.")
 
         h = np.array(h, dtype=dtype)
         J = np.array(J, dtype=dtype)

@@ -28,7 +28,7 @@ from .._discrete_operator_jax import DiscreteJaxOperator
 from .base import BoseHubbardBase
 
 if TYPE_CHECKING:
-    from .numba import BoseHubbard
+    from .numba import BoseHubbardNumba
 
 
 @register_pytree_node_class
@@ -64,15 +64,15 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels.astype(self.dtype)
 
-    def to_numba_operator(self) -> "BoseHubbard":  # noqa: F821
+    def to_numba_operator(self) -> "BoseHubbardNumba":  # noqa: F821
         """
         Returns the standard (numba) version of this operator, which is an
         instance of {class}`nk.operator.BoseHubbard`.
         """
 
-        from .numba import BoseHubbard
+        from .numba import BoseHubbardNumba
 
-        return BoseHubbard(
+        return BoseHubbardNumba(
             self.hilbert,
             graph=self.edges,
             U=self.U,

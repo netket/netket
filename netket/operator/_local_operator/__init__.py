@@ -13,5 +13,8 @@
 # limitations under the License.
 
 from .base import LocalOperatorBase
-from .numba import LocalOperator
+from .numba import LocalOperatorNumba
 from .jax import LocalOperatorJax
+
+# The default PauliStrings class is the Numba version
+LocalOperator = LocalOperatorNumba
