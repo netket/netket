@@ -234,6 +234,10 @@ class DiscreteJaxOperator(DiscreteOperator):
             The sparse jax matrix representation of the operator.
         """
 
+        if not jax_:
+            # calls the get_conn_flattened code path
+            return super().to_sparse()
+
         x = self.hilbert.all_states()
         n = x.shape[0]
         xp, mels = self.get_conn_padded(x)
@@ -252,12 +256,6 @@ class DiscreteJaxOperator(DiscreteOperator):
         A.unique_indices = True
         # turn it into BCSR
         A = BCSR.from_bcoo(A)
-        if not jax_:
-            # convert to scipy
-            return _csr_matrix(
-                (np.array(A.data), np.array(A.indices), np.array(A.indptr)),
-                shape=A.shape,
-            )
         return A
 
     def to_dense(self) -> jax.Array:
