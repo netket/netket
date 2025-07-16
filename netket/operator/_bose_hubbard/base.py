@@ -25,7 +25,8 @@ from netket.utils.types import DType
 
 from .. import boson
 from .._hamiltonian import SpecialHamiltonian
-from .._local_operator import LocalOperator
+from .._discrete_operator_jax import DiscreteJaxOperator
+from .._local_operator import LocalOperatorJax, LocalOperatorNumba
 
 
 class BoseHubbardBase(SpecialHamiltonian):
@@ -171,25 +172,30 @@ class BoseHubbardBase(SpecialHamiltonian):
         )
 
     def to_local_operator(self):
+        cls = (
+            LocalOperatorJax
+            if isinstance(self, DiscreteJaxOperator)
+            else LocalOperatorNumba
+        )
         # The hamiltonian
-        ha = LocalOperator(self.hilbert, dtype=self.dtype)
+        ha = cls(self.hilbert, dtype=self.dtype)
 
         if self.U != 0 or self.mu != 0:
             for i in range(self.hilbert.size):
-                n_i = boson.number(self.hilbert, i)
+                n_i = boson.number(self.hilbert, i, cls=cls)
                 ha += (self.U / 2) * n_i * (n_i - 1) - self.mu * n_i
 
         if self.J != 0:
             for i, j in self.edges:
                 ha += self.V * (
-                    boson.number(self.hilbert, int(i))
-                    * boson.number(self.hilbert, int(j))
+                    boson.number(self.hilbert, int(i), cls=cls)
+                    * boson.number(self.hilbert, int(j), cls=cls)
                 )
                 ha -= self.J * (
-                    boson.destroy(self.hilbert, int(i))
-                    * boson.create(self.hilbert, int(j))
-                    + boson.create(self.hilbert, int(i))
-                    * boson.destroy(self.hilbert, int(j))
+                    boson.destroy(self.hilbert, int(i), cls=cls)
+                    * boson.create(self.hilbert, int(j), cls=cls)
+                    + boson.create(self.hilbert, int(i), cls=cls)
+                    * boson.destroy(self.hilbert, int(j), cls=cls)
                 )
 
         return ha

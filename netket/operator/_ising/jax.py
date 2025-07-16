@@ -29,7 +29,7 @@ from .._discrete_operator_jax import DiscreteJaxOperator
 from .base import IsingBase
 
 if TYPE_CHECKING:
-    from .numba import Ising
+    from .numba import IsingNumba
 
 
 @register_pytree_node_class
@@ -77,15 +77,15 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
 
-    def to_numba_operator(self) -> "Ising":  # noqa: F821
+    def to_numba_operator(self) -> "IsingNumba":  # noqa: F821
         """
         Returns the standard (numba) version of this operator, which is an
         instance of {class}`nk.operator.Ising`.
         """
 
-        from .numba import Ising
+        from .numba import IsingNumba
 
-        return Ising(
+        return IsingNumba(
             self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
         )
 

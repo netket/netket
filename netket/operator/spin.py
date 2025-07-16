@@ -12,16 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TypeVar as _TypeVar
 from scipy import sparse as _sparse
-
 from netket.utils.types import DType as _DType
 
 from netket.hilbert import DiscreteHilbert as _DiscreteHilbert
 
-from ._local_operator import LocalOperator as _LocalOperator
+from ._local_operator import (
+    LocalOperator as _LocalOperator,
+    LocalOperatorBase as _LocalOperatorBase,
+)
+
+_LocalOperatorT = _TypeVar("_LocalOperatorT", bound=_LocalOperatorBase)
 
 
-def identity(hilbert: _DiscreteHilbert, dtype: _DType = None) -> _LocalOperator:
+def identity(
+    hilbert: _DiscreteHilbert,
+    dtype: _DType = None,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the :math:`\\mathbb{I}` identity operator.
 
@@ -32,12 +42,16 @@ def identity(hilbert: _DiscreteHilbert, dtype: _DType = None) -> _LocalOperator:
     Returns:
         An instance of {class}`nk.operator.LocalOperator`.
     """
-    return _LocalOperator(hilbert, constant=1.0, dtype=dtype)
+    return cls(hilbert, constant=1.0, dtype=dtype)
 
 
 def sigmax(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = None,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the :math:`\\sigma^x` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -61,12 +75,16 @@ def sigmax(
     D = [np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)]
     mat = np.diag(D, 1) + np.diag(D, -1)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)
 
 
 def sigmay(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = None,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the :math:`\\sigma^y` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -112,12 +130,16 @@ def sigmay(
     D = np.array([1j * np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)])
     mat = np.diag(D, -1) + np.diag(-D, 1)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)
 
 
 def sigmaz(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = None,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the :math:`\\sigma^z` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -141,12 +163,16 @@ def sigmaz(
     D = np.array([2 * m for m in np.arange(S, -(S + 1), -1)])
     mat = np.diag(D, 0)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)
 
 
 def sigmam(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = None,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the :math:`\\sigma^{-} = \\frac{1}{2}(\\sigma^x - i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -171,12 +197,16 @@ def sigmam(
     D = np.array([np.sqrt(S2 - m * (m - 1)) for m in np.arange(S, -S, -1)])
     mat = np.diag(D, -1)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)
 
 
 def sigmap(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = None,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the :math:`\\sigma^{+} = \\frac{1}{2}(\\sigma^x + i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -201,4 +231,4 @@ def sigmap(
     D = np.array([np.sqrt(S2 - m * (m + 1)) for m in np.arange(S - 1, -(S + 1), -1)])
     mat = np.diag(D, 1)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)

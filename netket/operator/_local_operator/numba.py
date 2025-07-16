@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from .jax import LocalOperatorJax
 
 
-class LocalOperator(LocalOperatorBase):
+class LocalOperatorNumba(LocalOperatorBase):
     """A custom local operator. This is a sum of an arbitrary number of operators
     acting locally on a limited set of k quantum numbers (i.e. k-local,
     in the quantum information sense).
@@ -362,3 +362,7 @@ class LocalOperator(LocalOperatorBase):
             dtype=self.dtype,
             mel_cutoff=self.mel_cutoff,
         )
+
+
+# Keep the old name for backward compatibility
+LocalOperator = LocalOperatorNumba

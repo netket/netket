@@ -101,11 +101,11 @@ class FermionOperator2ndBase(DiscreteOperator):
             >>> hi = nk.hilbert.SpinOrbitalFermions(3)
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
+            FermionOperator2ndNumba(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> terms = ("0^ 1", "2^ 1")
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
+            FermionOperator2ndNumba(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> op.hilbert
             SpinOrbitalFermions(n_orbitals=3)
             >>> op.hilbert.size

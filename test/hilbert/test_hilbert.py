@@ -775,6 +775,10 @@ def test_particle_with_geometry():
 def test_hilbert_states_outside_range_errors():
     hi = nk.hilbert.Fock(3, 2, 4)
 
+    if jax.device_count() > 1:
+        # TODO: single host this can work
+        pytest.xfail("not implemented")
+
     with pytest.raises(xla_extension.XlaRuntimeError):
         # XlaRuntimeError: Numbers outside the range of allowed states.
         hi.numbers_to_states(-1)

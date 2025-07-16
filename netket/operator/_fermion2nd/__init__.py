@@ -15,5 +15,8 @@
 
 __all__ = ["FermionOperator2nd", "FermionOperator2ndJax"]
 
-from .numba import FermionOperator2nd
+from .base import FermionOperator2ndBase
+from .numba import FermionOperator2ndNumba
 from .jax import FermionOperator2ndJax
+
+FermionOperator2nd = FermionOperator2ndNumba
