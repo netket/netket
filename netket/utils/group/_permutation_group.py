@@ -286,6 +286,10 @@ class PermutationGroup(FiniteGroup):
         return self.to_array()[self.inverse][:, x]
 
 
+PermutationGroup.inverse.__doc__ = FiniteGroup.inverse.__doc__
+PermutationGroup.product_table.__doc__ = FiniteGroup.product_table.__doc__
+
+
 @dispatch
 def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
     if A.degree != B.degree:

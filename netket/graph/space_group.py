@@ -262,6 +262,19 @@ class TranslationGroup(PermutationGroup):
         return reduce(np.multiply, axis_factors).ravel()
 
 
+_tg_efficiency_notice = """
+
+        Computed more efficiently than for a generic
+        :class:`~netket.utils.group.PermutationGroup` exploiting the
+        Abelian group structure."""
+TranslationGroup.inverse.__doc__ = (
+    PermutationGroup.inverse.__doc__ + _tg_efficiency_notice
+)
+TranslationGroup.product_table.__doc__ = (
+    PermutationGroup.product_table.__doc__ + _tg_efficiency_notice
+)
+
+
 @struct.dataclass
 class SpaceGroup(PermutationGroup):
     """
@@ -627,3 +640,13 @@ class SpaceGroup(PermutationGroup):
         result = np.einsum("ig, t -> itg", point_group_factors, trans_factors)
         result = result.reshape(point_group_factors.shape[0], -1)
         return prune_zeros(result)
+
+
+_sg_efficiency_notice = """
+
+        Computed more efficiently than for a generic
+        :class:`~netket.utils.group.PermutationGroup` exploiting the
+        semidirect product structure of space groups."""
+SpaceGroup.product_table.__doc__ = (
+    PermutationGroup.product_table.__doc__ + _sg_efficiency_notice
+)
