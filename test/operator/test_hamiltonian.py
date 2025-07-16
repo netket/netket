@@ -30,11 +30,11 @@ def test_ising_error():
     g = nk.graph.Hypercube(8, 1)
     with pytest.raises(TypeError):
         hi = nk.hilbert.Qubit(8)
-        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+        _ = nk.operator.IsingNumba(hi, graph=g, h=1.0)
 
     with pytest.raises(ValueError):
         hi = nk.hilbert.Spin(1.0, 8)
-        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+        _ = nk.operator.IsingNumba(hi, graph=g, h=1.0)
 
     with pytest.raises(ValueError):
         hi = nk.hilbert.Spin(1.0, 8)
@@ -97,21 +97,21 @@ def _colored_graph(graph):
     [
         pytest.param(
             (
-                lambda hi, g: nk.operator.Ising(hi, g, h=0),
+                lambda hi, g: nk.operator.IsingNumba(hi, g, h=0),
                 lambda hi, g: nk.operator.IsingJax(hi, g, h=0),
             ),
             id="ising_zero_h",
         ),
         pytest.param(
             (
-                lambda hi, g: nk.operator.Ising(hi, g, h=1),
+                lambda hi, g: nk.operator.IsingNumba(hi, g, h=1),
                 lambda hi, g: nk.operator.IsingJax(hi, g, h=1),
             ),
             id="ising",
         ),
         pytest.param(
             (
-                lambda hi, g: nk.operator.PauliStrings(
+                lambda hi, g: nk.operator.PauliStringsNumba(
                     hi,
                     [s + "I" * (g.n_nodes - len(s)) for s in ["XXI", "YZX", "IZX"]],
                     [0.1, 0.2, -1.4],
@@ -126,7 +126,7 @@ def _colored_graph(graph):
         ),
         pytest.param(
             (
-                lambda hi, g: nk.operator.PauliStrings(
+                lambda hi, g: nk.operator.PauliStringsNumba(
                     hi,
                     [s + "I" * (g.n_nodes - len(s)) for s in ["XXI", "YZY", "IZX"]],
                     [0.1, 0.2, -1.4],
