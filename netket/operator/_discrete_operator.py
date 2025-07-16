@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 import numpy as np
 import jax.numpy as jnp
 
@@ -211,6 +213,34 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
 
         sections = np.empty(x.shape[0], dtype=np.int32)
         x_prime, mels = concrete_op.get_conn_flattened(x, sections)
+
+        if self.hilbert.constrained:
+            if hasattr(self.hilbert, "constraint"):
+                x_prime_valid_mask = self.hilbert.constraint(x_prime)
+                x_prime = x_prime[x_prime_valid_mask]
+                mels = mels[x_prime_valid_mask]
+
+                # Calculate the updated sections
+                # 1. Create an array that maps each index in `sp2` to its corresponding `s` element
+                indices = np.repeat(
+                    np.arange(len(sections)), np.diff(np.append(0, sections))
+                )
+                # 2. Use the valid_mask to determine which elements remain
+                filtered_indices = indices[x_prime_valid_mask]
+                # 3. Count occurrences of each state (s) in the filtered indices
+                new_counts = np.bincount(filtered_indices, minlength=len(sections))
+                # 4. Compute the new `sections` array as the cumulative sum of the updated counts
+                sections = np.cumsum(new_counts, dtype=np.int32)
+            else:
+                warnings.warn(
+                    """
+                    The Hilbert space is constrained, but no constraint was provided.
+
+                    The dense/sparse representation of the operator will include invalid states and
+                    probably be incorrect.
+                    """,
+                    RuntimeWarning,
+                )
 
         numbers = hilb.states_to_numbers(x_prime)
 
