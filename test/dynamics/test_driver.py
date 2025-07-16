@@ -128,6 +128,7 @@ def test_one_adaptive_step(solver, error_norm, propagation_type):
     assert te.t > 0.0
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 def test_one_adaptive_schmitt(solver, error_norm):
@@ -334,6 +335,7 @@ def exact_time_evolution(H, psi0, T, dt, obs):
 # This test verifies a case where SNR = Rho = 0 which used to give NaNs in TDVP Schmitt but not standard TDVP.
 # See bug report https://github.com/orgs/netket/discussions/1959 and PR to fix it
 # https://github.com/netket/netket/pull/1960
+@pytest.mark.slow
 def test_tdvp_drivers():
     """Test time evolution comparing TDVP methods against exact evolution for a mean-field"""
     L = 2

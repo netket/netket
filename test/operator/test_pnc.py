@@ -26,6 +26,7 @@ def _cast_normal_order(A):
     return A.at[idx[mask].T].set(0)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("desc", [True, False])
 def test_pnc(desc):
     N = 5
