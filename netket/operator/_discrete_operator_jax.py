@@ -174,7 +174,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         n_conns = mels.shape[1]
         xp = xp.reshape(-1, xp.shape[-1])
         mels = mels.reshape(-1)
-        sections[:] = n_conns
+        sections[:] = np.arange(len(x)) * n_conns
         return xp, mels
 
     @jax.jit
