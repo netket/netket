@@ -174,7 +174,7 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         if pad:
             n_conns = mels.shape[-1]
-            sections[:] = np.arange(1, len(x)+1) * n_conns
+            sections[:] = np.arange(1, len(x) + 1) * n_conns
         else:
             n_conns = np.count_nonzero(mels, axis=-1)
             sections[:] = np.cumsum(n_conns)
