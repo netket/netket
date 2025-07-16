@@ -18,7 +18,7 @@
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
 
 ## Bug Fixes
-* {class}`netket.graph.SpaceGroup` now generates correct space-group irreps for nonsymmorphic space groups [#2080](https://github.com/netket/netket/pull/2080).
+* {class}`netket.graph.space_group.SpaceGroup` now generates correct space-group irreps for nonsymmorphic space groups [#2080](https://github.com/netket/netket/pull/2080).
 
 ## NetKet 3.18 (3 July 2025)
 
