@@ -73,12 +73,7 @@ def _compute_srt_update(
     else:
         info = {}
 
-    # aus_vector, token = mpi.mpi_scatter_jax(aus_vector, root=0, token=token)
-
     # (np, #ns) x (#ns) -> (np).
-    # The sum over #ns is done automatically in sharding.
-    # Under MPI we need to do it manually with an allreduce_sum.
-    # updates, token = mpi.mpi_allreduce_sum_jax(O_L.T @ aus_vector, token=token)
     updates = O_L.T @ aus_vector
     if momentum is not None:
         updates += momentum * old_updates

@@ -208,7 +208,7 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_a
     F = stats.sum(OEdata, axis=0)
 
     # Note: this implementation differs from Eq. 20 in Markus's paper, which I would
-    # implement as `rho = mpi.mean(QEdata, axis=0)`. However, this is different from
+    # implement as `rho = np.mean(QEdata, axis=0)`. However, this is different from
     # changing the basis AFTER averaging over the samples, and leads to the wrong
     # normalisation of RHo.
     Q = jnp.tensordot(V.conj().T, O.T, axes=1).T

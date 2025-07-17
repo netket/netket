@@ -21,7 +21,6 @@ import jax.numpy as jnp
 from jax.tree_util import Partial
 
 from netket.utils import config
-from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import timing
 from netket.utils.types import Array, PyTree
 from netket.jax import (
@@ -376,7 +375,7 @@ def jacobian(
     if pdf is None:
         if center:
             jacobians = jax.tree_util.tree_map(
-                lambda x: subtract_mean(x, axis=0), jacobians
+                lambda x: x - jnp.mean(x, axis=0, keepdims=True), jacobians
             )
 
         if _sqrt_rescale:
@@ -386,7 +385,7 @@ def jacobian(
     else:
         if center:
             jacobians_avg = jax.tree_util.tree_map(
-                partial(sum_mpi, axis=0), _multiply_by_pdf(jacobians, pdf)
+                partial(jnp.sum, axis=0), _multiply_by_pdf(jacobians, pdf)
             )
             jacobians = jax.tree_util.tree_map(
                 lambda x, y: x - y, jacobians, jacobians_avg
