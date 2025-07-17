@@ -67,7 +67,6 @@ def to_array(
     apply_fun = get_afun_if_module(apply_fun)
 
     if config.netket_experimental_sharding:  # type: ignore
-        # for now assume no mpi (no hybrid)
         x = hilbert.all_states()
         xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
         n_states = hilbert.n_states

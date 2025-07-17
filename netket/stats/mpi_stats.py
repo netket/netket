@@ -137,10 +137,4 @@ def total_size(a, axis=None):
         l_size = a.size
     else:
         l_size = a.shape[axis]
-
-    # TODO: This function cannot call Python MPI because if it gets called on shape
-    # inference when compiling. Therefore if only one mpi rank is compiling this
-    # leads to deadlocks.
-    # We should refactor all this logic.
-    # return mpi_sum(l_size)
     return l_size

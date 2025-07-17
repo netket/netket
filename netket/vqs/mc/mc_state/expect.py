@@ -18,7 +18,7 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from netket.stats import Stats, statistics as mpi_statistics
+from netket.stats import Stats, statistics
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
@@ -151,6 +151,6 @@ def _expect(
     # )
 
     L_σ = local_value_kernel(logpsi, parameters, σ, local_value_args)
-    Ō_stats = mpi_statistics(L_σ.reshape((n_chains, -1)))
+    Ō_stats = statistics(L_σ.reshape((n_chains, -1)))
 
     return Ō_stats

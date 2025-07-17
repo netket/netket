@@ -129,10 +129,7 @@ def test_lazy_init(tmp_path):
 def test_write_only_on_master(vstate, tmp_path):
     # Check that the logger runs everywhere but serializes only on rank 0
 
-    if nk.config.netket_experimental_sharding:
-        rank = jax.process_index()
-    else:
-        rank = nk.utils.mpi.rank
+    rank = jax.process_index()
 
     path = str(tmp_path) + "/dir1/r{rank}"
 

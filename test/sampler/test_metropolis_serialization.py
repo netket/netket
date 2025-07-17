@@ -21,7 +21,6 @@ import numpy as np
 import jax
 
 import netket as nk
-from netket.utils import mpi
 
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
@@ -33,22 +32,14 @@ SAMPLER_SEED = 15324
 
 def _allgather(x):
     if nk.config.netket_experimental_sharding and jax.process_count() > 1:
-        y = multihost_utils.process_allgather(x)
-    else:
-        y = mpi.mpi_allgather(x)
-    return y
+        x = multihost_utils.process_allgather(x)
+    return x
 
 
 @pytest.mark.parametrize("key_type", ["PRNGKey", "key"])
 def test_metropolis_serialization(key_type, tmp_path_distributed):
-    rank = (
-        mpi.rank if not nk.config.netket_experimental_sharding else jax.process_index()
-    )
-    n_nodes = (
-        mpi.n_nodes
-        if not nk.config.netket_experimental_sharding
-        else jax.process_count()
-    )
+    rank = jax.process_index()
+    n_nodes = jax.process_count()
     keyT = jax.random.PRNGKey if key_type == "PRNGKey" else jax.random.key
 
     tmp_file_name = tmp_path_distributed / "data.mpack"
@@ -74,22 +65,17 @@ def test_metropolis_serialization(key_type, tmp_path_distributed):
     #         return x
     #     state = jax.tree.map(_fun, state)
 
-    if mpi.rank == 0 and jax.process_index() == 0:
+    if jax.process_index() == 0:
         bindata = serialization.msgpack_serialize(state_dict)
         with open(tmp_file_name, "wb") as f:
             f.write(bindata)
 
-    if mpi.n_nodes > 1:
-        mpi.MPI_py_comm.barrier()
-    elif nk.config.netket_experimental_sharding:
+    if nk.config.netket_experimental_sharding:
         multihost_utils.sync_global_devices("ciao")
 
     # load data
     with open(tmp_file_name, "rb") as f:
         bindata = f.read()
-
-    print(_allgather(hi.states_to_numbers(sampler_state.σ)))
-    σ_all = _allgather(hi.states_to_numbers(sampler_state.σ)).reshape(-1)
 
     # Create another sampler state
     for n_readout_chains in [12, 8, 6]:
@@ -102,20 +88,11 @@ def test_metropolis_serialization(key_type, tmp_path_distributed):
             sampler_state_2, state_dict_loaded
         )
 
-        if nk.config.netket_experimental_sharding:
-            if isinstance(
-                sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding
-            ):
-                pass
-            else:
-                assert sampler_state_2.σ.sharding.shape == (len(jax.devices()), 1)
-            assert bool(
-                jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :])
-            )
+        if isinstance(sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding):
+            pass
         else:
-            _σ_all = σ_all[: sa.n_chains].reshape(mpi.n_nodes, -1)
-            σ2_all = _allgather(hi.states_to_numbers(sampler_state_2.σ))
-            np.testing.assert_allclose(σ2_all, _σ_all)
+            assert sampler_state_2.σ.sharding.shape == (len(jax.devices()), 1)
+        assert bool(jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :]))
 
         # verify that it works
         sa.samples(ma, pars, state=sampler_state_2)
