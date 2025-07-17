@@ -28,7 +28,7 @@ from ._autocorr import integrated_time
 
 
 def _format_decimal(value, std, var):
-    if math.isfinite(std) and std > 1e-7:
+    if math.isfinite(abs(value)) and value > 1e-3:
         decimals = max(int(np.ceil(-np.log10(std))), 0)
         return (
             "{0:.{1}f}".format(value, decimals + 1),
