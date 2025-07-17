@@ -399,21 +399,22 @@ class TestMutablePytree:
 
     def test_field_ignore(self):
         """Test that field(pytree_ignore=True) drops fields from pytree flattening"""
+
         class ClassWithIgnoredField(Pytree):
             a: int
             b: int = field(pytree_node=False, pytree_ignore=True)
-            
+
             def __init__(self, a, b):
                 self.a = a
                 self.b = b
-        
+
         obj = ClassWithIgnoredField(1, 2)
         flat, struct = jax.tree_util.tree_flatten(obj)
-        
+
         # Only 'a' should be in flat since 'b' is ignored
         assert flat == [1]
         assert obj.b == 2  # but 'b' is still accessible
-        
+
         # Structure should be same as empty object
         empty_obj = ClassWithIgnoredField(0, 0)
         empty_flat, empty_struct = jax.tree_util.tree_flatten(empty_obj)
@@ -421,28 +422,29 @@ class TestMutablePytree:
 
     def test_property_cached_ignore(self):
         """Test that property_cached(pytree_ignore=True) drops cached values from pytree flattening"""
+
         class ClassWithCachedProperty(Pytree):
             a: int
-            
+
             def __init__(self, a):
                 self.a = a
-            
+
             @property_cached(pytree_ignore=True)
             def cached_property(self) -> int:
                 return self.a * 2
-        
+
         obj = ClassWithCachedProperty(5)
         # Access the property to ensure it's cached
         assert obj.cached_property == 10
         # Verify the cache exists
-        assert getattr(obj, '__cached_property_cache') == 10
-        
+        assert getattr(obj, "__cached_property_cache") == 10
+
         flat, struct = jax.tree_util.tree_flatten(obj)
-        
+
         # Only 'a' should be in flat since cached_property is ignored
         assert flat == [5]
         assert obj.cached_property == 10  # but cached property is still accessible
-        
+
         # Structure should be same as uncached object
         uncached_obj = ClassWithCachedProperty(0)
         uncached_flat, uncached_struct = jax.tree_util.tree_flatten(uncached_obj)
