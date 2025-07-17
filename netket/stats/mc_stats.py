@@ -28,15 +28,30 @@ from ._autocorr import integrated_time
 
 
 def _format_decimal(value, std, var):
-    if math.isfinite(abs(value)) and value > 1e-3:
-        decimals = max(int(np.ceil(-np.log10(std))), 0)
+
+    if not math.isfinite(abs(value)) or not math.isfinite(std):
         return (
-            "{0:.{1}f}".format(value, decimals + 1),
-            "{0:.{1}f}".format(std, decimals + 1),
-            "{0:.{1}f}".format(var, decimals + 1),
+            f"{value:.3e}",
+            f"{std:.3e}",
+            f"{var:.3e}",
         )
+
+    elif abs(value) > 1e-3:
+        if std < 1e-15:
+            decimals = 15
+        else:
+            decimals = max(int(np.ceil(-np.log10(std))), 0) + 1
+        return (
+            "{0:.{1}f}".format(value, decimals),
+            "{0:.{1}f}".format(std, decimals),
+            "{0:.{1}f}".format(var, decimals),
+        )
+
     else:
-        n_digits = max(int(np.ceil(-np.log10(std / abs(value)))), 0) + 1
+        if abs(value) < 1e-15 or std / abs(value) < 1e-15:
+            n_digits = 15
+        else:
+            n_digits = max(int(np.ceil(-np.log10(std / abs(value)))), 0) + 1
         return (
             f"{value:.{n_digits}e}",
             f"{std:.{n_digits}e}",
