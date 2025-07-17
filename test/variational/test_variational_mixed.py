@@ -345,8 +345,8 @@ def test_qutip_conversion(vstate):
 ###
 
 
-def check_consistent(vstate, mpi_size):
-    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
+def check_consistent(vstate, n_devices):
+    assert vstate.n_samples == vstate.n_samples_per_rank * n_devices
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 

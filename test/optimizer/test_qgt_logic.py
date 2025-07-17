@@ -29,7 +29,6 @@ import itertools
 
 from netket import jax as nkjax
 from netket import stats as nkstats
-from netket.utils import mpi
 from netket.optimizer.qgt import (
     qgt_onthefly_logic,
     qgt_jacobian_pytree,
@@ -138,7 +137,7 @@ def tree_subtract_mean(tree):
 
 
 def divide_by_sqrt_n_samp(oks, samples):
-    n_samp = samples.shape[0] * mpi.n_nodes  # MPI
+    n_samp = samples.shape[0]
     sqrt_n = math.sqrt(n_samp)  # enforce weak type
     return jax.tree_util.tree_map(lambda x: x / sqrt_n, oks)
 

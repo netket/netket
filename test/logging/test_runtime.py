@@ -138,10 +138,7 @@ def test_write_only_on_master(tmp_path):
     np.testing.assert_allclose(log.data["value"].iters, np.arange(n_steps))
     np.testing.assert_allclose(log.data["value"].value, np.arange(n_steps))
 
-    if nk.config.netket_experimental_sharding:
-        rank = jax.process_index()
-    else:
-        rank = nk.utils.mpi.rank
+    rank = jax.process_index()
 
     tmp_path = tmp_path / f"out_{rank}.log"
 

@@ -123,8 +123,8 @@ def vstate(request):
     return vs
 
 
-def check_consistent(vstate, mpi_size):
-    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
+def check_consistent(vstate):
+    assert vstate.n_samples == vstate.n_samples_per_rank
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 
@@ -198,7 +198,7 @@ def test_n_samples_api(vstate, _device_count):
 
 
 @common.skipif_mpi
-def test_chunk_size_api(vstate, _mpi_size):
+def test_chunk_size_api(vstate):
     assert vstate.chunk_size is None
 
     with raises(ValueError):

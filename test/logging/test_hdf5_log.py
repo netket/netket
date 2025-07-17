@@ -79,11 +79,7 @@ def test_write_only_on_master(vstate, tmp_path):
     # skip test if tensorboardX not installed
     pytest.importorskip("h5py")
 
-    if nk.config.netket_experimental_sharding:
-        rank = jax.process_index()
-    else:
-        rank = nk.utils.mpi.rank
-
+    rank = jax.process_index()
     path = str(tmp_path) + "/dir1/r{rank}"
 
     log = nkx.logging.HDF5Log(path + "/output")

@@ -178,8 +178,8 @@ def model_and_weights(request):
     return build_model
 
 
-@common.onlyif_mpi
-def test_multiplerules_pt_mpi(model_and_weights):
+def test_multiplerules_pt(model_and_weights):
+    # this test is important especially when we have multiple devices
     g = nk.graph.Hypercube(length=4, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
