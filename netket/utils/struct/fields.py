@@ -66,7 +66,12 @@ def field(
     Args:
         pytree_node: a leaf node in the pytree representation of this dataclass.
             If False this must be hashable.
-        pytree_ignore: If True this field is ignored by the pytree metadata.
+        pytree_ignore: If True this field is ignored by the pytree metadata and will be
+            excluded from the pytree flattening/unflattening process. This means the field
+            will not appear in the flattened representation when calling `jax.tree_util.tree_flatten()`
+            or similar pytree operations. This is useful for caches, temporary data, or other
+            fields that should not be passed forward during pytree transformations.
+            When True, pytree_node must be False.
         serialize: If True the node is included in the serialization.
             In general you should not specify this. (Defaults to value of pytree_node).
         serialize_name: If specified, it's the name under which this attribute is serialized.
