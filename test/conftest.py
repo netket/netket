@@ -44,9 +44,14 @@ def _device_count(request):
     Fixture returning the number of MPI nodes detected by NetKet
     """
 
-    import jax
+    from netket import config as nkconfig
 
-    return jax.device_count()
+    if nkconfig.netket_experimental_sharding:
+        import jax
+
+        return jax.device_count()
+    else:
+        return 1
 
 
 @pytest.fixture

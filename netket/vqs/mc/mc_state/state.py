@@ -418,7 +418,8 @@ class MCState(VariationalState):
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int):
-        self.n_samples = n_samples_per_rank * jax.device_count()
+        n_devices = jax.device_count() if config.netket_experimental_sharding else 1
+        self.n_samples = n_samples_per_rank * n_devices
 
     @property
     def chain_length(self) -> int:
