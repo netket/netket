@@ -49,6 +49,9 @@ from .history import History, accum_in_tree, accum_histories_in_tree
 
 from .static_range import StaticRange
 
+# TODO: remove this import as it is deprecated
+from . import mpi
+
 _hide_submodules(
     __name__,
     remove_self=False,
