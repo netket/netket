@@ -123,8 +123,8 @@ def vstate(request):
     return vs
 
 
-def check_consistent(vstate):
-    assert vstate.n_samples == vstate.n_samples_per_rank
+def check_consistent(vstate, n_devices):
+    assert vstate.n_samples == vstate.n_samples_per_rank * n_devices
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 
