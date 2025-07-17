@@ -26,13 +26,13 @@ WEIGHT_SEED = 3
 
 
 @pytest.fixture()
-def arr(request, _mpi_size):
-    return jax.random.normal(jax.random.PRNGKey(WEIGHT_SEED), (100 * _mpi_size, 10))
+def arr(request):
+    return jax.random.normal(jax.random.PRNGKey(WEIGHT_SEED), (100, 10))
 
 
 @pytest.fixture()
-def arr_loc(request, arr, _mpi_rank):
-    return arr[100 * _mpi_rank : 100 * (_mpi_rank + 1), :]
+def arr_loc(request, arr):
+    return arr[0:100, :]
 
 
 @pytest.mark.parametrize("axis", [None, 0])
@@ -48,13 +48,11 @@ def test_mean(axis, arr, arr_loc):
 
 
 @pytest.mark.parametrize("axis", [None, 0])
-def test_subtract_mean(axis, arr, arr_loc, _mpi_rank):
+def test_subtract_mean(axis, arr, arr_loc):
     arr_sub = arr - jnp.mean(arr, axis=axis)
 
     nk_sub = nk.stats.subtract_mean(arr_loc, axis=axis)
-    np.testing.assert_allclose(
-        nk_sub, arr_sub[100 * _mpi_rank : 100 * (_mpi_rank + 1), :]
-    )
+    np.testing.assert_allclose(nk_sub, arr_sub[0:100, :])
 
 
 @pytest.mark.parametrize("axis", [None, 0])
@@ -78,7 +76,7 @@ def test_var(axis, arr, arr_loc):
 
 
 @pytest.mark.parametrize("axis", [None, 0])
-def test_total_size(axis, arr, arr_loc, _mpi_size):
+def test_total_size(axis, arr, arr_loc):
     if axis is None:
         sz = arr.size
     else:

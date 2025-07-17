@@ -34,7 +34,6 @@ def _compute_srt_update(
     if momentum is not None:
         dv -= momentum * (O_L @ old_updates)
 
-    # Equivalent to MPI.alltoall, shards the data across axis 1
     # (#ns, np) -> (ns, #np)
     O_LT = O_L
     if config.netket_experimental_sharding:
