@@ -16,7 +16,6 @@
 Common utilities to define fields and properties of netket dataclasses
 and Pytrees.
 """
-
 from functools import partial
 
 import dataclasses
@@ -55,6 +54,7 @@ jax.tree_util.register_pytree_node(
 
 def field(
     pytree_node: bool = True,
+    pytree_ignore: bool = False,
     serialize: bool | None = None,
     serialize_name: str | None = None,
     cache: bool = False,
@@ -65,7 +65,13 @@ def field(
 
     Args:
         pytree_node: a leaf node in the pytree representation of this dataclass.
-            If False this must be hashable
+            If False this must be hashable.
+        pytree_ignore: If True this field is ignored by the pytree metadata and will be
+            excluded from the pytree flattening/unflattening process. This means the field
+            will not appear in the flattened representation when calling `jax.tree_util.tree_flatten()`
+            or similar pytree operations. This is useful for caches, temporary data, or other
+            fields that should not be passed forward during pytree transformations.
+            When True, pytree_node must be False.
         serialize: If True the node is included in the serialization.
             In general you should not specify this. (Defaults to value of pytree_node).
         serialize_name: If specified, it's the name under which this attribute is serialized.
@@ -80,9 +86,14 @@ def field(
         serialize = pytree_node
     if sharded is True:
         sharded = ShardedFieldSpec()
+    if pytree_ignore and pytree_node:
+        raise ValueError(
+            "Cannot set both `pytree_node=True` and `pytree_ignore=True`. Pytreenode must be False if pytree_ignore is True."
+        )
 
     metadata = {
         "pytree_node": pytree_node,
+        "ignore": pytree_ignore,
         "serialize": serialize,
         "cache": cache,
         "sharded": sharded,
@@ -104,11 +115,12 @@ class CachedProperty:
     but must be cached.
     """
 
-    def __init__(self, method, pytree_node=False):
+    def __init__(self, method, pytree_node=False, pytree_ignore=False):
         self.name = method.__name__
         self.cache_name = _cache_name(self.name)
         self.method = method
         self.pytree_node = pytree_node
+        self.pytree_ignore = pytree_ignore
         self.type = method.__annotations__.get("return", MISSING)
         self.__doc__ = method.__doc__
 
@@ -131,7 +143,7 @@ class CachedProperty:
         )
 
 
-def property_cached(fun=None, pytree_node=False):
+def property_cached(fun=None, pytree_node=False, pytree_ignore=False):
     """Decorator to make the method behave as a property but cache the resulting value and
     clears it upon replace.
 
@@ -139,7 +151,14 @@ def property_cached(fun=None, pytree_node=False):
         pytree_node: a leaf node in the pytree representation of this dataclass.
             If False this must be hashable
     """
-    if fun is None:
-        return partial(property_cached, pytree_node=pytree_node)
+    if pytree_ignore and pytree_node:
+        raise ValueError(
+            "Cannot set both `pytree_node=True` and `pytree_ignore=True`. Pytreenode must be False if pytree_ignore is True."
+        )
 
-    return CachedProperty(fun, pytree_node=pytree_node)
+    if fun is None:
+        return partial(
+            property_cached, pytree_node=pytree_node, pytree_ignore=pytree_ignore
+        )
+
+    return CachedProperty(fun, pytree_node=pytree_node, pytree_ignore=pytree_ignore)
