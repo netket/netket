@@ -95,7 +95,6 @@ class KineticEnergy(ContinuousOperator):
 
         dlogpsi_x = jacrev(logpsi_x)
         inverse_mass = jnp.reciprocal(self._mass)
-        print(self._mass.dtype, inverse_mass.dtype)
 
         dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
         dp_dx = dlogpsi_x(x)[0][0] ** 2
