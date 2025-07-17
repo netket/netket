@@ -36,10 +36,11 @@ def _format_decimal(value, std, var):
             "{0:.{1}f}".format(var, decimals + 1),
         )
     else:
+        n_digits = max(int(np.ceil(-np.log10(std / abs(value)))), 0) + 1
         return (
-            f"{value:.3e}",
-            f"{std:.3e}",
-            f"{var:.3e}",
+            f"{value:.{n_digits}e}",
+            f"{std:.{n_digits}e}",
+            f"{var:.{n_digits}e}",
         )
 
 
