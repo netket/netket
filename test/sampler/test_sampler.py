@@ -216,6 +216,43 @@ def model_and_weights(request):
 
         # init network
         w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
+        
+        # Create more featureful weights for better convergence testing
+        if not isinstance(sampler, nk.sampler.ARDirectSampler) and not isinstance(hilb, Particle):
+            # Create structured weights that lead to a more peaked distribution
+            # This creates correlations between spins and non-trivial structure
+            key = jax.random.PRNGKey(WEIGHT_SEED + 1)
+            key1, key2, key3 = jax.random.split(key, 3)
+            
+            # Visible biases: create alternating pattern to favor certain configurations
+            # Use smaller amplitudes to avoid making the distribution too peaked
+            visible_bias = jax.random.normal(key1, (hilb.size,)) * 0.2
+            # Add structured bias that creates correlations
+            for i in range(hilb.size):
+                visible_bias = visible_bias.at[i].set(visible_bias[i] + 0.15 * (-1)**i)
+            
+            # Hidden biases: moderate values to create structure
+            hidden_bias = jax.random.normal(key2, (w["params"]["Dense"]["bias"].shape[0],)) * 0.15
+            
+            # Kernel weights: create correlations between neighboring spins
+            kernel = jax.random.normal(key3, w["params"]["Dense"]["kernel"].shape) * 0.15
+            # Add structured correlations with smaller amplitude
+            for i in range(min(hilb.size, kernel.shape[0])):
+                for j in range(kernel.shape[1]):
+                    # Create nearest-neighbor-like interactions
+                    if i < hilb.size - 1:
+                        kernel = kernel.at[i, j].set(kernel[i, j] + 0.2 * jnp.cos(2 * jnp.pi * i / hilb.size))
+            
+            # Update the weights with the more structured values
+            w = {
+                "params": {
+                    "visible_bias": visible_bias,
+                    "Dense": {
+                        "kernel": kernel,
+                        "bias": hidden_bias,
+                    }
+                }
+            }
 
         return ma, w
 
