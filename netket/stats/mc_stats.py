@@ -32,7 +32,10 @@ def _format_main_string(value, std, var):
     if not math.isfinite(abs(value)) or not math.isfinite(std):
         return f"{value:.2e} ± {std:.2e} [σ²={var:.1e}"
 
-    elif abs(value) + std < 1e-2:
+    elif std == 0.0:
+        return f"{value:.3e} [σ²={var:.1e}"
+
+    elif (abs(value) + abs(std) < 1e-2) or abs(std) <= 1e-7:
         value_std_str = _format_scientific_notation(value, std)
         return value_std_str + f" [σ²={var:.1e}"
 
