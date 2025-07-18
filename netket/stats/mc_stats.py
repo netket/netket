@@ -27,25 +27,47 @@ from . import total_size as _total_size
 from ._autocorr import integrated_time
 
 
-def _format_decimal(value, std, var):
+def _format_main_string(value, std, var):
 
-    if math.isfinite(abs(value)) or math.isfinite(std) or abs(value) < 1e-3:
-        return (
-            f"{value:.3e}",
-            f"{std:.3e}",
-            f"{var:.3e}",
-        )
+    if not math.isfinite(abs(value)) or not math.isfinite(std):
+        return f"{value:.2e} ± {std:.2e} [σ²={var:.2e}"
+
+    elif abs(value) < 1e-3:
+        value_std_str = _format_scientific_notation(value, std)
+        return value_std_str + " [σ²={var:.2e}"
 
     else:
         if std < 1e-15:
             decimals = 15
         else:
             decimals = max(int(np.ceil(-np.log10(std))), 0) + 1
-        return (
-            "{0:.{1}f}".format(value, decimals),
-            "{0:.{1}f}".format(std, decimals),
-            "{0:.{1}f}".format(var, decimals),
-        )
+        return f"{value:.{decimals}e} ± {std:.{decimals}e} [σ²={var:.{decimals}e}"
+
+
+def _format_scientific_notation(value, std):
+
+    print(value)
+    print(type(value))
+    length = 5
+
+    exponent_val = (
+        int(np.floor(np.log10(max(np.abs(np.real(value)), np.abs(np.imag(value)))))),
+    )
+    exponent_std = int(np.floor(np.log10(std)))
+    n_digits = max(exponent_val - exponent_std, 0) + 1
+
+    mantissa_val = value / 10**exponent_val
+    mantissa_std = std / 10**exponent_val
+
+    value_length = 2 * length + 2 if isinstance(value, complex) else length
+
+    mantissa_str = (
+        f"{mantissa_val:.{n_digits}f}".rjust(value_length)
+        + " ± "
+        + f"{mantissa_std:.{n_digits}f}".rjust(length)
+    )
+
+    return mantissa_str + " e" + f"{value:e}".split("e")[1]
 
 
 _NaN = float("NaN")
@@ -115,15 +137,19 @@ class Stats:
     def __repr__(self):
         # extract adressable data from fully replicated arrays
         self = extract_replicated(self)
-        mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
+        main_string = _format_main_string(
+            _maybe_item(self.mean),
+            _maybe_item(self.error_of_mean),
+            _maybe_item(self.variance),
+        )
         if not math.isnan(self.R_hat):
-            ext = f", R̂={self.R_hat:.4f}"
+            ext = f", R̂={self.R_hat:.3f}"
         else:
             ext = ""
         if config.netket_experimental_fft_autocorrelation:
             if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
                 ext += f", τ={self.tau_corr:.1f}<{self.tau_corr_max:.1f}"
-        return f"{mean} ± {err} [σ²={var}{ext}]"
+        return main_string + f"{ext}]"
 
     # Alias accessors
     def __getattr__(self, name):
