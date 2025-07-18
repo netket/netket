@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 from numba import jit
@@ -65,7 +66,7 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
             N-tensor containing the matrix elements :math:`O(x,x')`
             associated to each x' for every batch.
         """
-        if config.netket_experimental_sharding:
+        if config.netket_experimental_sharding and jax.device_count() > 1:
             raise RuntimeError(
                 "When using Sharding mode, only jax operators are supported."
             )
