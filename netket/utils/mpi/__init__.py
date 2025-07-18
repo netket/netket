@@ -20,9 +20,9 @@ from netket.utils.mpi.mpi import (
     n_nodes as _depr_n_nodes,
     node_number as _depr_node_number,
     rank as _depr_rank,
+)
 
 from netket.utils.mpi.primitives import (
-from .primitives import (
     mpi_all as _depr_mpi_all,
     mpi_allgather as _depr_mpi_allgather,
     mpi_any as _depr_mpi_any,
