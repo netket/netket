@@ -115,13 +115,13 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
 
     @classmethod
     def tree_unflatten(cls, struct_data, array_data):
-        ...
-        return cls(array_data["hilbert"], ...)
+        return cls(struct_data["hilbert"], array_data)
 
     @property
     def max_conn_size(self) -> int:
         return 1
 
+    @property
     def dtype(self):
         return int
 
