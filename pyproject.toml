@@ -61,8 +61,8 @@ dev = [
     "pytest-json-report>=1.3",
     "coverage>=5",
     "pre-commit>=2.7",
-    "black==24.1.0",
-    "ruff==0.9.4",
+    "black==25.1.0",
+    "ruff==0.12.2",
     "qutip>=5",
     "wheel>=0.38.1",
     "build>=1",
@@ -109,7 +109,7 @@ dev-dependencies = [
 
 [tool.black]
 line-length = 88
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py311', 'py312', 'py313']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -157,7 +157,7 @@ filterwarnings = [
 testpaths = ["test"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 88
 exclude = ["Examples", "docs/conf.py", "*.ipynb"]
 
