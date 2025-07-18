@@ -14,7 +14,11 @@
 
 from netket.utils.config_flags import config
 
-from netket.utils.moduletools import _hide_submodules, rename_class, auto_export as _auto_export
+from netket.utils.moduletools import (
+    _hide_submodules,
+    rename_class,
+    auto_export as _auto_export,
+)
 from netket.utils.version_check import module_version
 
 # error if old dependencies are detected
