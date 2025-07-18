@@ -66,18 +66,17 @@ def get_local_kernel(  # noqa: F811
     return kernels.local_value_kernel_chunked
 
 
-def _local_continuous_kernel(kernel, logpsi, pars, σ, args, *, chunk_size=None):
-    def _kernel(σ):
-        return kernel(logpsi, pars, σ, args)
-
-    return nkjax.apply_chunked(_kernel, in_axes=0, chunk_size=chunk_size)(σ)
+def _local_continuous_kernel(logpsi, pars, σ, op, *, chunk_size=None):
+    return nkjax.apply_chunked(
+        lambda x: op._expect_kernel(logpsi, pars, x), in_axes=0, chunk_size=chunk_size
+    )(σ)
 
 
 @dispatch
 def get_local_kernel(  # noqa: F811
     vstate: MCState, Ô: ContinuousOperator, chunk_size: int
 ):
-    return nkjax.HashablePartial(_local_continuous_kernel, Ô._expect_kernel)
+    return _local_continuous_kernel
 
 
 # If batch_size is unspecified, set it to None

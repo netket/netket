@@ -37,6 +37,8 @@ from netket.vqs.mc import (
     get_local_kernel,
 )
 
+from netket.jax import HashablePartial
+
 from .state import MCState
 
 
@@ -84,16 +86,15 @@ def get_local_kernel(vstate: MCState, Ô: DiscreteJaxOperator):  # noqa: F811
 @dispatch
 def get_local_kernel_arguments(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
-
-    σ = vstate.samples
-    args = Ô._pack_arguments()
-    return σ, args
+    return vstate.samples, Ô
 
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
     # TODO: this should be moved other to dispatch in order to support MCMixedState
-    return Ô._expect_kernel
+    return HashablePartial(
+        lambda logpsi, params, x, op: op._expect_kernel(logpsi, params, x)
+    )
 
 
 # Standard implementation of expect for an MCState (pure) and a generic operator
