@@ -445,9 +445,23 @@ class MetropolisSampler(Sampler):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
             new_rng, key1, key2 = jax.random.split(state.rng, 3)
 
-            σp, log_prob_correction = self.rule.transition(
+            transition_out = self.rule.transition(
                 self, machine, parameters, state, key1, state.σ
             )
+            # TODO: Eventually we should deprecate the 2-tuple return?
+            if len(transition_out) == 3:
+                σp, log_prob_correction, new_rule_state = transition_out
+            elif len(transition_out) == 2:
+                warn_deprecation(
+                    "Transition rules must now returns a 3-tuple of (σ', log_prob_correction, new_rule_state)"
+                    "instead of a 2-tuple (σ', log_prob_correction) as before."
+                )
+                σp, log_prob_correction = transition_out
+                new_rule_state = state.rule_state
+            else:
+                raise ValueError(
+                    "The transition rule must return a 2-tuple or a 3-tuple."
+                )
 
             _assert_good_sample_shape(
                 σp,
@@ -474,6 +488,7 @@ class MetropolisSampler(Sampler):
                 rng=new_rng,
                 n_accepted_proc=state.n_accepted_proc + do_accept,
                 n_steps_proc=state.n_steps_proc + self.n_batches,
+                rule_state=new_rule_state,
             )
 
         new_state = jax.lax.fori_loop(0, self.sweep_size, loop_body, state)
