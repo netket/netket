@@ -29,14 +29,14 @@ from ._autocorr import integrated_time
 
 def _format_decimal(value, std, var):
 
-    if not math.isfinite(abs(value)) or not math.isfinite(std):
+    if math.isfinite(abs(value)) or math.isfinite(std) or abs(value) < 1e-3:
         return (
             f"{value:.3e}",
             f"{std:.3e}",
             f"{var:.3e}",
         )
 
-    elif abs(value) > 1e-3:
+    else:
         if std < 1e-15:
             decimals = 15
         else:
@@ -45,17 +45,6 @@ def _format_decimal(value, std, var):
             "{0:.{1}f}".format(value, decimals),
             "{0:.{1}f}".format(std, decimals),
             "{0:.{1}f}".format(var, decimals),
-        )
-
-    else:
-        if abs(value) < 1e-15 or std / abs(value) < 1e-15:
-            n_digits = 15
-        else:
-            n_digits = max(int(np.ceil(-np.log10(std / abs(value)))), 0) + 1
-        return (
-            f"{value:.{n_digits}e}",
-            f"{std:.{n_digits}e}",
-            f"{var:.{n_digits}e}",
         )
 
 
