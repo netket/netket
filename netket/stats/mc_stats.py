@@ -30,29 +30,31 @@ from ._autocorr import integrated_time
 def _format_main_string(value, std, var):
 
     if not math.isfinite(abs(value)) or not math.isfinite(std):
-        return f"{value:.2e} ± {std:.2e} [σ²={var:.2e}"
+        return f"{value:.2e} ± {std:.2e} [σ²={var:.1e}"
 
-    elif abs(value) < 1e-3:
+    elif abs(value) + std < 1e-2:
         value_std_str = _format_scientific_notation(value, std)
-        return value_std_str + " [σ²={var:.2e}"
+        return value_std_str + f" [σ²={var:.1e}"
 
     else:
         if std < 1e-15:
             decimals = 15
         else:
             decimals = max(int(np.ceil(-np.log10(std))), 0) + 1
-        return f"{value:.{decimals}e} ± {std:.{decimals}e} [σ²={var:.{decimals}e}"
+        return f"{value:.{decimals}f} ± {std:.{decimals}f} [σ²={var:.1e}"
 
 
 def _format_scientific_notation(value, std):
 
-    print(value)
-    print(type(value))
     length = 5
 
-    exponent_val = (
-        int(np.floor(np.log10(max(np.abs(np.real(value)), np.abs(np.imag(value)))))),
+    value_ref = (
+        np.real(value)
+        if np.abs(np.real(value)) > np.abs(np.imag(value))
+        else np.imag(value)
     )
+
+    exponent_val = int(np.floor(np.log10(np.abs(value_ref))))
     exponent_std = int(np.floor(np.log10(std)))
     n_digits = max(exponent_val - exponent_std, 0) + 1
 
@@ -67,7 +69,7 @@ def _format_scientific_notation(value, std):
         + f"{mantissa_std:.{n_digits}f}".rjust(length)
     )
 
-    return mantissa_str + " e" + f"{value:e}".split("e")[1]
+    return mantissa_str + " e" + f"{value_ref:e}".split("e")[1]
 
 
 _NaN = float("NaN")
