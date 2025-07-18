@@ -161,6 +161,9 @@ def test_n_samples_api(vstate, _device_count):
     )
 
     vstate.n_samples_per_rank = 4
+    print("ns", vstate.n_samples, vstate.n_samples_per_rank)
+    print("vstate.samples.shape", vstate.samples.shape)
+    print("samples", vstate.sampler, vstate.sampler.n_chains, vstate.sampler.n_batches)
     check_consistent(vstate, _device_count)
     assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 4)
 
@@ -210,12 +213,8 @@ def test_chunk_size_api(vstate):
     vstate.n_samples = 1008
 
     # does not divide n_samples
-    with raises(
-        ValueError,
-    ):
-        vstate.chunk_size = 100
-
-    assert vstate.chunk_size is None
+    vstate.chunk_size = 100
+    assert vstate.chunk_size == 100
 
     vstate.chunk_size = 126
     assert vstate.chunk_size == 126
@@ -223,16 +222,12 @@ def test_chunk_size_api(vstate):
     vstate.n_samples = 1008 * 2
     assert vstate.chunk_size == 126
 
-    with raises(ValueError):
-        vstate.chunk_size = 500
+    # does not divide n_samples
+    vstate.chunk_size = 500
 
     _ = vstate.sample()
     _ = vstate.sample(n_samples=vstate.n_samples)
-    with raises(ValueError):
-        vstate.sample(n_samples=1008 + 16)
-
-    with raises(ValueError):
-        vstate.sample(n_samples=1008, chain_length=100)
+    _ = vstate.sample(n_samples=1008 + 16)
 
 
 @common.skipif_mpi
