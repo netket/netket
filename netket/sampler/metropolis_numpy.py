@@ -235,7 +235,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 )
                 assert len(_log_prob.addressable_shards) == 1
                 _log_prob = global_array_to_host_local_array(
-                    log_prob, global_mesh, pspecs
+                    _log_prob, global_mesh, pspecs
                 )
             else:
                 _log_prob = (
