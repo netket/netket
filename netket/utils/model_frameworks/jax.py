@@ -15,7 +15,7 @@
 import sys
 import inspect
 
-from .base import ModuleFramework, framework
+from netket.utils.model_frameworks.base import ModuleFramework, framework
 
 
 # expose jax-stax as a flax module

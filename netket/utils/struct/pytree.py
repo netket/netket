@@ -12,7 +12,7 @@ import jax.numpy as jnp
 
 from flax import serialization
 
-from .fields import CachedProperty, _cache_name, _raw_cache_name, Uninitialized
+from netket.utils.struct.fields import CachedProperty, _cache_name, _raw_cache_name, Uninitialized
 from netket.utils import config
 from netket.errors import NetKetPyTreeUndeclaredAttributeAssignmentError
 
@@ -404,7 +404,7 @@ class Pytree(metaclass=PytreeMeta):
     def _to_flax_state_dict(
         cls, noserialize_field_names: tuple[str, ...], pytree: "Pytree"
     ) -> dict[str, tp.Any]:
-        from .pytree_serialization_sharding import to_flax_state_dict_sharding
+        from netket.utils.struct.pytree_serialization_sharding import to_flax_state_dict_sharding
 
         state_dict = {
             name: unwrap_jax_prng_keys(

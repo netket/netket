@@ -16,7 +16,7 @@
 import numpy as np
 import jax
 
-from .types import Array, DType, Shape
+from netket.utils.types import Array, DType, Shape
 
 
 class HashableArray:

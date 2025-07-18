@@ -21,7 +21,7 @@ silently or unexpectedly.
 from textwrap import dedent
 
 
-from .version_check import module_version, version_string
+from netket.utils.version_check import module_version, version_string
 
 
 def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_name=None):

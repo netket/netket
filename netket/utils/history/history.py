@@ -22,10 +22,10 @@ import numpy as np
 if TYPE_CHECKING:
     import matplotlib
 
-from ..dispatch import dispatch
-from ..numbers import is_scalar
-from ..types import Array, DType
-from ..optional_deps import import_optional_dependency
+from netket.utils.dispatch import dispatch
+from netket.utils.numbers import is_scalar
+from netket.utils.types import Array, DType
+from netket.utils.optional_deps import import_optional_dependency
 
 
 def raise_if_len_not_match(length, expected_length, string):

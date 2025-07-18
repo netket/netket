@@ -27,8 +27,8 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.types import Array, Shape
 from netket.utils.dispatch import dispatch
 
-from ._group import FiniteGroup
-from ._semigroup import Element, Identity
+from netket.utils.group._group import FiniteGroup
+from netket.utils.group._semigroup import Element, Identity
 
 ############ POINT GROUP SYMMETRY CLASS ########################################
 

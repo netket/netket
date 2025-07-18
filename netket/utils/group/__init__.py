@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._semigroup import Element, Identity
-from ._group import FiniteGroup
-from ._permutation_group import Permutation, PermutationGroup
-from ._point_group import PGSymmetry, PointGroup, trivial_point_group
+from netket.utils.group._semigroup import Element, Identity
+from netket.utils.group._group import FiniteGroup
+from netket.utils.group._permutation_group import Permutation, PermutationGroup
+from netket.utils.group._point_group import PGSymmetry, PointGroup, trivial_point_group
 
-from . import axial, cubic, planar, icosa
+from netket.utils.group import axial, cubic, planar, icosa

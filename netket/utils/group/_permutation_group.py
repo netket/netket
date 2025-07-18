@@ -25,8 +25,8 @@ from netket.utils.dispatch import dispatch
 
 from netket.utils import warn_deprecation, deprecated, deprecated_new_name
 
-from ._group import FiniteGroup
-from ._semigroup import Element
+from netket.utils.group._group import FiniteGroup
+from netket.utils.group._semigroup import Element
 
 
 class Permutation(Element):

@@ -24,7 +24,7 @@ from netket.utils.float import comparable, prune_zeros
 from netket.utils.types import Array
 from netket.utils.dispatch import dispatch
 
-from ._semigroup import Element, FiniteSemiGroup, Identity
+from netket.utils.group._semigroup import Element, FiniteSemiGroup, Identity
 
 
 @struct.dataclass

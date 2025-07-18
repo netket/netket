@@ -19,9 +19,9 @@ from functools import partial
 
 from flax.core import FrozenDict
 
-from ..dispatch import dispatch
+from netket.utils.dispatch import dispatch
 
-from .history import History
+from netket.utils.history.history import History
 
 AccumulatorFun = Callable[[Any, Any], Any]
 

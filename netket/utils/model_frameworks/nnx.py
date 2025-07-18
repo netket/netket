@@ -19,7 +19,7 @@ import sys
 
 from netket.utils.version_check import module_version
 
-from .base import ModuleFramework, framework
+from netket.utils.model_frameworks.base import ModuleFramework, framework
 
 if TYPE_CHECKING:
     from flax import nnx

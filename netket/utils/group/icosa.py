@@ -14,9 +14,9 @@
 
 from netket.utils.moduletools import export, hide_unexported
 
-from .axial import inversion_group as _inv_group
-from .axial import C as _C
-from ._point_group import PointGroup
+from netket.utils.group.axial import inversion_group as _inv_group
+from netket.utils.group.axial import C as _C
+from netket.utils.group._point_group import PointGroup
 
 
 hide_unexported(__name__)

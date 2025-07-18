@@ -23,7 +23,7 @@ from dataclasses import MISSING
 
 import jax
 
-from .pytree_serialization_sharding import ShardedFieldSpec
+from netket.utils.struct.pytree_serialization_sharding import ShardedFieldSpec
 
 
 def _cache_name(property_name):

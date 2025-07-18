@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mpi import (
+from netket.utils.mpi.mpi import (
     mpi4jax_available as _depr_available,
     MPI as _depr_MPI,
     MPI_py_comm as _depr_MPI_py_comm,
@@ -20,8 +20,8 @@ from .mpi import (
     n_nodes as _depr_n_nodes,
     node_number as _depr_node_number,
     rank as _depr_rank,
-)
 
+from netket.utils.mpi.primitives import (
 from .primitives import (
     mpi_all as _depr_mpi_all,
     mpi_allgather as _depr_mpi_allgather,
@@ -30,8 +30,6 @@ from .primitives import (
     mpi_max as _depr_mpi_max,
     mpi_mean as _depr_mpi_mean,
     mpi_sum as _depr_mpi_sum,
-)
-from .primitives import (
     mpi_all_jax as _depr_mpi_all_jax,
     mpi_allgather_jax as _depr_mpi_allgather_jax,
     mpi_any_jax as _depr_mpi_any_jax,
@@ -47,7 +45,7 @@ from .primitives import (
     mpi_scatter_jax as _depr_mpi_scatter_jax,
 )
 
-from ..deprecation import deprecation_getattr as _deprecation_getattr
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 
 msg = (
     "netket.utils.mpi is deprecated, as MPI support has been removed. "

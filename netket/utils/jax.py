@@ -19,10 +19,10 @@ from flax.linen import Module
 import jax.numpy as jnp
 
 
-from .partial import HashablePartial
-from .types import ModuleOrApplyFun, PyTree, Array
+from netket.utils.partial import HashablePartial
+from netket.utils.types import ModuleOrApplyFun, PyTree, Array
 
-from . import struct
+from netket.utils import struct
 
 
 def get_afun_if_module(mod_or_fun) -> Callable:

@@ -18,8 +18,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from . import struct
-from .types import DType
+from netket.utils import struct
+from netket.utils.types import DType
 
 
 @struct.dataclass

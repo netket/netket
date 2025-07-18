@@ -17,8 +17,8 @@ import numpy as np
 from netket.utils.types import Array
 from netket.utils.moduletools import export, hide_unexported
 
-from ._point_group import PGSymmetry, PointGroup
-from ._semigroup import Identity
+from netket.utils.group._point_group import PGSymmetry, PointGroup
+from netket.utils.group._semigroup import Identity
 
 
 hide_unexported(__name__)
