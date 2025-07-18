@@ -37,28 +37,25 @@ jobs:
         with:
           submodules: true
           fetch-tags: true
-
-      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v5
+      - name: Set up uv and Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
         run: |
-          pip install uv
-          uv pip install --system -e ".[dev,extra,pyscf]"
-          uv pip install --system dm-haiku
+          uv sync --extra dev --extra extra --extra pyscf
 
       - name: Netket tests
-        if: ${{ matrix.main_tests }} 
+        if: ${{ matrix.main_tests }}
         run: |
           export NETKET_EXPERIMENTAL=1
-          pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
+          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
 
       - name: NetKet docstring tests
         if: ${{ matrix.doctest }}
         run: |
-          pytest --doctest-continue-on-failure --doctest-modules netket/
+          uv run pytest --doctest-continue-on-failure --doctest-modules netket/
 
       - name: Upload coverage reports to Codecov
         if: always()
