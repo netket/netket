@@ -100,9 +100,13 @@ class Config:
         self._editable_at_runtime[name] = runtime
         self._values[name] = get_env(name, type, default)
         self._callbacks[name] = callback
-        self._meta[name] = (type, [], {
-            'help':help,
-        })
+        self._meta[name] = (
+            type,
+            [],
+            {
+                "help": help,
+            },
+        )
 
         if callback is not None and not lazy:
             callback(self._values[name])

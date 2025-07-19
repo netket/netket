@@ -46,6 +46,7 @@ from netket.utils.mpi.primitives import (
     mpi_allreduce_sum_jax,
     mpi_scatter_jax,
 )
+
 _deprecations = {
     # July 2025, NetKet 3.19
     "available": (msg, _depr_available),
