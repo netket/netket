@@ -248,11 +248,14 @@ class MCState(VariationalState):
             self._init_fun = nkjax.HashablePartial(
                 lambda model, *args, **kwargs: model.init(*args, **kwargs), model
             )
-            self._apply_fun = wrap_to_support_scalar(
-                nkjax.HashablePartial(
-                    lambda model, pars, x, **kwargs: model.apply(pars, x, **kwargs),
-                    model,
-                )
+            self._apply_fun = jax.named_call(
+                wrap_to_support_scalar(
+                    nkjax.HashablePartial(
+                        lambda model, pars, x, **kwargs: model.apply(pars, x, **kwargs),
+                        model,
+                    )
+                ),
+                name="log_psi_fun",
             )
 
         elif apply_fun is not None:

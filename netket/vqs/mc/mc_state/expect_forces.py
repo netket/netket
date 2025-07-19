@@ -95,7 +95,7 @@ def forces_expect_hermitian(
     # Code is a bit more complex than a standard one because we support
     # mutable state (if it's there)
     is_mutable = mutable is not False
-    _, vjp_fun, *new_model_state = nkjax.vjp(
+    _, vjp_fun, *new_model_state = jax.named_call(nkjax.vjp, name='nkjax.vjp')(
         lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
         parameters,
         conjugate=True,

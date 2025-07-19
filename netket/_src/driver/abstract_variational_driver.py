@@ -12,42 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TypeVar
-from collections.abc import Callable, Iterable
+from typing import Any, Callable, Optional
+from collections.abc import Iterable
+import sys
 
-import abc
 import numbers
 from functools import partial
-
-from tqdm.auto import tqdm
+from pathlib import Path
 
 import jax
 
-from netket import config
 from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
-from netket.utils import timing
+from netket.utils import struct, timing
 from netket.utils.types import Optimizer, PyTree
-from netket.vqs import VariationalState
+from netket.vqs import VariationalState, FullSumState
 
-CallbackT = Callable[[int, dict, "AbstractVariationalDriver"], bool]
+from netket._src.utils.itertools import to_iterable
 
-T = TypeVar("T")
-
-
-def _to_iterable(maybe_iterable: T | Iterable[T]) -> tuple[T, ...]:
-    """
-    _to_iterable(maybe_iterable)
-
-    Ensure the result is iterable. If the input is not iterable, it is wrapped into a tuple.
-    """
-    if not isinstance(maybe_iterable, Iterable):
-        maybe_iterable = (maybe_iterable,)
-
-    return tuple(maybe_iterable)
+from netket._src.callbacks.base import AbstractCallback
+from netket._src.callbacks.observables import ObservableCallback
+from netket._src.callbacks.legacy_wrappers import (
+    LegacyCallbackWrapper,
+    LegacyLoggerWrapper,
+)
+from netket._src.callbacks.progressbar import ProgressBarCallback
+from netket._src.callbacks.callback_list import CallbackList
 
 
-class AbstractVariationalDriver(abc.ABC):
+def maybe_wrap_legacy_callback(callback):
+    if isinstance(callback, AbstractCallback):
+        return callback
+    else:
+        return LegacyCallbackWrapper(callback)
+
+
+class AbstractVariationalDriver(struct.Pytree, mutable=True):
     """Abstract base class for NetKet Variational Monte Carlo drivers
 
     This class must be inherited from in order to create an optimization driver that
@@ -67,7 +67,7 @@ class AbstractVariationalDriver(abc.ABC):
           driver is minimising a loss function and you want it's name to show up automatically
           in the progress bar/output files you should pass the optional keyword argument.
 
-        - :meth:`~netket.driver.AbstractVariationalDriver._forward_and_backward`,
+        - :meth:`~netket.driver.AbstractVariationalDriver._do_step`,
           that should compute the loss function and the gradient, returning the latter.
           If the driver is minimizing or maximising some loss function,
           this quantity should be assigned to the field `self._loss_stats`
@@ -82,6 +82,34 @@ class AbstractVariationalDriver(abc.ABC):
           extra fields in the driver itself.
 
     """
+
+    # Configuration fields, not very important
+    _loss_name: str = struct.field(pytree_node=False, serialize=False)
+
+    # Stuff to iterate the driver
+    _loss_stats: Any = struct.field(serialize=True)
+    _step_count: int = struct.field(serialize=True)
+
+    # state of the driver
+    _optimizer: Optimizer = struct.field(pytree_node=False, serialize=False)
+    _optimizer_state: Any = struct.field(pytree_node=True, serialize=True)
+    _variational_state: VariationalState = struct.field(
+        pytree_node=False,
+        serialize=True,
+        serialize_name="state",
+    )
+
+    # Internal caches (those could be removed in the future?)
+    _dp: PyTree = struct.field(pytree_node=True, serialize=False)
+
+    # Iterator caches
+    _stop_run: bool = struct.field(pytree_node=False, serialize=False, default=False)
+    _reject_step: bool = struct.field(pytree_node=False, serialize=False, default=False)
+    _step_start: int = struct.field(pytree_node=False, serialize=False, default=None)
+    _step_size: int = struct.field(pytree_node=False, serialize=False, default=1)
+    _step_end: int = struct.field(pytree_node=False, serialize=False, default=None)
+    _step_attempt: int = struct.field(pytree_node=False, serialize=False, default=0)
+    _timer: timing.Timer = struct.field(pytree_node=False, serialize=False)
 
     def __init__(
         self,
@@ -101,16 +129,14 @@ class AbstractVariationalDriver(abc.ABC):
             minimized_quantity_name: the name of the loss function in
                 the logged data set.
         """
-        self._is_root = jax.process_index() == 0
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
         self._step_count = 0
-        self._timer = None
 
         self._variational_state = variational_state
         self.optimizer = optimizer
 
-    def _forward_and_backward(self) -> PyTree:  # pragma: no cover
+    def compute_loss_and_update(self) -> PyTree:  # pragma: no cover
         """
         :meta public:
 
@@ -138,20 +164,19 @@ class AbstractVariationalDriver(abc.ABC):
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def _estimate_stats(self, observable):
+    def reset_step(self):
         """
-        Returns the MCMC statistics for the expectation value of an observable.
-        Must be implemented by super-classes of AbstractVMC.
+        Resets the state of the driver at the beginning of a new step.
+
+        This method is called at the beginning of every step in the optimization.
 
         Args:
-            observable: A quantum operator (netket observable)
-
-        Returns:
-            The expectation value of the observable.
+            hard: If True, the reset is a hard reset, resulting in a complete resampling even if `resample_fraction`
+            is not `None`.
         """
-        return self.state.expect(observable)
+        self.state.reset()
 
-    def _log_additional_data(self, log_dict: dict, step: int):
+    def _log_additional_data(self, log_dict: dict):
         """
         Method to be implemented in sub-classes of AbstractVariationalDriver to
         log additional data at every step.
@@ -164,19 +189,9 @@ class AbstractVariationalDriver(abc.ABC):
         """
         # Always log the acceptance.
         if hasattr(self.state, "sampler_state"):
-            acceptance = getattr(self.state.sampler_state, "acceptance", None)  # type: ignore
+            acceptance = getattr(self.state.sampler_state, "acceptance", None)
             if acceptance is not None:
                 log_dict["acceptance"] = acceptance
-
-    def reset(self):
-        """
-        Resets the driver.
-
-        Subclasses should make sure to call :code:`super().reset()` to ensure
-        that the step count is set to 0.
-        """
-        self.state.reset()
-        self._step_count = 0
 
     @property
     def state(self):
@@ -197,11 +212,6 @@ class AbstractVariationalDriver(abc.ABC):
         self._optimizer = optimizer
         if optimizer is not None:
             self._optimizer_state = optimizer.init(self.state.parameters)
-            if config.netket_experimental_sharding:
-                self._optimizer_state = jax.lax.with_sharding_constraint(
-                    self._optimizer_state,
-                    jax.sharding.PositionalSharding(jax.devices()).replicate(),
-                )
 
     @property
     def step_count(self):
@@ -211,51 +221,20 @@ class AbstractVariationalDriver(abc.ABC):
         """
         return self._step_count
 
-    def iter(self, n_steps: int, step: int = 1):
-        """
-        Returns a generator which advances the VMC optimization, yielding
-        after every `step_size` steps.
-
-        Args:
-            n_steps: The total number of steps to perform (this is
-                equivalent to the length of the iterator)
-            step: The number of internal steps the simulation
-                is advanced between yielding from the iterator
-
-        Yields:
-            int: The current step.
-        """
-        for _ in range(0, n_steps, step):
-            for i in range(0, step):
-                self._dp = self._forward_and_backward()
-                if i == 0:
-                    yield self.step_count
-
-                self._step_count += 1
-                self.update_parameters(self._dp)
-
-    def advance(self, steps: int = 1):
-        """
-        Performs `steps` optimization steps.
-
-        Args:
-            steps: (Default=1) number of steps.
-
-        """
-        for _ in self.iter(steps):
-            pass
-
     def run(
         self,
         n_iter: int,
-        out: AbstractLog | Iterable[AbstractLog] | str | None = (),
-        obs: dict[str, AbstractObservable] | None = None,
+        out: Optional[Iterable[AbstractLog]] = (),
+        obs: Optional[dict[str, AbstractObservable]] = None,
         step_size: int = 1,
         show_progress: bool = True,
         save_params_every: int = 50,  # for default logger
         write_every: int = 50,  # for default logger
-        callback: CallbackT | Iterable[CallbackT] = lambda *x: True,
+        callback: Callable[
+            [int, dict, "AbstractVariationalDriver"], bool
+        ] = lambda *x: True,
         timeit: bool = False,
+        _graceful_keyboard_interrupt: bool = True,
     ):
         """
         Runs this variational driver, updating the weights of the network stored in
@@ -286,20 +265,6 @@ class AbstractVariationalDriver(abc.ABC):
         also returned at the end of this function so that you can inspect the results
         without reading the json output.
 
-        When running among multiple JAX devices, the logging logic is executed
-        on all nodes, but only root-rank loggers should write to files or do expensive I/O
-        operations.
-
-        .. note::
-
-            Before NetKet 3.15, loggers where automatically 'ignored' on non-root ranks.
-            However, starting with NetKet 3.15 it is the responsability of a logger to
-            check if it is executing on a non-root rank, and to 'do nothing' if that is
-            the case.
-
-            The change was required to work correctly and efficiently with sharding. It will
-            only affect users that were defining custom loggers themselves.
-
         Args:
             n_iter: the total number of iterations to be performed during this run.
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
@@ -313,6 +278,10 @@ class AbstractVariationalDriver(abc.ABC):
             write_every: Every how many steps the json data should be flushed to disk (ignored if
                 logger is provided)
             timeit: If True, provide timing information.
+            _graceful_keyboard_interrupt: (Internal flag, defaults to True) If True, the driver will gracefully
+                handle a KeyboardInterrupt, usually arising from doing ctrl-C, returning the current state of the
+                simulation. If False, the KeyboardInterrupt will be raised as usual.
+                This only has an effect when running in interactive mode.
         """
 
         if not isinstance(n_iter, numbers.Number):
@@ -320,81 +289,95 @@ class AbstractVariationalDriver(abc.ABC):
                 "n_iter, the first positional argument to `run`, must be a number!"
             )
 
-        if obs is None:
-            obs = {}
-
         # if out is a path, create an overwriting Json Log for output
         if isinstance(out, str):
             out = JsonLog(out, "w", save_params_every, write_every)
         elif out is None:
             out = ()
+        loggers = to_iterable(out)
 
-        loggers = _to_iterable(out)
-        callbacks = _to_iterable(callback)
-        callback_stop = False
+        callback_list = [maybe_wrap_legacy_callback(c) for c in to_iterable(callback)]
+        if obs is not None:
+            callback_list.append(ObservableCallback(obs, step_size))
+        callback_list.extend(LegacyLoggerWrapper(log) for log in loggers)
+        if show_progress:
+            callback_list.append(ProgressBarCallback(n_iter))
+        callbacks = CallbackList(callback_list)
+
+        self._stop_run = False
+        self._step_size = step_size
+        self._reject_step = False
+        self._step_start = self.step_count
+        self._step_end = self.step_count + n_iter
 
         with timing.timed_scope(force=timeit) as timer:
-            with tqdm(
-                total=n_iter,
-                disable=not show_progress or not self._is_root,
-                dynamic_ncols=True,
-            ) as pbar:
-                old_step = self.step_count
-                first_step = True
+            try:
+                callbacks.on_run_start(self.step_count, self, callbacks.callbacks)
+                for step in range(self.step_count, self._step_end):
+                    self._step_attempt = 0
+                    step_log_data = {}
 
-                for step in self.iter(n_iter, step_size):
-                    with jax.profiler.StepTraceAnnotation("train", step_num=step):
+                    while True:
+                        callbacks.on_step_start(self.step_count, step_log_data, self)
 
-                        log_data = self.estimate(obs)
-                        self._log_additional_data(log_data, step)
+                        self.reset_step()
 
-                        # if the cost-function is defined then report it in the progress bar
-                        if self._loss_stats is not None:
-                            pbar.set_postfix_str(
-                                self._loss_name + "=" + str(self._loss_stats)
-                            )
-                            log_data[self._loss_name] = self._loss_stats
+                        callbacks.on_reset_step_end(
+                            self.step_count, step_log_data, self
+                        )
 
-                        # Execute callbacks before loggers because they can append to log_data
-                        for callback in callbacks:
-                            if not callback(step, log_data, self):
-                                callback_stop = True
+                        callbacks.on_compute_update_start(
+                            self.step_count, step_log_data, self
+                        )
+                        self._loss_stats, self._dp = self.compute_loss_and_update()
+                        callbacks.on_compute_update_end(
+                            self.step_count, step_log_data, self
+                        )
 
-                        with timing.timed_scope(name="loggers"):
-                            for logger in loggers:
-                                logger(self.step_count, log_data, self.state)
+                        # Handle repeating a step
+                        if self._reject_step and not self._stop_run:
+                            self._reject_step = False
+                            self._step_attempt += 1
+                            continue
+                        else:
+                            break
+                    # If we are here, we accepted the step
+                    if self._loss_stats is not None:
+                        step_log_data[self._loss_name] = self._loss_stats
 
-                        if len(callbacks) > 0:
-                            # TODO: Use some logic to to jax.distributed.any?
-                            if callback_stop:
-                                break
+                    # Execute callbacks before loggers because they can append to log_data
+                    self._log_additional_data(step_log_data)
+                    callbacks.on_legacy_run(self.step_count, step_log_data, self)
+                    # callbacks.on_legacy_log(self.step_count, step_log_data, self)
 
-                        # Reset the timing of tqdm after the first step, to ignore compilation time
-                        if first_step:
-                            first_step = False
-                            pbar.unpause()
+                    if self._stop_run:
+                        break
 
-                        # Update the progress bar
-                        pbar.update(self.step_count - old_step)
-                        old_step = self.step_count
+                    callbacks.on_parameter_update(self.step_count, step_log_data, self)
+                    self.update_parameters(self._dp)
 
-                # Final update so that it shows up filled.
-                pbar.update(self.step_count - old_step)
+                    callbacks.on_step_end(self.step_count, step_log_data, self)
+                    self._step_count += 1
 
-        # flush at the end of the evolution so that final values are saved to
-        # file
-        for logger in loggers:
-            logger.flush(self.state)
+                callbacks.on_run_end(self.step_count, self)
+            except KeyboardInterrupt as error:
+                callbacks.on_run_error(self.step_count, error, self)
+                if _graceful_keyboard_interrupt and hasattr(sys, "ps1"):
+                    print("Stopped by user.")
+                else:
+                    raise
+            except Exception as error:
+                callbacks.on_run_error(self.step_count, error, self)
+                raise error
 
         if timeit:
             self._timer = timer
-            if self._is_root:
+            if jax.process_count() == 0:
                 print(timer)
 
         return loggers
 
-    @timing.timed(name="estimate observables")
-    def estimate(self, observables):
+    def estimate(self, observables, fullsum=False):
         """
         Return MCMC statistics for the expectation value of observables in the
         current state of the driver.
@@ -409,8 +392,16 @@ class AbstractVariationalDriver(abc.ABC):
 
         # Do not unpack operators, even if they are pytrees!
         # this is necessary to support jax operators.
+        vstate = self.state
+        if fullsum:
+            vstate = FullSumState(
+                hilbert=vstate.hilbert,
+                model=vstate.model,
+                chunk_size=vstate.chunk_size,
+                variables=vstate.variables,
+            )
         return jax.tree_util.tree_map(
-            self._estimate_stats,
+            vstate.expect,
             observables,
             is_leaf=lambda x: isinstance(x, AbstractObservable),
         )
@@ -434,12 +425,4 @@ def apply_gradient(optimizer_fun, optimizer_state, dp, params):
     updates, new_optimizer_state = optimizer_fun(dp, optimizer_state, params)
 
     new_params = optax.apply_updates(params, updates)
-
-    if config.netket_experimental_sharding:
-        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
-        new_optimizer_state = jax.lax.with_sharding_constraint(
-            new_optimizer_state, sharding
-        )
-        new_params = jax.lax.with_sharding_constraint(new_params, sharding)
-
     return new_optimizer_state, new_params

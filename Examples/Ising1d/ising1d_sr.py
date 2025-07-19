@@ -15,6 +15,7 @@
 import netket as nk
 from netket import experimental as nkx
 import optax
+import jax
 
 # 1D Lattice
 L = 20
@@ -27,10 +28,10 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, param_dtype=float)
+ma = nk.models.RBM(alpha=8, param_dtype=float)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+sa = nk.sampler.MetropolisLocal(hi, n_chains=32)
 
 # Optimizer with a decreasing learning rate
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
@@ -47,4 +48,17 @@ gs = nkx.driver.VMC_SR(
 )
 
 # Run the optimization for 500 iterations
-gs.run(n_iter=500, out="test", timeit=True)
+gs.run(n_iter=1)
+jax.block_until_ready(gs.state.variables)
+
+# options = jax.profiler.ProfileOptions()
+# options.python_tracer_level = 0
+# options.host_tracer_level = 0
+# jax.profiler.start_trace("/tmp/profile-data", profiler_options=options)
+with jax.profiler.trace(
+    "/tmp/jax-trace", create_perfetto_link=True, create_perfetto_trace=True
+):
+
+    # Run the operations to be profiled
+    gs.run(n_iter=20)
+    # jax.profiler.stop_trace()

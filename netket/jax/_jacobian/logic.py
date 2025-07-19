@@ -45,6 +45,7 @@ from . import jacobian_pytree
         "_sqrt_rescale",
     ),
 )
+@partial(jax.named_call, name="nkjax.jacobian")
 def jacobian(
     apply_fun: Callable,
     params: PyTree,

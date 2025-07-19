@@ -377,7 +377,6 @@ class VMC_SR(AbstractVariationalDriver):
             old_updates=self._old_updates,
             chunk_size=self.chunk_size_bwd,
         )
-
         return self._dp
 
     @timing.timed

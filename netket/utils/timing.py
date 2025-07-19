@@ -21,6 +21,7 @@ import functools
 import contextlib
 
 import jax
+from jax.profiler import annotate_function as jaxprof_annotate_function
 
 from rich.tree import Tree
 from rich.panel import Panel
@@ -273,7 +274,7 @@ def timed(
     def timed_function(*args, **kwargs):
         __tracebackhide__ = True
         with timed_scope(name) as ts:
-            result = fun(*args, **kwargs)
+            result = jaxprof_annotate_function(fun, name=name)(*args, **kwargs)
             if block_until_ready:
                 return ts.block_until_ready(result)
             else:

@@ -74,10 +74,10 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         x_ids = self.hilbert.states_to_local_indices(x)
         return _ising_n_conn_jax(x_ids, self._edges, self.h, self.J)
 
+    @partial(jax.named_call, name="Ising.get_conn_padded")
     @jax.jit
-    @wraps(IsingBase.get_conn_padded)
     def get_conn_padded(self, x):
-        x_ids = self.hilbert.states_to_local_indices(x)
+        x_ids = jax.named_call(self.hilbert.states_to_local_indices, name="hilbert.local")(x)
         xp_ids, mels = _ising_kernel_jax(x_ids, self._edges, self.h, self.J)
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
@@ -117,6 +117,7 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         return res
 
 
+@partial(jax.named_call, name="_ising_mels_jax")
 def _ising_mels_jax(x, edges, h, J):
     batch_dims = x.shape[:-1]
     if isinstance(h, StaticZero):
@@ -132,6 +133,7 @@ def _ising_mels_jax(x, edges, h, J):
     return mels
 
 
+@partial(jax.named_call, name="_ising_conn_states_jax")
 def _ising_conn_states_jax(x, cond):
     was_state_0 = x == 0
     state_0 = jnp.asarray(0, dtype=x.dtype)
@@ -140,6 +142,7 @@ def _ising_conn_states_jax(x, cond):
 
 
 @partial(jax.jit)
+@partial(jax.named_call, name="ising_kernel_jax")
 def _ising_kernel_jax(x, edges, h, J):
     hilb_size = x.shape[-1]
     batch_shape = x.shape[:-1]
@@ -161,6 +164,7 @@ def _ising_kernel_jax(x, edges, h, J):
 
 
 @jax.jit
+@partial(jax.named_call, name="_ising_n_conn_jax")
 def _ising_n_conn_jax(x, edges, h, J):
     n_conn_X = 0 if isinstance(h, StaticZero) else x.shape[-1]
     same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
