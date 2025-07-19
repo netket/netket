@@ -11,6 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""
+Helium atoms in 1D with DeepSet neural network.
+
+Continuous space quantum simulation with interacting particles and Aziz potential.
+
+Tags: continuous, helium, deepset, particles
+"""
+
 import netket as nk
 from netket import experimental as nkx
 

@@ -51,10 +51,9 @@ from netket.utils.model_frameworks import maybe_wrap_module
 
 from netket.utils.history import History, accum_in_tree, accum_histories_in_tree
 
-from netket.utils.static_range import StaticRange
-
-# TODO: remove this import as it is deprecated
 from netket.utils import mpi
+
+from netket.utils.static_range import StaticRange
 
 _hide_submodules(
     __name__,

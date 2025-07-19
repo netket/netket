@@ -62,7 +62,7 @@ def operator_from_arrays(
 
 
 def from_pyscf_molecule(
-    molecule,  # type: pyscf.gto.mole.Mole  # noqa: F821
+    molecule,  # type: "pyscf.gto.mole.Mole"  # noqa: F821
     mo_coeff: np.ndarray | None = None,
     *,
     cutoff: float = 1e-11,

@@ -2,7 +2,7 @@ netket/_version.py
 
 # AI stuff #
 ############
-CLAUDE.md
+# CLAUDE.md
 
 # Compiled source #
 ###################
@@ -86,3 +86,7 @@ build/
 docs/_build
 _generated
 dist
+# Ignore everything in the folder
+docs/examples/*
+# But do not ignore this specific file
+!docs/examples/index.md
