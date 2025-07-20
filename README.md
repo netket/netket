@@ -10,8 +10,7 @@
 [![codecov](https://codecov.io/gh/netket/netket/branch/master/graph/badge.svg?token=gzcOlpO5lB)](https://codecov.io/gh/netket/netket)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg)](https://join.slack.com/t/mlquantum/shared_invite/zt-19wibmfdv-LLRI6i43wrLev6oQX0OfOw)
 
-NetKet is an open-source project delivering cutting-edge methods for the study
-of many-body quantum systems with artificial neural networks and machine learning techniques.
+NetKet is an open-source project delivering cutting-edge methods for the study of many-body quantum systems with artificial neural networks and machine learning techniques.
 It is a Python library built on [JAX](https://github.com/google/jax).
 
 NetKet is an affiliated project to [numFOCUS](https://numfocus.org).
@@ -25,30 +24,24 @@ NetKet is an affiliated project to [numFOCUS](https://numfocus.org).
 
 ## Installation and Usage
 
-NetKet runs on MacOS and Linux. We recommend to install NetKet using `pip`, but it can also be installed with `conda`.
-It is often necessary to first update `pip` to a recent release (`>=20.3`) in order for upper compatibility bounds to be considered and avoid a broken installation.
-For instructions on how to install the latest stable/beta release of NetKet see the [Get Started](https://www.netket.org/get_started/) page of our website or run the following command (Apple M1 users, follow that link for more instructions):
+NetKet runs on MacOS and Linux and requires Python 3.11 or later. We recommend installing NetKet using `pip` or `uv`. **Do not use conda** as JAX has known issues when installed through conda.
 
 ```sh
 pip install --upgrade pip
-pip install --upgrade netket
+pip install netket
 ```
 
-If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional dependencies, you can run the following command:
-
+**With GPU support (Linux only):**
 ```sh
-pip install --upgrade pip
-pip install 'git+https://github.com/netket/netket.git#egg=netket[all]'
+pip install 'netket[cuda]'
 ```
 
-We recommend to install NetKet with all it's extra dependencies, which are documented below.
-The latest release of NetKet is always available on PyPi and can be installed with `pip`.
+**Development version:**
+```sh
+pip install git+https://github.com/netket/netket.git
+```
 
-### Extra dependencies
-When installing `netket` with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
- - `"[dev]"`: installs development-related dependencies such as black, pytest and testing dependencies
- - `"[extra]"`: Installs `tensorboardx` to enable logging to tensorboard, and openfermion to convert the QubitOperators.
- - `"[all]"`: Installs all extra dependencies
+For detailed installation instructions including GPU setup, see our [installation guide](https://netket.readthedocs.io/en/latest/install.html).
 
 ## Getting Started
 

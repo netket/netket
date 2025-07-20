@@ -37,6 +37,7 @@ extensions = [
     # "myst_parser",
     "myst_nb",
     "sphinx_design",
+    "sphinx_copybutton",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
@@ -49,6 +50,7 @@ extensions = [
     "sphinx.ext.graphviz",
     "custom_inheritance_diagram.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
     "flax_module.fmodule",
+    "nk_list_config_options",
 ]
 
 # For sphinx.ext.linkcode
@@ -101,12 +103,24 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 source_suffix = [".rst", ".ipynb", ".md"]
 
 # Markdown parser latex support
-myst_enable_extensions = ["dollarmath", "amsmath", "colon_fence", "html_admonition"]
+myst_enable_extensions = [
+    "dollarmath",
+    "amsmath",
+    "colon_fence",
+    "html_admonition",
+    "substitution",
+    "deflist",
+    "fieldlist",
+    "tasklist",
+]
 myst_update_mathjax = False
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 myst_heading_anchors = 2
 autosectionlabel_maxdepth = 1
+
+# MyST substitutions for automatic content insertion
+myst_substitutions = {"netket_version": nk.__version__}
 
 main_website_base_url = "https://www.netket.org"
 
@@ -145,13 +159,17 @@ html_logo = "assets/static/logo_transparent.png"
 html_theme_options = {
     "home_page_in_toc": False,
     "show_navbar_depth": 1,
-    "show_toc_level": 3,
+    "show_nav_level": 0,
+    "show_toc_level": 2,
     "repository_url": "https://github.com/netket/netket",
     "use_repository_button": True,
     "use_issues_button": True,
     "path_to_docs": "docs",
     "launch_buttons": {"colab_url": "https://colab.research.google.com"},
     "navigation_with_keys": True,
+    "collapse_navigation": True,
+    # "navigation_depth": 1,
+    "article_header_start": ["toggle-primary-sidebar.html", "breadcrumbs"],
 }
 
 html_context = {
@@ -163,6 +181,7 @@ html_context = {
     "default_mode": "light",
     "navbar_links": [
         ("Posts", f"{main_website_base_url}/posts/", True),
+        ("Papers", f"{main_website_base_url}/papers/", True),
         (
             "Get Involved",
             f"{main_website_base_url}/get_involved/",
@@ -170,7 +189,6 @@ html_context = {
         ),
         ("Citing", f"{main_website_base_url}/cite/", True),
         ("Documentation", "index"),
-        ("API Reference", "api/api"),
     ],
     "navbar_links_right": [
         (
@@ -189,16 +207,18 @@ html_context = {
             True,
         ),
     ],
-    "navbar_download_button": (
-        "Get Started",
-        f"{main_website_base_url}/get_started/",
-        True,
-    ),
 }
 
 # -- Options for myst ----------------------------------------------
+# Note: MyST extensions are configured above in the main configuration section
+
+# -- Options for notebook execution -----------------------------------------------
 nb_execution_mode = "off"
 nb_execution_allow_errors = False
+
+# MyST-NB configuration for proper directive rendering
+nb_render_markdown_format = "myst"
+nb_merge_streams = True
 
 
 # do not show __init__ if it does not have a docstring
