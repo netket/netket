@@ -212,10 +212,7 @@ html_context = {
 # -- Options for myst ----------------------------------------------
 # Note: MyST extensions are configured above in the main configuration section
 
-# -- Options for jupytext -----------------------------------------------
-# MyST-NB will automatically read paired jupytext notebooks.
-# The following ensures that we prefer .ipynb when both .ipynb and .md exist,
-# which is important for notebooks with outputs.
+# -- Options for notebook execution -----------------------------------------------
 nb_execution_mode = "off"
 nb_execution_allow_errors = False
 

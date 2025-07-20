@@ -39,7 +39,7 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.3.37, <0.6",
+    "jax>=0.4.35, <0.6",
     "equinox>=0.11.3",
     "flax>=0.10.2",
     "orjson>=3.4, <4",
@@ -47,11 +47,10 @@ dependencies = [
     "plum-dispatch>=2.4",
     "sparse>=0.12.0",
     "einops>=0.8.1",
-    "ipywidgets>=8.1.7",
 ]
 
 [project.optional-dependencies]
-cuda = ["jax[cuda12]>=0.4.35, <0.6 ; sys_platform == 'linux'"]
+cuda = ["jax[cuda12]; sys_platform == 'linux'"]
 pyscf = ["pyscf>=2.0"]
 extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4"]
 dev = [
@@ -78,8 +77,6 @@ docs = [
     "myst-parser>=2.0.0,<4.1.0",
     "myst-nb>=1.0,<1.4",
     "sphinx-book-theme~=1.1.0",
-    "jupytext==1.16.4",
-    "pandoc>=2.4",
     "sphinx-copybutton>=0.5.2",
 ]
 
@@ -105,12 +102,8 @@ version-file = "netket/_version.py"
 [tool.uv]
 dev-dependencies = [
     "netket[dev,docs]",
-    "jax>=0.4.33",
     "ipykernel>=6.20",
     "pyscf>=2.9.0",
-    "jupytext==1.16.4",
-    "nbconvert>=6.5.4",
-    "lxml[html_clean]",
 ]
 
 # Development tools
