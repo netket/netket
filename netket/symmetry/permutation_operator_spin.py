@@ -15,6 +15,7 @@ class PermutationOperator(DiscreteJaxOperator):
         assert isinstance(
             permutation, Permutation
         ), "permutation must be a Permutation object."
+        assert hilbert.size == permutation.permutation_array.size
         self.permutation = permutation
 
     def tree_flatten(self):
@@ -43,6 +44,14 @@ class PermutationOperator(DiscreteJaxOperator):
             return f"PermutationOperator({self.permutation._name}: {self.permutation.permutation_array})"
         else:
             return f"PermutationOperator({self.permutation.permutation_array})"
+
+    def __eq__(self, other):
+        if isinstance(other, PermutationOperator):
+            return (
+                self.hilbert == other.hilbert and self.permutation == other.permutation
+            )
+        else:
+            return False
 
     def get_conn_padded(self, x):
         batch_shape, phys_dim = x.shape[:-1], x.shape[-1]
