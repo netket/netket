@@ -29,4 +29,3 @@ from .full_summ import FullSumState
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__, ignore=["experimental"], hide_folder=["mc"])
-del _hide_submodules
