@@ -222,25 +222,24 @@ def timed_scope(name: str = None, force: bool = False):
     __tracebackhide__ = True
 
     global CURRENT_TIMER_STACK
-    with jax.profiler.TraceAnnotation(name=name):
-        if force or len(CURRENT_TIMER_STACK) > 0:
-            if name is None:
-                # If no name specified look 2 frames up (1 frame is
-                # @contextmanager, 2 frames is caller) to get filename and
-                # line number.
-                caller_frame = inspect.stack()[2]
-                frame = caller_frame[0]
-                info = inspect.getframeinfo(frame)
-                name = f"{info.filename}:{info.lineno}"
+    if force or len(CURRENT_TIMER_STACK) > 0:
+        if name is None:
+            # If no name specified look 2 frames up (1 frame is
+            # @contextmanager, 2 frames is caller) to get filename and
+            # line number.
+            caller_frame = inspect.stack()[2]
+            frame = caller_frame[0]
+            info = inspect.getframeinfo(frame)
+            name = f"{info.filename}:{info.lineno}"
 
-            if len(CURRENT_TIMER_STACK) == 0:
-                timer = Timer()
-            else:
-                timer = CURRENT_TIMER_STACK[-1].get_subtimer(name)
-            with timer:
-                yield timer
-        else:  # disabled
-            yield _NULLTIMER
+        if len(CURRENT_TIMER_STACK) == 0:
+            timer = Timer()
+        else:
+            timer = CURRENT_TIMER_STACK[-1].get_subtimer(name)
+        with timer:
+            yield timer
+    else:  # disabled
+        yield _NULLTIMER
 
 
 def timed(
