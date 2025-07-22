@@ -7,7 +7,6 @@ import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
-from jax.experimental.shard_map import shard_map
 from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import jax as nkjax
@@ -15,7 +14,6 @@ from netket import config
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.utils import timing
 from netket.utils.types import Array
-from netket.utils.version_check import module_version
 
 from netket.jax import _ntk as nt
 
@@ -145,18 +143,19 @@ def srt_onthefly(
         # Is correctly automatically sharded across devices. So we force it to be
         # sharded with shard map to be sure
 
+        # TODO: maybe remove
         # check rep:
-        check_rep = module_version("jax") < (0, 4, 38)
+        # check_vma = module_version("jax") < (0, 4, 38)
         # shard_map is broken between 0.4.38 and (as of 25 march 2025) 0.5.3.
         # We assume any version after 0.4.38 'has a bug' that shows up as
         # None is not Iterable
         # it's a bug in check_rep, so we disable it in this case
-        jacobian_contraction = shard_map(
+        jacobian_contraction = jax.shard_map(
             jacobian_contraction,
             mesh=mesh,
             in_specs=in_specs,
             out_specs=out_specs,
-            check_rep=check_rep,
+            # check_vma=check_vma,
         )
 
     # This disables the nkjax.sharding_decorator in here, which might appear

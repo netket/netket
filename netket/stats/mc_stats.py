@@ -139,9 +139,6 @@ class Stats:
         return "Mean", self.to_dict()
 
     def __repr__(self):
-        # TODO: remove this once we are sure.
-        # extract adressable data from fully replicated arrays
-        # self = extract_replicated(self)
         main_string = _format_main_string(
             _maybe_item(self.mean),
             _maybe_item(self.error_of_mean),

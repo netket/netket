@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 import numpy as np
 import netket as nk
-import netket.experimental
+import netket.experimental as nkx
 
 import flax.linen as nn
 
@@ -34,9 +34,7 @@ def v2(x):
 
 
 def test_expect():
-    hilb = nk.experimental.hilbert.Particle(
-        N=1, geometry=nk.experimental.geometry.Cell(d=1, L=5.0, pbc=True)
-    )
+    hilb = nkx.hilbert.Particle(N=1, geometry=nkx.geometry.Cell(d=1, L=5.0, pbc=True))
     pot = nk.operator.PotentialEnergy(hilb, v1)
     kin = nk.operator.KineticEnergy(hilb, mass=1.0)
     e = pot + kin

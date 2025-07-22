@@ -27,7 +27,6 @@ import jax
 import jax.numpy as jnp
 from jax.tree_util import Partial
 from jax.sharding import PartitionSpec as P, NamedSharding
-from jax.experimental.shard_map import shard_map
 
 from netket.utils import config
 
@@ -211,7 +210,7 @@ def sharding_decorator(
     A decorator which wraps a function so that it is evaluated on every shard of the distributed arguments,
     and the output is either returned sharded, or can be reduced with a collective operation.
 
-    This is essentially a fancy wrapper around jax.experimental.shard_map,
+    This is essentially a fancy wrapper around jax.shard_map,
     meant to be used to wrap the `chunked` parts of netket (vmap_chunked, vjp_chunked, ...), so that the
     computations are computed in chunks on every devices shard (and not in chunks of the whole array).
 
@@ -252,7 +251,6 @@ def sharding_decorator(
         import jax
         import jax.numpy as jnp
         from jax.sharding import NamedSharding, Mesh, PartitionSpec as P
-        from jax.experimental.shard_map import shard_map
         from jax.tree_util import Partial
         from functools import partial
         from netket import config
@@ -314,7 +312,7 @@ def sharding_decorator(
         mesh = Mesh(jax.devices(), axis_names=("S"))
         in_specs = P("S")
         out_specs = P()
-        @partial(shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
+        @partial(jax.shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
         def _f(x):
             res = looped_computation2(x)
             res = jax.lax.psum(res, axis_name="S")
@@ -337,7 +335,7 @@ def sharding_decorator(
         mesh = Mesh(jax.devices(), axis_names=("S"))
         in_specs = P("S")
         out_specs = P('S'), P()
-        @partial(shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
+        @partial(jax.shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs)
         def _f(x):
             some_python_object = {1,2,3}
             return x, Partial(partial(lambda x: x, some_python_object))
@@ -409,7 +407,11 @@ def sharding_decorator(
             out_specs = out_treedef.unflatten(_sele2(reduction_op, P(), P("S")))
 
             @partial(
-                shard_map, mesh=mesh, in_specs=in_specs, out_specs=out_specs, **kwargs
+                jax.shard_map,
+                mesh=mesh,
+                in_specs=in_specs,
+                out_specs=out_specs,
+                **kwargs,
             )
             def _f(*args):
                 # workaround for shard_map not supporting non-array args part 2/2

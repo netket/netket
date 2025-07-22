@@ -42,10 +42,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install packages
+      - name: Sync environment
         run: |
           uv sync --extra dev --extra extra --extra pyscf
-
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}

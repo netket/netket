@@ -217,6 +217,7 @@ class MCState(VariationalState):
         else:
             par_sharding = None
 
+        # TODO: deprecated in July 2025
         # For simplicity, we do not accept numpy inputs in variables
         if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
             warn_deprecation(
