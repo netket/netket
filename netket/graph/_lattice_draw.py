@@ -118,7 +118,6 @@ def draw_lattice(
     draw_basis_vectors: bool = True,
     draw_unit_cell: bool = True,
     show: bool = True,
-    **kwargs,
 ):
     """
     Draws the ``Lattice`` graph
@@ -157,16 +156,6 @@ def draw_lattice(
 
     if dim < 1 or dim > 3:
         raise TypeError("Cannot draw 0D or 4D lattices")
-
-    if len(kwargs.keys()) > 0:
-        for deprecated_key in ("edge_color", "curvature", "font_size", "font_color"):
-            if deprecated_key in kwargs.keys():
-                kwargs.pop(deprecated_key)
-                print(
-                    f"Keyword argument {deprecated_key} is deprecated and does nothing anymore."
-                )
-        if len(kwargs.keys()) > 0:
-            raise NotImplementedError(f"unsupported kwargument {tuple(kwargs.keys())}")
 
     node_size, node_text_color, node_text_offset = default_arguments(
         dim, node_size, node_text_color, node_text_offset
