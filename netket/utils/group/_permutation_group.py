@@ -140,8 +140,11 @@ def product(p: Permutation, x: Array):
     # direct indexing fails, so we call np.asarray on it to extract the
     # wrapped array
     # TODO make indexing work with HashableArray directly
-    return x[..., p.inverse_permutation_array]
-
+    import jax
+    if isinstance(x, jax.Array):
+        return x.at[..., p.inverse_permutation_array].get(unique_indices=True, mode="promise_in_bounds")
+    else:
+        return x[..., p.inverse_permutation_array]
 
 @dispatch
 def product(p: Permutation, q: Permutation):  # noqa: F811
@@ -303,4 +306,9 @@ def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
 
 @dispatch
 def product(G: PermutationGroup, x: Array):  # noqa: F811
-    return np.moveaxis(x[..., G.to_array()], -2, 0)
+    import jax
+    import jax.numpy as jnp
+    if isinstance(x, jax.Array):
+        return jnp.moveaxis(x.at[..., G.to_array()].get(unique_indices=True, mode="promise_in_bounds"), -2, 0)
+    else:
+        return np.moveaxis(x[..., G.to_array()], -2, 0)
