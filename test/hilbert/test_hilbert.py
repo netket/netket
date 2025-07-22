@@ -540,15 +540,8 @@ def test_fermions():
 def test_fermion_fails():
     with pytest.raises(TypeError):
         _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
-    # TODO: change to TypeError in 3.12
-    # with pytest.raises(TypeError):
-    with pytest.raises(ValueError):
-        with pytest.warns(DeprecationWarning):
-            _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
-    # TODO: Test the hard error in 3.12
-    # with pytest.raises(TypeError):
-    with pytest.warns(DeprecationWarning):
-        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1 / 2)
+    with pytest.raises(TypeError):
+        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
     with pytest.raises(ValueError):
         _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2])
     with pytest.raises(ValueError):
