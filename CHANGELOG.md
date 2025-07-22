@@ -3,11 +3,27 @@
 
 # Change Log
 
+## NetKet 3.20 (In development)
+
+### Breaking Changes
+
+### New features
+
+### Deprecations and Removals
+
+### Bug Fixes
+
+
 ## NetKet 3.19 (In development)
+
+This version will be the last one supporting Jax 0.5, and therefore will be the last to run on manylinux2014. 
+In practice, this will be the last version to run on computers/clusters with outdated OS/GLIBC. 
+The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly more powerful.
 
 ### Breaking Changes
 * MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
 * {func}`netket.operator.GraphOperator` is now a function and not a class anymore.
+* {meth}`netket.operator.DiscreteJaxOperator.to_sparse` now returns a scipy sparse matrix by default [#2092](https://github.com/netket/netket/pull/2092).
 * The default implementation of all NetKet operator constructed has been swapped from the previous Numba implementation to the Jax one. The class names `LocalOperator`, `PauliStrings` and `FermionOperator2nd` are now aliases for `LocalOperatorJax`, `PaulistringsJax` and  `FermionOperator2ndJax`. To use the previous operators, you should use `FermionOperator2ndNumba`, `LocalOperatorNumba` and so on.
 * {class}`netket.operator.ContinuousOperator`s and subclasses have had their interface considerably changed, and they are now Pytrees. If you have custom Continuous Operators and your code is somewhere accessible with a few stars on GitHub, I've notified you. If you haven't, you are a bit evil but worry not. Just look at NetKet's implementation of classes like {class}`netket.operator.KineticOperator` to understand what to change [#2097](https://github.com/netket/netket/pull/2097).
 
@@ -15,17 +31,24 @@
 * A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
 * {class}`netket.nn.blocks.SymmExpSum` supports specifying group characters as an array in addition to their index in the full character table [#2075](https://github.com/netket/netket/pull/2075).
 * {class}`netket.utils.group.FiniteGroup` can now compute projective irrep characters of groups in addition to standard linear irreps [#2080](https://github.com/netket/netket/pull/2080).
+* {class}`netket.sampler.rules.LangevinRule` will not inherit the `chunk_size` from the sampler if its own chunk size is not set.
+* {class}`netket.stats.Stats` repr logic is improved to switch to scientific notation more often when the quantity is close to 0. Moreover, the character count is fixed so the progress bar will wiggle less [#2102](https://github.com/netket/netket/pull/2102).
+* When using sub-optimal {class}`netket.operator.FermionOperator2nd` with hilbert spaces with a fixed number of particles, a warning will be now printed suggesting users to switch to Particle Number Conserving operators [#2088](https://github.com/netket/netket/pull/2088).
 
 ### Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
+* Finalized deprecations from August 2024 and earlier [#2108](https://github.com/netket/netket/pull/2108).
 
 ### Bug Fixes
+* Do not error when the `chunk_size` of a sampler is larger than the number of chains.
 * {class}`netket.graph.space_group.SpaceGroup` now generates correct space-group irreps for nonsymmorphic space groups [#2080](https://github.com/netket/netket/pull/2080).
+* Addressed an issue with Metropolis Samplers providing to the transition rule a non-up-to-date sampler state inside a sweep. In practice nobody ever reported this bug before.
+* Support `flax.nnx` for flax version 10.7.
 
 
 ## NetKet 3.18 (3 July 2025)
 
-This version will be the last one supporting Python 3.10 and Jax 0.5. The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly more powerful.
+This version will be the last one supporting Python 3.10.
 
 ### New features
 * Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2nd` and {class}`netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd`
