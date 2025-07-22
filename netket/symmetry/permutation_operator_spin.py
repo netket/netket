@@ -51,7 +51,7 @@ class PermutationOperator(DiscreteJaxOperator):
     def get_conn_padded(self, x):
         permutation_array = jnp.argsort(self.permutation.inverse_permutation_array)
         # Check that the parameters of get are useful
-        connected_elements = x.at[..., permutation_array].get(
+        connected_elements = x.at[..., None, permutation_array].get(
             unique_indices=True, mode="promise_in_bounds"
         )
         return connected_elements, jnp.ones((*x.shape[:-1], 1), dtype=self.dtype)
