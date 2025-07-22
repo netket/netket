@@ -14,7 +14,9 @@
 
 import abc
 
-from netket.utils.types import DType
+
+from netket.utils.types import DType, Array
+from netket.utils.numbers import is_scalar
 
 
 from ._abstract_observable import AbstractObservable, HilbertType
@@ -131,11 +133,19 @@ class AbstractOperator(AbstractObservable[HilbertType]):
         return SumOperator(self, coefficients=[-1.0])
 
     def __mul__(self, other: "AbstractOperator") -> "AbstractOperator":
-        if isinstance(other, (int, float, complex)):
+        if is_scalar(other):
             from ._sum import SumOperator
 
+            if isinstance(other, Array):
+                other = other.item()
             return SumOperator(self, coefficients=[other])
         return NotImplemented
+
+    def __rmul__(self, other):
+        if is_scalar(other):
+            return self.__mul__(other)
+        else:
+            return NotImplemented
 
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert}, dtype={self.dtype})"
