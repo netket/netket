@@ -349,11 +349,11 @@ def test_timeevolution():
     vs, _, ha = _setup(L)
     Sx = sum([nk.operator.spin.sigmax(ha.hilbert, i) for i in range(L)])
     Sx = Sx.to_pauli_strings().to_jax_operator()
-    integrator = nkx.dynamics.Euler(dt=0.001)
+    ode_solver = nkx.dynamics.Euler(dt=0.001)
     te = nkx.TDVP(
         ha,
         variational_state=vs,
-        integrator=integrator,
+        ode_solver=ode_solver,
         t0=0.0,
         qgt=nk.optimizer.qgt.QGTOnTheFly(holomorphic=True, diag_shift=1e-4),
         error_norm="qgt",
@@ -362,7 +362,7 @@ def test_timeevolution():
     te2 = nkx.driver.TDVPSchmitt(
         ha,
         variational_state=vs,
-        integrator=integrator,
+        ode_solver=ode_solver,
         t0=0.0,
         error_norm="qgt",
         holomorphic=True,
