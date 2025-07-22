@@ -34,7 +34,7 @@ class Permutation(Element):
     def __init__(
         self,
         permutation: Array | None = None,
-        *,  # change one line somewhere
+        *,
         name: str | None = None,
         permutation_array: Array | None = None,
         inverse_permutation_array: Array | None = None,
@@ -142,10 +142,14 @@ def product(p: Permutation, x: Array):
     # wrapped array
     # TODO make indexing work with HashableArray directly
     import jax
+
     if isinstance(x, jax.Array):
-        return x.at[..., p.inverse_permutation_array].get(unique_indices=True, mode="promise_in_bounds")
+        return x.at[..., p.inverse_permutation_array].get(
+            unique_indices=True, mode="promise_in_bounds"
+        )
     else:
         return x[..., p.inverse_permutation_array]
+
 
 @dispatch
 def product(p: Permutation, q: Permutation):  # noqa: F811
@@ -319,7 +323,12 @@ def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
 def product(G: PermutationGroup, x: Array):  # noqa: F811
     import jax
     import jax.numpy as jnp
+
     if isinstance(x, jax.Array):
-        return jnp.moveaxis(x.at[..., G.to_array()].get(unique_indices=True, mode="promise_in_bounds"), -2, 0)
+        return jnp.moveaxis(
+            x.at[..., G.to_array()].get(unique_indices=True, mode="promise_in_bounds"),
+            -2,
+            0,
+        )
     else:
         return np.moveaxis(x[..., G.to_array()], -2, 0)
