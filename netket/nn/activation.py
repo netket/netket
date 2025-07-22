@@ -48,7 +48,6 @@ from jax.numpy import sinh
 
 
 from netket.jax import HashablePartial
-from netket.utils import deprecated_new_name as _deprecated_new_name
 
 
 def reim(f):
@@ -103,9 +102,3 @@ r"""Returns the selu non-linearity, applied separately to the real and imaginary
 
 reim_relu = reim(relu)
 r"""Returns the relu non-linearity, applied separately to the real and imaginary parts"""
-
-
-# TODO: Deprecated in January 2024, remove in 2025
-@_deprecated_new_name("standardize", reason="Because it is deprecated by jax as well")
-def normalize(*args, **kwargs):
-    return standardize(*args, **kwargs)

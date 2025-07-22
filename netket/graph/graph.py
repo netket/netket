@@ -17,7 +17,6 @@ from collections.abc import Sequence
 import numpy as np
 import igraph
 
-from netket.utils.deprecation import warn_deprecation
 from netket.utils.group import Permutation, PermutationGroup
 from .abstract_graph import AbstractGraph, Edge, ColoredEdge, EdgeSequence
 
@@ -151,23 +150,10 @@ class Graph(AbstractGraph):
 
     def edges(
         self,
-        color=None,
         *,
         return_color: bool = False,
         filter_color: int | None = None,
     ) -> EdgeSequence:
-        if color is not None:
-            warn_deprecation(
-                "The color option has been split into return_color and filter_color."
-            )
-            # need to check for bool first, because bool is a subclass of int
-            if isinstance(color, bool):
-                return_color = color
-            elif isinstance(color, int):
-                filter_color = color
-            else:
-                raise TypeError("Incorrect type for 'color'")
-
         if not return_color and filter_color is None:
             return self._igraph.get_edgelist()
 
