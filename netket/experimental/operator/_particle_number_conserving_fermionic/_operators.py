@@ -1,6 +1,10 @@
 from functools import partial
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    import pyscf
 import sparse
 
 import jax
@@ -242,7 +246,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     @classmethod
     def from_pyscf_molecule(
         cls,
-        mol: "pyscf.gto.mole.Mole",  # noqa: F821
+        mol: "pyscf.gto.mole.Mole",
         mo_coeff: Array,
         cutoff: float = 1e-11,
         **kwargs,
@@ -405,7 +409,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     @classmethod
     def from_pyscf_molecule(
         cls,
-        mol: "pyscf.gto.mole.Mole",  # noqa: F821
+        mol: "pyscf.gto.mole.Mole",
         mo_coeff: Array,
         cutoff: float = 1e-11,
     ):

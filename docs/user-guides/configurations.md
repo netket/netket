@@ -43,4 +43,4 @@ Please keep in mind that all options related to experimental or internal functio
 
 ```{eval-rst} 
 .. list_config_options::
-``
+```

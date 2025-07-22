@@ -87,7 +87,7 @@ templates_path = [
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "**.ipynb_checkpoints"]
+exclude_patterns = ["_build", "**.ipynb_checkpoints", "README.md"]
 
 # The suffix(es) of source filenames.
 # Note: important to list ipynb before md here: we have both md and ipynb
@@ -125,7 +125,7 @@ myst_substitutions = {"netket_version": nk.__version__}
 main_website_base_url = "https://www.netket.org"
 
 # -- Pre-process -------------------------------------------------
-autodoc_mock_imports = ["openfermion", "qutip"]
+autodoc_mock_imports = ["openfermion", "qutip", "pyscf", "tensorboardX"]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -146,6 +146,7 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
+    "flax": ("https://flax-linen.readthedocs.io/en/latest/", None),
     "igraph": ("https://python.igraph.org/en/stable/", None),
     "qutip": ("https://qutip.readthedocs.io/en/latest/", None),
     "pyscf": ("https://pyscf.org/", None),
