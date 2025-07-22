@@ -20,16 +20,12 @@ class PermutationOperator(DiscreteJaxOperator):
 
     def tree_flatten(self):
         name = self.permutation._name
-        inverse_permutation_array = self.permutation.inverse_permutation_array
-        struct_data = {"hilbert": self.hilbert, "name": name}
-        return (inverse_permutation_array,), struct_data
+        struct_data = {"hilbert": self.hilbert, "permutation":self.permutation}
+        return (), struct_data
 
     @classmethod
     def tree_unflatten(cls, struct_data, array_data):
-        permutation = Permutation(
-            inverse_permutation_array=array_data[0], name=struct_data["name"]
-        )
-        return cls(struct_data["hilbert"], permutation)
+        return cls(**struct_data)
 
     @property
     def max_conn_size(self) -> int:
@@ -37,7 +33,7 @@ class PermutationOperator(DiscreteJaxOperator):
 
     @property
     def dtype(self):
-        return int
+        return jnp.float32
 
     def __repr__(self):
         if self.permutation._name is not None:
@@ -54,8 +50,5 @@ class PermutationOperator(DiscreteJaxOperator):
             return False
 
     def get_conn_padded(self, x):
-        batch_shape, phys_dim = x.shape[:-1], x.shape[-1]
-        x = x.reshape(-1, phys_dim)
-        connected_elements = x.T[self.permutation.inverse_permutation_array].T
-        connected_elements = connected_elements.reshape((*batch_shape, 1, phys_dim))
-        return connected_elements, jnp.ones((*batch_shape, 1))
+        connected_elements = x.at[..., self.permutation.inverse_permutation_array].get(unique_indices=True, mode="promise_in_bounds")
+        return connected_elements, jnp.ones((*x.shape[:-1], 1), dtype=self.dtype)
