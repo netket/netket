@@ -19,8 +19,7 @@ class PermutationOperator(DiscreteJaxOperator):
         self.permutation = permutation
 
     def tree_flatten(self):
-        name = self.permutation._name
-        struct_data = {"hilbert": self.hilbert, "permutation":self.permutation}
+        struct_data = {"hilbert": self.hilbert, "permutation": self.permutation}
         return (), struct_data
 
     @classmethod
@@ -50,5 +49,9 @@ class PermutationOperator(DiscreteJaxOperator):
             return False
 
     def get_conn_padded(self, x):
-        connected_elements = x.at[..., self.permutation.inverse_permutation_array].get(unique_indices=True, mode="promise_in_bounds")
+        permutation_array = jnp.argsort(self.permutation.inverse_permutation_array)
+        # Check that the parameters of get are useful
+        connected_elements = x.at[..., permutation_array].get(
+            unique_indices=True, mode="promise_in_bounds"
+        )
         return connected_elements, jnp.ones((*x.shape[:-1], 1), dtype=self.dtype)
