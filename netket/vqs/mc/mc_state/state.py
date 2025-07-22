@@ -151,7 +151,7 @@ class MCState(VariationalState):
 
     _init_fun: Callable | None = None
     """The function used to initialise the parameters and model_state. This might be None if the model
-    does not define an init method (e.g. when the model is a function, or for {class}`flax.nnx.Module`)."""
+    does not define an init method (e.g. when the model is a function, or for ``flax.nnx.Module``)."""
     _apply_fun: Callable
     """The function used to evaluate the model."""
 
@@ -335,7 +335,7 @@ class MCState(VariationalState):
         """Returns the model definition of this variational state.
 
         When using model frameworks that encode the parameters directly into the
-        model, such as equinox or :ref:`flax.nnx`, this will return the model
+        model, such as equinox or ``flax.nnx``, this will return the model
         including the parameters.
 
         If you want access to the *raw model* without the parameters that is used
