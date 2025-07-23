@@ -112,10 +112,9 @@ class SumOperator(metaclass=SumOperatorMeta):
         self._operators = tuple(operators)
         self._coefficients = coefficients
 
-        # Don't pass dtype to parent classes, handle it ourselves
-        kwargs_no_dtype = {k: v for k, v in kwargs.items() if k != "dtype"}
+        # Call parent classes without dtype parameter - we handle dtype ourselves
         super().__init__(
-            *args, **kwargs_no_dtype
+            *args, **kwargs
         )  # forwards all unused arguments so that this class is a mixin.
 
         # Set our computed dtype after parent __init__ methods have run

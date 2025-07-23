@@ -17,7 +17,6 @@ from collections.abc import Hashable, Iterable
 
 
 from netket.utils import HashableArray, struct
-from netket.utils.numbers import is_scalar
 from netket.utils.types import DType, PyTree, Array
 from netket.operator import ContinuousOperator
 
@@ -60,19 +59,7 @@ class SumContinuousOperator(
             coefficients: A coefficient for each ContinuousOperator object
             dtype: Data type of the coefficients
         """
-        hi_spaces = [op.hilbert for op in operators]
-        if not all(hi == hi_spaces[0] for hi in hi_spaces):
-            raise NotImplementedError(
-                "Cannot add operators on different hilbert spaces"
-            )
-
-        if is_scalar(coefficients):
-            coefficients = [coefficients for _ in operators]  # type: ignore
-
-        if len(operators) != len(coefficients):  # type: ignore
-            raise AssertionError("Each operator needs a coefficient")
-
-        self._operators = tuple(operators)  # type: tuple[ContinuousOperator, ...]
+        # self._operators = tuple(operators)  # type: tuple[ContinuousOperator, ...]
         self._is_hermitian = all([op.is_hermitian for op in operators])
         super().__init__(
             operators, operators[0].hilbert, coefficients=coefficients, dtype=dtype
