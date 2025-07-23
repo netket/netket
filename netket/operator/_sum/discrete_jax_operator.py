@@ -52,7 +52,7 @@ class SumDiscreteJaxOperator(SumOperator, DiscreteJaxOperator):
         for op, c in zip(self.operators, self.coefficients):
             op_ys, op_mels = op.get_conn_padded(x_r)
             ys.append(op_ys)
-            mels.append(op_mels)
+            mels.append(c * op_mels)
 
         ys = jnp.concatenate(ys, axis=1).reshape(*x.shape[:-1], -1, x.shape[-1])
         mels = jnp.concatenate(mels, axis=1).reshape(*ys.shape[:-1])
