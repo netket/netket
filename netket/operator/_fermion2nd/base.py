@@ -423,9 +423,11 @@ class FermionOperator2ndBase(DiscreteOperator):
         return self.__add__(other)
 
     def __add__(self, other):
-        dtype = np.promote_types(self.dtype, _dtype(other))
-        op = self.copy(dtype=dtype)
-        return op.__iadd__(other)
+        if is_scalar(other) or isinstance(other, FermionOperator2ndBase):
+            dtype = np.promote_types(self.dtype, _dtype(other))
+            op = self.copy(dtype=dtype)
+            return op.__iadd__(other)
+        return super().__add__(other)
 
     def __iadd__(self, other):
         if is_scalar(other):

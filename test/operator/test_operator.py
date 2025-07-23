@@ -140,6 +140,14 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nk.operator.FermionOperator2ndJ
     _mode="mask",
 )
 
+# SumOperator
+hi = nk.hilbert.Spin(0.5, 3)
+operators["SumOperatorJax"] = nk.operator.SumOperator(
+    nk.operator.spin.sigmax(hi, 0),
+    nk.operator.spin.sigmay(hi, 1).to_pauli_strings(),
+    coefficients=[0.5, 0.3],
+)
+
 # Remove non jax operators when sharding is activated
 if nk.config.netket_experimental_sharding:
     _operators = {}

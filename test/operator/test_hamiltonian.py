@@ -17,7 +17,7 @@ import pytest
 
 import netket as nk
 
-from .. import common
+from test import common
 
 
 def test_ising_int_dtype():
@@ -216,3 +216,17 @@ def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
         σp2_i, mels2_i = canonize(σp2_i, mels2_i)
         np.testing.assert_equal(np.asarray(σp1_i), np.asarray(σp2_i))
         np.testing.assert_equal(mels1_i, mels2_i)
+
+
+def test_special_sum_sub_nonsumop():
+    """Test that SpecialHamiltonian can be summed with LocalOperator
+    without obtaining a (less efficient) SumOperator.
+    """
+    hi = nk.hilbert.Spin(0.5, 4)
+    H = nk.operator.Ising(hi, nk.graph.Chain(4), h=1, J=-1)
+    a = nk.operator.spin.sigmax(hi, 0)
+
+    assert isinstance(H + a, nk.operator.LocalOperator)
+    assert isinstance(H - a, nk.operator.LocalOperator)
+    assert isinstance(a + H, nk.operator.LocalOperator)
+    assert isinstance(a - H, nk.operator.LocalOperator)

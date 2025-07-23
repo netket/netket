@@ -31,13 +31,15 @@ from ._local_liouvillian import LocalLiouvillian
 from ._continuous_operator import ContinuousOperator
 from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
-from ._sumoperators import SumOperator
 
 from ._fermion2nd import (
     FermionOperator2nd,
     FermionOperator2ndJax,
     FermionOperator2ndNumba,
 )
+
+from ._sum import SumOperator
+
 
 from . import spin, boson, fermion
 
