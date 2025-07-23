@@ -86,8 +86,7 @@ def QGTJacobian_DefaultConstructor(
             pdf = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(pdf, 0, 2)
 
     if samples.ndim >= 3:
-        # use jit so that we can do it on global shared array
-        samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
+        samples = samples.reshape(-1, samples.shape[-1])
 
     jac_mode = mode
     if mode == "imag":
