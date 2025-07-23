@@ -148,6 +148,14 @@ operators["SumOperatorJax"] = nk.operator.SumOperator(
     coefficients=[0.5, 0.3],
 )
 
+translation_1 = nk.utils.group.Permutation(
+    permutation_array=jnp.array([1, 2, 0]), name="translation_1"
+)
+hilbert_space = nk.hilbert.Qubit(3)
+translation_1_operator = nk.symmetry.PermutationOperator(hilbert_space, translation_1)
+
+operators["PermutationOperator_translation_1"] = translation_1_operator
+
 # Remove non jax operators when sharding is activated
 if nk.config.netket_experimental_sharding:
     _operators = {}
@@ -213,6 +221,10 @@ def test_produce_elements_in_hilbert(op, attr):
 )
 @common.skipif_distributed
 def test_is_hermitian(op):
+
+    if isinstance(op, nk.symmetry.PermutationOperator):
+        pytest.skip(reason="Not Hermitian")
+
     rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
@@ -245,6 +257,10 @@ def test_is_hermitian(op):
     [pytest.param(op, id=name) for name, op in operators.items()],
 )
 def test_lazy_hermitian(op):
+
+    if isinstance(op, nk.symmetry.PermutationOperator):
+        pytest.skip(reason="Not Hermitian")
+
     if op.is_hermitian:
         assert isinstance(op.H, type(op))
         assert op == op.H
