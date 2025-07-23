@@ -56,7 +56,11 @@ class PermutationOperator(DiscreteJaxOperator):
         else:
             return False
 
+    def __hash__(self):
+        return hash((self.hilbert, self.permutation))
+
     def get_conn_padded(self, x):
+        x = jnp.asarray(x)
         # Check that the parameters of get are useful
         connected_elements = x.at[..., None, self.permutation.permutation_array].get(
             unique_indices=True, mode="promise_in_bounds"
