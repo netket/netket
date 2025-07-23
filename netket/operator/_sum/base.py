@@ -72,6 +72,25 @@ class SumOperatorMeta(ABCMeta):
 
 
 class SumOperator(metaclass=SumOperatorMeta):
+    """
+    Base class for sum of quantum operators.
+
+    This class represents a linear combination of quantum operators with coefficients,
+    implementing the mathematical concept of :math:`\\sum_i c_i \\hat{H}_i` where
+    :math:`c_i` are scalar coefficients and :math:`\\hat{H}_i` are quantum operators.
+
+    The class uses a metaclass dispatch mechanism to automatically select the
+    appropriate specialized subclass based on the types of operators being summed:
+
+    * :class:`~netket.operator._sum.discrete_jax_operator.SumDiscreteJaxOperator`
+      for sums of :class:`~netket.operator.DiscreteJaxOperator` instances
+    * :class:`~netket.operator._sum.discrete_operator.SumDiscreteOperator`
+      for sums of :class:`~netket.operator.DiscreteOperator` instances
+    * :class:`~netket.operator._sum.continuous.SumContinuousOperator`
+      for sums of :class:`~netket.operator.ContinuousOperator` instances
+    * :class:`~netket.operator._sum.operator.SumGenericOperator`
+      for mixed operator types or fallback cases.
+    """
 
     _operators: tuple[ContinuousOperator, ...]
     _coefficients: Array
@@ -88,7 +107,13 @@ class SumOperator(metaclass=SumOperatorMeta):
         r"""Constructs a Sum of Operators.
 
         Args:
-            *hilb: An iterable object containing at least 1 hilbert space.
+            *operators: An iterable of quantum operators to be summed. All operators
+                must act on the same Hilbert space.
+            coefficients: Scalar coefficient or iterable of coefficients for each
+                operator. If a single scalar is provided, it will be used for all
+                operators. Default is 1.0.
+            dtype: Data type for the coefficients. If None, it will be inferred
+                from the operators and coefficients.
         """
         hi_spaces = [op.hilbert for op in operators]
         if not all(hi == hi_spaces[0] for hi in hi_spaces):
@@ -123,17 +148,37 @@ class SumOperator(metaclass=SumOperatorMeta):
 
     @property
     def dtype(self):
+        """The data type of the operator coefficients.
+
+        Returns:
+            The numpy/JAX dtype used for the coefficients array.
+        """
         return self._dtype
 
     @property
     def operators(self) -> tuple[AbstractOperator, ...]:
-        """The tuple of all operators in the terms of this sum. Every
-        operator is summed with a corresponding coefficient
+        r"""The tuple of all operators in the terms of this sum.
+
+        Each operator corresponds to a term :math:`\hat{O}_i` in the sum
+        :math:`\sum_i c_i \hat{O}_i`, where each operator is multiplied by
+        its corresponding coefficient from :attr:`coefficients`.
+
+        Returns:
+            A tuple containing all the quantum operators being summed.
         """
         return self._operators
 
     @property
-    def coefficients(self) -> tuple[AbstractOperator, ...]:
+    def coefficients(self) -> Array:
+        r"""The coefficients for each operator term in the sum.
+
+        Each coefficient corresponds to :math:`c_i` in the sum
+        :math:`\sum_i c_i \hat{O}_i`, where each coefficient multiplies
+        its corresponding operator from :attr:`operators`.
+
+        Returns:
+            A JAX array containing the scalar coefficients for each operator.
+        """
         return self._coefficients
 
     def __repr__(self) -> str:
