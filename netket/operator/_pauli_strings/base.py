@@ -272,8 +272,11 @@ class PauliStringsBase(DiscreteOperator):
 
     def __repr__(self):
         print_list = []
-        for op, w in zip(self.operators, self.weights):
-            print_list.append(f"    {op} : {str(w)}")
+        try:
+            for op, w in zip(self.operators, self.weights):
+                print_list.append(f"    {op} : {str(w)}")
+        except Exception:
+            print_list.append("...#error rendering#...")
         s = "{}(hilbert={}, n_strings={}, dtype={}, dict(operators:weights)=\n{}\n)".format(
             type(self).__name__,
             self.hilbert,

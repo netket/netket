@@ -18,6 +18,7 @@ from collections.abc import Iterable
 from abc import ABCMeta
 
 import jax.numpy as jnp
+from jax.stages import ArgInfo
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import Array
@@ -98,15 +99,18 @@ class SumOperator(metaclass=SumOperatorMeta):
         if is_scalar(coefficients):
             coefficients = [coefficients for _ in operators]
 
-        if len(operators) != len(coefficients):
-            raise AssertionError("Each operator needs a coefficient")
+        # ArgInfo shows up in packing with .lower() sometimes... it breaks all
+        if not isinstance(coefficients, ArgInfo):
+            if len(operators) != len(coefficients):
+                raise AssertionError("Each operator needs a coefficient")
 
-        operators, coefficients = _flatten_sumoperators(operators, coefficients)
+            operators, coefficients = _flatten_sumoperators(operators, coefficients)
 
-        dtype = canonicalize_dtypes(float, *operators, *coefficients, dtype=dtype)
+            dtype = canonicalize_dtypes(float, *operators, *coefficients, dtype=dtype)
+            coefficients = jnp.asarray(coefficients, dtype=dtype)
 
         self._operators = tuple(operators)
-        self._coefficients = jnp.asarray(coefficients, dtype=dtype)
+        self._coefficients = coefficients
         self._dtype = dtype
 
         super().__init__(
