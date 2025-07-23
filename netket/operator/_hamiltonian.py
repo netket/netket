@@ -30,7 +30,8 @@ class SpecialHamiltonian(DiscreteOperator):
             res = res.__iadd__(other)
             if res is not NotImplemented:
                 return res
-
+            else:
+                return self.to_local_operator() + other.to_local_operator()
         return self.to_local_operator() + other
 
     def __sub__(self, other):
@@ -39,6 +40,8 @@ class SpecialHamiltonian(DiscreteOperator):
             res = res.__isub__(other)
             if res is not NotImplemented:
                 return res
+            else:
+                return self.to_local_operator() - other.to_local_operator()
 
         return self.to_local_operator() - other
 
