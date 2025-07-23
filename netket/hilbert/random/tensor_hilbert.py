@@ -13,36 +13,42 @@
 # limitations under the License.
 
 import jax
-from jax import numpy as jnp
 
 from netket.hilbert import TensorHilbert
 from netket.utils.dispatch import dispatch
+
+from netket.utils.samples_pytree import SampleWrapperExample
 
 
 @dispatch
 def random_state(hilb: TensorHilbert, key, batches: int, *, dtype):
     keys = jax.random.split(key, hilb._n_hilbert_spaces)
 
-    vs = [
+    vs = tuple(
         random_state(hilb._hilbert_spaces[i], keys[i], batches, dtype=dtype)
         for i in range(hilb._n_hilbert_spaces)
-    ]
-
-    return jnp.concatenate(vs, axis=1)
+    )
+    if isinstance(batches, int):
+        batches = (batches,)
+    structure = jax.tree.map(
+        lambda x: jax.ShapeDtypeStruct(x.shape[len(batches) :], x.dtype), vs
+    )
+    return SampleWrapperExample(vs, structure)
 
 
 def _make_subfun(hilb, i, sub_hi):
     def subfun(args):
         key, state, index = args
 
-        # jax.experimental.host_callback.id_print(index, text=f"printing subfun_{i}:")
-
-        sub_state = state[hilb._cum_indices[i] : hilb._cum_sizes[i]]
+        sub_state = state.sub_states[i]
+        # TODO can't we just compute the random idx locally?
         new_sub_state, old_val = flip_state_scalar(
             sub_hi, key, sub_state, index - hilb._cum_indices[i]
         )
-        new_state = state.at[hilb._cum_indices[i] : hilb._cum_sizes[i]].set(
-            new_sub_state
+        new_state = state.replace(
+            sub_states=state.sub_states[:i]
+            + (new_sub_state,)
+            + state.sub_states[i + 1 :]
         )
         return new_state, old_val
 
@@ -59,4 +65,6 @@ def flip_state_scalar(hilb: TensorHilbert, key, state, index):
     for i in hilb._hilbert_i:
         branches.append(subfuns[i])
 
+    # vmap converts this to select, so we could just compute all rules here
+    # and select directly
     return jax.lax.switch(index, branches, (key, state, index))
