@@ -24,7 +24,7 @@ In PR [#2070](https://github.com/netket/netket/pull/2070) and [#2072](https://gi
 This rests upon the shoulders of improvements within jax, which are only available starting so make sure to use the most recent jax version possible.
 
 ### Breaking Changes
-* MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
+* mpi4jax is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing. For MPI on cpu enable the native jax mpi collectives by setting `JAX_CPU_COLLECTIVES_IMPLEMENTATION=mpi`.
 * {func}`netket.operator.GraphOperator` is now a function and not a class anymore.
 * {meth}`netket.operator.DiscreteJaxOperator.to_sparse` now returns a scipy sparse matrix by default [#2092](https://github.com/netket/netket/pull/2092).
 * The default implementation of all NetKet operator constructed has been swapped from the previous Numba implementation to the Jax one. The class names `LocalOperator`, `PauliStrings` and `FermionOperator2nd` are now aliases for `LocalOperatorJax`, `PaulistringsJax` and  `FermionOperator2ndJax`. To use the previous operators, you should use `FermionOperator2ndNumba`, `LocalOperatorNumba` and so on.
