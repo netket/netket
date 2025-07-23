@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from netket.operator import DiscreteJaxOperator
-from netket.utils.group import Permutation
+from netket.utils.group import Permutation, Identity
 
 
 @register_pytree_node_class
@@ -12,10 +12,18 @@ class PermutationOperator(DiscreteJaxOperator):
 
     def __init__(self, hilbert, permutation):
         super().__init__(hilbert)
-        assert isinstance(
-            permutation, Permutation
-        ), "permutation must be a Permutation object."
-        assert hilbert.size == permutation.permutation_array.size
+        if isinstance(permutation, Identity):
+            permutation = Permutation(
+                permutation_array=jnp.arange(hilbert.size), name="Identity"
+            )
+
+        if not isinstance(permutation, Permutation):
+            raise TypeError("permutation must be a Permutation object.")
+        if not hilbert.size == permutation.permutation_array.size:
+            raise ValueError(
+                "Permutation size does not correspond to Hilbert space size."
+            )
+
         self.permutation = permutation
 
     def tree_flatten(self):
