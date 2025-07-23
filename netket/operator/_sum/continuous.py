@@ -20,9 +20,7 @@ from netket.utils import HashableArray, struct
 from netket.utils.types import DType, PyTree, Array
 from netket.operator import ContinuousOperator
 
-# from .._continuous_operator import ContinuousOperator
-
-from .base import SumOperator, SumOperatorMeta
+from netket.operator._sum.base import SumOperator, SumOperatorMeta
 
 
 class SumContinuousMeta(struct.pytree.PytreeMeta, SumOperatorMeta):
@@ -59,7 +57,6 @@ class SumContinuousOperator(
             coefficients: A coefficient for each ContinuousOperator object
             dtype: Data type of the coefficients
         """
-        # self._operators = tuple(operators)  # type: tuple[ContinuousOperator, ...]
         self._is_hermitian = all([op.is_hermitian for op in operators])
         super().__init__(
             operators, operators[0].hilbert, coefficients=coefficients, dtype=dtype

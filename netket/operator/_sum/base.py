@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2025 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,10 +25,10 @@ from netket.utils.types import Array
 from netket.jax import canonicalize_dtypes
 from netket.utils.numbers import is_scalar
 
-from .._abstract_operator import AbstractOperator
-from .._discrete_operator import DiscreteOperator
-from .._discrete_operator_jax import DiscreteJaxOperator
-from .._continuous_operator import ContinuousOperator
+from netket.operator._abstract_operator import AbstractOperator
+from netket.operator._discrete_operator import DiscreteOperator
+from netket.operator._discrete_operator_jax import DiscreteJaxOperator
+from netket.operator._continuous_operator import ContinuousOperator
 
 
 def _flatten_sumoperators(operators: Iterable[AbstractOperator], coefficients: Array):

@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2025 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@ import numpy as np
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
-from .._discrete_operator_jax import DiscreteJaxOperator
+from netket.operator._discrete_operator_jax import DiscreteJaxOperator
 
-from .base import SumOperator
+from netket.operator._sum.base import SumOperator
 
 
 @register_pytree_node_class
@@ -36,6 +36,7 @@ class SumDiscreteJaxOperator(SumOperator, DiscreteJaxOperator):
         )
 
     def _setup(self, force: bool = False):
+        self._initialized = True
         for op in self.operators:
             if hasattr(op, "_setup"):
                 op._setup(force=force)
