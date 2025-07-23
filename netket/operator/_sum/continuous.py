@@ -15,7 +15,6 @@
 from collections.abc import Callable
 from collections.abc import Hashable, Iterable
 
-import jax.numpy as jnp
 
 from netket.utils import HashableArray, struct
 from netket.utils.numbers import is_scalar
