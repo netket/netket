@@ -74,7 +74,6 @@ class SumContinuousOperator(
             raise AssertionError("Each operator needs a coefficient")
 
         self._operators = tuple(operators)  # type: tuple[ContinuousOperator, ...]
-        self._coefficients = jnp.asarray(coefficients, dtype=dtype)
         self._is_hermitian = all([op.is_hermitian for op in operators])
         super().__init__(
             operators, operators[0].hilbert, coefficients=coefficients, dtype=dtype

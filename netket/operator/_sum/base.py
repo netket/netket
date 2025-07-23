@@ -106,16 +106,21 @@ class SumOperator(metaclass=SumOperatorMeta):
 
             operators, coefficients = _flatten_sumoperators(operators, coefficients)
 
-            dtype = canonicalize_dtypes(float, *operators, *coefficients, dtype=dtype)
+            dtype = canonicalize_dtypes(*operators, *coefficients, dtype=dtype)
             coefficients = jnp.asarray(coefficients, dtype=dtype)
 
         self._operators = tuple(operators)
         self._coefficients = coefficients
-        self._dtype = dtype
 
+        # Don't pass dtype to parent classes, handle it ourselves
+        kwargs_no_dtype = {k: v for k, v in kwargs.items() if k != 'dtype'}
         super().__init__(
-            *args, **kwargs
+            *args, **kwargs_no_dtype
         )  # forwards all unused arguments so that this class is a mixin.
+        
+        # Set our computed dtype after parent __init__ methods have run
+        # This ensures our dtype takes precedence over any parent class dtype computation
+        self._dtype = dtype
 
     @property
     def dtype(self):

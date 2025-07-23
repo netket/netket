@@ -401,13 +401,15 @@ class PauliStringsBase(DiscreteOperator):
         return -1 * self
 
     def __radd__(self, other):
-        return self.__add__(other)
+        if is_scalar(other):
+            return self.__add__(other)
+        return super().__radd__(other)
 
     def __isub__(self, other):
         return self.__iadd__(-other)
 
     def __add__(self, other: Union["PauliStringsBase", Number]):
-        if isinstance(other, PauliStringsBase):
+        if isinstance(other, PauliStringsBase) or is_scalar(other):
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             op = op.__iadd__(other)
             return op
