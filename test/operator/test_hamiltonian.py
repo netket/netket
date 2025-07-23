@@ -17,7 +17,7 @@ import pytest
 
 import netket as nk
 
-from .. import common
+from test import common
 
 
 def test_ising_int_dtype():
@@ -224,7 +224,7 @@ def test_special_sum_sub_nonsumop():
     """
     hi = nk.hilbert.Spin(0.5, 4)
     H = nk.operator.Ising(hi, nk.graph.Chain(4), h=1, J=-1)
-    a = nk.operator.spin(hi, 0)
+    a = nk.operator.spin.sigmax(hi, 0)
 
     assert isinstance(H + a, nk.operator.LocalOperator)
     assert isinstance(H - a, nk.operator.LocalOperator)
