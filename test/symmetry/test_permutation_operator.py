@@ -76,6 +76,13 @@ def test_permutation_operator():
             < 1e-14
         )
 
+        # Check product
+        assert (
+            jnp.linalg.norm(
+                (op_1 @ op_2).to_dense() - op_1.to_dense() @ op_2.to_dense()
+            )
+        ) < 1e-14
+
     # Check to_dense
     translation_1_dense_ref = jnp.array(
         [
