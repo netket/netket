@@ -115,6 +115,8 @@ def srt_onthefly(
     )
 
     def jacobian_contraction(samples, all_samples, parameters_real):
+        if config.netket_experimental_sharding:
+            parameters_real = jax.lax.pvary(parameters_real, 'S')
         if chunk_size is None:
             # STRUCTURED_DERIVATIVES returns a complex array, but the imaginary part is zero
             # shape [N_mc/p.size, N_mc, 2, 2]
