@@ -17,8 +17,8 @@
 
 import numpy as np
 from functools import reduce
-from math import pi
 from collections.abc import Iterable, Sequence
+from warnings import warn
 
 from netket.utils import struct, deprecated_new_name, deprecated
 from netket.utils.types import Array
@@ -154,12 +154,14 @@ def _pg_to_permutation(lattice: Lattice, point_group: PointGroup) -> Permutation
 @struct.dataclass
 class TranslationGroup(PermutationGroup):
     """
-    Class to handle translation symmetries of a `Lattice`. Corresponds to a representation of the translation group
-    on the given lattice as a permutation group of `N_sites` variables.
+    Class to handle translation symmetries of a :class:`~netket.graph.Lattice`.
 
-    Can be used as a `PermutationGroup` representing the translations,
-    but the product table is computed much more efficiently than a generic
-    `PermutationGroup`.
+    Corresponds to a representation of the translation group
+    on the given lattice as a permutation group of :code:`N_sites` variables.
+
+    Can be used as a :class:`~netket.utils.group.PermutationGroup` representing
+    the translations, but the product table is computed much more efficiently
+    than in a generic :class:`~netket.utils.group.PermutationGroup`.
     """
 
     lattice: Lattice
@@ -177,9 +179,15 @@ class TranslationGroup(PermutationGroup):
             axes = tuple(range(lattice.ndim))
         elif isinstance(axes, int):
             axes = [axes]
-        else:
-            assert all(x < lattice.ndim for x in axes)
-            assert len(set(axes)) == len(axes)
+
+        if len(set(axes)) != len(axes):
+            raise ValueError(
+                f"Axes must be unique integers, they cannot repeat (got `{axes}`)."
+            )
+        if not all(0 <= x < lattice.ndim for x in axes):
+            raise ValueError(
+                f"Axes must be integers in the range [0, {lattice.ndim}) (got `{axes}`)."
+            )
 
         # compute translation group by axis and overall
         translation_by_axis = [_translations_along_axis(lattice, i) for i in axes]
@@ -195,10 +203,21 @@ class TranslationGroup(PermutationGroup):
     def __hash__(self):
         return super().__hash__()
 
-    @property
+    @struct.property_cached
     def group_shape(self) -> Array:
-        shape = [l if p else 1 for (l, p) in zip(self.lattice.extent, self.lattice.pbc)]
-        return np.asarray(shape)
+        """
+        Tuple of the number of translations represented by the group along
+        each lattice direction.
+
+        :code:`self.group_shape[i]` is :code:`self.lattice.extent[i]`
+        if both :code:`i in self.axes` and :code:`self.lattice.pbc[i] is True`,
+        otherwise 1.
+        """
+        axes_bool = np.zeros(self.lattice.ndim, dtype=bool)
+        axes_bool[list(self.axes)] = True
+        in_group = np.logical_and(self.lattice.pbc, axes_bool)
+        shape = np.where(in_group, self.lattice.extent, 1)
+        return shape
 
     @struct.property_cached
     def inverse(self) -> Array:
@@ -222,23 +241,58 @@ class TranslationGroup(PermutationGroup):
 
         return pt.reshape(len(self), len(self))
 
+    def momentum_irrep(self, *k: Array) -> np.ndarray:
+        r"""Returns the irrep characters (phase factors) corresponding to
+        crystal momentum :math:`\vec k`."""
+        # switch to reciprocal lattice coordinates
+        k = self.lattice.to_reciprocal_lattice(_ensure_iterable(k)).squeeze()
+
+        # prune axes with no nontrivial translations for performance
+        shape = np.asarray(self.group_shape)
+        nontrivial_axes = shape > 1
+        k = k[nontrivial_axes]
+        shape = shape[nontrivial_axes]
+
+        # phase factors for translations along each axis
+        axis_factors = [
+            np.exp(-2j * np.pi * ki * np.arange(ni) / ni) for ki, ni in zip(k, shape)
+        ]
+        axis_factors = np.ix_(*axis_factors)
+
+        return reduce(np.multiply, axis_factors).ravel()
+
+
+_tg_efficiency_notice = """
+
+        Computed more efficiently than for a generic
+        :class:`~netket.utils.group.PermutationGroup` exploiting the
+        Abelian group structure."""
+TranslationGroup.inverse.__doc__ = (
+    PermutationGroup.inverse.__doc__ + _tg_efficiency_notice
+)
+TranslationGroup.product_table.__doc__ = (
+    PermutationGroup.product_table.__doc__ + _tg_efficiency_notice
+)
+
 
 @struct.dataclass
 class SpaceGroup(PermutationGroup):
     """
-    Class to handle the space group symmetries of `Lattice`.
+    Class to handle the space group symmetries of a :class:`~netket.graph.Lattice`.
 
-    Can be used as a `PermutationGroup` representing the action of a
-    space group on a `Lattice`. The space group is generated as the
-    semidirect product of the translation group of the `Lattice` and
-    a geometrical point group given as a constructor argument.
+    Can be used as a :class:`~netket.utils.group.PermutationGroup`
+    representing the action of a space group on a :class:`~netket.graph.Lattice`.
+    The space group is generated as the semidirect product of the translation group
+    of the lattice and a geometrical :class:`~netket.utils.group.PointGroup`
+    given as a constructor argument.
 
-    Also generates `PermutationGroup` representations of
+    Also generates :class:`~netket.utils.group.PermutationGroup` representations of
+
     * the supplied point group,
     * its rotational subgroup (i.e. point group symmetries with determinant +1)
-    * the translation group of the `Lattice`
+    * the translation group of the lattice
 
-    Also generates space group irreps for symmetrising wave functions.
+    as well as space group irreps for symmetrising wave functions.
     """
 
     lattice: Lattice
@@ -246,28 +300,25 @@ class SpaceGroup(PermutationGroup):
     _point_group: PointGroup
     """The geometric point group underlying the space group."""
     point_group: PermutationGroup
-    """The point group as a `PermutationGroup` acting on the sites of `self.lattice`.
+    """The point group as a :class:`~netket.utils.group.PermutationGroup`
+    acting on the sites of :attr:`lattice`.
 
-    Group elements are listed in the order they appear in `self._point_group`.
-    Computed from `_point_group` upon construction, must not be changed after."""
-    full_translation_group: PermutationGroup
+    Group elements are listed in the order they appear in :attr:`_point_group`.
+    Computed from :attr:`_point_group` upon construction, must not be changed after."""
+    full_translation_group: TranslationGroup
 
     def __pre_init__(
         self, lattice: Lattice, point_group: PointGroup
     ) -> tuple[tuple, dict]:
         """
-        Constructs the Space Group Builder used to concretize a point group
-        which knows nothing about how many sites there are in a lattice,
-        into a Permutation Group which can be used to perform calculations.
-
-        From the point of view of group theory, you can think of this as
-        taking the point group and returning a representation on the computational
-        basis defined by the lattice.
+        Constructs the space group generated by the translation symmetries of
+        the lattice and a given point group.
 
         Args:
-            lattice: The lattice for which to represent the point group as
-                a permutation group
-            point_group: The point group to be represented
+            lattice: :class:`~netket.graph.Lattice`
+                The lattice on which the space group is to act.
+            point_group: :class:`~netket.utils.group.PointGroup`
+                The geometrical point group underlying the space group.
         """
 
         if not isinstance(lattice, Lattice):
@@ -332,16 +383,16 @@ class SpaceGroup(PermutationGroup):
     @struct.property_cached
     def rotation_group(self) -> PermutationGroup:
         """The group of rotations (i.e. point group symmetries with determinant +1)
-        as a `PermutationGroup` acting on the sites of `self.lattice`.
+        as a :class:`~netket.utils.group.PermutationGroup` acting on the sites of :attr:`lattice`.
 
-        Group elements are listed in the order they appear in `self._point_group`."""
+        Group elements are listed in the order they appear in :attr:`_point_group`."""
         return _pg_to_permutation(self.lattice, self._point_group.rotation_group())
 
     def translation_group(
         self, axes: int | Sequence[int] | None = None
     ) -> TranslationGroup:
         """
-        The group of valid translations of `self.lattice` as a `PermutationGroup`
+        The group of valid translations of :attr:`lattice` as a :class:`TranslationGroup`
         acting on the sites of the same.
         """
         if axes is None:
@@ -349,13 +400,18 @@ class SpaceGroup(PermutationGroup):
         else:
             return TranslationGroup(self.lattice, axes=axes)
 
+    @deprecated_new_name("translation_group")
+    def _translations_along_axis(self, axis: int) -> TranslationGroup:
+        # DEPRECATED: use `self.translation_group(axes=axis)` instead
+        return self.translation_group(axes=axis)
+
     @property
     @deprecated(
         reason="This `SpaceGroup` object can be used directly as a permutation group"
     )
     def space_group(self) -> "SpaceGroup":
         """
-        The space group generated by `self.point_group` and `self.translation_group`.
+        Deprecated. Returns :code:`self`.
         """
         return self
 
@@ -393,10 +449,19 @@ class SpaceGroup(PermutationGroup):
 
         return product_table.reshape(n_symm, n_symm)
 
+    @struct.property_cached
+    def _point_group_conjugacy_table(self) -> np.ndarray:
+        """Part of the conjugacy table :math:`h^{-1}gh` where h are
+        point-group symmetries."""
+        n_PG = len(self.point_group)
+        col_index = np.arange(n_PG)[np.newaxis, :]
+        # exploits that h^{-1}gh = (g^{-1} h)^{-1} h
+        return self.product_table[self.product_table[:, :n_PG], col_index]
+
     def _little_group_index(self, k: Array) -> Array:
-        """
+        r"""
         Returns the indices of the elements of the little group corresponding to
-        wave vector `k`.
+        wave vector :math:`\vec{k}`.
         """
         # calculate k' = p(k) for all p in the point group
         big_star = np.tensordot(self._point_group.matrices(), k, axes=1)
@@ -409,15 +474,15 @@ class SpaceGroup(PermutationGroup):
         return np.arange(len(self._point_group))[is_in_little_group]
 
     def little_group(self, *k: Array) -> PointGroup:
-        """
-        Returns the little co-group corresponding to wave vector *k*.
-        This is the subgroup of the point group that leaves *k* invariant.
+        r"""
+        Returns the little co-group corresponding to wave vector :math:`\vec{k}`.
+        This is the subgroup of the point group that leaves :math:`\vec{k}` invariant.
 
         Arguments:
             k: the wave vector in Cartesian axes
 
         Returns:
-            the little co-group as a `PointGroup`
+            the little co-group
         """
         k = _ensure_iterable(k)
         return PointGroup(
@@ -426,91 +491,141 @@ class SpaceGroup(PermutationGroup):
             unit_cell=self.lattice.basis_vectors,
         )
 
-    def _little_group_irreps(self, k: Array, divide: bool = False) -> Array:
+    def little_group_multipliers(self, *k: Array) -> np.ndarray | None:
+        r"""Computes the Schur multiplier associated with the little group
+        given the translations associated with its elements.
+
+        The mutlipliers are given by (Bradney & Cracknell, eqs. 3.7.11-14)
+
+        .. math::
+
+            \mu(S_i, S_j) &= \exp(-i g_i \cdot w_j)
+
+            g_i  &= S_i^{-1} k - k
+
+        and :math:`w_j` is the translation associated with
+        point-group symmetry :math:`S_i`.
+
+        Arguments:
+            k: the wave vector in Cartesian axes
+
+        Returns:
+            A square array of the :math:`\mu(S_i, S_j)`.
+
+            If all multipliers are +1, :code:`None` is returned instead:
+            this signals to :meth:`~netket.utils.group.FiniteGroup.character_table()`
+            etc. that linear (not projective) representations are required.
+        """
+        k = _ensure_iterable(k)
+        ix = self._little_group_index(k)
+
+        # g_i  = S_i^{-1} k - k
+        matrices = self._point_group.matrices()[ix]
+        matrices = matrices.transpose(0, 2, 1)  # need S_i^{-1}
+        g = matrices @ k - k
+
+        w = self._point_group.translations()[ix]
+
+        multiplier = np.exp(-1j * (g @ w.T))
+
+        if np.allclose(multiplier, 1.0, rtol=1e-8):
+            return None
+        else:
+            return prune_zeros(multiplier)
+
+    def little_group_irreps_readable(self, *k: Array, full: bool = False):
+        """Returns a conventional rendering of little-group irrep characters.
+
+        This differs from :code:`little_group(k).character_table_readable()`
+        in that nontrivial Schur multipliers for nonsymmorphic space group
+        are automatically taken into account.
+
+        Arguments:
+            k: the wave vector in Cartesian axes
+            full: whether the character table for all group elements (True)
+                or one representative per conjugacy class (False, default)
+
+        Returns:
+
+            A tuple containing a list of strings and an array
+
+            - :code:`classes`: a text description of a representative of
+              each conjugacy class (or each element) of the little group as a list
+            - :code:`characters`: a matrix, each row of which lists the
+              characters of one irrep
+        """
+        k = _ensure_iterable(k)
+        group = self.little_group(k)
+        multiplier = self.little_group_multipliers(k)
+
+        if multiplier is not None:
+            warn(
+                "The space group is nonsymmorphic and the function will return\n"
+                "a character table of projective irreps of the little group.\n"
+                "If you want the linear irreps of the little group, use\n"
+                "`self.little_group(k).character_table_readable()` instead."
+            )
+
+        return group.character_table_readable(multiplier, full)
+
+    def _little_group_irreps(self, k: Array) -> Array:
         """
         Returns the character table of the little group embedded in the full point
         group. Symmetries outside the little group get 0.
-        If `divide` is `True`, the result gets divided by the size of the little group.
-        This is convenient when calculating space group irreps.
         """
         idx = self._little_group_index(k)
-        CT = self.little_group(k).character_table()
+        group = self.little_group(k)
+        multiplier = self.little_group_multipliers(k)
+        CT = group.character_table(multiplier)
         CT_full = np.zeros((CT.shape[0], len(self._point_group)), dtype=CT.dtype)
         CT_full[:, idx] = CT
-        return CT_full / idx.size if divide else CT_full
+        return CT_full
 
     def space_group_irreps(self, *k: Array) -> Array:
-        """
-        Returns the portion of the character table of the full space group corresponding
-        to the star of the wave vector *k*.
+        r"""
+        Returns the portion of the character table of the full space group
+        corresponding to the star of the wave vector :math:`\vec{k}`.
 
         Arguments:
             k: the wave vector in Cartesian axes
 
         Returns:
-            An array `CT` listing the characters for a number of irreps of the
-            space group.
-            `CT[i]` for each `i` gives a distinct irrep, each corresponding to
-            `self.little_group(k).character_table[i].
-            `CT[i,j]` gives the character of `self.space_group[j]` in the same.
-        """
-        k = _ensure_iterable(k)
-        # Wave vectors
-        big_star_Cart = np.tensordot(self._point_group.matrices(), k, axes=1)
-        big_star = self.lattice.to_reciprocal_lattice(big_star_Cart) * (
-            2 * pi / self.lattice.extent
-        )
-        # Little-group-irrep factors
-        # Conjugacy_table[g,p] lists p^{-1}gp, so point_group_factors[i,:,p]
-        #     of irrep #i for the little group of p(k) is the equivalent
-        # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
-        point_group_factors = self._little_group_irreps(k, divide=True)[
-            :, self._point_group.conjugacy_table
-        ] * np.exp(
-            -1j
-            * np.tensordot(
-                self._point_group.translations(), big_star_Cart, axes=(-1, -1)
-            )
-        )
-        # Translational factors
-        trans_factors = []
-        for axis in range(self.lattice.ndim):
-            n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1
-            factors = np.exp(-1j * np.outer(np.arange(n_trans), big_star[:, axis]))
-            shape = (
-                [1] * axis
-                + [n_trans]
-                + [1] * (self.lattice.ndim - 1 - axis)
-                + [len(self._point_group)]
-            )
-            trans_factors.append(factors.reshape(shape))
-        trans_factors = reduce(np.multiply, trans_factors).reshape(
-            -1, len(self._point_group)
-        )
+            An array :code:`CT` listing the characters for all irreps of the
+            space group defined on the star of :math:`\vec{k}`.
 
-        # Multiply the factors together and sum over the "p" PGSymmetry axis
-        # Translations are more major than point group operations
-        result = np.einsum(
-            "igp, tp -> itg", point_group_factors, trans_factors
-        ).reshape(point_group_factors.shape[0], -1)
-        return prune_zeros(result)
+            :code:`CT[i]` returns the irrep corresponding to the little-group
+            irrep listed in row #i by :meth:`little_group_irreps_readable`.
+
+            :code:`CT[i,j]` gives the character of :code:`self[j]` in the same.
+        """
+        # One-arm irreps for the other wave vectors in the star can be
+        # obtained from the arm `k` by conjugating the character with some
+        # point-group operation.
+        # The simplest is to do the conjugation with all of them, which
+        # counts every arm |little group| times, which we divide out
+        # at the end.
+        k = _ensure_iterable(k)
+        chi = self.one_arm_irreps(k)[:, self._point_group_conjugacy_table]
+        return prune_zeros(chi.sum(axis=-1) / len(self._little_group_index(k)))
 
     def one_arm_irreps(self, *k: Array) -> Array:
-        """
-        Returns the portion of the character table of the full space group corresponding
-        to the star of the wave vector *k*, projected onto *k* itself.
+        r"""
+        Returns the portion of the character table of the full space group
+        corresponding to the star of the wave vector :math:`\vec{k}`,
+        projected onto :math:`\vec{k}` itself.
 
         Arguments:
             k: the wave vector in Cartesian axes
 
         Returns:
-            An array `CT` listing the projected characters for a number of irreps of
-            the space group.
-            `CT[i]` for each `i` gives a distinct irrep, each corresponding to
-            `self.little_group(k).character_table[i].
-            `CT[i,j]` gives the character of `self.space_group[j]` in the same.
+            An array `CT` listing the projected characters for all irreps of the
+            space group defined on the star of :math:`\vec{k}`.
+
+            :code:`CT[i]` returns the irrep corresponding to the little-group
+            irrep listed in row #i by :meth:`little_group_irreps_readable`.
+
+            :code:`CT[i,j]` gives the character of :code:`self[j]` in the same.
         """
-        # Convert k to reciprocal lattice vectors
         k = _ensure_iterable(k)
         # Little-group irrep factors
         # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
@@ -518,17 +633,20 @@ class SpaceGroup(PermutationGroup):
             -1j * (self._point_group.translations() @ k)
         )
         # Translational factors
-        trans_factors = []
-        for axis in range(self.lattice.ndim):
-            n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1
-            factors = np.exp(-1j * k[axis] * np.arange(n_trans))
-            shape = [1] * axis + [n_trans] + [1] * (self.lattice.ndim - 1 - axis)
-            trans_factors.append(factors.reshape(shape))
-        trans_factors = reduce(np.multiply, trans_factors).ravel()
+        trans_factors = self.full_translation_group.momentum_irrep(k)
 
         # Multiply the factors together
         # Translations are more major than point group operations
-        result = np.einsum("ig, t -> itg", point_group_factors, trans_factors).reshape(
-            point_group_factors.shape[0], -1
-        )
+        result = np.einsum("ig, t -> itg", point_group_factors, trans_factors)
+        result = result.reshape(point_group_factors.shape[0], -1)
         return prune_zeros(result)
+
+
+_sg_efficiency_notice = """
+
+        Computed more efficiently than for a generic
+        :class:`~netket.utils.group.PermutationGroup` exploiting the
+        semidirect product structure of space groups."""
+SpaceGroup.product_table.__doc__ = (
+    PermutationGroup.product_table.__doc__ + _sg_efficiency_notice
+)

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterable, TYPE_CHECKING
+from typing import Any, Union, TYPE_CHECKING
+from collections.abc import Iterable
 from numbers import Number
 
 import numpy as np
@@ -21,10 +22,10 @@ import numpy as np
 if TYPE_CHECKING:
     import matplotlib
 
-from ..dispatch import dispatch
-from ..numbers import is_scalar
-from ..types import Array, DType
-from ..optional_deps import import_optional_dependency
+from netket.utils.dispatch import dispatch
+from netket.utils.numbers import is_scalar
+from netket.utils.types import Array, DType
+from netket.utils.optional_deps import import_optional_dependency
 
 
 def raise_if_len_not_match(length, expected_length, string):
@@ -316,7 +317,7 @@ class History:
         xscale: str | None = None,
         yscale: str | None = "auto",
         **kwargs,
-    ) -> "matplotlib.axes.Axes" | Iterable["matplotlib.axes.Axes"]:
+    ) -> Union["matplotlib.axes.Axes", Iterable["matplotlib.axes.Axes"]]:
         """
         Plot the history object using matplotlib.
 

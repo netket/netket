@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
+from textwrap import dedent
 
+from numbers import Number
 
 import numpy as np
 
-from numbers import Number
+import jax
 
 from netket.utils.types import DType
 from netket.operator import DiscreteOperator, Transpose
@@ -24,7 +27,8 @@ from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
 
-from netket.hilbert import SpinOrbitalFermions
+from netket.hilbert import Fock, SpinOrbitalFermions
+
 
 from .utils import (
     _convert_terms_to_spin_blocks,
@@ -97,11 +101,11 @@ class FermionOperator2ndBase(DiscreteOperator):
             >>> hi = nk.hilbert.SpinOrbitalFermions(3)
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
+            FermionOperator2ndJax(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> terms = ("0^ 1", "2^ 1")
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
+            FermionOperator2ndJax(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> op.hilbert
             SpinOrbitalFermions(n_orbitals=3)
             >>> op.hilbert.size
@@ -137,7 +141,39 @@ class FermionOperator2ndBase(DiscreteOperator):
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
-        raise NotImplementedError  # pragma: no cover
+        if jax.process_index() == 0:
+            if (
+                isinstance(self.hilbert, SpinOrbitalFermions)
+                and self.hilbert.n_fermions_per_spin is not None
+            ):
+                warnings.warn(
+                    dedent(
+                        """
+                        WARNING: Initializing `netket.operator.FermionOperator2nd` for a Hilbert space with a fixed number of fermions.
+                        Consider using `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd` to reduce the number of connected elements and
+                        considerably reduce the computational cost.
+                        You can convert this operator by calling `netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd`.
+                        """
+                    ),
+                    stacklevel=2,
+                )
+            elif (
+                isinstance(self.hilbert, SpinOrbitalFermions)
+                and self.hilbert.n_fermions is not None
+            ) or (
+                isinstance(self.hilbert, Fock) and self.hilbert.n_particles is not None
+            ):
+                warnings.warn(
+                    dedent(
+                        """
+                        WARNING: Initializing `netket.operator.FermionOperator2nd` for a Hilbert space with a fixed number of fermions.
+                        Consider using `netket.experimental.operator.ParticleNumberConservingFermioperator2nd` to reduce the number of connected elements and
+                        considerably reduce the computational cost.
+                        You can convert this operator by calling `netket.experimental.operator.ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd`.
+                        """
+                    ),
+                    stacklevel=2,
+                )
 
     @classmethod
     def from_openfermion(
@@ -387,9 +423,11 @@ class FermionOperator2ndBase(DiscreteOperator):
         return self.__add__(other)
 
     def __add__(self, other):
-        dtype = np.promote_types(self.dtype, _dtype(other))
-        op = self.copy(dtype=dtype)
-        return op.__iadd__(other)
+        if is_scalar(other) or isinstance(other, FermionOperator2ndBase):
+            dtype = np.promote_types(self.dtype, _dtype(other))
+            op = self.copy(dtype=dtype)
+            return op.__iadd__(other)
+        return super().__add__(other)
 
     def __iadd__(self, other):
         if is_scalar(other):

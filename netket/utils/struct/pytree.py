@@ -12,7 +12,12 @@ import jax.numpy as jnp
 
 from flax import serialization
 
-from .fields import CachedProperty, _cache_name, _raw_cache_name, Uninitialized
+from netket.utils.struct.fields import (
+    CachedProperty,
+    _cache_name,
+    _raw_cache_name,
+    Uninitialized,
+)
 from netket.utils import config
 from netket.errors import NetKetPyTreeUndeclaredAttributeAssignmentError
 
@@ -137,6 +142,7 @@ class Pytree(metaclass=PytreeMeta):
     _pytree__fields: dict[str, dataclasses.Field]
     _pytree__static_fields: tuple[str, ...]
     _pytree__node_fields: tuple[str, ...]
+    _pytree__ignored_fields: tuple[str, ...]
     _pytree__setter_descriptors: frozenset[str]
 
     _pytree__cachedprop_fields: tuple[str, ...]
@@ -147,7 +153,7 @@ class Pytree(metaclass=PytreeMeta):
         # gather class info
         class_vars = vars(cls)
         setter_descriptors = set()
-        all_fields, data_fields, static_fields = _inherited_fields(cls)
+        all_fields, data_fields, static_fields, ignored_fields = _inherited_fields(cls)
 
         # new
         default_setters = _inherited_defaults_setters(cls)  # _pytree__default_setters
@@ -166,7 +172,10 @@ class Pytree(metaclass=PytreeMeta):
                 all_fields[field] = value
                 _is_pytree_node = value.metadata.get("pytree_node", True)
                 if not _is_pytree_node:
-                    static_fields.add(field)
+                    if value.metadata.get("ignore", False):
+                        ignored_fields.add(field)
+                    else:
+                        static_fields.add(field)
                 elif _is_pytree_node:
                     data_fields.add(field)
 
@@ -192,6 +201,8 @@ class Pytree(metaclass=PytreeMeta):
             # setattr(cls, _cache_name(field), Uninitialized)
             if class_vars[field].pytree_node:
                 data_fields.add(_cache_name(field))
+            elif class_vars[field].pytree_ignore:
+                ignored_fields.add(_cache_name(field))
             else:
                 static_fields.add(_cache_name(field))
         cached_prop_fields = cached_prop_fields.union(
@@ -242,13 +253,16 @@ class Pytree(metaclass=PytreeMeta):
                     pass
 
         # new
-        init_fields = tuple(sorted(data_fields.union(static_fields)))
+        init_fields = tuple(
+            sorted(data_fields.union(static_fields).union(ignored_fields))
+        )
         data_fields = tuple(sorted(data_fields))
         cached_prop_fields = tuple(sorted(cached_prop_fields))
         cached_prop_fields = tuple(_cache_name(f) for f in cached_prop_fields)
         default_setters = MappingProxyType(default_setters)
 
         static_fields = tuple(sorted(static_fields))
+        ignored_fields = tuple(sorted(ignored_fields))
         noserialize_fields = tuple(sorted(noserialize_fields))
         serialize_rename_fields = tuple(
             sorted(compute_serialize_rename_fields(all_fields))
@@ -260,6 +274,7 @@ class Pytree(metaclass=PytreeMeta):
         cls._pytree__class_is_mutable = mutable
         cls._pytree__fields = all_fields
         cls._pytree__static_fields = static_fields
+        cls._pytree__ignored_fields = ignored_fields
         cls._pytree__noserialize_fields = noserialize_fields
         cls._pytree__serialize_rename_fields = serialize_rename_fields
         cls._pytree__sharded_fields = sharded_fields
@@ -357,6 +372,10 @@ class Pytree(metaclass=PytreeMeta):
             raise KeyError(
                 f"Missing static field {e} in PyTree {cls.__name__} while flattening."
             ) from e
+
+        # drop ignored keys
+        for ignored_field in pytree._pytree__ignored_fields:
+            all_vars.pop(ignored_field, None)
         if with_key_paths:
             node_values = tuple(
                 (jax.tree_util.GetAttrKey(field), all_vars.pop(field))
@@ -390,7 +409,9 @@ class Pytree(metaclass=PytreeMeta):
     def _to_flax_state_dict(
         cls, noserialize_field_names: tuple[str, ...], pytree: "Pytree"
     ) -> dict[str, tp.Any]:
-        from .pytree_serialization_sharding import to_flax_state_dict_sharding
+        from netket.utils.struct.pytree_serialization_sharding import (
+            to_flax_state_dict_sharding,
+        )
 
         state_dict = {
             name: unwrap_jax_prng_keys(
@@ -458,8 +479,6 @@ class Pytree(metaclass=PytreeMeta):
                 # return jax.random.key_data(maybe_key)
 
             # Handle sharding
-            # from netket.utils import mpi
-            # import jax
             if name in cls._pytree__sharded_fields:
                 updates[name] = (
                     cls._pytree__fields[name]
@@ -549,7 +568,7 @@ class Pytree(metaclass=PytreeMeta):
 
 def _inherited_fields(
     cls: type,
-) -> tuple[dict[str, dataclasses.Field], set[str], set[str]]:
+) -> tuple[dict[str, dataclasses.Field], set[str], set[str], set[str]]:
     """
     Returns the set of all fields (static and data) fields from
     base classes.
@@ -557,6 +576,7 @@ def _inherited_fields(
     fields = {}
     data_fields = set()
     static_fields = set()
+    ignored_fields = set()
 
     for parent_class in cls.mro():
         if parent_class is not cls and parent_class is not Pytree:
@@ -564,17 +584,22 @@ def _inherited_fields(
                 fields.update(parent_class._pytree__fields)
                 data_fields.update(parent_class._pytree__data_fields)
                 static_fields.update(parent_class._pytree__static_fields)
+                ignored_fields.update(parent_class._pytree__ignored_fields)
             elif dataclasses.is_dataclass(parent_class):
                 for field in dataclasses.fields(parent_class):
                     fields[field.name] = field
 
                     _is_pytree_node = field.metadata.get("pytree_node", True)
+                    _ignore_node = field.metadata.get("struct_ignore", False)
                     if _is_pytree_node:
                         data_fields.add(field.name)
                     else:
-                        static_fields.add(field.name)
+                        if _ignore_node:
+                            ignored_fields.add(field.name)
+                        else:
+                            static_fields.add(field.name)
 
-    return fields, data_fields, static_fields
+    return fields, data_fields, static_fields, ignored_fields
 
 
 def _inherited_noserialize_fields(cls: type) -> set[str]:

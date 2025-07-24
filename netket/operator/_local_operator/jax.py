@@ -32,7 +32,7 @@ from .._pauli_strings import PauliStringsJax
 from .._discrete_operator_jax import DiscreteJaxOperator
 
 if TYPE_CHECKING:
-    from .numba import LocalOperator
+    from .numba import LocalOperatorNumba
 
 
 @partial(jax.vmap, in_axes=(0, None))  # samples
@@ -267,7 +267,9 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
-    def n_conn(self, x):
+    def n_conn(self, x, out=None):
+        if out is not None:
+            raise NotImplementedError()
         _, _, n_conn = self._get_conn_padded(x)
         return n_conn
 
@@ -313,17 +315,17 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         op._convertible = False
         return op
 
-    def to_numba_operator(self) -> "LocalOperator":  # noqa: F821
+    def to_numba_operator(self) -> "LocalOperatorNumba":  # noqa: F821
         """
         Returns the standard numba version of this operator, which is an
         instance of :class:`netket.operator.LocalOperator`.
         """
-        from .numba import LocalOperator
+        from .numba import LocalOperatorNumba
 
         if self._convertible is False:
             raise JaxOperatorNotConvertibleToNumba(self)
 
-        return LocalOperator(
+        return LocalOperatorNumba(
             self.hilbert,
             self.operators,
             self.acting_on,

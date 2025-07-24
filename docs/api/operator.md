@@ -50,15 +50,15 @@ Below you find a list of all concrete Operators that you can create on {class}`~
    :nosignatures:
 
    BoseHubbard
-   BoseHubbardJax
+   BoseHubbardNumba
    GraphOperator
    LocalOperator
-   LocalOperatorJax
+   LocalOperatorNumba
    Ising
-   IsingJax
+   IsingNumba
    Heisenberg
    PauliStrings
-   PauliStringsJax
+   PauliStringsNumba
    LocalLiouvillian
 
 ```
@@ -74,7 +74,7 @@ Operators and functions to work with fermions are the following:
    :nosignatures:
 
    FermionOperator2nd
-   FermionOperator2ndJax
+   FermionOperator2ndNumba
    fermion.create
    fermion.destroy
    fermion.number
@@ -110,6 +110,19 @@ This is a list of operators that you can define on {class}`~netket.experimental.
 
    KineticEnergy
    PotentialEnergy
+```
+
+### Composing different operators together
+
+Operators of different types, but acting on the same Hilbert space, can be combined by means of the operators described below. This is also useful to parametrize in a jax-friendly way time-dependent Hamiltonians.
+
+```{eval-rst}
+.. currentmodule:: netket.operator
+
+.. autosummary::
+   :toctree: _generated/operator
+   :nosignatures:
+
    SumOperator
 ```
 

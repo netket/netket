@@ -26,7 +26,7 @@ import jax
 from netket import config
 from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
-from netket.utils import mpi, timing
+from netket.utils import timing
 from netket.utils.types import Optimizer, PyTree
 from netket.vqs import VariationalState
 
@@ -101,9 +101,7 @@ class AbstractVariationalDriver(abc.ABC):
             minimized_quantity_name: the name of the loss function in
                 the logged data set.
         """
-        self._mynode = mpi.node_number
-        self._is_root = self._mynode == 0 and jax.process_index() == 0
-        self._mpi_nodes = mpi.n_nodes
+        self._is_root = jax.process_index() == 0
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
         self._step_count = 0
@@ -288,7 +286,7 @@ class AbstractVariationalDriver(abc.ABC):
         also returned at the end of this function so that you can inspect the results
         without reading the json output.
 
-        When running among multiple MPI ranks/Jax devices, the logging logic is executed
+        When running among multiple JAX devices, the logging logic is executed
         on all nodes, but only root-rank loggers should write to files or do expensive I/O
         operations.
 
@@ -365,7 +363,8 @@ class AbstractVariationalDriver(abc.ABC):
                             logger(self.step_count, log_data, self.state)
 
                     if len(callbacks) > 0:
-                        if mpi.mpi_any(callback_stop):
+                        # TODO: Use some logic to to jax.distributed.any?
+                        if callback_stop:
                             break
 
                     # Reset the timing of tqdm after the first step, to ignore compilation time

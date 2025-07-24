@@ -1,7 +1,6 @@
 from collections.abc import Callable
 
 import jax
-import jax.numpy as jnp
 
 from ._chunk_utils import _chunk, _unchunk
 from ._scanmap import scanmap, scan_append
@@ -12,43 +11,30 @@ from netket.jax.sharding import sharding_decorator
 
 
 def _eval_fun_in_chunks(vmapped_fun, chunk_size, argnums, *args, **kwargs):
-    n_elements = jax.tree_util.tree_leaves(args[argnums[0]])[0].shape[0]
-    n_chunks, n_rest = divmod(n_elements, chunk_size)
-
-    if n_chunks == 0 or chunk_size >= n_elements:
-        y = vmapped_fun(*args, **kwargs)
-    else:
-        # split inputs
-        def _get_chunks(x):
-            x_chunks = jax.tree_util.tree_map(
-                lambda x_: x_[: n_elements - n_rest, ...], x
-            )
-            x_chunks = _chunk(x_chunks, chunk_size)
-            return x_chunks
-
-        def _get_rest(x):
-            x_rest = jax.tree_util.tree_map(
-                lambda x_: x_[n_elements - n_rest :, ...], x
-            )
-            return x_rest
-
-        args_chunks = [
-            _get_chunks(a) if i in argnums else a for i, a in enumerate(args)
+    # split inputs
+    args_chunks, args_rest = zip(
+        *[
+            _chunk(a, chunk_size=chunk_size) if i in argnums else (a, a)
+            for i, a in enumerate(args)
         ]
-        args_rest = [_get_rest(a) if i in argnums else a for i, a in enumerate(args)]
+    )
 
-        y_chunks = _unchunk(
-            scanmap(vmapped_fun, scan_append, argnums)(*args_chunks, **kwargs)
-        )
+    n_chunks = jax.tree_util.tree_leaves(args_chunks[argnums[0]])[0].shape[0]
+    n_rest = jax.tree_util.tree_leaves(args_rest[argnums[0]])[0].shape[0]
 
-        if n_rest == 0:
-            y = y_chunks
-        else:
-            y_rest = vmapped_fun(*args_rest, **kwargs)
-            y = jax.tree_util.tree_map(
-                lambda y1, y2: jnp.concatenate((y1, y2)), y_chunks, y_rest
-            )
-    return y
+    if n_chunks > 0:
+        y_chunks = scanmap(vmapped_fun, scan_append, argnums)(*args_chunks, **kwargs)
+    if n_rest > 0:
+        y_rest = vmapped_fun(*args_rest, **kwargs)
+
+    if n_chunks > 0 and n_rest > 0:
+        return _unchunk(y_chunks, y_rest)
+    elif n_chunks > 0:
+        return _unchunk(y_chunks)
+    elif n_rest > 0:
+        return y_rest
+    else:
+        return vmapped_fun(*args, **kwargs)
 
 
 def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwargs):
@@ -100,7 +86,7 @@ def apply_chunked(
     in_axes=0,
     *,
     chunk_size: int | None,
-    axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
 ) -> Callable:
     """
     Takes an implicitly vmapped function over the axis 0 and uses scan to
@@ -135,6 +121,9 @@ def apply_chunked(
             Defaults True if config.netket_experimental_sharding, oterhwise defaults to False.
 
     """
+    if axis_0_is_sharded is None:
+        axis_0_is_sharded = config.netket_experimental_sharding
+
     _, argnums = _parse_in_axes(in_axes)
     return _chunk_vmapped_function(f, chunk_size, argnums, axis_0_is_sharded)
 
@@ -144,7 +133,7 @@ def vmap_chunked(
     in_axes=0,
     *,
     chunk_size: int | None,
-    axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
 ) -> Callable:
     """
     Behaves like jax.vmap but uses scan to chunk the computations in smaller chunks.
@@ -173,6 +162,9 @@ def vmap_chunked(
     Returns:
         A vectorised and chunked function
     """
+    if axis_0_is_sharded is None:
+        axis_0_is_sharded = config.netket_experimental_sharding
+
     in_axes, argnums = _parse_in_axes(in_axes)
     vmapped_fun = jax.vmap(f, in_axes=in_axes)
     return _chunk_vmapped_function(vmapped_fun, chunk_size, argnums, axis_0_is_sharded)

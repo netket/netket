@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import netket as nk
+from netket import experimental as nkx
+
 import jax.numpy as jnp
 
 
@@ -53,7 +55,9 @@ N = 10
 d = 0.3  # 1/Angstrom
 rm = 2.9673  # Angstrom
 L = N / (0.3 * rm)
-hilb = nk.hilbert.Particle(N=N, L=(L,), pbc=True)
+
+geo = nkx.geometry.Cell(d=1, L=(L,), pbc=True)
+hilb = nkx.hilbert.Particle(N=N, geometry=geo)
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.05, n_chains=16, sweep_size=32)
 
 
@@ -74,5 +78,5 @@ vs = nk.vqs.MCState(sab, model, n_samples=4096, n_discard_per_chain=128)
 op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
-gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
+gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
 gs.run(n_iter=1000, out="Helium_10_1d")

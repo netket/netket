@@ -1,6 +1,5 @@
 # this file contains the logic of the operators, essentially _jw_kernel
 
-from typing import Union
 
 from functools import partial
 
@@ -87,8 +86,8 @@ def _jw_kernel(
 def _get_conn_padded(
     n_fermions: int,
     x: Array,
-    index_array: Union[Array, COOArray, None],
-    create_array: Union[Array, None],
+    index_array: Array | COOArray | None,
+    create_array: Array | None,
     weight_array: Array,
 ) -> tuple[Array, Array]:
     r"""
@@ -198,8 +197,8 @@ def _get_conn_padded_interaction_up_down(
     nelectron_up: int,
     x_down: Array,
     x_up: Array,
-    index_array: Union[Array, COOArray, None],
-    create_array: Union[Array, None],
+    index_array: Array | COOArray | None,
+    create_array: Array | None,
     weight_array: Array,
 ) -> tuple[Array, Array, Array]:
     r"""

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+from netket import experimental as nkx
 import optax
 
 # 1D Lattice
@@ -34,14 +35,16 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 # Optimizer with a decreasing learning rate
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
 
-# SR
-sr = nk.optimizer.SR(diag_shift=0.01)
-
 # Variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
 # Variational monte carlo driver with a variational state
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nkx.driver.VMC_SR(
+    ha,
+    op,
+    variational_state=vs,
+    diag_shift=0.01,
+)
 
 # Run the optimization for 500 iterations
 gs.run(n_iter=500, out="test", timeit=True)

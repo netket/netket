@@ -258,7 +258,9 @@ class LocalOperatorBase(DiscreteOperator):
         return new
 
     def __radd__(self, other):
-        return self.__add__(other)
+        if is_scalar(other):
+            return self.__add__(other)
+        return super().__radd__(other)
 
     def __sub__(self, other):
         return self + (-other)
@@ -273,9 +275,11 @@ class LocalOperatorBase(DiscreteOperator):
         return -1 * self
 
     def __add__(self, other: Union["LocalOperatorBase", numbers.Number]):
-        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
-        op = op.__iadd__(other)
-        return op
+        if isinstance(other, LocalOperatorBase) or is_scalar(other):
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
+            op = op.__iadd__(other)
+            return op
+        return super().__add__(other)
 
     def __iadd__(self, other):
         if isinstance(other, LocalOperatorBase):

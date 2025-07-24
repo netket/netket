@@ -6,7 +6,7 @@
 
 ```
 
-lorem ipsum
+This module provides graphs on which local Hamiltonians can be defined.
 
 ```{eval-rst}
 .. inheritance-diagram:: netket.graph
@@ -33,7 +33,6 @@ Below you find a list of all public classes defined in this module.
 
 Below you find a list of all concrete classes that you can use.
 
-
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/graph
@@ -43,13 +42,13 @@ Below you find a list of all concrete classes that you can use.
    Graph
    Lattice
    Edgeless
-   Hypercube
    lattice.LatticeSite
-   Grid
 
 ```
 
 ## Pre-built Lattices
+
+### Simple hypercubic lattices
 
 ```{eval-rst}
 .. autosummary::
@@ -57,20 +56,45 @@ Below you find a list of all concrete classes that you can use.
    :template: class
    :nosignatures:
 
-   Diamond
-   Kagome
+   Grid
+   Hypercube
    Square
-   Chain
    Cube
-   BCC
-   FCC
+
+```
+
+### Other lattices
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/graph
+   :template: class
+   :nosignatures:
+
+   Chain
+   Triangular
    Honeycomb
    KitaevHoneycomb
-   Triangular
+   Kagome
+   BCC
+   FCC
+   Diamond
    Pyrochlore
 
 ```
 
+## Handling lattice symmetries
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/graph
+   :template: class
+   :nosignatures:
+
+   space_group.SpaceGroup
+   space_group.TranslationGroup
+
+```
 ## Additional functions
 
 ```{eval-rst}

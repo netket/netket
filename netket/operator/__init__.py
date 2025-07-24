@@ -17,13 +17,13 @@ from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
 from ._discrete_operator_jax import DiscreteJaxOperator
 
-from ._pauli_strings import PauliStrings, PauliStringsJax
-from ._local_operator import LocalOperator, LocalOperatorJax
+from ._pauli_strings import PauliStringsNumba, PauliStringsJax, PauliStrings
+from ._local_operator import LocalOperatorNumba, LocalOperatorJax, LocalOperator
+from ._ising import Ising, IsingJax, IsingNumba
+from ._bose_hubbard import BoseHubbard, BoseHubbardNumba, BoseHubbardJax
 from ._graph_operator import GraphOperator
 from ._lazy import Adjoint, Transpose, Squared
 from ._heisenberg import Heisenberg
-from ._ising import Ising, IsingJax
-from ._bose_hubbard import BoseHubbard, BoseHubbardJax
 
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian
@@ -31,9 +31,15 @@ from ._local_liouvillian import LocalLiouvillian
 from ._continuous_operator import ContinuousOperator
 from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
-from ._sumoperators import SumOperator
 
-from ._fermion2nd import FermionOperator2nd, FermionOperator2ndJax
+from ._fermion2nd import (
+    FermionOperator2nd,
+    FermionOperator2ndJax,
+    FermionOperator2ndNumba,
+)
+
+from ._sum import SumOperator
+
 
 from . import spin, boson, fermion
 

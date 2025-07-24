@@ -14,8 +14,23 @@
 
 from .tdvp import TDVP
 from .tdvp_schmitt import TDVPSchmitt
-from .vmc_srt import VMC_SRt
+from .vmc_sr import VMC_SR, VMC_SRt as _VMC_SRt_deprecated
+
+
+_deprecations = {
+    # May 2024, NetKet 3.12
+    "VMC_SRt": (
+        "netket.experimental.driver.VMC_SRt is deprecated: use the new SR driver "
+        "netket.experimental.driver.VMC_SR(..., use_ntk=True) (netket >= 3.17)",
+        _VMC_SRt_deprecated,
+    ),
+}
+
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _hide_submodules
 from .infidelity import InfidelityOptimization
 
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
+
+del _deprecation_getattr

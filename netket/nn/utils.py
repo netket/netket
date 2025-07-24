@@ -23,44 +23,15 @@ import numpy as np
 from math import prod
 
 from netket import jax as nkjax
-from netket.utils import get_afun_if_module, mpi
+from netket.utils import get_afun_if_module
 from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert, DoubledHilbert
 
 from netket.utils import config
-from netket.utils.deprecation import deprecated
 from netket.jax.sharding import (
     extract_replicated,
     distribute_to_devices_along_axis,
 )
-
-
-def split_array_mpi(array: Array) -> Array:
-    """
-    Splits the first dimension of the input array among mpi processes.
-    Works like `mpi.scatter`, but assumes that the input array is available and
-    identical on all ranks.
-    !!! Warn
-         The output is a numpy array.
-    !!! Warn
-         This should not be used with sharding (netket.netket_experimental_sharding=True)
-    Args:
-         array: A nd-array
-
-    Result:
-        A numpy array, of potentially different state on every mpi rank.
-    """
-
-    if mpi.n_nodes > 1:
-        n_states = array.shape[0]
-        states_n = np.arange(n_states)
-
-        # divide the hilbert space in chunks for each node
-        states_per_rank = np.array_split(states_n, mpi.n_nodes)
-
-        return array[states_per_rank[mpi.rank]]
-    else:
-        return array
 
 
 def to_array(
@@ -74,24 +45,20 @@ def to_array(
 ) -> Array:
     """
     Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
-      the results as a vector.
-
+    the results as a vector.
 
     Args:
         normalize: If True, the vector is normalized to have L2-norm 1.
         allgather:
-            When running with MPI:
-                If True, the final wave function is stored in full at all MPI ranks.
-            When running with netket_experimental_sharding=True:
-                If allgather=True, the final wave function is a fully replicated array
-                If allgather=False, the final wave function is a sharded array, padded
-                with zeros to the next multiple of the number of devices
+            If allgather=True, the final wave function is a fully replicated array.
+            If allgather=False, the final wave function is a sharded array, padded
+            with zeros to the next multiple of the number of devices.
         chunk_size: Optional integer to specify the largest chunks of samples that
             the model will be evaluated upon. By default it is `None`, and when specified
             samples are split into chunks of at most `chunk_size`.
 
     Returns:
-
+        Array: The computed array.
     """
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
@@ -99,28 +66,13 @@ def to_array(
     apply_fun = get_afun_if_module(apply_fun)
 
     if config.netket_experimental_sharding:  # type: ignore
-        # for now assume no mpi (no hybrid)
         x = hilbert.all_states()
         xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
         n_states = hilbert.n_states
-    elif mpi.n_nodes == 1:
+    else:
         xs = hilbert.all_states()
         mask = None
         n_states = xs.shape[0]
-    else:
-        # mpi4jax does not have (yet) allgatherv so we need to be creative
-        # could be made easier if we update mpi4jax
-        n_states = hilbert.n_states
-        n_states_padded = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
-        states_n = np.arange(n_states)
-        fake_states_n = np.arange(n_states_padded - n_states)
-
-        # divide the hilbert space in chunks for each node
-        states_per_rank = np.split(
-            np.concatenate([states_n, fake_states_n]), mpi.n_nodes
-        )
-        xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
-        mask = None
 
     psi = _to_array_rank(
         apply_fun,
@@ -152,8 +104,7 @@ def _to_array_rank(
 ):
     """
     Computes apply_fun(variables, σ_rank) and gathers all results across all ranks.
-    The input σ_rank should be a slice of all states in the hilbert space of equal
-    length across all ranks because mpi4jax does not support allgatherv (yet).
+    The input σ_rank can be sharded.
 
     Args:
         n_states: total number of elements in the hilbert space.
@@ -165,18 +116,17 @@ def _to_array_rank(
         )
 
     # number of 'fake' states, in the last rank.
-    n_fake_states = σ_rank.shape[0] * mpi.n_nodes - n_states
+    n_fake_states = σ_rank.shape[0] - n_states
 
     log_psi_local = apply_fun(variables, σ_rank)
 
     # last rank, get rid of fake elements
-    if mpi.rank == mpi.n_nodes - 1 and n_fake_states > 0:
+    if n_fake_states > 0:
         log_psi_local = log_psi_local.at[-n_fake_states:].set(-jnp.inf)
 
     if normalize:
         # subtract logmax for better numerical stability
-        logmax, _ = mpi.mpi_max_jax(log_psi_local.real.max())
-        log_psi_local -= logmax
+        log_psi_local -= log_psi_local.real.max()
 
     psi_local = jnp.exp(log_psi_local)
 
@@ -189,12 +139,10 @@ def _to_array_rank(
     if normalize:
         # compute normalization
         norm2 = jnp.linalg.norm(psi_local) ** 2
-        norm2, _ = mpi.mpi_sum_jax(norm2)
         psi_local /= jnp.sqrt(norm2)
 
     if allgather:
-        psi, _ = mpi.mpi_allgather_jax(psi_local)
-        psi = psi.reshape(-1)
+        psi = psi_local.reshape(-1)
     else:
         psi = psi_local
 
@@ -298,11 +246,3 @@ def binary_encoding(
     return binarised_states.reshape(
         *binarised_states.shape[:-2], prod(binarised_states.shape[-2:])
     )[..., output_idx]
-
-
-@deprecated(
-    "The function `netket.nn.states_to_numbers` is deprecated. "
-    "Please call `DiscreteHilbert.states_to_numbers` directly."
-)
-def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
-    return hilbert.states_to_numbers(σ)

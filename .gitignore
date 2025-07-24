@@ -1,5 +1,9 @@
 netket/_version.py
 
+# AI stuff #
+############
+CLAUDE.md
+
 # Compiled source #
 ###################
 *.com

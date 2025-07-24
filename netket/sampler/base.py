@@ -23,7 +23,6 @@ from flax import linen as nn
 
 
 from netket import jax as nkjax
-from netket.jax import sharding
 from netket import config
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils import get_afun_if_module, struct, wrap_afun
@@ -125,26 +124,28 @@ class Sampler(struct.Pytree):
     @property
     def n_chains_per_rank(self) -> int:
         """
-        The total number of independent chains per MPI rank (or jax device
-        if you set `NETKET_EXPERIMENTAL_SHARDING=1`).
+        The total number of independent chains per jax device.
 
-        If you are not distributing the calculation among different MPI ranks
-        or jax devices, this is equal to :attr:`~Sampler.n_chains`.
+        If you are not distributing the calculation among jax devices, this
+        is equal to :attr:`~Sampler.n_chains`.
 
         In general this is equal to
 
         .. code:: python
 
-            from netket.jax import sharding
-            sampler.n_chains // sharding.device_count()
+            import jax
+            sampler.n_chains // jax.device_count()
 
         """
-        n_devices = sharding.device_count()
+        if config.netket_experimental_sharding:
+            n_devices = jax.device_count()
+        else:
+            n_devices = 1
         res, remainder = divmod(self.n_chains, n_devices)
 
         if remainder != 0:
             raise RuntimeError(
-                "The number of chains is not a multiple of the number of mpi ranks"
+                "The number of chains is not a multiple of the number of the number of devices"
             )
         return res
 
@@ -153,14 +154,17 @@ class Sampler(struct.Pytree):
         """
         The total number of independent chains.
 
-        This is at least equal to the total number of MPI ranks/jax devices that
+        This is at least equal to the total number of jax devices that
         are used to distribute the calculation.
         """
         # This is the default number of chains, intended for generic non-mcmc
         # samplers which don't have a concept of chains.
-        # We assume there is 1 dummy chain per mpi rank / jax device.
+        # We assume there is 1 dummy chain per jax device.
         # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
-        return sharding.device_count()
+        if config.netket_experimental_sharding:
+            return jax.device_count()
+        else:
+            return 1
 
     @property
     def n_batches(self) -> int:
@@ -169,12 +173,10 @@ class Sampler(struct.Pytree):
         jax process.
 
         This is used to determine the shape of the batches generated in a single process.
-        This is needed because when using MPI, every process must create a batch of chains
-        of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
-        mode we must declare the full shape on every jax process, therefore this returns
-        :attr:`~Sampler.n_chains`.
+        This is needed because when using JAX sharding, we must declare the full shape on every
+        jax process, therefore this returns :attr:`~Sampler.n_chains`.
 
-        Usage of this flag is required to support both MPI and sharding.
+        Usage of this flag is required to support JAX sharding.
 
         Samplers may override this to have a larger batch size, for example to
         propagate multiple replicas (in the case of parallel tempering).
@@ -228,10 +230,10 @@ class Sampler(struct.Pytree):
         If you want reproducible samples, you should specify `seed`, otherwise the state
         will be initialised randomly.
 
-        If running across several MPI processes, all `sampler_state`s are guaranteed to be
+        If running across several JAX processes, all `sampler_state`s are guaranteed to be
         in a different (but deterministic) state.
-        This is achieved by first reducing (summing) the seed provided to every MPI rank,
-        then generating `n_rank` seeds starting from the reduced one, and every rank is
+        This is achieved by first reducing (summing) the seed provided to every JAX process,
+        then generating `n_process` seeds starting from the reduced one, and every process is
         initialized with one of those seeds.
 
         The resulting state is guaranteed to be a frozen Python dataclass (in particular,
@@ -248,7 +250,6 @@ class Sampler(struct.Pytree):
             it to be in a valid state, and should reset it before use.
         """
         key = nkjax.PRNGKey(seed)
-        key = nkjax.mpi_split(key)
 
         return self._init_state(wrap_afun(machine), parameters, key)
 

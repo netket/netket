@@ -22,7 +22,6 @@ from functools import partial
 
 import netket as nk
 from netket.stats import statistics
-from netket.jax.sharding import device_count_per_rank
 from scipy.optimize import curve_fit
 
 from .. import common
@@ -89,10 +88,10 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
 @pytest.mark.parametrize(
     "n_chains",
     [
-        1 * device_count_per_rank(),
-        2 * device_count_per_rank(),
-        16 * device_count_per_rank(),
-        32 * device_count_per_rank(),
+        1 * jax.device_count(),
+        2 * jax.device_count(),
+        16 * jax.device_count(),
+        32 * jax.device_count(),
     ],
 )
 def test_stats_mean_std(n_chains):
@@ -193,16 +192,28 @@ def test_decimal_format():
 
     assert str(Stats(1.0, 1e-3)) == "1.0000 ± 0.0010 [σ²=nan]"
     assert str(Stats(1.0, 1e-6)) == "1.0000000 ± 0.0000010 [σ²=nan]"
-    assert str(Stats(1.0, 1e-7)) == "1.000e+00 ± 1.000e-07 [σ²=nan]"
+    assert str(Stats(1.0, 1e-7)) == "1.00000000 ± 0.00000010 e+00 [σ²=nan]"
 
     assert str(Stats(float("nan"), float("inf"))) == "nan ± inf [σ²=nan]"
-    assert str(Stats(1.0, float("nan"))) == "1.000e+00 ± nan [σ²=nan]"
-    assert str(Stats(1.0, float("inf"))) == "1.000e+00 ± inf [σ²=nan]"
-    assert str(Stats(float("inf"), 0.0)) == "inf ± 0.000e+00 [σ²=nan]"
-    assert str(Stats(1.0, 0.0)) == "1.000e+00 ± 0.000e+00 [σ²=nan]"
+    assert str(Stats(1.0, float("nan"))) == "1.00e+00 ± nan [σ²=nan]"
+    assert str(Stats(1.0, float("inf"))) == "1.00e+00 ± inf [σ²=nan]"
+    assert str(Stats(float("inf"), 0.0)) == "inf ± 0.00e+00 [σ²=nan]"
+    assert str(Stats(1.0, 0.0)) == "1.000e+00 [σ²=nan]"
 
-    assert str(Stats(1.0, 0.12, 0.5)) == "1.00 ± 0.12 [σ²=0.50]"
-    assert str(Stats(1.0, 0.12, 0.5, R_hat=1.01)) == "1.00 ± 0.12 [σ²=0.50, R̂=1.0100]"
+    assert str(Stats(1.0, 0.12, 0.5)) == "1.00 ± 0.12 [σ²=5.0e-01]"
+    assert str(Stats(1.0, 0.12, 0.5, R_hat=1.01)) == "1.00 ± 0.12 [σ²=5.0e-01, R̂=1.010]"
+
+    assert str(Stats(0.0032 + 0.0003j, 0.00673)) == "    3.2+0.3j ±   6.7 e-03 [σ²=nan]"
+    assert (
+        str(Stats(0.0032 + 0.0007j, 0.0000673)) == "3.200+0.700j ± 0.067 e-03 [σ²=nan]"
+    )
+    assert (
+        str(Stats(0.000032 + 0.000003j, 0.00000000673))
+        == "3.20000+0.30000j ± 0.00067 e-05 [σ²=nan]"
+    )
+    assert (
+        str(Stats(0.000032 + 0.003j, 0.0000673)) == "0.032+3.000j ± 0.067 e-03 [σ²=nan]"
+    )
 
 
 @common.skipif_mpi

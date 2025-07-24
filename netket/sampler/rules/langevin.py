@@ -75,7 +75,9 @@ class LangevinRule(MetropolisRule):
             parameters,
             sampler.machine_pow,
             rule.dt,
-            chunk_size=rule.chunk_size,
+            chunk_size=(  # default to sampler.chunk_size
+                sampler.chunk_size if rule.chunk_size is None else rule.chunk_size
+            ),
             return_log_corr=True,
         )
 

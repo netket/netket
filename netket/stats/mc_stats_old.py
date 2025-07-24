@@ -57,7 +57,7 @@ def statistics(data: jax.Array, batch_size: int = 32) -> Stats:
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
     also for other type of time series.
-    Assumes same shape on all MPI processes.
+    Assumes same shape on all JAX processes.
 
     Args:
         data (vector or matrix): The input data. It can be real or complex valued.

@@ -17,7 +17,7 @@ import pytest
 
 import netket as nk
 
-from .. import common
+from test import common
 
 
 def test_ising_int_dtype():
@@ -30,11 +30,11 @@ def test_ising_error():
     g = nk.graph.Hypercube(8, 1)
     with pytest.raises(TypeError):
         hi = nk.hilbert.Qubit(8)
-        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+        _ = nk.operator.IsingNumba(hi, graph=g, h=1.0)
 
     with pytest.raises(ValueError):
         hi = nk.hilbert.Spin(1.0, 8)
-        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+        _ = nk.operator.IsingNumba(hi, graph=g, h=1.0)
 
     with pytest.raises(ValueError):
         hi = nk.hilbert.Spin(1.0, 8)
@@ -97,21 +97,21 @@ def _colored_graph(graph):
     [
         pytest.param(
             (
-                lambda hi, g: nk.operator.Ising(hi, g, h=0),
+                lambda hi, g: nk.operator.IsingNumba(hi, g, h=0),
                 lambda hi, g: nk.operator.IsingJax(hi, g, h=0),
             ),
             id="ising_zero_h",
         ),
         pytest.param(
             (
-                lambda hi, g: nk.operator.Ising(hi, g, h=1),
+                lambda hi, g: nk.operator.IsingNumba(hi, g, h=1),
                 lambda hi, g: nk.operator.IsingJax(hi, g, h=1),
             ),
             id="ising",
         ),
         pytest.param(
             (
-                lambda hi, g: nk.operator.PauliStrings(
+                lambda hi, g: nk.operator.PauliStringsNumba(
                     hi,
                     [s + "I" * (g.n_nodes - len(s)) for s in ["XXI", "YZX", "IZX"]],
                     [0.1, 0.2, -1.4],
@@ -126,7 +126,7 @@ def _colored_graph(graph):
         ),
         pytest.param(
             (
-                lambda hi, g: nk.operator.PauliStrings(
+                lambda hi, g: nk.operator.PauliStringsNumba(
                     hi,
                     [s + "I" * (g.n_nodes - len(s)) for s in ["XXI", "YZY", "IZX"]],
                     [0.1, 0.2, -1.4],
@@ -216,3 +216,17 @@ def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
         σp2_i, mels2_i = canonize(σp2_i, mels2_i)
         np.testing.assert_equal(np.asarray(σp1_i), np.asarray(σp2_i))
         np.testing.assert_equal(mels1_i, mels2_i)
+
+
+def test_special_sum_sub_nonsumop():
+    """Test that SpecialHamiltonian can be summed with LocalOperator
+    without obtaining a (less efficient) SumOperator.
+    """
+    hi = nk.hilbert.Spin(0.5, 4)
+    H = nk.operator.Ising(hi, nk.graph.Chain(4), h=1, J=-1)
+    a = nk.operator.spin.sigmax(hi, 0)
+
+    assert isinstance(H + a, nk.operator.LocalOperator)
+    assert isinstance(H - a, nk.operator.LocalOperator)
+    assert isinstance(a + H, nk.operator.LocalOperator)
+    assert isinstance(a - H, nk.operator.LocalOperator)

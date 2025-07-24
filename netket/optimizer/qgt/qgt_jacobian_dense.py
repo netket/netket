@@ -18,7 +18,6 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import Scalar, PyTree
-from netket.utils import mpi
 from netket import jax as nkjax
 
 from ..linear_operator import LinearOperator, SolverT, Uninitialized
@@ -154,11 +153,11 @@ class QGTJacobianDenseT(LinearOperator):
             flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
             Ol = (flip_sign * O).reshape(-1, O.shape[-1])
             Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(Ol.T @ Or)[0] + self.diag_shift * diag
+            return Ol.T @ Or + self.diag_shift * diag
         else:
             # Equivalent to Jr.T@Jr + Ji.T@Ji
             O = O.reshape(-1, O.shape[-1])
-            return mpi.mpi_sum_jax(O.conj().T @ O)[0] + self.diag_shift * diag
+            return O.conj().T @ O + self.diag_shift * diag
 
     def to_real_part(self) -> "QGTJacobianDenseT":
         """
@@ -255,7 +254,7 @@ def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar, imag: bool = False) -> PyT
         # to J_r.T@(J_r@v_r) + J_i.T@(J_i@v_i) + diag_shift*v
         w = O @ v
         res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
-        return mpi.mpi_sum_jax(res)[0] + diag_shift * v
+        return res + diag_shift * v
     else:
         # Matrix vector product of the imaginary part of the QGT matrix
         # with a vector. This is equivalent to
@@ -267,7 +266,7 @@ def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar, imag: bool = False) -> PyT
         flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
         Ol = (flip_sign * O).reshape(-1, O.shape[-1])
         res = jnp.tensordot(w.conj(), Ol, axes=w.ndim).conj()
-        return mpi.mpi_sum_jax(res)[0] + diag_shift * v
+        return res + diag_shift * v
 
 
 def convert_tree_to_dense_format(vec, mode, *, disable=False):

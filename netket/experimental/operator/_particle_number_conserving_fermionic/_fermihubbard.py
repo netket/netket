@@ -1,7 +1,7 @@
 import numpy as np
 import sparse
 
-from typing import Sequence
+from collections.abc import Sequence
 from netket.graph import AbstractGraph
 from netket.utils.types import DType
 

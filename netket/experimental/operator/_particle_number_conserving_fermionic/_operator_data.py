@@ -370,8 +370,8 @@ def sparse_arrays_to_coords_data_dict(
 
 
 def collect_ops(
-    operators: list[Union[Array, sparse.COO]],
-) -> dict[int, Union[Array, sparse.COO]]:
+    operators: list[Array | sparse.COO],
+) -> dict[int, Array | sparse.COO]:
     r"""
     sum operators with the same number of c/c^\dagger
 
@@ -482,7 +482,7 @@ def _insert_append_helper(
     d: CoordsDataDictSectorCooArrayType,
     k: tuple[int, tuple[int]],
     s: tuple[int],
-    o: Union[sparse.COO, Array],
+    o: sparse.COO | Array,
     cutoff: float,
 ):
     r"""

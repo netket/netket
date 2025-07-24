@@ -50,15 +50,15 @@ from flax import serialization
 
 import jax
 
-from .utils import (
+from netket.utils.struct.utils import (
     _set_new_attribute,
     _create_fn,
     get_class_globals,
     maximum_positional_args,
     keyword_arg_names,
 )
-from .fields import _cache_name, Uninitialized, field, CachedProperty
-from .pytree import Pytree, DATACLASS_USER_INIT_N_ARGS
+from netket.utils.struct.fields import _cache_name, Uninitialized, field, CachedProperty
+from netket.utils.struct.pytree import Pytree, DATACLASS_USER_INIT_N_ARGS
 
 try:
     from dataclasses import _FIELDS
@@ -149,7 +149,7 @@ def process_cached_properties(clz, globals=None):
             body_lines,
             return_type=cp.type,
             globals=globals,
-            doc=cp.doc,
+            doc=cp.__doc__,
         )
         prop_fun = property(fun)
         setattr(clz, name, prop_fun)

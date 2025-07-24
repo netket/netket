@@ -19,6 +19,7 @@ from numba import jit
 import numpy as np
 
 from netket.operator import DiscreteOperator
+from netket.operator._discrete_operator_jax import DiscreteJaxOperator
 from netket.utils import struct
 
 from .base import MetropolisRule
@@ -63,6 +64,9 @@ class HamiltonianRuleNumpy(MetropolisRule):
                 "Argument to HamiltonianRule must be a valid operator, "
                 f"but operator is a {type(operator)}."
             )
+        # It might be faster to use Numba versions...
+        # if isinstance(operator, DiscreteJaxOperator):
+        #    operator = operator.to_numba_operator()
         self.operator = operator
 
     def init_state(rule, sampler, machine, params, key):
@@ -89,7 +93,10 @@ class HamiltonianRuleNumpy(MetropolisRule):
         rand_vec = rng.uniform(0, 1, size=σ.shape[0])
 
         _choose(σp, sections, σ1, log_prob_corr, rand_vec)
-        rule.operator.n_conn(σ1, sections)
+        if isinstance(rule.operator, DiscreteJaxOperator):
+            sections = rule.operator.n_conn(σ1)
+        else:
+            rule.operator.n_conn(σ1, sections)
         log_prob_corr -= np.log(sections)
 
     def __repr__(self):

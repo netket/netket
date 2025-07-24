@@ -90,7 +90,7 @@ def pack_internals_numba(
     }
 
 
-class PauliStrings(PauliStringsBase):
+class PauliStringsNumba(PauliStringsBase):
     """A Hamiltonian consisting of the sum of products of Pauli operators."""
 
     @wraps(PauliStringsBase.__init__)
@@ -114,7 +114,7 @@ class PauliStrings(PauliStringsBase):
             ):
                 raise ValueError(
                     "Hilbert spaces with non homogeneous local_states are not "
-                    "yet supported by PauliStrings."
+                    "yet supported by PauliStringsNumba."
                 )
 
         self._initialized = False
@@ -272,3 +272,7 @@ class PauliStrings(PauliStringsBase):
         )
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
+
+
+# Keep the old name for backward compatibility
+PauliStrings = PauliStringsNumba

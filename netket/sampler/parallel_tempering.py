@@ -20,9 +20,8 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 
-from netket import config
 from netket.utils.types import PyTree, PRNGKeyT, Array
-from netket.utils import struct, mpi
+from netket.utils import struct
 from netket.jax import dtype_real
 from netket.jax.sharding import shard_along_axis
 
@@ -47,7 +46,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
     """The inverse temperatures of the different chains."""
 
     n_accepted_per_beta: jnp.ndarray = None
-    """Total number of moves accepted per beta across all processes since the last reset."""
+    """Total number of moves accepted per beta across all JAX processes since the last reset."""
     beta_0_index: jnp.ndarray = None
     r"""Index of the position of the chain with :math:`\\beta=1`."""
     beta_position: jnp.ndarray = None
@@ -100,9 +99,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         diffusion = (
             jnp.sqrt(self.beta_diffusion / self.exchange_steps) / self.beta.shape[-1]
         )
-        out, _ = mpi.mpi_mean_jax(diffusion.mean())
-
-        return out
+        return diffusion.mean()
 
     @property
     def normalized_position(self):
@@ -110,9 +107,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         Average position of :math:`\\beta = 1`, normalized and centered around 0.
         """
         position = self.beta_position / float(self.beta.shape[-1] - 1) - 0.5
-        out, _ = mpi.mpi_mean_jax(position.mean())
-
-        return out
+        return position.mean()
 
 
 class ParallelTemperingSampler(MetropolisSampler):
@@ -177,7 +172,7 @@ class ParallelTemperingSampler(MetropolisSampler):
                     For the explicit list of values, the length must be even and the value β=1 must
                     obligatory be an element of betas, all other temperatures must be in (0,1].
                     (default : "lin", i.e. linear distribution between (0,1]).
-            n_chains: The number of Markov Chain to be run in parallel on a single process.
+            n_chains: The number of Markov Chain to be run in parallel on a single JAX process.
             sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).
@@ -289,18 +284,9 @@ class ParallelTemperingSampler(MetropolisSampler):
         The batch size of the configuration $\sigma$ used by this sampler on this
         jax process.
 
-        If you are not using MPI, this is equal to `n_chains * n_replicas`, but if
-        you are using MPI this is equal to `n_chains_per_rank * n_replicas`.
+        Equal `n_chains * n_replicas`.
         """
-        if config.netket_experimental_sharding:
-            n_batches = self.n_chains
-        else:
-            n_batches, remainder = divmod(self.n_chains, mpi.n_nodes)
-            if remainder != 0:
-                raise RuntimeError(
-                    "The number of chains is not a multiple of the number of mpi ranks"
-                )
-        return n_batches * self.n_replicas
+        return self.n_chains * self.n_replicas
 
     @partial(jax.jit, static_argnums=1)
     def _init_state(
@@ -340,26 +326,17 @@ class ParallelTemperingSampler(MetropolisSampler):
     def _sample_next(
         self, machine, parameters: PyTree, state: ParallelTemperingSamplerState
     ):
-        def loop_body(i, s):
+        def loop_body(
+            i, state: ParallelTemperingSamplerState
+        ) -> ParallelTemperingSamplerState:
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
-            s["key"], key1, key2, key3, key4 = jax.random.split(s["key"], 5)
+            new_rng, key1, key2, key3, key4 = jax.random.split(state.rng, 5)
 
-            # def cbi(data):
-            #    i, beta = data
-            #    print("sweep #", i, " for beta=\n", beta)
-            #    return beta
-            #
-            # beta = hcb.call(
-            #   cbi,
-            #   (i, s["beta"]),
-            #   result_shape=jax.ShapeDtypeStruct(s["beta"].shape, s["beta"].dtype),
-            # )
-
-            beta = s["beta"]
+            beta = state.beta
 
             ## Usual Metropolis sampling
             σp, log_prob_correction = self.rule.transition(
-                self, machine, parameters, state, key1, s["σ"]
+                self, machine, parameters, state, key1, state.σ
             )
             proposal_log_prob = self.machine_pow * machine.apply(parameters, σp).real
 
@@ -367,21 +344,21 @@ class ParallelTemperingSampler(MetropolisSampler):
             if log_prob_correction is not None:
                 do_accept = uniform < jnp.exp(
                     beta.reshape((-1,))
-                    * (proposal_log_prob - s["log_prob"] + log_prob_correction)
+                    * (proposal_log_prob - state.log_prob + log_prob_correction)
                 )
             else:
                 do_accept = uniform < jnp.exp(
-                    beta.reshape((-1,)) * (proposal_log_prob - s["log_prob"])
+                    beta.reshape((-1,)) * (proposal_log_prob - state.log_prob)
                 )
 
             # do_accept must match ndim of proposal and state (which is 2)
-            s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
-            n_accepted_per_beta = s["n_accepted_per_beta"] + do_accept.reshape(
+            new_σ = jnp.where(do_accept.reshape(-1, 1), σp, state.σ)
+            n_accepted_per_beta = state.n_accepted_per_beta + do_accept.reshape(
                 (self.n_batches // self.n_replicas, self.n_replicas)
             )
 
-            s["log_prob"] = jax.numpy.where(
-                do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
+            new_log_prob = jax.numpy.where(
+                do_accept.reshape(-1), proposal_log_prob, state.log_prob
             )
 
             ## exchange betas
@@ -423,7 +400,7 @@ class ParallelTemperingSampler(MetropolisSampler):
                 return prob_rescaled
 
             # compute the probability of the swaps
-            log_prob = (proposed_beta - s["beta"]) * s["log_prob"].reshape(
+            log_prob = (proposed_beta - state.beta) * new_log_prob.reshape(
                 (self.n_batches // self.n_replicas, self.n_replicas)
             )
 
@@ -451,27 +428,26 @@ class ParallelTemperingSampler(MetropolisSampler):
 
             # Do the swap where it has to be done
             new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
-            s["beta"] = new_beta
 
             swap_order = swap_order.reshape(-1)
 
             beta_0_moved = jax.vmap(jnp.take)(
-                do_swap, s["beta_0_index"]
+                do_swap, state.beta_0_index
             )  # flag saying if beta_0 should move
             proposed_beta_0_index = jnp.mod(
-                s["beta_0_index"]
+                state.beta_0_index
                 + (-2 * jnp.mod(swap_order, 2) + 1)
-                * (-2 * jnp.mod(s["beta_0_index"], 2) + 1),
+                * (-2 * jnp.mod(state.beta_0_index, 2) + 1),
                 self.n_replicas,
             )
 
-            s["beta_0_index"] = jnp.where(
-                beta_0_moved, proposed_beta_0_index, s["beta_0_index"]
+            new_beta_0_index = jnp.where(
+                beta_0_moved, proposed_beta_0_index, state.beta_0_index
             )
 
             # swap acceptances
             swapped_n_accepted_per_beta = swap_rows(n_accepted_per_beta, idxs, inn)
-            s["n_accepted_per_beta"] = jax.numpy.where(
+            new_n_accepted_per_beta = jax.numpy.where(
                 do_swap,
                 swapped_n_accepted_per_beta,
                 n_accepted_per_beta,
@@ -479,55 +455,39 @@ class ParallelTemperingSampler(MetropolisSampler):
 
             # Update statistics to compute diffusion coefficient of replicas
             # Total exchange steps performed
-            s["exchange_steps"] += 1
-            delta = s["beta_0_index"] - s["beta_position"]
-            s["beta_position"] = s["beta_position"] + delta / s["exchange_steps"]
-            delta2 = s["beta_0_index"] - s["beta_position"]
-            s["beta_diffusion"] = s["beta_diffusion"] + delta * delta2
+            new_exchange_steps = state.exchange_steps + 1
+            delta = new_beta_0_index - state.beta_position
+            new_beta_position = state.beta_position + delta / new_exchange_steps
+            delta2 = new_beta_0_index - new_beta_position
+            new_beta_diffusion = state.beta_diffusion + delta * delta2
 
-            return s
+            return state.replace(
+                rng=new_rng,
+                σ=new_σ,
+                log_prob=new_log_prob,
+                beta=new_beta,
+                beta_0_index=new_beta_0_index,
+                n_accepted_per_beta=new_n_accepted_per_beta,
+                beta_position=new_beta_position,
+                beta_diffusion=new_beta_diffusion,
+                exchange_steps=new_exchange_steps,
+                n_steps_proc=state.n_steps_proc + self.n_batches // self.n_replicas,
+                n_accepted_proc=jax.vmap(jnp.take)(
+                    new_n_accepted_per_beta, new_beta_0_index
+                ),
+            )
 
-        s = {
-            "key": state.rng,
-            "σ": state.σ,
-            # Log prob is already computed in reset, so don't recompute it.
-            # "log_prob": self.machine_pow * apply_machine(parameters, state.σ).real,
-            "log_prob": state.log_prob,
-            "beta": state.beta,
-            # for logging
-            "beta_0_index": state.beta_0_index,
-            "n_accepted_per_beta": state.n_accepted_per_beta,
-            "beta_position": state.beta_position,
-            "beta_diffusion": state.beta_diffusion,
-            "exchange_steps": state.exchange_steps,
-        }
-        s = jax.lax.fori_loop(0, self.sweep_size, loop_body, s)
+        new_state = jax.lax.fori_loop(0, self.sweep_size, loop_body, state)
 
-        n_accepted_proc = jax.vmap(jnp.take)(
-            s["n_accepted_per_beta"], s["beta_0_index"]
-        )
-
-        new_state = state.replace(
-            rng=s["key"],
-            σ=s["σ"],
-            log_prob=s["log_prob"],
-            n_steps_proc=state.n_steps_proc
-            + self.sweep_size * self.n_batches // self.n_replicas,
-            beta=s["beta"],
-            beta_0_index=s["beta_0_index"],
-            beta_position=s["beta_position"],
-            beta_diffusion=s["beta_diffusion"],
-            exchange_steps=s["exchange_steps"],
-            n_accepted_per_beta=s["n_accepted_per_beta"],
-            n_accepted_proc=n_accepted_proc,
-        )
         σ_flat = new_state.σ
         σ = σ_flat.reshape((-1, self.n_replicas, σ_flat.shape[-1]))
-        σ_new = jnp.take_along_axis(σ, s["beta_0_index"][:, None, None], axis=1)
+        σ_new = jnp.take_along_axis(σ, new_state.beta_0_index[:, None, None], axis=1)
         σ_new = jax.lax.collapse(σ_new, 0, 2)  # remove dummy replica dim
 
         log_prob = new_state.log_prob.reshape((-1, self.n_replicas))
-        log_prob_new = jnp.take_along_axis(log_prob, s["beta_0_index"][:, None], axis=1)
+        log_prob_new = jnp.take_along_axis(
+            log_prob, new_state.beta_0_index[:, None], axis=1
+        )
         log_prob_new = jax.lax.collapse(log_prob_new, 0, 2)  # remove dummy replica dim
 
         return new_state, (σ_new, log_prob_new)
@@ -670,7 +630,7 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
        >>> # Construct a MetropolisExchange Sampler
        >>> sa = nk.sampler.ParallelTemperingHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       ParallelTemperingSampler(rule = HamiltonianRuleNumba(operator=Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
+       ParallelTemperingSampler(rule = HamiltonianRuleJax(operator=IsingJax(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
 
     """
     rule = HamiltonianRule(hamiltonian)

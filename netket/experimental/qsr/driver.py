@@ -134,9 +134,7 @@ class QSR(AbstractVariationalDriver):
         if not isinstance(training_data, RawQuantumDataset):
             training_data = RawQuantumDataset(training_data)
 
-        self._rng = np.random.default_rng(
-            np.asarray(nkjax.mpi_split(nkjax.PRNGKey(seed)))
-        )
+        self._rng = np.random.default_rng(np.asarray(nkjax.PRNGKey(seed)))
 
         # mixed states
         self.mixed_states = variational_state.__class__.__name__ in ["MCMixedState"]

@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from ..variational.finite_diff import central_diff_grad, same_derivatives
-from .. import common
 
 seed = 123
 
@@ -57,7 +56,6 @@ def var_exact_fun(params, vs, H, H2):
     return state.conj() @ (H2 @ state) - (state.conj() @ (H @ state)) ** 2
 
 
-@common.xfailif_mpi  # broken in recent jax versions
 @pytest.mark.parametrize(
     "useExactSampler",
     [

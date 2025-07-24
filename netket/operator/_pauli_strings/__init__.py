@@ -13,5 +13,7 @@
 # limitations under the License.
 
 from .base import PauliStringsBase
-from .numba import PauliStrings
+from .numba import PauliStringsNumba
 from .jax import PauliStringsJax
+
+PauliStrings = PauliStringsJax

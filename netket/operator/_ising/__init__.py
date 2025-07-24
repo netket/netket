@@ -13,5 +13,8 @@
 # limitations under the License.
 
 from .base import IsingBase
-from .numba import Ising
+from .numba import IsingNumba
 from .jax import IsingJax
+
+# Default Ising class is the Jax version
+Ising = IsingJax

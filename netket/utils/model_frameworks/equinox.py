@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import sys
 import jax
 
-from .base import ModuleFramework, framework
+from netket.utils.model_frameworks.base import ModuleFramework, framework
 
 if TYPE_CHECKING:
     import equinox

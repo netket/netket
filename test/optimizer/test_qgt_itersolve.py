@@ -160,13 +160,7 @@ def is_complex_failing(vstate, qgt_partial):
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
 )
-def test_qgt_solve(qgt, vstate, solver, chunk_size, _mpi_size, _mpi_rank):
-    if nk.utils.mpi.n_nodes > 1:
-        if _unwrap(solver) == jax.scipy.sparse.linalg.gmres:
-            pytest.xfail("mpi4jax effects are broken in iterative solvers")
-        elif _unwrap(qgt) == nk.optimizer.qgt.QGTOnTheFly and chunk_size is not None:
-            pytest.xfail("mpi4jax effects are broken in iterative solvers")
-
+def test_qgt_solve(qgt, vstate, solver, chunk_size):
     if is_complex_failing(vstate, qgt):
         with pytest.raises(
             nk.errors.IllegalHolomorphicDeclarationForRealParametersError
@@ -184,26 +178,6 @@ def test_qgt_solve(qgt, vstate, solver, chunk_size, _mpi_size, _mpi_rank):
         S @ x,
         vstate.parameters,
     )
-
-    if _mpi_size > 1:
-        # other check
-        with common.netket_disable_mpi():
-            import mpi4jax
-
-            samples, _ = mpi4jax.allgather(
-                vstate.samples, comm=nk.utils.mpi.MPI_jax_comm
-            )
-            assert samples.shape == (_mpi_size, *vstate.samples.shape)
-            vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
-
-            S = qgt(vstate)
-            x_all, _ = S.solve(solver, vstate.parameters)
-
-            jax.tree_util.tree_map(
-                lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
-                x,
-                x_all,
-            )
 
 
 @common.skipif_mpi
@@ -230,12 +204,9 @@ def test_qgt_solve_with_x0(qgt, vstate):
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
 )
-def test_qgt_matmul(qgt, vstate, chunk_size, _mpi_size, _mpi_rank):
+def test_qgt_matmul(qgt, vstate, chunk_size):
     if is_complex_failing(vstate, qgt):
         return
-    if nk.utils.mpi.n_nodes > 1:
-        if _unwrap(qgt) == nk.optimizer.qgt.QGTOnTheFly and chunk_size is not None:
-            pytest.xfail("mpi4jax effects are broken in iterative solvers")
 
     rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.param_dtype)]
 
@@ -263,26 +234,6 @@ def test_qgt_matmul(qgt, vstate, chunk_size, _mpi_size, _mpi_rank):
         x_dense_unravelled,
     )
 
-    if _mpi_size > 1:
-        # other check
-        with common.netket_disable_mpi():
-            import mpi4jax
-
-            samples, _ = mpi4jax.allgather(
-                vstate.samples, comm=nk.utils.mpi.MPI_jax_comm
-            )
-            assert samples.shape == (_mpi_size, *vstate.samples.shape)
-            vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
-
-            S = qgt(vstate)
-            x_all = S @ y
-
-            jax.tree_util.tree_map(
-                lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
-                x,
-                x_all,
-            )
-
 
 @pytest.mark.parametrize(
     "qgt",
@@ -291,12 +242,9 @@ def test_qgt_matmul(qgt, vstate, chunk_size, _mpi_size, _mpi_rank):
 @pytest.mark.parametrize(
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
 )
-def test_qgt_dense(qgt, vstate, chunk_size, _mpi_size, _mpi_rank):
+def test_qgt_dense(qgt, vstate, chunk_size):
     if is_complex_failing(vstate, qgt):
         return
-    if nk.utils.mpi.n_nodes > 1:
-        if _unwrap(qgt) == nk.optimizer.qgt.QGTOnTheFly and chunk_size is not None:
-            pytest.xfail("mpi4jax effects are broken in iterative solvers")
 
     rtol, atol = dense_tol[nk.jax.dtype_real(vstate.model.param_dtype)]
 
@@ -317,22 +265,6 @@ def test_qgt_dense(qgt, vstate, chunk_size, _mpi_size, _mpi_rank):
             assert Sd.shape == (vstate.n_parameters, vstate.n_parameters)
     else:
         assert Sd.shape == (vstate.n_parameters, vstate.n_parameters)
-
-    if _mpi_size > 1:
-        # other check
-        with common.netket_disable_mpi():
-            import mpi4jax
-
-            samples, _ = mpi4jax.allgather(
-                vstate.samples, comm=nk.utils.mpi.MPI_jax_comm
-            )
-            assert samples.shape == (_mpi_size, *vstate.samples.shape)
-            vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
-
-            S = qgt(vstate)
-            Sd_all = S.to_dense()
-
-            np.testing.assert_allclose(Sd_all, Sd, rtol=rtol, atol=atol)
 
 
 @common.skipif_mpi

@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from .jax import BoseHubbardJax
 
 
-class BoseHubbard(BoseHubbardBase):
+class BoseHubbardNumba(BoseHubbardBase):
     r"""
     An extended Bose Hubbard model Hamiltonian operator, containing both
     on-site interactions and nearest-neighboring density-density interactions.

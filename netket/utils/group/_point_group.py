@@ -27,15 +27,15 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.types import Array, Shape
 from netket.utils.dispatch import dispatch
 
-from ._group import FiniteGroup
-from ._semigroup import Element, Identity
+from netket.utils.group._group import FiniteGroup
+from netket.utils.group._semigroup import Element, Identity
 
 ############ POINT GROUP SYMMETRY CLASS ########################################
 
 
 @struct.dataclass
 class PGSymmetry(Element):
-    """
+    r"""
     An abstract group element object to geometrically describe point group symmetries.
 
     Construction: `PGSymmetry(W,w)` with an orthogonal matrix `W` and an optional
@@ -359,9 +359,9 @@ class PointGroup(FiniteGroup):
     """
     Collection of point group symmetries acting on n-dimensional vectors.
 
-    Group elements need not all be of type :class:`netket.utils.symmetry.PGSymmetry`,
-    only act on such vectors when called. Currently, however, only `Identity` and
-    `PGSymmetry` have canonical forms implemented.
+    Group elements need not all be of type :class:`netket.utils.group.PGSymmetry`,
+    only act on such vectors when called. Currently, however, only
+    :class:`Identity` and :class:`PGSymmetry` have canonical forms implemented.
 
     The class can contain elements that are distinct as objects (e.g.,
     :code:`Identity()` and :code:`Rotation(0)`) but have identical action.
@@ -369,7 +369,7 @@ class PointGroup(FiniteGroup):
     """
 
     ndim: int
-    """Dimensionality of point group operations."""
+    """Dimension of the Euclidean space the point group acts on."""
 
     unit_cell: Array | None = None
     """Lattice vectors of the unit cell on which the point group acts.
@@ -380,6 +380,8 @@ class PointGroup(FiniteGroup):
 
     @struct.property_cached
     def is_symmorphic(self) -> bool:
+        """:code:`True` if the point group is symmorphic, i.e., if
+        every group element leaves the origin invariant."""
         return all(
             [
                 (True if isinstance(elem, Identity) else elem.is_symmorphic)
@@ -574,6 +576,10 @@ class PointGroup(FiniteGroup):
         Equivalent to :code:`self.to_array().shape`.
         """
         return (len(self), self.ndim + 1, self.ndim + 1)
+
+
+PointGroup.inverse.__doc__ = FiniteGroup.inverse.__doc__
+PointGroup.product_table.__doc__ = FiniteGroup.product_table.__doc__
 
 
 def trivial_point_group(ndim: int) -> PointGroup:

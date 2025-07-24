@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from netket.graph import AbstractGraph
-from netket.hilbert import AbstractHilbert
+from netket.hilbert import DiscreteHilbert
 from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
@@ -29,7 +29,7 @@ from .._discrete_operator_jax import DiscreteJaxOperator
 from .base import IsingBase
 
 if TYPE_CHECKING:
-    from .numba import Ising
+    from .numba import IsingNumba
 
 
 @register_pytree_node_class
@@ -41,7 +41,7 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
     @wraps(IsingBase.__init__)
     def __init__(
         self,
-        hilbert: AbstractHilbert,
+        hilbert: DiscreteHilbert,
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
@@ -65,7 +65,12 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
 
     @jax.jit
     @wraps(IsingBase.n_conn)
-    def n_conn(self, x):
+    def n_conn(self, x, out=None):
+        if out is not None:
+            raise NotImplementedError(
+                "jax operators do not support passing the `out` argument "
+                "to operator.n_conn()."
+            )
         x_ids = self.hilbert.states_to_local_indices(x)
         return _ising_n_conn_jax(x_ids, self._edges, self.h, self.J)
 
@@ -77,15 +82,15 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
 
-    def to_numba_operator(self) -> "Ising":  # noqa: F821
+    def to_numba_operator(self) -> "IsingNumba":  # noqa: F821
         """
         Returns the standard (numba) version of this operator, which is an
         instance of {class}`nk.operator.Ising`.
         """
 
-        from .numba import Ising
+        from .numba import IsingNumba
 
-        return Ising(
+        return IsingNumba(
             self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
         )
 

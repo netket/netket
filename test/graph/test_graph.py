@@ -88,11 +88,13 @@ symmetric_graph_names = [
     "triangular",
     "honeycomb",
     "kagome",
+    "kitaev_honeycomb",
     "cubic",
     "bcc",
     "fcc",
     "diamond",
     "pyrochlore",
+    "pyrochlore_nonsymm",
 ]
 
 symmetric_graphs = [
@@ -118,21 +120,30 @@ symmetric_graphs = [
     nk.graph.Diamond([3, 3, 3]),
     # Pyrochlore
     nk.graph.Pyrochlore([3, 3, 3]),
+    # 2^3 Pyrochlore (nonsymmorphic irreps)
+    nk.graph.Pyrochlore([2, 2, 2]),
 ]
 
-unit_cells = [9, 9, 9, 9, 9, 9, 27, 27, 27, 27, 27]
+unit_cells = [9, 9, 9, 9, 9, 9, 27, 27, 27, 27, 27, 8]
 
-atoms_per_unit_cell = [1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 4]
+atoms_per_unit_cell = [1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 4, 4]
 
-coordination_number = [4, 4, 6, 3, 4, 3, 6, 8, 12, 4, 6]
+coordination_number = [4, 4, 6, 3, 4, 3, 6, 8, 12, 4, 6, 6]
 
-dimension = [2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
+dimension = [2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3]
 
-kvec = [(0, 0), (2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
+kvec = (
+    [(0, 0), (2 * pi / 3, 0)]
+    + [(4 * pi / 3, 0)] * 4
+    + [(4 * pi / 3, 0, 0)] * 5
+    + [(2 * pi, 0, 0)]
+)
 
-little_group_size = [4, 2] + [6] * 3 + [1] + [8] * 5
+little_group_size = [4, 2] + [6] * 3 + [1] + [8] * 5 + [16]
 
-little_group_irreps = [4, 2] + [3] * 3 + [1] + [5] * 5
+little_group_irreps = [4, 2] + [3] * 3 + [1] + [5] * 5 + [4]
+
+nonsymmorphic_ix = [11]
 
 
 def test_next_neighbors():
@@ -251,15 +262,17 @@ def test_lattice_symmetry(i, name):
             pt = sgb.point_group.product_table
 
     # Build translation group product table explicitly and compare
-    pt_1d = [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
-    ones = np.ones((3, 3), dtype=int)
-    pt = np.kron(pt_1d, ones) * 3 + np.kron(ones, pt_1d)
-    if dimension[i] == 3:
-        pt = np.kron(pt, ones) * 3 + np.kron(np.ones((9, 9), dtype=int), pt_1d)
-    np.testing.assert_equal(pt, sgb.translation_group().product_table)
+    # only works for 3^2 or 3^3
+    if unit_cells[i] in (9, 27):
+        pt_1d = [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
+        ones = np.ones((3, 3), dtype=int)
+        pt = np.kron(pt_1d, ones) * 3 + np.kron(ones, pt_1d)
+        if dimension[i] == 3:
+            pt = np.kron(pt, ones) * 3 + np.kron(np.ones((9, 9), dtype=int), pt_1d)
+        np.testing.assert_equal(pt, sgb.translation_group().product_table)
 
     # ensure that all space group symmetries are unique and automorphisms
-    # don't do this for pyrochlore that takes >10x longer than any other one
+    # don't do this for 3^3 pyrochlore that takes >10x longer than any other one
     if name != "pyrochlore":
         _check_symmgroups(graph)
 
@@ -293,6 +306,18 @@ def test_space_group_pt(i, name):
     tgp = group.PermutationGroup(tg.elems, degree=tg.degree)
     np.testing.assert_equal(tg.inverse, tgp.inverse)
     np.testing.assert_equal(tg.product_table, tgp.product_table)
+
+
+@pytest.mark.parametrize(
+    "i,name", [(i, symmetric_graph_names[i]) for i in nonsymmorphic_ix]
+)
+def test_schur_multiplier(i, name):
+    graph = symmetric_graphs[i]
+    sg = graph.space_group()
+    group = sg.little_group(kvec[i])
+    multiplier = sg.little_group_multipliers(kvec[i])
+    assert multiplier is not None
+    assert group.check_multiplier(multiplier)
 
 
 def coord2index(xs, length):
@@ -382,10 +407,6 @@ def test_draw_lattices():
             figsize=(1.2, 3),
             node_color="blue",
             node_size=600,
-            edge_color="green",
-            curvature=0.5,
-            font_size=20,
-            font_color="yellow",
             show=False,
         )
 
@@ -766,11 +787,6 @@ def test_graph_conversions():
     assert g.edges(filter_color=1) == [(1, 2)]
     assert g.edges(filter_color=0, return_color=True) == [(0, 1, 0)]
     assert g.edges(filter_color=1, return_color=True) == [(1, 2, 1)]
-
-    with pytest.warns(FutureWarning):
-        assert g.edges(color=0) == g.edges(filter_color=0)
-    with pytest.warns(FutureWarning):
-        assert g.edges(color=True) == g.edges(return_color=True)
 
 
 def test_edge_colors():

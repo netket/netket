@@ -20,22 +20,18 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: ""
             runscript: "run_test_sharding_1cpu.sh"
 
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: ""
             runscript: "run_test_sharding_2cpu.sh"
 
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: ""
             runscript: "run_standard_tests_with_sharding.sh"
 
           - os: ubuntu-latest
             python-version: "3.13"
-            mpi: "openmpi"
             runscript: "run_test_sharding_distributed.sh"
 
     steps:
@@ -44,31 +40,18 @@ jobs:
           submodules: true
           fetch-tags: true
 
-      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v5
+      - name: Set up uv and Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup MPI
-        uses: mpi4py/setup-mpi@v1
-        if: matrix.mpi != ''
-        with:
-          mpi: ${{ matrix.mpi }}
-
       - name: Pip install packages
         run: |
-          pip install uv
-          uv pip install --system -e ".[dev,extra]"
-          # Also install mpi4py needed for cluster detection
-          if [ -z "${{ matrix.mpi }}" ]; then
-            echo "nothing else"
-          else
-            uv pip install --system mpi4py
-          fi
+          uv sync --extra dev --extra extra
 
       - name: run tests
         run: |
-          ./test_sharding/"${{ matrix.runscript }}"
+          uv run ./test_sharding/"${{ matrix.runscript }}"
 
       - name: Upload coverage reports to Codecov
         if: always()

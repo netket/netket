@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from .jax import FermionOperator2ndJax
 
 
-class FermionOperator2nd(FermionOperator2ndBase):
+class FermionOperator2ndNumba(FermionOperator2ndBase):
     r"""
     A fermionic operator in :math:`2^{nd}` quantization, using Numba
     for indexing.
@@ -52,6 +52,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
+            super()._setup(self)
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._operators, self._dtype)

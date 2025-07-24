@@ -44,13 +44,10 @@ class TDVP(TDVPBaseDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        # TODO: remove default None once `integrator` is removed
-        ode_solver: AbstractSolver = None,
+        ode_solver: AbstractSolver,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
-        # TODO: integrator deprecated in 3.16 (oct/nov 2024)
-        integrator: AbstractSolver | None = None,
         qgt: LinearOperator | None = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
@@ -119,7 +116,6 @@ class TDVP(TDVPBaseDriver):
             ode_solver,
             t0=t0,
             error_norm=error_norm,
-            integrator=integrator,
         )
 
 

@@ -23,7 +23,6 @@ from netket import jax as nkjax
 from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
 from netket.vqs import FullSumState
-from netket.utils import mpi
 from netket.utils.types import Array
 from netket.utils.dispatch import dispatch
 
@@ -49,7 +48,7 @@ def _avg_O(afun, pars, model_state, sigma):
     sigma = sigma.reshape((-1, sigma.shape[-1]))
     _, vjp = nkjax.vjp(lambda W: afun({"params": W, **model_state}, sigma), pars)
     (O_avg,) = vjp(jnp.ones(sigma.shape[0]) / sigma.shape[0])
-    return jax.tree_util.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], O_avg)
+    return O_avg
 
 
 @dispatch
@@ -84,7 +83,7 @@ def _avg_O_exact(hilbert: AbstractHilbert, afun, pars, model_state):
     psi_2 = jnp.abs(jnp.exp(afun({"params": pars, **model_state}, sigma))) ** 2
     psi_2 /= jnp.sum(psi_2)
     (O_avg,) = vjp(psi_2)
-    return jax.tree_util.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], O_avg)
+    return O_avg
 
 
 @dispatch
@@ -177,12 +176,7 @@ def _grad_local_value_rotated(log_psi, pars, model_state, sigma_p, mel, secs):
         ),
         pars,
     )
-    log_val_rotated, _ = mpi.mpi_mean_jax(log_val_rotated)
-
     (O_avg,) = vjp(jnp.ones_like(log_val_rotated) / log_val_rotated.size)
-
-    O_avg = jax.tree_util.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], O_avg)
-
     return log_val_rotated, O_avg
 
 

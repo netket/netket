@@ -24,7 +24,7 @@ from netket.utils import array_in
 operators = [nk.operator.PauliStringsJax]
 if not nk.config.netket_experimental_sharding:
     operators = [
-        nk.operator.PauliStrings,
+        nk.operator.PauliStringsNumba,
     ] + operators
 
 
@@ -131,8 +131,8 @@ def test_pauli_trivials(Op):
     Op(nk.hilbert.Qubit(2), operators, weights)
     Op(nk.hilbert.Spin(1 / 2, 2), operators, weights)
 
-    nk.operator.PauliStrings.identity(nk.hilbert.Qubit(2))
-    nk.operator.PauliStrings.identity(nk.hilbert.Spin(1 / 2, 2))
+    nk.operator.PauliStringsNumba.identity(nk.hilbert.Qubit(2))
+    nk.operator.PauliStringsNumba.identity(nk.hilbert.Spin(1 / 2, 2))
 
 
 @pytest.mark.parametrize("Op", operators)
@@ -144,11 +144,7 @@ def test_pauli_cutoff(Op):
     x = np.ones((2,)) * hilbert.local_states[0]
     xp, mels = op.get_conn(x)
     assert xp.shape[-1] == hilbert.size
-    if isinstance(op, nk.operator.PauliStringsJax):
-        # PauliStringsJax always pads to max_conn_size
-        assert xp.shape[-2] == op.max_conn_size
-    else:
-        assert xp.shape[-2] == 1
+    assert xp.shape[-2] == 1
 
 
 @pytest.mark.parametrize("Op", operators)
@@ -303,21 +299,21 @@ def test_openfermion_conversion(Op):
     )
 
     # no extra info given
-    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator)
-    assert isinstance(ps, nk.operator.PauliStrings)
+    ps = nk.operator.PauliStringsNumba.from_openfermion(of_qubit_operator)
+    assert isinstance(ps, nk.operator.PauliStringsNumba)
     assert isinstance(ps.hilbert, nk.hilbert.Qubit)
     assert ps.hilbert.size == 4
 
     # number of qubits given
-    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, n_qubits=6)
-    assert isinstance(ps, nk.operator.PauliStrings)
+    ps = nk.operator.PauliStringsNumba.from_openfermion(of_qubit_operator, n_qubits=6)
+    assert isinstance(ps, nk.operator.PauliStringsNumba)
     # check default
     assert isinstance(ps.hilbert, nk.hilbert.Qubit)
     assert ps.hilbert.size == 6
 
     # with hilbert
     hilbert = nk.hilbert.Spin(1 / 2, 6)
-    ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
+    ps = nk.operator.PauliStringsNumba.from_openfermion(hilbert, of_qubit_operator)
     assert ps.hilbert == hilbert
     assert ps.hilbert.size == 6
 

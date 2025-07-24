@@ -17,10 +17,22 @@ from functools import partial
 
 import sys
 
-from .base import ModuleFramework, framework
+from netket.utils.version_check import module_version
+
+from netket.utils.model_frameworks.base import ModuleFramework, framework
 
 if TYPE_CHECKING:
     from flax import nnx
+
+
+def _get_graphdef_type(graphdef):
+    # TODO: Once we require Jax 0.10.6 (probably once we require jax 0.7)
+    # drop this check
+    if module_version("flax") >= (0, 10, 6):
+        assert len(graphdef.nodes) > 0
+        return graphdef.nodes[0].type
+    else:
+        return graphdef.type
 
 
 # expose jax-stax as a flax module
@@ -68,14 +80,15 @@ class NNXWrapper:
         return nnx_module
 
     def __getattr__(self, name):
-        if hasattr(self.graphdef.type, name):
+        if hasattr(_get_graphdef_type(self.graphdef), name):
             return partial(self.apply, method=name)
         raise AttributeError(
             f"'{type(self).__name__}' (and the wrapped '{self.graphdef.type}') object has no attribute '{name}'"
         )
 
     def __repr__(self):
-        return f"NNXWrapper(wrapped_class={self.graphdef.type}, ...)"
+        typ = _get_graphdef_type(self.graphdef)
+        return f"NNXWrapper(wrapped_class={typ}, ...)"
 
 
 @framework

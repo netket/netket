@@ -24,8 +24,9 @@ from netket.utils.numbers import dtype as _dtype
 from netket.utils.types import Array, DType
 
 from .. import spin
+from .._discrete_operator_jax import DiscreteJaxOperator
 from .._hamiltonian import SpecialHamiltonian
-from .._local_operator import LocalOperator
+from .._local_operator import LocalOperatorJax, LocalOperatorNumba
 
 
 class IsingBase(SpecialHamiltonian):
@@ -61,8 +62,11 @@ class IsingBase(SpecialHamiltonian):
             >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5, graph=g)
             >>> print(op)
-            Ising(J=0.5, h=1.321; dim=20)
+            IsingJax(J=0.5, h=1.321; dim=20)
         """
+        if len(hilbert.local_states) != 2:
+            raise ValueError("Ising only supports Spin-1/2 hilbert spaces.")
+
         super().__init__(hilbert)
 
         dtype = canonicalize_dtypes(float, h, J, dtype=dtype)
@@ -162,18 +166,26 @@ class IsingBase(SpecialHamiltonian):
         )
 
     def to_local_operator(self):
+        cls = (
+            LocalOperatorJax
+            if isinstance(self, DiscreteJaxOperator)
+            else LocalOperatorNumba
+        )
+
         # The hamiltonian
-        ha = LocalOperator(self.hilbert, dtype=self.dtype)
+        ha = cls(self.hilbert, dtype=self.dtype)
 
         if self.h != 0:
             for i in range(self.hilbert.size):
-                ha -= self.h * spin.sigmax(self.hilbert, int(i), dtype=self.dtype)
+                ha -= self.h * spin.sigmax(
+                    self.hilbert, int(i), dtype=self.dtype, cls=cls
+                )
 
         if self.J != 0:
             for i, j in self.edges:
                 ha += self.J * (
-                    spin.sigmaz(self.hilbert, int(i), dtype=self.dtype)
-                    * spin.sigmaz(self.hilbert, int(j), dtype=self.dtype)
+                    spin.sigmaz(self.hilbert, int(i), dtype=self.dtype, cls=cls)
+                    * spin.sigmaz(self.hilbert, int(j), dtype=self.dtype, cls=cls)
                 )
 
         return ha

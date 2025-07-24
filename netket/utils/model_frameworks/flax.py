@@ -14,7 +14,7 @@
 
 import sys
 
-from .base import ModuleFramework, framework
+from netket.utils.model_frameworks.base import ModuleFramework, framework
 
 
 @framework

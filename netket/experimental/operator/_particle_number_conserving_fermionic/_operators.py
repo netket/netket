@@ -1,7 +1,10 @@
 from functools import partial
-from typing import Union
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    import pyscf
 import sparse
 
 import jax
@@ -127,7 +130,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     def _from_sparse_arrays_normal_order(
         cls,
         hilbert: SpinOrbitalFermions,
-        operators: list[Union[Array, sparse.COO]],
+        operators: list[Array | sparse.COO],
         **kwargs,
     ):
         r"""
@@ -164,7 +167,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     def from_sparse_arrays(
         cls,
         hilbert: SpinOrbitalFermions,
-        operators: list[Union[Array, sparse.COO]],
+        operators: list[Array | sparse.COO],
         **kwargs,
     ):
         r"""
@@ -209,7 +212,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
 
     @classmethod
     def from_fermionoperator2nd(
-        cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], **kwargs
+        cls, ha: FermionOperator2nd | FermionOperator2ndJax, **kwargs
     ):
         """
         Convert from FermionOperator2nd
@@ -243,7 +246,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     @classmethod
     def from_pyscf_molecule(
         cls,
-        mol: "pyscf.gto.mole.Mole",  # noqa: F821
+        mol: "pyscf.gto.mole.Mole",
         mo_coeff: Array,
         cutoff: float = 1e-11,
         **kwargs,
@@ -283,10 +286,12 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     please refer to the docstrings of prepare_data and prepare_data_diagonal for details.
 
     We provide several factory methods to create this operator:
-        - ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd:
-                Conversion form FermionOperator2nd/FermionOperator2ndJax (if possible)
-        - ParticleNumberConservingFermioperator2nd.from_pyscf_molecule:
-                From pyscf
+
+    - ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd:
+            Conversion form FermionOperator2nd/FermionOperator2ndJax (if possible)
+    - ParticleNumberConservingFermioperator2nd.from_pyscf_molecule:
+            From pyscf
+
     Furthermore it can be converted to FermionOperator2nd/FermionOperator2ndJax using the .to_fermiop method.
     """
 
@@ -360,7 +365,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     def _from_sparse_arrays_normal_order_all_sectors(
         cls,
         hilbert: SpinOrbitalFermions,
-        operators: list[Union[Array, sparse.COO]],
+        operators: list[Array | sparse.COO],
         cutoff=1e-11,
     ):
         r"""
@@ -404,7 +409,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
     @classmethod
     def from_pyscf_molecule(
         cls,
-        mol: "pyscf.gto.mole.Mole",  # noqa: F821
+        mol: "pyscf.gto.mole.Mole",
         mo_coeff: Array,
         cutoff: float = 1e-11,
     ):
@@ -464,7 +469,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
 
     @classmethod
     def from_fermionoperator2nd(
-        cls, ha: Union[FermionOperator2nd, FermionOperator2ndJax], cutoff: float = 1e-11
+        cls, ha: FermionOperator2nd | FermionOperator2ndJax, cutoff: float = 1e-11
     ):
         r"""
         Convert from FermionOperator2nd

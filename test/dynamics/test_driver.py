@@ -109,7 +109,7 @@ def l4_norm(x):
     ) ** (1.0 / 4.0)
 
 
-@common.skipif_sharding
+@common.skipif_distributed
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
@@ -128,6 +128,7 @@ def test_one_adaptive_step(solver, error_norm, propagation_type):
     assert te.t > 0.0
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 def test_one_adaptive_schmitt(solver, error_norm):
@@ -147,7 +148,7 @@ def test_one_step_lindbladian(solver):
     def _setup_lindbladian_system():
         L = 3
         hi = nk.hilbert.Spin(s=0.5) ** L
-        ha = nk.operator.LocalOperator(hi)
+        ha = nk.operator.LocalOperatorNumba(hi)
         j_ops = []
         for i in range(L):
             ha += (0.3 / 2.0) * nk.operator.spin.sigmax(hi, i)
@@ -313,7 +314,8 @@ def test_change_norm():
 
 
 def exact_time_evolution(H, psi0, T, dt, obs):
-    H_matrix = H.to_dense()
+    # expm prefers csc format
+    H_matrix = H.to_sparse().tocsc()
     initial_state = psi0
     times = np.linspace(0, T, int(T / dt) + 1)
     expectations = {name: [] for name in obs}
@@ -334,6 +336,7 @@ def exact_time_evolution(H, psi0, T, dt, obs):
 # This test verifies a case where SNR = Rho = 0 which used to give NaNs in TDVP Schmitt but not standard TDVP.
 # See bug report https://github.com/orgs/netket/discussions/1959 and PR to fix it
 # https://github.com/netket/netket/pull/1960
+@pytest.mark.slow
 def test_tdvp_drivers():
     """Test time evolution comparing TDVP methods against exact evolution for a mean-field"""
     L = 2

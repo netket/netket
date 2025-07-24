@@ -26,7 +26,8 @@ from netket.utils.optional_deps import import_optional_dependency
 from netket.utils.types import DType
 
 from ._discrete_operator import DiscreteOperator
-from ._local_operator import LocalOperator
+from ._discrete_operator_jax import DiscreteJaxOperator
+from ._local_operator import LocalOperatorNumba as LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
 
 
@@ -71,6 +72,8 @@ class LocalLiouvillian(AbstractSuperOperator):
         jump_ops: list[DiscreteOperator] = [],
         dtype: DType | None = None,
     ):
+        if isinstance(ham, DiscreteJaxOperator):
+            ham = ham.to_numba_operator()
         super().__init__(ham.hilbert)
 
         dtype = canonicalize_dtypes(complex, ham, *jump_ops, dtype=dtype)
@@ -78,8 +81,14 @@ class LocalLiouvillian(AbstractSuperOperator):
         if not nkjax.is_complex_dtype(dtype):
             raise TypeError(f"A complex dtype is required (dtype={dtype} specified).")
 
+        self._jump_ops = []
+        for op in jump_ops:
+            if isinstance(op, DiscreteJaxOperator):
+                op = op.to_numba_operator()
+
+            self._jump_ops.append(op.copy(dtype=dtype))
+
         self._H = ham
-        self._jump_ops = [op.copy(dtype=dtype) for op in jump_ops]  # to accept dicts
         self._Hnh = ham
         self._max_dissipator_conn_size = 0
         self._max_conn_size = 0
@@ -143,11 +152,15 @@ class LocalLiouvillian(AbstractSuperOperator):
         self._mels_f = np.empty(max_conn_size, dtype=self.dtype)
 
     def add_jump_operator(self, op):
+        if isinstance(op, DiscreteJaxOperator):
+            op = op.to_numba_operator()
         self._jump_ops.append(op)
         self._compute_hnh()
 
     def add_jump_operators(self, ops):
         for op in ops:
+            if isinstance(op, DiscreteJaxOperator):
+                op = op.to_numba_operator()
             self._jump_ops.append(op)
 
         self._compute_hnh()

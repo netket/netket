@@ -25,8 +25,8 @@ from netket.utils.dispatch import dispatch
 
 from netket.utils import warn_deprecation, deprecated, deprecated_new_name
 
-from ._group import FiniteGroup
-from ._semigroup import Element
+from netket.utils.group._group import FiniteGroup
+from netket.utils.group._semigroup import Element
 
 
 class Permutation(Element):
@@ -113,7 +113,7 @@ class Permutation(Element):
         "`permutation.permutation_array`"
     )
     def permutation(self):
-        return np.asarray(self._inverse_permutation_array)
+        return self._inverse_permutation_array
 
     @property
     def _name(self):
@@ -284,6 +284,10 @@ class PermutationGroup(FiniteGroup):
     def apply_to_id(self, x: Array):
         """Returns the image of indices `x` under all permutations"""
         return self.to_array()[self.inverse][:, x]
+
+
+PermutationGroup.inverse.__doc__ = FiniteGroup.inverse.__doc__
+PermutationGroup.product_table.__doc__ = FiniteGroup.product_table.__doc__
 
 
 @dispatch

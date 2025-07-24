@@ -21,8 +21,7 @@ import jax.numpy as jnp
 from jax.tree_util import Partial
 
 from netket.utils import config
-from netket.stats import subtract_mean, sum as sum_mpi
-from netket.utils import mpi, timing
+from netket.utils import timing
 from netket.utils.types import Array, PyTree
 from netket.jax import (
     tree_to_real,
@@ -58,7 +57,7 @@ def jacobian(
     center: bool = False,
     dense: bool = False,
     _sqrt_rescale: bool = False,
-    _axis_0_is_sharded: bool = config.netket_experimental_sharding,  # type: ignore[attr-defined]
+    _axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
 ) -> PyTree:
     r"""
     Computes the jacobian of a NN model with respect to its parameters. This function
@@ -253,7 +252,7 @@ def jacobian(
 
       samples = samples.reshape(-1, samples.shape[-1])
       # tree_to_real splits the parameters in a tuple like
-      # {'real': jax.tree.map(jnp.real, pars), 'imag': jax.tree.map(jnp.imag, pars)}
+      # {'real': jax.tree_util.tree_map(jnp.real, pars), 'imag': jax.tree_util.tree_map(jnp.imag, pars)}
       pars_real, reconstruct = nk.jax.tree_to_real(parameters)
       Or_k = jax.jacrev(lambda pars_re: logpsi(reconstruct(pars_re), samples).real)(
                         pars_real)
@@ -306,6 +305,8 @@ def jacobian(
     split-to-real pytree vectors
 
     """
+    if _axis_0_is_sharded is None:
+        _axis_0_is_sharded = config.netket_experimental_sharding
     if samples.ndim != 2:
         raise ValueError("samples must be a 2D array")
 
@@ -374,19 +375,17 @@ def jacobian(
     if pdf is None:
         if center:
             jacobians = jax.tree_util.tree_map(
-                lambda x: subtract_mean(x, axis=0), jacobians
+                lambda x: x - jnp.mean(x, axis=0, keepdims=True), jacobians
             )
 
         if _sqrt_rescale:
-            sqrt_n_samp = math.sqrt(
-                samples.shape[0] * mpi.n_nodes
-            )  # maintain weak type
+            sqrt_n_samp = math.sqrt(samples.shape[0])  # maintain weak type
             jacobians = jax.tree_util.tree_map(lambda x: x / sqrt_n_samp, jacobians)
 
     else:
         if center:
             jacobians_avg = jax.tree_util.tree_map(
-                partial(sum_mpi, axis=0), _multiply_by_pdf(jacobians, pdf)
+                partial(jnp.sum, axis=0), _multiply_by_pdf(jacobians, pdf)
             )
             jacobians = jax.tree_util.tree_map(
                 lambda x, y: x - y, jacobians, jacobians_avg

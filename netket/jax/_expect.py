@@ -20,7 +20,7 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
+from netket.stats import statistics, Stats
 from netket.utils.types import PyTree
 
 from netket.jax import apply_chunked, vjp as nkvjp
@@ -60,16 +60,8 @@ def expect(
 
     where again, the expectation values are comptued using the sample average.
 
-    .. note::
-
-        When using this function together with MPI, you have to pay particular attention. This is because inside the function `f` that is differentiated
-        a mean over the MPI ranks (`mpi_mean(term1 + term2, axis=0)`) appears. Therefore, when doing the backward pass this results in a division of the outputs
-        from the previous steps by a factor equal to the number of MPI ranks, and so the final gradient on each MPI rank is rescaled as well.
-        To cope with this, it is important to sum over the ranks the gradient computed after AD, for example using the function `nk.utils.mpi.mpi_sum_jax`.
-        See the following example for more details.
-
     Example:
-        Compute the energy gradient using `nk.jax.expect` on more MPI ranks.
+        Compute the energy gradient using `nk.jax.expect`.
 
         >>> import netket as nk
         >>> import jax
@@ -110,7 +102,6 @@ def expect(
         >>>
         >>> E, E_vjp_fun = nk.jax.vjp(expect, pars, σ)
         >>> grad = E_vjp_fun(jnp.ones_like(E))[0]
-        >>> grad = jax.tree_util.tree_map(lambda x: nk.utils.mpi.mpi_sum_jax(x)[0], grad)
 
     Args:
         log_pdf: The log-pdf function from which the samples are drawn. This should output real values, and have a signature
@@ -166,7 +157,7 @@ def _expect(
     if n_chains is not None:
         L_σ = L_σ.reshape((n_chains, -1))
 
-    L̄_σ = mpi_statistics(L_σ)
+    L̄_σ = statistics(L_σ)
 
     return L̄_σ.mean, L̄_σ  # type: ignore
 
@@ -192,7 +183,7 @@ def _expect_fwd(
     else:
         L_σ_r = L_σ
 
-    L̄_stat = mpi_statistics(L_σ_r)
+    L̄_stat = statistics(L_σ_r)
 
     L̄_σ = L̄_stat.mean
 
@@ -216,7 +207,7 @@ def _expect_bwd(n_chains, chunk_size, in_axes, log_pdf, expected_fun, residuals,
             log_p = log_pdf(pars, σ)
             term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
             term2 = expected_fun(pars, σ, *cost_args)
-            out = mpi_mean(term1 + term2, axis=0)
+            out = jnp.mean(term1 + term2, axis=0)
             out = out.sum()
             return out
 
@@ -235,7 +226,7 @@ def _expect_bwd(n_chains, chunk_size, in_axes, log_pdf, expected_fun, residuals,
             term2 = apply_chunked(expected_fun, chunk_size=chunk_size, in_axes=in_axes)(
                 pars, σ, *cost_args
             )
-            out = mpi_mean(term1 + term2, axis=0)
+            out = jnp.mean(term1 + term2, axis=0)
             out = out.sum()
             return out
 

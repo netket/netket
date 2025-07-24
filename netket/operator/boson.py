@@ -12,21 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TypeVar as _TypeVar
 from scipy import sparse as _sparse
 
 from netket.utils.types import DType as _DType
 
 from netket.hilbert import DiscreteHilbert as _DiscreteHilbert
 
-from ._local_operator import LocalOperator as _LocalOperator
+from ._local_operator import (
+    LocalOperator as _LocalOperator,
+    LocalOperatorBase as _LocalOperatorBase,
+)
 
 # export identity from here as well
 from .spin import identity  # noqa: F401
 
+_LocalOperatorT = _TypeVar("_LocalOperatorT", bound=_LocalOperatorBase)
+
 
 def destroy(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = None,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of
     the Hilbert space `hilbert`.
@@ -49,12 +59,16 @@ def destroy(
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, 1)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)
 
 
 def create(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = float
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = float,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th
     of the Hilbert space `hilbert`.
@@ -77,12 +91,16 @@ def create(
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, -1)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)
 
 
 def number(
-    hilbert: _DiscreteHilbert, site: int, dtype: _DType = float
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    dtype: _DType = float,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -105,12 +123,17 @@ def number(
     D = np.array([m for m in np.arange(0, N)])
     mat = np.diag(D, 0)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)
 
 
 def proj(
-    hilbert: _DiscreteHilbert, site: int, n: int, dtype: _DType = float
-) -> _LocalOperator:
+    hilbert: _DiscreteHilbert,
+    site: int,
+    n: int,
+    dtype: _DType = float,
+    *,
+    cls: type[_LocalOperatorT] = _LocalOperator,
+) -> _LocalOperatorT:
     """
     Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the
     `site`-th of the Hilbert space `hilbert` and collapsing on the state with `n`
@@ -138,4 +161,4 @@ def proj(
     D[n] = 1
     mat = np.diag(D, 0)
     mat = _sparse.coo_matrix(mat)
-    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return cls(hilbert, mat, [site], dtype=dtype)

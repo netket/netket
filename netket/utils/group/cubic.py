@@ -16,12 +16,12 @@ import numpy as np
 
 from netket.utils.moduletools import export, hide_unexported
 
-from .axial import cuboid, cuboid_rotations  # noqa: F401
-from .axial import inversion_group as _inv_group
-from .axial import reflection_group as _refl_group
-from .axial import rotation as _rotation
-from ._point_group import PointGroup
-from ._semigroup import Identity
+from netket.utils.group.axial import cuboid, cuboid_rotations  # noqa: F401
+from netket.utils.group.axial import inversion_group as _inv_group
+from netket.utils.group.axial import reflection_group as _refl_group
+from netket.utils.group.axial import rotation as _rotation
+from netket.utils.group._point_group import PointGroup
+from netket.utils.group._semigroup import Identity
 
 
 hide_unexported(__name__)

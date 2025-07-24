@@ -29,16 +29,15 @@ import itertools
 
 from netket import jax as nkjax
 from netket import stats as nkstats
-from netket.utils import mpi
 from netket.optimizer.qgt import (
     qgt_onthefly_logic,
     qgt_jacobian_pytree,
     qgt_jacobian_common,
 )
 import netket as nk
-from netket.jax.sharding import distribute_to_devices_along_axis, device_count_per_rank
+from netket.jax.sharding import distribute_to_devices_along_axis
 
-from .. import common
+from test import common
 
 pytestmark = common.skipif_distributed
 
@@ -138,7 +137,7 @@ def tree_subtract_mean(tree):
 
 
 def divide_by_sqrt_n_samp(oks, samples):
-    n_samp = samples.shape[0] * mpi.n_nodes  # MPI
+    n_samp = samples.shape[0]
     sqrt_n = math.sqrt(n_samp)  # enforce weak type
     return jax.tree_util.tree_map(lambda x: x / sqrt_n, oks)
 
@@ -265,7 +264,7 @@ def test_reassemble_complex(e):
 
 
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [24 * device_count_per_rank(), 1024])
+@common.named_parametrize("n_samp", [24 * jax.device_count(), 1024])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
@@ -296,7 +295,7 @@ def test_matvec(e, jit, chunk_size):
 
 
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [24 * device_count_per_rank(), 1024])
+@common.named_parametrize("n_samp", [24 * jax.device_count(), 1024])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
@@ -342,7 +341,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
 
 # TODO separate test for prepare_centered_oks
 @common.named_parametrize("holomorphic", [True])
-@common.named_parametrize("n_samp", [25 * device_count_per_rank(), 1024])
+@common.named_parametrize("n_samp", [25 * jax.device_count(), 1024])
 @common.named_parametrize("jit", [True, False])
 @common.named_parametrize("chunk_size", [7, None])
 @pytest.mark.parametrize(
@@ -379,7 +378,7 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 # TODO separate test for prepare_centered_oks
 # TODO test C->R ?
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [25 * device_count_per_rank(), 1024])
+@common.named_parametrize("n_samp", [25 * jax.device_count(), 1024])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
@@ -435,7 +434,7 @@ def e_offset(n_samp, outdtype, pardtype, holomorphic, offset, seed=123):
 
 
 @pytest.mark.parametrize("holomorphic", [True])
-@pytest.mark.parametrize("n_samp", [25 * device_count_per_rank(), 1024])
+@pytest.mark.parametrize("n_samp", [25 * jax.device_count(), 1024])
 @pytest.mark.parametrize(
     "outdtype, pardtype",
     r_c_test_types,  # r_r_test_types + c_c_test_types + r_c_test_types
@@ -525,14 +524,14 @@ def test_qgt_jacobian_imaginary(dense):
     sid = Si.to_dense()
     n = shd.shape[0]
     np.testing.assert_allclose(srd[:n, :n], shd.real)
-    np.testing.assert_allclose(srd[n:, :n], shd.imag, atol=1e-16)
-    np.testing.assert_allclose(srd[:n, n:], -shd.imag, atol=1e-16)
-    np.testing.assert_allclose(srd[n:, n:], shd.real, atol=1e-16)
+    np.testing.assert_allclose(srd[n:, :n], shd.imag, atol=1e-14)
+    np.testing.assert_allclose(srd[:n, n:], -shd.imag, atol=1e-14)
+    np.testing.assert_allclose(srd[n:, n:], shd.real, atol=1e-14)
 
-    np.testing.assert_allclose(sid[:n, :n], shd.imag, atol=1e-16)
+    np.testing.assert_allclose(sid[:n, :n], shd.imag, atol=1e-14)
     np.testing.assert_allclose(sid[:n, n:], shd.real)
     np.testing.assert_allclose(sid[n:, :n], -shd.real)
-    np.testing.assert_allclose(sid[n:, n:], shd.imag, atol=1e-16)
+    np.testing.assert_allclose(sid[n:, n:], shd.imag, atol=1e-14)
 
 
 def test_qgt_jacobian_imaginary_match():

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Sequence
-from typing_extensions import Self
+from typing import Self
 
 import numpy as np
 

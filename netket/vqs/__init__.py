@@ -20,20 +20,12 @@ from .base import (
     expect_and_forces,
 )
 
+# Import types needed for documentation
+from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
+
 from .mc import MCState, MCMixedState, get_local_kernel_arguments, get_local_kernel
 from .full_summ import FullSumState
 
-_deprecations = {
-    # May 2023
-    "ExactState": (
-        "netket.vqs.ExactState is deprecated: use netket.vqs.FullSumState (netket >= 3.12)",
-        FullSumState,
-    ),
-}
-
 from netket.utils import _hide_submodules
-from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 
 _hide_submodules(__name__, ignore=["experimental"], hide_folder=["mc"])
-__getattr__ = _deprecation_getattr(__name__, _deprecations)
-del _deprecation_getattr

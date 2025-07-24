@@ -21,6 +21,7 @@ import math
 from functools import partial, wraps
 import contextlib
 
+import numpy as np
 
 import jax
 import jax.numpy as jnp
@@ -32,9 +33,9 @@ from jax.sharding import (
 )
 from jax.experimental.shard_map import shard_map
 from jax.util import safe_zip
+from jax import device_count as device_count
 
-from netket.utils import config, mpi
-from netket.utils.deprecation import warn_deprecation
+from netket.utils import config
 
 
 _identity = lambda x: x
@@ -132,19 +133,6 @@ def shard_along_axis(x, axis: int):
             x, PositionalSharding(jax.devices()).reshape(tuple(shard_shape))
         )
     return x
-
-
-@jax.jit
-def with_samples_sharding_constraint(x, shape=None):
-    """
-    ensure the input x is sharded along axis 0 on all devices
-    works both outside and inside of jit
-    """
-    warn_deprecation(
-        "with_samples_sharding_constraint is deprecated in favour of nk.jax.sharding.shard_along_axis(x, axis=0)"
-    )
-
-    return shard_along_axis(x, 0)
 
 
 def extract_replicated(t):
@@ -483,28 +471,62 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False, **kwargs):
     return f
 
 
-def device_count_per_rank() -> int:
+def pad_axis_for_sharding(
+    array: jax.Array, *, axis: int = 0, padding_value: float | jax.Array = 0
+) -> jax.Array:
     """
-    Helper functions which returns the number of jax devices netket will use for every
-    MPI rank.
+    Pads an array along an axis to make it divisible by the number of processes.
+
+    Args:
+        array: The array to pad.
+        axis: The axis along which to pad.
+        padding_value: The value to use for padding.
 
     Returns:
-        jax.device_count() if config.netket_experimental_sharding is True, and 1 otherwise
+        The padded array.
     """
-    if config.netket_experimental_sharding:  # type: ignore
-        if mpi.n_nodes > 1:
-            # this should never be triggered as we disable mpi when sharding
-            raise NotImplementedError("hybrid mpi and sharding is not not supported")
-        return jax.device_count()
-    else:  # mpi or serial
-        return 1
+    axis_size = array.shape[axis]
+    n_devices = jax.device_count()
+
+    if axis_size % n_devices != 0:
+        padded_axis_size = int(n_devices * np.ceil(axis_size / n_devices))
+        padding_shape = [(0, 0) for _ in range(array.ndim)]
+        padding_shape[axis] = (0, padded_axis_size - axis_size)
+
+        array = jnp.pad(
+            array,
+            padding_shape,
+            constant_values=padding_value,
+        )
+    return array
 
 
-def device_count() -> int:
+def inspect(name: str, tree: jax.Array):
     """
-    Helper functions which returns the TOTAL number of jax devices netket will use.
+    Internal function to inspect the sharding of an array. To be used for debugging inside
+    of :func:`jax.jit`-ted functions.
 
-    Returns:
-        jax.device_count() if config.netket_experimental_sharding is True, and mpi.rank otherwise.
+    Args:
+        name: A string to identify the array, usually the name, but can contain anything else.
+        x: The array
     """
-    return mpi.n_nodes * device_count_per_rank()
+
+    def _inspect(name: str, x: jax.Array):
+        if config.netket_experimental_sharding:
+
+            def _cb(y):
+                if jax.process_index() == 0:
+                    print(
+                        f"{name}: shape={x.shape}, sharding:",
+                        y,
+                        flush=True,
+                    )
+
+            jax.debug.inspect_array_sharding(x, callback=_cb)
+
+    if isinstance(tree, jax.Array):
+        _inspect(name, tree)
+    else:
+        jax.tree.map_with_path(
+            lambda path, x: _inspect(name + jax.tree_util.keystr(path), x), tree
+        )

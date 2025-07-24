@@ -10,7 +10,7 @@ from netket.operator.boson import (
     number as bnumber,
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
-from netket.operator import AbstractOperator, LocalOperator
+from netket.operator import AbstractOperator
 from netket.utils import module_version
 
 import pytest
@@ -42,7 +42,7 @@ sy_sparse = sparse.csr_matrix(sy)
 
 
 def _loc(*args):
-    return nk.operator.LocalOperator(hi, *args)
+    return nk.operator.LocalOperatorNumba(hi, *args)
 
 
 sx_hat = _loc([sx] * 3, [[0], [1], [5]])
@@ -60,8 +60,8 @@ herm_operators["sy_sparse"] = sy_sparse_hat
 herm_operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
 herm_operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
-sm_hat = nk.operator.LocalOperator(hi, [sm] * 3, [[0], [1], [4]])
-sp_hat = nk.operator.LocalOperator(hi, [sp] * 3, [[0], [1], [4]])
+sm_hat = nk.operator.LocalOperatorNumba(hi, [sm] * 3, [[0], [1], [4]])
+sp_hat = nk.operator.LocalOperatorNumba(hi, [sp] * 3, [[0], [1], [4]])
 
 
 generic_operators["sigma +/-"] = (sm_hat, sp_hat)
@@ -204,8 +204,8 @@ def test_local_operator_add():
     assert_same_matrices(ha, ham)
 
     # test commutativity
-    ha = LocalOperator(hi)
-    ha2 = LocalOperator(hi, dtype=complex)
+    ha = nk.operator.LocalOperatorNumba(hi)
+    ha2 = nk.operator.LocalOperatorNumba(hi, dtype=complex)
     for i in range(0, 3):
         ha += 0.3 * nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmax(hi, i + 1)
         ha += 0.4 * nk.operator.spin.sigmaz(hi, i)
@@ -228,17 +228,17 @@ def test_simple_operators():
 
     print("Testing Sigma_x/y/z...")
     for i in range(L):
-        sx_hat = nk.operator.LocalOperator(hi, sx, [i])
-        sy_hat = nk.operator.LocalOperator(hi, sy, [i])
-        sz_hat = nk.operator.LocalOperator(hi, sz, [i])
+        sx_hat = nk.operator.LocalOperatorNumba(hi, sx, [i])
+        sy_hat = nk.operator.LocalOperatorNumba(hi, sy, [i])
+        sz_hat = nk.operator.LocalOperatorNumba(hi, sz, [i])
         assert_same_matrices(sigmax(hi, i), sx_hat)
         assert_same_matrices(sigmay(hi, i), sy_hat)
         assert_same_matrices(sigmaz(hi, i), sz_hat)
 
     print("Testing Sigma_+/-...")
     for i in range(L):
-        sm_hat = nk.operator.LocalOperator(hi, sm, [i])
-        sp_hat = nk.operator.LocalOperator(hi, sp, [i])
+        sm_hat = nk.operator.LocalOperatorNumba(hi, sm, [i])
+        sp_hat = nk.operator.LocalOperatorNumba(hi, sp, [i])
         assert_same_matrices(sigmam(hi, i), sm_hat)
         assert_same_matrices(sigmap(hi, i), sp_hat)
 
@@ -294,24 +294,24 @@ def test_simple_operators():
 
 def test_mul_matmul():
     hi = nk.hilbert.Spin(s=1 / 2, N=2)
-    sx0_hat = nk.operator.LocalOperator(hi, sx, [0])
-    sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
+    sx0_hat = nk.operator.LocalOperatorNumba(hi, sx, [0])
+    sy1_hat = nk.operator.LocalOperatorNumba(hi, sy, [1])
 
     sx0sy1_hat = sx0_hat @ sy1_hat
     assert_same_matrices(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
     sx0sy1_hat = sx0_hat * sy1_hat
     assert_same_matrices(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
 
-    op = nk.operator.LocalOperator(hi, sx, [0])
+    op = nk.operator.LocalOperatorNumba(hi, sx, [0])
     with raises(ValueError):
-        op @= nk.operator.LocalOperator(hi, sy, [1])
+        op @= nk.operator.LocalOperatorNumba(hi, sy, [1])
 
-    op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
-    op @= nk.operator.LocalOperator(hi, sy, [1])
+    op = nk.operator.LocalOperatorNumba(hi, sx, [0], dtype=complex)
+    op @= nk.operator.LocalOperatorNumba(hi, sy, [1])
     assert_same_matrices(op.to_dense(), sx0sy1_hat.to_dense())
 
-    op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
-    op *= nk.operator.LocalOperator(hi, sy, [1])
+    op = nk.operator.LocalOperatorNumba(hi, sx, [0], dtype=complex)
+    op *= nk.operator.LocalOperatorNumba(hi, sy, [1])
     assert_same_matrices(op.to_dense(), sx0sy1_hat.to_dense())
 
     assert_same_matrices((2.0 * sx0sy1_hat).to_dense(), 2.0 * sx0sy1_hat.to_dense())
@@ -323,7 +323,7 @@ def test_mul_matmul():
     with pytest.raises(TypeError):
         sx0_hat @ 2.0
     with pytest.raises(TypeError):
-        op = nk.operator.LocalOperator(hi, sx, [0])
+        op = nk.operator.LocalOperatorNumba(hi, sx, [0])
         op @= 2.0
 
 
@@ -342,8 +342,8 @@ def test_complicated_mul():
 def test_truediv():
     hi = nk.hilbert.Spin(s=1 / 2, N=2)
 
-    sx0_hat = nk.operator.LocalOperator(hi, sx, [0])
-    sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
+    sx0_hat = nk.operator.LocalOperatorNumba(hi, sx, [0])
+    sy1_hat = nk.operator.LocalOperatorNumba(hi, sy, [1])
     sx0sy1_hat = sx0_hat @ sy1_hat
 
     assert_same_matrices((sx0sy1_hat / 2.0).to_dense(), sx0sy1_hat.to_dense() / 2.0)
@@ -378,8 +378,10 @@ def test_copy(op):
 def test_type_promotion():
     hi = nk.hilbert.Qubit(1)
     real_op = nk.operator.spin.sigmax(hi, 0, dtype=float)
-    complex_mat = nk.operator.spin.sigmay(hi, 0, dtype=complex).to_dense()
-    promoted_op = real_op + nk.operator.LocalOperator(hi, complex_mat, acting_on=[0])
+    complex_mat = np.asarray(nk.operator.spin.sigmay(hi, 0, dtype=complex).to_dense())
+    promoted_op = real_op + nk.operator.LocalOperatorNumba(
+        hi, complex_mat, acting_on=[0]
+    )
     assert promoted_op.dtype == np.complex128
 
     op = nk.operator.spin.sigmax(hi, 0, dtype=np.float32)
@@ -440,7 +442,7 @@ def test_is_hermitian_generic_op(ops):
     "jax",
     [pytest.param(op) for op in [True, False]],
 )
-@common.skipif_sharding
+@common.skipif_distributed
 def test_qutip_conversion(jax):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -511,7 +513,7 @@ def test_error_if_wrong_shape():
     hi = nk.hilbert.Fock(5, N=3)
     mat = np.random.rand(3, 3)
     with pytest.raises(ValueError):
-        nk.operator.LocalOperator(hi, mat, [0, 1])
+        nk.operator.LocalOperatorNumba(hi, mat, [0, 1])
 
 
 def test_inhomogeneous_hilb_issue_1192():
@@ -532,7 +534,7 @@ def test_add_transpose():
 
 def test_identity():
     hi = nk.hilbert.Fock(n_max=3)
-    I = nk.operator.LocalOperator(hi, constant=1)
+    I = nk.operator.LocalOperatorNumba(hi, constant=1)
 
     assert_same_matrices(I, np.eye(hi.n_states))
 
@@ -540,7 +542,7 @@ def test_identity():
     assert_same_matrices(I @ X, X)
 
 
-@common.skipif_sharding
+@common.skipif_distributed
 def test_not_recompiling():
     hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
     op = bcreate(hi, 0) * bdestroy(hi, 2)
@@ -555,7 +557,7 @@ def test_duplicate_sites():
     mat = np.random.rand(4, 4)
     # The operator at index 0 acts on duplicated sites [0, 0]
     with raises(ValueError):
-        nk.operator.LocalOperator(hi, mat, [0, 0])
+        nk.operator.LocalOperatorNumba(hi, mat, [0, 0])
 
 
 def test_numpy_matrix():
@@ -563,7 +565,7 @@ def test_numpy_matrix():
     # must be specially handled
     hi = nk.hilbert.Spin(0.5, 1)
     mat = np.matrix([[1, 0], [0, 1]])
-    op = nk.operator.LocalOperator(hi, mat, 0)
+    op = nk.operator.LocalOperatorNumba(hi, mat, 0)
     assert_same_matrices(mat, op)
 
 
@@ -575,7 +577,7 @@ def test_mixed_sparse_dense_terms():
     op = nk.operator.spin.sigmax(hi, 0)
     mat = op.operators[0].todense()
 
-    op2 = nk.operator.LocalOperator(hi, mat, 1)
+    op2 = nk.operator.LocalOperatorNumba(hi, mat, 1)
     op3 = op - op2
 
     res = op3 @ op3
@@ -596,7 +598,7 @@ def test_pauli_strings_conversion():
         ps = nk.operator.PauliStrings(
             hi, operators + ["I" * hi.size], weights + [constant], dtype=complex
         )
-        lo = nk.operator.LocalOperator(hi, dtype=complex)
+        lo = nk.operator.LocalOperatorNumba(hi, dtype=complex)
         for op, w in zip(operators, weights):
             _lo = None
             for i, gate in enumerate(op):

@@ -25,10 +25,9 @@ from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
-from netket.utils import mpi, timing
+from netket.utils import timing
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
-from netket.utils.deprecation import warn_deprecation
 from netket.vqs import VariationalState
 from netket.experimental.dynamics import AbstractSolver, Integrator
 from netket.experimental.dynamics._utils import (
@@ -48,12 +47,9 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        # TODO: remove default None once `integrator` is removed
-        ode_solver: AbstractSolver = None,
+        ode_solver: AbstractSolver,
         *,
         t0: float = 0.0,
-        # TODO: integrator deprecated in 3.16 (oct/nov 2024)
-        integrator: AbstractSolver = None,
         error_norm: str | Callable = "qgt",
     ):
         r"""
@@ -96,18 +92,6 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self._integrator = None
 
         self.error_norm = error_norm
-
-        if integrator is not None:
-            warn_deprecation(
-                "The keyword argument `integrator` has been renamed to `ode_solver` and "
-                "deprecated to improve clarity.\n"
-                "Update the keyword argument in your code to avoid breakage in the future."
-            )
-            if ode_solver is not None:
-                raise ValueError("Cannot specify both `ode_solver` and `integrator`.")
-            ode_solver = integrator
-        if ode_solver is None:
-            raise ValueError("You need to define the `ode_solver` for the TDVP driver.")
         self.ode_solver = ode_solver
 
         self._stop_count = 0
@@ -374,7 +358,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                         logger(self.step_value, log_data, self.state)
 
                     if len(callbacks) > 0:
-                        if mpi.mpi_any(callback_stop):
+                        if callback_stop:
                             break
                     update_progress_bar()
 

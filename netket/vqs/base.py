@@ -22,7 +22,7 @@ import jax.numpy as jnp
 from jax.nn.initializers import normal
 
 from flax import core as fcore
-from flax.core.scope import CollectionFilter
+from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 from plum import Callable  # noqa: F401
 
 from netket.hilbert.discrete_hilbert import DiscreteHilbert
@@ -153,7 +153,7 @@ class VariationalState(abc.ABC):
                 Must be a Callable taking 3 inputs, the jax PRNG key, the shape and the
                 dtype, and outputting an array with the valid dtype and shape. If left
                 unspecified, defaults to :code:`jax.nn.initializers.normal(stddev=0.01)`
-            seed: Optional seed to be used. The seed is synced across all MPI processes.
+            seed: Optional seed to be used. The seed is synced across all JAX processes.
                 If unspecified, uses a random seed.
         """
         if init_fun is None:

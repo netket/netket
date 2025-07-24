@@ -31,7 +31,7 @@ from .._discrete_operator_jax import DiscreteJaxOperator
 from .base import PauliStringsBase
 
 if TYPE_CHECKING:
-    from .numba import PauliStrings
+    from .numba import PauliStringsNumba
 
 # pauli-strings operator written in nJax
 # the general idea is the following:
@@ -459,14 +459,14 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         op._initialized = True
         return op
 
-    def to_numba_operator(self) -> "PauliStrings":  # noqa: F821
+    def to_numba_operator(self) -> "PauliStringsNumba":  # noqa: F821
         """
         Returns the standard numba version of this operator, which is an
         instance of :class:`netket.operator.PauliStrings`.
         """
-        from .numba import PauliStrings
+        from .numba import PauliStringsNumba
 
-        return PauliStrings(
+        return PauliStringsNumba(
             self.hilbert,
             self.operators,
             self.weights,

@@ -540,15 +540,8 @@ def test_fermions():
 def test_fermion_fails():
     with pytest.raises(TypeError):
         _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
-    # TODO: change to TypeError in 3.12
-    # with pytest.raises(TypeError):
-    with pytest.raises(ValueError):
-        with pytest.warns(DeprecationWarning):
-            _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
-    # TODO: Test the hard error in 3.12
-    # with pytest.raises(TypeError):
-    with pytest.warns(DeprecationWarning):
-        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1 / 2)
+    with pytest.raises(TypeError):
+        _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
     with pytest.raises(ValueError):
         _ = nk.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2])
     with pytest.raises(ValueError):
@@ -774,6 +767,10 @@ def test_particle_with_geometry():
 
 def test_hilbert_states_outside_range_errors():
     hi = nk.hilbert.Fock(3, 2, 4)
+
+    if jax.device_count() > 1:
+        # TODO: single host this can work
+        pytest.xfail("not implemented")
 
     with pytest.raises(xla_extension.XlaRuntimeError):
         # XlaRuntimeError: Numbers outside the range of allowed states.

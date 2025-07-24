@@ -17,7 +17,7 @@ from .. import common
 
 pytestmark = common.skipif_distributed
 
-SEED = 21478362
+SEED = 214362
 
 
 def _setup_vmc(dtype=np.float32, sr=True):
@@ -28,7 +28,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
     ma = nk.models.RBM(alpha=1, param_dtype=dtype)
     sa = nk.sampler.ExactSampler(hilbert=hi)
 
-    vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
+    vs = nk.vqs.MCState(sa, ma, n_samples=10000, seed=SEED)
 
     ha = nk.operator.Ising(hi, graph=g, h=1.0)
     op = nk.optimizer.Sgd(learning_rate=0.05)
@@ -99,7 +99,7 @@ def test_vmc_functions():
     for op, name in (ha, "ha"), (sx, "sx"):
         print(f"Testing expectation of op={name}")
 
-        exact_ex = (state.T.conj() @ op.to_linear_operator() @ state).real
+        exact_ex = (state.T.conj() @ (op.to_linear_operator() @ state)).real
 
         op_stats = ma.expect(op)
 
@@ -164,7 +164,7 @@ def test_vmc_gradient(dtype):
 
     grad_exact = central_diff_grad(energy_fun, pars, 1.0e-5, ma, ha.to_sparse())
 
-    driver.state.n_samples = 1e5
+    driver.state.n_samples = 5e5
     driver.state.n_discard_per_chain = 1e3
     driver.state.parameters = pars_0
     _, _grad_approx = ma.expect_and_grad(ha)  # driver._forward_and_backward()
