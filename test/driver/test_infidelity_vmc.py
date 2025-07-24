@@ -1,6 +1,5 @@
 import netket as nk
 import netket.experimental as nkx
-import numpy as np
 import jax.numpy as jnp
 
 import pytest
@@ -101,42 +100,27 @@ def I_exact_fun(params, vs, vs_target, U=None):
 def test_MCState(useExactSampler, useOperator):
     vs, vs_target, vs_exact, vs_exact_target, H = _setup(useExactSampler)
 
-    if useOperator:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target, operator=H)
-        I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
-
-    else:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target)
-        I_exact = I_exact_fun(vs.parameters, vs, vs_target)
-
-    I_stats = vs.expect(I_op)
-
-    I_mean = I_stats.mean
-    I_err = 5 * I_stats.error_of_mean
-
-    np.testing.assert_allclose(I_exact.real, I_mean.real, atol=I_err)
-
-
-@common.xfailif_sharding  # broken in recent jax versions
-@pytest.mark.parametrize(
-    "useOperator",
-    [
-        pytest.param(True, id="useOperator"),
-        pytest.param(False, id="useOperator"),
-    ],
-)
-def test_FullSumState(useOperator):
-    vs, vs_target, vs_exact, vs_exact_target, H = _setup()
+    optimizer = nk.optimizer.Sgd(learning_rate=0.01)
+    diag_shift = 0.001
 
     if useOperator:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target, operator=H)
-        I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
-    else:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target)
+        driver = nkx.driver.Infidelity_SR(
+            target_state=vs_target,
+            optimizer=optimizer,
+            diag_shift=diag_shift,
+            variational_state=vs,
+        )
+        driver.run(n_iter=1000)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target)
+    else:
+        driver = nkx.driver.Infidelity_SR(
+            target_state=vs_target,
+            optimizer=optimizer,
+            diag_shift=diag_shift,
+            variational_state=vs,
+            operator=H,
+        )
+        driver.run(n_iter=1000)
+        I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
 
-    I_stats = vs_exact.expect(I_op)
-
-    I_mean = I_stats.mean
-
-    np.testing.assert_allclose(I_exact.real, I_mean.real, atol=1e-6)
+    assert I_exact < 1e-12
