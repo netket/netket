@@ -35,6 +35,8 @@ The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly m
 * {class}`netket.stats.Stats` repr logic is improved to switch to scientific notation more often when the quantity is close to 0. Moreover, the character count is fixed so the progress bar will wiggle less [#2102](https://github.com/netket/netket/pull/2102).
 * When using sub-optimal {class}`netket.operator.FermionOperator2nd` with hilbert spaces with a fixed number of particles, a warning will be now printed suggesting users to switch to Particle Number Conserving operators [#2088](https://github.com/netket/netket/pull/2088).
 * A new, general implementation of {class}`netket.operator.SumOperator` can be used to sum 2 or more different operators of any different type, which was previously not possible.
+* A new {class}`netket.experimental.operator.InfidelityOperator` for minimizing the infidelity between two quantum states (possibly with an operator in the middle) and a new {class}`netket.experimental.driver.Infidelity_SR` driver for minimizing it, which implements both standard SR and the kernel trick/minSR variant, are now available. [#2076](https://github.com/netket/netket/pull/2076).
+
 
 ### Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
