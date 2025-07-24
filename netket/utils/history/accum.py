@@ -131,4 +131,71 @@ def accum_histories(accum: History | None, data, *, step=0) -> History:
         return accum
 
 
-accum_histories_in_tree = partial(accum_in_tree, accum_histories)
+def accum_histories_in_tree(
+    tree_accum: dict[str, Any] | Any,
+    tree: dict[str, Any],
+    **kwargs,
+) -> dict[str, Any]:
+    """
+    Accumulate history data in nested tree structures.
+    
+    This function is designed to build complex nested history structures incrementally
+    by accumulating data from dictionaries with potentially different keys at each 
+    iteration. It's particularly useful for logging systems where different metrics
+    are computed at different frequencies.
+    
+    Args:
+        tree_accum: The accumulated tree structure containing History objects.
+            Can be None or empty for the first call.
+        tree: The new data to accumulate, typically a nested dictionary.
+        **kwargs: Additional keyword arguments, commonly including 'step' to
+            specify the iteration number.
+    
+    Returns:
+        An updated tree structure where each leaf contains a History object
+        with the accumulated time-series data.
+    
+    Examples:
+        Build a complex logging structure incrementally:
+        
+        .. code-block:: python
+        
+            from netket.utils import history
+            
+            # Start with empty accumulator
+            data_log = history.HistoryDict()
+            
+            # First iteration: log basic metrics
+            data = {
+                'energy': -1.5,
+                'variance': 0.3
+            }
+            data_log = history.accum_histories_in_tree(data_log, data, step=0)
+            
+            # Second iteration: log basic metrics + additional diagnostics
+            data = {
+                'energy': -1.8,
+                'variance': 0.25,
+                'diagnostics': {
+                    'acceptance_rate': 0.7,
+                    'step_size': 0.01
+                }
+            }
+            data_log = history.accum_histories_in_tree(data_log, data, step=1)
+            
+            # Third iteration: only basic metrics (diagnostics skipped)
+            data = {
+                'energy': -2.1,
+                'variance': 0.18
+            }
+            data_log = history.accum_histories_in_tree(data_log, data, step=2)
+            
+            # Access the accumulated histories
+            print(f"Energy history: {data_log['energy']}")
+            print(f"Diagnostics logged at: {data_log['diagnostics/acceptance_rate'].iters}")
+        
+        This shows how different metrics can be logged at independent iterations,
+        with the function automatically handling the creation and accumulation of
+        History objects for each data path.
+    """
+    return accum_in_tree(accum_histories, tree_accum, tree, **kwargs)

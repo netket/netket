@@ -78,6 +78,8 @@ docs = [
     "myst-nb>=1.0,<1.4",
     "sphinx-book-theme~=1.1.0",
     "sphinx-copybutton>=0.5.2",
+    "nbconvert>=7.16.6",
+    "ipywidgets>=8.1.7",
 ]
 
 [project.scripts]
