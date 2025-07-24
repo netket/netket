@@ -9,6 +9,7 @@ from netket import jax as nkjax
 from netket.optimizer.solver import cholesky
 from netket.vqs import MCState, FullSumState, VariationalState
 from netket.utils import timing, struct
+from netket.utils.citations import reference
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
@@ -34,6 +35,11 @@ def _flatten_samples(x):
     return jax.lax.collapse(x, 0, x.ndim - 1)
 
 
+@reference(
+    ["Sinibaldi2023Unbiasing", "Gravina2024PTVMC"],
+    condition="If using infidelity estimators and optimizers",
+    message="This work used the Infidelity estimators and optimizers from Refs.",
+)
 class Infidelity_SR(AbstractVariationalDriver):
     r"""
     Infidelity minimization with respect to a target state :math:`|\Phi\rangle` (with possibly an operator :math:`U` such that :math:`|\Phi\rangle \equiv U|\Phi\rangle`)

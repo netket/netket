@@ -12,7 +12,8 @@ sys.path.append(str(pathlib.PosixPath(os.getcwd()) / "sphinx_extensions"))
 # -- Project information -----------------------------------------------------
 
 project = "NetKet"
-copyright = "2019-2024, The Netket authors - All rights reserved"
+copyright = "2019-2026, The Netket authors - All rights reserved"
+author = "The Netket authors"
 
 # The full version, including alpha/beta/rc tags
 release = nk.__version__
@@ -51,6 +52,7 @@ extensions = [
     "custom_inheritance_diagram.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
     "flax_module.fmodule",
     "nk_list_config_options",
+    "netket_citations",
 ]
 
 # For sphinx.ext.linkcode
@@ -188,7 +190,7 @@ html_context = {
             f"{main_website_base_url}/get_involved/",
             True,
         ),
-        ("Citing", f"{main_website_base_url}/cite/", True),
+        ("Citing", "cite"),
         ("Documentation", "index"),
     ],
     "navbar_links_right": [

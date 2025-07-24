@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._version import version as __version__  # noqa: F401
-
-from .utils import config
-
-from . import utils
-from . import errors
-
 __all__ = [
-    "exact",
-    "graph",
     "callbacks",
+    "errors",
+    "exact",
+    "experimental",
+    "graph",
     "hilbert",
+    "logging",
+    "models",
+    "nn",
     "operator",
     "optimizer",
     "sampler",
@@ -32,8 +30,16 @@ __all__ = [
     "vqs",
     "nn",
     "symmetry",
+    "cite",
+    "config",
 ]
 
+from ._version import version as __version__  # noqa: F401
+
+from .utils import config
+
+from . import utils
+from . import errors
 
 from . import jax
 from . import stats
@@ -55,7 +61,12 @@ from . import (
     symmetry,
 )
 
+from . import experimental
+
 
 # Main applications
 from .driver import VMC
 from .driver import SteadyState
+
+# Citation system
+from .utils.citations import cite

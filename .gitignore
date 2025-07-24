@@ -84,5 +84,12 @@ build/
 # Website #
 ###########
 docs/_build
+docs/.jupyter_cache
 _generated
 dist
+
+# Auto-generated BibTeX files #
+###############################
+references.bib
+/references.bib
+docs/references.bib

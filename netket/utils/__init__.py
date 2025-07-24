@@ -55,6 +55,7 @@ from netket.utils.static_range import StaticRange
 
 # TODO: remove this import as it is deprecated
 from netket.utils import mpi
+from netket.utils import citations
 
 _hide_submodules(
     __name__,
@@ -67,5 +68,6 @@ _hide_submodules(
         "errors",
         "timing",
         "display",
+        "citations",
     ],
 )

@@ -26,12 +26,18 @@ from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 from netket.jax import tree_cast
 from netket.utils import timing
+from netket.utils.citations import reference
 from netket.experimental.dynamics import AbstractSolver
 
 
 from .tdvp_common import TDVPBaseDriver, odefun
 
 
+@reference(
+    "Schmitt2020",
+    condition="If using TDVPSchmitt",
+    message="This work used the TDVP algorithms described in Ref.",
+)
 class TDVPSchmitt(TDVPBaseDriver):
     r"""
     Variational time evolution based on the time-dependent variational principle which,

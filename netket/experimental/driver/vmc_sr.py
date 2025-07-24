@@ -8,6 +8,7 @@ from netket import jax as nkjax
 from netket.optimizer.solver import cholesky
 from netket.vqs import MCState, FullSumState
 from netket.utils import timing, struct
+from netket.utils.citations import reference
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
@@ -61,6 +62,16 @@ def VMC_SRt(
     )
 
 
+@reference(
+    "Goldshlager2023Spring",
+    condition="If using VMC_SR with momentum != 0",
+    message="This work used the SPRING optimization algorithm described in Ref.",
+)
+@reference(
+    ["Chen2024minsr", "Rende2024minsr"],
+    condition="If using minSR, VMC_SR(use_ntk=True) ",
+    message="This work used the efficient kernel trick for SR described in Refs.",
+)
 class VMC_SR(AbstractVariationalDriver):
     r"""
     Energy minimization using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.

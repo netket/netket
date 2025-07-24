@@ -141,3 +141,79 @@ h1 {
   display: block !important;
 }
 
+/* Style for citation button */
+.citation-button summary {
+  background-color: #495057;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  text-align: center;
+  display: inline-block;
+  margin: 10px 0;
+  transition: background-color 0.3s ease, box-shadow 0.2s ease, border-radius 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.citation-button summary:hover {
+  background-color: #343a40;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.citation-button summary:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(73, 80, 87, 0.25);
+}
+
+/* When expanded, make bottom corners square to connect with content */
+.citation-button[open] summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+/* Hover effect for expanded button affects content panel too */
+.citation-button[open] summary:hover {
+  box-shadow: none;
+}
+
+.citation-button[open] summary:hover ~ *:not(summary) {
+  background-color: #343a40;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Style the content panel to connect smoothly */
+.citation-button > *:not(summary) {
+  background-color: #495057;
+  color: white;
+  padding: 20px;
+  margin: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 6px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode support for citation button */
+[data-theme="dark"] .citation-button summary {
+  background-color: #6c757d;
+  color: white;
+}
+
+[data-theme="dark"] .citation-button summary:hover {
+  background-color: #5a6268;
+}
+
+[data-theme="dark"] .citation-button > *:not(summary) {
+  background-color: #6c757d;
+  color: white;
+}
+
+[data-theme="dark"] .citation-button[open] summary:hover ~ *:not(summary) {
+  background-color: #5a6268;
+}
+
