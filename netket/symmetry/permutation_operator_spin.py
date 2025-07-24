@@ -66,3 +66,11 @@ class PermutationOperator(DiscreteJaxOperator):
             unique_indices=True, mode="promise_in_bounds"
         )
         return connected_elements, jnp.ones((*x.shape[:-1], 1), dtype=self.dtype)
+
+    def __matmul__(self, other):
+        if isinstance(other, PermutationOperator):
+            return PermutationOperator(
+                self.hilbert, self.permutation @ other.permutation
+            )
+        else:
+            return super().__mul__(other)
