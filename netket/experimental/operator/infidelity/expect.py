@@ -3,8 +3,7 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-from netket.vqs import MCState, expect, expect_and_grad
-import netket.jax as nkjax
+from netket.vqs import MCState, expect
 from netket.stats import Stats
 
 from .infidelity_operator import InfidelityOperator
@@ -25,36 +24,42 @@ def infidelity(vstate: MCState, op: InfidelityOperator, chunk_size: None):
         vstate.samples,
         op.target_state.samples,
         op.cv_coeff,
-        return_grad=False,
     )
 
 
-@expect_and_grad.dispatch
-def infidelity(  # noqa: F811
-    vstate: MCState,
-    op: InfidelityOperator,
-    chunk_size: None,
-    *,
-    mutable,
-):
-    if op.hilbert != vstate.hilbert:
-        raise TypeError("Hilbert spaces should match")
+@partial(jax.jit, static_argnames=("afun", "afun_t"))
+def get_kernels(afun, afun_t, params, params_t, σ, σ_t, model_state, model_state_t):
+    W = {"params": params, **model_state}
+    W_t = {"params": params_t, **model_state_t}
 
-    return infidelity_sampling_inner(
+    log_val = afun_t(W_t, σ) - afun(W, σ)
+    log_val_t = afun(W, σ_t) - afun_t(W_t, σ_t)
+
+    return log_val, log_val_t
+
+
+def get_local_estimator(vstate, target_state):
+    log_val, log_val_t = get_kernels(
         vstate._apply_fun,
-        op.target_state._apply_fun,
+        target_state._apply_fun,
         vstate.parameters,
-        op.target_state.parameters,
-        vstate.model_state,
-        op.target_state.model_state,
+        target_state.parameters,
         vstate.samples,
-        op.target_state.samples,
-        op.cv_coeff,
-        return_grad=True,
+        target_state.samples,
+        vstate.model_state,
+        target_state.model_state,
     )
 
+    Hloc = jnp.exp(log_val) * jnp.mean(jnp.exp(log_val_t))
 
-@partial(jax.jit, static_argnames=("afun", "afun_t", "return_grad"))
+    Hloc_cv = jnp.exp(log_val + log_val_t).real - 0.5 * (
+        jnp.exp(2 * (log_val + log_val_t).real) - 1
+    )
+
+    return Hloc, Hloc_cv
+
+
+@partial(jax.jit, static_argnames=("afun", "afun_t"))
 def infidelity_sampling_inner(
     afun,
     afun_t,
@@ -65,35 +70,26 @@ def infidelity_sampling_inner(
     sigma,
     sigma_t,
     cv_coeff,
-    return_grad,
 ):
     N = sigma.shape[-1]
 
     σ = sigma.reshape(-1, N)
     σ_t = sigma_t.reshape(-1, N)
 
-    def kernel_fun(params_all, samples_all):
-        params, params_t = params_all
-        σ, σ_t = samples_all
-
-        W = {"params": params, **model_state}
-        W_t = {"params": params_t, **model_state_t}
-
-        log_val = afun_t(W_t, σ) - afun(W, σ)
-        log_val_t = afun(W, σ_t) - afun_t(W_t, σ_t)
-
-        return log_val, log_val_t
-
-    log_val, log_val_t = kernel_fun((params, params_t), (σ, σ_t))
-
-    res = jnp.exp(log_val + log_val_t).real
+    log_val, log_val_t = get_kernels(
+        afun, afun_t, params, params_t, σ, σ_t, model_state, model_state_t
+    )
 
     if cv_coeff is not None:
-        res = res + cv_coeff * (jnp.exp(2 * (log_val + log_val_t).real) - 1)
+        kernel_vals = jnp.exp(log_val + log_val_t).real + cv_coeff * (
+            jnp.exp(2 * (log_val + log_val_t).real) - 1
+        )
+    else:
+        kernel_vals = jnp.exp(log_val) * jnp.mean(jnp.exp(log_val_t))
 
-    mean = jnp.mean(res)
-    variance = jnp.var(res)
-    error = jnp.sqrt(variance / res.shape[-1])
+    mean = jnp.mean(kernel_vals)
+    variance = jnp.var(kernel_vals)
+    error = jnp.sqrt(variance / kernel_vals.shape[-1])
 
     I_stats = Stats(
         mean=1 - mean,
@@ -101,24 +97,4 @@ def infidelity_sampling_inner(
         variance=variance,
     )
 
-    if not return_grad:
-        return I_stats
-
-    Hloc = jnp.exp(log_val) * jnp.mean(jnp.exp(log_val_t))
-    Hloc = Hloc - jnp.mean(Hloc)
-
-    _, Ok_vjp = nkjax.vjp(
-        lambda params: afun({"params": params, **model_state}, σ),
-        params,
-        conjugate=True,
-    )
-
-    I_grad = Ok_vjp(Hloc.conj())[0]
-
-    I_grad = jax.tree_util.tree_map(lambda x: x / σ.shape[0], I_grad)
-
-    I_grad = jax.tree_util.tree_map(lambda x: 2 * jnp.real(x), I_grad)
-
-    I_grad = jax.tree_util.tree_map(lambda x: -x, I_grad)
-
-    return I_stats, I_grad
+    return I_stats
