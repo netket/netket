@@ -93,6 +93,15 @@ def _is_power_of_two(n: int) -> bool:
     return (n != 0) and (n & (n - 1) == 0)
 
 
+@partial(jax.jit, static_argnames="sharding")
+def _ensure_sharding(tree, sharding):
+    # this must be jitted to work correctly.
+    return jax.tree_util.tree_map(
+        lambda x: jax.lax.with_sharding_constraint(x, sharding),
+        tree,
+    )
+
+
 @partial(jax.jit, static_argnums=0)
 def jit_evaluate(fun: Callable, *args):
     """
@@ -216,17 +225,21 @@ class MCState(VariationalState):
         else:
             par_sharding = None
 
-        # The following line will turn any numpy-variables into a jax array,
-        # And also enforce the replicated sharding. When supporting model
-        # parallelism we might have to only device_put on numpy variables but
-        # not on jax ones.
-        # History: We considered in July 2025 to deprecate numpy array, then
-        # decided not to.
-        # if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
-        if variables is not None and config.netket_experimental_sharding:
+        # TODO: deprecated in July 2025
+        # For simplicity, we do not accept numpy inputs in variables
+        if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
+            # resultis in SingleDeviceSharding if par_sharding is None
             variables = jax.tree.map(
-                partial(jax.device_put, device=par_sharding), variables
+                partial(jnp.asarray, device=par_sharding), variables
             )
+
+        if variables is not None and config.netket_experimental_sharding:
+            # TODO: Move this somewhere else below?
+            # If variables is specified manually, we will enforce that it's leaves are
+            # jax arrays and that it has the good 'replicated sharding'
+            # This assumption is needed for saving and loading of those states, and could
+            # be broken if variables is malformed.
+            variables = _ensure_sharding(variables, par_sharding)
 
         # Init type 1: pass in a model
         if model is not None:
