@@ -10,7 +10,7 @@ from jax.extend import linear_util as lu
 from ._utils_tree import compose
 
 _tree_add = partial(jax.tree_util.tree_map, jax.lax.add)
-_tree_zeros_like = partial(jax.tree_util.tree_map, jax.lax.zeros_like_array)
+_tree_zeros_like = partial(jax.tree_util.tree_map, jnp.zeros_like)
 
 
 # TODO put it somewhere
