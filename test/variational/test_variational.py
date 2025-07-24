@@ -563,6 +563,7 @@ def test_error_wrong_variables():
     with pytest.raises(nk.errors.ParameterMismatchError):
         vs.parameters = {"a": 1}
 
+
 def test_mcstate_inits():
     g = nk.graph.Chain(2)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
