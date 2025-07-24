@@ -14,7 +14,6 @@
 
 import os
 from textwrap import dedent
-from functools import partial
 from typing import Any
 
 
