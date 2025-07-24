@@ -1,10 +1,12 @@
 import jax.numpy as jnp
 
+from functools import reduce
+from itertools import product
+
 from netket.utils import struct
 
 from netket.utils.types import Array
-from netket.utils.group import Element
-from netket.utils.group import FiniteGroup
+from netket.utils.group import Element, FiniteGroup, Identity
 from netket.hilbert import AbstractHilbert
 from netket.operator import DiscreteJaxOperator
 
@@ -37,6 +39,8 @@ class Representation:
             assert hilbert_space == operator.hilbert
             assert element in group.elems
 
+        assert len(group.elems) == len(representation_dict)
+
         return (
             (),
             dict(
@@ -52,24 +56,29 @@ class Representation:
     @property representation_dict
     """
 
-    def get_representation_element(self, g: Element) -> DiscreteJaxOperator:
-        """Return the operator corresponding to the group element g."""
-        return self.representation_dict[g]
+    def __getitem__(self, key):
+        if isinstance(key, Element):
+            return self.representation_dict[key]
+        elif isinstance(key, int):
+            return self.representation_dict[self.group[key]]
 
-    def get_character_table(self) -> Array:
+    def __iter__(self):
+        return iter(self.representation_dict.items())
+
+    def get_character_table_readable(self) -> Array:
         """Return the character table of the group of this representation."""
         return self.group.character_table_readable()
 
     def get_projector(self, character_index) -> DiscreteJaxOperator:
-        """Build the projector operator corresponding to a given irreducible representation."""
-        character_table = self.get_character_table()
-        return sum(
-            [
-                jnp.conj(character_table[character_index, element_index])
-                * self.representation_mapping[g]
-                for element_index, g in enumerate(self.group)
-            ]
-        )
+        """Build the projection operator corresponding to a given irreducible representation."""
+        character_table = self.group.character_table()
+        prefactor = character_table[character_index, 0] / len(self.group.elems)
+        operator_list = [
+            jnp.conj(character_table[character_index, element_index]) * self[g]
+            for element_index, g in enumerate(self.group)
+        ]
+        projector = prefactor * reduce(lambda x, y: x + y, operator_list)
+        return projector
 
     def construct_commuting_product(self, other, check_commute: bool = False):
         """
@@ -95,9 +104,32 @@ class Representation:
             for operator_2 in other.representation_dict.values():
                 assert operator_1 @ operator_2 - operator_2 @ operator_1 == 0
 
+    # We might want a fast mode where only the fast checks are made,
+    # and an exhaustive mode where all checks are made.
     def check_representation(self):
         """
         Check whether the representation is valid by checking that the
-        multiplication table of the operators matches that of the group.
+        representation properties are satisfied.
         """
-        pass
+
+        is_representation = True
+
+        # Identity property
+        for g in self.group:
+            if isinstance(g, Identity):
+                if (
+                    not jnp.linalg.norm(
+                        self[g].to_dense - jnp.eye(self.hilbert_space.n_states)
+                    )
+                    < 1e-14
+                ):
+                    is_representation = False
+
+        # Compatibility property
+        for g_1, g_2 in product(self.group, self.group):
+            product_inside = self[g_1 @ g_2]
+            product_outside = self[g_1] @ self[g_2]
+            if not product_inside == product_outside:
+                is_representation = False
+
+        return is_representation
