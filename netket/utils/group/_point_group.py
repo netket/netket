@@ -95,7 +95,7 @@ class PGSymmetry(Element):
     @property
     def is_proper(self) -> bool:
         """Returns True if `self` is a proper rotation (det(`self.matrix`) is +1)."""
-        return np.isclose(np.linalg.det(self.matrix), 1.0)
+        return bool(np.isclose(np.linalg.det(self.matrix), 1.0))
 
     @property
     def is_symmorphic(self) -> bool:
@@ -469,7 +469,13 @@ class PointGroup(FiniteGroup):
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)
 
-    def remove_duplicates(self, *, return_inverse=False) -> "PointGroup":
+    @overload
+    def remove_duplicates(self, *, return_inverse: Literal[False] = False) -> "PointGroup": ...
+    
+    @overload
+    def remove_duplicates(self, *, return_inverse: Literal[True]) -> tuple["PointGroup", Any]: ...
+    
+    def remove_duplicates(self, *, return_inverse=False):
         """
         Returns a new :code:`PointGroup` with duplicate elements (that is, elements
         which represent identical transformations) removed.

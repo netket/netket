@@ -16,6 +16,7 @@
 # pylint: disable=function-redefined
 
 import itertools
+from typing import overload, Literal, Any
 
 import numpy as np
 
@@ -73,7 +74,13 @@ class FiniteGroup(FiniteSemiGroup):
             for index, element in enumerate(self.elems)
         }
 
-    def remove_duplicates(self, *, return_inverse=False) -> "FiniteGroup":
+    @overload
+    def remove_duplicates(self, *, return_inverse: Literal[False] = False) -> "FiniteGroup": ...
+    
+    @overload
+    def remove_duplicates(self, *, return_inverse: Literal[True]) -> tuple["FiniteGroup", Any]: ...
+    
+    def remove_duplicates(self, *, return_inverse=False):
         r"""
         Returns a new :class:`FiniteGroup` with duplicate elements (that is,
         elements with identical canonical forms) removed.
