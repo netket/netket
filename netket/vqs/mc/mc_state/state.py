@@ -40,7 +40,6 @@ from netket.utils import (
     _serialization as serialization_utils,
 )
 from netket.utils.types import PyTree, SeedT, NNInitFunc
-from netket.utils.deprecation import warn_deprecation
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
@@ -222,7 +221,7 @@ class MCState(VariationalState):
         # parallelism we might have to only device_put on numpy variables but
         # not on jax ones.
         # History: We considered in July 2025 to deprecate numpy array, then
-        # decided not to. 
+        # decided not to.
         # if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
         if variables is not None and config.netket_experimental_sharding:
             variables = jax.tree.map(
