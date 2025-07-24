@@ -105,7 +105,7 @@ def srt_onthefly(
             samples, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
         )
         all_samples = jax.lax.with_sharding_constraint(
-            samples, NamedSharding(jax.sharding.get_abstract_mesh(), P(None, None))
+            samples, NamedSharding(jax.sharding.get_abstract_mesh(), P())
         )
 
     _jacobian_contraction = nt.empirical_ntk_by_jacobian(

@@ -43,7 +43,7 @@ def _compute_srt_update(
             NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None)),
         )
         dv = jax.lax.with_sharding_constraint(
-            dv, NamedSharding(jax.sharding.get_abstract_mesh(), P(None))
+            dv, NamedSharding(jax.sharding.get_abstract_mesh(), P())
         )
 
     # This does the contraction (ns, #np) x (#np, ns) -> (ns, ns).
