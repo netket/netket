@@ -14,6 +14,7 @@
 
 import os
 from textwrap import dedent
+from typing import Any
 
 
 def bool_env(varname: str, default: bool) -> bool:
@@ -61,13 +62,13 @@ class Config:
     _HAS_DYNAMIC_ATTRIBUTES = True
 
     def __init__(self):
-        self._values = {}
-        self._types = {}
-        self._editable_at_runtime = {}
-        self._meta = {}
+        object.__setattr__(self, "_values", {})
+        object.__setattr__(self, "_types", {})
+        object.__setattr__(self, "_editable_at_runtime", {})
+        object.__setattr__(self, "_meta", {})
 
-        self._readonly = ReadOnlyDict(self._values)
-        self._callbacks = {}
+        object.__setattr__(self, "_readonly", ReadOnlyDict(self._values))
+        object.__setattr__(self, "_callbacks", {})
 
     def define(
         self,
@@ -110,18 +111,6 @@ class Config:
 
         if callback is not None and not lazy:
             callback(self._values[name])
-
-        @property
-        def _read_config(self):
-            return self.FLAGS[name]
-
-        @_read_config.setter
-        def _read_config(self, value):
-            if self._callbacks[name] is not None:
-                self._callbacks[name](value)
-            self.update(name, value)
-
-        setattr(Config, name.lower(), _read_config)
 
     @property
     def FLAGS(self):
@@ -169,6 +158,26 @@ class Config:
 
     def __dir__(self):
         return list(k.lower() for k in self._values.keys())
+
+    def __getattr__(self, name: str) -> Any:
+        """Handle dynamically created attributes."""
+        if name == name.lower():
+            upper_name = name.upper()
+            if upper_name in self._values:
+                return self.FLAGS[upper_name]
+        raise AttributeError(f"'Config' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Handle setting dynamically created attributes."""
+        if name == name.lower() and name.upper() in self._values:
+            # Handle config flag setting
+            upper_name = name.upper()
+            if self._callbacks[upper_name] is not None:
+                self._callbacks[upper_name](value)
+            self.update(upper_name, value)
+            return
+        # Use default behavior for everything else
+        super().__setattr__(name, value)
 
 
 config = Config()

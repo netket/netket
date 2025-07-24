@@ -18,6 +18,7 @@
 import itertools
 
 import numpy as np
+from typing import overload, Literal, Any
 
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
@@ -202,7 +203,13 @@ class PermutationGroup(FiniteGroup):
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)
 
-    def remove_duplicates(self, *, return_inverse=False) -> "PermutationGroup":
+    @overload
+    def remove_duplicates(self, *, return_inverse: Literal[False] = False) -> "PermutationGroup": ...
+    
+    @overload
+    def remove_duplicates(self, *, return_inverse: Literal[True]) -> tuple["PermutationGroup", Any]: ...
+    
+    def remove_duplicates(self, *, return_inverse=False):
         r"""
         Returns a new :code:`PermutationGroup` with duplicate elements (that is,
         elements which represent identical permutations) removed.
