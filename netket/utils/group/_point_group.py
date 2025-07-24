@@ -18,6 +18,7 @@
 import itertools
 from functools import partial
 from math import pi
+from typing import overload, Literal, Any
 
 import numpy as np
 from scipy.linalg import schur
