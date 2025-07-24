@@ -136,7 +136,7 @@ def srt_onthefly(
 
     # If we are sharding, use shard_map manually
     if config.netket_experimental_sharding:
-        mesh = jax.make_mesh((jax.device_count(),), ("S",), devices=jax.devices())
+        mesh = jax.sharding.get_abstract_mesh()
         # SAMPLES, ALL_SAMPLES PARAMETERS_REAL
         in_specs = (P("S", None), P(), P())
         out_specs = P("S", None)
