@@ -47,3 +47,23 @@ def test_operator_sum(operator_1, operator_2, coefficient):
     )
 
     assert jnp.linalg.norm(sum_dense_1 - sum_dense_2) < 1e-14
+
+
+def test_type_promotion():
+    # Ensure that we treat dtypes correctly in basic mul
+    hilbert_space = nk.hilbert.Qubit(3)
+    op = nk.symmetry.PermutationOperator(
+        hilbert_space,
+        nk.utils.group.Permutation(permutation_array=jnp.array([1, 2, 0])),
+    )
+    assert op.dtype == jnp.float32
+
+    op2 = op * 2.0
+    assert op2.dtype == jnp.float32
+    op2 = op * jnp.float64(2.0)
+    assert op2.dtype == jnp.float64
+
+    op2 = 2.0 * op
+    assert op2.dtype == jnp.float32
+    op2 = jnp.float64(2.0) * op
+    assert op2.dtype == jnp.float64
