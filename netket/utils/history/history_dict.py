@@ -56,8 +56,8 @@ class HistoryDict:
 
     .. warning::
 
-        This class should not be constructed directly. Instead, use 
-        :func:`~netket.utils.history.accum_histories_in_tree` to build complex nested 
+        This class should not be constructed directly. Instead, use
+        :func:`~netket.utils.history.accum_histories_in_tree` to build complex nested
         history structures, or create instances through :class:`~netket.logging.RuntimeLog`
         for logging purposes.
 

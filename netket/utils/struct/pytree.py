@@ -147,7 +147,9 @@ class Pytree(metaclass=PytreeMeta):
 
     _pytree__cachedprop_fields: tuple[str, ...]
 
-    def __init_subclass__(cls, mutable: bool | None = None, dynamic_nodes: bool = False):
+    def __init_subclass__(
+        cls, mutable: bool | None = None, dynamic_nodes: bool = False
+    ):
         super().__init_subclass__()
 
         # gather class info
@@ -676,7 +678,9 @@ def _inherited_defaults_setters(cls: type) -> dict[str, Callable[[], Any]]:
     return default_setters
 
 
-def compute_serialize_rename_fields(all_fields: dict[str, dataclasses.Field]) -> tuple[tuple[str, str], ...]:
+def compute_serialize_rename_fields(
+    all_fields: dict[str, dataclasses.Field],
+) -> tuple[tuple[str, str], ...]:
     rename = []
     for name, field in all_fields.items():
         new_name = field.metadata.get("serialize_name", None)
