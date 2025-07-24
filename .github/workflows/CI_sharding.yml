@@ -51,7 +51,7 @@ jobs:
 
       - name: run tests
         run: |
-          uv run ./test_sharding/"${{ matrix.runscript }}" -m '"not slow"' 
+          uv run ./test_sharding/"${{ matrix.runscript }}" -m 'not slow' 
 
       - name: Upload coverage reports to Codecov
         if: always()
