@@ -21,7 +21,6 @@ import numpy as np
 
 if TYPE_CHECKING:
     import matplotlib
-    import matplotlib.pyplot as plt
     import matplotlib.figure
     import matplotlib.axes
 
@@ -70,8 +69,8 @@ class History:
 
     If only one time-series is provided, without a key, then its name will
     be `value`.
-    
-    For managing multiple History objects with independent time axes or 
+
+    For managing multiple History objects with independent time axes or
     complex nested structures, see :class:`~netket.utils.history.HistoryDict`
     and :func:`~netket.utils.history.accum_histories_in_tree`.
     """

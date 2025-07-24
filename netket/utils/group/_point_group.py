@@ -471,11 +471,15 @@ class PointGroup(FiniteGroup):
         return np.asarray(self.to_array(), dtype=dtype)
 
     @overload
-    def remove_duplicates(self, *, return_inverse: Literal[False] = False) -> "PointGroup": ...
-    
+    def remove_duplicates(
+        self, *, return_inverse: Literal[False] = False
+    ) -> "PointGroup": ...
+
     @overload
-    def remove_duplicates(self, *, return_inverse: Literal[True]) -> tuple["PointGroup", Any]: ...
-    
+    def remove_duplicates(
+        self, *, return_inverse: Literal[True]
+    ) -> tuple["PointGroup", Any]: ...
+
     def remove_duplicates(self, *, return_inverse=False):
         """
         Returns a new :code:`PointGroup` with duplicate elements (that is, elements

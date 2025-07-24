@@ -75,11 +75,15 @@ class FiniteGroup(FiniteSemiGroup):
         }
 
     @overload
-    def remove_duplicates(self, *, return_inverse: Literal[False] = False) -> "FiniteGroup": ...
-    
+    def remove_duplicates(
+        self, *, return_inverse: Literal[False] = False
+    ) -> "FiniteGroup": ...
+
     @overload
-    def remove_duplicates(self, *, return_inverse: Literal[True]) -> tuple["FiniteGroup", Any]: ...
-    
+    def remove_duplicates(
+        self, *, return_inverse: Literal[True]
+    ) -> tuple["FiniteGroup", Any]: ...
+
     def remove_duplicates(self, *, return_inverse=False):
         r"""
         Returns a new :class:`FiniteGroup` with duplicate elements (that is,

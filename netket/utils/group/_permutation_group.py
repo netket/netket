@@ -204,11 +204,15 @@ class PermutationGroup(FiniteGroup):
         return np.asarray(self.to_array(), dtype=dtype)
 
     @overload
-    def remove_duplicates(self, *, return_inverse: Literal[False] = False) -> "PermutationGroup": ...
-    
+    def remove_duplicates(
+        self, *, return_inverse: Literal[False] = False
+    ) -> "PermutationGroup": ...
+
     @overload
-    def remove_duplicates(self, *, return_inverse: Literal[True]) -> tuple["PermutationGroup", Any]: ...
-    
+    def remove_duplicates(
+        self, *, return_inverse: Literal[True]
+    ) -> tuple["PermutationGroup", Any]: ...
+
     def remove_duplicates(self, *, return_inverse=False):
         r"""
         Returns a new :code:`PermutationGroup` with duplicate elements (that is,
