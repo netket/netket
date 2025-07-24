@@ -411,6 +411,7 @@ def sharding_decorator(
                 mesh=mesh,
                 in_specs=in_specs,
                 out_specs=out_specs,
+                axis_names={"S"},
                 **kwargs,
             )
             def _f(*args):
