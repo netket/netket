@@ -562,3 +562,16 @@ def test_error_wrong_variables():
         vs.variables = {"params": {"a": 1}}
     with pytest.raises(nk.errors.ParameterMismatchError):
         vs.parameters = {"a": 1}
+
+def test_mcstate_inits():
+    g = nk.graph.Chain(2)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ma = nk.models.RBM(alpha=1, param_dtype=float)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=4)
+    vs = nk.vqs.MCState(sa, ma, n_samples=128)
+    # This shoul lead us to a SingleDeviceArray sharding
+    variables = jax.tree.map(np.array, vs.variables)
+    variables = jax.tree.map(jax.numpy.asarray, variables)
+
+    # does not crash
+    _ = nk.vqs.MCState(sa, ma, variables=variables)
