@@ -20,12 +20,16 @@ This version will be the last one supporting Jax 0.5, and therefore will be the 
 In practice, this will be the last version to run on computers/clusters with outdated OS/GLIBC. 
 The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly more powerful.
 
+In PR [#2070](https://github.com/netket/netket/pull/2070) and [#2072](https://github.com/netket/netket/pull/2072) the explicit use of `shard_map` was removed from some places throught the codebase, which leads to a simpler and more flexible code when using operators inside of complex codebases.
+This rests upon the shoulders of improvements within jax, which are only available starting so make sure to use the most recent jax version possible.
+
 ### Breaking Changes
-* MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
+* mpi4jax is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing. For MPI on cpu enable the native jax mpi collectives by setting `JAX_CPU_COLLECTIVES_IMPLEMENTATION=mpi`.
 * {func}`netket.operator.GraphOperator` is now a function and not a class anymore.
 * {meth}`netket.operator.DiscreteJaxOperator.to_sparse` now returns a scipy sparse matrix by default [#2092](https://github.com/netket/netket/pull/2092).
 * The default implementation of all NetKet operator constructed has been swapped from the previous Numba implementation to the Jax one. The class names `LocalOperator`, `PauliStrings` and `FermionOperator2nd` are now aliases for `LocalOperatorJax`, `PaulistringsJax` and  `FermionOperator2ndJax`. To use the previous operators, you should use `FermionOperator2ndNumba`, `LocalOperatorNumba` and so on.
 * {class}`netket.operator.ContinuousOperator`s and subclasses have had their interface considerably changed, and they are now Pytrees. If you have custom Continuous Operators and your code is somewhere accessible with a few stars on GitHub, I've notified you. If you haven't, you are a bit evil but worry not. Just look at NetKet's implementation of classes like {class}`netket.operator.KineticOperator` to understand what to change [#2097](https://github.com/netket/netket/pull/2097).
+* Python 3.11 is now required and will be the minimum version required until summer 2026.
 
 ### New features
 * A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
@@ -41,6 +45,7 @@ The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly m
 ### Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
 * Finalized deprecations from August 2024 and earlier [#2108](https://github.com/netket/netket/pull/2108).
+* Constructing an MCState with numpy arrays as variables is deprecated. Please specify jax arrays.
 
 ### Bug Fixes
 * Do not error when the `chunk_size` of a sampler is larger than the number of chains.

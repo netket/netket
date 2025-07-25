@@ -251,7 +251,7 @@ config.define(
 
 
 def _setup_experimental_sharding_cpu(n_procs):
-    if n_procs >= 1:
+    if n_procs > 1:
         import jax
 
         jax.config.update("jax_num_cpu_devices", n_procs)
@@ -312,13 +312,49 @@ config.define(
 )
 
 
-def _setup_experimental_sharding(val):
-    # TODO: Remove once we require jax 0.5
+def _setup_experimental_sharding(val, explicit=False):
     if val:
-        from jax import config as jax_config
+        import jax
+        from jax.sharding import AxisType
 
-        # TODO: Remove once we require jax 0.5
-        jax_config.update("jax_threefry_partitionable", True)
+        kwargs = {}
+        if explicit:
+            kwargs["axis_types"] = (AxisType.Explicit,)
+        mesh = jax.make_mesh(
+            (len(jax.devices()),),
+            ("S"),
+            **kwargs,
+        )
+        jax.sharding.set_mesh(mesh)
+
+        # mode_type = "Explicit" if explicit else "Auto"
+        # warnings.warn(
+        #     f"""
+        #     NETKET_EXPERIMENTAL_SHARDING mode detected:
+        #         - SHARDING IS NOW ALWAYS ENABLED, BUT TO USE MORE THAN 1 DEVICE YOU MUST
+        #         DEFINE THE MESH AND SPECIFY IT IN YOUR CODE.
+
+        #         - For backward compatibility, specifying `NETKET_EXPERIMENTAL_SHARDING` will
+        #         create create and set a single-axis mesh with all devices for you.
+
+        #         - You should UPDATE YOUR CODE to include the following lines, and stop declaring
+        #         `NETKET_EXPERIMENTAL_SHARDING` in your code.
+
+        #         import jax
+        #         import netket as nk
+
+        #         # Create a mesh with all the devices
+        #         mesh = jax.make_mesh(
+        #             (len(jax.devices()),),  # How many devices
+        #             ("S"),                  # The name of the axis. 'S' is standard for 'samples'.
+        #             axis_types=(
+        #                 AxisType.{mode_type},  # Explicit/Auto sharding mode
+        #             ),
+        #         )
+        #         jax.sharding.set_mesh(mesh) # Set this as the default mesh for jax.
+
+        #     """
+        # )
 
 
 config.define(

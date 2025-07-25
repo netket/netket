@@ -15,6 +15,7 @@
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket.utils import random_seed, config
 from netket.utils.types import PRNGKeyT, SeedT
@@ -56,7 +57,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0) -> PRNGKeyT:
 
     if config.netket_experimental_sharding:
         key = jax.lax.with_sharding_constraint(
-            key, jax.sharding.PositionalSharding(jax.devices()).replicate()
+            key, NamedSharding(jax.sharding.get_abstract_mesh(), P())
         )
     else:  # type: ignore[attr-defined]
         key = _bcast_key(key, root=root)
