@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
-from jax.util import safe_map
 from jax.tree_util import register_pytree_node_class
 
 from netket.errors import JaxOperatorNotConvertibleToNumba
@@ -105,7 +104,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     # compute the number of connected elements
     #
     # extract the number of (nonzero) off-diagonal elements of the rows
-    n_conn_offdiag_ = safe_map(_index_at, n_conns_, i_row_)
+    n_conn_offdiag_ = tuple(map(_index_at, n_conns_, i_row_))
     # sum for each group of operators acting on a certain number of sites
     # and sum over all gropus to get the total
     n_conn_offdiag = sum([n.sum(axis=-1) for n in n_conn_offdiag_])
@@ -118,7 +117,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     if nonzero_diagonal:
         xp_diag = x
         # extract diagonal mels of the rows
-        mels_diag_ = safe_map(_index_at, diag_mels_, i_row_)
+        mels_diag_ = tuple(map(_index_at, diag_mels_, i_row_))
         # sum over operators
         mels_diag = constant + sum([m.sum(axis=-1) for m in mels_diag_])
     else:

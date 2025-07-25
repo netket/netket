@@ -22,6 +22,7 @@ from functools import partial
 from tqdm.auto import tqdm
 
 import jax
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import config
 from netket.logging import AbstractLog, JsonLog
@@ -200,7 +201,7 @@ class AbstractVariationalDriver(abc.ABC):
             if config.netket_experimental_sharding:
                 self._optimizer_state = jax.lax.with_sharding_constraint(
                     self._optimizer_state,
-                    jax.sharding.PositionalSharding(jax.devices()).replicate(),
+                    NamedSharding(jax.sharding.get_abstract_mesh(), P()),
                 )
 
     @property
@@ -434,7 +435,7 @@ def apply_gradient(optimizer_fun, optimizer_state, dp, params):
     new_params = optax.apply_updates(params, updates)
 
     if config.netket_experimental_sharding:
-        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         new_optimizer_state = jax.lax.with_sharding_constraint(
             new_optimizer_state, sharding
         )

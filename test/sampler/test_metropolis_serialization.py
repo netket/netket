@@ -91,8 +91,18 @@ def test_metropolis_serialization(key_type, sampler, tmp_path_distributed):
             sampler_state_2, state_dict_loaded
         )
 
-        if isinstance(sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding):
-            pass
+        if nk.config.netket_experimental_sharding:
+            if isinstance(
+                sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding
+            ):
+                pass
+            else:
+                assert sampler_state_2.σ.sharding.is_equivalent_to(
+                    sampler_state.σ.sharding, sampler_state.σ.ndim
+                )
+            assert bool(
+                jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :])
+            )
         else:
             assert sampler_state_2.σ.sharding.shape == (len(jax.devices()), 1)
         assert bool(jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :]))
