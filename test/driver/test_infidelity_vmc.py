@@ -4,7 +4,6 @@ import jax.numpy as jnp
 
 import pytest
 
-from .. import common
 
 seed = 123
 seed_target = 456

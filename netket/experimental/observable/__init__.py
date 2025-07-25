@@ -12,10 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.operator._abstract_observable import AbstractObservable
+from netket.operator._abstract_observable import (
+    AbstractObservable as AbstractObservable,
+)
+from netket.experimental.observable.renyi2 import (
+    Renyi2EntanglementEntropy as Renyi2EntanglementEntropy,
+)
+from netket.experimental.observable.variance import (
+    VarianceObservable as VarianceObservable,
+)
+from netket.experimental.observable.infidelity import (
+    InfidelityOperator as InfidelityOperator,
+)
 
-from .renyi2 import Renyi2EntanglementEntropy
 
-from .variance import VarianceObservable
+from netket.utils import _hide_submodules
 
-from .infidelity import InfidelityOperator
+_hide_submodules(__name__)

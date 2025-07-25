@@ -7,7 +7,9 @@ from netket.vqs import FullSumState, expect, expect_and_grad
 import netket.jax as nkjax
 from netket.stats import Stats
 
-from .infidelity_operator import InfidelityOperator
+from netket.experimental.observable.infidelity.infidelity_operator import (
+    InfidelityOperator,
+)
 
 
 @expect.dispatch

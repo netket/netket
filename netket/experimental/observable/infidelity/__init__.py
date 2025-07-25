@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .infidelity_operator import InfidelityOperator
+__all__ = ["InfidelityOperator"]
 
-from . import expect
-from . import exact
+from netket.experimental.observable.infidelity.infidelity_operator import (
+    InfidelityOperator,
+)
+
+from netket.experimental.observable.infidelity import expect
+from netket.experimental.observable.infidelity import exact

@@ -6,7 +6,9 @@ import jax.numpy as jnp
 from netket.vqs import MCState, expect
 from netket.stats import Stats
 
-from .infidelity_operator import InfidelityOperator
+from netket.experimental.observable.infidelity.infidelity_operator import (
+    InfidelityOperator,
+)
 
 
 @expect.dispatch
