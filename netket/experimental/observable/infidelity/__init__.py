@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2022 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,20 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.operator._abstract_observable import (
-    AbstractObservable as AbstractObservable,
-)
-from netket.experimental.observable.renyi2 import (
-    Renyi2EntanglementEntropy as Renyi2EntanglementEntropy,
-)
-from netket.experimental.observable.variance import (
-    VarianceObservable as VarianceObservable,
-)
-from netket.experimental.observable.infidelity import (
-    InfidelityOperator as InfidelityOperator,
+__all__ = ["InfidelityOperator"]
+
+from netket.experimental.observable.infidelity.infidelity_operator import (
+    InfidelityOperator,
 )
 
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from netket.experimental.observable.infidelity import expect
+from netket.experimental.observable.infidelity import exact
