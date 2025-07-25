@@ -24,7 +24,6 @@ from ._particle_number_conserving_fermionic import (
 
 
 from . import fermion
-from .infidelity import InfidelityOperator
 
 from netket.operator import FermionOperator2nd as _deprecated_FermionOperator2nd
 from netket.operator import FermionOperator2ndJax as _deprecated_FermionOperator2ndJax

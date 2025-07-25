@@ -38,7 +38,7 @@ def get_kernels(afun, afun_t, params, params_t, σ, σ_t, model_state, model_sta
     return log_val, log_val_t
 
 
-def get_local_estimator(vstate, target_state):
+def get_local_estimator(vstate, target_state, cv_coeff=-0.5):
     log_val, log_val_t = get_kernels(
         vstate._apply_fun,
         target_state._apply_fun,
@@ -52,7 +52,7 @@ def get_local_estimator(vstate, target_state):
 
     Hloc = jnp.exp(log_val) * jnp.mean(jnp.exp(log_val_t))
 
-    Hloc_cv = jnp.exp(log_val + log_val_t).real - 0.5 * (
+    Hloc_cv = jnp.exp(log_val + log_val_t).real + cv_coeff * (
         jnp.exp(2 * (log_val + log_val_t).real) - 1
     )
 

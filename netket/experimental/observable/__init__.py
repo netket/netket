@@ -17,3 +17,5 @@ from netket.operator._abstract_observable import AbstractObservable
 from .renyi2 import Renyi2EntanglementEntropy
 
 from .variance import VarianceObservable
+
+from .infidelity import InfidelityOperator

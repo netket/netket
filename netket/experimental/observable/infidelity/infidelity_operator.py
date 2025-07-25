@@ -15,17 +15,17 @@ from netket.jax import HashablePartial
 
 class InfidelityOperator(AbstractObservable):
     """
-    Infidelity operator computing the infidelity between an input variational state |ψ⟩ and a target state |Φ⟩.
+    Infidelity operator computing the infidelity between an input variational state |Ψ⟩ and a target state |Φ⟩.
 
     The target state can be defined in two ways:
         1. as a variational state that is passed as `target_state`.
-        2. as a state obtained by applying an operator `U` to a variational state |ϕ⟩, i.e., |Φ⟩ = U|ϕ⟩.
+        2. as a state obtained by applying an operator `U` to a variational state |Φ⟩, i.e., |Φ⟩ = U|Φ⟩.
 
-        The operator I_op computing the infidelity I among two variational states math`|ψ⟩` and |Φ⟩ as:
+        The operator I_op computing the infidelity I among two variational states math`|Ψ⟩` and |Φ⟩ as:
 
         .. math::
 
-        I = 1 - `math`|⟨ψ|Φ⟩|^2 / ⟨ψ|ψ⟩ ⟨Φ|Φ⟩ = 1 - ⟨ψ|I_op|ψ⟩ / ⟨ψ|ψ⟩
+        I = 1 - `math`|⟨Ψ|Φ⟩|^2 / ⟨Ψ|Ψ⟩ ⟨Φ|Φ⟩ = 1 - ⟨Ψ|I_op|Ψ⟩ / ⟨Ψ|Ψ⟩
 
         where:
 
@@ -37,11 +37,11 @@ class InfidelityOperator(AbstractObservable):
 
         ..math::
 
-        I = \mathbb{E}_{χ}[ I_loc(σ,η) ] = \mathbb{E}_{χ}[ ⟨σ|Φ⟩ ⟨η|ψ⟩ / ⟨σ|ψ⟩ ⟨η|Φ⟩ ]
+        I = \mathbb{E}_{χ}[ I_loc(σ,η) ] = \mathbb{E}_{χ}[ ⟨σ|Φ⟩ ⟨η|Ψ⟩ / ⟨σ|Ψ⟩ ⟨η|Φ⟩ ]
 
-        where χ(σ, η) = |Ψ(σ)|^2 |Φ(η)|^2 / ⟨ψ|ψ⟩ ⟨Φ|Φ⟩ is the joint born distribution. This estimator
-        can be utilized both when |Φ⟩ =|ϕ⟩ and when |Φ⟩ = U|ϕ⟩, with U a (unitary or
-        non-unitary) operator. We remark that sampling from U|ϕ⟩ requires to compute connected
+        where χ(σ, η) = |Ψ(σ)|^2 |Φ(η)|^2 / ⟨Ψ|Ψ⟩ ⟨Φ|Φ⟩ is the joint born distribution. This estimator
+        can be utilized both when |Φ⟩ =|Φ⟩ and when |Φ⟩ = U|Φ⟩, with U a (unitary or
+        non-unitary) operator. We remark that sampling from U|Φ⟩ requires to compute connected
         elements of U and so is more expensive than sampling from an autonomous state.
 
         For details see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>` and `Gravina et al. <https://quantum-journal.org/papers/q-2025-07-22-1803/>`.
@@ -52,9 +52,21 @@ class InfidelityOperator(AbstractObservable):
         target_state: VariationalState,
         *,
         operator: AbstractOperator = None,
-        cv_coeff: Optional[float] = None,
+        cv_coeff: Optional[float] = -0.5,
         dtype: Optional[DType] = None,
     ):
+        """
+        Args:
+            target_state: The target state |Φ⟩ against which to compute the infidelity.
+                This can be any VariationalState (MCState, FullSumState, etc.).
+            operator: Optional operator U to be applied to the target state, such that :math:`|Φ⟩ \equiv U|Φ⟩`.
+                If None, the target state is used directly. When provided, the infidelity is computed
+                with respect to the transformed state :math:`U|Φ⟩`.
+            cv_coeff: Optional control variate coefficient for variance reduction in Monte Carlo
+                estimation (see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>`).
+                If None, no control variate is used. Default to the optimal value -0.5.
+            dtype: Data type for computations.
+        """
         super().__init__(target_state.hilbert)
 
         if not isinstance(target_state, VariationalState):
@@ -115,14 +127,6 @@ class InfidelityOperator(AbstractObservable):
     @property
     def cv_coeff(self):
         return self._cv_coeff
-
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @property
-    def is_hermitian(self):
-        return True
 
     def __repr__(self):
         return f"InfidelityOperator(target_state={self.target_state}, cv_coeff={self.cv_coeff})"

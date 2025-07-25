@@ -196,15 +196,5 @@ This module contains various observables that can be computed starting from vari
 
    observable.Renyi2EntanglementEntropy
    observable.VarianceObservable
-```
-
-## Operators
-Infidelity operator computing infidelity between two quantum states (possibly with an operator in the middle, see https://quantum-journal.org/papers/q-2023-10-10-1131 and https://quantum-journal.org/papers/q-2025-07-22-1803/ for references)
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/experimental/operator
-   :template: class
-   :nosignatures:
-
-   operator.InfidelityOperator
+   observable.InfidelityOperator
 ```
