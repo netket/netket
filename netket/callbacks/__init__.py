@@ -16,6 +16,7 @@ from .early_stopping import EarlyStopping
 from .timeout import Timeout
 from .invalid_loss_stopping import InvalidLossStopping
 from .convergence_stopping import ConvergenceStopping
+from .best_loss import BestLoss
 
 from netket.utils import _hide_submodules
 
