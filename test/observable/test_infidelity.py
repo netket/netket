@@ -5,7 +5,6 @@ import jax.numpy as jnp
 
 import pytest
 
-from .. import common
 
 seed = 123
 seed_target = 456
@@ -83,7 +82,6 @@ def I_exact_fun(params, vs, vs_target, U=None):
     return I
 
 
-@common.xfailif_sharding  # broken in recent jax versions
 @pytest.mark.parametrize(
     "useExactSampler",
     [
@@ -117,7 +115,6 @@ def test_MCState(useExactSampler, useOperator):
     np.testing.assert_allclose(I_exact.real, I_mean.real, atol=I_err)
 
 
-@common.xfailif_sharding  # broken in recent jax versions
 @pytest.mark.parametrize(
     "useOperator",
     [
