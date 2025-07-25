@@ -3,15 +3,12 @@ import jax.numpy as jnp
 from functools import reduce
 from itertools import product
 
-from netket.utils import struct
 
-from netket.utils.types import Array
 from netket.utils.group import Element, FiniteGroup, Identity
 from netket.hilbert import AbstractHilbert
 from netket.operator import DiscreteJaxOperator
 
 
-@struct.dataclass
 class Representation:
     """
     A representation of a group
@@ -26,7 +23,8 @@ class Representation:
     hilbert_space: AbstractHilbert
     representation_dict: dict[Element, DiscreteJaxOperator]
 
-    def __pre_init__(
+    # Fix the __init__
+    def __init__(
         self,
         group: FiniteGroup,
         representation_dict: dict[Element, DiscreteJaxOperator],
@@ -61,13 +59,10 @@ class Representation:
             return self.representation_dict[key]
         elif isinstance(key, int):
             return self.representation_dict[self.group[key]]
+        raise TypeError("Index should be integer or group element")
 
     def __iter__(self):
         return iter(self.representation_dict.items())
-
-    def get_character_table_readable(self) -> Array:
-        """Return the character table of the group of this representation."""
-        return self.group.character_table_readable()
 
     def get_projector(self, character_index) -> DiscreteJaxOperator:
         """Build the projection operator corresponding to a given irreducible representation."""
