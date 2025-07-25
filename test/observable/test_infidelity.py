@@ -102,11 +102,11 @@ def test_MCState(useExactSampler, useOperator):
     vs, vs_target, vs_exact, vs_exact_target, H = _setup(useExactSampler)
 
     if useOperator:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target, operator=H)
+        I_op = nkx.observable.InfidelityOperator(target_state=vs_target, operator=H)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
 
     else:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target)
+        I_op = nkx.observable.InfidelityOperator(target_state=vs_target)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target)
 
     I_stats = vs.expect(I_op)
@@ -129,10 +129,10 @@ def test_FullSumState(useOperator):
     vs, vs_target, vs_exact, vs_exact_target, H = _setup()
 
     if useOperator:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target, operator=H)
+        I_op = nkx.observable.InfidelityOperator(target_state=vs_target, operator=H)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
     else:
-        I_op = nkx.operator.InfidelityOperator(target_state=vs_target)
+        I_op = nkx.observable.InfidelityOperator(target_state=vs_target)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target)
 
     I_stats = vs_exact.expect(I_op)
