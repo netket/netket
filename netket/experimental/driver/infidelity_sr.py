@@ -36,122 +36,32 @@ def _flatten_samples(x):
 
 class Infidelity_SR(AbstractVariationalDriver):
     r"""
-    Infidelity minimization with respect to a target state :math:`|Φ⟩` (with possibly an operator :math:`U` such that :math:`|Φ⟩ \equiv U|Φ⟩`)
+    Infidelity minimization with respect to a target state :math:`|\Phi\rangle` (with possibly an operator :math:`U` such that :math:`|\Phi\rangle \equiv U|\Phi\rangle`)
     using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.
     The optimization is analogous to the one of :class:`netket.experimental.driver.VMC_SR` for ground state.
-    The infidelity I among the variational state |Ψ⟩ and the target state |Φ⟩ corresponds to:
+    The infidelity :math:`I` among the variational state :math:`|\Psi\rangle` and the target state :math:`|\Phi\rangle` corresponds to:
 
     .. math::
 
-    I = 1 - `math`|⟨Ψ|Φ⟩|^2 / ⟨Ψ|Ψ⟩ ⟨Φ|Φ⟩ = 1 - ⟨Ψ|I_op|Ψ⟩ / ⟨Ψ|Ψ⟩
+        I = 1 - \frac{|\langle\Psi|\Phi\rangle|^2 }{ \langle\Psi|\Psi\rangle \langle\Phi|\Phi\rangle } = 1 - \frac{\langle\Psi|\hat{I}_{op}|\Psi\rangle }{ \langle\Psi|\Psi\rangle },
 
     where:
 
     .. math::
 
-    I_op = |Φ⟩⟨Φ| / ⟨Φ|Φ⟩ is the projector onto the target state :math:`|Φ⟩` which corresponds to an effective Hamiltonian.
-    In this case, the effective local energy is `:math:`H^{loc}(x) = \frac{Φ(x)}{Ψ(x)} \mathbb{E}_{y \sim |Φ(y)|^2}[\frac{Ψ(y)}{Φ(y)}]`.
+        \hat{I}_{op} = \frac{|\Phi\rangle\langle\Phi|}{\langle\Phi|\Phi\rangle}
 
-    Matrix Inversion
-    ----------------
+    is the projector onto the target state :math:`|\Phi\rangle` which corresponds to an effective Hamiltonian.
+    In this case, the effective local energy is :math:`H^{loc}(x) = \frac{\Phi(x)}{\Psi(x)} \mathbb{E}_{y \sim |\Phi(y)|^2}\left[\frac{\Psi(y)}{\Phi(y)}\right]`.
 
-    The matrix inversion of both methods is performed using a linear solver, which can be specified by the user.
-    This must be a function, the :code:`linear_solver_fun` argument, which has the following signature:
-
-    .. code-block:: python
-
-        linear_solver_fn(A: Matrix, b: vector) -> tuple[jax.Array[vector], dict]
-
-    Where the vector is the solution and the dictionary may contain additional information about the solver or be None.
-    The standard solver is based on the Cholesky decomposition :func:`~netket.optimizer.solver.cholesky`, but any other
-    solver from `JAX <https://jax.readthedocs.io/en/latest/jax.experimental.linalg.html>`_, `netket solvers <dense-solvers>`_ or a
-    custom-written one can be used.
-
-
-    Natural Gradient Descent
-    ------------------------
-
-    Stochastic Reconfiguration is equivalent to the Natural Gradient Descent method introduced by
-    `Amari 1998 <https://ieeexplore.ieee.org/abstract/document/6790500/>`_ in the context of neural network training,
-    assuming that the *natural metric* of the space of wave-functions is the Fubini-Study metric. This was first
-    studied by `Stokes et Al 2019 <https://arxiv.org/abs/1909.02108>`_ and called
-    *quantum Natural Gradient Descent*.
-
-    While stochastic reconfiguration has been heavily studied in the context of VMC, there is a vast literature
-    in the Machine Learning community on the use of NGD, and tuning carefully the diag shift and the learning rate.
-
-    A very good introduction to the mathematics of Information Geometry and NGD is found in
-    `Bai et Al <https://arxiv.org/pdf/2202.06232>`_ and further studied in `Shrestha et Al 2022 <https://arxiv.org/pdf/2303.05473>`_.
-    From the Physicist point of view, a good discussion on the choice of the metric function (QGT vs Fisher Matrix)
-    is found in `Stokes et Al 2022 <https://arxiv.org/pdf/2203.14824>`_ (section 4 in particoular).
-    For a comprehensive review of the method, we suggest the review by
-    `Martens 2014 <https://arxiv.org/abs/1412.1193>`_.
-
-
-    Momentum / SPRING
-    -----------------
-    When `momentum` is used, this driver implements the SPRING optimizer in
-    `Goldshlager et Al. (2024) <https://arxiv.org/abs/2401.10190>`_
-    to accumulate previous updates for better approximation of the exact SR with
-    no significant performance penalty.
-
-    `momentum` μ is a number between [0,1] that specifies the damping factor of
-    the previous updates and works somewhat similarly to the beta parameter of ADAM.
-    The difference is that rather than simply adding the damped previous update to the
-    new update, SPRING uses the damped previous update to fill in the components of the
-    SR direction that are not sampled by the current batch of walkers, resulting in a
-    more accurate and less noisy estimate. Since SPRING only uses the previous update to
-    fill in directions that are orthogonal to the current one, the maximum amplification of
-    the step size in SPRING is :math:`A(\mu) = 1/\sqrt{1-μ^2}` rather than :math:`1/(1-μ)`.
-
-    Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
-    :math:`A(0.99)=7.1`.
-    ** Values that empirically work are around 0.8. **
-
-    Some progress has been made on theoretically analyzing this parameter, in particular
-    `Section 3 of Epperly et Al. <https://arxiv.org/pdf/2411.19877>`_ demonstrates (albeit
-    in a significantly  simplified linear least-squares setting) that SPRING can be interpreted
-    as iteratively estimating a regularized SR direction, with the amount of regularization
-    proportional to  the value of 1-momentum. Additional insights regarding the behavior of
-    some SPRING-like algorithms, albeit still in the linear least-squares setting, are presented in
-    `Goldshlager et Al. (2025) <https://arxiv.org/pdf/2502.00882>`_ .
-
-
-    Implementation details
-    ------------------------
-    The kernel-trick/NTK based implementation can run with both a direct calculation of the jacobian
-    (`on_the_fly=False`) or with a lazy evaluation of the NTK (`on_the_fly=True`). The latter is more
-    computationally efficient for networks that reuse the parameters many times for every forward pass
-    (convolutions, attention layers, but not dense layers...) and generally uses less memory.
-
-    However, the on the fly implementation relies on some JAX compiler behaviour, so it might at times
-    have worse performance. We suggest you check on your specific model. For a more detailed explanation
-    of the on-the-fly implementation of the NTK, we refer to `Novak et Al 2022 <https://arxiv.org/pdf/2206.08720>`_.
-    The algorithm netket uses is the layer-wise jacobian contraction method (sec 3.2) of the manuscript.
-
-    The default choice is to use the ``on_the_fly=True`` mode.
-
-    References
-    ----------
-    - Stochastic Reconfiguration was originally introduced in the QMC field by `Sorella <https://arxiv.org/abs/cond-mat/9803107>`_.
-      The method was later shown to be equivalent to the Natural Gradient Descent method introduced by
-      `Amari <https://ieeexplore.ieee.org/abstract/document/6790500/>`_ for the Fubini-Study metric.
-
-    - The *kernel trick* which makes NGD/SR feasible in the large-parameter count limit was originally introduced
-      to the field of NQS by `Chen & Heyl <https://arxiv.org/abs/2302.01941>`_ under the name of `minSR`.
-      `Rende & Al <https://arxiv.org/abs/2310.05715>`_ proposed a simpler derivation in terms of the Kernel trick.
-
-      It's interesting to note that those tricks were first mentioned by `Ren & Goldfarb <https://arxiv.org/abs/1906.02353>`_
-      in the ML community.
-
-    - When using Momentum you should cite `G.Goldshlager et Al. (2024) <https://arxiv.org/abs/2401.10190>`_.
+    For details see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>`_ and `Gravina et al. <https://quantum-journal.org/papers/q-2025-07-22-1803/>`_.
     """
 
     target_state: VariationalState
-    "The target variational state |Φ⟩."
+    "The target variational state :math:`|\Phi\rangle`."
 
     operator: AbstractOperator = None
-    "Operator U."
+    "Operator :math:`U`."
 
     cv_coeff: float = -0.5
     r"""
@@ -225,11 +135,11 @@ class Infidelity_SR(AbstractVariationalDriver):
             will not *make mathematical sense* in the context of the SR/NGD optimization.
 
         Args:
-            target_state: The target state that must be matched.
+            target_state: The target state :math:`|\Phi\rangle` that must be matched.
             optimizer: The optimizer to use for the parameter updates. To perform proper
                 SR/NGD optimization this should be an instance of `optax.sgd`, but can be
                 any other optimizer if you are brave.
-            operator: The operator U.
+            operator: The operator :math:`U`.
             variational_state: The variational state to optimize.
             diag_shift: The diagonal regularization parameter :math:`\lambda` for the QGT/NTK.
             proj_reg: The regularization parameter for the projection of the updates.

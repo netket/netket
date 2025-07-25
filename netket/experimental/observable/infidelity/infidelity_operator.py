@@ -14,37 +14,37 @@ from netket.jax import HashablePartial
 
 
 class InfidelityOperator(AbstractObservable):
-    """
-    Infidelity operator computing the infidelity between an input variational state |Ψ⟩ and a target state |Φ⟩.
+    r"""
+    Infidelity operator computing the infidelity between an input variational state :math:`|\Psi\rangle` and a target state :math:`|\Phi\rangle`.
 
     The target state can be defined in two ways:
-        1. as a variational state that is passed as `target_state`.
-        2. as a state obtained by applying an operator `U` to a variational state |Φ⟩, i.e., |Φ⟩ = U|Φ⟩.
 
-        The operator I_op computing the infidelity I among two variational states math`|Ψ⟩` and |Φ⟩ as:
+    1. as a variational state that is passed as `target_state`.
+    2. as a state obtained by applying an operator :math:`U` to a variational state :math:`|\Phi\rangle`, i.e., :math:`|\Phi\rangle \equiv U|\Phi\rangle`.
 
-        .. math::
+    The infidelity :math:`I` among two variational states :math:`|\Psi\rangle` and :math:`|\Phi\rangle` is defined as:
 
-        I = 1 - `math`|⟨Ψ|Φ⟩|^2 / ⟨Ψ|Ψ⟩ ⟨Φ|Φ⟩ = 1 - ⟨Ψ|I_op|Ψ⟩ / ⟨Ψ|Ψ⟩
+    .. math::
 
-        where:
+        I = 1 - \frac{|\langle\Psi|\Phi\rangle|^2}{\langle\Psi|\Psi\rangle \langle\Phi|\Phi\rangle} = 1 - \frac{\langle\Psi|\hat{I}_{op}|\Psi\rangle}{\langle\Psi|\Psi\rangle},
 
-        .. math::
+    where:
 
-        I_op = |Φ⟩⟨Φ| / ⟨Φ|Φ⟩
+    .. math::
 
-        The Monte Carlo estimator of I is:
+        \hat{I}_{op} = \frac{|\Phi\rangle\langle\Phi|}{\langle\Phi|\Phi\rangle}.
 
-        ..math::
+    The Monte Carlo estimator of :math:`I` is:
 
-        I = \mathbb{E}_{χ}[ I_loc(σ,η) ] = \mathbb{E}_{χ}[ ⟨σ|Φ⟩ ⟨η|Ψ⟩ / ⟨σ|Ψ⟩ ⟨η|Φ⟩ ]
+    .. math::
 
-        where χ(σ, η) = |Ψ(σ)|^2 |Φ(η)|^2 / ⟨Ψ|Ψ⟩ ⟨Φ|Φ⟩ is the joint born distribution. This estimator
-        can be utilized both when |Φ⟩ =|Φ⟩ and when |Φ⟩ = U|Φ⟩, with U a (unitary or
-        non-unitary) operator. We remark that sampling from U|Φ⟩ requires to compute connected
-        elements of U and so is more expensive than sampling from an autonomous state.
+        I = \mathbb{E}_{\chi}[ I_{loc}(x,y) ] = \mathbb{E}_{\chi}\left[ \frac{\langle x|\Phi\rangle \langle y|\Psi\rangle}{\langle x|\Psi\rangle \langle y|\Phi\rangle} \right],
 
-        For details see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>` and `Gravina et al. <https://quantum-journal.org/papers/q-2025-07-22-1803/>`.
+    where :math:`\chi(x, y) = \frac{|\Psi(x)|^2 |\Phi(y)|^2}{\langle\Psi|\Psi\rangle \langle\Phi|\Phi\rangle}` is the joint Born distribution. This estimator
+    can be utilized both when :math:`|\Phi\rangle = |\Phi\rangle` and when :math:`|\Phi\rangle = U|\Phi\rangle`, with :math:`U` a (unitary or
+    non-unitary) operator. We remark that sampling from :math:`U|\Phi\rangle` is more expensive than sampling from an autonomous state.
+
+    For details see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>`_ and `Gravina et al. <https://quantum-journal.org/papers/q-2025-07-22-1803/>`_.
     """
 
     def __init__(
@@ -57,11 +57,11 @@ class InfidelityOperator(AbstractObservable):
     ):
         """
         Args:
-            target_state: The target state |Φ⟩ against which to compute the infidelity.
+            target_state: The target state :math:`|\Phi\rangle` against which to compute the infidelity.
                 This can be any VariationalState (MCState, FullSumState, etc.).
-            operator: Optional operator U to be applied to the target state, such that :math:`|Φ⟩ \equiv U|Φ⟩`.
+            operator: Optional operator :math:`U` to be applied to the target state, such that :math:`|\Phi\rangle \equiv U |\Phi\rangle`.
                 If None, the target state is used directly. When provided, the infidelity is computed
-                with respect to the transformed state :math:`U|Φ⟩`.
+                with respect to the transformed state :math:`U |\Phi\rangle`.
             cv_coeff: Optional control variate coefficient for variance reduction in Monte Carlo
                 estimation (see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>`).
                 If None, no control variate is used. Default to the optimal value -0.5.
