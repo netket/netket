@@ -13,14 +13,14 @@ from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
 from netket import stats as nkstats
-from netket.jax import HashablePartial
 
 from netket.driver.abstract_variational_driver import (
     AbstractVariationalDriver,
 )
 from netket._src.ngd.sr_srt_common import sr, srt
 from netket._src.ngd.srt_onthefly import srt_onthefly
-from netket.experimental.operator.infidelity.expect import get_local_estimator
+from netket._src.operator.hpsi_utils import make_logpsi_U_afun
+from netket.experimental.observable.infidelity.expect import get_local_estimator
 
 ApplyFun = Callable[[PyTree, Array], Array]
 KernelArgs = tuple[ApplyFun, PyTree, Array, tuple[Any, ...]]
@@ -36,32 +36,21 @@ def _flatten_samples(x):
 
 class Infidelity_SR(AbstractVariationalDriver):
     r"""
-    Infidelity minimization with respect to a target state :math:`|Φ⟩` (with possibly an operator :math:`U` such as :math:`|Φ⟩ \equiv U|Φ⟩`)
+    Infidelity minimization with respect to a target state :math:`|Φ⟩` (with possibly an operator :math:`U` such that :math:`|Φ⟩ \equiv U|Φ⟩`)
     using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.
-    This driver is mathematically equivalent to the standard :class:`netket.driver.VMC` with the
-    preconditioner :class:`netket.optimizer.SR(solver=netket.optimizer.solvers.cholesky) <netket.optimizer.SR>`,
-    but can easily switch between the standard and the kernel/minSR formulation of Natural Gradient Descent.
-    In this case, the effective Hamiltonian is the projector onto the target state :math:`|Φ⟩`, namely :math:`H = |Φ⟩⟨Φ| / ⟨Φ|Φ⟩`.
-    The variational state is indicated as :math:`|ψ⟩`.
-    - The standard formulation computes the updates as:
+    The optimization is analogous to the one of :class:`netket.experimental.driver.VMC_SR` for ground state.
+    The infidelity I among the variational state |Ψ⟩ and the target state |Φ⟩ corresponds to:
 
     .. math::
-        \delta \theta = \tau (X^TX + \lambda \mathbb{I}_{N_P})^{-1} X^T \bar{H}^{loc},
 
-    where :math:`X \in R^{N_s \times N_p}` is the Jacobian of the log-wavefunction of |ψ⟩, with :math:`N_p` the number of parameters
-    and :math:`N_s` the number of samples. The vector :math:`\bar{H}^{loc}` is the centered local estimator for the infidelity marginalized
-    over the distribution of the target state |Φ⟩, namely :math:`\bar{H}^{loc}(x) = H^{loc}(x) - \mathbb{E}_{x \sim |ψ(x)|^2}[H^{loc}(x)]`
-    where `:math:`\bar{H}^{loc}(x) = \frac{Φ(x)}{ψ(x)} \mathbb{E}_{y \sim |Φ(y)|^2}[\frac{ψ(y)}{Φ(y)}]`.
+    I = 1 - `math`|⟨Ψ|Φ⟩|^2 / ⟨Ψ|Ψ⟩ ⟨Φ|Φ⟩ = 1 - ⟨Ψ|I_op|Ψ⟩ / ⟨Ψ|Ψ⟩
 
-    - The kernel/minSR formulation computes the updates as:
+    where:
 
     .. math::
-        \delta \theta = \tau X^T(XX^T + \lambda \mathbb{I}_{2N_s})^{-1} \bar{H}^{loc},
 
-    The regularization parameter :math:`\lambda` is the `diag_shift` parameter of the driver, which can be
-    a scalar or a schedule.
-    The updates are then applied to the parameters using the `optimizer` which in general should be `optax.sgd`.
-
+    I_op = |Φ⟩⟨Φ| / ⟨Φ|Φ⟩ is the projector onto the target state :math:`|Φ⟩` which corresponds to an effective Hamiltonian.
+    In this case, the effective local energy is `:math:`H^{loc}(x) = \frac{Φ(x)}{Ψ(x)} \mathbb{E}_{y \sim |Φ(y)|^2}[\frac{Ψ(y)}{Φ(y)}]`.
 
     Matrix Inversion
     ----------------
@@ -163,6 +152,13 @@ class Infidelity_SR(AbstractVariationalDriver):
 
     operator: AbstractOperator = None
     "Operator U."
+
+    cv_coeff: float = -0.5
+    r"""
+    Optional control variate coefficient for variance reduction in Monte Carlo estimation
+    (see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>`).
+    If None, no control variate is used. Default to the optimal value -0.5.
+    """
 
     # Settings set by user
     diag_shift: ScalarOrSchedule = struct.field(serialize=False)
@@ -276,24 +272,24 @@ class Infidelity_SR(AbstractVariationalDriver):
                     logpsi_xp.astype(complex), axis=-1, b=mels
                 )
 
-            logpsi_fun = HashablePartial(_logpsi_fun, target_state._apply_fun)
+            logUpsi_fun, new_variables = make_logpsi_U_afun(
+                target_state._apply_fun, operator, target_state.variables
+            )
 
             if isinstance(target_state, MCState):
                 self.target_state = MCState(
                     sampler=target_state.sampler,
-                    apply_fun=logpsi_fun,
+                    apply_fun=logUpsi_fun,
                     n_samples=target_state.n_samples,
-                    variables=flax.core.copy(
-                        target_state.variables, {"operator": operator}
-                    ),
+                    variables=new_variables,
                 )
+                self.target_state.sampler_state = target_state.sampler_state
+
             if isinstance(target_state, FullSumState):
                 self.target_state = FullSumState(
                     hilbert=target_state.hilbert,
-                    apply_fun=logpsi_fun,
-                    variables=flax.core.copy(
-                        target_state.variables, {"operator": operator}
-                    ),
+                    apply_fun=logUpsi_fun,
+                    variables=new_variables,
                 )
         else:
             self.target_state = target_state
@@ -302,7 +298,9 @@ class Infidelity_SR(AbstractVariationalDriver):
             raise TypeError(
                 "NGD drivers do not support FullSumState. Please use 'standard' drivers with SR."
             )
-        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
+        super().__init__(
+            variational_state, optimizer, minimized_quantity_name="Infidelity"
+        )
 
         if use_ntk is None:
             use_ntk = variational_state.n_parameters > variational_state.n_samples
@@ -356,9 +354,11 @@ class Infidelity_SR(AbstractVariationalDriver):
     def _forward_and_backward(self):
         self.state.reset()
 
-        # Compute the local energy estimator and average Energy
+        # Compute the local infidelity estimator and average Infidelity
         local_energies, local_energies_cv = get_local_estimator(
-            self.state, self.target_state
+            self.state,
+            self.target_state,
+            self.cv_coeff,
         )
         self._loss_stats = nkstats.statistics(1 - local_energies_cv)
 
