@@ -58,7 +58,7 @@ class Infidelity_SR(AbstractVariationalDriver):
     """
 
     target_state: VariationalState
-    "The target variational state :math:`|\Phi\rangle`."
+    "The target variational state :math:`|\\Phi\rangle`."
 
     operator: AbstractOperator = None
     "Operator :math:`U`."

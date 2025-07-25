@@ -82,7 +82,6 @@ def I_exact_fun(params, vs, vs_target, U=None):
     return I
 
 
-@common.xfailif_sharding  # broken in recent jax versions
 @pytest.mark.parametrize(
     "useExactSampler",
     [
@@ -98,9 +97,9 @@ def I_exact_fun(params, vs, vs_target, U=None):
     ],
 )
 def test_MCState(useExactSampler, useOperator):
-    vs, vs_target, vs_exact, vs_exact_target, H = _setup(useExactSampler)
+    vs, vs_target, _, _, H = _setup(useExactSampler)
 
-    optimizer = nk.optimizer.Sgd(learning_rate=0.01)
+    optimizer = nk.optimizer.Sgd(learning_rate=0.1)
     diag_shift = 0.001
 
     if useOperator:
@@ -110,7 +109,7 @@ def test_MCState(useExactSampler, useOperator):
             diag_shift=diag_shift,
             variational_state=vs,
         )
-        driver.run(n_iter=1000)
+        driver.run(n_iter=200)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target)
     else:
         driver = nkx.driver.Infidelity_SR(
@@ -120,7 +119,7 @@ def test_MCState(useExactSampler, useOperator):
             variational_state=vs,
             operator=H,
         )
-        driver.run(n_iter=1000)
+        driver.run(n_iter=200)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
 
     assert I_exact < 1e-12

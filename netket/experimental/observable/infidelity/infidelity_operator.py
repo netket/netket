@@ -1,5 +1,3 @@
-from typing import Optional
-
 import jax.numpy as jnp
 import flax
 import jax
@@ -52,16 +50,16 @@ class InfidelityOperator(AbstractObservable):
         target_state: VariationalState,
         *,
         operator: AbstractOperator = None,
-        cv_coeff: Optional[float] = -0.5,
-        dtype: Optional[DType] = None,
+        cv_coeff: float | None = -0.5,
+        dtype: DType | None = None,
     ):
         """
         Args:
-            target_state: The target state :math:`|\Phi\rangle` against which to compute the infidelity.
+            target_state: The target state :math:`|\\Phi\rangle` against which to compute the infidelity.
                 This can be any VariationalState (MCState, FullSumState, etc.).
-            operator: Optional operator :math:`U` to be applied to the target state, such that :math:`|\Phi\rangle \equiv U |\Phi\rangle`.
+            operator: Optional operator :math:`U` to be applied to the target state, such that :math:`|\\Phi\rangle \\equiv U |\\Phi\rangle`.
                 If None, the target state is used directly. When provided, the infidelity is computed
-                with respect to the transformed state :math:`U |\Phi\rangle`.
+                with respect to the transformed state :math:`U |\\Phi\rangle`.
             cv_coeff: Optional control variate coefficient for variance reduction in Monte Carlo
                 estimation (see `Sinibaldi et al. <https://quantum-journal.org/papers/q-2023-10-10-1131/>`).
                 If None, no control variate is used. Default to the optimal value -0.5.
