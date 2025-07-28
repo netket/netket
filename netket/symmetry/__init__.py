@@ -1,4 +1,5 @@
 from .representation import Representation
+
 from .permutation_operator_spin import PermutationOperator
 from .permutation_operator_fermion import PermutationOperatorFermion
 
