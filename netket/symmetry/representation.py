@@ -39,20 +39,9 @@ class Representation:
 
         assert len(group.elems) == len(representation_dict)
 
-        return (
-            (),
-            dict(
-                group=group,
-                hilbert_space=hilbert_space,
-                representation_dict=representation_dict,
-            ),
-        )
-
-    """
-    @property hilbert_space
-    @property group
-    @property representation_dict
-    """
+        self.hilbert_space = hilbert_space
+        self.group = group
+        self.representation_dict = representation_dict
 
     def __getitem__(self, key):
         if isinstance(key, Element):
