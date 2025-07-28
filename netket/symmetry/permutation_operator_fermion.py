@@ -12,10 +12,10 @@ def flatten_samples(n):
     return jax.lax.collapse(n, 0, n.ndim - 1)
 
 
-@jax.jit
 def mergeCount(permutation: jax.Array) -> int:
     """Counts the number of inversions in a permutation using a variant of the merge
     sort algorithm. The complexity is O(n log n) where n is the size of the permutation.
+    Right now, this is slower than the O(n^2) algorithm.
     """
 
     if jnp.size(permutation) == 1:
@@ -38,11 +38,11 @@ def mergeAndCount(left: jax.Array, right: jax.Array) -> int:
     n1 = jnp.size(left)
     n2 = jnp.size(right)
 
-    def _cond_fun(val) -> bool:
+    def _cond_fun(val) -> jax.Array:
         i, j, _ = val
         return jnp.logical_and(i < n1, j < n2)
 
-    def _body_fun(val):
+    def _body_fun(val) -> tuple[int,int,int]:
         i, j, count = val
         cond = left[i] <= right[j]
         i = jnp.where(cond, i + 1, i)
@@ -56,44 +56,34 @@ def mergeAndCount(left: jax.Array, right: jax.Array) -> int:
 
 
 # fonction to count the number of inversions in a permutation (parity of the permutation)
-def get_parity(permutation: jax.Array) -> int:
+def get_parity(permutation: jax.Array, hilbert: SpinOrbitalFermions) -> jax.Array:
     """Counts the parity of a permutation.
     This is the number of inversions in the permutation modulo 2.
     An inversion is a pair (i, j) such that i < j
     and permutation[i] > permutation[j].
     """
-    n = jnp.size(permutation)
-
     inversion_matrix = permutation[:, None] > permutation[None, :]
-
-    upper_triangular_mask = jnp.triu(jnp.ones((n, n), dtype=bool), k=1)
-
+    upper_triangular_mask = jnp.triu(jnp.ones((hilbert.n_fermions, hilbert.n_fermions), dtype=bool), k=1)
     inversion_count = jnp.sum(inversion_matrix & upper_triangular_mask)
-
     return inversion_count & 1
 
 
 def occupied_orbitals(n: jax.Array, hilbert: SpinOrbitalFermions) -> jax.Array:
-    """Returns the indices of the occupied orbitals in a given SpinOrbitalFermions state n"""
-
+    """Returns the indices of the occupied orbitals 
+    in a given SpinOrbitalFermions state n"""
     R = n.nonzero(size=hilbert.n_fermions)[0]
     return R
 
 
 @partial(jax.jit, static_argnames=("hilbert",))
-@partial(jax.vmap, in_axes=(0, None, None))
-def antisymmetric_sign(
-    n: jax.Array, permutation: jax.Array, hilbert: SpinOrbitalFermions
-) -> int:
-    """Returns the sign of a permutation in the SpinOrbitalFermions Hilbert space.
-    The sign is given by the parity of the permutation restricted to the occupied orbitals.
+@partial(jax.vmap, in_axes=(0,None,None))
+def antisymmetric_signs(n:jax.Array, permutation: jax.Array, hilbert: SpinOrbitalFermions) -> jax.Array:
+    """Returns the sign of the permutation for a batch of fermionic Fock states n.
     """
-
-    R = occupied_orbitals(n, hilbert)
-    permuted_indices = permutation[R]
-    parity = get_parity(permuted_indices)
-    sign = (-1) ** parity
-
+    occupied = occupied_orbitals(n, hilbert)
+    permuted = permutation[occupied]
+    parity = get_parity(permuted, hilbert)
+    sign = 1 - 2 * parity 
     return sign
 
 
@@ -104,7 +94,7 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
     def __init__(self, hilbert: SpinOrbitalFermions, permutation: jax.Array):
         super().__init__(hilbert)
         self.permutation = permutation
-        self.get_signs = antisymmetric_sign
+        self.get_signs = antisymmetric_signs
 
         self.inverse_permutation = jnp.argsort(permutation)
 
@@ -125,22 +115,17 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
     def dtype(self):
         return int
 
-    def get_conn_padded(self, x):
+    def get_conn_padded(self, n):
         r"""
-        The action of a permutation operator on a state x is defined as Ps |x> = |x o s^{-1}> where
-        s^{-1} is the inverse permutation. This function computes <x|Ps = <x o s|,
-        which is the same as applying the permutation to the state x.
-
-        For a fermionic state, one must also take into account the sign of the permutation,
-        which is given by the parity of the inverse permutation restricted to the occupied orbitals.
-
-        <n |P_s = <n o s | \xi_{s^{-1}}(n).
+        This function computes <n|Ug = <n o g| \xi_{g^{-1}}(n).
+        where n is a batch of fermionic Fock states,
+        n o g are the permuted occupation numbers and
+        \xi_{g^{-1}}(n) is the sign of the permutation.
         """
 
-        batch_shape, phys_dim = x.shape[:-1], x.shape[-1]
-        x = x.reshape(-1, phys_dim)
-        connected_elements = x.T[self.permutation].T
-        print(connected_elements.shape)
+        batch_shape, phys_dim = n.shape[:-1], n.shape[-1]
+        n = n.reshape(-1, phys_dim)
+        connected_elements = n.T[self.permutation].T
         connected_elements = connected_elements.reshape((*batch_shape, 1, phys_dim))
-        signs = self.get_signs(x, self.inverse_permutation, self.hilbert)
+        signs = self.get_signs(n, self.inverse_permutation, self.hilbert)
         return connected_elements, signs
