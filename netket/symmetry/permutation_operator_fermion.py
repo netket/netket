@@ -95,7 +95,6 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
         super().__init__(hilbert)
         self.permutation = permutation
         self.get_signs = antisymmetric_signs
-
         self.inverse_permutation = jnp.argsort(permutation)
 
     def tree_flatten(self):
