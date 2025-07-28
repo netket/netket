@@ -36,8 +36,11 @@ def _allgather(x):
     return x
 
 
+@pytest.mark.parametrize(
+    "sampler", [nk.sampler.MetropolisLocal, nk.sampler.ParallelTemperingLocal]
+)
 @pytest.mark.parametrize("key_type", ["PRNGKey", "key"])
-def test_metropolis_serialization(key_type, tmp_path_distributed):
+def test_metropolis_serialization(key_type, sampler, tmp_path_distributed):
     rank = jax.process_index()
     n_nodes = jax.process_count()
     keyT = jax.random.PRNGKey if key_type == "PRNGKey" else jax.random.key
@@ -51,7 +54,7 @@ def test_metropolis_serialization(key_type, tmp_path_distributed):
 
     # 120 = (2**3)* 3 * 5 which are all prime factors reasonable for
     # a CI test. Doubt anybody using more than 6 nodes in any case...
-    sa = nk.sampler.MetropolisLocal(hi, n_chains=12)
+    sa = sampler(hi, n_chains=12)
     sampler_state = sa.init_state(ma, pars, keyT(SAMPLER_SEED))
     sampler_state = sa.reset(ma, pars, state=sampler_state)
 
@@ -80,7 +83,7 @@ def test_metropolis_serialization(key_type, tmp_path_distributed):
     # Create another sampler state
     for n_readout_chains in [12, 8, 6]:
         print("n_readout_chains: ", n_readout_chains)
-        sa = nk.sampler.MetropolisLocal(hi, n_chains=n_readout_chains)
+        sa = sampler(hi, n_chains=n_readout_chains)
         sampler_state_2 = sa.init_state(ma, pars, SAMPLER_SEED + 100)
 
         state_dict_loaded = serialization.msgpack_restore(bindata)
