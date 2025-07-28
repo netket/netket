@@ -6,6 +6,7 @@ from netket.operator import ContinuousOperator
 from netket.vqs import MCState, FullSumState
 
 
+# chunk_size could be divided by the max number of connected elements of operator
 def apply_operator(operator, vstate):
 
     if isinstance(vstate, FullSumState):
@@ -28,8 +29,7 @@ def apply_operator(operator, vstate):
             sampler=vstate.sampler,
             apply_fun=transformed_apply_fun,
             variables=new_variables,
-            n_samples=vstate.n_samples,
-            n_samples_per_rank=vstate.n_samples_per_rank,
+            n_samples=vstate.n_samples,  # Is it fine to not pass n_samples_per_rank?
             n_discard_per_chain=vstate.n_discard_per_chain,
             chunk_size=vstate.chunk_size,
         )
