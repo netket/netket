@@ -43,7 +43,13 @@ def test_apply_operator(operator, vstate):
     )
 
     assert transformed_vstate.hilbert == vstate.hilbert
-    assert transformed_vstate.chunk_size == vstate.chunk_size
+
+    if vstate.chunk_size is None:
+        assert transformed_vstate.chunk_size is None
+    else:
+        assert (
+            transformed_vstate.chunk_size == vstate.chunk_size / operator.max_conn_size
+        )
 
     if isinstance(vstate, nk.vqs.FullSumState):
 
