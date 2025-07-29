@@ -181,7 +181,7 @@ class Graph(AbstractGraph):
 
     def _compute_automorphisms(self):
         """
-        Compute the graph autmorphisms of this graph.
+        Compute the graph automorphisms of this graph.
         """
         colors = self.edge_colors
         result = self._igraph.get_isomorphisms_vf2(
@@ -190,7 +190,10 @@ class Graph(AbstractGraph):
 
         # sort them s.t. the identity comes first
         result = np.unique(result, axis=0).tolist()
-        result = PermutationGroup([Permutation(i) for i in result], self.n_nodes)
+        result = PermutationGroup(
+            [Permutation(inverse_permutation_array=perm) for perm in result],
+            self.n_nodes,
+        )
         return result
 
     # TODO turn into a struct.property_cached?
