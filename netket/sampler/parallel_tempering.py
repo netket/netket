@@ -42,18 +42,38 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
     Contains the usual quantities, as well as statistics about the paralel tempering.
     """
 
-    beta: jnp.ndarray = None
+    beta: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-ignore-errors"
+        )
+    )
     """The inverse temperatures of the different chains."""
 
-    n_accepted_per_beta: jnp.ndarray = None
+    n_accepted_per_beta: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-ignore-errors"
+        )
+    )
     """Total number of moves accepted per beta across all JAX processes since the last reset."""
-    beta_0_index: jnp.ndarray = None
+    beta_0_index: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-ignore-errors"
+        )
+    )
     r"""Index of the position of the chain with :math:`\\beta=1`."""
-    beta_position: jnp.ndarray = None
+    beta_position: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-ignore-errors"
+        )
+    )
     r"""Averaged position of :math:`\\beta=1`."""
-    beta_diffusion: jnp.ndarray = None
+    beta_diffusion: jnp.ndarray = struct.field(
+        sharded=struct.ShardedFieldSpec(
+            sharded=True, deserialization_function="relaxed-ignore-errors"
+        )
+    )
     """Average variance of the position of :math:`\\beta = 1`."""
-    exchange_steps: int = 0
+    exchange_steps: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=int))
     """Number of exchanges between the different temperatures."""
 
     def __init__(
