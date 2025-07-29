@@ -1,12 +1,12 @@
 import jax
 import jax.numpy as jnp
-
-from functools import partial
 from jax.tree_util import register_pytree_node_class
 
+from functools import partial
+
 from netket.hilbert import SpinOrbitalFermions
-from netket.operator import DiscreteJaxOperator
-from netket.utils.group import Permutation, Identity
+from netket.utils.group import Permutation
+from netket.symmetry import PermutationOperatorBase
 
 
 def get_parity(array: jax.Array) -> jax.Array:
@@ -52,44 +52,27 @@ def get_antisymmetric_signs(
 
 
 @register_pytree_node_class
-class PermutationOperatorFermion(DiscreteJaxOperator):
-    """Be careful about the permutation being possibly inverted."""
+class PermutationOperatorFermion(PermutationOperatorBase):
+    """
+    Permutation operator on a fermion space.
+    ONLY WORKS FOR A HILBERT SPACE WITH FIXED NUMBER OF FERMIONS.
+    For mathematical details on the definition of a permutation operator
+    and its justification, we refer to [SOMEWHERE].
 
-    def __init__(self, hilbert, permutation):
+    Maybe we should also check that the operator is well-defined for the
+    given Hilbert space. If the number of fermion per spin sector is fixed,
+    we might want to check that the permutation respects that constraint.
 
+    Args:
+        hilbert: The Hilbert space.
+        permutation: The permutation represented by the operator.
+    """
+
+    def __init__(self, hilbert: SpinOrbitalFermions, permutation: Permutation):
         assert isinstance(hilbert, SpinOrbitalFermions)
-
-        super().__init__(hilbert)
-
-        if isinstance(permutation, Identity):
-            permutation = Permutation(
-                permutation_array=jnp.arange(hilbert.size), name="Identity"
-            )
-
-        if not isinstance(permutation, Permutation):
-            raise TypeError("permutation must be a Permutation object.")
-        if not hilbert.size == permutation.permutation_array.size:
-            raise ValueError(
-                "Permutation size does not correspond to Hilbert space size."
-            )
-
-        self.permutation = permutation
-
-    def tree_flatten(self):
-        struct_data = {"hilbert": self.hilbert, "permutation": self.permutation}
-        return (), struct_data
-
-    @classmethod
-    def tree_unflatten(cls, struct_data, array_data):
-        return cls(**struct_data)
-
-    @property
-    def max_conn_size(self) -> int:
-        return 1
-
-    @property
-    def dtype(self):
-        return jnp.float32
+        if hilbert.n_fermions is None:
+            raise TypeError("The Hilbert space must have a fixed number of fermions.")
+        super().__init__(hilbert, permutation)
 
     def __repr__(self):
         if self.permutation._name is not None:
@@ -105,9 +88,6 @@ class PermutationOperatorFermion(DiscreteJaxOperator):
         else:
             return False
 
-    def __hash__(self):
-        return hash((self.hilbert, self.permutation))
-
     def get_signs(self, x):
         return get_antisymmetric_signs(
             x, self.permutation.inverse_permutation_array, self.hilbert.n_fermions
@@ -115,18 +95,18 @@ class PermutationOperatorFermion(DiscreteJaxOperator):
 
     def get_conn_padded(self, x):
         r"""
-        This function computes <n|Ug = <n o g| \xi_{g^{-1}}(n).
-        where n is a batch of fermionic Fock states,
-        n o g are the permuted occupation numbers and
-        \xi_{g^{-1}}(n) is the sign of the permutation.
+        This function computes <x|Ug = <x o g| \xi_{g^{-1}}(x).
+        where x is a batch of fermionic Fock states,
+        x o g are the permuted occupation numbers and
+        \xi_{g^{-1}}(x) is the sign of the permutation.
         """
 
-        batch_shape, phys_dim = x.shape[:-1], x.shape[-1]
-        x = x.reshape(-1, phys_dim)
-        connected_elements = x.T[self.permutation.permutation_array].T
-        connected_elements = connected_elements.reshape((*batch_shape, 1, phys_dim))
-        signs = self.get_signs(x)
-        return connected_elements, signs
+        x = jnp.asarray(x)
+        connected_elements = x.at[..., None, self.permutation.permutation_array].get(
+            unique_indices=True, mode="promise_in_bounds"
+        )
+        signs = self.get_signs(x).astype(jnp.float32)
+        return connected_elements, signs[..., jnp.newaxis]
 
     def __matmul__(self, other):
         if isinstance(other, PermutationOperatorFermion):
