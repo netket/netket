@@ -113,7 +113,7 @@ class PermutationOperatorFermion(DiscreteJaxOperator):
             x, self.permutation.inverse_permutation_array, self.hilbert.n_fermions
         )
 
-    def get_conn_padded(self, n):
+    def get_conn_padded(self, x):
         r"""
         This function computes <n|Ug = <n o g| \xi_{g^{-1}}(n).
         where n is a batch of fermionic Fock states,
@@ -121,11 +121,11 @@ class PermutationOperatorFermion(DiscreteJaxOperator):
         \xi_{g^{-1}}(n) is the sign of the permutation.
         """
 
-        batch_shape, phys_dim = n.shape[:-1], n.shape[-1]
-        n = n.reshape(-1, phys_dim)
-        connected_elements = n.T[self.permutation].T
+        batch_shape, phys_dim = x.shape[:-1], x.shape[-1]
+        x = x.reshape(-1, phys_dim)
+        connected_elements = x.T[self.permutation.permutation_array].T
         connected_elements = connected_elements.reshape((*batch_shape, 1, phys_dim))
-        signs = self.get_signs(n, self.inverse_permutation, self.hilbert.n_fermions)
+        signs = self.get_signs(x)
         return connected_elements, signs
 
     def __matmul__(self, other):
