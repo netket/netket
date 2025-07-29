@@ -14,7 +14,7 @@
 
 from textwrap import dedent
 from typing import Union
-
+from functools import partial
 
 import jax
 import numpy as np
@@ -115,6 +115,7 @@ def flip_state_scalar(hilb, key, state, indx):
 
 
 @dispatch
+@partial(jax.jit, static_argnames=("hilb",))
 def flip_state_batch(hilb, key, states, indxs):
     keys = jax.random.split(key, states.shape[0])
     res = jax.vmap(flip_state_scalar, in_axes=(None, 0, 0, 0), out_axes=0)(

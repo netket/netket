@@ -38,7 +38,7 @@ def test_PRNGSeq():
     assert k is not k1 and k1 is not k2
 
     keys = seq.take(4)
-    assert keys.shape == (4, 2)
+    assert keys.shape == (4,)
 
     seq1 = PRNGSeq(12)
     seq2 = PRNGSeq(12)

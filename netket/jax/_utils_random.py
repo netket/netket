@@ -51,16 +51,28 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0) -> PRNGKeyT:
                 ).item()
             )
 
-        key = jax.random.PRNGKey(seed)
+        key = jax.random.key(seed)
+    elif isinstance(seed, jax.Array):
+        if jnp.issubdtype(seed.dtype, jax.dtypes.prng_key):
+            # new-style keys
+            key = seed
+        elif jnp.issubdtype(seed.dtype, jax.numpy.unsignedinteger):
+            # old-style PRNGKey
+            key = seed
+        else:
+            raise TypeError(
+                f"Expected seed to be an integer or a PRNGKey, got {type(seed)}, {seed.dtype} : {seed}"
+            )
     else:
-        key = seed
+        raise TypeError(f"unsupported type {type(seed)}")
 
-    if config.netket_experimental_sharding:
-        key = jax.lax.with_sharding_constraint(
-            key, NamedSharding(jax.sharding.get_abstract_mesh(), P())
-        )
-    else:  # type: ignore[attr-defined]
-        key = _bcast_key(key, root=root)
+    mesh = jax.sharding.get_abstract_mesh()
+    if not mesh.empty:
+        if len(mesh.explicit_axes) >= 0:
+            key = jax.sharding.reshard(key, P())
+        else:
+            sharding = NamedSharding(mesh, P())
+            key = jax.lax.with_sharding_constraint(key, sharding)
     return key
 
 

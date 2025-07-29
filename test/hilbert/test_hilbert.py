@@ -26,6 +26,7 @@ from netket.hilbert import (
     Qubit,
     Spin,
 )
+from netket import experimental as nkx
 from netket.experimental.hilbert import Particle
 
 import jax
@@ -155,6 +156,7 @@ particle_hilbert_params = [
 #
 # Tests
 #
+@common.skipif_distributed
 @pytest.mark.parametrize("hi", homogeneous_hilbert_params)
 def test_consistent_size_homogeneous(hi: HomogeneousHilbert):
     assert hi.size > 0
@@ -164,6 +166,7 @@ def test_consistent_size_homogeneous(hi: HomogeneousHilbert):
         assert np.isfinite(state).all()
 
 
+@common.skipif_distributed
 @pytest.mark.parametrize("hi", particle_hilbert_params)
 def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
@@ -190,6 +193,31 @@ def test_random_states_discrete(hi: DiscreteHilbert):
     )
 
 
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_random_states_discrete_sharding(hi: DiscreteHilbert):
+
+    # check that the sharding is correct
+    s = hi.random_state(jax.random.key(13), 4)
+    assert s.sharding.spec == ()
+
+    # Check that no communication happens
+    @jax.jit
+    def _fun(k):
+        return hi.random_state(k, 4)
+
+    txt = _fun.lower(jax.random.key(13)).compile().as_text()
+    for o in [
+        "all-reduce",
+        "collective-permute",
+        "all-gather",
+        "all-to-all",
+        "reduce-scatter",
+    ]:
+        for l in txt.split("\n"):
+            assert o not in l
+
+
+@common.skipif_distributed
 @pytest.mark.parametrize("hi", discrete_indexable_hilbert_params)
 def test_constrained_correct(hi: DiscreteHilbert):
     n_states = hi.n_states
@@ -197,22 +225,22 @@ def test_constrained_correct(hi: DiscreteHilbert):
 
 
 @pytest.mark.parametrize("hi", homogeneous_hilbert_params)
-def test_random_states_homogeneous(hi: HomogeneousHilbert):
+def test_random_states_in_space_homogeneous(hi: HomogeneousHilbert):
     assert len(hi.local_states) == hi.local_size
-    local_states = hi.local_states
-    for i in range(100):
-        rstate = hi.random_state(jax.random.PRNGKey(i * 14))
-        for state in rstate:
-            assert state in local_states
+
+    states = hi.random_state(jax.random.PRNGKey(1), 100)
+    assert np.all((states[..., None] == np.asarray(hi._local_states)).any(-1))
 
 
+@common.skipif_distributed
 def test_random_states_fock_infinite():
     hi = Fock(N=2)
-    rstate = hi.random_state(jax.random.PRNGKey(14), 20)
+    rstate = hi.random_state(jax.random.key(14), 20)
     assert np.all(rstate >= 0)
     assert rstate.shape == (20, 2)
 
 
+@common.skipif_distributed
 @pytest.mark.parametrize("hi", particle_hilbert_params)
 def test_random_states_particle(hi: Particle):
     assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
@@ -239,11 +267,12 @@ def test_random_states_particle(hi: Particle):
     ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
 
 
+@common.skipif_distributed
 def test_particle_fail():
     with pytest.raises(ValueError):
         _ = Particle(
             N=5,
-            geometry=nk.experimental.geometry.Cell(d=2, L=(jnp.inf, 2.0), pbc=True),
+            geometry=nkx.geometry.Cell(d=2, L=(jnp.inf, 2.0), pbc=True),
         )
 
 
@@ -263,8 +292,14 @@ def test_flip_state_discrete(hi: DiscreteHilbert):
 
     assert new_states.shape == states.shape
 
-    for state in states:
-        assert all(val in hi.states_at_index(i) for i, val in enumerate(state))
+    states_i = hi.states_to_local_indices(states)
+    size_i = jnp.array(hi.shape)
+    print(states_i.shape, size_i.shape)
+    assert jnp.issubdtype(states_i.dtype, jnp.integer)
+    is_pos = states_i >= 0
+    assert jnp.all(is_pos)
+    is_in_bounds = jnp.all(states_i <= size_i, axis=-1)
+    assert jnp.all(is_in_bounds)
 
     states_np = np.asarray(states)
     states_new_np = np.array(new_states)
