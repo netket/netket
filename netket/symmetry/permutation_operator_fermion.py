@@ -114,4 +114,4 @@ class PermutationOperatorFermion(PermutationOperatorBase):
                 self.hilbert, self.permutation @ other.permutation
             )
         else:
-            return super().__mul__(other)
+            return super().__matmul__(other)
