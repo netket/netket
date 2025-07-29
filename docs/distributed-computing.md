@@ -102,13 +102,29 @@ jax.distributed.initialize()
 # Always print this to verify correct setup
 print(f"[{jax.process_index()}/{jax.process_count()}] devices:", jax.devices(), flush=True)
 print(f"[{jax.process_index()}/{jax.process_count()}] local devices:", jax.local_devices(), flush=True)
+print(f"I will be running a calculation among {jax.process_count()} tasks, using a total of {len(jax.devices())} devices ({len(jax.local_devices())} per slurm task). If this does not match your expected number of total devices, something is misconfigured", flush=True)
 
 import netket as nk
 # ... rest of your code
 ```
 
+:::{warning} Checking that the setup is correct
+
+A common mistake is that different nodes do not communicate with each other, resulting in your calculation running independently on each node instead of as a single distributed computation.
+
+To verify that your distributed setup is working correctly, check that:
+
+- The code above prints `[i/N]` for each process, where `i` goes from 0 to N-1 and N is the total number of processes across all nodes
+- `jax.local_devices()` shows the GPU(s) visible to each individual process
+- `jax.devices()` shows all GPUs across all nodes (total should be N_gpus_per_node × N_nodes)
+- The diagnostic message shows the expected total number of devices for your cluster configuration
+:::
+
 ### SLURM job script example
 
+When using {func}`jax.distributed.initialize()` with multiple nodes, JAX assumes there is 1 task per GPU. Therefore, you must set `--ntasks-per-node` equal to the number of GPUs per node. In the example above, we assume nodes with 4 GPUs.
+
+The `--gres=gpu:N` option works correctly with JAX's automatic detection, but `--gpus-per-task` does not work and should be avoided.
 Here's a typical SLURM script for running NetKet across multiple nodes:
 
 ```bash
@@ -116,7 +132,7 @@ Here's a typical SLURM script for running NetKet across multiple nodes:
 #SBATCH --job-name=netket-distributed
 #SBATCH --output=netket_%j.txt
 #SBATCH --nodes=2                    # Number of nodes
-#SBATCH --ntasks-per-node=4         # Tasks per node (usually = GPUs per node)
+#SBATCH --ntasks-per-node=4         # Tasks per node (must equal GPUs per node for jax.distributed.initialize())
 #SBATCH --cpus-per-task=5           # CPU cores per task
 #SBATCH --gres=gpu:4                # GPUs per node
 #SBATCH --time=02:00:00
@@ -129,6 +145,12 @@ export JAX_PLATFORM_NAME=gpu
 # Launch with srun (SLURM's parallel launcher)
 srun uv run python your_netket_script.py
 ```
+
+It is possible to use different SLURM configurations, but they must be configured manually. For more details, refer to {func}`jax.distributed.initialize` and the [JAX clusters folder](https://github.com/google/jax/tree/main/jax/_src/clusters) in the JAX repository.
+
+Note that jax automatically installs a copy of CUDA in the python environment, so you don't need to install your own or load the relevant modules. 
+This way, CUDA is always updated and you are sure of using the correct version.
+It is best to avoid loading the cluster-provided cuda versions.
 
 ## Working with distributed arrays
 
@@ -276,7 +298,9 @@ import netket as nk
 jax.distributed.initialize()
 
 # Verify setup
-print(f"[{jax.process_index()}/{jax.process_count()}] Local devices: {jax.local_devices()}", flush=True)
+print(f"[{jax.process_index()}/{jax.process_count()}] devices:", jax.devices(), flush=True)
+print(f"[{jax.process_index()}/{jax.process_count()}] local devices:", jax.local_devices(), flush=True)
+print(f"I will be running a calculation among {jax.process_count()} tasks, using a total of {len(jax.devices())} devices ({len(jax.local_devices())} per slurm task). If this does not match your expected number of total devices, something is misconfigured", flush=True)
 
 # Define your quantum system
 L = 20
