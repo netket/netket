@@ -1,4 +1,4 @@
-# Single-node multi-GPU setup
+# Multiple GPUs
 
 NetKet automatically uses all visible GPUs on a single node. For most single-node multi-GPU usage, no special configuration is needed - just run your NetKet code normally and it will scale across all available GPUs.
 

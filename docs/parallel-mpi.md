@@ -1,4 +1,4 @@
-# Multi-CPU distributed computing with MPI
+# Multiple CPUs (MPI)
 
 :::{warning}
 **Experimental feature**: This MPI backend is experimental and **CPU-only** - it should not be used with GPUs. For GPU-based distributed computing, use the standard JAX distributed setup described in the [multi-node multi-GPU guide](parallel-multinode.md). Please let us know if this works for your use case.

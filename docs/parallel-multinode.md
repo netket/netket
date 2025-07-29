@@ -1,4 +1,4 @@
-# Multi-node distributed computing
+# Multiple nodes (GPUs)
 
 ## Setting up JAX distributed
 
