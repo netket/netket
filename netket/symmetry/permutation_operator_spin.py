@@ -8,7 +8,9 @@ from netket.utils.group import Permutation, Identity
 
 @register_pytree_node_class
 class PermutationOperator(DiscreteJaxOperator):
-    """Be careful about the permutation being possibly inverted."""
+    """
+    Write something
+    """
 
     def __init__(self, hilbert, permutation):
         super().__init__(hilbert)

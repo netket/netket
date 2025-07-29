@@ -1,9 +1,12 @@
 import jax
 import jax.numpy as jnp
-from netket.hilbert import SpinOrbitalFermions
+
 from functools import partial
 from jax.tree_util import register_pytree_node_class
-import netket as nk
+
+from netket.hilbert import SpinOrbitalFermions
+from netket.operator import DiscreteJaxOperator
+from netket.utils.group import Permutation, Identity
 
 
 def get_parity(array: jax.Array) -> jax.Array:
@@ -49,23 +52,36 @@ def get_antisymmetric_signs(
 
 
 @register_pytree_node_class
-class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
+class PermutationOperatorFermion(DiscreteJaxOperator):
     """Be careful about the permutation being possibly inverted."""
 
-    def __init__(self, hilbert: SpinOrbitalFermions, permutation: jax.Array):
+    def __init__(self, hilbert, permutation):
+
+        assert isinstance(hilbert, SpinOrbitalFermions)
+
         super().__init__(hilbert)
+
+        if isinstance(permutation, Identity):
+            permutation = Permutation(
+                permutation_array=jnp.arange(hilbert.size), name="Identity"
+            )
+
+        if not isinstance(permutation, Permutation):
+            raise TypeError("permutation must be a Permutation object.")
+        if not hilbert.size == permutation.permutation_array.size:
+            raise ValueError(
+                "Permutation size does not correspond to Hilbert space size."
+            )
+
         self.permutation = permutation
-        self.get_signs = get_antisymmetric_signs
-        self.inverse_permutation = jnp.argsort(permutation)
 
     def tree_flatten(self):
-        array_data = self.permutation
-        struct_data = {"hilbert": self.hilbert}
-        return array_data, struct_data
+        struct_data = {"hilbert": self.hilbert, "permutation": self.permutation}
+        return (), struct_data
 
     @classmethod
     def tree_unflatten(cls, struct_data, array_data):
-        return cls(struct_data["hilbert"], array_data)
+        return cls(**struct_data)
 
     @property
     def max_conn_size(self) -> int:
@@ -73,7 +89,24 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
 
     @property
     def dtype(self):
-        return int
+        return jnp.float32
+
+    def __repr__(self):
+        if self.permutation._name is not None:
+            return f"PermutationOperatorFermion({self.permutation._name}: {self.permutation.permutation_array})"
+        else:
+            return f"PermutationOperatorFermion({self.permutation.permutation_array})"
+
+    def __eq__(self, other):
+        if isinstance(other, PermutationOperatorFermion):
+            return (
+                self.hilbert == other.hilbert and self.permutation == other.permutation
+            )
+        else:
+            return False
+
+    def __hash__(self):
+        return hash((self.hilbert, self.permutation))
 
     def get_signs(self, x):
         return get_antisymmetric_signs(
@@ -94,3 +127,11 @@ class PermutationOperatorFermion(nk.operator.DiscreteJaxOperator):
         connected_elements = connected_elements.reshape((*batch_shape, 1, phys_dim))
         signs = self.get_signs(n, self.inverse_permutation, self.hilbert.n_fermions)
         return connected_elements, signs
+
+    def __matmul__(self, other):
+        if isinstance(other, PermutationOperatorFermion):
+            return PermutationOperatorFermion(
+                self.hilbert, self.permutation @ other.permutation
+            )
+        else:
+            return super().__mul__(other)
