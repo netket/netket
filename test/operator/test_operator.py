@@ -158,14 +158,20 @@ translation_operator_qubit = nk.symmetry.PermutationOperator(
 
 operators["PermutationOperator_translation"] = translation_operator_qubit
 
+
+double_transposition = nk.utils.group.Permutation(
+    permutation_array=jnp.array([1, 0, 3, 2]), name="double_transposition"
+)
 hilbert_space_fermion = nk.hilbert.SpinOrbitalFermions(
     2, 1 / 2, n_fermions_per_spin=[1, 1]
 )
-translation_operator_fermion = nk.symmetry.PermutationOperatorFermion(
-    hilbert_space_fermion, translation_1
+double_transposition_operator_fermion = nk.symmetry.PermutationOperatorFermion(
+    hilbert_space_fermion, double_transposition
 )
 
-operators["PermutationOperatorFermion_translation"] = translation_operator_fermion
+operators["PermutationOperatorFermion_double_transposition"] = (
+    double_transposition_operator_fermion
+)
 
 # Remove non jax operators when sharding is activated
 if nk.config.netket_experimental_sharding:
