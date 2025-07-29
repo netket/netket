@@ -102,7 +102,11 @@ jax.distributed.initialize()
 # Always print this to verify correct setup
 print(f"[{jax.process_index()}/{jax.process_count()}] devices:", jax.devices(), flush=True)
 print(f"[{jax.process_index()}/{jax.process_count()}] local devices:", jax.local_devices(), flush=True)
-print(f"I will be running a calculation among {jax.process_count()} tasks, using a total of {len(jax.devices())} devices ({len(jax.local_devices())} per slurm task). If this does not match your expected number of total devices, something is misconfigured", flush=True)
+print(f"I will be running a calculation among {jax.process_count()} tasks, "
+      f"using a total of {len(jax.devices())} devices "
+      f"({len(jax.local_devices())} per slurm task). "
+      f"If this does not match your expected number of total devices, "
+      f"something is misconfigured", flush=True)
 
 import netket as nk
 # ... rest of your code
@@ -300,7 +304,11 @@ jax.distributed.initialize()
 # Verify setup
 print(f"[{jax.process_index()}/{jax.process_count()}] devices:", jax.devices(), flush=True)
 print(f"[{jax.process_index()}/{jax.process_count()}] local devices:", jax.local_devices(), flush=True)
-print(f"I will be running a calculation among {jax.process_count()} tasks, using a total of {len(jax.devices())} devices ({len(jax.local_devices())} per slurm task). If this does not match your expected number of total devices, something is misconfigured", flush=True)
+print(f"I will be running a calculation among {jax.process_count()} tasks, "
+      f"using a total of {len(jax.devices())} devices "
+      f"({len(jax.local_devices())} per slurm task). "
+      f"If this does not match your expected number of total devices, "
+      f"something is misconfigured", flush=True)
 
 # Define your quantum system
 L = 20
