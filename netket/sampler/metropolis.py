@@ -354,15 +354,19 @@ class MetropolisSampler(Sampler):
     def _init_state(self, machine, parameters, key):
         key_state, key_rule = jax.random.split(key)
         rule_state = self.rule.init_state(self, machine, parameters, key_rule)
-        σ = jnp.zeros((self.n_batches, self.hilbert.size), dtype=self.dtype)
-        σ = shard_along_axis(σ, axis=0)
-
-        output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
+        dummy_σ = jax.eval_shape(
+            partial(
+                self.hilbert.random_state, size=(self.n_batches,), dtype=self.dtype
+            ),
+            jax.random.key(0),
+        )
+        dummy_σ = shard_along_axis(dummy_σ, axis=0)
+        output_dtype = jax.eval_shape(machine.apply, parameters, dummy_σ).dtype
         log_prob = jnp.full((self.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype))
         log_prob = shard_along_axis(log_prob, axis=0)
 
         state = MetropolisSamplerState(
-            σ=σ, rng=key_state, rule_state=rule_state, log_prob=log_prob
+            σ=dummy_σ, rng=key_state, rule_state=rule_state, log_prob=log_prob
         )
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
@@ -449,8 +453,11 @@ class MetropolisSampler(Sampler):
             else:
                 do_accept = uniform < jnp.exp(proposal_log_prob - state.log_prob)
 
+            # we tree map here for pytree samples
             return state.replace(
-                σ=jnp.where(do_accept.reshape(-1, 1), σp, state.σ),
+                σ=jax.tree.map(
+                    partial(jnp.where, do_accept.reshape(-1, 1)), σp, state.σ
+                ),
                 log_prob=jax.numpy.where(
                     do_accept.reshape(-1), proposal_log_prob, state.log_prob
                 ),
@@ -496,7 +503,7 @@ class MetropolisSampler(Sampler):
             length=chain_length,
         )
         # make it (n_chains, n_samples_per_chain) as expected by netket.stats.statistics
-        samples = jnp.swapaxes(samples, 0, 1)
+        samples = samples.swapaxes(0, 1)
         log_probabilities = jnp.swapaxes(log_probabilities, 0, 1)
 
         if return_log_probabilities:

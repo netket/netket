@@ -113,8 +113,7 @@ def QGTOnTheFly_DefaultConstructor(
 
     # The code does not support an extra batch dimension
     if samples.ndim >= 3:
-        # use jit so that we can do it on global shared array
-        samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
+        samples = samples.reshape(-1, samples.shape[-1])
 
     n_samples_per_rank = samples.shape[0] // jax.device_count()
     if chunk_size is None or chunk_size >= n_samples_per_rank:
