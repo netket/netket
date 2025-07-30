@@ -27,6 +27,7 @@ from jax.sharding import PartitionSpec as P
 
 from netket.utils import config
 
+
 safe_zip = partial(zip, strict=True)
 
 
