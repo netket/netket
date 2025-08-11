@@ -3,6 +3,8 @@ from jax.tree_util import register_pytree_node_class
 
 from netket.symmetry import PermutationOperatorBase
 
+from netket.hilbert import Qubit, Spin
+
 
 @register_pytree_node_class
 class PermutationOperator(PermutationOperatorBase):
@@ -45,3 +47,15 @@ class PermutationOperator(PermutationOperatorBase):
             )
         else:
             return super().__matmul__(other)
+
+    def trace(self):
+        cycle_decomposition = self.permutation.get_cycle_decomposition()
+        if isinstance(self.hilbert, Qubit):
+            return 2 ** len(cycle_decomposition)
+        if isinstance(self.hilbert, Spin):
+            if self.hilbert.constrained:
+                raise NotImplementedError  # TODO
+            else:
+                return self.hilbert.local_size ** len(cycle_decomposition)
+        else:
+            raise NotImplementedError
