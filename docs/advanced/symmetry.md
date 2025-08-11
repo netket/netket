@@ -119,13 +119,8 @@ $$
 Let us now show that the operator $P_\sigma$ defined by eq. (16) does indeed satisfy eq. (4).
 
 
-#### Existence and uniqueness of $P_\sigma$
 
 
-
-
-
-#### Action of $P_\sigma$ on a basis element
 
 #### $\sigma \mapsto P_\sigma$ is a representation
 
