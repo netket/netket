@@ -1,3 +1,5 @@
+import pytest
+
 import jax.numpy as jnp
 import jax
 
@@ -48,3 +50,40 @@ def test_perm_op_fermion():
             x, jnp.argsort(permutation_array), hilbert.n_fermions
         )
     )
+
+
+op_list = []
+
+
+base_graph = nk.graph.Square(2, pbc=False)
+graph = nk.graph.disjoint_union(base_graph, base_graph)
+permutations = graph.automorphisms().elems
+
+hilbert_space = nk.hilbert.SpinOrbitalFermions(4, 1 / 2, n_fermions_per_spin=(2, 2))
+
+for permutation in permutations:
+    op = nk.symmetry.PermutationOperatorFermion(hilbert_space, permutation)
+    op_list.append(op)
+
+
+hilbert_space = nk.hilbert.SpinOrbitalFermions(4, 1 / 2, n_fermions_per_spin=(1, 3))
+
+for permutation in permutations[: len(permutations) // 2]:
+    op = nk.symmetry.PermutationOperatorFermion(hilbert_space, permutation)
+    op_list.append(op)
+
+
+base_graph = nk.graph.Chain(3, pbc=True)
+graph = nk.graph.disjoint_union(base_graph, base_graph, base_graph)
+permutations = graph.automorphisms().elems
+
+hilbert_space = nk.hilbert.SpinOrbitalFermions(3, 1, n_fermions_per_spin=(2, 2, 2))
+
+for permutation in permutations:
+    op = nk.symmetry.PermutationOperatorFermion(hilbert_space, permutation)
+    op_list.append(op)
+
+
+@pytest.mark.parametrize("op", op_list)
+def test_trace(op):
+    assert jnp.trace(op.to_dense()).item() == op.trace()

@@ -125,3 +125,23 @@ def test_permutation_operator():
         jnp.linalg.norm(identity_operator.to_dense() - jnp.eye(hilbert_space.n_states))
         < 1e-14
     )
+
+
+op_list = []
+
+graph = nk.graph.Chain(3, pbc=True)
+hilbert_space = nk.hilbert.Qubit(3)
+for permutation in graph.space_group().elems:
+    op = nk.symmetry.PermutationOperator(hilbert_space, permutation)
+    op_list.append(op)
+
+graph = nk.graph.Square(2, pbc=False)
+hilbert_space = nk.hilbert.Spin(1, 4)
+for permutation in graph.space_group().elems:
+    op = nk.symmetry.PermutationOperator(hilbert_space, permutation)
+    op_list.append(op)
+
+
+@pytest.mark.parametrize("op", op_list)
+def test_trace(op):
+    assert jnp.trace(op.to_dense()).item() == op.trace()
