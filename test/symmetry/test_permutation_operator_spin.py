@@ -141,6 +141,12 @@ for permutation in graph.space_group().elems:
     op = nk.symmetry.PermutationOperator(hilbert_space, permutation)
     op_list.append(op)
 
+graph = nk.graph.Square(2, pbc=False)
+hilbert_space = nk.hilbert.Spin(1, 4, total_sz=0)
+for permutation in graph.space_group().elems:
+    op = nk.symmetry.PermutationOperator(hilbert_space, permutation)
+    op_list.append(op)
+
 
 @pytest.mark.parametrize("op", op_list)
 def test_trace(op):
