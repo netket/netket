@@ -1,14 +1,14 @@
-import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
-from itertools import product
 from functools import partial
 
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.group import Permutation
 from netket.symmetry import PermutationOperatorBase
+
+from netket.symmetry.trace_utils import get_subset_occupations, get_parity_sum
 
 
 def get_parity(array: jax.Array) -> jax.Array:
@@ -51,73 +51,6 @@ def get_antisymmetric_signs(
     parity = get_parity(permuted)
     sign = 1 - 2 * parity
     return sign
-
-
-def get_subset_occupations(partition_labels, subsets):
-    """
-    Given a list of subsets of [0, ..., n-1] and a partition of [0, ..., n-1],
-    return a list of the number of element in each partition for each subset.
-
-    Args:
-        partition_labels (<int>): The list such that partition_labels[k] is the partition to which k belongs.
-        subsets (<<int>>): The list of subsets.
-
-    Return:
-        <ndarray>: The list such that l[i][j] is the number of elements of subsets[i] in partition j.
-    """
-    n_partitions = len(np.unique(partition_labels))
-    occupations = []
-    for subset in subsets:
-        occupation_count = np.zeros(n_partitions, dtype=int)
-        for k in subset:
-            occupation_count[partition_labels[k]] += 1
-        occupations.append(occupation_count)
-    return occupations
-
-
-def get_parity_sum(occupation_list, n_occupations):
-    """
-    Given a list occupation_list of lists of length p and n_occupations, a list of length p,
-    we look at all subsets of occupation_list such that the sum of its elements is n_occupations.
-    We return the sum over all such subsets, of the parity of the number of indices k in that subset such
-    that sum(occupation_list[k]) is even.
-
-    Args:
-        occupation_list (<ndarray>): The list of lists of length p.
-        n_occupations (<int>): The list of target occupation.
-
-    Return:
-        int: The sum of parities specified above.
-    """
-
-    table = np.full(
-        (
-            len(occupation_list) + 1,
-            *(n_occupation + 1 for n_occupation in n_occupations),
-        ),
-        -1,
-    )
-
-    table[0] = 0
-    table[0][(0,) * len(n_occupations)] = 1
-
-    for i in range(len(occupation_list)):
-
-        occupation_iterator = product(
-            *list(range(n_occupation + 1) for n_occupation in n_occupations)
-        )
-
-        for occupation in occupation_iterator:
-
-            not_included_sum = np.array(occupation) - occupation_list[i]
-            if np.any(not_included_sum < 0):
-                table[i + 1][occupation] = table[i][occupation]
-            else:
-                table[i + 1][occupation] = (-1) ** (
-                    sum(occupation_list[i]) + 1
-                ) * table[i][tuple(not_included_sum)] + table[i][occupation]
-
-    return table[-1][n_occupations].item()
 
 
 @register_pytree_node_class
