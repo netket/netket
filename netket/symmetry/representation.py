@@ -79,7 +79,7 @@ class Representation:
             )
         return np.array(character)
 
-    def irrep_subspace_dims(self):
+    def get_irrep_subspace_dims(self):
         """
         Return the dimension of the subspace associated to each irreducible
         representation. Requires that each operator of the representation
