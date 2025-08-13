@@ -1,3 +1,4 @@
+import numpy as np
 import jax.numpy as jnp
 
 from functools import reduce
@@ -63,6 +64,69 @@ class Representation:
         ]
         projector = prefactor * reduce(lambda x, y: x + y, operator_list)
         return projector
+
+    def get_character(self):
+        """
+        Return the character of the representation. Requires that each operator
+        of the representation implements the trace method.
+        """
+        try:
+            character = [op.trace() for perm, op in self]
+        except NotImplementedError:
+            raise NotImplementedError(
+                "At least one operator of the representation"
+                " does not implement the trace"
+            )
+        return np.array(character)
+
+    def irrep_subspace_dims(self):
+        """
+        Return the dimension of the subspace associated to each irreducible
+        representation. Requires that each operator of the representation
+        implements the trace method.
+        """
+        character = self.get_character()
+        character_table = self.group.character_table()
+        group_order = len(self.group.elems)
+
+        irrep_count = character_table @ character / group_order
+        irrep_dims = np.round(irrep_count * character_table[:, 0]).astype(int)
+        return irrep_dims
+
+    def get_symmetry_adapted_basis(self):
+        """
+        Return a tuple `(mat, irrep_dims)`, where `mat` is the change of basis
+        matrix associated to a symmetry adapted basis, and `irrep_dims` is
+        an array giving the dimension of the subspace associated to each
+        irreducible representation.
+        The basis vectors of `mat` are ordered by the index of their irreducible
+        representation.
+        """
+        n_irreps = self.group.character_table().shape[0]
+        projectors = [self.get_projector(k).to_dense() for k in range(n_irreps)]
+
+        cob_matrix = np.zeros(
+            (self.hilbert_space.n_states, self.hilbert_space.n_states), dtype=complex
+        )
+        current_index = 0
+
+        irrep_dims = []
+
+        for projector in projectors:
+
+            eigvals, eigvecs = np.linalg.eig(projector)
+            is_in_image = np.abs(eigvals - 1) < 1e-12
+            selected_eigvecs = eigvecs[:, is_in_image]
+
+            projector_rank = selected_eigvecs.shape[1]
+            irrep_dims.append(projector_rank)
+
+            cob_matrix[:, current_index : current_index + projector_rank] = (
+                selected_eigvecs
+            )
+            current_index += projector_rank
+
+        return cob_matrix, np.array(irrep_dims)
 
     def construct_commuting_product(self, other, check_commute: bool = False):
         """
