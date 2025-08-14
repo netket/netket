@@ -6,9 +6,9 @@ from functools import partial
 
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.group import Permutation
-from netket.symmetry import PermutationOperatorBase
 
-from netket.symmetry.trace_utils import get_subset_occupations, get_parity_sum
+from .permutation_operator_base import PermutationOperatorBase
+from .trace_utils import get_subset_occupations, get_parity_sum
 
 
 def get_parity(array: jax.Array) -> jax.Array:

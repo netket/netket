@@ -1,8 +1,3 @@
-from .representation import Representation
+from netket._src.symmetry.representation import Representation
 
-from .permutation_operator_base import PermutationOperatorBase
-from .permutation_operator_spin import PermutationOperator
-from .permutation_operator_fermion import PermutationOperatorFermion
-from .permutation_operator_construct import construct_permutation_operator
-
-from .transformed_vstate import apply_operator
+from . import group

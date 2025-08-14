@@ -3,10 +3,14 @@ import pytest
 import jax.numpy as jnp
 import jax
 
-from netket.symmetry.permutation_operator_fermion import get_antisymmetric_signs
-from netket.symmetry.permutation_operator_fermion import PermutationOperatorFermion
-from netket.hilbert import SpinOrbitalFermions
 import netket as nk
+
+from netket.operator.permutation import PermutationOperatorFermion
+from netket.hilbert import SpinOrbitalFermions
+
+from netket._src.operator.permutation.permutation_operator_fermion import (
+    get_antisymmetric_signs,
+)
 
 seed = jax.random.PRNGKey(77)
 
@@ -35,7 +39,7 @@ def test_perm_op_fermion():
 
     permutation_array = jax.random.permutation(key, hilbert.size)
 
-    permutation = nk.utils.group.Permutation(
+    permutation = nk.symmetry.group.Permutation(
         permutation_array=permutation_array, name="test_permutation"
     )
 
@@ -62,14 +66,14 @@ permutations = graph.automorphisms().elems
 hilbert_space = nk.hilbert.SpinOrbitalFermions(4, 1 / 2, n_fermions_per_spin=(2, 2))
 
 for permutation in permutations:
-    op = nk.symmetry.PermutationOperatorFermion(hilbert_space, permutation)
+    op = PermutationOperatorFermion(hilbert_space, permutation)
     op_list.append(op)
 
 
 hilbert_space = nk.hilbert.SpinOrbitalFermions(4, 1 / 2, n_fermions_per_spin=(1, 3))
 
 for permutation in permutations[: len(permutations) // 2]:
-    op = nk.symmetry.PermutationOperatorFermion(hilbert_space, permutation)
+    op = PermutationOperatorFermion(hilbert_space, permutation)
     op_list.append(op)
 
 
@@ -80,7 +84,7 @@ permutations = graph.automorphisms().elems
 hilbert_space = nk.hilbert.SpinOrbitalFermions(3, 1, n_fermions_per_spin=(2, 2, 2))
 
 for permutation in permutations:
-    op = nk.symmetry.PermutationOperatorFermion(hilbert_space, permutation)
+    op = PermutationOperatorFermion(hilbert_space, permutation)
     op_list.append(op)
 
 

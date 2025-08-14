@@ -37,7 +37,7 @@ NetKet is organized into three distinct tiers, each serving different needs and 
 **Purpose**: Low-level utilities that make working with JAX more efficient, particularly for distributed computing and memory management.
 
 These tools are JAX-native and could be used outside of NetKet. 
-They are quite intricate and have seen few changes over the years, but are essential if you want to write code that efficiently runs across many GPUs while automatically maintaining a low memoryy consumption.
+They are quite intricate and have seen few changes over the years, but are essential if you want to write code that efficiently runs across many GPUs while automatically maintaining a low memory consumption.
 
 In general, if you want to write algorithms using NetKet (or not even) operators, you will have to use those tools.
 

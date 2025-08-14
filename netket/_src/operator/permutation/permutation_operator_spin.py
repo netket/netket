@@ -1,12 +1,11 @@
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
-from netket.symmetry import PermutationOperatorBase
-
 from netket.hilbert import Qubit, Spin
-
 from netket.hilbert.constraint import SumConstraint
-from netket.symmetry.trace_utils import count_n_uplets
+
+from .permutation_operator_base import PermutationOperatorBase
+from .trace_utils import count_n_uplets
 
 
 @register_pytree_node_class

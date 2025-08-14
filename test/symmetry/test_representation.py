@@ -8,10 +8,7 @@ import netket as nk
 # Qubit Hilbert space
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
-group = graph.space_group()
-
-rep_dict = {g: nk.symmetry.PermutationOperator(hilbert_space, g) for g in group.elems}
-s3_representation = nk.symmetry.Representation(group, rep_dict)
+s3_representation = graph.space_group_representation(hilbert_space)
 
 
 # Fermion Hilbert space
@@ -27,7 +24,7 @@ group = (
 # of the other
 
 rep_dict = {
-    g: nk.symmetry.PermutationOperatorFermion(hilbert_space_fermion, g)
+    g: nk.operator.permutation.PermutationOperatorFermion(hilbert_space_fermion, g)
     for g in group.elems
 }
 fermion_representation = nk.symmetry.Representation(group, rep_dict)
@@ -36,7 +33,7 @@ representation_list = [s3_representation, fermion_representation]
 
 
 @pytest.mark.parametrize("representation", representation_list)
-def test_representation(representation):
+def test_projectors(representation):
 
     hilbert_space = representation.hilbert_space
 
@@ -61,3 +58,11 @@ def test_representation(representation):
         / projector_dense.size
         < 1e-14
     )
+
+
+@pytest.mark.parametrize("representation", representation_list)
+def test_irrep_dims(representation):
+
+    irrep_dims_1 = representation.get_irrep_subspace_dims()
+    _, irrep_dims_2 = representation.get_symmetry_adapted_basis()
+    assert jnp.all(irrep_dims_1 == irrep_dims_2)

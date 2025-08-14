@@ -31,6 +31,7 @@ __all__ = [
     "utils",
     "vqs",
     "nn",
+    "symmetry",
 ]
 
 
