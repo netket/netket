@@ -4,27 +4,16 @@ import jax.numpy as jnp
 from functools import reduce
 from itertools import product
 
-
 from netket.utils.group import Element, FiniteGroup, Identity
-from netket.hilbert import AbstractHilbert
 from netket.operator import DiscreteJaxOperator
 
 
 class Representation:
     """
-    A representation of a group
-        - group
-        - hilbert space
-        - a dictionary that maps the elements of the given group to their corresponding operators.
-
-        The dictionary should hold an operator for every group element.
+    A representation of a group. For a given group, it is effectively a dictionary
+    that maps the elements of that group to their corresponding operators.
     """
 
-    group: FiniteGroup
-    hilbert_space: AbstractHilbert
-    representation_dict: dict[Element, DiscreteJaxOperator]
-
-    # Fix the __init__
     def __init__(
         self,
         group: FiniteGroup,
@@ -54,7 +43,7 @@ class Representation:
     def __iter__(self):
         return iter(self.representation_dict.items())
 
-    def get_projector(self, character_index) -> DiscreteJaxOperator:
+    def get_projector(self, character_index: int) -> DiscreteJaxOperator:
         """Build the projection operator corresponding to a given irreducible representation."""
         character_table = self.group.character_table()
         prefactor = character_table[character_index, 0] / len(self.group.elems)
@@ -64,6 +53,15 @@ class Representation:
         ]
         projector = prefactor * reduce(lambda x, y: x + y, operator_list)
         return projector
+
+    def project(self, state, character_index: int):
+        """Return the state projected onto the subspace associated to the
+        irreducible representation specified by character_index."""
+        from netket._src.vqs.transformed_vstate import apply_operator
+
+        projector = self.get_projector(character_index)
+        projected_state = apply_operator(projector, state)
+        return projected_state
 
     def get_character(self):
         """
