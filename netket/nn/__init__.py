@@ -55,3 +55,5 @@ from .utils import (
 )
 
 from . import blocks
+
+from netket._src.operator.hpsi_utils import make_logpsi_U_afun as make_logpsi_U_afun

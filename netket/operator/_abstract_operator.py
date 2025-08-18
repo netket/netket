@@ -115,14 +115,19 @@ class AbstractOperator(AbstractObservable[HilbertType]):
         return self.conjugate(concrete=False)
 
     def __add__(self, other: "AbstractOperator") -> "AbstractOperator":
+        # if isinstance(other, AbstractOperator):
+        #     from ._sum import SumOperator
+
+        #     return SumOperator(self, other)
+        return NotImplemented
+
+    def __radd__(self, other):
         if isinstance(other, AbstractOperator):
             from ._sum import SumOperator
 
             return SumOperator(self, other)
-        return NotImplemented
 
-    def __radd__(self, other):
-        return self + other
+        return NotImplemented
 
     def __sub__(self, other):
         return self + (-other)

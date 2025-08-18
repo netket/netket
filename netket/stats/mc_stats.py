@@ -19,7 +19,6 @@ import numpy as np
 from jax import numpy as jnp
 
 from netket.utils import config, struct
-from netket.jax.sharding import extract_replicated
 
 from . import mean as _mean
 from . import var as _var
@@ -140,8 +139,6 @@ class Stats:
         return "Mean", self.to_dict()
 
     def __repr__(self):
-        # extract adressable data from fully replicated arrays
-        self = extract_replicated(self)
         main_string = _format_main_string(
             _maybe_item(self.mean),
             _maybe_item(self.error_of_mean),

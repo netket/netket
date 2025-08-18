@@ -18,6 +18,7 @@
 import itertools
 
 import numpy as np
+from typing import overload, Literal, Any
 
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
@@ -125,6 +126,23 @@ class Permutation(Element):
         else:
             return f"Permutation({self.permutation_array.tolist()})"
 
+    def get_cycle_decomposition(self):
+        """
+        Return the cycle decomposition of the permutation.
+        """
+        permutation_array = self.permutation_array
+        cycle_list = []
+        visited = np.zeros(len(permutation_array), dtype=bool)
+        while not np.all(visited):
+            starting_point = np.nonzero(1 - visited)[0][0]
+            current_point = starting_point
+            cycle_list.append([])
+            while not visited[starting_point]:
+                current_point = permutation_array[current_point]
+                cycle_list[-1].append(current_point.item())
+                visited[current_point] = True
+        return cycle_list
+
     @deprecated_new_name("permutation.inverse_permutation_array")
     def __array__(self, dtype: DType = None):
         return np.asarray(self._inverse_permutation_array, dtype)
@@ -209,7 +227,17 @@ class PermutationGroup(FiniteGroup):
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)
 
-    def remove_duplicates(self, *, return_inverse=False) -> "PermutationGroup":
+    @overload
+    def remove_duplicates(
+        self, *, return_inverse: Literal[False] = False
+    ) -> "PermutationGroup": ...
+
+    @overload
+    def remove_duplicates(
+        self, *, return_inverse: Literal[True]
+    ) -> tuple["PermutationGroup", Any]: ...
+
+    def remove_duplicates(self, *, return_inverse=False):
         r"""
         Returns a new :code:`PermutationGroup` with duplicate elements (that is,
         elements which represent identical permutations) removed.

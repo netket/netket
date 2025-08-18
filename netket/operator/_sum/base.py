@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2025 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,16 +18,17 @@ from collections.abc import Iterable
 from abc import ABCMeta
 
 import jax.numpy as jnp
+from jax.stages import ArgInfo
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import Array
 from netket.jax import canonicalize_dtypes
 from netket.utils.numbers import is_scalar
 
-from .._abstract_operator import AbstractOperator
-from .._discrete_operator import DiscreteOperator
-from .._discrete_operator_jax import DiscreteJaxOperator
-from .._continuous_operator import ContinuousOperator
+from netket.operator._abstract_operator import AbstractOperator
+from netket.operator._discrete_operator import DiscreteOperator
+from netket.operator._discrete_operator_jax import DiscreteJaxOperator
+from netket.operator._continuous_operator import ContinuousOperator
 
 
 def _flatten_sumoperators(operators: Iterable[AbstractOperator], coefficients: Array):
@@ -71,6 +72,25 @@ class SumOperatorMeta(ABCMeta):
 
 
 class SumOperator(metaclass=SumOperatorMeta):
+    """
+    Base class for sum of quantum operators.
+
+    This class represents a linear combination of quantum operators with coefficients,
+    implementing the mathematical concept of :math:`\\sum_i c_i \\hat{H}_i` where
+    :math:`c_i` are scalar coefficients and :math:`\\hat{H}_i` are quantum operators.
+
+    The class uses a metaclass dispatch mechanism to automatically select the
+    appropriate specialized subclass based on the types of operators being summed:
+
+    * :class:`~netket.operator._sum.discrete_jax_operator.SumDiscreteJaxOperator`
+      for sums of :class:`~netket.operator.DiscreteJaxOperator` instances
+    * :class:`~netket.operator._sum.discrete_operator.SumDiscreteOperator`
+      for sums of :class:`~netket.operator.DiscreteOperator` instances
+    * :class:`~netket.operator._sum.continuous.SumContinuousOperator`
+      for sums of :class:`~netket.operator.ContinuousOperator` instances
+    * :class:`~netket.operator._sum.operator.SumGenericOperator`
+      for mixed operator types or fallback cases.
+    """
 
     _operators: tuple[ContinuousOperator, ...]
     _coefficients: Array
@@ -87,7 +107,13 @@ class SumOperator(metaclass=SumOperatorMeta):
         r"""Constructs a Sum of Operators.
 
         Args:
-            *hilb: An iterable object containing at least 1 hilbert space.
+            *operators: An iterable of quantum operators to be summed. All operators
+                must act on the same Hilbert space.
+            coefficients: Scalar coefficient or iterable of coefficients for each
+                operator. If a single scalar is provided, it will be used for all
+                operators. Default is 1.0.
+            dtype: Data type for the coefficients. If None, it will be inferred
+                from the operators and coefficients.
         """
         hi_spaces = [op.hilbert for op in operators]
         if not all(hi == hi_spaces[0] for hi in hi_spaces):
@@ -98,34 +124,61 @@ class SumOperator(metaclass=SumOperatorMeta):
         if is_scalar(coefficients):
             coefficients = [coefficients for _ in operators]
 
-        if len(operators) != len(coefficients):
-            raise AssertionError("Each operator needs a coefficient")
+        # ArgInfo shows up in packing with .lower() sometimes... it breaks all
+        if not isinstance(coefficients, ArgInfo):
+            if len(operators) != len(coefficients):
+                raise AssertionError("Each operator needs a coefficient")
 
-        operators, coefficients = _flatten_sumoperators(operators, coefficients)
+            operators, coefficients = _flatten_sumoperators(operators, coefficients)
 
-        dtype = canonicalize_dtypes(float, *operators, *coefficients, dtype=dtype)
+            dtype = canonicalize_dtypes(*operators, *coefficients, dtype=dtype)
+            coefficients = jnp.asarray(coefficients, dtype=dtype)
 
         self._operators = tuple(operators)
-        self._coefficients = jnp.asarray(coefficients, dtype=dtype)
-        self._dtype = dtype
+        self._coefficients = coefficients
 
+        # Call parent classes without dtype parameter - we handle dtype ourselves
         super().__init__(
             *args, **kwargs
         )  # forwards all unused arguments so that this class is a mixin.
 
+        # Set our computed dtype after parent __init__ methods have run
+        # This ensures our dtype takes precedence over any parent class dtype computation
+        self._dtype = dtype
+
     @property
     def dtype(self):
+        """The data type of the operator coefficients.
+
+        Returns:
+            The numpy/JAX dtype used for the coefficients array.
+        """
         return self._dtype
 
     @property
     def operators(self) -> tuple[AbstractOperator, ...]:
-        """The tuple of all operators in the terms of this sum. Every
-        operator is summed with a corresponding coefficient
+        r"""The tuple of all operators in the terms of this sum.
+
+        Each operator corresponds to a term :math:`\hat{O}_i` in the sum
+        :math:`\sum_i c_i \hat{O}_i`, where each operator is multiplied by
+        its corresponding coefficient from :attr:`coefficients`.
+
+        Returns:
+            A tuple containing all the quantum operators being summed.
         """
         return self._operators
 
     @property
-    def coefficients(self) -> tuple[AbstractOperator, ...]:
+    def coefficients(self) -> Array:
+        r"""The coefficients for each operator term in the sum.
+
+        Each coefficient corresponds to :math:`c_i` in the sum
+        :math:`\sum_i c_i \hat{O}_i`, where each coefficient multiplies
+        its corresponding operator from :attr:`operators`.
+
+        Returns:
+            A JAX array containing the scalar coefficients for each operator.
+        """
         return self._coefficients
 
     def __repr__(self) -> str:

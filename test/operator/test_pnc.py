@@ -29,7 +29,7 @@ def _cast_normal_order(A):
 @pytest.mark.slow
 @pytest.mark.parametrize("desc", [True, False])
 def test_pnc(desc):
-    N = 5
+    N = 6
     n = 3
     cutoff = 0.1
     key = np.random.randint(2**32)

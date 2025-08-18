@@ -1,12 +1,12 @@
 import pytest
 
 import jax
+from jax.sharding import NamedSharding, SingleDeviceSharding, PartitionSpec as P
+from flax import serialization
+
 import numpy as np
 import netket as nk
 import netket.experimental as nkx
-
-from flax import serialization
-from jax.sharding import PositionalSharding, SingleDeviceSharding
 
 
 def _setup(L, alpha=1, reset_chains=False):
@@ -22,10 +22,15 @@ def _setup(L, alpha=1, reset_chains=False):
 
 
 def _check_correct_sharding(x, replicated=False):
+    if isinstance(x.sharding, jax.sharding.NamedSharding):
+        mesh = x.sharding.mesh
+    else:
+        mesh = jax.sharding.get_abstract_mesh()
     if jax.device_count() > 1:
-        s = PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
         if replicated:
-            s = s.replicate()
+            s = NamedSharding(mesh, P())
+        else:
+            s = NamedSharding(mesh, P("S"))
     else:
         s = SingleDeviceSharding(jax.devices()[0])
     assert x.sharding.is_equivalent_to(s, x.ndim)
@@ -73,8 +78,8 @@ def test_pt():
     samples = vs.sample(chain_length=10)
 
     assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
-    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+    sharding = NamedSharding(samples.sharding.mesh, P("S"))
+    assert samples.sharding.is_equivalent_to(sharding, 3)
 
 
 @pytest.mark.skipif(
@@ -244,8 +249,8 @@ def test_exactsampler(chunk_size):
     sa = nk.sampler.ExactSampler(hi, dtype=np.int8)
     vs = nk.vqs.MCState(sa, ma, n_samples=1024, chunk_size=chunk_size)
 
-    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+    pos_sharding = NamedSharding(vs.samples.sharding.mesh, P("S"))
+    assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
 
     ha = nk.operator.IsingJax(hilbert=vs.hilbert, graph=g, h=1.0)
     opt = nk.optimizer.Sgd(learning_rate=0.05)
@@ -269,8 +274,8 @@ def test_autoreg():
     opt = nk.optimizer.Sgd(learning_rate=0.1)
     sr = nk.optimizer.SR(diag_shift=0.01)
     vs = nk.vqs.MCState(sa, ma, n_samples=256)
-    pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
+    pos_sharding = NamedSharding(vs.samples.sharding.mesh, P("S"))
+    assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
     gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(n_iter=5)
 
@@ -349,11 +354,11 @@ def test_timeevolution():
     vs, _, ha = _setup(L)
     Sx = sum([nk.operator.spin.sigmax(ha.hilbert, i) for i in range(L)])
     Sx = Sx.to_pauli_strings().to_jax_operator()
-    integrator = nkx.dynamics.Euler(dt=0.001)
+    ode_solver = nkx.dynamics.Euler(dt=0.001)
     te = nkx.TDVP(
         ha,
         variational_state=vs,
-        integrator=integrator,
+        ode_solver=ode_solver,
         t0=0.0,
         qgt=nk.optimizer.qgt.QGTOnTheFly(holomorphic=True, diag_shift=1e-4),
         error_norm="qgt",
@@ -362,7 +367,7 @@ def test_timeevolution():
     te2 = nkx.driver.TDVPSchmitt(
         ha,
         variational_state=vs,
-        integrator=integrator,
+        ode_solver=ode_solver,
         t0=0.0,
         error_norm="qgt",
         holomorphic=True,
@@ -385,3 +390,47 @@ def test_srt():
         jacobian_mode="complex",
     )
     gs.run(2)
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+def test_jacobian_chunked():
+    vs, _, ha = _setup(12, alpha=2)
+    vs.n_samples = 64
+    x = jax.lax.collapse(vs.samples, 0, 2)
+
+    kwargs = {"mode": "holomorphic", "dense": False, "center": False}
+
+    j_repl = nk.jax.jacobian(
+        vs._apply_fun,
+        vs.parameters,
+        np.array(x),
+        {},
+        **kwargs,
+        chunk_size=None,
+        _axis_0_is_sharded=False,
+    )  # jacobian is centered
+
+    j = nk.jax.jacobian(
+        vs._apply_fun,
+        vs.parameters,
+        x,
+        {},
+        **kwargs,
+        chunk_size=None,
+        _axis_0_is_sharded=True,
+    )  # jacobian is centered
+
+    jc = nk.jax.jacobian(
+        vs._apply_fun,
+        vs.parameters,
+        x,
+        {},
+        **kwargs,
+        chunk_size=8,
+        _axis_0_is_sharded=True,
+    )  # jacobian is centered
+
+    jax.tree.map(np.testing.assert_allclose, j_repl, j)
+    jax.tree.map(np.testing.assert_allclose, j, jc)

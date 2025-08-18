@@ -17,6 +17,7 @@ from functools import partial
 import flax
 import jax
 from jax import numpy as jnp
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import jax as nkjax
 from netket import config
@@ -159,7 +160,8 @@ class ARDirectSampler(Sampler):
 
         if config.netket_experimental_sharding:
             σ = jax.lax.with_sharding_constraint(
-                σ, jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1)
+                σ,
+                NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
             )
 
         # Initialize `cache` before generating a batch of samples,

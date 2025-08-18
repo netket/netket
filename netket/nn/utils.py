@@ -19,6 +19,7 @@ from typing import cast
 import jax
 from jax import numpy as jnp
 from jax.core import concrete_or_error
+from jax.sharding import NamedSharding, PartitionSpec as P
 import numpy as np
 from math import prod
 
@@ -28,7 +29,6 @@ from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert, DoubledHilbert
 
 from netket.utils import config
-from netket.utils.deprecation import deprecated
 from netket.jax.sharding import (
     extract_replicated,
     distribute_to_devices_along_axis,
@@ -149,7 +149,7 @@ def _to_array_rank(
 
     # gather/replicate
     if allgather and config.netket_experimental_sharding:  # type: ignore
-        sharding = jax.sharding.PositionalSharding(jax.devices()).replicate()
+        sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         psi = jax.lax.with_sharding_constraint(psi, sharding)
 
     # remove fake states
@@ -247,11 +247,3 @@ def binary_encoding(
     return binarised_states.reshape(
         *binarised_states.shape[:-2], prod(binarised_states.shape[-2:])
     )[..., output_idx]
-
-
-@deprecated(
-    "The function `netket.nn.states_to_numbers` is deprecated. "
-    "Please call `DiscreteHilbert.states_to_numbers` directly."
-)
-def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
-    return hilbert.states_to_numbers(σ)

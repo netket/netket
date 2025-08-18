@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from collections.abc import Iterable
-import warnings
 
 import numpy as np
 from fractions import Fraction
@@ -83,22 +82,6 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         Returns:
             A SpinOrbitalFermions object
         """
-        # TODO remove in 3.12 because it's deprecated experimental behaviour
-        if isinstance(n_fermions, Iterable):
-            warnings.warn(
-                """
-                          Declaring per-spin subsector constraint with `n_fermions` is deprecated.
-                          Use `n_fermions_per_spin` instead.
-
-                          As this class was experimental, this behaviour will break in NetKet 3.12 to be
-                          released in early 2024.
-                          """,
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            n_fermions_per_spin = n_fermions
-            n_fermions = None
-
         if not (isinstance(n_fermions, int) or n_fermions is None):
             raise TypeError(
                 """
