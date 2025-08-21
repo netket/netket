@@ -128,13 +128,14 @@ def forces_expect_hermitian_chunked(
     # mutable state (if it's there)
     if mutable is False:
         vjp_fun_chunked = nkjax.vjp_chunked(
-            lambda w, σ: model_apply_fun({"params": w, **model_state}, σ),
+            lambda w, ms, σ: model_apply_fun({"params": w, **ms}, σ),
             parameters,
+            model_state,
             σ,
             conjugate=True,
             chunk_size=chunk_size,
-            chunk_argnums=1,
-            nondiff_argnums=1,
+            chunk_argnums=2,
+            nondiff_argnums=(1, 2),
         )
         new_model_state = None
     else:

@@ -90,77 +90,93 @@ def mat_vec_factory(forward_fn, params, model_state, samples, pdf=None):
 # Methods below are needed for the chunked version of QGTOnTheFly
 
 
-@partial(sharding_decorator, sharded_args_tree=(False, False, True, False, False))
-def _O_jvp(forward_fn, params, samples, v, chunk_size):
-    @partial(scanmap, scan_fun=scan_append, argnums=2)
-    def __O_jvp(forward_fn, params, samples, v):
+@partial(
+    sharding_decorator, sharded_args_tree=(False, False, False, True, False, False)
+)
+def _O_jvp(forward_fn, params, model_state, samples, v, chunk_size):
+    @partial(scanmap, scan_fun=scan_append, argnums=3)
+    def __O_jvp(forward_fn, params, model_state, samples, v):
         # TODO apply the transpose of sum_inplace (allreduce) to the arg v here
         # in order to get correct transposition with JAX sharding
-        _, res = jax.jvp(lambda p: forward_fn(p, samples), (params,), (v,))
+        _, res = jax.jvp(lambda p: forward_fn(p, model_state, samples), (params,), (v,))
         return res
 
     samples, unchunk_fn = chunk(samples, chunk_size)
-    res = __O_jvp(forward_fn, params, samples, v)
+    res = __O_jvp(forward_fn, params, model_state, samples, v)
     return unchunk_fn(res)
 
 
 @partial(
     sharding_decorator,
-    sharded_args_tree=(False, False, True, True, False),
+    sharded_args_tree=(False, False, False, True, True, False),
     reduction_op_tree=jax.lax.psum,
 )
-def _O_vjp(forward_fn, params, samples, w, chunk_size):
-    @partial(scanmap, scan_fun=scan_reduce, argnums=(2, 3))
-    def __O_vjp(forward_fn, params, samples, w):
-        _, vjp_fun = jax.vjp(forward_fn, params, samples)
-        res, _ = vjp_fun(w)
-        return res
+def _O_vjp(forward_fn, params, model_state, samples, w, chunk_size):
+    @partial(scanmap, scan_fun=scan_reduce, argnums=(3, 4))
+    def __O_vjp(forward_fn, params, model_state, samples, w):
+        _, vjp_fun = jax.vjp(forward_fn, params, model_state, samples)
+        vjp_pars, _, _ = vjp_fun(w)
+        return vjp_pars
 
     samples, _ = chunk(samples, chunk_size)
     w, _ = chunk(w, chunk_size)
-    res = __O_vjp(forward_fn, params, samples, w)
+    res = __O_vjp(forward_fn, params, model_state, samples, w)
     return res
 
 
-def _OH_w(forward_fn, params, samples, w, chunk_size):
-    return tree_conj(_O_vjp(forward_fn, params, samples, w.conjugate(), chunk_size))
+def _OH_w(forward_fn, params, model_state, samples, w, chunk_size):
+    return tree_conj(
+        _O_vjp(forward_fn, params, model_state, samples, w.conjugate(), chunk_size)
+    )
 
 
-def _Odagger_DeltaO_v(forward_fn, params, samples, v, chunk_size, pdf=None):
-    w = _O_jvp(forward_fn, params, samples, v, chunk_size)
+def _Odagger_DeltaO_v(
+    forward_fn, params, model_state, samples, v, chunk_size, pdf=None
+):
+    w = _O_jvp(forward_fn, params, model_state, samples, v, chunk_size)
     if pdf is None:
         w = w * (1.0 / samples.shape[0])
         w = subtract_mean(w)  # w/ JAX sharding
     else:
         w = pdf * (w - pdf @ w)
-    res = _OH_w(forward_fn, params, samples, w, chunk_size)
+    res = _OH_w(forward_fn, params, model_state, samples, w, chunk_size)
     return res
 
 
-# @partial(jax.jit, static_argnums=1)
-def _mat_vec_chunked(forward_fn, params, samples, v, diag_shift, chunk_size, pdf=None):
+def _mat_vec_chunked(
+    forward_fn, params, model_state, samples, v, diag_shift, chunk_size, pdf=None
+):
     assert samples.ndim == 2  # require flat samples, axis 0 can be sharded
-    res = _Odagger_DeltaO_v(forward_fn, params, samples, v, chunk_size, pdf)
+    res = _Odagger_DeltaO_v(
+        forward_fn, params, model_state, samples, v, chunk_size, pdf
+    )
     return tree_axpy(diag_shift, v, res)
 
 
 def _mat_vec_chunked_transposable(
-    forward_fn, params, samples, v, diag_shift, chunk_size, pdf=None
+    forward_fn, params, model_state, samples, v, diag_shift, chunk_size, pdf=None
 ):
-    extra_args = (params, samples, diag_shift, pdf)
+    extra_args = (params, model_state, samples, diag_shift, pdf)
 
     def _mv(extra_args, x):
-        params, samples, diag_shift, pdf = extra_args
+        params, model_state, samples, diag_shift, pdf = extra_args
         return _mat_vec_chunked(
-            forward_fn, params, samples, x, diag_shift, chunk_size, pdf
+            forward_fn, params, model_state, samples, x, diag_shift, chunk_size, pdf
         )
 
     def _mv_trans(extra_args, y):
         # the linear operator is hermitian
-        params, samples, diag_shift, pdf = extra_args
+        params, model_state, samples, diag_shift, pdf = extra_args
         return tree_conj(
             _mat_vec_chunked(
-                forward_fn, params, samples, tree_conj(y), diag_shift, chunk_size, pdf
+                forward_fn,
+                params,
+                model_state,
+                samples,
+                tree_conj(y),
+                diag_shift,
+                chunk_size,
+                pdf,
             )
         )
 
@@ -198,13 +214,13 @@ def mat_vec_chunked_factory(
         lambda v,δ : (S + δ I) v
     """
 
-    def fun(W, samples):
-        return forward_fn({"params": W, **model_state}, samples)
+    def fun(W, ms, samples):
+        return forward_fn({"params": W, **ms}, samples)
 
     return Partial(
         partial(_mat_vec_chunked_transposable, fun, chunk_size=chunk_size),
         params,
+        model_state,
         samples,
         pdf=pdf,
     )
-    # return Partial(lambda f, *args: jax.jit(f)(*args), Partial(partial(_mat_vec_chunked, fun), params, samples))
