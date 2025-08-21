@@ -325,7 +325,7 @@ class MCState(VariationalState):
                 "because you did not supply a valid init_function."
             )
 
-        if dtype is None:
+        if dtype is None and hasattr(self, "_sampler"):
             dtype = self.sampler.dtype
         key = nkjax.PRNGKey(seed)
         dummy_input = self.hilbert.random_state(key, 1, dtype=dtype)
