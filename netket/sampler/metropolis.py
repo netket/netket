@@ -28,6 +28,7 @@ from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
 from netket import config
 from netket.utils import wrap_afun
 from netket.utils.types import PyTree, DType
+from netket.utils.deprecation import warn_deprecation
 from netket.utils import struct
 
 from netket.jax.sharding import (
@@ -238,6 +239,7 @@ class MetropolisSampler(Sampler):
         hilbert: AbstractHilbert,
         rule: MetropolisRule,
         *,
+        n_sweeps: int = None,
         sweep_size: int = None,
         reset_chains: bool = False,
         n_chains: int | None = None,
@@ -280,6 +282,14 @@ class MetropolisSampler(Sampler):
         if not isinstance(reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
 
+        if n_sweeps is not None:
+            warn_deprecation(
+                "Specifying `n_sweeps` when constructing sampler is deprecated. Please use `sweep_size` instead."
+            )
+            if sweep_size is not None:
+                raise ValueError("Cannot specify both `sweep_size` and `n_sweeps`")
+            sweep_size = n_sweeps
+
         if sweep_size is None:
             sweep_size = hilbert.size
 
@@ -320,6 +330,13 @@ class MetropolisSampler(Sampler):
         self.reset_chains = reset_chains
         self.rule = rule
         self.sweep_size = sweep_size
+
+    @property
+    def n_sweeps(self):
+        warn_deprecation(
+            "`MetropolisSampler.n_sweeps` is deprecated. Please use `MetropolisSampler.sweep_size` instead."
+        )
+        return self.sweep_size
 
     def sample_next(
         self,

@@ -10,7 +10,9 @@ from jax.extend import linear_util as lu
 from ._utils_tree import compose
 
 _tree_add = partial(jax.tree_util.tree_map, jax.lax.add)
-_tree_zeros_like = partial(jax.tree_util.tree_map, jnp.zeros_like)
+_tree_zeros_like = partial(
+    jax.tree_util.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype)
+)
 
 
 # TODO put it somewhere
@@ -88,8 +90,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_lik
     _get_op_part = partial(_multimap, lambda c, x: x if not c else None, append_cond)
     _tree_select = partial(_multimap, lambda c, t1, t2: t1 if c else t2, append_cond)
 
-    dummy_y = jax.eval_shape(f_flat, x0)
-    carry_init = True, _get_op_part(zero_fun(dummy_y))
+    carry_init = True, _get_op_part(zero_fun(jax.eval_shape(f_flat, x0)))
 
     def f_(carry, x):
         is_first, y_carry = carry

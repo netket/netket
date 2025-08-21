@@ -21,9 +21,3 @@ drivers
 sr
 superop
 ```
-
-```{toctree}
-:maxdepth: 1
-
-utils/index
-```

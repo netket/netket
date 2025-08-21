@@ -54,13 +54,13 @@ If you use NetKet software as part of your research, teaching, or other activiti
 Guidelines on citation are provided in the [Citing](https://www.netket.org/cite) section of our website.
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Getting started
 :hidden:
 
 install
 First Tutorial <tutorials/gs-ising>
-parallel
+distributed-computing
 ```
 
 ```{toctree}
@@ -81,7 +81,7 @@ sharp-bits
 
 ```{toctree}
 :hidden:
-:maxdepth: 2
+:maxdepth: 3
 :caption: API documentation
 
 api/api-stability

@@ -25,7 +25,6 @@ from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 
 PRNGKeyT = Any
 SeedT = Union[int, PRNGKeyT]
-ShardingT = Union[None, _jax.sharding.PartitionSpec]
 
 
 class _SupportsDType(Protocol):

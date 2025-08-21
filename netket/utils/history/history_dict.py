@@ -54,12 +54,10 @@ class HistoryDict:
         log files obtained from :class:`~netket.logging.RuntimeLog` and :class:`~netket.logging.JsonLog`.
 
 
-    .. warning::
+    .. warn::
 
-        This class should not be constructed directly. Instead, use
-        :func:`~netket.utils.history.accum_histories_in_tree` to build complex nested
-        history structures, or create instances through :class:`~netket.logging.RuntimeLog`
-        for logging purposes.
+        As of november 2024, this class is to be considered an experimental implementation detail,
+        used to play well with checkpointing. Do not use directly unless you know what you are doing.
 
     """
 

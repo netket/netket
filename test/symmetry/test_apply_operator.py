@@ -7,7 +7,10 @@ import netket as nk
 
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
-s3_representation = graph.space_group_representation(hilbert_space)
+group = graph.space_group()
+
+rep_dict = {g: nk.symmetry.PermutationOperator(hilbert_space, g) for g in group.elems}
+s3_representation = nk.symmetry.Representation(group, rep_dict)
 projector = s3_representation.get_projector(1)
 
 ising_ham = nk.operator.IsingJax(
@@ -30,7 +33,7 @@ vstate_list = [mc_vstate, fs_vstate]
 @pytest.mark.parametrize("vstate", vstate_list)
 def test_apply_operator(operator, vstate):
 
-    transformed_vstate = nk.vqs.apply_operator(operator, vstate)
+    transformed_vstate = nk.symmetry.apply_operator(operator, vstate)
 
     transformed_vstate_dense_1 = transformed_vstate.to_array(normalize=False)
     transformed_vstate_dense_2 = operator.to_dense() @ vstate.to_array(normalize=False)

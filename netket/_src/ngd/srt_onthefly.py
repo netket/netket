@@ -7,13 +7,15 @@ import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
-from jax.sharding import NamedSharding, PartitionSpec as P
+from jax.experimental.shard_map import shard_map
+from jax.sharding import PartitionSpec as P, PositionalSharding
 
 from netket import jax as nkjax
 from netket import config
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.utils import timing
 from netket.utils.types import Array
+from netket.utils.version_check import module_version
 
 from netket.jax import _ntk as nt
 
@@ -102,10 +104,10 @@ def srt_onthefly(
     all_samples = samples
     if config.netket_experimental_sharding:
         samples = jax.lax.with_sharding_constraint(
-            samples, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
+            samples, PositionalSharding(jax.devices()).reshape(-1, 1)
         )
         all_samples = jax.lax.with_sharding_constraint(
-            samples, NamedSharding(jax.sharding.get_abstract_mesh(), P())
+            samples, PositionalSharding(jax.devices()).replicate()
         )
 
     _jacobian_contraction = nt.empirical_ntk_by_jacobian(
@@ -115,8 +117,6 @@ def srt_onthefly(
     )
 
     def jacobian_contraction(samples, all_samples, parameters_real):
-        if config.netket_experimental_sharding:
-            parameters_real = jax.lax.pvary(parameters_real, "S")
         if chunk_size is None:
             # STRUCTURED_DERIVATIVES returns a complex array, but the imaginary part is zero
             # shape [N_mc/p.size, N_mc, 2, 2]
@@ -136,20 +136,27 @@ def srt_onthefly(
 
     # If we are sharding, use shard_map manually
     if config.netket_experimental_sharding:
-        mesh = jax.sharding.get_abstract_mesh()
+        mesh = jax.make_mesh((jax.device_count(),), ("i",), devices=jax.devices())
         # SAMPLES, ALL_SAMPLES PARAMETERS_REAL
-        in_specs = (P("S", None), P(), P())
-        out_specs = P("S", None)
+        in_specs = (P("i", None), P(), P())
+        out_specs = P("i", None, None, None)
 
         # By default, I'm not sure whether the jacobian_contraction of NeuralTangents
         # Is correctly automatically sharded across devices. So we force it to be
         # sharded with shard map to be sure
 
-        jacobian_contraction = jax.shard_map(
+        # check rep:
+        check_rep = module_version("jax") < (0, 4, 38)
+        # shard_map is broken between 0.4.38 and (as of 25 march 2025) 0.5.3.
+        # We assume any version after 0.4.38 'has a bug' that shows up as
+        # None is not Iterable
+        # it's a bug in check_rep, so we disable it in this case
+        jacobian_contraction = shard_map(
             jacobian_contraction,
             mesh=mesh,
             in_specs=in_specs,
             out_specs=out_specs,
+            check_rep=check_rep,
         )
 
     # This disables the nkjax.sharding_decorator in here, which might appear
@@ -158,12 +165,10 @@ def srt_onthefly(
         ntk_local = jacobian_contraction(samples, all_samples, parameters_real).real
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
-    if config.netket_experimental_sharding:
-        ntk = jax.lax.with_sharding_constraint(
-            ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P())
-        )
-    else:
-        ntk = ntk_local
+    ntk = jax.lax.with_sharding_constraint(
+        ntk_local,
+        PositionalSharding(jax.devices()).replicate(),
+    )
     if mode == "complex":
         # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
         ntk = rearrange(ntk, "i j z w -> (i z) (j w)")
@@ -210,14 +215,12 @@ def srt_onthefly(
     if mode == "complex":
         aus_vector = aus_vector.reshape(-1, 2)
     # shape [N_mc // p.size,2]
-    if config.netket_experimental_sharding:
-        aus_vector = jax.lax.with_sharding_constraint(
-            aus_vector,
-            NamedSharding(
-                jax.sharding.get_abstract_mesh(),
-                P("S", *(None,) * (aus_vector.ndim - 1)),
-            ),
-        )
+    aus_vector = jax.lax.with_sharding_constraint(
+        aus_vector,
+        PositionalSharding(jax.devices()).reshape(
+            -1, *(1 for _ in range(aus_vector.ndim - 1))
+        ),
+    )
 
     # _, vjp_fun = jax.vjp(f, parameters_real)
     vjp_fun = nkjax.vjp_chunked(

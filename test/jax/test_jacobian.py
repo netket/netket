@@ -2,7 +2,6 @@ import pytest
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from flax import core as fcore
@@ -63,7 +62,7 @@ def test_real_function_sharding(sharded):
     xs = jax.random.normal(k, (n_samples, 4))
     if sharded:
         xs = jax.lax.with_sharding_constraint(
-            xs, jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P("S"))
+            xs, jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1)
         )
 
     model_state, parameters = fcore.pop(ma.init(k, xs), "params")
@@ -95,14 +94,13 @@ def test_real_function_sharding(sharded):
     )
 
     if sharded:
-        assert jac_re.sharding.spec == P("S")
-        assert jac_2.sharding.spec == P("S")
+        assert jac_re.sharding.shape == (jax.device_count(), 1)
+        assert jac_2.sharding.shape == (jax.device_count(), 1)
         jac_re = jax.lax.with_sharding_constraint(
-            jac_re,
-            jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P()),
+            jac_re, jax.sharding.PositionalSharding(jax.devices()).replicate()
         )
         jac_2 = jax.lax.with_sharding_constraint(
-            jac_2, jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P())
+            jac_2, jax.sharding.PositionalSharding(jax.devices()).replicate()
         )
 
     np.testing.assert_allclose(jac_re, jac_2)

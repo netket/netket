@@ -19,7 +19,6 @@ import jax.numpy as jnp
 
 import netket as nk
 import netket.nn as nknn
-import netket.experimental
 
 
 def test_mlp_alpha():

@@ -335,7 +335,7 @@ def test_qgt_onthefly_correct_chunking_selection():
 
         # this just check it's not the unchunked code. We only have 2 implementations
         # so that's enough.
-        vstate.chunk_size = vstate.n_samples // (2 * jax.device_count())
+        vstate.chunk_size = vstate.n_samples // (2 * nk.jax.sharding.device_count())
         QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
         assert QGT._mat_vec.func is not _mat_vec
     # in sharding version

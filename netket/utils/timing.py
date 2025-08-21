@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from collections.abc import Callable
-from typing import TypeVar, ParamSpec, Union, cast, overload
+from typing import TypeVar, ParamSpec
 
 import time
 import inspect
@@ -165,7 +165,7 @@ _NULLTIMER = NullTimer()
 
 
 @contextlib.contextmanager
-def timed_scope(name: str | None = None, force: bool = False):
+def timed_scope(name: str = None, force: bool = False):
     """
     Context manager used to mark a scope to be timed individually
     by NetKet timers.
@@ -242,23 +242,9 @@ def timed_scope(name: str | None = None, force: bool = False):
         yield _NULLTIMER
 
 
-@overload
 def timed(
-    fun: None = None, name: str | None = None, block_until_ready: bool = True
-) -> Callable[[Callable[P, T]], Callable[P, T]]: ...
-
-
-@overload
-def timed(
-    fun: Callable[P, T], name: str | None = None, block_until_ready: bool = True
-) -> Callable[P, T]: ...
-
-
-def timed(
-    fun: Callable[P, T] | None = None,
-    name: str | None = None,
-    block_until_ready: bool = True,
-) -> Union[Callable[P, T], Callable[[Callable[P, T]], Callable[P, T]]]:
+    fun: Callable[P, T] = None, name: str | None = None, block_until_ready: bool = True
+) -> Callable[P, T]:
     """
     Marks the decorated function to be timed individually in
     NetKet timing scopes.
@@ -277,19 +263,17 @@ def timed(
     if fun is None:
         return functools.partial(timed, name=name)
 
-    assert fun is not None
-
     if name is None:
         if hasattr(fun, "__qualname__"):
-            name = cast(str, fun.__qualname__)
+            name = fun.__qualname__
         else:
-            name = cast(str, fun.__name__)
+            name = fun.__name__
 
     @functools.wraps(fun)
     def timed_function(*args, **kwargs):
         __tracebackhide__ = True
         with timed_scope(name) as ts:
-            result = fun(*args, **kwargs)  # type: ignore[misc]
+            result = fun(*args, **kwargs)
             if block_until_ready:
                 return ts.block_until_ready(result)
             else:

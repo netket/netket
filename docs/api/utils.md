@@ -62,20 +62,6 @@ Utility functions and classes.
 
 ```
 
-## History and time-series data
-
-Utilities for storing and managing time-series data, particularly useful for tracking optimization progress and simulation results.
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/utils
-   :nosignatures:
-
-   history.History
-   history.HistoryDict
-   history.accum_histories_in_tree
-```
-
 ## Timing utils
 
 Use those utilities to coarsely profile some netket functions or scopes. The timer here

@@ -258,9 +258,7 @@ class LocalOperatorBase(DiscreteOperator):
         return new
 
     def __radd__(self, other):
-        if is_scalar(other):
-            return self.__add__(other)
-        return super().__radd__(other)
+        return self.__add__(other)
 
     def __sub__(self, other):
         return self + (-other)

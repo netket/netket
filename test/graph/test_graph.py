@@ -407,6 +407,10 @@ def test_draw_lattices():
             figsize=(1.2, 3),
             node_color="blue",
             node_size=600,
+            edge_color="green",
+            curvature=0.5,
+            font_size=20,
+            font_color="yellow",
             show=False,
         )
 
@@ -787,6 +791,11 @@ def test_graph_conversions():
     assert g.edges(filter_color=1) == [(1, 2)]
     assert g.edges(filter_color=0, return_color=True) == [(0, 1, 0)]
     assert g.edges(filter_color=1, return_color=True) == [(1, 2, 1)]
+
+    with pytest.warns(FutureWarning):
+        assert g.edges(color=0) == g.edges(filter_color=0)
+    with pytest.warns(FutureWarning):
+        assert g.edges(color=True) == g.edges(return_color=True)
 
 
 def test_edge_colors():

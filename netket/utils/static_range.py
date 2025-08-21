@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TypeVar
+from numbers import Number
 
 import numpy as np
 
@@ -23,8 +23,6 @@ from netket.utils import struct
 from netket.utils.types import DType
 from netket.jax import canonicalize_dtypes
 from netket.jax._utils_dtype import bottom_int_dtype
-
-T = TypeVar("T", int, float)
 
 
 class StaticRange(struct.Pytree):
@@ -78,7 +76,7 @@ class StaticRange(struct.Pytree):
     dtype: DType = struct.field(pytree_node=False)
     """The dtype of the range."""
 
-    def __init__(self, start: T, step: T, length: int, dtype: DType = None):
+    def __init__(self, start: Number, step: Number, length: int, dtype: DType = None):
         """
         Constructs a Static Range object.
 

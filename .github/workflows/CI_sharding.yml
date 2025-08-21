@@ -45,13 +45,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Sync environment
+      - name: Pip install packages
         run: |
           uv sync --extra dev --extra extra
 
       - name: run tests
         run: |
-          uv run ./test_sharding/"${{ matrix.runscript }}" -m 'not slow' 
+          uv run ./test_sharding/"${{ matrix.runscript }}"
 
       - name: Upload coverage reports to Codecov
         if: always()

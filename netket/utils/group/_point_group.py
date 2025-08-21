@@ -18,7 +18,6 @@
 import itertools
 from functools import partial
 from math import pi
-from typing import overload, Literal, Any
 
 import numpy as np
 from scipy.linalg import schur
@@ -96,7 +95,7 @@ class PGSymmetry(Element):
     @property
     def is_proper(self) -> bool:
         """Returns True if `self` is a proper rotation (det(`self.matrix`) is +1)."""
-        return bool(np.isclose(np.linalg.det(self.matrix), 1.0))
+        return np.isclose(np.linalg.det(self.matrix), 1.0)
 
     @property
     def is_symmorphic(self) -> bool:
@@ -470,17 +469,7 @@ class PointGroup(FiniteGroup):
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)
 
-    @overload
-    def remove_duplicates(
-        self, *, return_inverse: Literal[False] = False
-    ) -> "PointGroup": ...
-
-    @overload
-    def remove_duplicates(
-        self, *, return_inverse: Literal[True]
-    ) -> tuple["PointGroup", Any]: ...
-
-    def remove_duplicates(self, *, return_inverse=False):
+    def remove_duplicates(self, *, return_inverse=False) -> "PointGroup":
         """
         Returns a new :code:`PointGroup` with duplicate elements (that is, elements
         which represent identical transformations) removed.

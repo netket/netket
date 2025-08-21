@@ -107,7 +107,7 @@ class Pytree(metaclass=PytreeMeta):
         >>>
         >>> my_pytree = MyPyTree(1, jax.numpy.ones(2))
         >>> jax.jit(lambda x: print(x))(my_pytree)  # doctest:+ELLIPSIS
-            MyPyTree(a=1, b=...
+            MyPyTree(a=1, b=Traced...
 
 
     PyTree classes by default are not mutable, therefore they
@@ -147,9 +147,7 @@ class Pytree(metaclass=PytreeMeta):
 
     _pytree__cachedprop_fields: tuple[str, ...]
 
-    def __init_subclass__(
-        cls, mutable: bool | None = None, dynamic_nodes: bool = False
-    ):
+    def __init_subclass__(cls, mutable: bool = None, dynamic_nodes: bool = False):
         super().__init_subclass__()
 
         # gather class info
@@ -658,7 +656,7 @@ def _inherited_cachedproperty_fields(cls: type) -> set[str]:
     return cachedproperty_fields
 
 
-def _inherited_defaults_setters(cls: type) -> dict[str, Callable[[], Any]]:
+def _inherited_defaults_setters(cls: type) -> set[Callable[[], Any]]:
     """
     Returns the set of default setters of base classes
     of the input class.
@@ -678,9 +676,7 @@ def _inherited_defaults_setters(cls: type) -> dict[str, Callable[[], Any]]:
     return default_setters
 
 
-def compute_serialize_rename_fields(
-    all_fields: dict[str, dataclasses.Field],
-) -> tuple[tuple[str, str], ...]:
+def compute_serialize_rename_fields(all_fields):
     rename = []
     for name, field in all_fields.items():
         new_name = field.metadata.get("serialize_name", None)
@@ -689,7 +685,7 @@ def compute_serialize_rename_fields(
     return tuple(sorted(rename))
 
 
-def unwrap_jax_prng_keys(maybe_key: tp.Any) -> tp.Any:
+def unwrap_jax_prng_keys(maybe_key):
     if isinstance(maybe_key, jax.Array) and jnp.issubdtype(
         maybe_key.dtype, jax.dtypes.prng_key
     ):

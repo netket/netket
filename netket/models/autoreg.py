@@ -119,6 +119,16 @@ class AbstractARNN(nn.Module):
         Returns:
           The probabilities with dimensions (batch, Hilbert.local_size).
         """
+        # TODO: remove this in future
+        if hasattr(self, "_conditional"):
+            from netket.utils import warn_deprecation
+
+            warn_deprecation(
+                "AbstractARNN._conditional has been renamed to AbstractARNN.conditional "
+                "as a public API. Please update your subclass to use fast AR sampling."
+            )
+            return self._conditional(inputs, index)
+
         return self.conditionals(inputs)[:, index, :]
 
     def __call__(self, inputs: Array) -> Array:

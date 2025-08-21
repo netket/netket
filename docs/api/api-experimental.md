@@ -30,17 +30,6 @@ features than the standard Stochastic Reconfiguration implementation of {class}`
    driver.VMC_SR
 ```
 
-Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration to minimize the infidelity between two quantum states (possibly with an operator in the middle, see https://quantum-journal.org/papers/q-2023-10-10-1131 and https://quantum-journal.org/papers/q-2025-07-22-1803/ for references) with the kernel trick or minSR formulation. This is slightly more limited in features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/experimental/driver
-   :template: class
-   :nosignatures:
-
-   driver.Infidelity_SR
-```
-
 
 (experimental-qsr-api)=
 ## Quantum State Reconstruction
@@ -196,5 +185,4 @@ This module contains various observables that can be computed starting from vari
 
    observable.Renyi2EntanglementEntropy
    observable.VarianceObservable
-   observable.InfidelityOperator
 ```

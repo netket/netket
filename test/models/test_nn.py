@@ -398,3 +398,25 @@ def test_modes_DenseEquivariant(lattice, symmetries):
 
     np.testing.assert_allclose(fft_out, irreps_out)
     np.testing.assert_allclose(fft_out, matrix_out)
+
+
+def test_deprecated_inout_features_DenseEquivariant():
+    perms = nk.graph.Chain(3).translation_group()
+
+    with pytest.warns(FutureWarning):
+        with pytest.raises(ValueError):
+            nk.nn.DenseEquivariant(
+                symmetries=perms, mode="irreps", out_features=1, features=2
+            )
+
+    with pytest.warns(FutureWarning):
+        nk.nn.DenseEquivariant(
+            symmetries=perms,
+            mode="irreps",
+            out_features=1,
+        )
+
+    with pytest.warns(FutureWarning):
+        nk.nn.DenseEquivariant(
+            symmetries=perms, mode="irreps", in_features=3, features=1
+        )

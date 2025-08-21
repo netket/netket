@@ -1,4 +1,4 @@
-# Copyright 2025 The NetKet Authors - All rights reserved.
+# Copyright 2021 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,10 @@
 from typing import Union
 from collections.abc import Iterable
 
-from netket.operator._abstract_operator import AbstractOperator
-from netket.operator._sum.base import SumOperator
+
+from .._abstract_operator import AbstractOperator
+
+from .base import SumOperator
 
 
 class SumGenericOperator(SumOperator, AbstractOperator):

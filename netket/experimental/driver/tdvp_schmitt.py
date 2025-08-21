@@ -94,10 +94,13 @@ class TDVPSchmitt(TDVPBaseDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        ode_solver: AbstractSolver,
+        # TODO: remove default None once `integrator` is removed
+        ode_solver: AbstractSolver = None,
         *,
         t0: float = 0.0,
         propagation_type: str = "real",
+        # TODO: integrator deprecated in 3.16 (oct/nov 2024)
+        integrator: AbstractSolver = None,
         holomorphic: bool | None = None,
         diag_shift: float = 0.0,
         diag_scale: float | None = None,
@@ -175,6 +178,7 @@ class TDVPSchmitt(TDVPBaseDriver):
             ode_solver,
             t0=t0,
             error_norm=error_norm,
+            integrator=integrator,
         )
 
 

@@ -2,9 +2,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-from netket.utils.iterators import safe_map
-
-safe_zip = partial(zip, strict=True)
+from jax.util import safe_zip, safe_map
 
 
 def _tree_map_multi_out(f, tree, *rest, is_leaf=None):

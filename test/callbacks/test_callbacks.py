@@ -41,11 +41,11 @@ def _tdvp(n_iter=20):
     sa = nk.sampler.MetropolisLocal(hi)
     vs = nk.vqs.MCState(sa, ma, n_samples=512, seed=SEED)
 
-    ode_solver = nkx.dynamics.RK4(dt=1.0)
+    int = nkx.dynamics.RK4(dt=1.0)
     solv = nk.optimizer.solver.svd(rcond=1e-5)
 
     return nkx.TDVP(
-        operator=ha, variational_state=vs, ode_solver=ode_solver, linear_solver=solv
+        operator=ha, variational_state=vs, integrator=int, linear_solver=solv
     )
 
 

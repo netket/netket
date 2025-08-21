@@ -38,7 +38,7 @@ def test_PRNGSeq():
     assert k is not k1 and k1 is not k2
 
     keys = seq.take(4)
-    assert keys.shape == (4,)
+    assert keys.shape == (4, 2)
 
     seq1 = PRNGSeq(12)
     seq2 = PRNGSeq(12)
@@ -146,3 +146,33 @@ def test_batching_wrapper():
     res = afun(None, xb, mutable=True)[0]
     assert res.shape == (1,)
     assert res == jnp.sum(x, axis=-1)
+
+
+def test_deprecated_dispatch_bool():
+    from netket.utils import dispatch
+
+    @dispatch.dispatch
+    def test(a):
+        return 1
+
+    with pytest.warns():
+
+        @dispatch.dispatch
+        def test(a: dispatch.TrueT):  # noqa: F811
+            return True
+
+    with pytest.warns():
+
+        @dispatch.dispatch
+        def test(b: dispatch.FalseT):  # noqa: F811
+            return False
+
+    assert test(1) == 1
+    assert test(True) is True
+    assert test(False) is False
+
+    with pytest.warns():
+
+        @dispatch.dispatch
+        def test(b: dispatch.Bool):  # noqa: F811
+            return False

@@ -17,15 +17,41 @@ from . import rules
 
 # Deprecated bindings from stabilisaation
 from netket.sampler import (
+    ParallelTemperingSampler as _deprecated_MetropolisPtSampler,
+    ParallelTemperingLocal as _deprecated_MetropolisLocalPtSampler,
+    ParallelTemperingExchange as _deprecated_MetropolisExchangePtSampler,
     MetropolisFermionHop as _deprecated_MetropolisParticleExchange,
+    MetropolisSampler as _deprecated_MetropolisSampler,
 )
 
 _deprecations = {
+    # May 2024, NetKet 3.12
+    "MetropolisPtSampler": (
+        "netket.experimental.sampler.MetropolisPtSampler is deprecated: use "
+        "netket.sampler.ParallelTemperingSampler (netket >= 3.12)",
+        _deprecated_MetropolisPtSampler,
+    ),
+    "MetropolisLocalPt": (
+        "netket.experimental.sampler.MetropolisLocalPt is deprecated: use "
+        "netket.sampler.ParallelTemperingLocal (netket >= 3.12)",
+        _deprecated_MetropolisLocalPtSampler,
+    ),
+    "MetropolisExchangePt": (
+        "netket.experimental.sampler.MetropolisExchangePt is deprecated: use "
+        "netket.sampler.ParallelTemperingExchange (netket >= 3.12)",
+        _deprecated_MetropolisExchangePtSampler,
+    ),
     # June 2024, NetKet 3.13
     "MetropolisParticleExchange": (
         "netket.experimental.sampler.MetropolisParticleExchange is deprecated: use "
         "netket.sampler.MetropolisFermionHop (netket >= 3.13)",
         _deprecated_MetropolisParticleExchange,
+    ),
+    # June 2025
+    "MetropolisSamplerPmap": (
+        "netket.experimental.sampler.MetropolisSamplerPmap is deprecated: just use "
+        "netket.sampler.MetropolisSampler",
+        _deprecated_MetropolisSampler,
     ),
 }
 

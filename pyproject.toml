@@ -39,7 +39,7 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.7.0",
+    "jax>=0.4.35, <0.6",
     "equinox>=0.11.3",
     "flax>=0.10.2",
     "orjson>=3.4, <4",
@@ -78,8 +78,6 @@ docs = [
     "myst-nb>=1.0,<1.4",
     "sphinx-book-theme~=1.1.0",
     "sphinx-copybutton>=0.5.2",
-    "nbconvert>=7.16.6",
-    "ipywidgets>=8.1.7",
 ]
 
 [project.scripts]
@@ -103,11 +101,10 @@ version-file = "netket/_version.py"
 
 [tool.uv]
 dev-dependencies = [
-    "netket[pyscf,extra,dev,docs]",
+    "netket[dev,docs]",
     "ipykernel>=6.20",
     "pyscf>=2.9.0",
 ]
-
 
 # Development tools
 
@@ -157,7 +154,6 @@ filterwarnings = [
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
     "ignore::netket.errors.UndeclaredSpinOderingWarning",
     "ignore::netket.errors.UnoptimalSRtWarning",
-    "ignore::netket.errors.InitializePeriodicLatticeOnSmallLatticeWarning",
 ]
 testpaths = ["test"]
 

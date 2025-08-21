@@ -1,5 +1,4 @@
 from types import ModuleType
-from typing import Union, cast
 
 import importlib
 
@@ -22,21 +21,15 @@ def version_tuple(verstr: str):
     return vertupl
 
 
-def module_version(module: Union[str, ModuleType]) -> tuple[int, ...]:
+def module_version(module: str | ModuleType) -> tuple[int, ...]:
     if isinstance(module, str):
         module = importlib.import_module(module)
 
-    if not hasattr(module, "__version__"):
-        raise AttributeError(f"Module '{module.__name__}' has no __version__ attribute")
-
-    return version_tuple(cast(str, module.__version__))
+    return version_tuple(module.__version__)
 
 
-def version_string(module: Union[str, ModuleType]) -> str:
+def version_string(module: str | ModuleType) -> str:
     if isinstance(module, str):
         module = importlib.import_module(module)
 
-    if not hasattr(module, "__version__"):
-        raise AttributeError(f"Module '{module.__name__}' has no __version__ attribute")
-
-    return cast(str, module.__version__)
+    return module.__version__

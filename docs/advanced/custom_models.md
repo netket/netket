@@ -36,7 +36,13 @@ inside {code}`jax.jit` blocks, so they must be jit-compatible.
 ## Using Flax Linen
 
 To define a model using Flax Linen you need to define a Flax Module. Normally those functionalities are present
-in the {code}`flax.linen` module, that people usually import with {code}`import flax.linen as nn`.
+in the {code}`flax.linen` module, that people usually import with {code}`import flax.linen as nn` (some day in
+a few months from now, {code}`import flax.nn` will work, but at the moment it won't, as it's importing a different,
+legacy, deprecated module).
+
+Flax supports complex numbers but does not make it overly easy to work with them.
+As such, netket exports a module, `netket.nn` which re-exports the functionality in `flax.nn`, but
+with the additional support of complex numbers.
 
 To define a Flax Module, simply create a class that inherits from `nn.Module`.
 This class cannot have an {code}`__init__` method, but can have several class attributes.

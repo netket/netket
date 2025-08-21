@@ -17,6 +17,7 @@ from collections.abc import Sequence
 import numpy as np
 import igraph
 
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.group import Permutation, PermutationGroup
 from .abstract_graph import AbstractGraph, Edge, ColoredEdge, EdgeSequence
 
@@ -150,10 +151,23 @@ class Graph(AbstractGraph):
 
     def edges(
         self,
+        color=None,
         *,
         return_color: bool = False,
         filter_color: int | None = None,
     ) -> EdgeSequence:
+        if color is not None:
+            warn_deprecation(
+                "The color option has been split into return_color and filter_color."
+            )
+            # need to check for bool first, because bool is a subclass of int
+            if isinstance(color, bool):
+                return_color = color
+            elif isinstance(color, int):
+                filter_color = color
+            else:
+                raise TypeError("Incorrect type for 'color'")
+
         if not return_color and filter_color is None:
             return self._igraph.get_edgelist()
 
@@ -181,7 +195,7 @@ class Graph(AbstractGraph):
 
     def _compute_automorphisms(self):
         """
-        Compute the graph automorphisms of this graph.
+        Compute the graph autmorphisms of this graph.
         """
         colors = self.edge_colors
         result = self._igraph.get_isomorphisms_vf2(
@@ -190,10 +204,7 @@ class Graph(AbstractGraph):
 
         # sort them s.t. the identity comes first
         result = np.unique(result, axis=0).tolist()
-        result = PermutationGroup(
-            [Permutation(inverse_permutation_array=perm) for perm in result],
-            self.n_nodes,
-        )
+        result = PermutationGroup([Permutation(i) for i in result], self.n_nodes)
         return result
 
     # TODO turn into a struct.property_cached?

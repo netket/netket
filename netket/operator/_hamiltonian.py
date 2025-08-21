@@ -46,10 +46,10 @@ class SpecialHamiltonian(DiscreteOperator):
         return self.to_local_operator() - other
 
     def __radd__(self, other):
-        return other + self.to_local_operator()
+        return self.to_local_operator().__radd__(other)
 
     def __rsub__(self, other):
-        return other - self.to_local_operator()
+        return self.to_local_operator().__rsub__(other)
 
     def __iadd__(self, other):
         if type(self) is type(other):

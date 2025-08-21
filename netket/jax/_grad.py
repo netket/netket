@@ -19,7 +19,11 @@ import operator
 
 import jax
 import jax.numpy as jnp
+from jax.util import safe_map
+
 from ._utils_tree import tree_leaf_iscomplex, eval_shape
+
+map = safe_map
 
 
 def _ensure_index(x: Any) -> int | tuple[int, ...]:

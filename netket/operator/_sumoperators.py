@@ -12,34 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import no_type_check
 from collections.abc import Callable
 from collections.abc import Hashable, Iterable
 
 import jax.numpy as jnp
 
-from netket.utils import HashableArray, struct
 from netket.utils.numbers import is_scalar
 from netket.utils.types import DType, PyTree, Array
+
+from netket.jax import canonicalize_dtypes
 from netket.operator import ContinuousOperator
-
-# from .._continuous_operator import ContinuousOperator
-
-from .base import SumOperator, SumOperatorMeta
+from netket.utils import HashableArray, struct
 
 
-class SumContinuousMeta(struct.pytree.PytreeMeta, SumOperatorMeta):
-    """
-    Workaround to allow SumContinuousOperator to be a subclass of both
-    ContinuousOperator and SumOperator, because the first is a
-    Pytree and the latter has the custom dispatch logic.
-    """
+def _flatten_sumoperators(
+    operators: Iterable[ContinuousOperator], coefficients: Array
+) -> tuple[list[ContinuousOperator], list[complex]]:
+    """Flatten sumoperators inside of operators."""
+    new_operators: list[ContinuousOperator] = []
+    new_coeffs = []
+    for op, c in zip(operators, coefficients):
+        if isinstance(op, SumOperator):
+            new_operators.extend(op.operators)
+            new_coeffs.extend(c * op.coefficients)
+        else:
+            new_operators.append(op)
+            new_coeffs.append(c)
+    return new_operators, new_coeffs
 
-    pass
 
-
-class SumContinuousOperator(
-    SumOperator, ContinuousOperator, metaclass=SumContinuousMeta
-):
+class SumOperator(ContinuousOperator):
     r"""This class implements the action of the _expect_kernel()-method of
     ContinuousOperator for a sum of ContinuousOperator objects.
     """
@@ -48,6 +51,7 @@ class SumContinuousOperator(
     _coefficients: Array
     _is_hermitian: bool = struct.static_field()
 
+    @no_type_check
     def __init__(
         self,
         *operators: tuple[ContinuousOperator, ...],
@@ -73,16 +77,29 @@ class SumContinuousOperator(
         if len(operators) != len(coefficients):  # type: ignore
             raise AssertionError("Each operator needs a coefficient")
 
+        operators, coefficients = _flatten_sumoperators(operators, coefficients)
+
+        dtype = canonicalize_dtypes(float, *operators, *coefficients, dtype=dtype)
+
         self._operators = tuple(operators)  # type: tuple[ContinuousOperator, ...]
         self._coefficients = jnp.asarray(coefficients, dtype=dtype)
         self._is_hermitian = all([op.is_hermitian for op in operators])
-        super().__init__(
-            operators, operators[0].hilbert, coefficients=coefficients, dtype=dtype
-        )
+        super().__init__(hi_spaces[0], self._coefficients.dtype)
 
     @property
     def is_hermitian(self) -> bool:
         return self._is_hermitian
+
+    @property
+    def operators(self) -> tuple[ContinuousOperator, ...]:
+        """The list of all operators in the terms of this sum. Every
+        operator is summed with a corresponding coefficient
+        """
+        return self._operators
+
+    @property
+    def coefficients(self) -> Array:
+        return self._coefficients
 
     def _expect_kernel(
         self,
@@ -103,4 +120,9 @@ class SumContinuousOperator(
             self.operators,
             HashableArray(self.coefficients),
             self.dtype,
+        )
+
+    def __repr__(self):
+        return (
+            f"SumOperator(operators={self.operators}, coefficients={self.coefficients})"
         )
