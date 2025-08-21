@@ -130,8 +130,8 @@ def forces_expect_hermitian_chunked(
         vjp_fun_chunked = nkjax.vjp_chunked(
             lambda w, ms, σ: model_apply_fun({"params": w, **ms}, σ),
             parameters,
-            σ,
             model_state,
+            σ,
             conjugate=True,
             chunk_size=chunk_size,
             chunk_argnums=2,
