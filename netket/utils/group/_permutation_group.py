@@ -34,7 +34,7 @@ class Permutation(Element):
     def __init__(
         self,
         permutation: Array | None = None,
-        *,  # change one line somewhere
+        *,
         name: str | None = None,
         permutation_array: Array | None = None,
         inverse_permutation_array: Array | None = None,
@@ -126,6 +126,23 @@ class Permutation(Element):
         else:
             return f"Permutation({self.permutation_array.tolist()})"
 
+    def get_cycle_decomposition(self):
+        """
+        Return the cycle decomposition of the permutation.
+        """
+        permutation_array = self.permutation_array
+        cycle_list = []
+        visited = np.zeros(len(permutation_array), dtype=bool)
+        while not np.all(visited):
+            starting_point = np.nonzero(1 - visited)[0][0]
+            current_point = starting_point
+            cycle_list.append([])
+            while not visited[starting_point]:
+                current_point = permutation_array[current_point]
+                cycle_list[-1].append(current_point.item())
+                visited[current_point] = True
+        return cycle_list
+
     @deprecated_new_name("permutation.inverse_permutation_array")
     def __array__(self, dtype: DType = None):
         return np.asarray(self._inverse_permutation_array, dtype)
@@ -141,7 +158,14 @@ def product(p: Permutation, x: Array):
     # direct indexing fails, so we call np.asarray on it to extract the
     # wrapped array
     # TODO make indexing work with HashableArray directly
-    return x[..., p.inverse_permutation_array]
+    import jax
+
+    if isinstance(x, jax.Array):
+        return x.at[..., p.inverse_permutation_array].get(
+            unique_indices=True, mode="promise_in_bounds"
+        )
+    else:
+        return x[..., p.inverse_permutation_array]
 
 
 @dispatch
@@ -314,4 +338,14 @@ def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
 
 @dispatch
 def product(G: PermutationGroup, x: Array):  # noqa: F811
-    return np.moveaxis(x[..., G.to_array()], -2, 0)
+    import jax
+    import jax.numpy as jnp
+
+    if isinstance(x, jax.Array):
+        return jnp.moveaxis(
+            x.at[..., G.to_array()].get(unique_indices=True, mode="promise_in_bounds"),
+            -2,
+            0,
+        )
+    else:
+        return np.moveaxis(x[..., G.to_array()], -2, 0)

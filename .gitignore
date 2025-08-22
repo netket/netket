@@ -86,3 +86,7 @@ build/
 docs/_build
 _generated
 dist
+
+
+#Louis stuff 
+netket/symmetry/louis_test.ipynb
