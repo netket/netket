@@ -40,8 +40,11 @@ from ._fermion2nd import (
     FermionOperator2ndNumba,
 )
 
+
 from . import spin, boson, fermion
 
 from netket.utils import _auto_export
+
+from . import permutation
 
 _auto_export(__name__)

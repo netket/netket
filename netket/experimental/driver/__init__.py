@@ -15,7 +15,7 @@
 from .tdvp import TDVP
 from .tdvp_schmitt import TDVPSchmitt
 from .vmc_sr import VMC_SR, VMC_SRt as _VMC_SRt_deprecated
-
+from .infidelity_sr import Infidelity_SR
 
 _deprecations = {
     # May 2024, NetKet 3.12

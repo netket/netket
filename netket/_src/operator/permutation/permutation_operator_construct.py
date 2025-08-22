@@ -1,7 +1,7 @@
 from netket.hilbert import AbstractHilbert, Qubit, Spin, Fock, SpinOrbitalFermions
-from netket.symmetry import PermutationOperator, PermutationOperatorFermion
+from netket.operator.permutation import PermutationOperator, PermutationOperatorFermion
 
-from netket.utils.group import Permutation
+from netket.symmetry.group import Permutation
 
 
 def construct_permutation_operator(

@@ -9,31 +9,33 @@ from itertools import product
 
 def test_permutation_operator():
 
-    translation_1 = nk.utils.group.Permutation(
+    translation_1 = nk.symmetry.group.Permutation(
         permutation_array=jnp.array([1, 2, 0]), name="translation_1"
     )
-    translation_2 = nk.utils.group.Permutation(
+    translation_2 = nk.symmetry.group.Permutation(
         permutation_array=jnp.array([2, 0, 1]), name="translation_2"
     )
-    transposition_12 = nk.utils.group.Permutation(
+    transposition_12 = nk.symmetry.group.Permutation(
         permutation_array=jnp.array([0, 2, 1]), name="transposition_12"
     )
-    identity = nk.utils.group.Identity()
+    identity = nk.symmetry.group.Identity()
 
     hilbert_space = nk.hilbert.Qubit(3)
     spin_1_space = nk.hilbert.Spin(1, 3)
     hilbert_space_4_qubits = nk.hilbert.Qubit(4)
 
-    translation_1_operator = nk.symmetry.PermutationOperator(
+    translation_1_operator = nk.operator.permutation.PermutationOperator(
         hilbert_space, translation_1
     )
-    translation_2_operator = nk.symmetry.PermutationOperator(
+    translation_2_operator = nk.operator.permutation.PermutationOperator(
         hilbert_space, translation_2
     )
-    transposition_12_operator = nk.symmetry.PermutationOperator(
+    transposition_12_operator = nk.operator.permutation.PermutationOperator(
         hilbert_space, transposition_12
     )
-    identity_operator = nk.symmetry.PermutationOperator(hilbert_space, identity)
+    identity_operator = nk.operator.permutation.PermutationOperator(
+        hilbert_space, identity
+    )
     permutation_operators = (
         translation_1_operator,
         translation_2_operator,
@@ -41,19 +43,21 @@ def test_permutation_operator():
         identity_operator,
     )
 
-    translation_1_prime = nk.utils.group.Permutation(
+    translation_1_prime = nk.symmetry.group.Permutation(
         permutation_array=jnp.array([1, 2, 0]), name="translation_1"
     )
 
-    translation_1_operator_spin_1 = nk.symmetry.PermutationOperator(
+    translation_1_operator_spin_1 = nk.operator.permutation.PermutationOperator(
         spin_1_space, translation_1
     )
 
     with pytest.raises(ValueError):
-        nk.symmetry.PermutationOperator(hilbert_space_4_qubits, translation_1)
+        nk.operator.permutation.PermutationOperator(
+            hilbert_space_4_qubits, translation_1
+        )
 
     with pytest.raises(TypeError):
-        nk.symmetry.PermutationOperator(hilbert_space, jnp.array([0, 1, 2]))
+        nk.operator.permutation.PermutationOperator(hilbert_space, jnp.array([0, 1, 2]))
 
     # Check equality works properly
     assert translation_1 == translation_1_prime
@@ -65,7 +69,7 @@ def test_permutation_operator():
     # Check representation property
     for op_1, op_2 in product(permutation_operators, permutation_operators):
         product_permutation = op_1.permutation @ op_2.permutation
-        product_permutation_operator = nk.symmetry.PermutationOperator(
+        product_permutation_operator = nk.operator.permutation.PermutationOperator(
             op_1.hilbert, product_permutation
         )
         product_permutation_dense = product_permutation_operator.to_dense()
@@ -125,3 +129,29 @@ def test_permutation_operator():
         jnp.linalg.norm(identity_operator.to_dense() - jnp.eye(hilbert_space.n_states))
         < 1e-14
     )
+
+
+op_list = []
+
+graph = nk.graph.Chain(3, pbc=True)
+hilbert_space = nk.hilbert.Qubit(3)
+for permutation in graph.space_group().elems:
+    op = nk.operator.permutation.PermutationOperator(hilbert_space, permutation)
+    op_list.append(op)
+
+graph = nk.graph.Square(2, pbc=False)
+hilbert_space = nk.hilbert.Spin(1, 4)
+for permutation in graph.space_group().elems:
+    op = nk.operator.permutation.PermutationOperator(hilbert_space, permutation)
+    op_list.append(op)
+
+graph = nk.graph.Square(2, pbc=False)
+hilbert_space = nk.hilbert.Spin(1, 4, total_sz=0)
+for permutation in graph.space_group().elems:
+    op = nk.operator.permutation.PermutationOperator(hilbert_space, permutation)
+    op_list.append(op)
+
+
+@pytest.mark.parametrize("op", op_list)
+def test_trace(op):
+    assert jnp.trace(op.to_dense()).item() == op.trace()

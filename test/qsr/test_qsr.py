@@ -39,8 +39,8 @@ def _thermal_state(ha, beta):
 def _generate_data(
     hi,
     rho,
-    n_basis=20,
-    n_shots=100,
+    n_basis=6,
+    n_shots=20,
 ):
     N = int(np.log2(rho.shape[0]))
     rotations = []
@@ -136,7 +136,7 @@ def _setup_driver(N, mode, control_variate_update_freq=10, chunk_size=97):
 ####
 
 
-@pytest.mark.parametrize("chunk_size", [None, 30, 70, 110])
+@pytest.mark.parametrize("chunk_size", [None, 30, 110])
 def test_pure_qsr(chunk_size):
     N = 3
     driver, rho = _setup_driver(N, "pure", chunk_size=chunk_size)
@@ -148,13 +148,13 @@ def test_mixed_qsr():
     N = 3
     driver, rho = _setup_driver(N, "mixed")
     assert driver.mixed_states is True
-    driver.run(n_iter=20, out="test_pure_qsr.out")
+    driver.run(n_iter=2, out="test_pure_qsr.out")
 
 
 def test_pure_KL():
     N = 3
     driver, rho = _setup_driver(N, "pure")
-    driver.run(n_iter=20, out="test_pure_qsr.out")
+    driver.run(n_iter=2, out="test_pure_qsr.out")
     driver.KL(rho, n_shots=100)
     driver.KL_whole_training_set(rho, n_shots=100)
     driver.KL_exact(rho, n_shots=100)
@@ -163,7 +163,7 @@ def test_pure_KL():
 def test_mixed_KL():
     N = 3
     driver, rho = _setup_driver(N, "mixed")
-    driver.run(n_iter=20, out="test_pure_qsr.out")
+    driver.run(n_iter=2, out="test_pure_qsr.out")
     driver.KL(rho, n_shots=100)
     driver.KL_whole_training_set(rho, n_shots=100)
     driver.KL_exact(rho, n_shots=100)

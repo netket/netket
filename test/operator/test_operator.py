@@ -85,7 +85,7 @@ sx = [[0, 1], [1, 0]]
 sy = [[0, -1.0j], [1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
+hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
 for name, LocalOp_impl in [
     ("numba", nk.operator.LocalOperatorNumba),
@@ -140,6 +140,13 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nk.operator.FermionOperator2ndJ
     _mode="mask",
 )
 
+# SumOperator
+hi = nk.hilbert.Spin(0.5, 3)
+operators["SumOperatorJax"] = nk.operator.SumOperator(
+    nk.operator.spin.sigmax(hi, 0),
+    nk.operator.spin.sigmay(hi, 1).to_pauli_strings(),
+    coefficients=[0.5, 0.3],
+)
 
 translation_1 = nk.utils.group.Permutation(
     permutation_array=jnp.array([1, 2, 3, 0]), name="translation_1"

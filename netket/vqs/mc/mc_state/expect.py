@@ -164,17 +164,6 @@ def _expect(
     def log_pdf(w, σ):
         return machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
 
-    # TODO: Broken until google/jax#11916 is resolved.
-    # should uncomment and remove code below once this is fixed
-    # _, Ō_stats = nkjax.expect(
-    #    log_pdf,
-    #    partial(local_value_kernel, logpsi),
-    #    parameters,
-    #    σ,
-    #    local_value_args,
-    #    n_chains=n_chains,
-    # )
-
     L_σ = local_value_kernel(logpsi, parameters, σ, local_value_args)
     Ō_stats = statistics(L_σ.reshape((n_chains, -1)))
 

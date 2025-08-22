@@ -6,7 +6,9 @@ from functools import partial
 
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.group import Permutation
-from netket.symmetry import PermutationOperatorBase
+
+from .permutation_operator_base import PermutationOperatorBase
+from .trace_utils import get_subset_occupations, get_parity_sum
 
 
 def get_parity(array: jax.Array) -> jax.Array:
@@ -63,6 +65,13 @@ class PermutationOperatorFermion(PermutationOperatorBase):
     given Hilbert space. If the number of fermion per spin sector is fixed,
     we might want to check that the permutation respects that constraint.
 
+    But then spin flip would be a permutation that is not a product of permutation
+    acting on each subsector, but that is still valid. So it is hard to tell
+    at a glance whether a given permutation is valid for restriction to that subspace.
+
+    I don't think it is possible to make such a check. So we just have to hope
+    the user knows what they are doing.
+
     Args:
         hilbert: The Hilbert space.
         permutation: The permutation represented by the operator.
@@ -115,3 +124,15 @@ class PermutationOperatorFermion(PermutationOperatorBase):
             )
         else:
             return super().__matmul__(other)
+
+    def trace(self):
+        partition_labels = sum(
+            [
+                self.hilbert.n_orbitals * [k]
+                for k in range(self.hilbert.n_spin_subsectors)
+            ],
+            start=[],
+        )
+        cycle_decomposition = self.permutation.get_cycle_decomposition()
+        cycle_occupation = get_subset_occupations(partition_labels, cycle_decomposition)
+        return get_parity_sum(cycle_occupation, self.hilbert.n_fermions_per_spin)

@@ -1,7 +1,11 @@
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
-from netket.symmetry import PermutationOperatorBase
+from netket.hilbert import Qubit, Spin
+from netket.hilbert.constraint import SumConstraint
+
+from .permutation_operator_base import PermutationOperatorBase
+from .trace_utils import count_n_uplets
 
 
 @register_pytree_node_class
@@ -45,3 +49,30 @@ class PermutationOperator(PermutationOperatorBase):
             )
         else:
             return super().__matmul__(other)
+
+    def trace(self):
+        cycle_decomposition = self.permutation.get_cycle_decomposition()
+
+        if isinstance(self.hilbert, Qubit):
+            return 2 ** len(cycle_decomposition)
+
+        if isinstance(self.hilbert, Spin):
+
+            if not self.hilbert.constrained:
+                return self.hilbert.local_size ** len(cycle_decomposition)
+
+            elif isinstance(self.hilbert.constraint, SumConstraint):
+                cycle_lengths = [len(cycle) for cycle in cycle_decomposition]
+                shifted_constraint = (
+                    self.hilbert.constraint.sum_value
+                    + self.hilbert.size * (self.hilbert.local_size - 1)
+                )
+                return count_n_uplets(
+                    cycle_lengths, shifted_constraint, self.hilbert.local_size
+                )
+
+            else:
+                raise NotImplementedError
+
+        else:
+            raise NotImplementedError

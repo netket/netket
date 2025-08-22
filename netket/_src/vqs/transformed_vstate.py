@@ -71,7 +71,7 @@ def make_logpsi_op_afun(logpsi_fun, operator, variables):
     return logpsi_op_fun, new_variables
 
 
-def _logpsi_op_fun(apply_fun, variables, x, *args):
+def _logpsi_op_fun(apply_fun, variables, x, *args, **kwargs):
     """
     This should be used as a wrapper to the original apply function, adding
     to the `variables` dictionary (in model_state) a new key `operator` with
@@ -84,7 +84,7 @@ def _logpsi_op_fun(apply_fun, variables, x, *args):
     else:
         xp, mels = operator.get_conn_padded(x)
         xp = xp.reshape(-1, x.shape[-1])
-        logpsi_xp = apply_fun(variables_applyfun, xp, *args)
+        logpsi_xp = apply_fun(variables_applyfun, xp, *args, **kwargs)
         logpsi_xp = logpsi_xp.reshape(mels.shape).astype(complex)
 
         res = jax.scipy.special.logsumexp(logpsi_xp, axis=-1, b=mels)

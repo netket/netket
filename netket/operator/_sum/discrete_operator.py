@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2025 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
 
 import numpy as np
 
-from .._discrete_operator import DiscreteOperator
-
-from .base import SumOperator
+from netket.operator._discrete_operator import DiscreteOperator
+from netket.operator._sum.base import SumOperator
 
 
 class SumDiscreteOperator(SumOperator, DiscreteOperator):
