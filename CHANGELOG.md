@@ -11,8 +11,9 @@
 
 ### Deprecations and Removals
 
-### Bug Fixes
+## NetKet 3.19.1
 
+* Fix a bug where using non-differentiable parameters with chunking would lead to tracer leaks and errors when using `nk.optimizer.qgt.QGTOnTheFly`. This was due to incorrect capturing of the 'model_state' in some shard_maps.
 
 ## NetKet 3.19 (In development)
 
