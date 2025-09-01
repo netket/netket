@@ -18,8 +18,10 @@ transposition_12 = nk.utils.group.Permutation(
 sigmax_local = nk.operator.spin.sigmax(hilbert_space, 0)
 sigmaz_pauli = nk.operator.spin.sigmaz(hilbert_space, 0).to_pauli_strings()
 ising = nk.operator.IsingJax(hilbert_space, graph, 1, 1)
-translation_1_operator = nk.symmetry.PermutationOperator(hilbert_space, translation_1)
-transposition_12_operator = nk.symmetry.PermutationOperator(
+translation_1_operator = nk.operator.permutation.PermutationOperator(
+    hilbert_space, translation_1
+)
+transposition_12_operator = nk.operator.permutation.PermutationOperator(
     hilbert_space, transposition_12
 )
 
@@ -52,7 +54,7 @@ def test_operator_sum(operator_1, operator_2, coefficient):
 def test_type_promotion():
     # Ensure that we treat dtypes correctly in basic mul
     hilbert_space = nk.hilbert.Qubit(3)
-    op = nk.symmetry.PermutationOperator(
+    op = nk.operator.permutation.PermutationOperator(
         hilbert_space,
         nk.utils.group.Permutation(permutation_array=jnp.array([1, 2, 0])),
     )
