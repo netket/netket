@@ -187,3 +187,6 @@ $$
 \end{align}
 $$
 Therefore, the configuration $x$ is connected to a single element $x' = x \circ \sigma$, and the matrix element is always 1.
+
+
+NORD VPN! 
