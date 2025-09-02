@@ -189,4 +189,60 @@ $$
 Therefore, the configuration $x$ is connected to a single element $x' = x \circ \sigma$, and the matrix element is always 1.
 
 
-NORD VPN! 
+## Fermionic Permutation Operators
+### Representation of permutations on Fermionic Fock spaces
+Let $\mathcal F$ be a fermionic Fock space with $m$ single-particle states and $G$ a subgroup of $\mathcal{S}_m$. Elements $|n\rangle$ of $\mathcal F$ are expressed of products of fermionic creation operators acting on the Fock vacuum $|0 \rangle$: 
+
+$$
+\begin{equation}
+ |n\rangle = \hat c^{\dagger n_{\alpha_1}}_{\alpha_1} \hat c^{\dagger n_{\alpha_2}}_{\alpha_2} \ldots \hat c^{\dagger n_{\alpha_m}}_{\alpha_m} |0 \rangle
+\end{equation}
+$$
+where $n_{\alpha_i} \in \{0,1\}$ due to the Pauli exclusion principle and a canonical ordering $\alpha_1 < \alpha_2 < \ldots < \alpha_m$ has been defined for the single particle states. The correct way to define a representation $\hat U: G \to \mathcal F$ is via the following rules.
+
+* For all $g \in G$, $\hat U_g |0\rangle= |0\rangle$
+* For all $g \in G$ and all single particle states $\alpha_i$, $\hat U_g \hat c^\dagger_{\alpha_i} \hat U_g^\dagger = \hat c^\dagger_{g(\alpha_i)}$.
+
+First, we will use this definition to determine a compact expression for the action of the representation on basis states. Then, we will verify that the rules given above are consistent with the definition of a representation. 
+
+The action of the representation of $|n\rangle$ is given by inserting a factor $\hat U_g^\dagger \hat U_g$ in between each creation operator. Therefore, for all $g \in G$
+
+$$
+\begin{align}
+ \hat U_g |n\rangle &= \hat U_g \hat c^{\dagger n_{\alpha_1}}_{\alpha_1} \hat U_g^\dagger \hat U_g \ldots \hat U_g \hat c^{\dagger n_{\alpha_m}}_{\alpha_m} \hat U_g^\dagger \hat U_g|0\rangle  \nonumber \\
+ &= \hat c^{\dagger n_{\alpha_1}}_{g(\alpha_1)} \hat c^{\dagger n_{\alpha_2}}_{g(\alpha_2)} \ldots \hat c^{\dagger n_{\alpha_m}}_{g(\alpha_m)} |0 \rangle \nonumber\\
+ &= \xi_g(n) \hat c^{\dagger n'_{\alpha_1}}_{\alpha_1} \hat c^{\dagger n'_{\alpha_2}}_{\alpha_2} \ldots \hat c^{\dagger n'_{\alpha_m}}_{\alpha_m} |0\rangle.
+\end{align}
+$$
+Immeadiately after applying $\hat U_g$ to the state, the creation operators may no longer appear in the canonical order. Consequently, a sign $\xi_g(n)$ is induced when ordering them. 
+
+In the transformed state, mode $\alpha_i$ is occupied if there was $\alpha_j$ such that $n_{\alpha_j}=1$ and $g(\alpha_j) = \alpha_i$. In other words, mode $\alpha_i$ is occupied in the transformed state if and only if mode $g^{-1}(\alpha_i)$ was occupied in the original state. Consequently, the occupation number $n'_{\alpha_i}$ in the transformed state is $n_{g^{-1}(\alpha_i)}.$ This leads to the following expression for the action of any element of the representation $\hat U_g$ on any state of the canonical basis 
+
+$$
+\begin{equation}
+\hat U_g |n\rangle = \xi_g(n) | n \circ g^{-1} \rangle,
+\end{equation}
+$$
+where $n \circ g^{-1}$ corresponds to the left action of $g$ on the function $n: \{1,2, \ldots m\} \to \{0,1\}$.
+The above equation satisfies the condition for $\hat U$ to be a representation, since for all $g,g' \in G$
+
+$$
+\begin{equation}
+ \hat U_g \hat U_{g'} |n \rangle  = \xi_g(n)\xi_{g'}(n) |n \circ g^{\prime -1} \circ g^{-1} \rangle = \xi_{gg'} | n \circ (gg')^{-1} \rangle = \hat U_{gg'} |n\rangle.
+\end{equation}
+$$
+
+### Example
+For illustrative purpose, let's look at the following example. Consider a system with 4 fermion modes and the following state with 3 fermions: $|n\rangle= |1110\rangle= \hat c^{\dagger n_1}_1 \hat c^{\dagger n_2}_2 \hat c^{\dagger n_3}_3 \hat c^{\dagger n_4}_4 |0\rangle$ with $n_1=n_2=n_3=1$ and $n_4=0$. Let $g$ be the following permutation expressed in two-row notation (the expression of the inverse is also provided)
+$$
+\begin{equation}
+    g = \begin{pmatrix}
+        1 & 2 & 3 & 4 \\
+        4 & 3 & 1 & 2    \end{pmatrix}, \quad g^{-1} = \begin{pmatrix}
+        1 & 2 & 3 & 4 \\
+        3 & 4 & 2 & 1
+        
+    \end{pmatrix}
+\end{equation}
+$$
+Then, $\hat U_g$ acts on $|n\rangle$ using the rules above: $\hat U_g |n\rangle = \hat c^{\dagger n_1}_4 \hat c^{\dagger n_2}_3 \hat c^{\dagger n_3}_1 \hat c^{\dagger n_4}_2 |0\rangle = -\hat c^{\dagger n_3}_1 \hat c^{\dagger n_2}_3 \hat c^{\dagger n_1}_4 |0\rangle$ (since $n_4=0$). It is clear to see now that $n'_1 = n_3 = n_{g^{-1}(1)}$, $n_3' = n_2 = n_{g^{-1}(2)}$ and $n_4 = n_1 = n_{g^{-1}(4)}$.
