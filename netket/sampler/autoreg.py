@@ -116,17 +116,13 @@ class ARDirectSampler(Sampler):
         chain_length,
         return_log_probabilities: bool = False,
     ):
-        if return_log_probabilities:
-            raise NotImplementedError(
-                "return_log_probability is not implemented for ARDirectSampler"
-            )
 
         if "cache" in variables:
             variables, _ = flax.core.pop(variables, "cache")
         variables_no_cache = variables
 
         def scan_fun(carry, index):
-            σ, cache, key = carry
+            σ, cache, key, log_prob = carry
             if cache:
                 variables = {**variables_no_cache, "cache": cache}
             else:
@@ -146,7 +142,13 @@ class ARDirectSampler(Sampler):
             new_σ = nkjax.batch_choice(key, local_states, p)
             σ = σ.at[:, index].set(new_σ)
 
-            return (σ, cache, new_key), None
+            if return_log_probabilities:
+                # Get indices of chosen states in local_states array
+                chosen_indices = jnp.searchsorted(local_states, new_σ)
+                # Add log probability of chosen states to running total
+                log_prob = log_prob + jnp.log(p[jnp.arange(p.shape[0]), chosen_indices])
+
+            return (σ, cache, new_key, log_prob), None
 
         new_key, key_init, key_scan = jax.random.split(state.key, 3)
 
@@ -172,8 +174,20 @@ class ARDirectSampler(Sampler):
 
         indices = jnp.arange(self.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
-        (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
+        
+        # Initialize log probabilities if needed
+        if return_log_probabilities:
+            log_prob = jnp.zeros((self.n_batches * chain_length,))
+        else:
+            log_prob = None
+            
+        (σ, _, _, log_prob), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan, log_prob), indices)
         σ = σ.reshape((self.n_batches, chain_length, self.hilbert.size))
 
         new_state = state.replace(key=new_key)
-        return σ, new_state
+        
+        if return_log_probabilities:
+            log_prob = log_prob.reshape((self.n_batches, chain_length))
+            return (σ, log_prob), new_state
+        else:
+            return σ, new_state
