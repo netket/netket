@@ -14,6 +14,7 @@
 ## NetKet 3.19.1
 
 * Fix a bug where using non-differentiable parameters with chunking would lead to tracer leaks and errors when using `nk.optimizer.qgt.QGTOnTheFly`. This was due to incorrect capturing of the 'model_state' in some shard_maps.
+* Fix constraint validation bug in `SumConstrainedHilbertIndex` where `all_states()` returned invalid states for edge cases with single valid configurations (e.g., `Spin(s=1, N=4, total_sz=4)`). (#XX)
 
 ## NetKet 3.19 (In development)
 
