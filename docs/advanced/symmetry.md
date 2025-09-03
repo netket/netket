@@ -1,6 +1,16 @@
+# Representation theory of Permutations
+
 When encoding and manipulating permutations and their associated operators on the Hilbert space it is easy to make mistakes. For optimal clarity, the following fully details and motivates the definitions taken in NetKet.
 
-### Encoding permutations
+In this document, you will learn
+
+* What a permutation is and how to encode them. 
+
+* How to construct *representations* of permutation groups on many-body hilbert spaces for spins and fermions. 
+
+* How to construct quantum states that transform as *irreps* (irreducible representations) of a symmetry group. 
+
+## Encoding permutations
 
 A permutation $\sigma$ is a function
 $$
@@ -23,7 +33,7 @@ Permutations are implemented with the class `Permutation`.
 
 ## Permutation Operators
 
-Lattice symmetries correspond to permutation operators. It is frequent to hear that a system is "translationnally invariant", or "invariant under reflection". However, depending on the context, the actual symmetry operator corresponding to such statements may be very different. In particular, we will see that permutation operators on fermionic systems are different from their spin counterpart, despite the Hilbert space indices being the same.
+Lattice symmetries correspond to permutation operators. It is frequent to hear that a system is "translationally invariant", or "invariant under reflection". However, depending on the context, the actual symmetry operator corresponding to such statements may be very different. In particular, we will see that permutation operators on fermionic systems are different from their spin counterpart, despite the Hilbert space indices being the same.
 
 They must be representations.
 
@@ -188,20 +198,18 @@ $$
 $$
 Therefore, the configuration $x$ is connected to a single element $x' = x \circ \sigma$, and the matrix element is always 1.
 
-
-## Fermionic Permutation Operators
 ### Representation of permutations on Fermionic Fock spaces
 Let $\mathcal F$ be a fermionic Fock space with $m$ single-particle states and $G$ a subgroup of $\mathcal{S}_m$. Elements $|n\rangle$ of $\mathcal F$ are expressed of products of fermionic creation operators acting on the Fock vacuum $|0 \rangle$: 
 
 $$
 \begin{equation}
- |n\rangle = \hat c^{\dagger n_{\alpha_1}}_{\alpha_1} \hat c^{\dagger n_{\alpha_2}}_{\alpha_2} \ldots \hat c^{\dagger n_{\alpha_m}}_{\alpha_m} |0 \rangle
+ |n\rangle = \hat c^{\dagger n_{1}}_{1} \hat c^{\dagger n_{2}}_{2} \ldots \hat c^{\dagger n_{m}}_{m} |0 \rangle
 \end{equation}
 $$
-where $n_{\alpha_i} \in \{0,1\}$ due to the Pauli exclusion principle and a canonical ordering $\alpha_1 < \alpha_2 < \ldots < \alpha_m$ has been defined for the single particle states. The correct way to define a representation $\hat U: G \to \mathcal F$ is via the following rules.
+where $n_{i} \in \{0,1\}$ due to the Pauli exclusion principle and a canonical ordering has been defined for the single particle states. The correct way to define a representation $\hat U: G \to \mathcal F$ is via the following rules, which are analoguous to case of spins.
 
 * For all $g \in G$, $\hat U_g |0\rangle= |0\rangle$
-* For all $g \in G$ and all single particle states $\alpha_i$, $\hat U_g \hat c^\dagger_{\alpha_i} \hat U_g^\dagger = \hat c^\dagger_{g(\alpha_i)}$.
+* For all $g \in G$ and all single particle states $i$, $\hat U_g \hat c^\dagger_{i} \hat U_g^\dagger = \hat c^\dagger_{g(i)}$.
 
 First, we will use this definition to determine a compact expression for the action of the representation on basis states. Then, we will verify that the rules given above are consistent with the definition of a representation. 
 
@@ -209,14 +217,14 @@ The action of the representation of $|n\rangle$ is given by inserting a factor $
 
 $$
 \begin{align}
- \hat U_g |n\rangle &= \hat U_g \hat c^{\dagger n_{\alpha_1}}_{\alpha_1} \hat U_g^\dagger \hat U_g \ldots \hat U_g \hat c^{\dagger n_{\alpha_m}}_{\alpha_m} \hat U_g^\dagger \hat U_g|0\rangle  \nonumber \\
- &= \hat c^{\dagger n_{\alpha_1}}_{g(\alpha_1)} \hat c^{\dagger n_{\alpha_2}}_{g(\alpha_2)} \ldots \hat c^{\dagger n_{\alpha_m}}_{g(\alpha_m)} |0 \rangle \nonumber\\
- &= \xi_g(n) \hat c^{\dagger n'_{\alpha_1}}_{\alpha_1} \hat c^{\dagger n'_{\alpha_2}}_{\alpha_2} \ldots \hat c^{\dagger n'_{\alpha_m}}_{\alpha_m} |0\rangle.
+ \hat U_g |n\rangle &= \hat U_g \hat c^{\dagger n_{1}}_{1} \hat U_g^\dagger \hat U_g \ldots \hat U_g \hat c^{\dagger n_{m}}_{m} \hat U_g^\dagger \hat U_g|0\rangle  \nonumber \\
+ &= \hat c^{\dagger n_{1}}_{g(1)} \hat c^{\dagger n_{2}}_{g(2)} \ldots \hat c^{\dagger n_{m}}_{g(m)} |0 \rangle \nonumber\\
+ &= \xi_g(n) \hat c^{\dagger n'_{1}}_{1} \hat c^{\dagger n'_{2}}_{2} \ldots \hat c^{\dagger n'_{m}}_{m} |0\rangle.
 \end{align}
 $$
 Immeadiately after applying $\hat U_g$ to the state, the creation operators may no longer appear in the canonical order. Consequently, a sign $\xi_g(n)$ is induced when ordering them. 
 
-In the transformed state, mode $\alpha_i$ is occupied if there was $\alpha_j$ such that $n_{\alpha_j}=1$ and $g(\alpha_j) = \alpha_i$. In other words, mode $\alpha_i$ is occupied in the transformed state if and only if mode $g^{-1}(\alpha_i)$ was occupied in the original state. Consequently, the occupation number $n'_{\alpha_i}$ in the transformed state is $n_{g^{-1}(\alpha_i)}.$ This leads to the following expression for the action of any element of the representation $\hat U_g$ on any state of the canonical basis 
+In the transformed state, mode $i$ is occupied if there was $j$ such that $n_{j}=1$ and $g(j) = i$. In other words, mode $i$ is occupied in the transformed state if and only if mode $g^{-1}(i)$ was occupied in the original state. Consequently, the occupation number $n'_{i}$ in the transformed state is $n_{g^{-1}(i)}.$ This leads to the following expression for the action of any element of the representation $\hat U_g$ on any state of the canonical basis 
 
 $$
 \begin{equation}
@@ -228,11 +236,13 @@ The above equation satisfies the condition for $\hat U$ to be a representation, 
 
 $$
 \begin{equation}
- \hat U_g \hat U_{g'} |n \rangle  = \xi_g(n)\xi_{g'}(n) |n \circ g^{\prime -1} \circ g^{-1} \rangle = \xi_{gg'} | n \circ (gg')^{-1} \rangle = \hat U_{gg'} |n\rangle.
+ \hat U_g \hat U_{g'} |n \rangle  = \xi_g(n)\xi_{g'}(n) |n \circ g^{\prime -1} \circ g^{-1} \rangle = \xi_{gg'}(n) | n \circ (gg')^{-1} \rangle = \hat U_{gg'} |n\rangle.
 \end{equation}
 $$
 
-### Example
+**Example**
+
+
 For illustrative purpose, let's look at the following example. Consider a system with 4 fermion modes and the following state with 3 fermions: $|n\rangle= |1110\rangle= \hat c^{\dagger n_1}_1 \hat c^{\dagger n_2}_2 \hat c^{\dagger n_3}_3 \hat c^{\dagger n_4}_4 |0\rangle$ with $n_1=n_2=n_3=1$ and $n_4=0$. Let $g$ be the following permutation expressed in two-row notation (the expression of the inverse is also provided)
 $$
 \begin{equation}
@@ -246,3 +256,67 @@ $$
 \end{equation}
 $$
 Then, $\hat U_g$ acts on $|n\rangle$ using the rules above: $\hat U_g |n\rangle = \hat c^{\dagger n_1}_4 \hat c^{\dagger n_2}_3 \hat c^{\dagger n_3}_1 \hat c^{\dagger n_4}_2 |0\rangle = -\hat c^{\dagger n_3}_1 \hat c^{\dagger n_2}_3 \hat c^{\dagger n_1}_4 |0\rangle$ (since $n_4=0$). It is clear to see now that $n'_1 = n_3 = n_{g^{-1}(1)}$, $n_3' = n_2 = n_{g^{-1}(2)}$ and $n_4 = n_1 = n_{g^{-1}(4)}$.
+
+## Symmetrizing Quantum States
+
+### Why are symmetries important? 
+An important lemma of representation theory, namely **Schur's lemma** tells us that when a quantum Hamiltonian $\hat H$ commutes with a set of operators that correspond to a representation of a finite group $G$, then 
+
+* When $\hat H$ is written in a basis of states that transform according to irreps of $G$, it takes on a block diagonal form. 
+
+* The irreps of $G$ can be used to label the eigenstates of $\hat H$. Each eigenstate belongs to a specific irrep, which can serve as a *quantum* number for classifying the state. 
+
+In the context of Variational Monte Carlo (VMC) it can be advantageous to exploit the symmetries of the Hamiltonian to obtain better energies and physically consistent observables.
+
+### The Symmetrizer Projector
+During optimization, a variational state may not exhibit these symmetries so they may be enforced using quantum number projection. 
+
+To set things up correctly, let's consider a permutation group $G$ and a representation $\hat U: G \to \mathcal{H}$. We label the irreps of $G$ using greek letters, e.g $\mu$. 
+
+Now we can define the symmetrizer for a particular irrep $\mu$ as
+
+$$
+\begin{equation}
+\mathcal{\hat P}_\mu = \frac{1}{|G|} \sum_{g \in G} \chi_\mu^\ast(g) \hat U_g
+\end{equation}
+$$
+where $|G|$ is the order of a group and $\chi_\mu(g)$ is the character of the irrep evaluated on element $g$. We can show that $\mathcal{\hat P}_\mu$ is a projection operator. Starting from
+
+$$
+\begin{equation}
+ \mathcal{\hat P}_\mu^2 = \frac{1}{|G|^2} \sum_{g,g'} \chi_\mu^\ast(g) \chi_\mu^\ast(g') \hat U_{gg'}
+\end{equation}
+$$
+we can use the group rearrangement theorem to write $gg' = h$ where $h$ is another element of $G$. This means that $g' = g^{-1} h$   and therefore
+
+$$
+\begin{equation}
+ \mathcal{\hat P}_\mu^2 = \frac{1}{|G|^2} \sum_g \chi_\mu^\ast(g) \chi_\mu(g) \sum_h \chi_{\mu}^\ast(h) \hat U_h = \mathcal{\hat P}_\mu.
+\end{equation}
+$$
+We used the orthogonality of the characters as well as the property $\chi_{\mu}(g) \chi_\mu(g') = \chi_\mu(gg')$. 
+
+The symmetrizer also has the following property: for all $g \in G$, $[ \mathcal{\hat P}_\mu, \hat U_g]= 0$. For example, 
+
+$$
+\begin{align}
+ \mathcal{\hat P}_\mu \hat U_{g'} &= \frac{1}{|G|} \sum_{g \in G} \chi_\mu^\ast(g) \hat U_{gg'} = \frac{1}{|G|} \sum_{h \in G} \chi_\mu^\ast(h g^{\prime -1}) \hat U_h \nonumber \\
+ &= \chi_\mu(g') \mathcal{\hat P}_\mu.
+\end{align}
+$$
+Consequently, the symmetrizer can be used to construct wavefunction amplitudes that transform like an irrep of $G$. For spins, we have
+
+$$
+\begin{align}
+ \psi_\mu(x) &= \langle x | \mathcal{\hat P}_\mu |\psi\rangle = \frac{1}{|G|} \sum_{g \in G} \chi_\mu^\ast(g) \langle x| \hat U_g |\psi \rangle \nonumber \\
+ &=\frac{1}{|G|} \sum_{g \in G} \chi_\mu^\ast(g) \psi(x \circ g)
+\end{align}
+$$
+For fermions, the extra sign needs to be included: 
+
+$$
+\begin{equation}
+\psi_\mu(n) = \frac{1}{|G|} \sum_{g \in G} \chi_\mu^\ast(g) \xi_{g^{-1}}(n) \psi(n \circ g).
+\end{equation}
+$$
+This followed from $\langle n | \hat U_g = \left( \hat U_g | n \rangle \right)^\dagger$. 
