@@ -212,6 +212,7 @@ def _get_conn_padded_interaction_up_down(
     Returns:
         connected states and corresponding matrix elements
     """
+
     dtype = x_down.dtype
 
     assert x_down.ndim == 1
