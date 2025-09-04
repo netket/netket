@@ -1,7 +1,9 @@
 import netket as nk
 import numpy as np
 import scipy
+
 from netket.operator import DiscreteJaxOperator
+from netket.operator._sum import SumOperator
 
 import pytest
 import jax
@@ -142,7 +144,7 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nk.operator.FermionOperator2ndJ
 
 # SumOperator
 hi = nk.hilbert.Spin(0.5, 3)
-operators["SumOperatorJax"] = nk.operator.SumOperator(
+operators["SumOperatorJax"] = SumOperator(
     nk.operator.spin.sigmax(hi, 0),
     nk.operator.spin.sigmay(hi, 1).to_pauli_strings(),
     coefficients=[0.5, 0.3],
