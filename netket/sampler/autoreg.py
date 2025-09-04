@@ -135,23 +135,27 @@ class ARDirectSampler(Sampler):
                 mutable=["cache"],
             )
             cache = mutables.get("cache")
-            
+
             log_conditionals_index = model.machine_pow * log_conditionals[:, index, :]
 
             p = jnp.exp(log_conditionals_index.real)
-            
+
             local_states = jnp.asarray(self.hilbert.local_states, dtype=self.dtype)
             new_σ = nkjax.batch_choice(key, local_states, p)
-            
+
             if return_log_probabilities:
                 # Convert chosen states to indices in the local_states array
                 # reshape(-1, 1): (batch_size,) -> (batch_size, 1) - treat each as 1-site config
                 # flatten(): (batch_size, 1) -> (batch_size,) - get back to simple index array
-                chosen_indices = self.hilbert.states_to_local_indices(new_σ.reshape(-1, 1)).flatten()
-                
-                log_amplitude_chosen = log_conditionals_index[jnp.arange(log_conditionals_index.shape[0]), chosen_indices]
+                chosen_indices = self.hilbert.states_to_local_indices(
+                    new_σ.reshape(-1, 1)
+                ).flatten()
+
+                log_amplitude_chosen = log_conditionals_index[
+                    jnp.arange(log_conditionals_index.shape[0]), chosen_indices
+                ]
                 log_prob = log_prob + log_amplitude_chosen
-            
+
             σ = σ.at[:, index].set(new_σ)
 
             return (σ, cache, new_key, log_prob), None
@@ -178,17 +182,19 @@ class ARDirectSampler(Sampler):
 
         indices = jnp.arange(self.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
-        
+
         if return_log_probabilities:
             log_prob = jnp.zeros((self.n_batches * chain_length,))
         else:
             log_prob = None
-            
-        (σ, _, _, log_prob), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan, log_prob), indices)
+
+        (σ, _, _, log_prob), _ = jax.lax.scan(
+            scan_fun, (σ, cache, key_scan, log_prob), indices
+        )
         σ = σ.reshape((self.n_batches, chain_length, self.hilbert.size))
 
         new_state = state.replace(key=new_key)
-        
+
         if return_log_probabilities:
             log_prob = log_prob.reshape((self.n_batches, chain_length))
             return (σ, log_prob), new_state
