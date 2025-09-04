@@ -212,6 +212,7 @@ def _get_conn_padded_interaction_up_down(
     Returns:
         connected states and corresponding matrix elements
     """
+
     dtype = x_down.dtype
 
     assert x_down.ndim == 1
@@ -281,7 +282,7 @@ def get_conn_padded_pnc(
         connected states and corresponding matrix elements
     """
     dtype = x.dtype
-    if not jnp.issubdtype(dtype, jnp.integer) or jnp.issubdtype(dtype, jnp.integer):
+    if not jnp.issubdtype(dtype, jnp.integer):
         x = x.astype(jnp.int8)
 
     xp_list = []
@@ -317,10 +318,14 @@ def get_conn_padded_pnc_spin(
     Returns:
         connected states and corresponding matrix elements
     """
+
+    dtype = x.dtype
+    if not jnp.issubdtype(dtype, jnp.integer):
+        x = x.astype(jnp.int8)
+
     n_spin_subsectors = len(n_fermions_per_spin)
     xs = unpack_spin_sectors(x, n_spin_subsectors)
     xs_diag = tuple(a[..., None, :] for a in xs)
-    dtype = xs[0].dtype
 
     xp_list = []
     mels_list = []
