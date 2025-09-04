@@ -350,7 +350,7 @@ def test_return_log_probabilities(sampler, model_and_weights):
     (samples, log_probs), ss = sampler.sample(
         ma, w, chain_length=chain_length, return_log_probabilities=True
     )
-    
+
     log_probs_computed = jax.vmap(ma.apply, in_axes=(None, 0))(w, samples)
     log_probs_computed = sampler.machine_pow * log_probs_computed.real
 
