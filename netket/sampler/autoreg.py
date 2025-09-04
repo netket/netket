@@ -138,16 +138,14 @@ class ARDirectSampler(Sampler):
             cache = mutables.get("cache")
 
             local_states = jnp.asarray(self.hilbert.local_states, dtype=self.dtype)
-            new_σ = nkjax.batch_choice(key, local_states, p)
 
             if return_log_probabilities:
-                chosen_state_expanded = new_σ.reshape(-1, 1)  # (batch_size, 1)
-                chosen_indices = self.hilbert.states_to_local_indices(
-                    chosen_state_expanded
-                ).flatten()  # (batch_size,)
-
-                log_prob_step = jnp.log(p[jnp.arange(p.shape[0]), chosen_indices])
-                log_prob = log_prob + log_prob_step
+                new_σ, new_p = nkjax.batch_choice(
+                    key, local_states, p, return_prob=True
+                )
+                log_prob = log_prob + jnp.log(new_p)
+            else:
+                new_σ = nkjax.batch_choice(key, local_states, p)
 
             σ = σ.at[:, index].set(new_σ)
 

@@ -355,7 +355,6 @@ def test_return_log_probabilities(sampler, model_and_weights):
     log_probs_computed = sampler.machine_pow * log_probs_computed.real
 
     assert log_probs.shape == samples.shape[:-1]
-    print(log_probs / log_probs_computed)
     np.testing.assert_allclose(log_probs, log_probs_computed)
 
 
