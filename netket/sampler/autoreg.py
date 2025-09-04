@@ -128,33 +128,26 @@ class ARDirectSampler(Sampler):
                 variables = variables_no_cache
             new_key, key = jax.random.split(key)
 
-            log_conditionals, mutables = model.apply(
+            p, mutables = model.apply(
                 variables,
                 σ,
-                method=model.conditionals_log_psi,
+                index,
+                method=model.conditional,
                 mutable=["cache"],
             )
             cache = mutables.get("cache")
-
-            log_conditionals_index = model.machine_pow * log_conditionals[:, index, :]
-
-            p = jnp.exp(log_conditionals_index.real)
 
             local_states = jnp.asarray(self.hilbert.local_states, dtype=self.dtype)
             new_σ = nkjax.batch_choice(key, local_states, p)
 
             if return_log_probabilities:
-                # Convert chosen states to indices in the local_states array
-                # reshape(-1, 1): (batch_size,) -> (batch_size, 1) - treat each as 1-site config
-                # flatten(): (batch_size, 1) -> (batch_size,) - get back to simple index array
+                chosen_state_expanded = new_σ.reshape(-1, 1)  # (batch_size, 1)
                 chosen_indices = self.hilbert.states_to_local_indices(
-                    new_σ.reshape(-1, 1)
-                ).flatten()
+                    chosen_state_expanded
+                ).flatten()  # (batch_size,)
 
-                log_amplitude_chosen = log_conditionals_index[
-                    jnp.arange(log_conditionals_index.shape[0]), chosen_indices
-                ]
-                log_prob = log_prob + log_amplitude_chosen
+                log_prob_step = jnp.log(p[jnp.arange(p.shape[0]), chosen_indices])
+                log_prob = log_prob + log_prob_step
 
             σ = σ.at[:, index].set(new_σ)
 
