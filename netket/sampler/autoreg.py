@@ -128,7 +128,6 @@ class ARDirectSampler(Sampler):
                 variables = variables_no_cache
             new_key, key = jax.random.split(key)
 
-            # Get conditional log amplitudes
             log_conditionals, mutables = model.apply(
                 variables,
                 σ,
@@ -137,11 +136,8 @@ class ARDirectSampler(Sampler):
             )
             cache = mutables.get("cache")
             
-            # Extract the conditionals for this specific index
             log_conditionals_index = model.machine_pow * log_conditionals[:, index, :]
-            
-            # Convert log amplitudes to probabilities for sampling
-            # This replicates what model.conditionals does: p = exp(machine_pow * log_psi.real)
+
             p = jnp.exp(log_conditionals_index.real)
             
             local_states = jnp.asarray(self.hilbert.local_states, dtype=self.dtype)
@@ -153,7 +149,6 @@ class ARDirectSampler(Sampler):
                 # flatten(): (batch_size, 1) -> (batch_size,) - get back to simple index array
                 chosen_indices = self.hilbert.states_to_local_indices(new_σ.reshape(-1, 1)).flatten()
                 
-                # Add the log amplitude for the chosen state (same as model.__call__)
                 log_amplitude_chosen = log_conditionals_index[jnp.arange(log_conditionals_index.shape[0]), chosen_indices]
                 log_prob = log_prob + log_amplitude_chosen
             
@@ -184,7 +179,6 @@ class ARDirectSampler(Sampler):
         indices = jnp.arange(self.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
         
-        # Initialize log probabilities if needed
         if return_log_probabilities:
             log_prob = jnp.zeros((self.n_batches * chain_length,))
         else:
