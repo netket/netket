@@ -631,7 +631,6 @@ class Lattice(Graph):
         # If fermionic hilbert space, increase the size of the permutation so it 
         # matches the number of single-particle states. 
         space_group = physical_to_many_body_permutation_group(space_group, hilbert)
-        print(space_group)
         return permutation_group_representation(hilbert, space_group)
     
     def translation_group_representation(
