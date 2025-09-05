@@ -1,15 +1,13 @@
 import numpy as np
-from netket.utils.group import  PermutationGroup, Identity, Permutation, Element
+from netket.utils.group import PermutationGroup, Identity, Permutation, Element
 from netket.operator.permutation import construct_permutation_operator
 from netket.hilbert import DiscreteHilbert, SpinOrbitalFermions
 from netket.symmetry import Representation
 
 
-
 def _physical_to_fermionic_permutation(
-        perm: Element, 
-        hilbert: SpinOrbitalFermions
-    ) -> Element:
+    perm: Element, hilbert: SpinOrbitalFermions
+) -> Element:
     """Converts a permutation of the lattice sites to a permutation of single-particles states
     in a fermionic Hilbert space."""
 
@@ -18,17 +16,16 @@ def _physical_to_fermionic_permutation(
     perm_array = perm.permutation_array
 
     offset = 0
-    while offset < hilbert.size-hilbert.n_orbitals:
+    while offset < hilbert.size - hilbert.n_orbitals:
         offset += hilbert.n_orbitals
         perm_array = np.concatenate((perm_array, perm_array + offset))
-    
+
     return Permutation(permutation_array=perm_array)
 
 
 def physical_to_many_body_permutation_group(
-        perm_group: PermutationGroup, 
-        hilbert: DiscreteHilbert
-    ) -> PermutationGroup:
+    perm_group: PermutationGroup, hilbert: DiscreteHilbert
+) -> PermutationGroup:
     """Converts a permutation group of the lattice sites to a permutation group of the local degrees
     of freedom on the many-body Hilbert space."""
 
@@ -50,11 +47,9 @@ def physical_to_many_body_permutation_group(
 
 
 def permutation_group_representation(
-        hilbert: DiscreteHilbert, 
-        perm_group: PermutationGroup
-    ) -> "Representation":
-
-    """Construct the representation of a permutation group on a many-body Hilbert space.""" 
+    hilbert: DiscreteHilbert, perm_group: PermutationGroup
+) -> "Representation":
+    """Construct the representation of a permutation group on a many-body Hilbert space."""
 
     representation_dict = {
         perm: construct_permutation_operator(hilbert, perm) for perm in perm_group

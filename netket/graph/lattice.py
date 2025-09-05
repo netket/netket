@@ -29,7 +29,10 @@ from netket.utils.group import PointGroup, PermutationGroup
 
 from netket.hilbert import DiscreteHilbert
 
-from netket._src.symmetry.representation_construction import physical_to_many_body_permutation_group, permutation_group_representation
+from netket._src.symmetry.representation_construction import (
+    physical_to_many_body_permutation_group,
+    permutation_group_representation,
+)
 
 from .graph import Graph
 from ._lattice_edge_logic import (
@@ -43,6 +46,7 @@ from ._lattice_draw import draw_lattice
 
 if TYPE_CHECKING:
     from .space_group import SpaceGroup, TranslationGroup
+    from netket.symmetry import Representation
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
@@ -610,7 +614,7 @@ class Lattice(Graph):
         translation symmetries of `self` and the elements of `point_group`.
 
         The representation operators depend on the Hilbert space.
-        In the case of a fermionic hilbert space, the permutations 
+        In the case of a fermionic hilbert space, the permutations
         are extended to match the number of single-particle states.
 
         See the documentation for a precise definition of the operators
@@ -628,20 +632,21 @@ class Lattice(Graph):
         """
         space_group = self.space_group(point_group)
 
-        # If fermionic hilbert space, increase the size of the permutation so it 
-        # matches the number of single-particle states. 
+        # If fermionic hilbert space, increase the size of the permutation so it
+        # matches the number of single-particle states.
         space_group = physical_to_many_body_permutation_group(space_group, hilbert)
         return permutation_group_representation(hilbert, space_group)
-    
+
     def translation_group_representation(
         self, hilbert: DiscreteHilbert, dim: int | Sequence[int] | None = None
     ) -> "Representation":
-        
+
         translation_group = self.translation_group(dim)
 
-        translation_group = physical_to_many_body_permutation_group(translation_group, hilbert)
+        translation_group = physical_to_many_body_permutation_group(
+            translation_group, hilbert
+        )
         return permutation_group_representation(hilbert, translation_group)
-    
 
     def point_group_representation(
         self, hilbert: DiscreteHilbert, point_group: PointGroup | None = None
