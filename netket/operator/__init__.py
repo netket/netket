@@ -32,6 +32,8 @@ from ._continuous_operator import ContinuousOperator
 from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
 
+from ._sum import SumOperator
+
 from ._fermion2nd import (
     FermionOperator2nd,
     FermionOperator2ndJax,

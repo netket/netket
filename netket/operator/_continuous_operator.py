@@ -97,7 +97,7 @@ class ContinuousOperator(AbstractOperator, struct.Pytree):
         if isinstance(self, ContinuousOperator) and isinstance(
             other, ContinuousOperator
         ):
-            from netket.operator._sum import SumOperator
+            from netket.operator import SumOperator
 
             return SumOperator(self, other)
         else:
@@ -111,7 +111,7 @@ class ContinuousOperator(AbstractOperator, struct.Pytree):
 
     def __mul__(self, other):
         if isinstance(self, ContinuousOperator) and isinstance(other, float):
-            from netket.operator._sum import SumOperator
+            from netket.operator import SumOperator
 
             return SumOperator(self, coefficients=other)
         else:

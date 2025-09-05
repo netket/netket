@@ -1,5 +1,3 @@
-import pytest
-
 import numpy as np
 
 import jax
@@ -8,7 +6,7 @@ import jax.numpy as jnp
 import netket
 from netket import experimental as nkx
 
-from netket.operator._sum import SumOperator
+import pytest
 
 
 def v1(x):
@@ -136,7 +134,7 @@ def test_sumoperator():
     np.testing.assert_allclose(enertot2, enerexact)
 
     with pytest.raises(AssertionError):
-        SumOperator(etot, etot2, coefficients=[1.0])
+        netket.operator.SumOperator(etot, etot2, coefficients=[1.0])
 
 
 @pytest.mark.parametrize(
