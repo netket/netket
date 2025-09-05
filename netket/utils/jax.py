@@ -16,8 +16,6 @@ from collections.abc import Callable
 
 from flax.linen import Module
 
-import jax.numpy as jnp
-
 
 from netket.utils.partial import HashablePartial
 from netket.utils.types import ModuleOrApplyFun, PyTree, Array
@@ -77,7 +75,10 @@ def wrap_to_support_scalar(fun):
     """
 
     def maybe_scalar_fun(apply_fun, pars, x, *args, **kwargs):
-        xb = jnp.atleast_2d(x)
+        if x.ndim < 2:
+            xb = x.reshape(1, -1)
+        else:
+            xb = x
         res = apply_fun(pars, xb, *args, **kwargs)
         # support models with mutable state
         if isinstance(res, tuple):
