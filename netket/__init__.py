@@ -31,6 +31,7 @@ __all__ = [
     "utils",
     "vqs",
     "nn",
+    "symmetry",
 ]
 
 
@@ -51,6 +52,7 @@ from . import (
     sampler,
     vqs,
     optimizer,
+    symmetry,
 )
 
 

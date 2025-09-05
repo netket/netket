@@ -24,6 +24,6 @@ superop
 
 ```{toctree}
 :maxdepth: 1
-
+../advanced/symmetry
 utils/index
 ```

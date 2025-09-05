@@ -148,6 +148,34 @@ operators["SumOperatorJax"] = nk.operator.SumOperator(
     coefficients=[0.5, 0.3],
 )
 
+# Spin permutation operator
+translation_1 = nk.utils.group.Permutation(
+    permutation_array=jnp.array([1, 2, 3, 0]), name="translation_1"
+)
+hilbert_space_qubit = nk.hilbert.Qubit(4)
+translation_operator_qubit = nk.operator.permutation.PermutationOperator(
+    hilbert_space_qubit, translation_1
+)
+
+operators["PermutationOperator_translation"] = translation_operator_qubit
+
+# Fermion permutation operator
+double_transposition = nk.utils.group.Permutation(
+    permutation_array=jnp.array([1, 0, 3, 2]), name="double_transposition"
+)
+hilbert_space_fermion = nk.hilbert.SpinOrbitalFermions(
+    2, 1 / 2, n_fermions_per_spin=[1, 1]
+)
+double_transposition_operator_fermion = (
+    nk.operator.permutation.PermutationOperatorFermion(
+        hilbert_space_fermion, double_transposition
+    )
+)
+
+operators["PermutationOperatorFermion_double_transposition"] = (
+    double_transposition_operator_fermion
+)
+
 # Remove non jax operators when sharding is activated
 if nk.config.netket_experimental_sharding:
     _operators = {}
@@ -213,6 +241,17 @@ def test_produce_elements_in_hilbert(op, attr):
 )
 @common.skipif_distributed
 def test_is_hermitian(op):
+
+    # There should be a list of Hermitian operators instead of having this weird skip condition
+    if isinstance(
+        op,
+        (
+            nk.operator.permutation.PermutationOperator,
+            nk.operator.permutation.PermutationOperatorFermion,
+        ),
+    ):
+        pytest.skip(reason="Not Hermitian")
+
     rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
@@ -245,6 +284,16 @@ def test_is_hermitian(op):
     [pytest.param(op, id=name) for name, op in operators.items()],
 )
 def test_lazy_hermitian(op):
+
+    if isinstance(
+        op,
+        (
+            nk.operator.permutation.PermutationOperator,
+            nk.operator.permutation.PermutationOperatorFermion,
+        ),
+    ):
+        pytest.skip(reason="Not Hermitian")
+
     if op.is_hermitian:
         assert isinstance(op.H, type(op))
         assert op == op.H
