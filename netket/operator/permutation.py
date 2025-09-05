@@ -1,3 +1,5 @@
+# ruff: noqa: F401
+
 from netket._src.operator.permutation.permutation_operator_spin import (
     PermutationOperator,
 )
