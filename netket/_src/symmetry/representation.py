@@ -3,9 +3,8 @@ import jax.numpy as jnp
 
 from functools import reduce
 
-from netket.utils.group import Element, FiniteGroup
+from netket.utils.group import Element, FiniteGroup, PermutationGroup, Identity, Permutation
 from netket.operator import DiscreteJaxOperator
-
 
 class Representation:
     """
