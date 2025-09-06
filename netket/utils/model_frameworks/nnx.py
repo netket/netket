@@ -86,6 +86,9 @@ class NNXWrapper:
             f"'{type(self).__name__}' (and the wrapped '{self.graphdef.type}') object has no attribute '{name}'"
         )
 
+    def __hash__(self):
+        return hash(("NNXWrapper", self.graphdef))
+
     def __repr__(self):
         typ = _get_graphdef_type(self.graphdef)
         return f"NNXWrapper(wrapped_class={typ}, ...)"
