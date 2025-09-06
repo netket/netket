@@ -1164,3 +1164,39 @@ class InitializePeriodicLatticeOnSmallLatticeWarning(NetketWarning):
             or define the graph using :class:`~netket.graph.Graph` by adding the edges manually.
             """
         )
+
+
+#################################################
+# Sampler errors                                  #
+#################################################
+
+
+class NNXModuleToSamplerInput(NetketError):
+    """
+    Error thrown when attempting to use a sampler with a bare NNX module.
+
+    NetKet's samplers do not accept a nnx module directly, because the nnx
+    module wraps both the 'logic' and the 'variables'. Instead, the NNX
+    module must be converted to a linen-compatible interface.
+
+    The simplest way to do that is to call
+    {func}`netket.utils.model_frameworks.maybe_wrap_module` which will return
+    a linen-like static class and the variable dictionary, which you can then
+    pass to the sampler.
+
+    You can also implement this logic yourself if you want to customize it more,
+    by using {func}`flax.nnx.split` and {func}`flax.nnx.merge`, knowing that the
+    {class}`flax.nnx.GraphDef` state can be treated as static.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            You are attempting to use a sampler with a bare NNX module, which is not allowed.
+
+            You must first convert it to a linen-like interface by calling.
+
+                variables, module = nk.utils.model_frameworks.maybe_wrap_module(nnx_module)
+
+            """
+        )
