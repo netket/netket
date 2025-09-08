@@ -78,7 +78,7 @@ class PermutationOperatorFermion(PermutationOperatorBase):
     Permutation operator on a fermion space.
     ONLY WORKS FOR A HILBERT SPACE WITH FIXED NUMBER OF FERMIONS.
     For mathematical details on the definition of a permutation operator
-    and its justification, we refer to [SOMEWHERE].
+    and its justification, we refer to :doc:`/advanced/symmetry`.
 
     Maybe we should also check that the operator is well-defined for the
     given Hilbert space. If the number of fermion per spin sector is fixed,

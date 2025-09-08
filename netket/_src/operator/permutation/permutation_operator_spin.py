@@ -30,7 +30,7 @@ class PermutationOperator(PermutationOperatorBase):
     Permutation operator on a spin or boson space.
 
     For mathematical details on the definition of a permutation operator
-    and its justification, we refer to [SOMEWHERE].
+    and its justification, we refer to :doc:`/advanced/symmetry`.
     """
 
     def __repr__(self):

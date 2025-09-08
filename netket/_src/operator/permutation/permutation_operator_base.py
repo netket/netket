@@ -25,7 +25,7 @@ class PermutationOperatorBase(DiscreteJaxOperator):
     """
     Abstract permutation operator for either spin of fermion space.
     For mathematical details on the definition of a permutation operator
-    and its justification, we refer to [SOMEWHERE].
+    and its justification, we refer to :doc:`/advanced/symmetry`.
 
     Args:
         hilbert: The Hilbert space.
