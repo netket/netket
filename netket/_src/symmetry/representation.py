@@ -37,6 +37,9 @@ class Representation:
         an operator to every group element.
         """
 
+        if not isinstance(group, FiniteGroup):
+            raise TypeError("group must be a FiniteGroup")
+
         operator = next(iter(representation_dict.values()))
         hilbert_space = operator.hilbert
 
@@ -57,7 +60,7 @@ class Representation:
         self.representations = representations
 
     def __repr__(self):
-        return f"Representation({self.hilbert_space}, group={self.group})"
+        return f"Representation(group={self.group}, hilbert_space{self.hilbert_space})"
 
     def __getitem__(self, key):
         if isinstance(key, Element):
@@ -93,7 +96,7 @@ class Representation:
     def __iter__(self):
         return iter(self.representation_dict.items())
 
-    def get_projector(self, character_index: int) -> DiscreteJaxOperator:
+    def projector(self, character_index: int) -> DiscreteJaxOperator:
         """Build the projection operator corresponding to a given
         irreducible representation."""
         character_table = self.group.character_table()
@@ -114,10 +117,11 @@ class Representation:
         projected_state = apply_operator(projector, state)
         return projected_state
 
-    def get_character(self) -> np.ndarray:
+    def character(self) -> np.ndarray:
         """
-        Return the character of the representation. Requires that each
-        operator of the representation implements the trace method.
+        Return the character of the representation.
+
+        Requires that each operator of the representation implements the trace method.
         """
         try:
             character = [op.trace() for perm, op in self]
@@ -129,11 +133,12 @@ class Representation:
             ) from err
         return np.array(character)
 
-    def get_irrep_subspace_dims(self) -> int:
+    def irrep_subspace_dims(self) -> int:
         """
         Return the dimension of the subspace associated to each irreducible
-        representation. Requires that each operator of the representation
-        implements the trace method.
+        representation.
+
+        Requires that each operator of the representation implements the trace method.
         """
         character = self.get_character()
         character_table = self.group.character_table()
@@ -143,7 +148,7 @@ class Representation:
         irrep_dims = np.round(irrep_count * character_table[:, 0]).astype(int)
         return irrep_dims
 
-    def get_symmetry_adapted_basis(self) -> tuple[np.ndarray, np.ndarray]:
+    def symmetry_adapted_basis(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Return a tuple `(mat, irrep_dims)`, where `mat` is the change of basis
         matrix associated to a symmetry adapted basis, and `irrep_dims` is

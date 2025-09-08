@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Utility functions for computing traces of permutation operators
+
 import numpy as np
 
 from itertools import product

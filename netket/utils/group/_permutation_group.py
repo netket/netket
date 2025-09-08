@@ -20,6 +20,9 @@ import itertools
 import numpy as np
 from typing import overload, Literal, Any
 
+import jax
+import jax.numpy as jnp
+
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
 from netket.utils.dispatch import dispatch
@@ -158,7 +161,6 @@ def product(p: Permutation, x: Array):
     # direct indexing fails, so we call np.asarray on it to extract the
     # wrapped array
     # TODO make indexing work with HashableArray directly
-    import jax
 
     if isinstance(x, jax.Array):
         return x.at[..., p.inverse_permutation_array].get(
@@ -338,8 +340,6 @@ def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
 
 @dispatch
 def product(G: PermutationGroup, x: Array):  # noqa: F811
-    import jax
-    import jax.numpy as jnp
 
     if isinstance(x, jax.Array):
         return jnp.moveaxis(
