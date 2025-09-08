@@ -42,6 +42,7 @@ from ._fermion2nd import (
 
 
 from . import spin, boson, fermion
+from . import permutation
 
 from netket.utils import _auto_export
 

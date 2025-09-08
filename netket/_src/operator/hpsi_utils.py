@@ -16,7 +16,6 @@ import jax
 import flax
 
 from netket import jax as nkjax
-from netket.operator import ContinuousOperator
 
 
 def make_logpsi_op_afun(logpsi_fun, operator, variables):
@@ -52,6 +51,9 @@ def _logpsi_op_fun(apply_fun, variables, x, *args, **kwargs):
     to the `variables` dictionary (in model_state) a new key `operator` with
     a jax-compatible operator.
     """
+    # TODO: Move to global import
+    from netket.operator import ContinuousOperator
+
     variables_applyfun, operator = flax.core.pop(variables, "operator")
 
     if isinstance(operator, ContinuousOperator):
