@@ -4,12 +4,13 @@ import jax.numpy as jnp
 
 import netket as nk
 
+representation_list = []
 
 # Qubit Hilbert space
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
 s3_representation = graph.space_group_representation(hilbert_space)
-
+representation_list.append(pytest.param(s3_representation, id="S3"))
 
 # Fermion Hilbert space
 chain = nk.graph.Chain(4, pbc=True)
@@ -28,8 +29,7 @@ rep_dict = {
     for g in group.elems
 }
 fermion_representation = nk.symmetry.Representation(group, rep_dict)
-
-representation_list = [s3_representation, fermion_representation]
+representation_list.append(pytest.param(fermion_representation, id="fermions"))
 
 
 @pytest.mark.parametrize("representation", representation_list)
