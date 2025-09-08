@@ -15,7 +15,7 @@
 import abc
 
 
-from netket.utils.types import DType
+from netket.utils.types import DType, Array
 from netket.utils.numbers import is_scalar
 
 
@@ -140,6 +140,9 @@ class AbstractOperator(AbstractObservable[HilbertType]):
     def __mul__(self, other: "AbstractOperator") -> "AbstractOperator":
         if is_scalar(other):
             from ._sum import SumOperator
+
+            if isinstance(other, Array):
+                other = other.item()
 
             return SumOperator(self, coefficients=[other])
         return NotImplemented
