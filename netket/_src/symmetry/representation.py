@@ -41,10 +41,10 @@ class Representation:
             raise TypeError("group must be a FiniteGroup")
 
         operator = next(iter(representation_dict.values()))
-        hilbert_space = operator.hilbert
+        hilbert = operator.hilbert
 
         for element, operator in representation_dict.items():
-            assert hilbert_space == operator.hilbert
+            assert hilbert == operator.hilbert
             assert element in group.elems
 
         representations = tuple(representation_dict[el] for el in group.elems)
@@ -55,12 +55,12 @@ class Representation:
                 "number of elements as the group."
             )
 
-        self.hilbert_space = hilbert_space
+        self.hilbert = hilbert
         self.group = group
         self.representations = representations
 
     def __repr__(self):
-        return f"Representation(group={self.group}, hilbert_space{self.hilbert_space})"
+        return f"Representation(group={self.group}, hilbert={self.hilbert})"
 
     def __getitem__(self, key):
         if isinstance(key, Element):
@@ -71,13 +71,13 @@ class Representation:
 
     def __hash__(self):
         return hash(
-            ("Representation", self.hilbert_space, self.group, self.representations)
+            ("Representation", self.hilbert, self.group, self.representations)
         )
 
     def __eq__(self, other):
         if type(self) is type(other):
             return (
-                self.hilbert_space == other.hilbert_space
+                self.hilbert == other.hilbert_space
                 and self.group == other.group
                 and self.representations == other.representations
             )
@@ -113,15 +113,19 @@ class Representation:
         irreducible representation specified by character_index."""
         from netket._src.vqs.transformed_vstate import apply_operator
 
-        projector = self.get_projector(character_index)
+        projector = self.projector(character_index)
         projected_state = apply_operator(projector, state)
         return projected_state
 
+    @property
     def character(self) -> np.ndarray:
         """
-        Return the character of the representation.
+        The vector storing the character of the representation.
 
-        Requires that each operator of the representation implements the trace method.
+        Corresponds to ``[op.trace() for (_, op) in self]``.
+
+        Requires that each operator of the representation
+        implements the trace method.
         """
         try:
             character = [op.trace() for perm, op in self]
@@ -138,13 +142,13 @@ class Representation:
         Return the dimension of the subspace associated to each irreducible
         representation.
 
-        Requires that each operator of the representation implements the trace method.
+        Requires that each operator of the representation implements
+        the trace method.
         """
-        character = self.get_character()
         character_table = self.group.character_table()
         group_order = len(self.group.elems)
 
-        irrep_count = character_table @ character / group_order
+        irrep_count = character_table @ self.character / group_order
         irrep_dims = np.round(irrep_count * character_table[:, 0]).astype(int)
         return irrep_dims
 
@@ -159,10 +163,10 @@ class Representation:
         representation.
         """
         n_irreps = self.group.character_table().shape[0]
-        projectors = [self.get_projector(k).to_dense() for k in range(n_irreps)]
+        projectors = [self.projector(k).to_dense() for k in range(n_irreps)]
 
         cob_matrix = np.zeros(
-            (self.hilbert_space.n_states, self.hilbert_space.n_states), dtype=complex
+            (self.hilbert.n_states, self.hilbert.n_states), dtype=complex
         )
         current_index = 0
 
@@ -197,7 +201,7 @@ class Representation:
     #     # operator_products = {G1*G2: self.representation_mapping[g1] * other.representation_mapping[g2] for
     #     #         g1 in self.group for g2 in other.group}
 
-    #     # return Representation(group_direct_product, self.hilbert_space, operator_products)
+    #     # return Representation(group_direct_product, self.hilbert, operator_products)
 
     # def is_commuting(self, other):
     #     """
@@ -223,7 +227,7 @@ class Representation:
     #         if isinstance(g, Identity):
     #             if (
     #                 not jnp.linalg.norm(
-    #                     self[g].to_dense - jnp.eye(self.hilbert_space.n_states)
+    #                     self[g].to_dense - jnp.eye(self.hilbert.n_states)
     #                 )
     #                 < 1e-14
     #             ):
