@@ -1,10 +1,24 @@
+# Copyright 2025 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from functools import reduce, cached_property
+
 import numpy as np
 import jax.numpy as jnp
 
-from functools import reduce
-
 from netket.utils.group import Element, FiniteGroup
 from netket.operator import DiscreteJaxOperator
+from netket.vqs.mc.mc_state.state import MCState
 
 
 class Representation:
@@ -18,6 +32,10 @@ class Representation:
         group: FiniteGroup,
         representation_dict: dict[Element, DiscreteJaxOperator],
     ):
+        """
+        Constructs a Representation of a group from a dictionary associating
+        an operator to every group element.
+        """
 
         operator = next(iter(representation_dict.values()))
         hilbert_space = operator.hilbert
@@ -26,11 +44,20 @@ class Representation:
             assert hilbert_space == operator.hilbert
             assert element in group.elems
 
-        assert len(group.elems) == len(representation_dict)
+        representations = tuple(representation_dict[el] for el in group.elems)
+
+        if not len(group.elems) == len(representation_dict):
+            raise ValueError(
+                "The representation dictionary must have the same "
+                "number of elements as the group."
+            )
 
         self.hilbert_space = hilbert_space
         self.group = group
-        self.representation_dict = representation_dict
+        self.representations = representations
+
+    def __repr__(self):
+        return f"Representation({self.hilbert_space}, group={self.group})"
 
     def __getitem__(self, key):
         if isinstance(key, Element):
@@ -39,11 +66,36 @@ class Representation:
             return self.representation_dict[self.group[key]]
         raise TypeError("Index should be integer or group element")
 
+    def __hash__(self):
+        return hash(
+            ("Representation", self.hilbert_space, self.group, self.representations)
+        )
+
+    def __eq__(self, other):
+        if type(self) is type(other):
+            return (
+                self.hilbert_space == other.hilbert_space
+                and self.group == other.group
+                and self.representations == other.representations
+            )
+        return False
+
+    @cached_property
+    def representation_dict(self) -> dict[Element, DiscreteJaxOperator]:
+        """
+        Dictionary associating every group element to a representation
+
+        Equivalent to `{el: rep for (el, rep) in (self.group.elems,
+        self.representations)}`
+        """
+        return {el: rep for (el, rep) in zip(self.group.elems, self.representations)}
+
     def __iter__(self):
         return iter(self.representation_dict.items())
 
     def get_projector(self, character_index: int) -> DiscreteJaxOperator:
-        """Build the projection operator corresponding to a given irreducible representation."""
+        """Build the projection operator corresponding to a given
+        irreducible representation."""
         character_table = self.group.character_table()
         prefactor = character_table[character_index, 0] / len(self.group.elems)
         operator_list = [
@@ -53,7 +105,7 @@ class Representation:
         projector = prefactor * reduce(lambda x, y: x + y, operator_list)
         return projector
 
-    def project(self, state, character_index: int):
+    def project(self, state, character_index: int) -> MCState:
         """Return the state projected onto the subspace associated to the
         irreducible representation specified by character_index."""
         from netket._src.vqs.transformed_vstate import apply_operator
@@ -62,21 +114,22 @@ class Representation:
         projected_state = apply_operator(projector, state)
         return projected_state
 
-    def get_character(self):
+    def get_character(self) -> np.ndarray:
         """
-        Return the character of the representation. Requires that each operator
-        of the representation implements the trace method.
+        Return the character of the representation. Requires that each
+        operator of the representation implements the trace method.
         """
         try:
             character = [op.trace() for perm, op in self]
-        except NotImplementedError:
+        except NotImplementedError as err:
             raise NotImplementedError(
-                "At least one operator of the representation"
-                " does not implement the trace"
-            )
+                "At least one operator of the representation "
+                "does not implement the trace. The original error "
+                "follows:"
+            ) from err
         return np.array(character)
 
-    def get_irrep_subspace_dims(self):
+    def get_irrep_subspace_dims(self) -> int:
         """
         Return the dimension of the subspace associated to each irreducible
         representation. Requires that each operator of the representation
@@ -90,12 +143,13 @@ class Representation:
         irrep_dims = np.round(irrep_count * character_table[:, 0]).astype(int)
         return irrep_dims
 
-    def get_symmetry_adapted_basis(self):
+    def get_symmetry_adapted_basis(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Return a tuple `(mat, irrep_dims)`, where `mat` is the change of basis
         matrix associated to a symmetry adapted basis, and `irrep_dims` is
         an array giving the dimension of the subspace associated to each
         irreducible representation.
+
         The basis vectors of `mat` are ordered by the index of their irreducible
         representation.
         """

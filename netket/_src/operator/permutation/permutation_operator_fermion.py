@@ -1,3 +1,17 @@
+# Copyright 2025 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import jax
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
@@ -7,8 +21,13 @@ from functools import partial
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.group import Permutation
 
-from .permutation_operator_base import PermutationOperatorBase
-from .trace_utils import get_subset_occupations, get_parity_sum
+from netket._src.operator.permutation.permutation_operator_base import (
+    PermutationOperatorBase,
+)
+from netket._src.operator.permutation.trace_utils import (
+    get_subset_occupations,
+    get_parity_sum,
+)
 
 
 def get_parity(array: jax.Array) -> jax.Array:
@@ -89,15 +108,7 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         else:
             return f"PermutationOperatorFermion({self.permutation.permutation_array})"
 
-    def __eq__(self, other):
-        if isinstance(other, PermutationOperatorFermion):
-            return (
-                self.hilbert == other.hilbert and self.permutation == other.permutation
-            )
-        else:
-            return False
-
-    def get_signs(self, x):
+    def _get_signs(self, x):
         return get_antisymmetric_signs(
             x, self.permutation.inverse_permutation_array, self.hilbert.n_fermions
         )
@@ -114,16 +125,8 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         connected_elements = x.at[..., None, self.permutation.permutation_array].get(
             unique_indices=True, mode="promise_in_bounds"
         )
-        signs = self.get_signs(x).astype(jnp.float32)
+        signs = self._get_signs(x).astype(jnp.float32)
         return connected_elements, signs[..., jnp.newaxis]
-
-    def __matmul__(self, other):
-        if isinstance(other, PermutationOperatorFermion):
-            return PermutationOperatorFermion(
-                self.hilbert, self.permutation @ other.permutation
-            )
-        else:
-            return super().__matmul__(other)
 
     def trace(self):
         partition_labels = sum(
