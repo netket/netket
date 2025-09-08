@@ -35,10 +35,10 @@ representation_list.append(pytest.param(fermion_representation, id="fermions"))
 @pytest.mark.parametrize("representation", representation_list)
 def test_projectors(representation):
 
-    hilbert_space = representation.hilbert_space
+    hilbert_space = representation.hilbert
 
     projector_list = [
-        representation.get_projector(k)
+        representation.projector(k)
         for k in range(representation.group.character_table().shape[0])
     ]
     projector_dense_list = [projector.to_dense() for projector in projector_list]
@@ -63,6 +63,6 @@ def test_projectors(representation):
 @pytest.mark.parametrize("representation", representation_list)
 def test_irrep_dims(representation):
 
-    irrep_dims_1 = representation.get_irrep_subspace_dims()
-    _, irrep_dims_2 = representation.get_symmetry_adapted_basis()
+    irrep_dims_1 = representation.irrep_subspace_dims()
+    _, irrep_dims_2 = representation.symmetry_adapted_basis()
     assert jnp.all(irrep_dims_1 == irrep_dims_2)

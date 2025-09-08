@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import reduce, cached_property
+from functools import cached_property
 
 import numpy as np
-import jax.numpy as jnp
 
 from netket.utils.group import Element, FiniteGroup
-from netket.operator import DiscreteJaxOperator
+from netket.operator import DiscreteJaxOperator, SumOperator
 from netket.vqs.mc.mc_state.state import MCState
 
 
@@ -41,10 +40,10 @@ class Representation:
             raise TypeError("group must be a FiniteGroup")
 
         operator = next(iter(representation_dict.values()))
-        hilbert_space = operator.hilbert
+        hilbert = operator.hilbert
 
         for element, operator in representation_dict.items():
-            assert hilbert_space == operator.hilbert
+            assert hilbert == operator.hilbert
             assert element in group.elems
 
         representations = tuple(representation_dict[el] for el in group.elems)
@@ -55,12 +54,12 @@ class Representation:
                 "number of elements as the group."
             )
 
-        self.hilbert_space = hilbert_space
+        self.hilbert = hilbert
         self.group = group
         self.representations = representations
 
     def __repr__(self):
-        return f"Representation(group={self.group}, hilbert_space{self.hilbert_space})"
+        return f"Representation(group={self.group}, hilbert={self.hilbert})"
 
     def __getitem__(self, key):
         if isinstance(key, Element):
@@ -70,14 +69,12 @@ class Representation:
         raise TypeError("Index should be integer or group element")
 
     def __hash__(self):
-        return hash(
-            ("Representation", self.hilbert_space, self.group, self.representations)
-        )
+        return hash(("Representation", self.hilbert, self.group, self.representations))
 
     def __eq__(self, other):
         if type(self) is type(other):
             return (
-                self.hilbert_space == other.hilbert_space
+                self.hilbert == other.hilbert_space
                 and self.group == other.group
                 and self.representations == other.representations
             )
@@ -101,11 +98,12 @@ class Representation:
         irreducible representation."""
         character_table = self.group.character_table()
         prefactor = character_table[character_index, 0] / len(self.group.elems)
-        operator_list = [
-            jnp.conj(character_table[character_index, element_index]) * self[g]
-            for element_index, g in enumerate(self.group)
-        ]
-        projector = prefactor * reduce(lambda x, y: x + y, operator_list)
+
+        # Build manually the SumOperator for efficiency when operating with
+        # large groups
+        operators = tuple(self[g] for g in self.group)
+        coefficients = prefactor * np.conj(character_table[character_index])
+        projector = SumOperator(*operators, coefficients=coefficients)
         return projector
 
     def project(self, state, character_index: int) -> MCState:
@@ -113,15 +111,19 @@ class Representation:
         irreducible representation specified by character_index."""
         from netket._src.vqs.transformed_vstate import apply_operator
 
-        projector = self.get_projector(character_index)
+        projector = self.projector(character_index)
         projected_state = apply_operator(projector, state)
         return projected_state
 
+    @property
     def character(self) -> np.ndarray:
         """
-        Return the character of the representation.
+        The vector storing the character of the representation.
 
-        Requires that each operator of the representation implements the trace method.
+        Corresponds to ``[op.trace() for (_, op) in self]``.
+
+        Requires that each operator of the representation
+        implements the trace method.
         """
         try:
             character = [op.trace() for perm, op in self]
@@ -138,13 +140,13 @@ class Representation:
         Return the dimension of the subspace associated to each irreducible
         representation.
 
-        Requires that each operator of the representation implements the trace method.
+        Requires that each operator of the representation implements
+        the trace method.
         """
-        character = self.get_character()
         character_table = self.group.character_table()
         group_order = len(self.group.elems)
 
-        irrep_count = character_table @ character / group_order
+        irrep_count = character_table @ self.character / group_order
         irrep_dims = np.round(irrep_count * character_table[:, 0]).astype(int)
         return irrep_dims
 
@@ -159,10 +161,10 @@ class Representation:
         representation.
         """
         n_irreps = self.group.character_table().shape[0]
-        projectors = [self.get_projector(k).to_dense() for k in range(n_irreps)]
+        projectors = [self.projector(k).to_dense() for k in range(n_irreps)]
 
         cob_matrix = np.zeros(
-            (self.hilbert_space.n_states, self.hilbert_space.n_states), dtype=complex
+            (self.hilbert.n_states, self.hilbert.n_states), dtype=complex
         )
         current_index = 0
 
