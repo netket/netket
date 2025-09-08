@@ -29,11 +29,6 @@ from netket.utils.group import PointGroup, PermutationGroup
 
 from netket.hilbert import DiscreteHilbert
 
-from netket._src.symmetry.representation_construction import (
-    physical_to_many_body_permutation_group,
-    permutation_group_representation,
-)
-
 from .graph import Graph
 from ._lattice_edge_logic import (
     get_nn_edges,
@@ -630,6 +625,11 @@ class Lattice(Graph):
             The `Representation` object for the space group of the lattice.
 
         """
+        from netket._src.symmetry.representation_construction import (
+            physical_to_many_body_permutation_group,
+            permutation_group_representation,
+        )
+
         space_group = self.space_group(point_group)
 
         # If fermionic hilbert space, increase the size of the permutation so it
@@ -640,6 +640,10 @@ class Lattice(Graph):
     def translation_group_representation(
         self, hilbert: DiscreteHilbert, dim: int | Sequence[int] | None = None
     ) -> "Representation":
+        from netket._src.symmetry.representation_construction import (
+            physical_to_many_body_permutation_group,
+            permutation_group_representation,
+        )
 
         translation_group = self.translation_group(dim)
 
@@ -651,6 +655,11 @@ class Lattice(Graph):
     def point_group_representation(
         self, hilbert: DiscreteHilbert, point_group: PointGroup | None = None
     ) -> "Representation":
+        from netket._src.symmetry.representation_construction import (
+            physical_to_many_body_permutation_group,
+            permutation_group_representation,
+        )
+
         point_group = self.point_group(point_group)
 
         point_group = physical_to_many_body_permutation_group(point_group, hilbert)
@@ -659,6 +668,11 @@ class Lattice(Graph):
     def rotation_group_representation(
         self, hilbert: DiscreteHilbert, point_group: PointGroup | None = None
     ) -> "Representation":
+        from netket._src.symmetry.representation_construction import (
+            physical_to_many_body_permutation_group,
+            permutation_group_representation,
+        )
+
         rotation_group = self.rotation_group(point_group)
 
         rotation_group = physical_to_many_body_permutation_group(
