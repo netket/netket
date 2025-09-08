@@ -655,14 +655,15 @@ class Lattice(Graph):
 
         point_group = physical_to_many_body_permutation_group(point_group, hilbert)
         return permutation_group_representation(hilbert, point_group)
-    
 
     def rotation_group_representation(
         self, hilbert: DiscreteHilbert, point_group: PointGroup | None = None
     ) -> "Representation":
         rotation_group = self.rotation_group(point_group)
 
-        rotation_group = physical_to_many_body_permutation_group(rotation_group, hilbert)
+        rotation_group = physical_to_many_body_permutation_group(
+            rotation_group, hilbert
+        )
         return permutation_group_representation(hilbert, rotation_group)
 
     # Output and drawing

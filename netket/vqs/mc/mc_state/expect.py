@@ -21,7 +21,7 @@ from jax import numpy as jnp
 from netket.stats import Stats, statistics
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
-
+from netket.utils import HashablePartial
 from netket.operator import (
     AbstractOperator,
     DiscreteOperator,
@@ -36,8 +36,6 @@ from netket.vqs.mc import (
     get_local_kernel_arguments,
     get_local_kernel,
 )
-
-from netket.jax import HashablePartial
 
 from .state import MCState
 
