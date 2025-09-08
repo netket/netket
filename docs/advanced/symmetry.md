@@ -1,4 +1,4 @@
-# Representation theory of Permutations
+# Representation theory in NetKet
 
 When encoding and manipulating permutations and their associated operators on the Hilbert space it is easy to make mistakes. For optimal clarity, the following fully details and motivates the definitions taken in NetKet.
 

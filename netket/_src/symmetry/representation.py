@@ -184,56 +184,59 @@ class Representation:
 
         return cob_matrix, np.array(irrep_dims)
 
-    # def construct_commuting_product(self, other, check_commute: bool = False):
-    #     """
-    #     Construct the product representation in the case where all operators of one representation
-    #     commute with all operators of the other.
-    #     It is a representation of the direct product of the underlying groups.
-    #     """
-    #     if check_commute:
-    #         assert self.is_commuting(other)
 
-    #     # group_direct_product = self.group @ other.group
-    #     # operator_products = {G1*G2: self.representation_mapping[g1] * other.representation_mapping[g2] for
-    #     #         g1 in self.group for g2 in other.group}
+# This is work in progress
 
-    #     # return Representation(group_direct_product, self.hilbert_space, operator_products)
+# def construct_commuting_product(self, other, check_commute: bool = False):
+#     """
+#     Construct the product representation in the case where all operators of one representation
+#     commute with all operators of the other.
+#     It is a representation of the direct product of the underlying groups.
+#     """
+#     if check_commute:
+#         assert self.is_commuting(other)
 
-    # def is_commuting(self, other):
-    #     """
-    #     Check whether all operators of one representation commute with all operators of
-    #     the other.
-    #     """
-    #     for operator_1 in self.representation_dict.values():
-    #         for operator_2 in other.representation_dict.values():
-    #             assert operator_1 @ operator_2 - operator_2 @ operator_1 == 0
+#     # group_direct_product = self.group @ other.group
+#     # operator_products = {G1*G2: self.representation_mapping[g1] * other.representation_mapping[g2] for
+#     #         g1 in self.group for g2 in other.group}
 
-    # # We might want a fast mode where only the fast checks are made,
-    # # and an exhaustive mode where all checks are made.
-    # def check_representation(self):
-    #     """
-    #     Check whether the representation is valid by checking that the
-    #     representation properties are satisfied.
-    #     """
+#     # return Representation(group_direct_product, self.hilbert_space, operator_products)
 
-    #     is_representation = True
+# def is_commuting(self, other):
+#     """
+#     Check whether all operators of one representation commute with all operators of
+#     the other.
+#     """
+#     for operator_1 in self.representation_dict.values():
+#         for operator_2 in other.representation_dict.values():
+#             assert operator_1 @ operator_2 - operator_2 @ operator_1 == 0
 
-    #     # Identity property
-    #     for g in self.group:
-    #         if isinstance(g, Identity):
-    #             if (
-    #                 not jnp.linalg.norm(
-    #                     self[g].to_dense - jnp.eye(self.hilbert_space.n_states)
-    #                 )
-    #                 < 1e-14
-    #             ):
-    #                 is_representation = False
+# # We might want a fast mode where only the fast checks are made,
+# # and an exhaustive mode where all checks are made.
+# def check_representation(self):
+#     """
+#     Check whether the representation is valid by checking that the
+#     representation properties are satisfied.
+#     """
 
-    #     # Compatibility property
-    #     for g_1, g_2 in product(self.group, self.group):
-    #         product_inside = self[g_1 @ g_2]
-    #         product_outside = self[g_1] @ self[g_2]
-    #         if not product_inside == product_outside:
-    #             is_representation = False
+#     is_representation = True
 
-    #     return is_representation
+#     # Identity property
+#     for g in self.group:
+#         if isinstance(g, Identity):
+#             if (
+#                 not jnp.linalg.norm(
+#                     self[g].to_dense - jnp.eye(self.hilbert_space.n_states)
+#                 )
+#                 < 1e-14
+#             ):
+#                 is_representation = False
+
+#     # Compatibility property
+#     for g_1, g_2 in product(self.group, self.group):
+#         product_inside = self[g_1 @ g_2]
+#         product_outside = self[g_1] @ self[g_2]
+#         if not product_inside == product_outside:
+#             is_representation = False
+
+#     return is_representation

@@ -6,6 +6,13 @@ from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 
 
 def apply_operator(operator, vstate):
+    """
+    Apply an operator to a variational state.
+
+    The returned variational state wraps the model of vstate inside another model
+    that simulates the application of the operator. The operator can still be
+    accessed in the resulting variational state as `op_vstate.variables['operator']`.
+    """
 
     if not isinstance(vstate, (FullSumState, MCState)):
         raise TypeError("vstate must be either an MCState or a FullSumState.")

@@ -129,9 +129,11 @@ class Permutation(Element):
         else:
             return f"Permutation({self.permutation_array.tolist()})"
 
-    def get_cycle_decomposition(self):
+    def cycle_decomposition(self) -> list:
         """
         Return the cycle decomposition of the permutation.
+
+        The returned object is a list of each disjoint cycle of the permutation as a list.
         """
         permutation_array = self.permutation_array
         cycle_list = []

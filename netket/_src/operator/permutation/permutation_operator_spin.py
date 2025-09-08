@@ -55,8 +55,8 @@ class PermutationOperator(PermutationOperatorBase):
         )
         return connected_elements, jnp.ones((*x.shape[:-1], 1), dtype=self.dtype)
 
-    def trace(self):
-        cycle_decomposition = self.permutation.get_cycle_decomposition()
+    def trace(self) -> int:
+        cycle_decomposition = self.permutation.cycle_decomposition()
 
         if isinstance(self.hilbert, Qubit):
             return 2 ** len(cycle_decomposition)

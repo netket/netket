@@ -28,10 +28,6 @@ class PermutationOperatorBase(DiscreteJaxOperator):
     Abstract permutation operator for either spin of fermion space.
     For mathematical details on the definition of a permutation operator
     and its justification, we refer to :doc:`/advanced/symmetry`.
-
-    Args:
-        hilbert: The Hilbert space.
-        permutation: The permutation represented by the operator.
     """
 
     def __init__(
@@ -42,12 +38,12 @@ class PermutationOperatorBase(DiscreteJaxOperator):
         dtype: DType | None = float,
     ):
         """
-        Constructs a representation of the given permutation acting on kets
-        of the given hilbert space.
+        Construct the permutation operator.
 
         Args:
             hilbert: The Hilbert space.
-            permutation: The permutation represented by the operator.
+            permutation: The permutation that defines the operator as
+                specified in :doc:`/advanced/symmetry`.
         """
         if isinstance(permutation, Identity):
             permutation = Permutation(
@@ -102,9 +98,9 @@ class PermutationOperatorBase(DiscreteJaxOperator):
         else:
             return super().__matmul__(other)
 
-    def trace(self) -> float:
+    def trace(self) -> complex:
         """
-        Computes the trace of the operator on the given Hilbert space.
+        Compute the trace of the operator on the given Hilbert space.
 
         This could also raise a `NotImplementedError`.
         """

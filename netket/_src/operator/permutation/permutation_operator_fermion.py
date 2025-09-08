@@ -128,7 +128,7 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         signs = self._get_signs(x).astype(jnp.float32)
         return connected_elements, signs[..., jnp.newaxis]
 
-    def trace(self):
+    def trace(self) -> float:
         partition_labels = sum(
             [
                 self.hilbert.n_orbitals * [k]
@@ -136,6 +136,6 @@ class PermutationOperatorFermion(PermutationOperatorBase):
             ],
             start=[],
         )
-        cycle_decomposition = self.permutation.get_cycle_decomposition()
+        cycle_decomposition = self.permutation.cycle_decomposition()
         cycle_occupation = get_subset_occupations(partition_labels, cycle_decomposition)
         return get_parity_sum(cycle_occupation, self.hilbert.n_fermions_per_spin)
