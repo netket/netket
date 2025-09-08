@@ -546,21 +546,21 @@ def test_sampling_sharded_not_communicating(
 
 
 def test_nnx_module_error():
-    """Test that passing a bare NNX module to sampler raises 
+    """Test that passing a bare NNX module to sampler raises
     NNXModuleToSamplerInput error
     """
     from flax.nnx import Module as NNXModule
-    
+
     class MockNNXModule(NNXModule):
         def __init__(self):
             pass
 
         def __call__(self, x):
             return x
-    
+
     nnx_module = MockNNXModule()
     sampler = nk.sampler.MetropolisLocal(hi)
-    
+
     with pytest.raises(nk.errors.NNXModuleToSamplerInput):
         sampler.sample(nnx_module, {}, chain_length=10)
 
