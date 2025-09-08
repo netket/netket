@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import reduce, cached_property
+from functools import cached_property
 
 import numpy as np
-import jax.numpy as jnp
 
 from netket.utils.group import Element, FiniteGroup
-from netket.operator import DiscreteJaxOperator
+from netket.operator import DiscreteJaxOperator, SumOperator
 from netket.vqs.mc.mc_state.state import MCState
 
 
@@ -70,9 +69,7 @@ class Representation:
         raise TypeError("Index should be integer or group element")
 
     def __hash__(self):
-        return hash(
-            ("Representation", self.hilbert, self.group, self.representations)
-        )
+        return hash(("Representation", self.hilbert, self.group, self.representations))
 
     def __eq__(self, other):
         if type(self) is type(other):
@@ -101,11 +98,12 @@ class Representation:
         irreducible representation."""
         character_table = self.group.character_table()
         prefactor = character_table[character_index, 0] / len(self.group.elems)
-        operator_list = [
-            jnp.conj(character_table[character_index, element_index]) * self[g]
-            for element_index, g in enumerate(self.group)
-        ]
-        projector = prefactor * reduce(lambda x, y: x + y, operator_list)
+
+        # Build manually the SumOperator for efficiency when operating with
+        # large groups
+        operators = tuple(self[g] for g in self.group)
+        coefficients = prefactor * np.conj(character_table[character_index])
+        projector = SumOperator(*operators, coefficients=coefficients)
         return projector
 
     def project(self, state, character_index: int) -> MCState:
