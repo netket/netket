@@ -32,11 +32,6 @@ def make_logpsi_op_afun(logpsi_fun, operator, variables):
     return logpsi_op_fun, new_variables
 
 
-# Alias so both work, but I think `op` is more suitable than `U`, since the
-# operator does not have to be unitary.
-make_logpsi_U_afun = make_logpsi_op_afun
-
-
 def _logpsi_op_fun(apply_fun, variables, x, *args, **kwargs):
     """
     This should be used as a wrapper to the original apply function, adding
