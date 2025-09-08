@@ -104,7 +104,7 @@ def canonicalize_dtypes(*values, dtype=None):
         *values: all values to combine. Ignored if dtype is not None
         dtype: default value overriding values.
     """
-    if dtype is None:
+    if dtype is None and len(values) > 0:
         dtype = jnp.result_type(*[_dtype(x) for x in values])
     # Fallback to x32 when x64 is disabled in JAX
     dtype = jax.dtypes.canonicalize_dtype(dtype)

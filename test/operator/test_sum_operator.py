@@ -57,6 +57,7 @@ def test_type_promotion():
     op = nk.operator.permutation.PermutationOperator(
         hilbert_space,
         nk.utils.group.Permutation(permutation_array=jnp.array([1, 2, 0])),
+        dtype=jnp.float32,
     )
     assert op.dtype == jnp.float32
 

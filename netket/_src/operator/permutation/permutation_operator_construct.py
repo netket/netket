@@ -23,19 +23,19 @@ def construct_permutation_operator(
 ):
     """
     Return the appropriate permutation operator depending on the type of Hilbert space.
-    
+
     If the Hilbert space is a spin or boson Hilbert space, a PermutationOperator will be returned,
     if it is a fermion Hilbert space, a PermutationOperatorFermion will be returned.
-    
+
     For mathematical details on permutation operators, see :doc:`/advanced/symmetry`.
-    
+
     Args:
         hilbert_space: The Hilbert space on which the permutation acts.
         permutation: The permutation to be represented as an operator.
-        
+
     Returns:
         Either a PermutationOperator or PermutationOperatorFermion depending on the Hilbert space type.
-        
+
     Raises:
         TypeError: If the Hilbert space type is not supported.
     """

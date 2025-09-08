@@ -18,6 +18,8 @@ from jax.tree_util import register_pytree_node_class
 from netket.hilbert import AbstractHilbert
 from netket.operator import DiscreteJaxOperator
 from netket.symmetry.group import Permutation, Identity
+from netket.jax import canonicalize_dtypes
+from netket.utils.types import DType
 
 
 @register_pytree_node_class
@@ -32,7 +34,13 @@ class PermutationOperatorBase(DiscreteJaxOperator):
         permutation: The permutation represented by the operator.
     """
 
-    def __init__(self, hilbert: AbstractHilbert, permutation: Permutation):
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        permutation: Permutation,
+        *,
+        dtype: DType | None = float,
+    ):
         """
         Constructs a representation of the given permutation acting on kets
         of the given hilbert space.
@@ -53,11 +61,18 @@ class PermutationOperatorBase(DiscreteJaxOperator):
                 "Permutation size does not correspond to Hilbert space size."
             )
 
+        dtype = canonicalize_dtypes(dtype=dtype)
+
         super().__init__(hilbert)
         self.permutation = permutation
+        self._dtype = dtype
 
     def tree_flatten(self):
-        struct_data = {"hilbert": self.hilbert, "permutation": self.permutation}
+        struct_data = {
+            "hilbert": self.hilbert,
+            "permutation": self.permutation,
+            "dtype": self.dtype,
+        }
         return (), struct_data
 
     @classmethod
@@ -70,7 +85,7 @@ class PermutationOperatorBase(DiscreteJaxOperator):
 
     @property
     def dtype(self):
-        return jnp.float32
+        return self._dtype
 
     def __hash__(self):
         return hash((self.hilbert, self.permutation))
