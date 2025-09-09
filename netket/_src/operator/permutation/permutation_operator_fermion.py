@@ -125,7 +125,7 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         connected_elements = x.at[..., None, self.permutation.permutation_array].get(
             unique_indices=True, mode="promise_in_bounds"
         )
-        signs = self._get_signs(x).astype(jnp.float32)
+        signs = self._get_signs(x).astype(self.dtype)
         return connected_elements, signs[..., jnp.newaxis]
 
     def trace(self) -> float:
