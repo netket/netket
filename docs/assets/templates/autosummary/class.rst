@@ -33,7 +33,7 @@
       {% if methods %}
    .. rst-class:: class-dl-groups
 
-   Methods{% block methodslist %}{% for item in all_methods %}{%- if not item.startswith('_') or item in ['__call__'] %}
+   Methods{% block methodslist %}{% for item in all_methods %}{%- if not item.startswith('_') or item in ['__call__', 'tree_flatten', 'tree_unflatten'] %}
       .. automethod:: {{ name }}.{{ item }}
       {%- endif -%}{%- endfor %}{% endblock %}{% endif %}
 
