@@ -56,8 +56,8 @@ jobs:
       - name: Generate coverage report
         if: always()
         run: |
-          uv run coverage combine
-          uv run coverage xml 
+          uv run coverage combine || true
+          uv run coverage xml --ignore-errors || true 
 
       - name: Upload coverage reports to Codecov
         if: always()
