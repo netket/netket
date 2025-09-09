@@ -55,7 +55,13 @@ jobs:
       - name: NetKet docstring tests
         if: ${{ matrix.doctest }}
         run: |
-          uv run pytest --doctest-continue-on-failure --doctest-modules netket/
+          uv run pytest --cov=netket --cov-append --doctest-continue-on-failure --doctest-modules netket/
+
+      - name: Generate coverage report
+        if: always()
+        run: |
+          uv run coverage combine || true
+          uv run coverage xml --ignore-errors || true
 
       - name: Upload coverage reports to Codecov
         if: always()
