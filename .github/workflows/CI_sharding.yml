@@ -51,7 +51,7 @@ jobs:
 
       - name: run tests
         run: |
-          ./test_sharding/"${{ matrix.runscript }}" -m 'not slow'
+          uv run ./test_sharding/"${{ matrix.runscript }}" -m 'not slow'
 
       - name: Generate coverage report
         if: always()
