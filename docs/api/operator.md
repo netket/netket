@@ -112,6 +112,21 @@ This is a list of operators that you can define on {class}`~netket.experimental.
    PotentialEnergy
 ```
 
+### Permutation operators
+
+Operators used to represent permutations, mainly needed for the simmetrization machinery described in [simmetries](simmetries-api)
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/operator
+   :nosignatures:
+
+   permutation.PermutationOperator
+   permutation.PermutationOperatorFermion
+   permutation.construct_permutation_operator
+```
+
+
 ### Composing different operators together
 
 Operators of different types, but acting on the same Hilbert space, can be combined by means of the operators described below. This is also useful to parametrize in a jax-friendly way time-dependent Hamiltonians.

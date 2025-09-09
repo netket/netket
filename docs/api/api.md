@@ -30,6 +30,7 @@ nn
 operator
 optimizer
 sampler
+symmetry
 stats
 utils
 vqs
