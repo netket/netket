@@ -7,6 +7,8 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
 
 ```{eval-rst}
 .. currentmodule:: netket.symmetry
+
+.. autosummary::
    :toctree: _generated/symmetry
    :nosignatures:
 
