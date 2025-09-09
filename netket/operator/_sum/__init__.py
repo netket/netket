@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import SumOperator
-from .operator import SumGenericOperator
-from .discrete_operator import SumDiscreteOperator
-from .discrete_jax_operator import SumDiscreteJaxOperator
-from .continuous import SumContinuousOperator
+from netket.operator._sum.base import SumOperator
+from netket.operator._sum.operator import SumGenericOperator
+from netket.operator._sum.discrete_operator import SumDiscreteOperator
+from netket.operator._sum.discrete_jax_operator import SumDiscreteJaxOperator
+from netket.operator._sum.continuous import SumContinuousOperator

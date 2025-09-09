@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._sum.base import SumOperator
+
+if TYPE_CHECKING:
+    from netket.operator._sum.discrete_jax_operator import SumDiscreteJaxOperator
 
 
 class SumDiscreteOperator(SumOperator, DiscreteOperator):
@@ -48,12 +53,12 @@ class SumDiscreteOperator(SumOperator, DiscreteOperator):
     ) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
 
-    def to_jax_operator(self) -> "SumDiscreteJaxOperator":  # noqa: F821
+    def to_jax_operator(self) -> "SumDiscreteJaxOperator":
         """
         Returns the standard (numba) version of this operator, which is an
         instance of {class}`nk.operator.Ising`.
         """
-        from .discrete_jax_operator import SumDiscreteJaxOperator
+        from netket.operator._sum.discrete_jax_operator import SumDiscreteJaxOperator
 
         ops_numba = tuple(op.to_jax_operator() for op in self.operators)
         return SumDiscreteJaxOperator(

@@ -54,9 +54,28 @@ def _is_sorted(a):
 
 
 class LocalOperatorBase(DiscreteOperator):
-    """A custom local operator. This is a sum of an arbitrary number of operators
-    acting locally on a limited set of k quantum numbers (i.e. k-local,
-    in the quantum information sense).
+    """Base implementation of an operator composed of a sum of
+    local terms, each of which acts on a small number of sites.
+
+    .. warning::
+
+        The complexity of the constructor of this operator scales
+        exponentially with the number of sites on which each term
+        acts, and linearly with the number of terms.
+
+        The memory requirement scales the same, because this operator
+        stores internally a lookup table as large as the local hilbert
+        space size of each term.
+
+        Refrain from using this for terms acting on more than
+        6-sites. For Spin-1/2 systems, prefer instead
+        :class:`netket.operator.PauliStrings`. For non spin-1/2
+        there is nothing that will work efficiently out of the box,
+        but you can easily roll your own.
+
+    The runtime complexity is proportional to the number of
+    connected entries
+    :attr:`~netket.operator.DiscreteOperator.max_conn_size`
     """
 
     def __init__(

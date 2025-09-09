@@ -34,8 +34,13 @@ if TYPE_CHECKING:
 
 @register_pytree_node_class
 class IsingJax(IsingBase, DiscreteJaxOperator):
-    """
-    Jax-compatible version of :class:`netket.operator.Ising`.
+    r"""
+    Jax-based implementation of the Transverse-Field Ising Hamiltonian
+    :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.
+
+    This implementation is considerably faster than the
+    Ising hamiltonian constructed by summing
+    :class:`~netket.operator.LocalOperator` s.
     """
 
     @wraps(IsingBase.__init__)

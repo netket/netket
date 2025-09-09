@@ -51,10 +51,10 @@ class SumOperatorMeta(ABCMeta):
         # This logic overrides the constructor, such that if someone tries to
         # construct this class directly by calling `SumOperator(...)`
         # it will construct either a DiscreteHilbert or TensorDiscreteHilbert
-        from .operator import SumGenericOperator
-        from .discrete_operator import SumDiscreteOperator
-        from .discrete_jax_operator import SumDiscreteJaxOperator
-        from .continuous import SumContinuousOperator
+        from netket.operator._sum.operator import SumGenericOperator
+        from netket.operator._sum.discrete_operator import SumDiscreteOperator
+        from netket.operator._sum.discrete_jax_operator import SumDiscreteJaxOperator
+        from netket.operator._sum.continuous import SumContinuousOperator
 
         if cls is SumOperator:
             if all(isinstance(op, DiscreteJaxOperator) for op in args):

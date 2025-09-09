@@ -31,9 +31,12 @@ from .._local_operator import LocalOperatorJax, LocalOperatorNumba
 
 class IsingBase(SpecialHamiltonian):
     r"""
-    The Transverse-Field Ising Hamiltonian :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.
+    Jax-based implementation of the Transverse-Field Ising Hamiltonian
+    :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.
 
-    This implementation is considerably faster than the Ising hamiltonian constructed by summing :class:`~netket.operator.LocalOperator` s.
+    This implementation is considerably faster than the
+    Ising hamiltonian constructed by summing
+    :class:`~netket.operator.LocalOperator` s.
     """
 
     def __init__(
