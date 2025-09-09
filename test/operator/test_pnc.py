@@ -1,5 +1,4 @@
 import numpy as np
-import jax
 import jax.numpy as jnp
 from netket.experimental.operator import (
     ParticleNumberConservingFermioperator2nd,
@@ -17,13 +16,14 @@ import pytest
 
 
 def _cast_normal_order(A):
-    idx = jnp.array(jnp.where(A)).T
+    idx = np.array(np.where(A)).T
     idx_create = idx[:, : idx.shape[1] // 2]
     idx_destroy = idx[:, idx.shape[1] // 2 :]
-    mask = (jnp.diff(idx_destroy) > 0).any(axis=1) | (jnp.diff(idx_create) > 0).any(
+    mask = (np.diff(idx_destroy) > 0).any(axis=1) | (np.diff(idx_create) > 0).any(
         axis=1
     )
-    return A.at[idx[mask].T].set(0)
+    A[idx[mask].T] = 0.0
+    return A
 
 
 @pytest.mark.slow
@@ -33,12 +33,12 @@ def test_pnc(desc):
     n = 3
     cutoff = 0.1
     key = np.random.randint(2**32)
+    rng = np.random.default_rng(key)
 
-    k0, k1, k2, k3 = jax.random.split(jax.random.key(key), 4)
-    c = jax.random.normal(k0)
-    hij = jax.random.normal(k1, shape=(N,) * 2)
-    hijkl = jax.random.normal(k2, shape=(N,) * 4)
-    hijklmn = jax.random.normal(k3, shape=(N,) * 6)
+    c = rng.normal()
+    hij = rng.normal(size=(N,) * 2)
+    hijkl = rng.normal(size=(N,) * 4)
+    hijklmn = rng.normal(size=(N,) * 6)
     if desc:
         hijkl = _cast_normal_order(hijkl)
         hijklmn = _cast_normal_order(hijklmn)
@@ -95,11 +95,11 @@ def test_pnc_spin(N, n, s):
     # s = 1/2
     cutoff = 1e-4
     key = np.random.randint(2**32)
+    rng = np.random.default_rng(key)
 
-    k1, k2, k3 = jax.random.split(jax.random.key(key), 3)
-    hijkl = jax.random.normal(k1, shape=(N,) * 4)
-    hij = jax.random.normal(k2, shape=(N,) * 2)
-    c = jax.random.normal(k3)
+    hijkl = rng.normal(size=(N,) * 4)
+    hij = rng.normal(size=(N,) * 2)
+    c = rng.normal()
 
     n_spin_subsectors = int(round(2 * s + 1))
 
