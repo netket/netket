@@ -46,7 +46,7 @@ class Representation:
             assert hilbert == operator.hilbert
             assert element in group.elems
 
-        representations = tuple(representation_dict[el] for el in group.elems)
+        operators = tuple(representation_dict[el] for el in group.elems)
 
         if not len(group.elems) == len(representation_dict):
             raise ValueError(
@@ -56,7 +56,7 @@ class Representation:
 
         self.hilbert = hilbert
         self.group = group
-        self.representations = representations
+        self.operators = operators
 
     def __repr__(self):
         return f"Representation(group={self.group}, hilbert={self.hilbert})"
@@ -69,14 +69,14 @@ class Representation:
         raise TypeError("Index should be integer or group element")
 
     def __hash__(self):
-        return hash(("Representation", self.hilbert, self.group, self.representations))
+        return hash(("Representation", self.hilbert, self.group, self.operators))
 
     def __eq__(self, other):
         if type(self) is type(other):
             return (
                 self.hilbert == other.hilbert_space
                 and self.group == other.group
-                and self.representations == other.representations
+                and self.operators == other.operators
             )
         return False
 
@@ -86,12 +86,12 @@ class Representation:
         Dictionary associating every group element to a representation
 
         Equivalent to `{el: rep for (el, rep) in (self.group.elems,
-        self.representations)}`
+        self.operators)}`
         """
-        return {el: rep for (el, rep) in zip(self.group.elems, self.representations)}
+        return {el: rep for (el, rep) in zip(self.group.elems, self.operators)}
 
     def __iter__(self):
-        return iter(self.representation_dict.items())
+        return zip(self.group.elems, self.operators, strict=True)
 
     def projector(self, character_index: int) -> DiscreteJaxOperator:
         """Build the projection operator corresponding to a given
