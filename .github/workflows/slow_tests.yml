@@ -89,7 +89,7 @@ jobs:
       - name: NetKet slow tests
         run: |
           export NETKET_EXPERIMENTAL=1
-          pytest --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "slow" test
+          pytest -n0 --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "slow" test
 
       - name: Upload coverage reports to Codecov
         if: always()
