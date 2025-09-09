@@ -27,25 +27,15 @@ from netket._src.operator.permutation.trace_utils import count_n_uplets
 @register_pytree_node_class
 class PermutationOperator(PermutationOperatorBase):
     """
-    Permutation operator on a spin or boson space.
+    Permutation operator on a spin or boson space. Used for
+    the symmetry-representation machinery.
 
     For mathematical details on the definition of a permutation operator
     and its justification, we refer to :doc:`/advanced/symmetry`.
+
+    For the fermionic counterpart look at
+    :class:`netket.operator.permutation.PermutationOperatorFermion`.
     """
-
-    def __repr__(self):
-        if self.permutation._name is not None:
-            return f"PermutationOperator({self.permutation._name}: {self.permutation.permutation_array})"
-        else:
-            return f"PermutationOperator({self.permutation.permutation_array})"
-
-    def __eq__(self, other):
-        if isinstance(other, PermutationOperator):
-            return (
-                self.hilbert == other.hilbert and self.permutation == other.permutation
-            )
-        else:
-            return False
 
     def get_conn_padded(self, x):
         x = jnp.asarray(x)

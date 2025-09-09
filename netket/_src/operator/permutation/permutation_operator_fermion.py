@@ -76,38 +76,50 @@ def get_antisymmetric_signs(
 @register_pytree_node_class
 class PermutationOperatorFermion(PermutationOperatorBase):
     """
-    Permutation operator on a fermion space.
-    ONLY WORKS FOR A HILBERT SPACE WITH FIXED NUMBER OF FERMIONS.
+    Permutation of the orbitals belonging to a (second quantized)
+    fermionic space. Used for the symmetry-representation machinery.
+
+    This tracks the jordan-wigner sign of the permutation.
+
+    .. warning::
+
+        Only works for spaces with a fixed number of fermions.
+
     For mathematical details on the definition of a permutation operator
     and its justification, we refer to :doc:`/advanced/symmetry`.
 
-    Maybe we should also check that the operator is well-defined for the
-    given Hilbert space. If the number of fermion per spin sector is fixed,
-    we might want to check that the permutation respects that constraint.
+    .. note::
 
-    But then spin flip would be a permutation that is not a product of permutation
-    acting on each subsector, but that is still valid. So it is hard to tell
-    at a glance whether a given permutation is valid for restriction to that subspace.
+        Maybe we should also check that the operator is well-defined for the
+        given Hilbert space. If the number of fermion per spin sector is fixed,
+        we might want to check that the permutation respects that constraint.
 
-    I don't think it is possible to make such a check. So we just have to hope
-    the user knows what they are doing.
+        But then spin flip would be a permutation that is not a product of permutation
+        acting on each subsector, but that is still valid. So it is hard to tell
+        at a glance whether a given permutation is valid for restriction to that subspace.
 
-    Args:
-        hilbert: The Hilbert space.
-        permutation: The permutation represented by the operator.
+        I don't think it is possible to make such a check. So we just have to hope
+        the user knows what they are doing.
     """
 
-    def __init__(self, hilbert: SpinOrbitalFermions, permutation: Permutation, dtype: DType | None = float,):
+    def __init__(
+        self,
+        hilbert: SpinOrbitalFermions,
+        permutation: Permutation,
+        dtype: DType | None = float,
+    ):
+        """
+        Construct the permutation operator.
+
+        Args:
+            hilbert: The fermionic Hilbert space.
+            permutation: The permutation that defines the operator as
+                specified in :doc:`/advanced/symmetry`.
+        """
         assert isinstance(hilbert, SpinOrbitalFermions)
         if hilbert.n_fermions is None:
             raise TypeError("The Hilbert space must have a fixed number of fermions.")
         super().__init__(hilbert, permutation, dtype=dtype)
-
-    def __repr__(self):
-        if self.permutation._name is not None:
-            return f"PermutationOperatorFermion({self.permutation._name}: {self.permutation.permutation_array})"
-        else:
-            return f"PermutationOperatorFermion({self.permutation.permutation_array})"
 
     def _get_signs(self, x):
         return get_antisymmetric_signs(

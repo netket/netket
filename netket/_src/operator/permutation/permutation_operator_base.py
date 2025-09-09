@@ -25,7 +25,14 @@ from netket.utils.types import DType
 @register_pytree_node_class
 class PermutationOperatorBase(DiscreteJaxOperator):
     """
-    Abstract permutation operator for either spin of fermion space.
+    Base class for the permutations acting on an
+    Hilbert space. Used for the symmetry-representation machinery.
+
+    Subclasses implement this on Fock, Fermionic or other hilbert spaces.
+    Look at :class:`netket.operator.permutation.PermutationOperator` and
+    :class:`netket.operator.permutation.PermutationOperatorFermion` for
+    examples.
+
     For mathematical details on the definition of a permutation operator
     and its justification, we refer to :doc:`/advanced/symmetry`.
     """
@@ -63,6 +70,13 @@ class PermutationOperatorBase(DiscreteJaxOperator):
         self.permutation = permutation
         self._dtype = dtype
 
+    def __repr__(self):
+        if self.permutation._name is not None:
+            perm_repr = f"{self.permutation._name}:{self.permutation.permutation_array}"
+        else:
+            perm_repr = f"{self.permutation.permutation_array}"
+        return f"{type(self).__name__}({self.hilbert}, {perm_repr}, dtype={self.dtype})"
+
     def tree_flatten(self):
         struct_data = {
             "hilbert": self.hilbert,
@@ -91,6 +105,7 @@ class PermutationOperatorBase(DiscreteJaxOperator):
             return (
                 self.hilbert == other.hilbert and self.permutation == other.permutation
             )
+        return False
 
     def __matmul__(self, other):
         if type(self) is type(other) and self.hilbert == other.hilbert:
