@@ -115,4 +115,4 @@ def get_parity_sum(occupation_list, n_occupations):
                     sum(occupation_list[i]) + 1
                 ) * table[i][tuple(not_included_sum)] + table[i][occupation]
 
-    return table[-1][n_occupations].item()
+    return table[-1][tuple(n_occupations)].item()
