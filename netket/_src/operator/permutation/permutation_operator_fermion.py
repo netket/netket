@@ -128,7 +128,7 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         signs = self._get_signs(x).astype(self.dtype)
         return connected_elements, signs[..., jnp.newaxis]
 
-    def trace(self) -> float:
+    def trace(self) -> int:
         partition_labels = sum(
             [
                 self.hilbert.n_orbitals * [k]
