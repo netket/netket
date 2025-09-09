@@ -20,6 +20,7 @@ from functools import partial
 
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.group import Permutation
+from netket.utils.types import DType
 
 from netket._src.operator.permutation.permutation_operator_base import (
     PermutationOperatorBase,
@@ -96,11 +97,11 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         permutation: The permutation represented by the operator.
     """
 
-    def __init__(self, hilbert: SpinOrbitalFermions, permutation: Permutation):
+    def __init__(self, hilbert: SpinOrbitalFermions, permutation: Permutation, dtype: DType | None = float,):
         assert isinstance(hilbert, SpinOrbitalFermions)
         if hilbert.n_fermions is None:
             raise TypeError("The Hilbert space must have a fixed number of fermions.")
-        super().__init__(hilbert, permutation)
+        super().__init__(hilbert, permutation, dtype=dtype)
 
     def __repr__(self):
         if self.permutation._name is not None:
