@@ -101,11 +101,13 @@ class Representation:
 
         # Build manually the SumOperator for efficiency when operating with
         # large groups
-        #filter out terms corresponding to vanishing characters
+        operators = np.array([self[g] for g in self.group], dtype=object)
+
+        #filter out the characters that vanish (do before normalizing to avoid even smaller values)
+        mask = ~np.isclose(np.conj(character_table[character_index]), 0.0, atol=1e-15) 
         operators = np.array([self[g] for g in self.group], dtype=object)
         coefficients = prefactor * np.conj(character_table[character_index])
 
-        mask = coefficients != 0.0
         operators = operators[mask]
         coefficients = coefficients[mask]
         
