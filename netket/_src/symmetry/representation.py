@@ -101,8 +101,14 @@ class Representation:
 
         # Build manually the SumOperator for efficiency when operating with
         # large groups
-        operators = tuple(self[g] for g in self.group)
+        #filter out terms corresponding to vanishing characters
+        operators = np.array([self[g] for g in self.group], dtype=object)
         coefficients = prefactor * np.conj(character_table[character_index])
+
+        mask = coefficients != 0.0
+        operators = operators[mask]
+        coefficients = coefficients[mask]
+        
         projector = SumOperator(*operators, coefficients=coefficients)
         return projector
 
