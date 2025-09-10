@@ -270,46 +270,7 @@ Now we can define the symmetrizer for a particular irrep $\mu$ as
 
 ```{math}
 \begin{equation}
-\hat{\mathcal{P}}_\mu = \frac{1}{|G|} \sum_{g \in G} \chi_\mu^*(g) \hat{U}_g
+\hat{\mathcal{P}}_\mu = \frac{d_\mu}{|G|} \sum_{g \in G} \chi_\mu^*(g) \hat{U}_g
 \end{equation}
 ```
-where $|G|$ is the order of a group and $\chi_\mu(g)$ is the character of the irrep evaluated on element $g$. We can show that $\hat{\mathcal{P}}_\mu$ is a projection operator. Starting from
-
-```{math}
-\begin{equation}
- \hat{\mathcal{P}}_\mu^2 = \frac{1}{|G|^2} \sum_{g,g'} \chi_\mu^*(g) \chi_\mu^*(g') \hat{U}_{gg'}
-\end{equation}
-```
-we can use the group rearrangement theorem to write $gg' = h$ where $h$ is another element of $G$. This means that $g' = g^{-1} h$   and therefore
-
-```{math}
-\begin{equation}
- \hat{\mathcal{P}}_\mu^2 = \frac{1}{|G|^2} \sum_g \chi_\mu^*(g) \chi_\mu(g) \sum_h \chi_{\mu}^*(h) \hat{U}_h = \hat{\mathcal{P}}_\mu.
-\end{equation}
-```
-We used the orthogonality of the characters as well as the property $\chi_{\mu}(g) \chi_\mu(g') = \chi_\mu(gg')$. 
-
-The symmetrizer also has the following property: for all $g \in G$, $[ \hat{\mathcal{P}}_\mu, \hat{U}_g]= 0$. For example,
-
-```{math}
-\begin{align}
- \hat{\mathcal{P}}_\mu \hat{U}_{g'} &= \frac{1}{|G|} \sum_{g \in G} \chi_\mu^*(g) \hat{U}_{gg'} = \frac{1}{|G|} \sum_{h \in G} \chi_\mu^*(h g^{\prime -1}) \hat{U}_h \nonumber \\
- &= \chi_\mu(g') \hat{\mathcal{P}}_\mu.
-\end{align}
-```
-Consequently, the symmetrizer can be used to construct wavefunction amplitudes that transform like an irrep of $G$. For spins, we have
-
-```{math}
-\begin{align}
- \psi_\mu(x) &= \langle x | \hat{\mathcal{P}}_\mu |\psi\rangle = \frac{1}{|G|} \sum_{g \in G} \chi_\mu^*(g) \langle x| \hat{U}_g |\psi \rangle \nonumber \\
- &=\frac{1}{|G|} \sum_{g \in G} \chi_\mu^*(g) \psi(x \circ g)
-\end{align}
-```
-For fermions, the extra sign needs to be included: 
-
-```{math}
-\begin{equation}
-\psi_\mu(n) = \frac{1}{|G|} \sum_{g \in G} \chi_\mu^*(g) \xi_{g^{-1}}(n) \psi(n \circ g).
-\end{equation}
-```
-This followed from $\langle n | \hat{U}_g = \left( \hat{U}_g | n \rangle \right)^\dagger$. 
+where $d_\mu$ is the dimension of the irrep, $|G|$ is the order of a group and $\chi_\mu(g)$ is the character of the irrep evaluated on element $g$. 
