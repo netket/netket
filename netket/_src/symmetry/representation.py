@@ -93,9 +93,24 @@ class Representation:
     def __iter__(self):
         return zip(self.group.elems, self.operators, strict=True)
 
-    def projector(self, character_index: int) -> DiscreteJaxOperator:
+    def projector(
+        self, character_index: int, *, atol: float = 1e-15
+    ) -> DiscreteJaxOperator:
         """Build the projection operator corresponding to a given
-        irreducible representation."""
+        irreducible representation.
+
+        As there might be some terms in the projector whose character is 0,
+        we drop them by default according to a given absolute tolerance.
+
+        Args:
+            character_index: The index of the irreducible representation for which to
+                construct the projector.
+            atol: Absolute tolerance used to drop zero-terms from the projector to reduce
+                its number of connected entries (defaults to 1e-15).
+
+        Return:
+            A `netket.operator.DiscreteJaxOperator` that projects on the relevant subspace.
+        """
         character_table = self.group.character_table()
         prefactor = character_table[character_index, 0] / len(self.group.elems)
 
@@ -103,23 +118,24 @@ class Representation:
         # large groups
         operators = np.array([self[g] for g in self.group], dtype=object)
 
-        #filter out the characters that vanish (do before normalizing to avoid even smaller values)
-        mask = ~np.isclose(np.conj(character_table[character_index]), 0.0, atol=1e-15) 
+        # filter out the characters that vanish (do before normalizing to avoid even smaller values)
+        mask = ~np.isclose(np.conj(character_table[character_index]), 0.0, atol=atol)
         operators = np.array([self[g] for g in self.group], dtype=object)
         coefficients = prefactor * np.conj(character_table[character_index])
 
         operators = operators[mask]
         coefficients = coefficients[mask]
-        
+
         projector = SumOperator(*operators, coefficients=coefficients)
         return projector
 
-    def project(self, state, character_index: int) -> MCState:
+    def project(self, state, character_index: int, *, atol: float = 1e-15) -> MCState:
         """Return the state projected onto the subspace associated to the
-        irreducible representation specified by character_index."""
+        irreducible representation specified by character_index.
+        """
         from netket._src.vqs.transformed_vstate import apply_operator
 
-        projector = self.projector(character_index)
+        projector = self.projector(character_index, atol=atol)
         projected_state = apply_operator(projector, state)
         return projected_state
 
