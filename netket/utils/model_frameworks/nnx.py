@@ -83,7 +83,7 @@ class NNXWrapper:
         if hasattr(_get_graphdef_type(self.graphdef), name):
             return partial(self.apply, method=name)
         raise AttributeError(
-            f"'{type(self).__name__}' (and the wrapped '{self.graphdef.type}') object has no attribute '{name}'"
+            f"'{type(self).__name__}' (and the wrapped '{_get_graphdef_type(self.graphdef)}') object has no attribute '{name}'"
         )
 
     def __hash__(self):
