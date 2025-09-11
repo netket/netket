@@ -11,6 +11,8 @@
 
 ### Deprecations and Removals
 
+* The `*` operator for multiplying operators is now deprecated and will be removed in a future version in 2026. Use the `@` operator instead for operator multiplication: `A * B` → `A @ B` [#2133](https://github.com/netket/netket/pull/2133).
+
 ## NetKet 3.19.1
 
 * Fix a bug where using non-differentiable parameters with chunking would lead to tracer leaks and errors when using `nk.optimizer.qgt.QGTOnTheFly`. This was due to incorrect capturing of the 'model_state' in some shard_maps.
