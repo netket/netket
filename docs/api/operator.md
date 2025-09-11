@@ -121,6 +121,7 @@ Operators of different types, but acting on the same Hilbert space, can be combi
    :nosignatures:
 
    SumOperator
+   ProductOperator
 ```
 
 
@@ -179,6 +180,10 @@ Those are easy-to-use constructors for a {class}`~netket.operator.LocalOperator`
    _sum.SumGenericOperator
    _sum.SumDiscreteJaxOperator
    _sum.SumDiscreteOperator
+
+   _prod.ProductGenericOperator
+   _prod.ProductDiscreteOperator
+   _prod.ProductDiscreteJaxOperator
 
 .. raw:: html
 

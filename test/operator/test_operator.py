@@ -8,6 +8,7 @@ import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
 from netket.jax.sharding import shard_along_axis
+from netket.operator import ProductOperator
 
 from .. import common
 
@@ -140,7 +141,6 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nk.operator.FermionOperator2ndJ
     _mode="mask",
 )
 
-# SumOperator
 hi = nk.hilbert.Spin(0.5, 3)
 operators["SumOperatorJax"] = nk.operator.SumOperator(
     nk.operator.spin.sigmax(hi, 0),
@@ -148,8 +148,6 @@ operators["SumOperatorJax"] = nk.operator.SumOperator(
     coefficients=[0.5, 0.3],
 )
 
-# ProductOperator
-from netket.operator._prod import ProductOperator
 operators["ProductOperatorJax"] = ProductOperator(
     nk.operator.spin.sigmax(hi, 0),
     nk.operator.spin.sigmay(hi, 1),

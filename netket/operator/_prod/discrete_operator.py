@@ -49,7 +49,9 @@ class ProductDiscreteOperator(ProductOperator, DiscreteOperator):
         Returns the standard (numba) version of this operator, which is an
         instance of {class}`nk.operator.Ising`.
         """
-        from netket.operator._prod.discrete_jax_operator import ProductDiscreteJaxOperator
+        from netket.operator._prod.discrete_jax_operator import (
+            ProductDiscreteJaxOperator,
+        )
 
         ops_jax = tuple(op.to_jax_operator() for op in self.operators)
         return ProductDiscreteJaxOperator(

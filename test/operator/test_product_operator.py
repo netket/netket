@@ -27,26 +27,26 @@ class TestProductOperator:
         """Create a simple spin-1/2 Hilbert space for testing."""
         L = 4
         g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
-        return nk.hilbert.Spin(s=1/2, N=g.n_nodes)
+        return nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
     @pytest.fixture
     def operators(self, hilbert_space):
         """Create basic spin operators for testing."""
         hi = hilbert_space
         return {
-            'sx0': nk.operator.spin.sigmax(hi, 0),
-            'sy0': nk.operator.spin.sigmay(hi, 0),
-            'sz0': nk.operator.spin.sigmaz(hi, 0),
-            'sx1': nk.operator.spin.sigmax(hi, 1),
-            'sy1': nk.operator.spin.sigmay(hi, 1),
-            'sz1': nk.operator.spin.sigmaz(hi, 1),
-            'sx2': nk.operator.spin.sigmax(hi, 2),
-            'sz3': nk.operator.spin.sigmaz(hi, 3),
+            "sx0": nk.operator.spin.sigmax(hi, 0),
+            "sy0": nk.operator.spin.sigmay(hi, 0),
+            "sz0": nk.operator.spin.sigmaz(hi, 0),
+            "sx1": nk.operator.spin.sigmax(hi, 1),
+            "sy1": nk.operator.spin.sigmay(hi, 1),
+            "sz1": nk.operator.spin.sigmaz(hi, 1),
+            "sx2": nk.operator.spin.sigmax(hi, 2),
+            "sz3": nk.operator.spin.sigmaz(hi, 3),
         }
 
     def test_product_operator_creation(self, operators):
         """Test basic ProductOperator creation."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         # Test creation with default coefficient
         prod = ProductOperator(sx0, sy0)
@@ -65,21 +65,25 @@ class TestProductOperator:
 
     def test_product_operator_types(self, operators):
         """Test that ProductOperator creates appropriate subclasses."""
-        sx0, sy0, sz0 = operators['sx0'], operators['sy0'], operators['sz0']
+        sx0, sy0, sz0 = operators["sx0"], operators["sy0"], operators["sz0"]
 
         # All JAX operators should create ProductDiscreteJaxOperator
         prod_jax = ProductOperator(sx0, sy0, sz0)
-        assert isinstance(prod_jax, nk.operator._prod.discrete_jax_operator.ProductDiscreteJaxOperator)
+        assert isinstance(
+            prod_jax, nk.operator._prod.discrete_jax_operator.ProductDiscreteJaxOperator
+        )
 
         # Test with numba operators
         sx0_numba = sx0.to_numba_operator()
         sy0_numba = sy0.to_numba_operator()
         prod_numba = ProductOperator(sx0_numba, sy0_numba)
-        assert isinstance(prod_numba, nk.operator._prod.discrete_operator.ProductDiscreteOperator)
+        assert isinstance(
+            prod_numba, nk.operator._prod.discrete_operator.ProductDiscreteOperator
+        )
 
     def test_product_operator_coefficient_validation(self, operators):
         """Test coefficient validation."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         # Valid scalar coefficients
         ProductOperator(sx0, sy0, coefficient=1.0)
@@ -101,7 +105,7 @@ class TestProductOperator:
         # Create different Hilbert space
         L2 = 3
         g2 = nk.graph.Hypercube(length=L2, n_dim=1, pbc=False)
-        hi2 = nk.hilbert.Spin(s=1/2, N=g2.n_nodes)
+        hi2 = nk.hilbert.Spin(s=1 / 2, N=g2.n_nodes)
 
         sx_hi1 = nk.operator.spin.sigmax(hi1, 0)
         sx_hi2 = nk.operator.spin.sigmax(hi2, 0)
@@ -115,7 +119,12 @@ class TestProductOperator:
 
     def test_product_operator_flattening(self, operators):
         """Test that nested ProductOperators are flattened."""
-        sx0, sy0, sz0, sx1 = operators['sx0'], operators['sy0'], operators['sz0'], operators['sx1']
+        sx0, sy0, sz0, sx1 = (
+            operators["sx0"],
+            operators["sy0"],
+            operators["sz0"],
+            operators["sx1"],
+        )
 
         # Create nested product: (A * B) * (C * D)
         prod1 = ProductOperator(sx0, sy0, coefficient=2.0)
@@ -132,7 +141,7 @@ class TestProductOperator:
 
     def test_product_operator_arithmetic_mul(self, operators):
         """Test scalar multiplication."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         prod = ProductOperator(sx0, sy0, coefficient=2.0)
 
@@ -148,7 +157,12 @@ class TestProductOperator:
 
     def test_product_operator_matmul(self, operators):
         """Test matrix multiplication (__matmul__) functionality."""
-        sx0, sy0, sz0, sx1 = operators['sx0'], operators['sy0'], operators['sz0'], operators['sx1']
+        sx0, sy0, sz0, sx1 = (
+            operators["sx0"],
+            operators["sy0"],
+            operators["sz0"],
+            operators["sx1"],
+        )
 
         # Test ProductOperator @ ProductOperator
         prod1 = ProductOperator(sx0, sy0, coefficient=2.0)
@@ -167,7 +181,7 @@ class TestProductOperator:
 
     def test_product_operator_rmatmul(self, operators):
         """Test reverse matrix multiplication (__rmatmul__) functionality."""
-        sx0, sy0, sz0 = operators['sx0'], operators['sy0'], operators['sz0']
+        sx0, sy0, sz0 = operators["sx0"], operators["sy0"], operators["sz0"]
 
         prod = ProductOperator(sx0, sy0, coefficient=2.0)
 
@@ -180,7 +194,7 @@ class TestProductOperator:
 
     def test_product_operator_matmul_dtype_inference(self, operators):
         """Test dtype inference in matrix multiplication."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         # Create products with different dtypes
         prod_complex = ProductOperator(sx0, coefficient=1.0 + 1.0j)
@@ -193,17 +207,17 @@ class TestProductOperator:
 
     def test_product_operator_max_conn_size(self, operators):
         """Test max_conn_size calculation for ProductOperator."""
-        sx0, sy0, sz0 = operators['sx0'], operators['sy0'], operators['sz0']
+        sx0, sy0, sz0 = operators["sx0"], operators["sy0"], operators["sz0"]
 
         # For JAX operators
         prod_jax = ProductOperator(sx0, sy0, sz0)
-        if hasattr(prod_jax, 'max_conn_size'):
+        if hasattr(prod_jax, "max_conn_size"):
             expected_size = sx0.max_conn_size * sy0.max_conn_size * sz0.max_conn_size
             assert prod_jax.max_conn_size == expected_size
 
     def test_product_operator_get_conn_padded(self, operators, hilbert_space):
         """Test get_conn_padded method."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         prod = ProductOperator(sx0, sy0, coefficient=2.0)
 
@@ -211,7 +225,7 @@ class TestProductOperator:
         rng = nk.jax.PRNGSeq(0)
         states = hilbert_space.random_state(rng.next(), 10)
 
-        if hasattr(prod, 'get_conn_padded'):
+        if hasattr(prod, "get_conn_padded"):
             conn_states, mels = prod.get_conn_padded(states)
 
             # Check shapes - get_conn_padded adds a connection dimension
@@ -224,11 +238,13 @@ class TestProductOperator:
             nonzero_mask = mels != 0
             if np.any(nonzero_mask):
                 # Coefficient should be factored into matrix elements
-                assert prod.coefficient in mels[nonzero_mask] or np.any(np.abs(mels[nonzero_mask]) > 0)
+                assert prod.coefficient in mels[nonzero_mask] or np.any(
+                    np.abs(mels[nonzero_mask]) > 0
+                )
 
     def test_product_operator_repr(self, operators):
         """Test string representation."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         prod = ProductOperator(sx0, sy0, coefficient=2.5)
         repr_str = repr(prod)
@@ -238,19 +254,19 @@ class TestProductOperator:
 
     def test_product_operator_jax_numba_conversion(self, operators):
         """Test conversion between JAX and Numba operators."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         # Start with JAX
         prod_jax = ProductOperator(sx0, sy0, coefficient=1.5)
 
         # Convert to numba if supported
-        if hasattr(prod_jax, 'to_numba_operator'):
+        if hasattr(prod_jax, "to_numba_operator"):
             try:
                 prod_numba = prod_jax.to_numba_operator()
                 assert prod_numba.coefficient == prod_jax.coefficient
 
                 # Convert back to JAX if supported
-                if hasattr(prod_numba, 'to_jax_operator'):
+                if hasattr(prod_numba, "to_jax_operator"):
                     prod_jax_back = prod_numba.to_jax_operator()
                     assert prod_jax_back.coefficient == prod_numba.coefficient
             except (AttributeError, NotImplementedError) as e:
@@ -259,12 +275,12 @@ class TestProductOperator:
 
     def test_product_operator_tree_flatten_unflatten(self, operators):
         """Test JAX tree flattening and unflattening."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         prod = ProductOperator(sx0, sy0, coefficient=2.0)
 
         # Test tree operations if available
-        if hasattr(prod, 'tree_flatten'):
+        if hasattr(prod, "tree_flatten"):
             data, metadata = prod.tree_flatten()
 
             # Test unflatten
@@ -276,7 +292,7 @@ class TestProductOperator:
 
     def test_product_operator_edge_cases(self, operators):
         """Test edge cases and error conditions."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         # Test with zero coefficient
         prod_zero = ProductOperator(sx0, sy0, coefficient=0.0)
@@ -293,14 +309,14 @@ class TestProductOperator:
     @pytest.mark.parametrize("coeff", [1.0, -2.5, 1.0 + 2.0j, 0.0])
     def test_product_operator_coefficients(self, operators, coeff):
         """Test ProductOperator with various coefficient values."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         prod = ProductOperator(sx0, sy0, coefficient=coeff)
         assert prod.coefficient == coeff
 
     def test_product_operator_mathematical_properties(self, operators):
         """Test mathematical properties of ProductOperator."""
-        sx0, sy0, sz0 = operators['sx0'], operators['sy0'], operators['sz0']
+        sx0, sy0, sz0 = operators["sx0"], operators["sy0"], operators["sz0"]
 
         # Test associativity: (A @ B) @ C == A @ (B @ C)
         A = ProductOperator(sx0, coefficient=2.0)
@@ -316,7 +332,7 @@ class TestProductOperator:
 
     def test_product_operator_dtype_handling(self, operators):
         """Test dtype handling in ProductOperator."""
-        sx0, sy0 = operators['sx0'], operators['sy0']
+        sx0, sy0 = operators["sx0"], operators["sy0"]
 
         # Test with explicit dtype
         prod = ProductOperator(sx0, sy0, coefficient=1.0, dtype=np.complex128)
@@ -339,12 +355,12 @@ class TestProductOperator:
 
         # These operations should work without error
         combined = h_ising + prod  # Addition should create a SumOperator
-        assert hasattr(combined, 'operators') or hasattr(combined, 'hilbert')
+        assert hasattr(combined, "operators") or hasattr(combined, "hilbert")
 
         # Matrix multiplication should work
-        if hasattr(h_ising, '__matmul__'):
+        if hasattr(h_ising, "__matmul__"):
             matmul_result = h_ising @ prod
-            assert hasattr(matmul_result, 'hilbert')
+            assert hasattr(matmul_result, "hilbert")
 
 
 # Integration tests that may require specific test data or fixtures
@@ -356,7 +372,7 @@ class TestProductOperatorIntegration:
         # Create a simple system
         L = 4
         g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
-        hi = nk.hilbert.Spin(s=1/2, N=g.n_nodes)
+        hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
         # Create ProductOperator
         sx0 = nk.operator.spin.sigmax(hi, 0)
@@ -382,13 +398,13 @@ class TestProductOperatorIntegration:
         # Create small system for dense matrix test
         L = 2
         g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
-        hi = nk.hilbert.Spin(s=1/2, N=g.n_nodes)
+        hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
         sx0 = nk.operator.spin.sigmax(hi, 0)
         sy1 = nk.operator.spin.sigmay(hi, 1)
         prod_op = ProductOperator(sx0, sy1, coefficient=1.0)
 
-        if hasattr(prod_op, 'to_dense'):
+        if hasattr(prod_op, "to_dense"):
             dense_matrix = prod_op.to_dense()
             assert dense_matrix.shape == (hi.n_states, hi.n_states)
             assert np.isfinite(dense_matrix).all()

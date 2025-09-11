@@ -232,7 +232,9 @@ class SumOperator(metaclass=SumOperatorMeta):
             coeffs = []
 
             for i, (op_i, coeff_i) in enumerate(zip(self.operators, self.coefficients)):
-                for j, (op_j, coeff_j) in enumerate(zip(other.operators, other.coefficients)):
+                for j, (op_j, coeff_j) in enumerate(
+                    zip(other.operators, other.coefficients)
+                ):
                     product_op = op_i @ op_j
                     product_coeff = coeff_i * coeff_j
                     ops.append(product_op)

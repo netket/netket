@@ -44,13 +44,74 @@ def _flatten_prodoperators(operators: Iterable[AbstractOperator], coefficient: f
 
 
 class ProductOperator(ABC):
+    """
+    Base class for product of quantum operators.
+
+    This class represents a product of quantum operators with a coefficient,
+    implementing the mathematical concept of :math:`c \\prod_i \\hat{H}_i` where
+    :math:`c` is a scalar coefficient and :math:`\\hat{H}_i` are quantum operators.
+
+    The class uses a dispatch mechanism to automatically select the appropriate
+    specialized subclass based on the types of operators being multiplied:
+
+    * :class:`~netket.operator._prod.discrete_jax_operator.ProductDiscreteJaxOperator`
+      for products of :class:`~netket.operator.DiscreteJaxOperator` instances
+    * :class:`~netket.operator._prod.discrete_operator.ProductDiscreteOperator`
+      for products of :class:`~netket.operator.DiscreteOperator` instances
+    * :class:`~netket.operator._prod.operator.ProductGenericOperator`
+      for mixed operator types or fallback cases.
+
+    Products can be constructed using the ``@`` operator (matrix multiplication) or by
+    directly instantiating this class with a list of operators.
+
+    Examples:
+        Creating a product of Pauli operators:
+
+        >>> import netket as nk
+        >>> hi = nk.hilbert.Spin(s=1/2, N=4)
+        >>> sx0 = nk.operator.spin.sigmax(hi, 0)
+        >>> sz1 = nk.operator.spin.sigmaz(hi, 1)
+        >>> sy2 = nk.operator.spin.sigmay(hi, 2)
+        >>> # Using @ operator
+        >>> product1 = sx0 @ sz1 @ sy2
+        >>> print(product1)  # doctest: +SKIP
+        ProductDiscreteJaxOperator with terms:
+         ∙ 1.0
+         ∙ PauliStringsJax(n_sites=4, hilbert=Spin(s=1/2, N=4), n_strings=1)
+         ∙ PauliStringsJax(n_sites=4, hilbert=Spin(s=1/2, N=4), n_strings=1)
+         ∙ PauliStringsJax(n_sites=4, hilbert=Spin(s=1/2, N=4), n_strings=1)
+
+        Creating a product with explicit coefficient:
+
+        >>> # Direct instantiation
+        >>> product2 = nk.operator.ProductOperator(sx0, sz1, coefficient=2.0)
+        >>> print(product2.coefficient)
+        2.0
+
+        Products of products are automatically flattened:
+
+        >>> prod_a = sx0 @ sz1
+        >>> prod_b = sy2 @ nk.operator.spin.sigmaz(hi, 3)
+        >>> combined = prod_a @ prod_b
+        >>> print(len(combined.operators))  # All 4 operators are flattened
+        4
+
+        Scaling a product:
+
+        >>> scaled = 3.0 * product1
+        >>> print(scaled.coefficient)
+        3.0
+    """
+
     def __new__(cls, *args, **kwargs):
         # This logic overrides the constructor, such that if someone tries to
         # construct this class directly by calling `SumOperator(...)`
         # it will construct either a DiscreteHilbert or TensorDiscreteHilbert
         from netket.operator._prod.operator import ProductGenericOperator
         from netket.operator._prod.discrete_operator import ProductDiscreteOperator
-        from netket.operator._prod.discrete_jax_operator import ProductDiscreteJaxOperator
+        from netket.operator._prod.discrete_jax_operator import (
+            ProductDiscreteJaxOperator,
+        )
 
         # from .continuous import ProductContinuousOperator
 
@@ -73,10 +134,14 @@ class ProductOperator(ABC):
         dtype=None,
         **kwargs,
     ):
-        r"""Constructs a Sum of Operators.
+        r"""Constructs a Product of Operators.
 
         Args:
-            *hilb: An iterable object containing at least 1 hilbert space.
+            operators: An iterable of quantum operators to be multiplied. All operators
+                must act on the same Hilbert space.
+            coefficient: Scalar coefficient for the product. Default is 1.0.
+            dtype: Data type for the coefficient. If None, it will be inferred
+                from the operators and coefficient.
         """
         hi_spaces = [op.hilbert for op in operators]
         if not all(hi == hi_spaces[0] for hi in hi_spaces):
@@ -105,13 +170,14 @@ class ProductOperator(ABC):
 
     @property
     def operators(self) -> tuple[AbstractOperator, ...]:
-        """The tuple of all operators in the terms of this sum. Every
-        operator is summed with a corresponding coefficient
+        """The tuple of all operators in the terms of this product. All operators
+        are multiplied together with the scalar coefficient.
         """
         return self._operators
 
     @property
     def coefficient(self) -> Array:
+        """The scalar coefficient multiplying the product of operators."""
         return self._coefficient
 
     def __repr__(self) -> str:
