@@ -72,8 +72,8 @@ class ProductOperator(ABC):
         >>> sx0 = nk.operator.spin.sigmax(hi, 0)
         >>> sz1 = nk.operator.spin.sigmaz(hi, 1)
         >>> sy2 = nk.operator.spin.sigmay(hi, 2)
-        >>> # Using @ operator
-        >>> product1 = sx0 @ sz1 @ sy2
+        >>> # Using ProductOperator constructor
+        >>> product1 = nk.operator.ProductOperator(sx0, sz1, sy2)
         >>> print(product1)  # doctest: +SKIP
         ProductDiscreteJaxOperator with terms:
          ∙ 1.0
@@ -90,9 +90,9 @@ class ProductOperator(ABC):
 
         Products of products are automatically flattened:
 
-        >>> prod_a = sx0 @ sz1
-        >>> prod_b = sy2 @ nk.operator.spin.sigmaz(hi, 3)
-        >>> combined = prod_a @ prod_b
+        >>> prod_a = nk.operator.ProductOperator(sx0, sz1)
+        >>> prod_b = nk.operator.ProductOperator(sy2, nk.operator.spin.sigmaz(hi, 3))
+        >>> combined = nk.operator.ProductOperator(prod_a, prod_b)
         >>> print(len(combined.operators))  # All 4 operators are flattened
         4
 
@@ -100,7 +100,7 @@ class ProductOperator(ABC):
 
         >>> scaled = 3.0 * product1
         >>> print(scaled.coefficient)
-        3.0
+        (3+0j)
     """
 
     def __new__(cls, *args, **kwargs):
