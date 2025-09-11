@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import TYPE_CHECKING
+from functools import partial
 
 import sys
 import jax
@@ -47,6 +48,10 @@ class EquinoxWrapper:
             raise NotImplementedError()
         if method is None:
             method = "__call__"
+        elif isinstance(method, partial):
+            return method(variables, *args, **kwargs)
+        elif not isinstance(method, str):
+            raise TypeError(f"method must be a string, not {type(method)}")
 
         module = self.recompose(variables)
         fun = getattr(module, method)
@@ -60,8 +65,18 @@ class EquinoxWrapper:
 
         params_module = jax.tree.unflatten(self.params_treedef, params)
         module = eqx.combine(params_module, self.static_module)
-
         return module
+
+    def __getattr__(self, name):
+        if hasattr(self.static_module, name):
+            if callable(self.static_module):
+                return partial(self.apply, method=name)
+            else:
+                return self.static_module.name
+        raise AttributeError(
+            f"{type(self.static_module)} (wrapped into a '{type(self).__name__}') "
+            f"has no attribute '{name}'"
+        )
 
     def __repr__(self):
         return f"EquinoxWrapper({self.static_module})"
