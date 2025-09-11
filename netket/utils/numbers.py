@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
 from numbers import Number
 
-from typing import Any
+import jax
 
 from netket.utils.dispatch import dispatch
 from netket.utils.types import Array
@@ -62,4 +63,9 @@ def is_scalar(_: Number):  # noqa: F811, E0102
 
 @dispatch
 def is_scalar(x: Array):  # noqa: F811, E0102
+    return x.ndim == 0
+
+
+@dispatch
+def is_scalar(x: jax.core.Tracer):  # noqa: F811, E0102
     return x.ndim == 0

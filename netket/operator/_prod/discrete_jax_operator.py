@@ -77,4 +77,14 @@ class ProductDiscreteJaxOperator(ProductOperator, DiscreteJaxOperator):
         ops, coefficient = data
         dtype = metadata["dtype"]
 
-        return cls(*ops, coefficient=coefficient, dtype=dtype)
+        # Create instance without calling __init__ to avoid ArgInfo validation issues
+        obj = object.__new__(cls)
+        obj._operators = tuple(ops)
+        obj._coefficient = coefficient
+        obj._dtype = dtype
+        obj._initialized = False
+
+        # Set the hilbert space from the first operator
+        obj._hilbert = ops[0].hilbert
+
+        return obj
