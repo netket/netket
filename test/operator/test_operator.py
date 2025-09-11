@@ -148,6 +148,14 @@ operators["SumOperatorJax"] = nk.operator.SumOperator(
     coefficients=[0.5, 0.3],
 )
 
+# ProductOperator
+from netket.operator._prod import ProductOperator
+operators["ProductOperatorJax"] = ProductOperator(
+    nk.operator.spin.sigmax(hi, 0),
+    nk.operator.spin.sigmay(hi, 1),
+    coefficient=2.0,
+)
+
 # Remove non jax operators when sharding is activated
 if nk.config.netket_experimental_sharding:
     _operators = {}
