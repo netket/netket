@@ -23,6 +23,7 @@ import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from netket.errors import JaxOperatorNotConvertibleToNumba
+from netket.jax.sharding import get_sharding_spec, is_sharded
 
 from .base import LocalOperatorBase
 from .compile_helpers import pack_internals_jax
@@ -284,13 +285,32 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         return xp, mels, n_conn
 
     def get_conn_padded(self, x):
-        xp, mels, _ = self._get_conn_padded(x)
+        if is_sharded(x):
+            in_specs = get_sharding_spec((self, x))
+            # the outputs are xp, mels and nconn which have 3,2,1 dimensions.
+            out_specs = get_sharding_spec((x, x, x.sum(axis=-1)))
+            xp, mels, _ = jax.shard_map(
+                lambda op, x: op._get_conn_padded(x),
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(self, x)
+        else:
+            xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
-    def n_conn(self, x, out=None):
-        if out is not None:
-            raise NotImplementedError()
-        _, _, n_conn = self._get_conn_padded(x)
+    def n_conn(self, x):
+        if is_sharded(x):
+            in_specs = get_sharding_spec((self, x))
+            out_specs = get_sharding_spec((x, x, x.sum(axis=-1)))
+            _, _, n_conn = jax.shard_map(
+                lambda op, x: op._get_conn_padded(x),
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(self, x)
+        else:
+            _, _, n_conn = self._get_conn_padded(x)
         return n_conn
 
     def tree_flatten(self):

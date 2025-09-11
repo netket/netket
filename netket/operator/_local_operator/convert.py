@@ -22,22 +22,18 @@ from scipy.sparse import issparse
 from netket.operator import PauliStrings
 
 
-_pauli_basis = None
 pauli_basis_str = list("IXYZ")
 
 
 def _get_pauli_basis():
-    global _pauli_basis
-    if _pauli_basis is None:
-        # Pauli Matrices: shape (2, 2)
-        I = jnp.eye(2)
-        X = jnp.array([[0, 1], [1, 0]])
-        Y = jnp.array([[0, -1j], [1j, 0]])
-        Z = jnp.array([[1, 0], [0, -1]])
+    # Pauli Matrices: shape (2, 2)
+    I = jnp.eye(2)
+    X = jnp.array([[0, 1], [1, 0]])
+    Y = jnp.array([[0, -1j], [1j, 0]])
+    Z = jnp.array([[1, 0], [0, -1]])
 
-        # stacked pauli matrices: shape (4, 2, 2)
-        _pauli_basis = jnp.stack([I, X, Y, Z], axis=0)
-    return _pauli_basis
+    # stacked pauli matrices: shape (4, 2, 2)
+    return jnp.stack([I, X, Y, Z], axis=0)
 
 
 @jax.jit
@@ -151,7 +147,7 @@ def _local_operator_to_pauli_strings(
 
 
 def _convert_to_dense(m):
-    return m.todense() if issparse(m) else m
+    return jnp.asarray(m.todense() if issparse(m) else m)
 
 
 def local_operators_to_pauli_strings(

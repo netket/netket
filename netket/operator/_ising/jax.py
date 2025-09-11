@@ -128,9 +128,13 @@ def _ising_mels_jax(x, edges, h, J):
         max_conn_size = 1
     else:
         max_conn_size = x.shape[-1] + 1
-    mels = jnp.zeros((*batch_dims, max_conn_size), dtype=J.dtype)
+    mels = jnp.zeros(
+        (*batch_dims, max_conn_size), dtype=J.dtype, device=jax.typeof(x).sharding
+    )
 
-    same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
+    same_spins = x.at[..., edges[:, 0]].get(
+        out_sharding=jax.typeof(x).sharding
+    ) == x.at[..., edges[:, 1]].get(out_sharding=jax.typeof(x).sharding)
     mels = mels.at[..., 0].set(J * (2 * same_spins - 1).sum(axis=-1))
     if not isinstance(h, StaticZero):
         mels = mels.at[..., 1:].set(-h)
@@ -168,8 +172,10 @@ def _ising_kernel_jax(x, edges, h, J):
 @jax.jit
 def _ising_n_conn_jax(x, edges, h, J):
     n_conn_X = 0 if isinstance(h, StaticZero) else x.shape[-1]
-    same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
+    same_spins = x.at[..., edges[:, 0]].get(
+        out_sharding=jax.typeof(x).sharding
+    ) == x.at[..., edges[:, 1]].get(out_sharding=jax.typeof(x).sharding)
     # TODO duplicated with _ising_mels_jax
     mels_ZZ = J * (2 * same_spins - 1).sum(axis=-1)
-    n_conn_ZZ = jnp.asarray(mels_ZZ != 0, dtype=jnp.int32)
+    n_conn_ZZ = (mels_ZZ != 0).astype(jnp.int32)
     return n_conn_X + n_conn_ZZ
