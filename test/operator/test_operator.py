@@ -1,15 +1,20 @@
-import netket as nk
 import numpy as np
 import scipy
-from netket.operator import DiscreteJaxOperator
 
 import pytest
+
 import jax
 import jax.numpy as jnp
+from jax.sharding import PartitionSpec as P
 from jax.experimental.sparse import BCOO
 from netket.jax.sharding import shard_along_axis
 
-from .. import common
+import netket as nk
+from netket.operator import DiscreteJaxOperator
+from netket.jax.sharding import get_sharding_spec
+
+from test import common
+from test.common_mesh import with_explicit_meshes, fix_mesh
 
 operators = {}
 
@@ -85,7 +90,7 @@ sx = [[0, 1], [1, 0]]
 sy = [[0, -1.0j], [1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
 
 for name, LocalOp_impl in [
     ("numba", nk.operator.LocalOperatorNumba),
@@ -204,28 +209,42 @@ for name, op in op_finite_size.items():
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-def test_produce_elements_in_hilbert(op, attr):
+@with_explicit_meshes(
+    [
+        None,
+        ((2,), ("S",)),
+    ]
+)
+def test_produce_elements_in_hilbert(op, attr, mesh):
     rng = nk.jax.PRNGSeq(0)
     hi = op.hilbert
-    get_conn_fun = getattr(op, attr)
-
-    if nk.config.netket_experimental_sharding:
-        # TODO: get_conn_fun(rstates[i]) and shard map do not play well
-        # together.
-        pytest.xfail("Broken under sharding")
+    op = fix_mesh(op)
+    shspec = P("S") if not mesh.empty else None
 
     assert len(hi.local_states) == hi.local_size
     assert hi.size > 0
 
     local_states = hi.local_states
     max_conn_size = op.max_conn_size
-    rstates = hi.random_state(rng.next(), 1000)
+    rstates = hi.random_state(rng.next(), 1000, out_sharding=shspec)
 
-    for i in range(len(rstates)):
-        rstatet, mels = get_conn_fun(rstates[i])
+    if shspec is None:
+        for i in range(len(rstates)):
+            rstatet, mels = op.get_conn(rstates[i])
 
+            assert np.all(np.isin(rstatet, local_states))
+            assert np.all(np.isin(rstatet, local_states))
+            assert len(mels) <= max_conn_size
+    else:
+        rstatet, mels = op.get_conn_padded(rstates)
+        assert mels.shape[0] == rstatet.shape[0]
+        assert mels.shape[1] <= max_conn_size
+        assert rstatet.shape[1] == mels.shape[1]
+        assert rstatet.shape[2] == hi.size
         assert np.all(np.isin(rstatet, local_states))
-        assert len(mels) <= max_conn_size
+        # TODO: run this also for numba operators
+        if shspec is not None and isinstance(op, DiscreteJaxOperator):
+            assert rstatet.sharding.spec[0] == rstates.sharding.spec[0]
 
 
 @pytest.mark.parametrize(
@@ -342,10 +361,20 @@ def test_repr(op):
         ]
     ],
 )
-def test_get_conn_padded(op, shape, dtype):
+@with_explicit_meshes([None, ((2,), ("S",))])
+def test_get_conn_padded(op, shape, dtype, mesh):
+    op = fix_mesh(op)
     hi = op.hilbert
+    if hasattr(op, "reset"):
+        op._reset()
 
-    v = hi.random_state(jax.random.PRNGKey(0), shape, dtype=dtype)
+    if mesh.empty:
+        out_sharding = None
+    else:
+        out_sharding = P("S")
+    v = hi.random_state(
+        jax.random.PRNGKey(0), shape, dtype=dtype, out_sharding=out_sharding
+    )
 
     vp, mels = op.get_conn_padded(v)
 
@@ -353,28 +382,44 @@ def test_get_conn_padded(op, shape, dtype):
     assert mels.ndim == v.ndim
     assert vp.dtype == v.dtype
     assert mels.dtype == op.dtype
+    # TODO: One day we might make all operators work with sharding
+    if isinstance(op, DiscreteJaxOperator):
+        assert vp.sharding.is_equivalent_to(v.sharding, ndim=vp.ndim)
+        assert mels.sharding.is_equivalent_to(v.sharding, ndim=mels.ndim)
 
-    vp_f, mels_f = op.get_conn_padded(v.reshape(-1, hi.size))
+    vr = v.reshape(-1, hi.size)
+    vp_f, mels_f = op.get_conn_padded(vr)
     common.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
     common.assert_allclose(mels_f, mels.reshape(-1, mels.shape[-1]))
+    if isinstance(op, DiscreteJaxOperator):
+        assert vp_f.sharding.is_equivalent_to(vr.sharding, ndim=vp.ndim)
+        assert mels_f.sharding.is_equivalent_to(vr.sharding, ndim=mels.ndim)
 
 
+@with_explicit_meshes([((2,), ("S",))])
 @pytest.mark.parametrize(
-    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+    "op",
+    [
+        pytest.param(op, id=name)
+        for name, op in operators.items()
+        if isinstance(op, DiscreteJaxOperator)
+    ],
 )
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
-@pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
-def test_operator_sharded_not_commuincating(op):
+def test_operator_sharded_not_communicating(op, mesh):
     if isinstance(op, nk.operator.DiscreteOperator) and not isinstance(
         op, nk.operator.DiscreteJaxOperator
     ):
         pytest.xfail("numba operator is not jit compatible")
 
+    op = fix_mesh(op)
+
     hi = op.hilbert
-    x = hi.random_state(jax.random.PRNGKey(0), 8 * jax.device_count(), dtype=np.float64)
-    x = shard_along_axis(x, axis=0)
+    x = hi.random_state(
+        jax.random.PRNGKey(0),
+        8 * jax.device_count(),
+        dtype=np.float64,
+        out_sharding=P("S"),
+    )
 
     gcp_jit = jax.jit(lambda ha, x: ha.get_conn_padded(x))
     compiled = gcp_jit.lower(op, x).compile()
@@ -667,22 +712,31 @@ def test_jax_operator_to_jax_operator(op):
         if isinstance(op, DiscreteJaxOperator)
     ],
 )
+@with_explicit_meshes(
+    [((2,), ("S",)), ((2, 2), ("S", "P"))]
+    # auto = ... TODO: should set auto mesh as well.
+)
 @pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
-def test_jax_operator_sharding_preserved(op):
+def test_jax_operator_sharding_preserved(mesh, op):
     """Check that get_conn_padded preserves sharding for JAX operators"""
+    op = fix_mesh(op)
+
     hi = op.hilbert
+    mesh = jax.sharding.get_abstract_mesh()
     _get_conn_padded = jax.jit(lambda op, x: op.get_conn_padded(x))
 
     n_devices = jax.device_count()
     for shape in [(n_devices,), (n_devices, 3)]:
         x = hi.random_state(jax.random.PRNGKey(0), shape, dtype=np.float64)
+        if mesh.are_all_axes_explicit:
+            x = jax.sharding.reshard(x, jax.P("S"))
         x_sharded = shard_along_axis(x, axis=0)
 
-        sp, mels = _get_conn_padded(op, x_sharded)
+        xp, mels = _get_conn_padded(op, x_sharded)
 
         # Output should preserve the 'S' sharding on the first axis
-        assert mels.sharding.spec == jax.P("S")
-        assert sp.sharding.spec == jax.P("S")
+        assert mels.sharding.is_equivalent_to(x.sharding, ndim=mels.ndim)
+        assert xp.sharding.is_equivalent_to(x.sharding, ndim=xp.ndim)
 
     # test replicated propagated
     if jax.sharding.get_abstract_mesh().are_all_axes_explicit:
@@ -722,12 +776,17 @@ def test_bose_hubbard_precision():
         if not name.startswith("Bose Hubbard Complex")
     ],
 )
-@common.skipif_distributed
-def test_operator_jax_n_conn(op):
+@with_explicit_meshes([None, ((2,), ("S",))])
+def test_operator_jax_n_conn(op, mesh):
     """Check that n_conn returns the same result for jax and numba operators"""
     op_jax = op.to_jax_operator()
 
-    states = op.hilbert.all_states()
+    if mesh.empty:
+        states = op.hilbert.all_states()
+    else:
+        states = op.hilbert.random_state(
+            jax.random.PRNGKey(0), (8 * jax.device_count(),), out_sharding=P("S")
+        )
 
     n_conn = op.n_conn(states)
     n_conn_j = op_jax.n_conn(states)
@@ -735,3 +794,4 @@ def test_operator_jax_n_conn(op):
     assert np.less_equal(n_conn_j, n_conn).all()
     # FIXME: uncomment once the numba implementation is fixed
     # np.testing.assert_equal(n_conn_j, n_conn)
+    assert get_sharding_spec(n_conn_j) == get_sharding_spec(states, axes=slice(-1))
