@@ -390,15 +390,11 @@ def test_fermion_op_matmul(Op):
     # multiply with a real constant
     op_real = Op(hi, [], [], constant=2.0)
     np.testing.assert_allclose((op1 @ op_real).to_dense(), (op1 * 2).to_dense())
-    np.testing.assert_allclose((op1 * op_real).to_dense(), (op1 * 2).to_dense())
 
     # multiply with a real+complex constant
     op_complex = Op(hi, [], [], constant=2.0 + 2j)
     np.testing.assert_allclose(
         (op1 @ op_complex).to_dense(), (op1 * (2 + 2j)).to_dense()
-    )
-    np.testing.assert_allclose(
-        (op1 * op_complex).to_dense(), (op1 * (2 + 2j)).to_dense()
     )
 
     # multiply with another operator
@@ -425,10 +421,6 @@ def test_fermion_op_matmul(Op):
         (op1 @ op2).to_dense(),
         op2b.to_dense(),
     )
-    np.testing.assert_allclose(
-        (op1 * op2).to_dense(),
-        op2b.to_dense(),
-    )
 
     # multiply with another operator + constant
     op3 = Op(hi, terms=("1^ 1",), weights=(1 + 1j,), constant=5)
@@ -442,22 +434,13 @@ def test_fermion_op_matmul(Op):
         (op1 @ op3).to_dense(),
         op3b.to_dense(),
     )
-    np.testing.assert_allclose(
-        (op1 * op3).to_dense(),
-        op3b.to_dense(),
-    )
 
     hi = nk.hilbert.SpinOrbitalFermions(1)
     op4a = nk.operator.FermionOperator2nd(hi, terms=("0",), weights=(1,))
     op4b = nk.operator.FermionOperator2nd(hi, terms=("0^ 0",), weights=(1,))
     op4 = nk.operator.FermionOperator2nd(hi, terms=("0 0^ 0",), weights=(1,))
     np.testing.assert_allclose(
-        (op4a * op4b).to_dense(),
-        op4.to_dense(),
-    )
-    op4 = nk.operator.FermionOperator2nd(hi, terms=("0 0^ 0",), weights=(1,))
-    np.testing.assert_allclose(
-        (op4a * op4b).to_dense(),
+        (op4a @ op4b).to_dense(),
         op4.to_dense(),
     )
 
@@ -1009,3 +992,31 @@ def test_fermion_ordering():
     np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
     np.testing.assert_allclose(op1_ordered.to_dense(), op2.to_dense())
     _dict_compare(op1_ordered.operators, op2.operators, 1e-8)
+
+
+@pytest.mark.parametrize(
+    "Op",
+    [
+        pytest.param(nk.operator.FermionOperator2nd, id="FermionOperator2nd"),
+    ],
+)
+def test_fermion_operator_multiplication_deprecation_warning(Op):
+    """Test that fermion operator multiplication with * throws deprecation warning."""
+    import warnings
+    from netket.errors import OperatorMultiplicationDeprecationWarning
+
+    hi = nk.hilbert.SpinOrbitalFermions(2)
+    op1 = Op(hi, terms=("0^",), weights=(1.0,))
+    op2 = Op(hi, terms=("1",), weights=(1.0,))
+
+    # Test that * operator throws deprecation warning
+    with pytest.warns(OperatorMultiplicationDeprecationWarning):
+        result = op1 * op2
+
+    # Test that @ operator does NOT throw warning
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", OperatorMultiplicationDeprecationWarning)
+        result_correct = op1 @ op2
+
+    # Verify both give same result (backward compatibility)
+    np.testing.assert_allclose(result.to_dense(), result_correct.to_dense())
