@@ -8,6 +8,7 @@ import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
 from netket.jax.sharding import shard_along_axis
+from netket.operator import ProductOperator
 
 from .. import common
 
@@ -140,12 +141,17 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nk.operator.FermionOperator2ndJ
     _mode="mask",
 )
 
-# SumOperator
 hi = nk.hilbert.Spin(0.5, 3)
 operators["SumOperatorJax"] = nk.operator.SumOperator(
     nk.operator.spin.sigmax(hi, 0),
     nk.operator.spin.sigmay(hi, 1).to_pauli_strings(),
     coefficients=[0.5, 0.3],
+)
+
+operators["ProductOperatorJax"] = ProductOperator(
+    nk.operator.spin.sigmax(hi, 0),
+    nk.operator.spin.sigmay(hi, 1),
+    coefficient=2.0,
 )
 
 # Remove non jax operators when sharding is activated
@@ -587,6 +593,32 @@ def test_matmul_sparse_vector(op):
 )
 def test_jax_operator_to_jax_operator(op):
     assert op == op.to_jax_operator()
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        pytest.param(op, id=name)
+        for name, op in operators.items()
+        if isinstance(op, DiscreteJaxOperator)
+    ],
+)
+@pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
+def test_jax_operator_sharding_preserved(op):
+    """Check that get_conn_padded preserves sharding for JAX operators"""
+    hi = op.hilbert
+    _get_conn_padded = jax.jit(lambda op, x: op.get_conn_padded(x))
+
+    n_devices = jax.device_count()
+    for shape in [(n_devices,), (n_devices, 3)]:
+        x = hi.random_state(jax.random.PRNGKey(0), shape, dtype=np.float64)
+        x_sharded = shard_along_axis(x, axis=0)
+
+        sp, mels = _get_conn_padded(op, x_sharded)
+
+        # Output should preserve the 'S' sharding on the first axis
+        assert mels.sharding.spec == jax.P("S")
+        assert sp.sharding.spec == jax.P("S")
 
 
 @common.skipif_distributed

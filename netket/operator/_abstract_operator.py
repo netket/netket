@@ -157,6 +157,11 @@ class AbstractOperator(AbstractObservable[HilbertType]):
         return NotImplemented
 
     def __rmatmul__(self, other):
+        if isinstance(other, AbstractOperator):
+            if self.hilbert == other.hilbert:
+                from ._prod import ProductOperator
+
+                return ProductOperator(other, self)
         return NotImplemented
 
     def __repr__(self):

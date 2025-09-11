@@ -14,6 +14,8 @@ from functools import partial
 
 import pytest
 
+from ..common import skipif_distributed
+
 
 def _cast_normal_order(A):
     idx = np.array(np.where(A)).T
@@ -27,6 +29,7 @@ def _cast_normal_order(A):
 
 
 @pytest.mark.slow
+@skipif_distributed
 @pytest.mark.parametrize("desc", [True, False])
 def test_pnc(desc):
     N = 6
@@ -86,6 +89,7 @@ def test_pnc(desc):
 
 
 @pytest.mark.slow
+@skipif_distributed
 @pytest.mark.parametrize("N", [5])
 @pytest.mark.parametrize("n", [2, 3])
 @pytest.mark.parametrize("s", [1 / 2, 1, 3 / 2])
@@ -153,9 +157,9 @@ def test_fermihubbard():
     ha2 = 0.0
     for sz in (-1, 1):
         for u, v in g.edges():
-            ha2 += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)
+            ha2 += -t * cdag(u, sz) @ c(v, sz) - t * cdag(v, sz) @ c(u, sz)
     for u in g.nodes():
-        ha2 += U * nc(u, 1) * nc(u, -1)
+        ha2 += U * nc(u, 1) @ nc(u, -1)
 
     ha3 = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha2)
     ha4 = ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(ha2)
