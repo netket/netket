@@ -20,6 +20,7 @@ import numpy as np
 
 import jax
 
+from netket.operator import AbstractOperator
 from netket.utils.types import DType
 from netket.operator import DiscreteOperator, Transpose
 from netket.operator._pauli_strings.base import _count_of_locations
@@ -497,16 +498,19 @@ class FermionOperator2ndBase(DiscreteOperator):
         return self
 
     def __mul__(self, scalar):
-        if not is_scalar(scalar):
+        if is_scalar(scalar):
+            dtype = np.promote_types(self.dtype, _dtype(scalar))
+            op = self.copy(dtype=dtype)
+            return op.__imul__(scalar)
+        if isinstance(scalar, AbstractOperator):
             # TODO: Deprecated in September 2025
             warnings.warn(OperatorMultiplicationDeprecationWarning())
             # we will overload this as matrix multiplication
             res = self._op__matmul__(scalar)
-            if res is NotImplemented:
-                return super().__mul__(scalar)
-        dtype = np.promote_types(self.dtype, _dtype(scalar))
-        op = self.copy(dtype=dtype)
-        return op.__imul__(scalar)
+            if res is not NotImplemented:
+                return res
+        
+        return super().__mul__(scalar)
 
     def transpose(self, *, concrete=False):
         r"""Returns the transpose of this operator.
