@@ -119,9 +119,8 @@ class FullSumState(VariationalState):
         if variables is not None:
             # TODO: Always have shardings...
             if config.netket_experimental_sharding:
-                par_sharding = jax.sharding.PositionalSharding(
-                    jax.devices()
-                ).replicate()
+                mesh = jax.sharding.get_abstract_mesh()
+                par_sharding = jax.sharding.NamedSharding(mesh, jax.P())
             else:
                 par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
             variables = jax.tree_util.tree_map(
@@ -400,7 +399,7 @@ def deserialize_FullSumState(vstate, state_dict):
     vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
     if config.netket_experimental_sharding:
         vars = jax.tree_util.tree_map(
-            lambda x, y: jax.lax.with_sharding_constraint(jnp.asarray(y), x.sharding),
+            lambda x, y: jax.device_put(y, x.sharding),
             vstate.variables,
             vars,
         )
