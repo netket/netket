@@ -509,7 +509,7 @@ class FermionOperator2ndBase(DiscreteOperator):
             res = self._op__matmul__(scalar)
             if res is not NotImplemented:
                 return res
-        
+
         return super().__mul__(scalar)
 
     def transpose(self, *, concrete=False):
