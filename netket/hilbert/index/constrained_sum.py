@@ -78,7 +78,8 @@ class SumConstrainedHilbertIndex(HilbertIndex):
     @jax.jit
     def _compute_all_states(self):
         if self.n_particles == 0:
-            return jnp.zeros((1, self.size), dtype=self.range.dtype)
+            all_states_fock = jnp.zeros((1, self.size), dtype=self.range.dtype)
+            return self.range.numbers_to_states(all_states_fock, dtype=self.range.dtype)
         with jax.ensure_compile_time_eval():
             c = jnp.repeat(
                 jnp.eye(self.size, dtype=self.range.dtype),

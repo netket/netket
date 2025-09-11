@@ -125,7 +125,17 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
 
 
 class PauliStringsBase(DiscreteOperator):
-    """A Hamiltonian consisting of the sum of products of Pauli operators."""
+    """A Hamiltonian consisting of the sum of products of
+    Pauli operators, acting on any number of sites.
+
+    .. note::
+
+        Compared to :class:`netket.operator.LocalOperator` this
+        operator can easily handle operators containg terms acting
+        on an arbitrary number of sites, as long as the number
+        of connected entries is 'reasonable'.
+
+    """
 
     def __init__(
         self,
@@ -363,7 +373,7 @@ class PauliStringsBase(DiscreteOperator):
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
 
-        return NotImplemented
+        return super().__mul__(other)
 
     def __imul__(self, other):
         if isinstance(other, AbstractOperator):

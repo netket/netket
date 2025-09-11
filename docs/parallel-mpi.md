@@ -26,8 +26,7 @@ uv add git+https://github.com/mpi4jax/mpibackend4jax
 pip install git+https://github.com/mpi4jax/mpibackend4jax
 ```
 
-:::{details} Detailed Installation Instructions
-:class: dropdown
+:::{dropdown} Detailed Installation Instructions
 
 If you need help with MPI installation:
 

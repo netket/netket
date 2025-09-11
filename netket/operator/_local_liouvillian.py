@@ -36,7 +36,7 @@ class LocalLiouvillian(AbstractSuperOperator):
     LocalLiouvillian super-operator, acting on the DoubledHilbert (tensor product) space
     ℋ⊗ℋ.
 
-    Internally it uses :ref:`netket.operator.LocalOperator` everywhere.
+    Internally it uses :class:`netket.operator.LocalOperator` everywhere.
 
 
     The Liouvillian is defined according to the definition:

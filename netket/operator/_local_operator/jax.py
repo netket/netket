@@ -203,8 +203,29 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
 
 @register_pytree_node_class
 class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
-    """
-    Jax-compatible version of :class:`netket.operator.LocalOperator`.
+    """Jax implementation of an operator composed of a sum of
+    local terms, each of which acts on a small number of sites.
+
+    .. warning::
+
+        The complexity of the constructor of this operator scales
+        exponentially with the number of sites on which each term
+        acts, and linearly with the number of terms.
+
+        Refrain from using this for terms acting on more than
+        6-sites. For Spin-1/2 systems, prefer instead
+        :class:`netket.operator.PauliStrings`. For non spin-1/2
+        there is nothing that will work efficiently out of the box,
+        but you can easily roll your own.
+
+    .. warning::
+
+        The runtime complexity is proportional to the number of
+        connected entries
+        :attr:`~netket.operator.DiscreteJaxOperator.max_conn_size`.
+
+    For the numba-based implementation, look at
+    :class:`netket.operator.LocalOperatorNumba`.
     """
 
     _convertible: bool = True

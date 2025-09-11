@@ -49,15 +49,15 @@ Below you find a list of all concrete Operators that you can create on {class}`~
    :toctree: _generated/operator
    :nosignatures:
 
-   BoseHubbard
+   BoseHubbardJax
    BoseHubbardNumba
    GraphOperator
-   LocalOperator
+   LocalOperatorJax
    LocalOperatorNumba
-   Ising
+   IsingJax
    IsingNumba
    Heisenberg
-   PauliStrings
+   PauliStringsJax
    PauliStringsNumba
    LocalLiouvillian
 
@@ -73,11 +73,8 @@ Operators and functions to work with fermions are the following:
    :template: class
    :nosignatures:
 
-   FermionOperator2nd
+   FermionOperator2ndJax
    FermionOperator2ndNumba
-   fermion.create
-   fermion.destroy
-   fermion.number
 ```
 
 In the experimental submodule there is also an implementation of a particle-number conserving operator which can be more efficient than the generic  {class}`~netket.experimental.operator.FermionOperator2ndJax`.
@@ -139,6 +136,7 @@ Operators of different types, but acting on the same Hilbert space, can be combi
    :nosignatures:
 
    SumOperator
+   ProductOperator
 ```
 
 
@@ -164,5 +162,49 @@ Those are easy-to-use constructors for a {class}`~netket.operator.LocalOperator`
    spin.sigmaz
    spin.sigmap
    spin.sigmam
+   fermion.create
+   fermion.destroy
+   fermion.number
+
+```
+
+
+```{eval-rst}
+.. Hide these internal implementation classes but still generate their documentation
+
+.. currentmodule:: netket.operator
+
+.. raw:: html
+
+   <div class="hidden-autosummary">
+
+.. autosummary::
+   :toctree: _generated/operator
+   :template: autosummary/class.rst
+
+   _local_operator.LocalOperator
+   _local_operator.LocalOperatorBase
+   _ising.Ising
+   _ising.IsingBase
+   _pauli_strings.PauliStrings
+   _pauli_strings.PauliStringsBase
+   _fermion2nd.FermionOperator2nd
+   _fermion2nd.FermionOperator2ndBase
+
+   _sum.SumContinuousOperator  
+   _sum.SumGenericOperator
+   _sum.SumDiscreteJaxOperator
+   _sum.SumDiscreteOperator
+
+   _prod.ProductGenericOperator
+   _prod.ProductDiscreteOperator
+   _prod.ProductDiscreteJaxOperator
+
+.. raw:: html
+
+   </div>
+   <style>
+   .hidden-autosummary .pst-scrollable-table-container { display: none !important; }
+   </style>
 
 ```

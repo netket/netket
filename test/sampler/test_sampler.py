@@ -337,8 +337,6 @@ def test_states_in_hilbert(sampler, model_and_weights):
 
 
 def test_return_log_probabilities(sampler, model_and_weights):
-    if isinstance(sampler, nk.sampler.ARDirectSampler):
-        pytest.skip("ARDirectSampler does not support return_log_probabilities.")
     if (
         isinstance(sampler, nk.sampler.MetropolisNumpy)
         and nk.config.netket_experimental_sharding
@@ -352,10 +350,11 @@ def test_return_log_probabilities(sampler, model_and_weights):
     (samples, log_probs), ss = sampler.sample(
         ma, w, chain_length=chain_length, return_log_probabilities=True
     )
-    log_probs_computed = sampler.machine_pow * ma.apply(w, samples).real
+
+    log_probs_computed = jax.vmap(ma.apply, in_axes=(None, 0))(w, samples)
+    log_probs_computed = sampler.machine_pow * log_probs_computed.real
 
     assert log_probs.shape == samples.shape[:-1]
-    print(log_probs / log_probs_computed)
     np.testing.assert_allclose(log_probs, log_probs_computed)
 
 
@@ -544,6 +543,26 @@ def test_sampling_sharded_not_communicating(
                 # allow equinox error_if all-gather
                 continue
             assert o not in l
+
+
+def test_nnx_module_error():
+    """Test that passing a bare NNX module to sampler raises
+    NNXModuleToSamplerInput error
+    """
+    from flax.nnx import Module as NNXModule
+
+    class MockNNXModule(NNXModule):
+        def __init__(self):
+            pass
+
+        def __call__(self, x):
+            return x
+
+    nnx_module = MockNNXModule()
+    sampler = nk.sampler.MetropolisLocal(hi)
+
+    with pytest.raises(nk.errors.NNXModuleToSamplerInput):
+        sampler.sample(nnx_module, {}, chain_length=10)
 
 
 @common.skipif_distributed

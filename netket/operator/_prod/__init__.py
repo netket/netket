@@ -1,4 +1,4 @@
-# Copyright 2025 The NetKet Authors - All rights reserved.
+# Copyright 2024 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.operator._sum.base import SumOperator
-from netket.operator._sum.operator import SumGenericOperator
-from netket.operator._sum.discrete_operator import SumDiscreteOperator
-from netket.operator._sum.discrete_jax_operator import SumDiscreteJaxOperator
-from netket.operator._sum.continuous import SumContinuousOperator
+from netket.operator._prod.base import ProductOperator
+from netket.operator._prod.operator import ProductGenericOperator
+from netket.operator._prod.discrete_operator import ProductDiscreteOperator
+from netket.operator._prod.discrete_jax_operator import ProductDiscreteJaxOperator

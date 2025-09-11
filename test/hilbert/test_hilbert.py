@@ -867,3 +867,11 @@ def test_hilbert_dtype_int8():
     assert hi.all_states().dtype == np.int8
     hi = nk.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(2, 2))
     assert hi.all_states().dtype == np.int8
+
+
+def test_spin_constraint_bug_single_valid_state():
+    """Test for issue #2126: constraint validation bug with single valid configurations"""
+    hilbert_space = nk.hilbert.Spin(s=1, N=4, total_sz=4)
+    all_states = hilbert_space.all_states()
+    constraints = hilbert_space.constraint(all_states)
+    assert np.all(constraints), "All states should satisfy constraints"

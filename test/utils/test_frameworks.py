@@ -93,3 +93,50 @@ def test_equinox_framework():
     assert logpsi.shape == (hi.n_states,)
 
     np.testing.assert_allclose(vstate.model(hi.all_states()), logpsi)
+
+
+def test_nnx_framework():
+    pytest.importorskip("flax")
+    from flax import nnx
+
+    class SimpleNNX(nnx.Module):
+        def __init__(self, features, rngs: nnx.Rngs):
+            self.linear = nnx.Linear(4, features, rngs=rngs)
+
+        def __call__(self, x):
+            return jnp.sum(self.linear(x), axis=-1)
+
+        def hidden_features(self, x):
+            return self.linear(x)
+
+    # Create the NNX module
+    module = SimpleNNX(features=8, rngs=nnx.Rngs(0))
+
+    # Test maybe_wrap_module
+    variables, wrapped_module = nk.utils.model_frameworks.maybe_wrap_module(module)
+
+    # Check that wrapped module has apply method
+    assert hasattr(wrapped_module, "apply")
+
+    # Check that parameters are in 'params' key
+    assert "params" in variables
+    assert "model_state" in variables
+
+    # Test the apply method works
+    test_input = jnp.ones((2, 4))
+
+    # Test default __call__ method
+    output1 = wrapped_module.apply(variables, test_input)
+    assert output1.shape == (2,)
+
+    # Test that additional method can be called through apply interface
+    output2 = wrapped_module.apply(variables, test_input, method="hidden_features")
+    assert output2.shape == (2, 8)
+
+    # Test that the module can also be called directly through attribute access
+    hidden_method = getattr(wrapped_module, "hidden_features")
+    output3 = hidden_method(variables, test_input)
+    assert output3.shape == (2, 8)
+
+    # Verify outputs are the same
+    np.testing.assert_allclose(output2, output3)

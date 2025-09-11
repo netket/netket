@@ -272,9 +272,10 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
         ):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
-            return self._op__matmul__(other)
-        else:
-            return NotImplemented
+            res = self._op__matmul__(other)
+            if res is not NotImplemented:
+                return res
+        return super().__matmul__(other)
 
     def _op__matmul__(self, other):
         "Implementation on subclasses of __matmul__"
@@ -289,9 +290,10 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
             # return self.apply(other)
             return NotImplemented
         elif isinstance(other, AbstractOperator):
-            return self._op__rmatmul__(other)
-        else:
-            return NotImplemented
+            res = self._op__rmatmul__(other)
+            if res is not NotImplemented:
+                return res
+        return super().__rmatmul__(other)
 
     def _op__rmatmul__(self, other):
         "Implementation on subclasses of __matmul__"

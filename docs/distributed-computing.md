@@ -1,7 +1,9 @@
 # Distributed computing
 
-```{meta}
-:http-equiv=refresh: 0; url=parallel.html
+```{eval-rst}
+.. meta::
+   :http-equiv: "refresh"
+   :content: "0; url=parallel.html"
 ```
 
 This page has been moved to [Parallel Computing](parallel.md).

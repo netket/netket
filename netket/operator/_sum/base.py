@@ -51,10 +51,10 @@ class SumOperatorMeta(ABCMeta):
         # This logic overrides the constructor, such that if someone tries to
         # construct this class directly by calling `SumOperator(...)`
         # it will construct either a DiscreteHilbert or TensorDiscreteHilbert
-        from .operator import SumGenericOperator
-        from .discrete_operator import SumDiscreteOperator
-        from .discrete_jax_operator import SumDiscreteJaxOperator
-        from .continuous import SumContinuousOperator
+        from netket.operator._sum.operator import SumGenericOperator
+        from netket.operator._sum.discrete_operator import SumDiscreteOperator
+        from netket.operator._sum.discrete_jax_operator import SumDiscreteJaxOperator
+        from netket.operator._sum.continuous import SumContinuousOperator
 
         if cls is SumOperator:
             if all(isinstance(op, DiscreteJaxOperator) for op in args):
@@ -209,3 +209,63 @@ class SumOperator(metaclass=SumOperatorMeta):
             dtype = self.dtype if self.dtype == other.dtype else None
 
         return SumOperator(*ops, coefficients=coeffs, dtype=dtype)
+
+    def __matmul__(self, other):
+        """Matrix multiplication between two operators.
+
+        For two sum operators (∑ᵢ aᵢ Aᵢ) @ (∑ⱼ bⱼ Bⱼ), this implements
+        the distributive property: ∑ᵢⱼ (aᵢ * bⱼ) * (Aᵢ @ Bⱼ)
+        """
+        if not isinstance(other, AbstractOperator):
+            return super().__matmul__(other)
+
+        # Check that operators act on compatible Hilbert spaces
+        if self.hilbert != other.hilbert:
+            raise ValueError(
+                f"Cannot multiply operators on different Hilbert spaces: "
+                f"{self.hilbert} vs {other.hilbert}"
+            )
+
+        if isinstance(other, SumOperator):
+            # Distributive property: (∑ aᵢ Aᵢ) @ (∑ bⱼ Bⱼ) = ∑ᵢⱼ (aᵢ * bⱼ) * (Aᵢ @ Bⱼ)
+            ops = []
+            coeffs = []
+
+            for i, (op_i, coeff_i) in enumerate(zip(self.operators, self.coefficients)):
+                for j, (op_j, coeff_j) in enumerate(
+                    zip(other.operators, other.coefficients)
+                ):
+                    product_op = op_i @ op_j
+                    product_coeff = coeff_i * coeff_j
+                    ops.append(product_op)
+                    coeffs.append(product_coeff)
+
+            dtype = jnp.result_type(self.dtype, other.dtype, *[op.dtype for op in ops])
+
+            return SumOperator(*ops, coefficients=coeffs, dtype=dtype)
+        else:
+            # (∑ aᵢ Aᵢ) @ B = ∑ aᵢ (Aᵢ @ B)
+            ops = []
+            coeffs = []
+
+            for op, coeff in zip(self.operators, self.coefficients):
+                product_op = op @ other
+                ops.append(product_op)
+                coeffs.append(coeff)
+
+            dtype = jnp.result_type(self.dtype, other.dtype, *[op.dtype for op in ops])
+
+            return SumOperator(*ops, coefficients=coeffs, dtype=dtype)
+
+    def __rmatmul__(self, other):
+        """Right matrix multiplication: other @ self.
+
+        Implemented by creating a temporary SumOperator for the left operand
+        and delegating to __matmul__.
+        """
+        if not isinstance(other, AbstractOperator):
+            return super().__rmatmul__(other)
+
+        # Create a temporary SumOperator with the single operator and delegate to __matmul__
+        temp_sum = SumOperator(other, coefficients=[1.0], dtype=other.dtype)
+        return temp_sum.__matmul__(self)

@@ -40,9 +40,9 @@ down = -1
 ham = 0.0
 for sz in (up, down):
     for u, v in g.edges():
-        ham += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)
+        ham += -t * cdag(u, sz) @ c(v, sz) - t * cdag(v, sz) @ c(u, sz)
 for u in g.nodes():
-    ham += U * nc(u, up) * nc(u, down)
+    ham += U * nc(u, up) @ nc(u, down)
 
 print("Hamiltonian =", ham.operator_string())
 

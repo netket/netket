@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from typing import Literal, overload
 
 import jax
 import jax.numpy as jnp
@@ -124,22 +124,43 @@ def _bcast_key(key, root=0) -> PRNGKeyT:
     return key
 
 
-def batch_choice(key, a, p):
+@overload
+def batch_choice(
+    key: PRNGKeyT, a: jax.Array, p: jax.Array, *, return_prob: Literal[False] = False
+) -> jax.Array: ...
+
+
+@overload
+def batch_choice(
+    key: PRNGKeyT, a: jax.Array, p: jax.Array, *, return_prob: Literal[True]
+) -> tuple[jax.Array, jax.Array]: ...
+
+
+def batch_choice(
+    key: PRNGKeyT, a: jax.Array, p: jax.Array, *, return_prob: bool = False
+) -> jax.Array | tuple[jax.Array, jax.Array]:
     """
     Batched version of `jax.random.choice`.
 
-    Attributes:
+    Args:
       key: a PRNGKey used as the random key.
       a: 1D array. Random samples are generated from its elements.
       p: 2D array of shape `(batch_size, a.size)`. Each slice `p[i, :]` is
         the probabilities associated with entries in `a` to generate a sample
         at the index `i` of the output. Can be unnormalized.
+      return_prob: If True, also return the probabilities of the chosen samples.
 
     Returns:
       The generated samples as an 1D array of shape `(batch_size,)`.
+      If return_prob is True, returns a tuple of (samples, probabilities).
     """
     p_cumsum = p.cumsum(axis=1)
     r = p_cumsum[:, -1:] * jax.random.uniform(key, shape=(p.shape[0], 1))
     indices = (r > p_cumsum).sum(axis=1)
     out = a[indices]
-    return out
+
+    if return_prob:
+        probs = jnp.take_along_axis(p, indices[:, None], axis=1).squeeze(axis=1)
+        return out, probs
+    else:
+        return out

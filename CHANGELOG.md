@@ -11,8 +11,12 @@
 
 ### Deprecations and Removals
 
-### Bug Fixes
+* The `*` operator for multiplying operators is now deprecated and will be removed in a future version in 2026. Use the `@` operator instead for operator multiplication: `A * B` → `A @ B` [#2133](https://github.com/netket/netket/pull/2133).
 
+## NetKet 3.19.1
+
+* Fix a bug where using non-differentiable parameters with chunking would lead to tracer leaks and errors when using `nk.optimizer.qgt.QGTOnTheFly`. This was due to incorrect capturing of the 'model_state' in some shard_maps.
+* Fix constraint validation bug in `SumConstrainedHilbertIndex` where `all_states()` returned invalid states for edge cases with single valid configurations (e.g., `Spin(s=1, N=4, total_sz=4)`). Fixes [#2126](https://github.com/netket/netket/issues/2126).
 
 ## NetKet 3.19 (In development)
 

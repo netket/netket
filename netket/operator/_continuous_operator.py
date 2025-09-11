@@ -110,7 +110,7 @@ class ContinuousOperator(AbstractOperator, struct.Pytree):
             return NotImplemented  # pragma: no cover
 
     def __mul__(self, other):
-        if isinstance(self, ContinuousOperator) and isinstance(other, float):
+        if isinstance(other, float):
             from netket.operator import SumOperator
 
             return SumOperator(self, coefficients=other)
