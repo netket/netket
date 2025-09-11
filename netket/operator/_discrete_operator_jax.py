@@ -287,9 +287,11 @@ class DiscreteJaxOperator(DiscreteOperator):
         elif isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
-            return self._op__matmul__(other)
-        else:
-            return NotImplemented
+            res = self._op__matmul__(other)
+            if res is not NotImplemented:
+                return res
+
+        return super().__matmul__(other)
 
     def __rmatmul__(self, other):
         if (
@@ -299,9 +301,11 @@ class DiscreteJaxOperator(DiscreteOperator):
         ):
             return NotImplemented
         elif isinstance(other, AbstractOperator):
-            return self._op__rmatmul__(other)
-        else:
-            return NotImplemented
+            res = self._op__rmatmul__(other)
+            if res is not NotImplemented:
+                return res
+
+        return super().__rmatmul__(other)
 
     def to_jax_operator(self) -> "DiscreteJaxOperator":
         """

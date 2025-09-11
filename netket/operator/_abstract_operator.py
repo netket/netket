@@ -152,5 +152,11 @@ class AbstractOperator(AbstractObservable[HilbertType]):
         else:
             return NotImplemented
 
+    def __matmul__(self, other):
+        return NotImplemented
+
+    def __rmatmul__(self, other):
+        return NotImplemented
+
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert}, dtype={self.dtype})"

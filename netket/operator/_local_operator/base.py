@@ -15,7 +15,7 @@
 from typing import Union, SupportsFloat, SupportsComplex, TYPE_CHECKING
 
 import numbers
-
+import warnings
 
 import numpy as np
 import jax.numpy as jnp
@@ -24,6 +24,7 @@ from scipy.sparse import issparse
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
 from netket.utils.numbers import dtype as _dtype, is_scalar
+from netket.errors import OperatorMultiplicationDeprecationWarning
 
 from .._discrete_operator import DiscreteOperator
 from .._lazy import Transpose
@@ -343,6 +344,7 @@ class LocalOperatorBase(DiscreteOperator):
 
     def __mul__(self, other):
         if isinstance(other, DiscreteOperator):
+            warnings.warn(OperatorMultiplicationDeprecationWarning())
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imatmul__(other)
         elif is_scalar(other):
