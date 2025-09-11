@@ -213,21 +213,6 @@ class Representation:
 
 # This is work in progress
 
-# def construct_commuting_product(self, other, check_commute: bool = False):
-#     """
-#     Construct the product representation in the case where all operators of one representation
-#     commute with all operators of the other.
-#     It is a representation of the direct product of the underlying groups.
-#     """
-#     if check_commute:
-#         assert self.is_commuting(other)
-
-#     # group_direct_product = self.group @ other.group
-#     # operator_products = {G1*G2: self.representation_mapping[g1] * other.representation_mapping[g2] for
-#     #         g1 in self.group for g2 in other.group}
-
-#     # return Representation(group_direct_product, self.hilbert_space, operator_products)
-
 # def is_commuting(self, other):
 #     """
 #     Check whether all operators of one representation commute with all operators of
