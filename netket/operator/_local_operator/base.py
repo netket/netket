@@ -344,6 +344,7 @@ class LocalOperatorBase(DiscreteOperator):
 
     def __mul__(self, other):
         if isinstance(other, DiscreteOperator):
+            # TODO: Deprecated in September 2025
             warnings.warn(OperatorMultiplicationDeprecationWarning())
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imatmul__(other)

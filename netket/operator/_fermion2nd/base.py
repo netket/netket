@@ -498,6 +498,7 @@ class FermionOperator2ndBase(DiscreteOperator):
 
     def __mul__(self, scalar):
         if not is_scalar(scalar):
+            # TODO: Deprecated in September 2025
             warnings.warn(OperatorMultiplicationDeprecationWarning())
             # we will overload this as matrix multiplication
             return self._op__matmul__(scalar)
