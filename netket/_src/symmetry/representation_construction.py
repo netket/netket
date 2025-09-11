@@ -29,13 +29,14 @@ def _physical_to_fermionic_permutation(
     assert isinstance(perm, Permutation)
 
     perm_array = perm.permutation_array
+    fermionic_perm_array = np.copy(perm_array)
 
     offset = 0
     while offset < hilbert.size - hilbert.n_orbitals:
         offset += hilbert.n_orbitals
-        perm_array = np.concatenate((perm_array, perm_array + offset))
+        fermionic_perm_array = np.concatenate((fermionic_perm_array, perm_array + offset))
 
-    return Permutation(permutation_array=perm_array)
+    return Permutation(permutation_array=fermionic_perm_array)
 
 
 def physical_to_many_body_permutation_group(
