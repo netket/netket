@@ -188,7 +188,7 @@ class IsingBase(SpecialHamiltonian):
             for i, j in self.edges:
                 ha += self.J * (
                     spin.sigmaz(self.hilbert, int(i), dtype=self.dtype, cls=cls)
-                    * spin.sigmaz(self.hilbert, int(j), dtype=self.dtype, cls=cls)
+                    @ spin.sigmaz(self.hilbert, int(j), dtype=self.dtype, cls=cls)
                 )
 
         return ha

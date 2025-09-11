@@ -464,8 +464,8 @@ def test_qutip_conversion(jax):
 def test_notsharing():
     # This test will fail if operators alias some underlying arrays upon copy().
     hi = nk.hilbert.Spin(0.5, 2)
-    a = nk.operator.spin.sigmax(hi, 0) * nk.operator.spin.sigmax(hi, 1, dtype=complex)
-    b = nk.operator.spin.sigmay(hi, 0) * nk.operator.spin.sigmaz(hi, 1)
+    a = nk.operator.spin.sigmax(hi, 0) @ nk.operator.spin.sigmax(hi, 1, dtype=complex)
+    b = nk.operator.spin.sigmay(hi, 0) @ nk.operator.spin.sigmaz(hi, 1)
     delta = b - a
 
     a_orig = a.to_dense()
@@ -543,7 +543,7 @@ def test_identity():
 @common.skipif_distributed
 def test_not_recompiling():
     hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
-    op = bcreate(hi, 0) * bdestroy(hi, 2)
+    op = bcreate(hi, 0) @ bdestroy(hi, 2)
 
     assert not op._initialized
     op.get_conn_padded(hi.numbers_to_states(1))

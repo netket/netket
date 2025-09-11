@@ -183,19 +183,19 @@ class BoseHubbardBase(SpecialHamiltonian):
         if self.U != 0 or self.mu != 0:
             for i in range(self.hilbert.size):
                 n_i = boson.number(self.hilbert, i, cls=cls)
-                ha += (self.U / 2) * n_i * (n_i - 1) - self.mu * n_i
+                ha += (self.U / 2) * n_i @ (n_i - 1) - self.mu * n_i
 
         if self.J != 0:
             for i, j in self.edges:
                 ha += self.V * (
                     boson.number(self.hilbert, int(i), cls=cls)
-                    * boson.number(self.hilbert, int(j), cls=cls)
+                    @ boson.number(self.hilbert, int(j), cls=cls)
                 )
                 ha -= self.J * (
                     boson.destroy(self.hilbert, int(i), cls=cls)
-                    * boson.create(self.hilbert, int(j), cls=cls)
+                    @ boson.create(self.hilbert, int(j), cls=cls)
                     + boson.create(self.hilbert, int(i), cls=cls)
-                    * boson.destroy(self.hilbert, int(j), cls=cls)
+                    @ boson.destroy(self.hilbert, int(j), cls=cls)
                 )
 
         return ha
