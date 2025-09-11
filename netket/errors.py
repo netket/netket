@@ -1098,6 +1098,47 @@ class ParameterMismatchError(NetketError):
         )
 
 
+class OperatorMultiplicationDeprecationWarning(NetketWarning):
+    """
+    Warning issued when using deprecated ``A*B`` syntax for operator multiplication.
+
+    The ``A*B`` syntax for operator multiplication is deprecated and will be removed
+    in a future version of NetKet. Use ``A@B`` instead for matrix multiplication of
+    operators, which follows Python's standard matrix multiplication operator.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            result = operator1 * operator2  # Deprecated
+
+        Use:
+
+        .. code-block:: python
+
+            result = operator1 @ operator2  # Correct
+
+    Note:
+        The ``@`` operator was introduced in Python 3.5 specifically for matrix
+        multiplication and is the standard way to express this operation in NumPy,
+        JAX, and other scientific computing libraries.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            The '*' operator for multiplying operators is deprecated and will be removed in a future version.
+
+            Please use the '@' operator instead:
+              - Replace: operator1 * operator2
+              - With:    operator1 @ operator2
+
+            The '@' operator is Python's standard matrix multiplication operator.
+            """
+        )
+
+
 #################################################
 # Functions to throw errors                     #
 #################################################

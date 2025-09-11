@@ -373,7 +373,7 @@ class PauliStringsBase(DiscreteOperator):
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
 
-        return NotImplemented
+        return super().__mul__(other)
 
     def __imul__(self, other):
         if isinstance(other, AbstractOperator):

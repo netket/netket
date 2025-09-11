@@ -144,6 +144,7 @@ class AbstractOperator(AbstractObservable[HilbertType]):
             if isinstance(other, Array):
                 other = other.item()
             return SumOperator(self, coefficients=[other])
+        # TODO: When the operator multiplication deprecation warning is turned into an error, add a helpful message here
         return NotImplemented
 
     def __rmul__(self, other):
@@ -151,6 +152,12 @@ class AbstractOperator(AbstractObservable[HilbertType]):
             return self.__mul__(other)
         else:
             return NotImplemented
+
+    def __matmul__(self, other):
+        return NotImplemented
+
+    def __rmatmul__(self, other):
+        return NotImplemented
 
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert}, dtype={self.dtype})"

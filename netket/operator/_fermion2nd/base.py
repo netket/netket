@@ -26,6 +26,7 @@ from netket.operator._pauli_strings.base import _count_of_locations
 from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
+from netket.errors import OperatorMultiplicationDeprecationWarning
 
 from netket.hilbert import Fock, SpinOrbitalFermions
 
@@ -497,6 +498,8 @@ class FermionOperator2ndBase(DiscreteOperator):
 
     def __mul__(self, scalar):
         if not is_scalar(scalar):
+            # TODO: Deprecated in September 2025
+            warnings.warn(OperatorMultiplicationDeprecationWarning())
             # we will overload this as matrix multiplication
             return self._op__matmul__(scalar)
         dtype = np.promote_types(self.dtype, _dtype(scalar))

@@ -22,6 +22,7 @@ Netket has the following classes of errors.
   JaxOperatorNotConvertibleToNumba
   NonHolomorphicQGTOnTheFlyDenseRepresentationError
   NumbaOperatorGetConnDuringTracingError
+  OperatorMultiplicationDeprecationWarning
   RealQGTComplexDomainError
   UnoptimalSRtWarning
   SymmModuleInvalidInputShape
