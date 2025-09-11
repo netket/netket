@@ -37,7 +37,9 @@ def _compute_srt_update(
     # (#ns, np) -> (ns, #np)
     O_LT = O_L
     if config.netket_experimental_sharding:
-        nkjax.sharding.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
+        nkjax.sharding.pad_axis_for_sharding(
+            O_LT, axis=1, axis_name="S", padding_value=0.0
+        )
         O_LT = jax.lax.with_sharding_constraint(
             O_LT,
             NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None)),
