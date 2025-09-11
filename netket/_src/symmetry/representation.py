@@ -74,7 +74,7 @@ class Representation:
     def __eq__(self, other):
         if type(self) is type(other):
             return (
-                self.hilbert == other.hilbert_space
+                self.hilbert == other.hilbert
                 and self.group == other.group
                 and self.operators == other.operators
             )
