@@ -76,10 +76,15 @@ def get_antisymmetric_signs(
 @register_pytree_node_class
 class PermutationOperatorFermion(PermutationOperatorBase):
     """
-    Permutation of the orbitals belonging to a (second quantized)
-    fermionic space. Used for the symmetry-representation machinery.
+    Operators corresponding to the permutation of the orbitals belonging to a
+    second quantized fermionic space. Used to express lattice symmetries of
+    fermionic Hamiltonians and symmetrize variational states with respect to
+    these symmetries.
 
-    This tracks the jordan-wigner sign of the permutation.
+    This permutation operator differs from
+    :class:`netket.operator.permutation.PermutationOperator` due to the
+    fermionic sign that is required to properly define permutations of fermionic
+    orbitals.
 
     .. warning::
 

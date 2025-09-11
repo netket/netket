@@ -25,10 +25,11 @@ from netket.utils.types import DType
 @register_pytree_node_class
 class PermutationOperatorBase(DiscreteJaxOperator):
     """
-    Base class for the permutations acting on an
-    Hilbert space. Used for the symmetry-representation machinery.
+    Base class for permutation operators acting on an
+    Hilbert space. Used to express lattice symmetries and symmetrize
+    variational states with respect to these symmetries.
 
-    Subclasses implement this on Fock, Fermionic or other hilbert spaces.
+    Subclasses implement this on Spin, Fermionic or other hilbert spaces.
     Look at :class:`netket.operator.permutation.PermutationOperator` and
     :class:`netket.operator.permutation.PermutationOperatorFermion` for
     examples.

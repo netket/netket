@@ -114,7 +114,7 @@ This is a list of operators that you can define on {class}`~netket.experimental.
 
 ### Permutation operators
 
-Operators used to represent permutations, mainly needed for the simmetrization machinery described in [simmetries](netket_symmetry_api)
+Operators representing permutations, mainly used to express the lattice symmetries for wavefunction symmetrization in [symmetries](netket_symmetry_api), as described in {doc}`../advanced/symmetry`.
 
 ```{eval-rst}
 .. autosummary::
