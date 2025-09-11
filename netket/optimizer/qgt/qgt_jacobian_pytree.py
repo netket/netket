@@ -16,10 +16,12 @@
 import jax
 from jax import numpy as jnp
 from jax.flatten_util import ravel_pytree
+from jax.sharding import PartitionSpec as P
 from flax import struct
 
 from netket.utils.types import Array, PyTree, Scalar
 from netket import jax as nkjax
+from netket.jax.sharding import get_sharding_spec
 
 from ..linear_operator import LinearOperator, SolverT, Uninitialized
 
@@ -190,15 +192,18 @@ class QGTJacobianPyTreeT(LinearOperator):
             diag = jnp.diag(scale**2)
 
         # concatenate samples with real/Imaginary dimension
+        out_sharding = None if jax.sharding.get_abstract_mesh().empty else P(None, None)
         if self.mode == "imag":
             O = O.reshape(O.shape[0] // 2, 2, -1)
 
             flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
             Ol = (flip_sign * O).reshape(-1, O.shape[-1])
             Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
-            return Ol.T @ Or + self.diag_shift * diag
+            S = jnp.matmul(Ol.T, Or, out_sharding=out_sharding)
+            return S + self.diag_shift * diag
         else:
-            return O.T.conj() @ O + self.diag_shift * diag
+            S = jnp.matmul(O.T.conj(), O, out_sharding=out_sharding)
+            return S + self.diag_shift * diag
 
     def to_real_part(self) -> "QGTJacobianPyTreeT":
         """
@@ -291,7 +296,9 @@ def _jvp(oks: PyTree, v: PyTree) -> Array:
     """
     Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
     """
-    td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
+    td = lambda x, y: jnp.tensordot(
+        x, y, axes=y.ndim, out_sharding=get_sharding_spec(x, axes=0)
+    )
     t = jax.tree_util.tree_map(td, oks, v)
     return jax.tree_util.tree_reduce(jnp.add, t)
 
@@ -300,7 +307,12 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     """
     Compute the vector-matrix product between the vector w and the pytree jacobian oks
     """
-    return jax.tree_util.tree_map(lambda x: jnp.tensordot(w, x, axes=w.ndim), oks)
+    return jax.tree_util.tree_map(
+        lambda x: jnp.tensordot(
+            w, x, axes=w.ndim, out_sharding=get_sharding_spec(x, axes=1)
+        ),
+        oks,
+    )
 
 
 def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
