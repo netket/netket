@@ -20,7 +20,6 @@ from jax import numpy as jnp
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
-from netket import config
 from netket.stats import Stats
 from netket.utils import dispatch
 from netket.utils.types import PyTree
@@ -90,7 +89,7 @@ def expect_and_grad_nonhermitian(
     *,
     mutable: CollectionFilter = False,
 ):
-    if not isinstance(Ô, Squared) and not config.netket_experimental:
+    if not isinstance(Ô, Squared):
         raise RuntimeError(
             """
             Computing the gradient of non hermitian operator is an
