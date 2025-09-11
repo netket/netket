@@ -18,9 +18,8 @@ from functools import partial
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
-from jax.sharding import NamedSharding, PartitionSpec as P
+from jax.sharding import get_abstract_mesh, NamedSharding
 
-from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
 from netket.utils.types import PyTree, SeedT, DType
@@ -38,10 +37,11 @@ class ExactSamplerState(SamplerState):
         )
     )
 
-    def __init__(self, pdf: Any, rng: Any):
+    def __init__(self, pdf: Any, rng: Any, out_sharding: Any = None):
         self.pdf = pdf
         self.rng = rng
         self.pdf_norm = jnp.zeros((), dtype=self.pdf.dtype)
+        self.out_sharding = out_sharding
         super().__init__()
 
     def __repr__(self):
@@ -84,13 +84,22 @@ class ExactSampler(Sampler):
         machine: nn.Module,
         parameters: PyTree,
         seed: SeedT | None = None,
+        out_sharding: Any = None,
     ):
         pdf = jnp.zeros(self.hilbert.n_states, dtype=jnp.float32)
-        return ExactSamplerState(pdf=pdf, rng=seed)
+        return ExactSamplerState(pdf=pdf, rng=seed, out_sharding=out_sharding)
 
     def _reset(self, machine, parameters, state):
         pdf = jnp.absolute(
-            to_array(self.hilbert, machine.apply, parameters, normalize=False)
+            to_array(
+                self.hilbert,
+                machine.apply,
+                parameters,
+                normalize=False,
+                parallel_compute_axes=(
+                    state.out_sharding.spec[0] if state.out_sharding else None
+                ),
+            )
             ** self.machine_pow
         )
         pdf_norm = pdf.sum()
@@ -129,20 +138,16 @@ class ExactSampler(Sampler):
 
         samples = self.hilbert.numbers_to_states(numbers).astype(self.dtype)
 
-        # TODO run the part above in parallel
-        if config.netket_experimental_sharding:
+        if not jax.sharding.get_abstract_mesh().empty:
             samples = jax.lax.with_sharding_constraint(
                 samples,
-                NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
+                NamedSharding(
+                    jax.sharding.get_abstract_mesh(), state.out_sharding.spec
+                ),
             )
 
         if return_log_probabilities:
             log_probabilities = jnp.log(state.pdf[numbers]) + jnp.log(state.pdf_norm)
-            if config.netket_experimental_sharding:
-                log_probabilities = jax.lax.with_sharding_constraint(
-                    log_probabilities,
-                    NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
-                )
             return (samples, log_probabilities), state.replace(rng=new_rng)
         else:
             return samples, state.replace(rng=new_rng)
