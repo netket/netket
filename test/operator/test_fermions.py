@@ -259,22 +259,22 @@ def test_create_annihil_number(Op):
     def cn(site):
         return number(hi, site)
 
-    op2 = 0.3 * cn(0) + 2 * cdag(1) * c(2)
+    op2 = 0.3 * cn(0) + 2 * (cdag(1) @ c(2))
     np.testing.assert_allclose(op1.to_dense(), op2.to_dense())
     op3 = Op(hi, terms=("0^ 1", "1^ 2"), weights=(1 + 1j, 2 - 2j), constant=2)
-    op4 = (1 + 1j) * cdag(0) * c(1) + (2 - 2j) * cdag(1) * c(2) + 2
+    op4 = (1 + 1j) * cdag(0) @ c(1) + (2 - 2j) * cdag(1) @ c(2) + 2
     np.testing.assert_allclose(op3.to_dense(), op4.to_dense())
 
     # same, but with spin
     hi = nk.hilbert.SpinOrbitalFermions(4, s=1 / 2)
     op1 = Op(hi, terms=("0^ 0", "1^ 6"), weights=(0.3, 2))
 
-    op2 = 0.3 * number(hi, 0, -1) + 2 * create(hi, 1, -1) * destroy(hi, 2, +1)
+    op2 = 0.3 * number(hi, 0, -1) + 2 * create(hi, 1, -1) @ destroy(hi, 2, +1)
     np.testing.assert_allclose(op1.to_dense(), op2.to_dense())
     op3 = Op(hi, terms=("4^ 1", "1^ 2"), weights=(1 + 1j, 2 - 2j), constant=2)
     op4 = (
-        (1 + 1j) * create(hi, 0, +1) * destroy(hi, 1, -1)
-        + (2 - 2j) * create(hi, 1, -1) * destroy(hi, 2, -1)
+        (1 + 1j) * create(hi, 0, +1) @ destroy(hi, 1, -1)
+        + (2 - 2j) * create(hi, 1, -1) @ destroy(hi, 2, -1)
         + 2
     )
     np.testing.assert_allclose(op3.to_dense(), op4.to_dense())
@@ -859,9 +859,9 @@ def test_fermi_hubbard(Op):
     ham = 0.0
     for sz in (up, down):
         for u, v in g.edges():
-            ham += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)
+            ham += -t * cdag(u, sz) @ c(v, sz) - t * cdag(v, sz) @ c(u, sz)
     for u in g.nodes():
-        ham += U * nc(u, up) * nc(u, down)
+        ham += U * nc(u, up) @ nc(u, down)
 
     print("Hamiltonian =", ham.operator_string())
 

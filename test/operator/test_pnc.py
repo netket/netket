@@ -153,9 +153,9 @@ def test_fermihubbard():
     ha2 = 0.0
     for sz in (-1, 1):
         for u, v in g.edges():
-            ha2 += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)
+            ha2 += -t * cdag(u, sz) @ c(v, sz) - t * cdag(v, sz) @ c(u, sz)
     for u in g.nodes():
-        ha2 += U * nc(u, 1) * nc(u, -1)
+        ha2 += U * nc(u, 1) @ nc(u, -1)
 
     ha3 = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha2)
     ha4 = ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(ha2)
