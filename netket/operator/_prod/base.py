@@ -135,8 +135,16 @@ class ProductOperator(ABC):
         return "\n".join(strs)
 
     def __mul__(self, other):
+        if is_scalar(other):
+            return ProductOperator(
+                *self.operators, coefficient=self.coefficient * other, dtype=self.dtype
+            )
+        return super().__mul__(other)
+
+    def __matmul__(self, other):
         if not isinstance(other, AbstractOperator):
             return NotImplemented
+            # return super().__matmul__(other)
 
         if isinstance(other, ProductOperator):
             ops = self.operators + other.operators
@@ -146,5 +154,16 @@ class ProductOperator(ABC):
             ops = (*self.operators, other)
             coeff = self.coefficient
             dtype = self.dtype if self.dtype == other.dtype else None
+
+        return ProductOperator(*ops, coefficient=coeff, dtype=dtype)
+
+    def __rmatmul__(self, other):
+        if not isinstance(other, AbstractOperator):
+            return NotImplemented
+            # return super().__matmul__(other)
+
+        ops = (other, *self.operators)
+        coeff = self.coefficient
+        dtype = self.dtype if self.dtype == other.dtype else None
 
         return ProductOperator(*ops, coefficient=coeff, dtype=dtype)
