@@ -2,14 +2,15 @@ import pytest
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import PartitionSpec as P
+from jax.sharding import reshard, PartitionSpec as P
+
 import numpy as np
 
 from flax import core as fcore
 
 import netket as nk
 
-from .. import common
+from test import common, common_mesh
 
 
 @common.skipif_distributed
@@ -48,61 +49,48 @@ def test_real_function_output():
     np.testing.assert_allclose(jac_re, jac_2)
 
 
-@common.onlyif_sharding
+@common_mesh.with_explicit_meshes([None, ((2,), ("S"))])
 @pytest.mark.parametrize("sharded", [False, True])
-def test_real_function_sharding(sharded):
+def test_real_function_sharding(mesh, sharded):
     k = jax.random.key(1)
 
     ma = nk.models.RBM(param_dtype=jnp.float32)
 
-    if sharded:
+    if mesh.empty and sharded:
+        # thist est should not exist
+        return
+    elif not mesh.empty and sharded:
         n_samples = 2 * jax.device_count()
     else:
         n_samples = 3
 
     xs = jax.random.normal(k, (n_samples, 4))
-    if sharded:
-        xs = jax.lax.with_sharding_constraint(
-            xs, jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P("S"))
-        )
+    if not mesh.empty and sharded:
+        xs = reshard(xs, P("S"))
 
     model_state, parameters = fcore.pop(ma.init(k, xs), "params")
 
-    def afun(vars, xs):
-        return ma.apply(vars, xs) + 0.3j * ma.apply(vars, xs)
-
     jac_re = nk.jax.jacobian(
-        afun,
+        lambda vars, xs: ma.apply(vars, xs) + 0.3j * ma.apply(vars, xs),
         parameters,
         xs,
         model_state,
         mode="real",
         dense=True,
-        _axis_0_is_sharded=sharded,
     )
-
-    def afun(vars, xs):
-        return ma.apply(vars, xs)
 
     jac_2 = nk.jax.jacobian(
-        afun,
+        ma.apply,
         parameters,
         xs,
         model_state,
         mode="real",
         dense=True,
-        _axis_0_is_sharded=sharded,
     )
 
-    if sharded:
-        assert jac_re.sharding.spec == P("S")
-        assert jac_2.sharding.spec == P("S")
-        jac_re = jax.lax.with_sharding_constraint(
-            jac_re,
-            jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P()),
-        )
-        jac_2 = jax.lax.with_sharding_constraint(
-            jac_2, jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P())
-        )
+    if not mesh.empty:
+        spec = "S" if sharded else None
+        assert jac_re.sharding.spec == P(spec, None)
+        assert jac_2.sharding.spec == P(spec, None)
 
     np.testing.assert_allclose(jac_re, jac_2)
