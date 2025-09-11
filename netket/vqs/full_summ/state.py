@@ -21,7 +21,6 @@ import numpy as np
 
 import jax
 from jax import numpy as jnp
-from jax.sharding import NamedSharding, PartitionSpec as P
 
 from flax import serialization, core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
@@ -117,28 +116,18 @@ class FullSumState(VariationalState):
         super().__init__(hilbert)
         self._model_framework = None
 
-        if variables is not None and config.netket_experimental_sharding:
-            par_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
-        else:
-            par_sharding = None
-
-        # TODO: deprecated in July 2025
-        # For simplicity, we do not accept numpy inputs in variables
-        # resultis in SingleDeviceSharding if par_sharding is None
-        if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
-            variables = jax.tree.map(
-                partial(jnp.asarray, device=par_sharding), variables
-            )
-
-        if variables is not None and config.netket_experimental_sharding:
-            # TODO: Move this somewhere else below?
-            # If variables is specified manually, we will enforce that it's leaves are
-            # jax arrays and that it has the good 'replicated sharding'
-            # This assumption is needed for saving and loading of those states, and could
-            # be broken if variables is malformed.
-
+        if variables is not None:
+            # TODO: Always have shardings...
+            if config.netket_experimental_sharding:
+                par_sharding = jax.sharding.PositionalSharding(
+                    jax.devices()
+                ).replicate()
+            else:
+                par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
             variables = jax.tree_util.tree_map(
-                lambda x: jax.lax.with_sharding_constraint(x, par_sharding),
+                lambda x: jax.lax.with_sharding_constraint(
+                    jnp.asarray(x), par_sharding
+                ),
                 variables,
             )
 
@@ -343,6 +332,8 @@ class FullSumState(VariationalState):
                 allgather=allgather,
                 chunk_size=self.chunk_size,
             )
+            if allgather:
+                self._array = np.asarray(self._array)
 
         if normalize:
             arr = self._array
@@ -355,6 +346,8 @@ class FullSumState(VariationalState):
                 allgather=allgather,
                 chunk_size=self.chunk_size,
             )
+            if allgather:
+                arr = np.asarray(arr)
 
         return arr  # type: ignore
 

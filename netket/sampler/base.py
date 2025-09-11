@@ -15,15 +15,16 @@
 import abc
 from collections.abc import Callable
 from collections.abc import Iterator
-from typing import overload, Literal
+from typing import Any, overload, Literal
 
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.sharding import PartitionSpec as P
 
-
-from netket import jax as nkjax
 from netket import config
+from netket import jax as nkjax
+from netket.jax.sharding import canonicalize_sharding
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils import get_afun_if_module, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT, ModuleOrApplyFun
@@ -34,6 +35,8 @@ class SamplerState(struct.Pytree):
     """
     Base class holding the state of a sampler.
     """
+
+    out_sharding: Any = struct.field(pytree_node=False)
 
 
 class Sampler(struct.Pytree):
@@ -223,6 +226,7 @@ class Sampler(struct.Pytree):
         machine: ModuleOrApplyFun,
         parameters: PyTree,
         seed: SeedT | None = None,
+        out_sharding: Any = None,
     ) -> SamplerState:
         """
         Creates the structure holding the state of the sampler.
@@ -244,6 +248,8 @@ class Sampler(struct.Pytree):
                 If it is a callable, it should have the signature :code:`f(parameters, σ) -> jax.Array`.
             parameters: The PyTree of parameters of the model.
             seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
+            out_sharding: The sharding of the output samples. If not specified, it will be along
+                the first axis of the current mesh (if any).
 
         Returns:
             The structure holding the state of the sampler. In general you should not expect
@@ -251,13 +257,33 @@ class Sampler(struct.Pytree):
         """
         key = nkjax.PRNGKey(seed)
 
-        return self._init_state(wrap_afun(machine), parameters, key)
+        if out_sharding is None:
+            mesh = jax.sharding.get_abstract_mesh()
+            if mesh.empty:
+                out_sharding = None
+            else:
+                samples_axis_name = (
+                    mesh.axis_names[0] if len(mesh.axis_names) > 0 else None
+                )
+                out_sharding = jax.sharding.NamedSharding(
+                    mesh, P(samples_axis_name, None)
+                )
+        out_sharding = canonicalize_sharding(
+            out_sharding, api_name="Sampler.init_state"
+        )
+        if jax.process_count() == 0:
+            print("Automatically selected sampler sharding:", out_sharding)
+
+        return self._init_state(
+            wrap_afun(machine), parameters, key, out_sharding=out_sharding
+        )
 
     def reset(
         self,
         machine: ModuleOrApplyFun,
         parameters: PyTree,
         state: SamplerState | None = None,
+        out_sharding: Any | None = None,
     ) -> SamplerState:
         """
         Resets the state of the sampler. To be used every time the parameters are changed.
@@ -273,7 +299,7 @@ class Sampler(struct.Pytree):
             A valid sampler state.
         """
         if state is None:
-            state = self.init_state(machine, parameters)
+            state = self.init_state(machine, parameters, out_sharding=out_sharding)
 
         return self._reset(wrap_afun(machine), parameters, state)
 
