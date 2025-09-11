@@ -232,23 +232,6 @@ config.define(
     runtime=True,
 )
 
-# TODO: removed in january 2025, defaults to True now.
-config.define(
-    "NETKET_EXPERIMENTAL_DISABLE_ODE_JIT",
-    bool,
-    default=True,
-    help=dedent(
-        """
-        Deprecated: jax does not support reentrant callbacks anymore.
-
-        Disables the jitting of the whole ode solver, mainly used within TDVP solvers.
-        The jitting is sometimes incompatible with GPU-based calculations, and on large
-        calculations it gives negligible speedups so it might be beneficial to disable it.
-        """
-    ),
-    runtime=True,
-)
-
 
 def _setup_experimental_sharding_cpu(n_procs):
     if n_procs > 1:
@@ -401,20 +384,6 @@ config.define(
         If True (Defaults False) does not gather data on the master process when
         using flax.serialization methods. This allows to use orbax-checkpoint with
         higher efficiency.
-        """
-    ),
-)
-
-
-config.define(
-    "NETKET_SPIN_ORDERING_WARNING",
-    bool,
-    default=True,
-    runtime=True,
-    help=dedent(
-        """
-        If True (Defaults True) warns if the ordering of spins in the Hilbert space
-        is not declared.
         """
     ),
 )
