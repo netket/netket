@@ -110,6 +110,11 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-tags: true
+      
       - uses: actions/download-artifact@v4
         with:
           pattern: coverage-*
@@ -120,4 +125,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
+          fail_ci_if_error: false
           verbose: true
