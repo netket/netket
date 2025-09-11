@@ -610,31 +610,31 @@ def test_jax_operator_sharding_preserved(op):
     # Create input with shape (n_devices, 3, hilbert_size) and shard along first axis
     n_devices = jax.device_count()
     x = hi.random_state(jax.random.PRNGKey(0), (n_devices, 3), dtype=np.float64)
-    
+
     # Shard along the first axis with PartitionSpec('S')
     x_sharded = shard_along_axis(x, axis=0)
-    
+
     # Get the sharding of the input
     input_sharding = x_sharded.sharding
-    
+
     @jax.jit
     def _get_conn_padded(op, x):
         return op.get_conn_padded(x)
-    
+
     # Call get_conn_padded on the sharded input
     sp, mels = _get_conn_padded(op, x_sharded)
-    
+
     # Check that output sharding preserves the input sharding pattern
     # The first axis should be sharded the same way as input ('S')
     # shard_along_axis creates PartitionSpec('S',) which only specifies the first axis
     assert len(input_sharding.spec) >= 1
-    assert input_sharding.spec[0] == 'S'
-    
+    assert input_sharding.spec[0] == "S"
+
     # Output should preserve the 'S' sharding on the first axis
     assert len(sp.sharding.spec) >= 1
     assert len(mels.sharding.spec) >= 1
-    assert sp.sharding.spec[0] == 'S'
-    assert mels.sharding.spec[0] == 'S'
+    assert sp.sharding.spec[0] == "S"
+    assert mels.sharding.spec[0] == "S"
 
 
 @common.skipif_distributed

@@ -14,6 +14,8 @@ from functools import partial
 
 import pytest
 
+from ..common import skipif_distributed
+
 
 def _cast_normal_order(A):
     idx = np.array(np.where(A)).T
@@ -27,6 +29,7 @@ def _cast_normal_order(A):
 
 
 @pytest.mark.slow
+@skipif_distributed
 @pytest.mark.parametrize("desc", [True, False])
 def test_pnc(desc):
     N = 6
@@ -86,6 +89,7 @@ def test_pnc(desc):
 
 
 @pytest.mark.slow
+@skipif_distributed
 @pytest.mark.parametrize("N", [5])
 @pytest.mark.parametrize("n", [2, 3])
 @pytest.mark.parametrize("s", [1 / 2, 1, 3 / 2])

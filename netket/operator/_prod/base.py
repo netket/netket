@@ -209,8 +209,7 @@ class ProductOperator(ABC):
 
     def __matmul__(self, other):
         if not isinstance(other, AbstractOperator):
-            return NotImplemented
-            # return super().__matmul__(other)
+            return super().__matmul__(other)
 
         if isinstance(other, ProductOperator):
             ops = self.operators + other.operators
@@ -225,8 +224,7 @@ class ProductOperator(ABC):
 
     def __rmatmul__(self, other):
         if not isinstance(other, AbstractOperator):
-            return NotImplemented
-            # return super().__matmul__(other)
+            return super().__rmatmul__(other)
 
         ops = (other, *self.operators)
         coeff = self.coefficient
