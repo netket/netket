@@ -273,13 +273,13 @@ def deserialize_MCMixedState(vstate, state_dict):
         vstate._diagonal, state_dict["diagonal"]
     )
 
-    vars = jax.tree_util.tree_map(
+    vars = jax.tree.map(
         jnp.asarray,
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
     vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
     if config.netket_experimental_sharding:
-        vars = jax.tree_util.tree_map(
+        vars = jax.tree.map(
             lambda t, val: jax.device_put(val, t.sharding),
             vstate.variables,
             vars,
@@ -290,6 +290,15 @@ def deserialize_MCMixedState(vstate, state_dict):
         jnp.asarray,
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
+    vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
+    if config.netket_experimental_sharding:
+        vars = jax.tree_util.tree_map(
+            lambda x, y: jax.device_put(y, x.sharding),
+            vstate.variables,
+            vars,
+        )
+    new_vstate.variables = vars
+
     new_vstate.sampler_state = serialization.from_state_dict(
         vstate.sampler_state, state_dict["sampler_state"]
     )
