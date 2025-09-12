@@ -177,10 +177,6 @@ def flip_state_scalar(hilb: HomogeneousHilbert, key, σ, idx):  # noqa: F811
         return σ, σ[idx]
 
     out_sharding = get_sharding_spec(σ)
-    if len(jax.typeof(σ).vma) > 0:
-        # TODO: cleanup this in future jax version
-        # If we are inside a shard_map, disable sharding because of a jax bug
-        out_sharding = None
 
     # Get site to flip, convert that individual site to indices
     σi_old = σ.at[idx].get(out_sharding=out_sharding)
