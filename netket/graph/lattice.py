@@ -615,6 +615,12 @@ class Lattice(Graph):
         See the documentation for a precise definition of the operators
         in each case.
 
+        .. note::
+            This method returns an actual representation, that can be different
+            depending on the Hilbert space. On the other hand, the method
+            :func:`Lattice.space_group` returns a group without the associated
+            operators.
+
         Args:
             hilbert: The Hilbert space on which the representation acts.
             point_group: a `PointGroup` object describing the point-group

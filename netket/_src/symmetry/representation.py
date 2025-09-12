@@ -22,8 +22,20 @@ from netket.vqs.mc.mc_state.state import MCState
 
 class Representation:
     """
-    A representation of a group. For a given group, it is effectively a dictionary
-    that maps the elements of that group to their corresponding operators.
+    A representation of a group.
+
+    This is the central object for symmetrizing wavefunctions. The character
+    table of the group of the representation indicates the various subspaces on
+    which the wavefunction can be projected. A variational state :code:`vstate`
+    can be projected on the subspace associated to the character :code:`k` by
+    calling :code:`representation.project(vstate, k)` , which returns the new,
+    projected variational state.
+
+    For more details on the theory of representations of finite group and its
+    application in variational Monte Carlo, we refer to :doc:`/advanced/symmetry`.
+
+    For a tutorial of symmetrizing variational states in practice, we refer to
+    the :doc:`/tutorials/symmetry_tutorial`.
     """
 
     def __init__(
@@ -32,8 +44,14 @@ class Representation:
         representation_dict: dict[Element, DiscreteJaxOperator],
     ):
         """
-        Constructs a Representation of a group from a dictionary associating
-        an operator to every group element.
+        Construct a Representation.
+
+        Args:
+            group: The group being represented.
+            representation_dict: The dictionary that defines the representation.
+                Its keys must be the elements of :code:`group`. The value this
+                dictionary associates to a group element is the operator that
+                the representation maps this group element onto.
         """
 
         if not isinstance(group, FiniteGroup):
@@ -118,7 +136,7 @@ class Representation:
         # large groups
         operators = np.array([self[g] for g in self.group], dtype=object)
 
-        # filter out the characters that vanish (do before normalizing to avoid even smaller values)
+        # Filter out the characters that vanish (do before normalizing to avoid even smaller values)
         mask = ~np.isclose(np.conj(character_table[character_index]), 0.0, atol=atol)
         operators = np.array([self[g] for g in self.group], dtype=object)
         coefficients = prefactor * np.conj(character_table[character_index])
