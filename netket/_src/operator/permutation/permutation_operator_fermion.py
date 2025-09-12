@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 import jax
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
@@ -19,7 +21,7 @@ from jax.tree_util import register_pytree_node_class
 from functools import partial
 
 from netket.hilbert import SpinOrbitalFermions
-from netket.utils.group import Permutation
+from netket.symmetry.group import Permutation
 from netket.utils.types import DType
 
 from netket._src.operator.permutation.permutation_operator_base import (
@@ -73,6 +75,65 @@ def get_antisymmetric_signs(
     return sign
 
 
+def check_permutation_compatibility(
+    permutation: Permutation, partition: list, constraints: list
+):
+    """
+    Check that a permutation is compatible with constraints.
+
+    Given a permutation that acts on n elements and a partition of those n elements
+    that constrains bitstrings to contain exactly constraints[k] bits 1 in the
+    partition subset partition[k], check that the permutation only maps compatible
+    bitstrings to compatible bitstrings. In other words, it checks that the
+    permutation operator defined by that permutation is well-defined on the
+    Hilbert space specified by the constraints.
+
+    It can be shown that it is equivalent to check that each partition subset
+    is mapped by the inverse permutation onto another partition subset that has
+    the same constraint. This equivalence only holds if the constraints are
+    non-trivial, that is, only if the bitstrings are not constrained to be either
+    only 0 or only 1 within any partition subset.
+
+    Args:
+        permutation: The permutation whose compatibility we check.
+        partition: The partition that defines the constraint. It must be a partition of `range(n)` specified as a
+            list where the k-th element is a list that specifies the elements of the k-th partition subset.
+        constraints: The occupation constraint on each partition subset.
+            The k-th constraint must be an integer contained strictly between 0
+            and the size of the k-th partition subset.
+    """
+
+    for partition_subset in partition:
+        partition_subset.sort()
+
+    index_set = sorted(sum(partition, start=[]))
+    n = index_set[-1]
+
+    assert index_set == list(range(n + 1)), "`partition` is not a proper partition."
+
+    for partition_subset, constraint in zip(partition, constraints, strict=True):
+        assert (
+            0 < constraint < len(partition_subset)
+        ), "There is a trivial or invalid constraint."
+
+    is_compatible = True
+
+    for index, partition_subset in enumerate(partition):
+
+        partition_subset_preimage = sorted(
+            permutation.inverse_permutation_array[partition_subset]
+        )
+
+        if partition_subset_preimage in partition:
+            image_index = partition.index(partition_subset_preimage)
+            if constraints[image_index] != constraints[index]:
+                is_compatible = False
+        else:
+            is_compatible = False
+
+    return is_compatible
+
+
 @register_pytree_node_class
 class PermutationOperatorFermion(PermutationOperatorBase):
     """
@@ -92,19 +153,6 @@ class PermutationOperatorFermion(PermutationOperatorBase):
 
     For mathematical details on the definition of a permutation operator
     and its justification, we refer to :doc:`/advanced/symmetry`.
-
-    .. note::
-
-        Maybe we should also check that the operator is well-defined for the
-        given Hilbert space. If the number of fermion per spin sector is fixed,
-        we might want to check that the permutation respects that constraint.
-
-        But then spin flip would be a permutation that is not a product of permutation
-        acting on each subsector, but that is still valid. So it is hard to tell
-        at a glance whether a given permutation is valid for restriction to that subspace.
-
-        I don't think it is possible to make such a check. So we just have to hope
-        the user knows what they are doing.
     """
 
     def __init__(
@@ -122,8 +170,38 @@ class PermutationOperatorFermion(PermutationOperatorBase):
                 specified in :doc:`/advanced/symmetry`.
         """
         assert isinstance(hilbert, SpinOrbitalFermions)
+
         if hilbert.n_fermions is None:
             raise TypeError("The Hilbert space must have a fixed number of fermions.")
+
+        if hilbert.n_fermions_per_spin[0] is not None:
+
+            if (
+                sum(
+                    constraint == 0 or constraint == hilbert.n_orbitals
+                    for constraint in hilbert.n_fermions_per_spin
+                )
+                > 0
+            ):
+                warnings.warn(
+                    "The Hilbert space contains a spin sector that is "
+                    "either empty or fully occupied. The compatibility of the "
+                    "permutation could not be checked. The trivial spin sector "
+                    "should be removed from the Hilbert space."
+                )
+
+            else:
+                partition = list(
+                    list(range(k * hilbert.n_orbitals, (k + 1) * hilbert.n_orbitals))
+                    for k in range(hilbert.n_spin_subsectors)
+                )
+                is_compatible = check_permutation_compatibility(
+                    permutation, partition, list(hilbert.n_fermions_per_spin)
+                )
+                assert (
+                    is_compatible
+                ), "The permutation is not compatible with the Hilbert space constraints"
+
         super().__init__(hilbert, permutation, dtype=dtype)
 
     def _get_signs(self, x):
@@ -132,11 +210,34 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         )
 
     def get_conn_padded(self, x):
-        r"""
-        This function computes <x|Ug = <x o g| \xi_{g^{-1}}(x).
-        where x is a batch of fermionic Fock states,
-        x o g are the permuted occupation numbers and
-        \xi_{g^{-1}}(x) is the sign of the permutation.
+        r"""Finds the connected elements of the Operator.
+
+        Starting from a batch of quantum numbers :math:`x={x_1, ... x_n}` of
+        size :math:`B \times M` where :math:`B` size of the batch and :math:`M`
+        size of the hilbert space, finds all states :math:`y_i^1, ..., y_i^K`
+        connected to every :math:`x_i`.
+
+        Returns a matrix of size :math:`B \times K_{max} \times M` where
+        :math:`K_{max}` is the maximum number of connections for every
+        :math:`y_i`.
+
+        .. warning::
+
+            Unlike most other operators defined in NetKet, a permutation operator
+            is not Hermitian, and we thus have to be careful about the definition of
+            connected elements. NetKet defines connected elements of :math:`x` as the
+            configurations :math:`x'` such that :math:`\langle x | P_\sigma | x' \rangle` .
+            Therefore, the connected elements are the configurations found in the
+            image of :math:`x` by :math:`P_{\sigma^{-1}}` , and not :math:`P_\sigma` .
+
+        Args:
+            x : A N-tensor of shape :math:`(...,hilbert.size)` containing
+                the batch/batches of quantum numbers :math:`x`.
+
+        Returns:
+            **(x_primes, mels)**: The connected states x', in a N+1-tensor and an
+            N-tensor containing the matrix elements :math:`O(x,x')`
+            associated to each x' for every batch.
         """
 
         x = jnp.asarray(x)

@@ -121,5 +121,5 @@ class PermutationOperatorBase(DiscreteJaxOperator):
         This could also raise a `NotImplementedError`.
         """
         raise NotImplementedError(
-            f"trace method not implemented for class `{type(self)}`"
+            f"Trace method not implemented for class `{type(self)}`"
         )
