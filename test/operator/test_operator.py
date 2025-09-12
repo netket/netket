@@ -648,8 +648,6 @@ def test_jax_operator_sharding_preserved(op):
     for shape in [(n_devices,), (n_devices, 3)]:
         x = hi.random_state(jax.random.PRNGKey(0), shape, dtype=np.float64)
         x_sharded = shard_along_axis(x, axis=0)
-        print(jax.typeof(x).sharding)
-        print(jax.typeof(x_sharded).sharding)
 
         sp, mels = _get_conn_padded(op, x_sharded)
 
