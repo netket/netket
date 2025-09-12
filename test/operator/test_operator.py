@@ -655,6 +655,13 @@ def test_jax_operator_sharding_preserved(op):
         assert mels.sharding.spec == jax.P("S")
         assert sp.sharding.spec == jax.P("S")
 
+    # test replicated propagated
+    if jax.sharding.get_abstract_mesh().are_all_axes_explicit:
+        x = hi.random_state(jax.random.PRNGKey(0), shape, dtype=np.float64)
+        sp, mels = _get_conn_padded(op, x)
+        assert mels.sharding.is_fully_replicated
+        assert sp.sharding.is_fully_replicated
+
 
 @common.skipif_distributed
 def test_bose_hubbard_precision():

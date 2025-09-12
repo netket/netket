@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import jax
 import jax.numpy as jnp
+from jax.sharding import NamedSharding, PartitionSpec as P
 from jax.tree_util import register_pytree_node_class
 
 from netket.hilbert import HomogeneousHilbert
@@ -69,10 +71,22 @@ class PermutationOperator(PermutationOperatorBase):
         """
         x = jnp.asarray(x)
         # Check that the parameters of get are useful
-        connected_elements = x.at[..., None, self.permutation.permutation_array].get(
+        x_conn = x.at[..., None, self.permutation.permutation_array].get(
             unique_indices=True, mode="promise_in_bounds"
         )
-        return connected_elements, jnp.ones((*x.shape[:-1], 1), dtype=self.dtype)
+        mels = jnp.ones((*x.shape[:-1], 1), dtype=self.dtype)
+
+        mesh = jax.sharding.get_abstract_mesh()
+        if mesh.are_all_axes_explicit:
+            x_conn_sharding = jax.typeof(x).sharding
+            mels_sharding = NamedSharding(mesh, jax.typeof(x).sharding.spec)
+        elif not mesh.empty:
+            x_conn_sharding = NamedSharding(mesh, P("S"))
+            mels_sharding = NamedSharding(mesh, P("S"))
+
+        x_conn = jax.lax.with_sharding_constraint(x_conn, x_conn_sharding)
+        mels = jax.lax.with_sharding_constraint(mels, mels_sharding)
+        return x_conn, mels
 
     def trace(self) -> int:
         cycle_decomposition = self.permutation.cycle_decomposition()
