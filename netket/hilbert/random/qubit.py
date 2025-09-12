@@ -32,9 +32,5 @@ def random_state(hilb: Qubit, key, batches: int, *, dtype, out_sharding=None):
 
 @dispatch
 def flip_state_scalar(hilb: Qubit, key, x, i):
-    out_sharding = get_sharding_spec(x)
-    if len(jax.typeof(x).vma) > 0:
-        out_sharding = None
-
-    x_old = x.at[i].get(out_sharding=out_sharding)
+    x_old = x.at[i].get(out_sharding=get_sharding_spec(x))
     return x.at[i].set(-x_old + 1), x_old
