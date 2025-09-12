@@ -34,7 +34,9 @@ def _physical_to_fermionic_permutation(
     offset = 0
     while offset < hilbert.size - hilbert.n_orbitals:
         offset += hilbert.n_orbitals
-        fermionic_perm_array = np.concatenate((fermionic_perm_array, perm_array + offset))
+        fermionic_perm_array = np.concatenate(
+            (fermionic_perm_array, perm_array + offset)
+        )
 
     return Permutation(permutation_array=fermionic_perm_array)
 

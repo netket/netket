@@ -158,23 +158,16 @@ translation_operator_qubit = nk.operator.permutation.PermutationOperator(
 
 operators["PermutationOperator_translation"] = translation_operator_qubit
 
-# Fermion permutation operator
-double_transposition = nk.utils.group.Permutation(
-    permutation_array=jnp.array([1, 0, 3, 2]), name="double_transposition"
-)
-hilbert_space_fermion = nk.hilbert.SpinOrbitalFermions(
-    2, 1 / 2, n_fermions_per_spin=[1, 1]
-)
-double_transposition_operator_fermion = (
+operators["PermutationOperatorFermion"] = (
     nk.operator.permutation.PermutationOperatorFermion(
-        hilbert_space_fermion, double_transposition
+        nk.hilbert.SpinOrbitalFermions(2, 1 / 2, n_fermions_per_spin=[1, 1]),
+        nk.utils.group.Permutation(
+            permutation_array=jnp.array([1, 0, 3, 2]), name="xyz"
+        ),
     )
 )
 
-operators["PermutationOperatorFermion_double_transposition"] = (
-    double_transposition_operator_fermion
-
-  operators["ProductOperatorJax"] = nk.operator.ProductOperator(
+operators["ProductOperatorJax"] = nk.operator.ProductOperator(
     nk.operator.spin.sigmax(hi, 0),
     nk.operator.spin.sigmay(hi, 1),
     coefficient=2.0,

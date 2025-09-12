@@ -68,19 +68,24 @@ def test_irrep_dims(representation):
     assert jnp.all(irrep_dims_1 == irrep_dims_2)
 
 
+hilbert_list = [
+    nk.hilbert.SpinOrbitalFermions(16, s=1 / 2, n_fermions_per_spin=(2, 2)),
+    nk.hilbert.SpinOrbitalFermions(16, s=3 / 2, n_fermions_per_spin=(2, 2, 2, 2)),
+]
+graph_list = [
+    nk.graph.Chain(16, pbc=True),
+    nk.graph.Square(4, pbc=True),
+    nk.graph.Triangular(extent=(4, 4), pbc=(True, True)),
+]
 
-hilbert_list = [nk.hilbert.SpinOrbitalFermions(16, s=1 / 2, n_fermions_per_spin=(2, 2)), nk.hilbert.SpinOrbitalFermions(16, s=3/2, n_fermions_per_spin=(2,2,2,2))]
-graph_list= [nk.graph.Chain(16, pbc=True), nk.graph.Square(4, pbc=True), nk.graph.Triangular(extent=(4,4), pbc=(True,True))]
+
 @pytest.mark.parametrize("hilbert", hilbert_list)
 @pytest.mark.parametrize("graph", graph_list)
-def test_fermion_group_construction(hilbert: nk.hilbert.SpinOrbitalFermions, graph: nk.graph.Lattice):
-
-    group = graph.space_group()
+def test_fermion_group_construction(
+    hilbert: nk.hilbert.SpinOrbitalFermions, graph: nk.graph.Lattice
+):
     space_group_representation_fermion = graph.space_group_representation(hilbert)
 
     rep_dict = space_group_representation_fermion.representation_dict
     for op in rep_dict.values():
         assert len(op.permutation.permutation_array) == hilbert.size
-
-    
-
