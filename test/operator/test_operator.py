@@ -147,17 +147,12 @@ operators["SumOperatorJax"] = nk.operator.SumOperator(
     coefficients=[0.5, 0.3],
 )
 
-# Spin permutation operator
-translation_1 = nk.utils.group.Permutation(
-    permutation_array=jnp.array([1, 2, 3, 0]), name="translation_1"
+operators["PermutationOperator"] = nk.operator.permutation.PermutationOperator(
+    nk.hilbert.Qubit(4),
+    nk.utils.group.Permutation(
+        permutation_array=jnp.array([1, 2, 3, 0]), name="translation_1"
+    ),
 )
-hilbert_space_qubit = nk.hilbert.Qubit(4)
-translation_operator_qubit = nk.operator.permutation.PermutationOperator(
-    hilbert_space_qubit, translation_1
-)
-
-operators["PermutationOperator_translation"] = translation_operator_qubit
-
 operators["PermutationOperatorFermion"] = (
     nk.operator.permutation.PermutationOperatorFermion(
         nk.hilbert.SpinOrbitalFermions(2, 1 / 2, n_fermions_per_spin=[1, 1]),
