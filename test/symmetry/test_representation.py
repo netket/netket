@@ -18,11 +18,7 @@ graph = nk.graph.disjoint_union(chain, chain)
 hilbert_space_fermion = nk.hilbert.SpinOrbitalFermions(
     4, s=1 / 2, n_fermions_per_spin=(2, 2)
 )
-group = (
-    graph.automorphisms()
-)  # The test could be made lighter by removing some symmetries
-# For example by taking the product of point group of one chain with the translation group
-# of the other
+group = graph.automorphisms()
 
 rep_dict = {
     g: nk.operator.permutation.PermutationOperatorFermion(hilbert_space_fermion, g)
