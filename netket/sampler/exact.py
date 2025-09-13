@@ -24,6 +24,7 @@ from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
 from netket.utils.types import PyTree, SeedT, DType
 from netket.utils import struct
+from netket.jax.sharding import auto_axes_maybe
 
 from .base import Sampler, SamplerState
 
@@ -121,19 +122,28 @@ class ExactSampler(Sampler):
         tuple[jax.Array, SamplerState]
         | tuple[tuple[jax.Array, jax.Array], SamplerState]
     ):
+        sharding = (
+            state.out_sharding if get_abstract_mesh().are_all_axes_explicit else None
+        )
         # Reimplement sample_chain because we can sample the whole 'chain' in one
         # go, since it's not really a chain anyway. This will be much faster because
         # we call into python only once.
         new_rng, rng = jax.random.split(state.rng)
-        numbers = jax.random.choice(
-            rng,
-            self.hilbert.n_states,
-            shape=(
-                self.n_batches,
-                chain_length,
+        numbers = auto_axes_maybe(
+            lambda key, pdf: jax.random.choice(
+                key,
+                self.hilbert.n_states,
+                shape=(
+                    self.n_batches,
+                    chain_length,
+                ),
+                replace=True,
+                p=pdf,
             ),
-            replace=True,
-            p=state.pdf,
+            out_sharding=sharding,
+        )(
+            rng,
+            state.pdf,
         )
 
         samples = self.hilbert.numbers_to_states(numbers).astype(self.dtype)
