@@ -1,3 +1,8 @@
+import jax
+import jax.numpy as jnp
+
+from netket.sampler import MetropolisSamplerState
+from netket.jax import PRNGKey
 from netket.vqs import MCState, FullSumState
 from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 
@@ -5,7 +10,7 @@ from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 # In this implementation, we have access to the operator in the new variables, but not to the original model/apply_fun.
 
 
-def apply_operator(operator, vstate):
+def apply_operator(operator, vstate, *, seed=None):
     """
     Apply an operator to a variational state.
 
@@ -44,4 +49,13 @@ def apply_operator(operator, vstate):
             n_discard_per_chain=vstate.n_discard_per_chain,
             chunk_size=chunk_size,
         )
+        if isinstance(vstate.sampler_state, MetropolisSamplerState):
+            x = vstate.sampler_state.σ
+            xp, mels = operator.get_conn_padded(x)
+            seed = PRNGKey(seed)
+            ids = jax.random.randint(seed, (x.shape[0],), 0, operator.max_conn_size)
+            new_x = xp[jnp.arange(x.shape[0]), ids, :]
+            transformed_vstate.sampler_state = (new_x)
+
+        transformed_vstate.sampler_state = vstate.sampler_state.replace(σ=new_x)
         return transformed_vstate
