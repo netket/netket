@@ -15,6 +15,7 @@
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import get_abstract_mesh
 import numpy as np
 from functools import partial
 
@@ -121,6 +122,9 @@ def _langevin_step(
         """Derivative of log_prob with respect to a single sample x"""
         g = nkjax.grad(lambda xi: _log_prob(xi).ravel()[0])(x)
         return g if jnp.iscomplexobj(r) else g.real
+
+    if get_abstract_mesh()._any_axis_auto:
+        raise NotImplementedError("causes global comms")
 
     grad_logp_r = nkjax.lax.map(
         _single_grad,

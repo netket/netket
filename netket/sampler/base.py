@@ -265,11 +265,9 @@ class Sampler(struct.Pytree):
                 samples_axis_name = (
                     mesh.axis_names[0] if len(mesh.axis_names) > 0 else None
                 )
-                out_sharding = jax.sharding.NamedSharding(
-                    mesh, P(samples_axis_name, None)
-                )
+                out_sharding = jax.sharding.NamedSharding(mesh, P(samples_axis_name))
         out_sharding = canonicalize_sharding(
-            out_sharding, api_name="Sampler.init_state"
+            out_sharding, api_name="Sampler.init_state", accept_auto=True
         )
         if jax.process_count() == 0:
             print("Automatically selected sampler sharding:", out_sharding)

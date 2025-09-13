@@ -187,6 +187,7 @@ def canonicalize_sharding(
     sharding: NamedSharding | PartitionSpec | None,
     api_name: str,
     check_mesh_consistency: bool = True,
+    accept_auto: bool = False,
 ) -> NamedSharding | None:
     if sharding is None:
         return None
@@ -217,6 +218,8 @@ def canonicalize_sharding(
 
     for s in flatten_spec(sharding.spec):
         if s is None:
+            continue
+        if accept_auto:
             continue
         if sharding.mesh._name_to_type[s] in {AxisType.Auto, AxisType.Manual}:
             raise ValueError(
