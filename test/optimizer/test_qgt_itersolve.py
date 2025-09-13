@@ -29,6 +29,7 @@ import netket.jax as nkjax
 from netket.optimizer import qgt
 
 from netket.optimizer.qgt.qgt_jacobian_pytree import QGTJacobianPyTreeT
+from netket.jax.sharding import get_sharding_spec
 from netket.optimizer.qgt.qgt_jacobian_dense import QGTJacobianDenseT
 
 from .. import common
@@ -289,9 +290,23 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     if isinstance(S, (QGTJacobianPyTreeT, QGTJacobianDenseT)):
         # extract the necessary shape for the diag_shift
         if S.mode == "complex":
-            t = jax.eval_shape(partial(jax.tree_util.tree_map, lambda x: x[0, 0], S.O))
+            t = jax.eval_shape(
+                partial(
+                    jax.tree_util.tree_map,
+                    lambda x: x.at[0, 0].get(
+                        out_sharding=get_sharding_spec(x, axes=(1,))
+                    ),
+                    S.O,
+                )
+            )
         else:
-            t = jax.eval_shape(partial(jax.tree_util.tree_map, lambda x: x[0], S.O))
+            t = jax.eval_shape(
+                partial(
+                    jax.tree_util.tree_map,
+                    lambda x: x.at[0].get(out_sharding=get_sharding_spec(x, axes=(1,))),
+                    S.O,
+                )
+            )
     else:
         t = v
     diag_shift_tree = jax.tree_util.tree_map(
