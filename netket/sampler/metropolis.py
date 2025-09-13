@@ -373,10 +373,10 @@ class MetropolisSampler(Sampler):
         rule_state = self.rule.init_state(self, machine, parameters, key_rule)
         auto_sharding = get_abstract_mesh()._any_axis_auto
 
-        σ = jnp.zeros(
+        σ = _jnp_zeros(
             (self.n_batches, self.hilbert.size),
             dtype=self.dtype,
-            device=out_sharding if not auto_sharding else None,
+            device=out_sharding,
         )
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
@@ -389,7 +389,6 @@ class MetropolisSampler(Sampler):
 
         # TODO: remove when we dont support auto sharding
         if auto_sharding:
-            σ = jax.lax.with_sharding_constraint(σ, out_sharding)
             log_prob = jax.lax.with_sharding_constraint(log_prob, out_sharding)
 
         state = MetropolisSamplerState(
