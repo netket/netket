@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
+from functools import partial, wraps
 from typing import Any
 from collections.abc import Callable
 from textwrap import dedent
@@ -20,8 +20,8 @@ from textwrap import dedent
 import numpy as np
 
 import jax
-from jax import numpy as jnp
-from jax.sharding import PartitionSpec as P
+from jax import NamedSharding, numpy as jnp
+from jax.sharding import PartitionSpec as P, get_abstract_mesh
 from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
@@ -33,6 +33,24 @@ from netket.jax import dtype_real, lax as nklax
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
+
+
+def _make_sharded_creator(fn):
+    @wraps(fn)
+    def _wrapped(*args, device=None, **kwargs):
+        if isinstance(device, NamedSharding):
+            if getattr(device.mesh, "_any_axis_auto", False):
+                out = fn(*args, **kwargs)
+                return jax.lax.with_sharding_constraint(out, device)
+            return fn(*args, **kwargs, device=device)
+        return fn(*args, **kwargs)
+
+    return _wrapped
+
+
+_jnp_zeros = _make_sharded_creator(jnp.zeros)
+_jnp_ones = _make_sharded_creator(jnp.ones)
+_jnp_full = _make_sharded_creator(jnp.full)
 
 
 class MetropolisSamplerState(SamplerState):
@@ -81,7 +99,7 @@ class MetropolisSamplerState(SamplerState):
         self.rng = rng
         self.rule_state = rule_state
         self.out_sharding = canonicalize_sharding(
-            out_sharding, api_name="MetropolisSamplerState.__init__"
+            out_sharding, api_name="MetropolisSamplerState.__init__", accept_auto=True
         )
         if log_prob is None:
             log_prob = jnp.full(
@@ -92,7 +110,7 @@ class MetropolisSamplerState(SamplerState):
             pass
         self.log_prob = log_prob
 
-        self.n_accepted_proc = jnp.zeros(
+        self.n_accepted_proc = _jnp_zeros(
             σ.shape[0], dtype=int, device=self.out_sharding
         )
         self.n_steps_proc = jnp.zeros((), dtype=int)
@@ -353,11 +371,12 @@ class MetropolisSampler(Sampler):
     def _init_state(self, machine, parameters, key, out_sharding=None):
         key_state, key_rule = jax.random.split(key)
         rule_state = self.rule.init_state(self, machine, parameters, key_rule)
+        auto_sharding = get_abstract_mesh()._any_axis_auto
 
         σ = jnp.zeros(
             (self.n_batches, self.hilbert.size),
             dtype=self.dtype,
-            device=out_sharding,
+            device=out_sharding if not auto_sharding else None,
         )
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
@@ -365,8 +384,13 @@ class MetropolisSampler(Sampler):
             (self.n_batches,),
             -jnp.inf,
             dtype=dtype_real(output_dtype),
-            device=out_sharding,
+            device=out_sharding if not auto_sharding else None,
         )
+
+        # TODO: remove when we dont support auto sharding
+        if auto_sharding:
+            σ = jax.lax.with_sharding_constraint(σ, out_sharding)
+            log_prob = jax.lax.with_sharding_constraint(log_prob, out_sharding)
 
         state = MetropolisSamplerState(
             σ=σ,
@@ -380,8 +404,15 @@ class MetropolisSampler(Sampler):
         if not self.reset_chains:
             key_state, rng = jax.jit(jax.random.split)(key_state)
             σ = self.rule.random_state(
-                self, machine, parameters, state, rng, out_sharding=out_sharding
+                self,
+                machine,
+                parameters,
+                state,
+                rng,
+                out_sharding=out_sharding if not auto_sharding else None,
             )
+            if auto_sharding:
+                σ = jax.lax.with_sharding_constraint(σ, out_sharding)
             _assert_good_sample_shape(
                 σ,
                 (self.n_batches, self.hilbert.size),

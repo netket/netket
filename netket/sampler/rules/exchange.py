@@ -15,6 +15,7 @@
 from functools import partial
 
 import jax
+from jax.sharding import get_abstract_mesh
 import numpy as np
 
 from jax import numpy as jnp
@@ -131,7 +132,7 @@ class ExchangeRule(MetropolisRule):
         # compute a mask for the clusters that can be hopped
         hoppable_clusters = _compute_different_clusters_mask(rule.clusters, σ)
 
-        if out_sharding is None:
+        if out_sharding is None or get_abstract_mesh()._any_axis_auto:
             decorator = lambda f: f
         else:
             decorator = partial(
