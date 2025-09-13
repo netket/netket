@@ -22,7 +22,6 @@ from netket.stats import Stats, statistics
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 from netket.utils import HashablePartial
-
 from netket.operator import (
     AbstractOperator,
     DiscreteOperator,

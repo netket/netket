@@ -109,6 +109,21 @@ This is a list of operators that you can define on {class}`~netket.experimental.
    PotentialEnergy
 ```
 
+### Permutation operators
+
+Operators representing permutations, mainly used to express the lattice symmetries for wavefunction symmetrization in [symmetries](netket_symmetry_api), as described in {doc}`../advanced/symmetry`.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/operator
+   :nosignatures:
+
+   permutation.PermutationOperator
+   permutation.PermutationOperatorFermion
+   permutation.construct_permutation_operator
+```
+
+
 ### Composing different operators together
 
 Operators of different types, but acting on the same Hilbert space, can be combined by means of the operators described below. This is also useful to parametrize in a jax-friendly way time-dependent Hamiltonians.

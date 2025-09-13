@@ -70,7 +70,7 @@ The following modules can be used in autoregressive neural networks, see {class}
 
    to_array
    to_matrix
-   make_logpsi_U_afun
+   make_logpsi_op_afun
 
 ```
 

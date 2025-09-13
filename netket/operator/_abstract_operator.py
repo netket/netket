@@ -15,7 +15,7 @@
 import abc
 
 
-from netket.utils.types import DType, Array
+from netket.utils.types import DType
 from netket.utils.numbers import is_scalar
 
 
@@ -141,8 +141,6 @@ class AbstractOperator(AbstractObservable[HilbertType]):
         if is_scalar(other):
             from ._sum import SumOperator
 
-            if isinstance(other, Array):
-                other = other.item()
             return SumOperator(self, coefficients=[other])
         # TODO: When the operator multiplication deprecation warning is turned into an error, add a helpful message here
         return NotImplemented

@@ -19,7 +19,7 @@ from netket.driver.abstract_variational_driver import (
 )
 from netket._src.ngd.sr_srt_common import sr, srt
 from netket._src.ngd.srt_onthefly import srt_onthefly
-from netket._src.operator.hpsi_utils import make_logpsi_U_afun
+from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 from netket.experimental.observable.infidelity.expect import get_local_estimator
 
 ApplyFun = Callable[[PyTree, Array], Array]
@@ -182,7 +182,7 @@ class Infidelity_SR(AbstractVariationalDriver):
                     logpsi_xp.astype(complex), axis=-1, b=mels
                 )
 
-            logUpsi_fun, new_variables = make_logpsi_U_afun(
+            logUpsi_fun, new_variables = make_logpsi_op_afun(
                 target_state._apply_fun, operator, target_state.variables
             )
 
