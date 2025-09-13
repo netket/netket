@@ -19,7 +19,7 @@ import numpy as np
 
 import jax
 from jax import numpy as jnp
-from jax.sharding import PartitionSpec as P, reshard, auto_axes
+from jax.sharding import reshard, auto_axes, get_abstract_mesh
 
 from netket.utils.types import PyTree, PRNGKeyT, Array
 from netket.utils import struct
@@ -27,6 +27,7 @@ from netket.jax import dtype_real
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
+from netket.sampler.metropolis import _jnp_zeros
 
 # Original C++ Implementation
 # https://github.com/netket/netket/blob/1e187ae2b9d2aa3f2e53b09fe743e50763d04c9a/Sources/Sampler/metropolis_hastings_pt.hpp
@@ -88,12 +89,12 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
         n_chains, n_replicas = beta.shape
 
         self.beta = beta
-        self.n_accepted_per_beta = jnp.zeros(
+        self.n_accepted_per_beta = _jnp_zeros(
             (n_chains, n_replicas), dtype=int, device=out_sharding
         )
-        self.beta_0_index = jnp.zeros((n_chains,), dtype=int, device=out_sharding)
-        self.beta_position = jnp.zeros((n_chains,), dtype=float, device=out_sharding)
-        self.beta_diffusion = jnp.zeros((n_chains,), dtype=float, device=out_sharding)
+        self.beta_0_index = _jnp_zeros((n_chains,), dtype=int, device=out_sharding)
+        self.beta_position = _jnp_zeros((n_chains,), dtype=float, device=out_sharding)
+        self.beta_diffusion = _jnp_zeros((n_chains,), dtype=float, device=out_sharding)
         self.exchange_steps = jnp.zeros((), dtype=int)
         super().__init__(
             σ,
@@ -102,7 +103,7 @@ class ParallelTemperingSamplerState(MetropolisSamplerState):
             log_prob=log_prob,
             out_sharding=out_sharding,
         )
-        self.n_accepted_proc = jnp.zeros(
+        self.n_accepted_proc = _jnp_zeros(
             n_chains, dtype=int, device=out_sharding
         )  # correct shape is (n_chains,) and not (n_batches,)
 
@@ -321,10 +322,17 @@ class ParallelTemperingSampler(MetropolisSampler):
     def _init_state(
         self, machine, parameters: PyTree, key: PRNGKeyT, out_sharding=None
     ) -> ParallelTemperingSamplerState:
+        auto_sharding = get_abstract_mesh()._any_axis_auto
+
         key_state, key_rule, rng = jax.random.split(key, 3)
         rule_state = self.rule.init_state(self, machine, parameters, key_rule)
         σ = self.rule.random_state(
-            self, machine, parameters, rule_state, rng, out_sharding=out_sharding
+            self,
+            machine,
+            parameters,
+            rule_state,
+            rng,
+            out_sharding=out_sharding if not auto_sharding else None,
         )
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
@@ -332,12 +340,18 @@ class ParallelTemperingSampler(MetropolisSampler):
             (self.n_batches,),
             -jnp.inf,
             dtype=dtype_real(output_dtype),
-            device=out_sharding,
+            device=out_sharding if not auto_sharding else None,
         )
+
+        if auto_sharding:
+            σ = jax.lax.with_sharding_constraint(σ, out_sharding)
+            log_prob = jax.lax.with_sharding_constraint(log_prob, out_sharding)
 
         beta = jnp.tile(self.sorted_betas, (self.n_batches // self.n_replicas, 1))
         if out_sharding is not None:
-            beta = reshard(beta, out_sharding)
+            if not auto_sharding:
+                beta = reshard(beta, out_sharding)
+            beta = jax.lax.with_sharding_constraint(beta, out_sharding)
 
         return ParallelTemperingSamplerState(
             σ=σ,
@@ -363,17 +377,8 @@ class ParallelTemperingSampler(MetropolisSampler):
     def _sample_next(
         self, machine, parameters: PyTree, state: ParallelTemperingSamplerState
     ):
-        # TODO: auto_axes only works if there is a mesh, so if there is no mesh
-        # we must disable this path
-        if state.out_sharding is not None:
-            out_sharding = P(state.out_sharding.spec[0])
-            _auto_axes = auto_axes
-        else:
-            out_sharding = None
-            # disable auto axes when no sharding
-            _auto_axes = lambda fun: lambda *args, out_sharding=None, **kwargs: fun(
-                *args, **kwargs
-            )
+        auto_sharding = get_abstract_mesh()._any_axis_auto
+        out_sharding = state.out_sharding.spec
 
         def loop_body(
             i, state: ParallelTemperingSamplerState
@@ -418,7 +423,7 @@ class ParallelTemperingSampler(MetropolisSampler):
                 minval=0,
                 maxval=2,
                 shape=(self.n_batches // self.n_replicas,),
-                out_sharding=out_sharding,
+                out_sharding=out_sharding if not auto_sharding else None,
             )  # 0 or 1
             # indices of even swapped elements (per-row)
             idxs = jnp.arange(0, self.n_replicas, 2).reshape(
@@ -428,7 +433,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             inn = (idxs + 1) % self.n_replicas
 
             # for every rows of the input, swap elements at idxs with elements at inn
-            @_auto_axes
+            @auto_axes
             @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
             def swap_rows(beta_row, idxs, inn):
                 # oss = P() if out_sharding is not None else None
@@ -444,7 +449,7 @@ class ParallelTemperingSampler(MetropolisSampler):
 
             proposed_beta = swap_rows(beta, idxs, inn, out_sharding=out_sharding)
 
-            @_auto_axes
+            @auto_axes
             @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
             def compute_proposed_prob(prob, idxs, inn):
                 # prob[idxs] = (beta_i - beta_j) log psi(x_i)
@@ -488,7 +493,7 @@ class ParallelTemperingSampler(MetropolisSampler):
             swap_order = swap_order.reshape(-1)
 
             # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-            beta_0_moved = _auto_axes(jax.vmap(jnp.take))(
+            beta_0_moved = auto_axes(jax.vmap(jnp.take))(
                 do_swap, state.beta_0_index, out_sharding=out_sharding
             )  # flag saying if beta_0 should move
             proposed_beta_0_index = jnp.mod(
@@ -541,14 +546,14 @@ class ParallelTemperingSampler(MetropolisSampler):
         σ_flat = new_state.σ
         σ = σ_flat.reshape((-1, self.n_replicas, σ_flat.shape[-1]))
         # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        σ_new = _auto_axes(partial(jnp.take_along_axis, axis=1))(
+        σ_new = auto_axes(partial(jnp.take_along_axis, axis=1))(
             σ, state.beta_0_index[:, None, None], out_sharding=out_sharding
         )
         σ_new = jax.lax.collapse(σ_new, 0, 2)  # remove dummy replica dim
 
         log_prob = new_state.log_prob.reshape((-1, self.n_replicas))
         # we use shard_map to avoid the all-gather emitted by the batched jnp.take / indexing
-        log_prob_new = _auto_axes(
+        log_prob_new = auto_axes(
             partial(jnp.take_along_axis, axis=1),
         )(log_prob, state.beta_0_index[:, None], out_sharding=out_sharding)
         log_prob_new = jax.lax.collapse(log_prob_new, 0, 2)  # remove dummy replica dim

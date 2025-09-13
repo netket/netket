@@ -23,6 +23,8 @@ from netket.hilbert import DiscreteHilbert
 from netket.sampler import Sampler, SamplerState
 from netket.utils.types import PRNGKeyT, DType
 
+from netket.sampler.metropolis import _jnp_zeros
+
 
 class ARDirectSamplerState(SamplerState):
     key: PRNGKeyT
@@ -163,7 +165,7 @@ class ARDirectSampler(Sampler):
                     f"Got {chain_length = } * {self.n_batches = } = {self.n_batches * chain_length}, "
                     f"which is not divisible by {n_dev = }."
                 )
-        σ = jnp.zeros(
+        σ = _jnp_zeros(
             (self.n_batches * chain_length, self.hilbert.size),
             dtype=self.dtype,
             device=state.out_sharding,
