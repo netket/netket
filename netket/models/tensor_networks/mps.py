@@ -123,7 +123,8 @@ class MPSPeriodic(nn.Module):
 
         def base_scan_func(edge, pair):
             tensor, qn = pair
-            edge = edge @ tensor[qn, :]
+            qn_i = tensor.at[qn, :].get(out_sharding=jax.typeof(qn).sharding)
+            edge = edge @ qn_i
             return edge, None
 
         # Apply jax.checkpoint conditionally to the base_scan_func
@@ -219,12 +220,14 @@ class MPSOpen(nn.Module):
         Args:
             qn: The input tensor to be contracted with this MPS
         """
-
-        edge = self.left_tensors[qn[0], :]
+        edge = self.left_tensors.at[qn[0], :].get(
+            out_sharding=jax.typeof(self.left_tensors).sharding
+        )
 
         def base_scan_func(edge, pair):
             tensor, qn = pair
-            edge = edge @ tensor[qn, :]
+            qn_i = tensor.at[qn, :].get(out_sharding=jax.typeof(qn).sharding)
+            edge = edge @ qn_i
             return edge, None
 
         # Apply jax.checkpoint conditionally to the base_scan_func
@@ -232,8 +235,15 @@ class MPSOpen(nn.Module):
             jax.checkpoint(base_scan_func) if self.checkpoint else base_scan_func
         )
 
+        qn_bulk = qn.at[1:-1].get(out_sharding=jax.typeof(qn).sharding)
+        qn_right = qn.at[-1].get(out_sharding=jax.typeof(qn).sharding)
         edge, _ = jax.lax.scan(
-            scan_func, edge, (self.middle_tensors, qn[1:-1]), unroll=self.unroll
+            scan_func, edge, (self.middle_tensors, qn_bulk), unroll=self.unroll
         )
-        psi = self.right_tensors[qn[-1], :] @ edge
+        psi = (
+            self.right_tensors.at[qn_right, :].get(
+                out_sharding=jax.typeof(self.right_tensors).sharding
+            )
+            @ edge
+        )
         return psi
