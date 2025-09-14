@@ -250,7 +250,7 @@ def test_exactsampler(chunk_size):
     vs = nk.vqs.MCState(sa, ma, n_samples=1024, chunk_size=chunk_size)
 
     pos_sharding = NamedSharding(vs.samples.sharding.mesh, P("S"))
-    assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
+    assert vs.samples.sharding.is_equivalent_to(pos_sharding, ndim=3)
 
     ha = nk.operator.IsingJax(hilbert=vs.hilbert, graph=g, h=1.0)
     opt = nk.optimizer.Sgd(learning_rate=0.05)

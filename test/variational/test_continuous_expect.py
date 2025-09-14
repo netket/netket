@@ -10,9 +10,7 @@ class test(nn.Module):
     @nn.compact
     def __call__(self, x):
         _ = self.param("nothing", lambda *args: jnp.ones(1))
-        if len(x.shape) != 1:
-            return jnp.array(x.size * [1.0])
-        return 1.0
+        return jnp.ones_like(x[..., 0])
 
 
 class test2(nn.Module):
