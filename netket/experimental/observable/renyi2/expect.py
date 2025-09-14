@@ -89,7 +89,7 @@ def Renyi2_sampling_MCState(
 
     kernel_values = kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp)
 
-    Renyi2_stats = statistics(kernel_values.reshape((n_chains, -1)).T)
+    Renyi2_stats = statistics(kernel_values.reshape((n_chains, -1)))
 
     # Propagation of errors from S_2 to -log_2(S_2)
     Renyi2_stats = Renyi2_stats.replace(
