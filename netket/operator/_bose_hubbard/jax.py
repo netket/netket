@@ -90,7 +90,7 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
 
     def tree_flatten(self):
         data = (self.U, self.V, self.J, self.mu, self.edges)
-        metadata = {"hilbert": self.hilbert}
+        metadata = {"hilbert": self.hilbert, "max_conn_size": self._max_conn}
         return data, metadata
 
     @classmethod
@@ -103,6 +103,7 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
         res._J = J
         res._mu = mu
         res._edges = edges
+        res._max_conn = metadata["max_conn_size"]
         return res
 
 
