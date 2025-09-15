@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Icosahedral symmetry groups.
+
+This module provides functions to construct icosahedral point groups,
+including both the pure rotational group (I) and the full icosahedral
+group with inversion (Ih). These are the symmetry groups of the icosahedron
+and dodecahedron.
+"""
+
 from netket.utils.moduletools import export, hide_unexported
 
 from netket.utils.group.axial import inversion_group as _inv_group

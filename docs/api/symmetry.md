@@ -31,4 +31,17 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    group.PointGroup
 ```
 
+## Common Groups
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/symmetry
+   :nosignatures:
+
+   group.axial
+   group.planar
+   group.cubic
+   group.icosa
+```
+
 
