@@ -25,7 +25,7 @@ import netket as nk
 from jax.nn.initializers import normal
 
 from .finite_diff import expval as _expval, central_diff_grad, same_derivatives
-from .. import common
+from test import common
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
@@ -500,7 +500,6 @@ def test_expect_grad_nonhermitian_works(vstate):
 def test_expect_chunking(vstate, operator, n_chunks):
     vstate.n_samples = 200
     chunk_size = vstate.n_samples_per_rank // n_chunks
-
     eval_nochunk = vstate.expect(operator)
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)

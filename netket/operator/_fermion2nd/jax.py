@@ -101,7 +101,7 @@ def _apply_term_scan(x, weight, sites, daggers, unroll=1):
         # compute sign from σᶻ (stored as 0/1 for +1/-1)
         mask_all_up_to_site = jnp.arange(n_orbitals, dtype=sites.dtype) < site
         x_masked = x_ & mask_all_up_to_site
-        sgn = sgn ^ _reduce_xor(x_masked, (x_.ndim - 1,))
+        sgn = sgn ^ jax.lax.reduce_xor(x_masked, (x_.ndim - 1,))
 
         # check if we did σ⁺|1⟩=0 or σ⁻|0⟩=0
         zero = zero | (x_.at[..., site].get() == dagger)
@@ -142,7 +142,7 @@ def _biti(i, N, dtype=np.uint8):
 
     i, ib = jnp.divmod(i, bitwidth)
     ib = ib.astype(dtype)
-    # x is uint there fore we take x.shape[0]-i-1, as -i-1 would underflow
+    # x is uint therefore we take x.shape[0]-i-1, as -i-1 would underflow
     return x.at[i].set(jax.lax.shift_left(dtype(1), ib)), i
 
 
@@ -157,14 +157,6 @@ def bituptoi(i, N, dtype=np.uint8):
     mask, byte_index = _biti(i, N, dtype=dtype)
     n = mask.shape[-1]
     return jax.lax.select(jnp.arange(n) <= byte_index, mask - dtype(1), mask)
-
-
-def _reduce_xor(x, axes):
-    return jax.lax.reduce_xor_p.bind(x, axes=tuple(axes))
-
-
-def _reduce_or(x, axes):
-    return jax.lax.reduce_or_p.bind(x, axes=tuple(axes))
 
 
 def _apply_term_scan_bits(
@@ -209,11 +201,11 @@ def _apply_term_scan_bits(
         x_new = x_ ^ site_mask
 
         # compute sign from σᶻ (stored as 0/1 for +1/-1)
-        sgn = sgn ^ _reduce_xor(x_ & sign_mask, (x_.ndim - 1,))
+        sgn = sgn ^ jax.lax.reduce_xor(x_ & sign_mask, (x_.ndim - 1,))
 
         # check if we did σ⁺|1⟩=0 or σ⁻|0⟩=0
         tmp = (x_ ^ ((1 - dagger) * 0xFF)) & site_mask
-        zero = zero | _reduce_or(tmp, axes=(tmp.ndim - 1,))
+        zero = zero | jax.lax.reduce_or(tmp, axes=(tmp.ndim - 1,))
 
         return (x_new, sgn, zero), None
 

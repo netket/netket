@@ -15,5 +15,5 @@ gs-matrix-models
 gs-gcnn-honeycomb
 lattice-fermions
 symmetry_tutorial
-
+fidelity
 ```
