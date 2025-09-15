@@ -22,10 +22,13 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    :toctree: _generated/symmetry
    :nosignatures:
 
+   group.FiniteGroup
+
    group.Permutation 
    group.PermutationGroup 
 
-   group.FiniteGroup
+   group.PGSymmetry
    group.PointGroup
-
 ```
+
+
