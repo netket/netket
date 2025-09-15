@@ -120,9 +120,6 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install coverage for merging
-        run: uv pip install --system coverage
-
       - uses: actions/download-artifact@v4
         with:
           pattern: coverage-*
