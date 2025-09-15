@@ -14,4 +14,5 @@ ViT-wave-function
 gs-matrix-models
 gs-gcnn-honeycomb
 lattice-fermions
+fidelity
 ```
