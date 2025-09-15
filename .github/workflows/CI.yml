@@ -96,14 +96,14 @@ jobs:
         if: always()
         run: |
           uv run coverage combine || true
-          uv run coverage xml --ignore-errors || true
+          uv run coverage xml --ignore-errors -o coverage-${{ matrix.name }}.xml || true
 
       - name: Upload coverage artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.name }}
-          path: coverage.xml
+          path: coverage-${{ matrix.name }}.xml
 
   upload-coverage:
     needs: [test]
@@ -114,16 +114,27 @@ jobs:
         with:
           submodules: true
           fetch-tags: true
-      
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install coverage for merging
+        run: uv pip install --system coverage
+
       - uses: actions/download-artifact@v4
         with:
           pattern: coverage-*
           merge-multiple: true
-      
+
+      - name: List downloaded files
+        run: ls -la coverage-*.xml || echo "No coverage files found"
+
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
+          files: ./coverage-*.xml
           fail_ci_if_error: false
           verbose: true
