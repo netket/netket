@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 
 import jax
-import numpy as np
 
 from flax import linen as nn
 
@@ -148,14 +148,11 @@ class SymmExpSum(nn.Module):
         The last dimension of x must match the shape of the permutation
         group.
         """
-        # apply the group and obtain a x_symm of shape (N_symm, ...)
+        # apply the group and obtain a x_symm of shape (N_symm, ...batch_dims..., N_sites)
         x_symm = self.symm_group @ x
-        # reshape it to (-1, N_sites)
-        x_symm_shape = x_symm.shape
-        x_symm = x_symm.reshape(-1, x.shape[-1])
 
-        # Compute the log-wavefunction obtaining (-1,) and reshape to (N_symm, ...)
-        psi_symm = self.module(x_symm).reshape(*x_symm_shape[:-1])
+        # Apply the vmapped module to x_symm so that we don't 'see' this extra dim.
+        psi_symm = jax.vmap(self.module)(x_symm)
 
         characters = np.expand_dims(self._chi, tuple(range(1, x.ndim)))
 

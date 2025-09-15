@@ -70,8 +70,8 @@ def test_symmexpsum(bare_module, character_id, characters, trivial):
         np.testing.assert_allclose(out_sym, out_bare)
 
     # check that it works with different shapes
-    s0 = hi.random_state(jax.random.PRNGKey(0))
-    out0, pars = ma.init_with_output(jax.random.PRNGKey(0), s0)
+    s0 = hi.random_state(jax.random.key(0))
+    out0, pars = ma.init_with_output(jax.random.key(0), s0)
     assert out0.shape == ()
 
     out1 = ma.apply(pars, s0.reshape((1, -1)))
@@ -80,7 +80,7 @@ def test_symmexpsum(bare_module, character_id, characters, trivial):
     np.testing.assert_allclose(out0, out1.reshape(()))
 
     # 2D and 3D
-    s1 = hi.random_state(jax.random.PRNGKey(0), (100,))
+    s1 = hi.random_state(jax.random.key(15), (100,))
     out1 = ma.apply(pars, s1)
     assert out1.shape == (100,)
 
