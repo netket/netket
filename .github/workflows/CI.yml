@@ -96,7 +96,7 @@ jobs:
         if: always()
         run: |
           uv run coverage combine || true
-          uv run coverage xml --ignore-errors -o coverage-${{ matrix.name }}.xml || true
+          uv run coverage xml --ignore-errors -o "coverage-${{ matrix.name }}.xml" || true
 
       - name: Upload coverage artifacts
         if: always()
