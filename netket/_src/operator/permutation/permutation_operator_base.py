@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax.numpy as jnp
+import numpy as np
+
 from jax.tree_util import register_pytree_node_class
 
 from netket.hilbert import AbstractHilbert
@@ -55,7 +56,9 @@ class PermutationOperatorBase(DiscreteJaxOperator):
         """
         if isinstance(permutation, Identity):
             permutation = Permutation(
-                permutation_array=jnp.arange(hilbert.size), name="Identity"
+                permutation_array=np.arange(hilbert.size),
+                name="Identity",
+                validate=False,
             )
 
         if not isinstance(permutation, Permutation):

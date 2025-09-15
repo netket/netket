@@ -41,6 +41,7 @@ class Permutation(Element):
         name: str | None = None,
         permutation_array: Array | None = None,
         inverse_permutation_array: Array | None = None,
+        validate: bool = True,
     ):
         r"""
         Creates a `Permutation` from either the array of images
@@ -64,6 +65,8 @@ class Permutation(Element):
                 :math:`g(x)` for all :math:`0\le x \le N-1`.
             inverse_permutation_array: 1D array listing
                 :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
+            validate: If true (Default) validates the array of indices
+                passed to permutation
 
         Returns:
             A `Permutation` object that encodes the specified permutation.
@@ -86,17 +89,20 @@ class Permutation(Element):
             inverse_permutation_array = permutation
 
         if permutation_array is not None:
-            permutation_elements = sorted(np.array(permutation_array))
             inverse_permutation_array = np.argsort(permutation_array)
-        else:
-            permutation_elements = sorted(np.array(inverse_permutation_array))
 
-        if permutation_elements != list(range(permutation_elements[-1] + 1)):
-            raise ValueError(
-                "The indices of the permutation are invalid. "
-                "A permutation over n elements should be specified by an array with "
-                "elements in {0, 1, ..., n-1}."
-            )
+        if validate:
+            arr = np.asarray(inverse_permutation_array)
+            n = len(arr)
+
+            # Check if it's a valid permutation: all elements in [0, n-1] and no duplicates
+            # Fast validation: sort and compare with expected range
+            if n == 0 or not np.array_equal(np.sort(arr), np.arange(n)):
+                raise ValueError(
+                    "The indices of the permutation are invalid. "
+                    "A permutation over n elements should be specified by an array with "
+                    "elements in {0, 1, ..., n-1}."
+                )
 
         self._inverse_permutation_array = HashableArray(
             np.asarray(inverse_permutation_array)
@@ -186,7 +192,9 @@ def product(p: Permutation, x: Array):
 def product(p: Permutation, q: Permutation):  # noqa: F811
     name = None if p._name is None and q._name is None else f"{p} @ {q}"
     inverse_permutation_array = q.inverse_permutation_array[p.inverse_permutation_array]
-    return Permutation(inverse_permutation_array=inverse_permutation_array, name=name)
+    return Permutation(
+        inverse_permutation_array=inverse_permutation_array, name=name, validate=False
+    )
 
 
 @struct.dataclass

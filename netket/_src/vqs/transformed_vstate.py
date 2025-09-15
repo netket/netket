@@ -55,7 +55,7 @@ def apply_operator(operator, vstate, *, seed=None):
             seed = PRNGKey(seed)
             ids = jax.random.randint(seed, (x.shape[0],), 0, operator.max_conn_size)
             new_x = xp[jnp.arange(x.shape[0]), ids, :]
-            transformed_vstate.sampler_state = (new_x)
+            transformed_vstate.sampler_state = new_x
 
         transformed_vstate.sampler_state = vstate.sampler_state.replace(σ=new_x)
         return transformed_vstate
