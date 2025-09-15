@@ -88,21 +88,26 @@ class Permutation(Element):
             )
             inverse_permutation_array = permutation
 
-        if permutation_array is not None:
-            inverse_permutation_array = np.argsort(permutation_array)
-
         if validate:
-            arr = np.asarray(inverse_permutation_array)
-            n = len(arr)
+            if permutation_array is not None:
+                permutation_elements = sorted(np.array(permutation_array))
+            else:
+                permutation_elements = sorted(np.array(inverse_permutation_array))
+
+            els = np.asarray(permutation_elements)
+            n = len(els)
 
             # Check if it's a valid permutation: all elements in [0, n-1] and no duplicates
             # Fast validation: sort and compare with expected range
-            if n == 0 or not np.array_equal(np.sort(arr), np.arange(n)):
+            if n == 0 or not np.array_equal(np.sort(els), np.arange(n)):
                 raise ValueError(
                     "The indices of the permutation are invalid. "
                     "A permutation over n elements should be specified by an array with "
                     "elements in {0, 1, ..., n-1}."
                 )
+
+        if permutation_array is not None:
+            inverse_permutation_array = np.argsort(permutation_array)
 
         self._inverse_permutation_array = HashableArray(
             np.asarray(inverse_permutation_array)
