@@ -35,7 +35,12 @@ def _sort_lexicographic(x):
 
 @jax.jit
 def sort(x: Array) -> Array:
-    """Lexicographically sort the rows of a matrix, taking the columns as sequences of keys
+    """Lexicographically sort the rows of a matrix, taking the columns
+    as sequences of keys.
+
+    .. warning::
+
+        Requires positive entries!
 
     Args:
         x: 1D/2D Input array
@@ -45,11 +50,11 @@ def sort(x: Array) -> Array:
     Example:
         >>> import jax.numpy as jnp
         >>> from netket.jax import sort
-        >>> x = jnp.array([[1,2,3], [0,2,2], [0,1,2]])
+        >>> x = jnp.array([[1,0,3], [0,2,2], [0,1,2]])
         >>> sort(x)
         Array([[0, 1, 2],
                [0, 2, 2],
-               [1, 2, 3]], dtype=int64)
+               [1, 0, 3]], dtype=int64)
     """
     if x.ndim == 1:
         return jnp.sort(x)
@@ -83,7 +88,11 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     n = len(sorted_arr)
     n_levels = int(np.ceil(np.log2(n + 1)))
     shape = query.shape[:-1]
-    init = jnp.full(shape, dtype(0)), jnp.full(shape, dtype(n))
+    pvary_axes = tuple(jax.typeof(query).vma)
+    init = (
+        jax.lax.pvary(jnp.full(shape, dtype(0)), pvary_axes),
+        jax.lax.pvary(jnp.full(shape, dtype(n)), pvary_axes),
+    )
     return jax.lax.fori_loop(0, n_levels, body_fun, init)[1]
 
 
