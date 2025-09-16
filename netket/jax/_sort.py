@@ -88,7 +88,11 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     n = len(sorted_arr)
     n_levels = int(np.ceil(np.log2(n + 1)))
     shape = query.shape[:-1]
-    init = jnp.full(shape, dtype(0)), jnp.full(shape, dtype(n))
+    pvary_axes = tuple(jax.typeof(query).vma)
+    init = (
+        jax.lax.pvary(jnp.full(shape, dtype(0)), pvary_axes),
+        jax.lax.pvary(jnp.full(shape, dtype(n)), pvary_axes),
+    )
     return jax.lax.fori_loop(0, n_levels, body_fun, init)[1]
 
 
