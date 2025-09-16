@@ -8,7 +8,6 @@ import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import BCOO
 from netket.jax.sharding import shard_along_axis
-from netket.operator import ProductOperator
 
 from .. import common
 
@@ -148,7 +147,22 @@ operators["SumOperatorJax"] = nk.operator.SumOperator(
     coefficients=[0.5, 0.3],
 )
 
-operators["ProductOperatorJax"] = ProductOperator(
+operators["PermutationOperator"] = nk.operator.permutation.PermutationOperator(
+    nk.hilbert.Qubit(4),
+    nk.utils.group.Permutation(
+        permutation_array=jnp.array([1, 2, 3, 0]), name="translation_1"
+    ),
+)
+operators["PermutationOperatorFermion"] = (
+    nk.operator.permutation.PermutationOperatorFermion(
+        nk.hilbert.SpinOrbitalFermions(2, 1 / 2, n_fermions_per_spin=[1, 1]),
+        nk.utils.group.Permutation(
+            permutation_array=jnp.array([1, 0, 3, 2]), name="xyz"
+        ),
+    )
+)
+
+operators["ProductOperatorJax"] = nk.operator.ProductOperator(
     nk.operator.spin.sigmax(hi, 0),
     nk.operator.spin.sigmay(hi, 1),
     coefficient=2.0,
@@ -219,6 +233,17 @@ def test_produce_elements_in_hilbert(op, attr):
 )
 @common.skipif_distributed
 def test_is_hermitian(op):
+
+    # There should be a list of Hermitian operators instead of having this weird skip condition
+    if isinstance(
+        op,
+        (
+            nk.operator.permutation.PermutationOperator,
+            nk.operator.permutation.PermutationOperatorFermion,
+        ),
+    ):
+        pytest.skip(reason="Not Hermitian")
+
     rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
@@ -251,6 +276,16 @@ def test_is_hermitian(op):
     [pytest.param(op, id=name) for name, op in operators.items()],
 )
 def test_lazy_hermitian(op):
+
+    if isinstance(
+        op,
+        (
+            nk.operator.permutation.PermutationOperator,
+            nk.operator.permutation.PermutationOperatorFermion,
+        ),
+    ):
+        pytest.skip(reason="Not Hermitian")
+
     if op.is_hermitian:
         assert isinstance(op.H, type(op))
         assert op == op.H
@@ -619,6 +654,13 @@ def test_jax_operator_sharding_preserved(op):
         # Output should preserve the 'S' sharding on the first axis
         assert mels.sharding.spec == jax.P("S")
         assert sp.sharding.spec == jax.P("S")
+
+    # test replicated propagated
+    if jax.sharding.get_abstract_mesh().are_all_axes_explicit:
+        x = hi.random_state(jax.random.PRNGKey(0), shape, dtype=np.float64)
+        sp, mels = _get_conn_padded(op, x)
+        assert mels.sharding.is_fully_replicated
+        assert sp.sharding.is_fully_replicated
 
 
 @common.skipif_distributed

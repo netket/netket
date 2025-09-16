@@ -543,7 +543,7 @@ def _check_symmgroup(autom, symmgroup):
     """Asserts that symmgroup consists of automorphisms listed in autom and has no duplicate elements."""
 
     for el in symmgroup.to_array():
-        assert group.Permutation(el) in autom.elems
+        assert group.Permutation(el, validate=False) in autom.elems
 
     assert symmgroup == symmgroup.remove_duplicates()
     assert isinstance(symmgroup[0], group.Identity)

@@ -12,7 +12,12 @@ gs-heisenberg
 gs-j1j2
 ViT-wave-function
 gs-matrix-models
-gs-gcnn-honeycomb
 lattice-fermions
 fidelity
+```
+
+```{toctree}
+:maxdepth: 2
+
+Symmetries <symmetries/index>
 ```

@@ -20,6 +20,9 @@ import itertools
 import numpy as np
 from typing import overload, Literal, Any
 
+import jax
+import jax.numpy as jnp
+
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
 from netket.utils.dispatch import dispatch
@@ -34,10 +37,11 @@ class Permutation(Element):
     def __init__(
         self,
         permutation: Array | None = None,
-        *,  # change one line somewhere
+        *,
         name: str | None = None,
         permutation_array: Array | None = None,
         inverse_permutation_array: Array | None = None,
+        validate: bool = True,
     ):
         r"""
         Creates a `Permutation` from either the array of images
@@ -61,6 +65,8 @@ class Permutation(Element):
                 :math:`g(x)` for all :math:`0\le x \le N-1`.
             inverse_permutation_array: 1D array listing
                 :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
+            validate: If true (Default) validates the array of indices
+                passed to permutation
 
         Returns:
             A `Permutation` object that encodes the specified permutation.
@@ -81,6 +87,24 @@ class Permutation(Element):
                 "preimages `inverse_permutation_array`."
             )
             inverse_permutation_array = permutation
+
+        if validate:
+            if permutation_array is not None:
+                permutation_elements = sorted(np.array(permutation_array))
+            else:
+                permutation_elements = sorted(np.array(inverse_permutation_array))
+
+            els = np.asarray(permutation_elements)
+            n = len(els)
+
+            # Check if it's a valid permutation: all elements in [0, n-1] and no duplicates
+            # Fast validation: sort and compare with expected range
+            if n == 0 or not np.array_equal(np.sort(els), np.arange(n)):
+                raise ValueError(
+                    "The indices of the permutation are invalid. "
+                    "A permutation over n elements should be specified by an array with "
+                    "elements in {0, 1, ..., n-1}."
+                )
 
         if permutation_array is not None:
             inverse_permutation_array = np.argsort(permutation_array)
@@ -126,6 +150,25 @@ class Permutation(Element):
         else:
             return f"Permutation({self.permutation_array.tolist()})"
 
+    def cycle_decomposition(self) -> list:
+        """
+        Return the cycle decomposition of the permutation.
+
+        The returned object is a list of each disjoint cycle of the permutation as a list.
+        """
+        permutation_array = self.permutation_array
+        cycle_list = []
+        visited = np.zeros(len(permutation_array), dtype=bool)
+        while not np.all(visited):
+            starting_point = np.nonzero(1 - visited)[0][0]
+            current_point = starting_point
+            cycle_list.append([])
+            while not visited[starting_point]:
+                current_point = permutation_array[current_point]
+                cycle_list[-1].append(current_point.item())
+                visited[current_point] = True
+        return cycle_list
+
     @deprecated_new_name("permutation.inverse_permutation_array")
     def __array__(self, dtype: DType = None):
         return np.asarray(self._inverse_permutation_array, dtype)
@@ -141,14 +184,22 @@ def product(p: Permutation, x: Array):
     # direct indexing fails, so we call np.asarray on it to extract the
     # wrapped array
     # TODO make indexing work with HashableArray directly
-    return x[..., p.inverse_permutation_array]
+
+    if isinstance(x, jax.Array):
+        return x.at[..., p.inverse_permutation_array].get(
+            unique_indices=True, mode="promise_in_bounds"
+        )
+    else:
+        return x[..., p.inverse_permutation_array]
 
 
 @dispatch
 def product(p: Permutation, q: Permutation):  # noqa: F811
     name = None if p._name is None and q._name is None else f"{p} @ {q}"
     inverse_permutation_array = q.inverse_permutation_array[p.inverse_permutation_array]
-    return Permutation(inverse_permutation_array=inverse_permutation_array, name=name)
+    return Permutation(
+        inverse_permutation_array=inverse_permutation_array, name=name, validate=False
+    )
 
 
 @struct.dataclass
@@ -314,4 +365,12 @@ def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
 
 @dispatch
 def product(G: PermutationGroup, x: Array):  # noqa: F811
-    return np.moveaxis(x[..., G.to_array()], -2, 0)
+
+    if isinstance(x, jax.Array):
+        return jnp.moveaxis(
+            x.at[..., G.to_array()].get(unique_indices=True, mode="promise_in_bounds"),
+            -2,
+            0,
+        )
+    else:
+        return np.moveaxis(x[..., G.to_array()], -2, 0)

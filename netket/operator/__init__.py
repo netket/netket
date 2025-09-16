@@ -43,6 +43,7 @@ from ._prod import ProductOperator
 
 
 from . import spin, boson, fermion
+from . import permutation
 
 from netket.utils import _auto_export
 

@@ -191,7 +191,10 @@ class Graph(AbstractGraph):
         # sort them s.t. the identity comes first
         result = np.unique(result, axis=0).tolist()
         result = PermutationGroup(
-            [Permutation(inverse_permutation_array=perm) for perm in result],
+            [
+                Permutation(inverse_permutation_array=perm, validate=False)
+                for perm in result
+            ],
             self.n_nodes,
         )
         return result

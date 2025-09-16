@@ -9,6 +9,14 @@
 
 ### New features
 
+* A systematic overhaul of how symmetries can be manipulated has been merged as part of the symmetry overhaul [PR #2122](https://github.com/netket/netket/pull/2122). In particular:
+	* A new main netket module `netket.symmetry` is introduced.
+	* A clear distinction is now made between symmetry groups and their representations via the  {class}`netket.symmetry.Representation` class. 
+	* The {class}`~netket.symmetry.Representation` class allows the users to define representations of any given group, not just lattice symmetries. This class can construct a {meth}`~netket.symmetry.Representation.projector` onto the subspace, which is an operator, and can construct a simmetry-projected state with the method {meth}`~netket.symmetry.Representation.project`.
+	* Netket now supports representations of permutation groups on spin and fermionic Hilbert spaces via the {class}`netket.operator.permutation.PermutationOperator` and {class}`netket.operator.permutation.PermutationOperatorFermion` classes. The `get_conn_padded` method of {class}`~netket.operator.permutation.PermutationOperatorFermion` calculates the sign from permuting the occupancies of single-particle states. 
+	* A new [tutorial](../docs/tutorials/symmetry_tutorial.ipynb) explaining how to use these tools is available. 
+	* [Documentation](../docs/advanced/symmetry.md) regarding symmetries and representation theory is available
+
 ### Deprecations and Removals
 
 * The `*` operator for multiplying operators is now deprecated and will be removed in a future version in 2026. Use the `@` operator instead for operator multiplication: `A * B` → `A @ B` [#2133](https://github.com/netket/netket/pull/2133).
