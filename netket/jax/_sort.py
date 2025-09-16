@@ -35,7 +35,12 @@ def _sort_lexicographic(x):
 
 @jax.jit
 def sort(x: Array) -> Array:
-    """Lexicographically sort the rows of a matrix, taking the columns as sequences of keys
+    """Lexicographically sort the rows of a matrix, taking the columns
+    as sequences of keys.
+
+    .. warning::
+
+        Requires positive entries!
 
     Args:
         x: 1D/2D Input array
@@ -45,11 +50,11 @@ def sort(x: Array) -> Array:
     Example:
         >>> import jax.numpy as jnp
         >>> from netket.jax import sort
-        >>> x = jnp.array([[1,2,3], [0,2,2], [0,1,2]])
+        >>> x = jnp.array([[1,0,3], [0,2,2], [0,1,2]])
         >>> sort(x)
         Array([[0, 1, 2],
                [0, 2, 2],
-               [1, 2, 3]], dtype=int64)
+               [1, 0, 3]], dtype=int64)
     """
     if x.ndim == 1:
         return jnp.sort(x)
