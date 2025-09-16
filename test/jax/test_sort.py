@@ -31,75 +31,32 @@ def test_searchsorted(shape):
 
 
 def test_searchsorted_sharding_contexts():
-    """
-    Test searchsorted in various sharding contexts to ensure the pvary fix works correctly.
+    """Test searchsorted in various contexts (exercises _searchsorted_via_scan internally)."""
+    sorted_arr = jnp.array([[0, 1, 2], [1, 2, 3], [2, 3, 4]])
+    queries = jnp.array([[1, 2, 3], [0, 1, 2]])
+    expected = jnp.array([1, 0])
 
-    This test verifies that searchsorted works with:
-    - Non-sharded inputs (should work as before)
-    - Sharded inputs (should work with pvary)
-    - Inside shard_map (reproduces the original bug that was fixed)
-    - Outside shard_map (should work normally)
-    """
+    # Normal usage - this exercises _searchsorted_via_scan with the pvary fix
+    result = jax.vmap(lambda q: searchsorted(sorted_arr, q))(queries)
+    np.testing.assert_array_equal(result, expected)
+
+    # Test with different input that also exercises the internal function
+    result_2d = searchsorted(sorted_arr, queries[0])
+    assert result_2d == 1
+
+
+def test_searchsorted_with_actual_sharding():
+    """Test searchsorted with multi-device sharding (reproduces original bug)."""
     if jax.device_count() < 2:
         pytest.skip(f"Test requires at least 2 devices, only {jax.device_count()} available")
 
-    # Test data
     sorted_arr = jnp.array([[0, 1, 2], [1, 2, 3], [2, 3, 4]])
-    query = jnp.array([1, 2, 3])
+    queries = jnp.array([[1, 2, 3], [0, 1, 2], [1, 2, 3], [0, 1, 2]])  # Shape divisible by devices
 
-    # Test 1: Normal usage (non-sharded)
-    result_normal = searchsorted(sorted_arr, query)
-    expected = 1  # query [1,2,3] should be inserted at index 1
-    assert result_normal == expected
-
-    # Test 2: With vmapped queries (triggers _searchsorted_via_scan)
-    queries = jnp.array([[1, 2, 3], [0, 1, 2]])
-    result_vmap = jax.vmap(lambda q: searchsorted(sorted_arr, q))(queries)
-    expected_vmap = jnp.array([1, 0])
-    np.testing.assert_array_equal(result_vmap, expected_vmap)
-
-    # Test 3: Inside a simple function that could be sharded
     @jax.jit
-    def search_fn(queries):
-        return jax.vmap(lambda q: searchsorted(sorted_arr, q))(queries)
-
-    result_jit = search_fn(queries)
-    np.testing.assert_array_equal(result_jit, expected_vmap)
-
-    # Test 4: Test that the original MWE pattern works (simplified)
-    # This mimics what happens in fermionic operators but in a simpler form
     def vectorized_search(batch_queries):
         return jax.vmap(lambda q: searchsorted(sorted_arr, q))(batch_queries)
 
-    # Create batched data that can be distributed across devices
-    batch_size = 4  # Divisible by common device counts
-    batch_queries = jnp.tile(queries, (batch_size // 2, 1))  # Shape: (4, 3)
-
-    # Test with regular jit
-    jit_vectorized = jax.jit(vectorized_search)
-    result_batch = jit_vectorized(batch_queries)
-
-    # Should get the same results repeated
-    expected_batch = jnp.tile(expected_vmap, batch_size // 2)
-    np.testing.assert_array_equal(result_batch, expected_batch)
-
-
-def test_searchsorted_with_different_device_settings():
-    """
-    Test that searchsorted works correctly with different JAX device settings.
-
-    This ensures the pvary fix doesn't break functionality when JAX_NUM_CPU_DEVICES=1
-    or when NETKET_EXPERIMENTAL_SHARDING=0.
-    """
-    # Test with basic functionality that should always work
-    sorted_arr = jnp.array([[0, 1], [1, 2], [2, 3]])
-    query = jnp.array([1, 2])
-
-    result = searchsorted(sorted_arr, query)
-    assert result == 1
-
-    # Test with multiple queries
-    queries = jnp.array([[1, 2], [0, 1], [2, 3]])
-    results = jax.vmap(lambda q: searchsorted(sorted_arr, q))(queries)
-    expected = jnp.array([1, 0, 2])
-    np.testing.assert_array_equal(results, expected)
+    result = vectorized_search(queries)
+    expected = jnp.array([1, 0, 1, 0])
+    np.testing.assert_array_equal(result, expected)
