@@ -68,7 +68,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
 
     .. note::
 
-        Consider using directly the new :class:``netket.experimental.driver.VMC_SR``
+        Consider using directly the new :class:`netket.experimental.driver.VMC_SR`
         class instead of this one.
 
     This preconditioner changes the gradient :math:`\nabla_i E` such that the
