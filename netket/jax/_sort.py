@@ -83,7 +83,9 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     n = len(sorted_arr)
     n_levels = int(np.ceil(np.log2(n + 1)))
     shape = query.shape[:-1]
-    init = jnp.full(shape, dtype(0)), jnp.full(shape, dtype(n))
+    # Add pvary to initial carry values for shard_map contexts
+    # pvary is a no-op when not needed, so this is safe in all contexts
+    init = jax.lax.pvary(jnp.full(shape, dtype(0)), ('S',)), jax.lax.pvary(jnp.full(shape, dtype(n)), ('S',))
     return jax.lax.fori_loop(0, n_levels, body_fun, init)[1]
 
 
