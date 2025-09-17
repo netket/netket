@@ -28,31 +28,23 @@ For details, please see "`Fast Finite Width Neural Tangent Kernel
 <https://arxiv.org/abs/2206.08720>`_".
 """
 
-import operator
-from typing import Any, Optional, Protocol, TypeVar, Union
+from typing import Any, Protocol, TypeVar, Union
 from collections.abc import Callable, Iterable
 
+from functools import partial
+import operator
 
-from jax import eval_shape
-from jax import jacobian
-from jax import lax
-from jax import vmap
-
-from jax.core import ShapedArray
-
-
-from jax.interpreters.ad import UndefinedPrimal
-
+import jax
 import jax.numpy as jnp
-
-from jax.tree_util import tree_map
-from jax.tree_util import tree_reduce
-from jax.util import safe_zip as zip
+from jax.core import ShapedArray
+from jax.interpreters.ad import UndefinedPrimal
 
 from . import utils
 
+safe_zip = partial(zip, strict=True)
+
 PyTree = Any
-_VMapAxis = Optional[PyTree]
+_VMapAxis = PyTree | None
 VMapAxisTriple = tuple[_VMapAxis, _VMapAxis, dict[str, _VMapAxis]]
 VMapAxes = Union[_VMapAxis, VMapAxisTriple]
 AnalyticKernelFn = Any
@@ -109,7 +101,7 @@ InternalLayerMasked = tuple[InitFn, ApplyFn, LayerKernelFn, MaskFn]
 Layer = tuple[InitFn, ApplyFn, AnalyticKernelFn]
 Kernels = Union[list[Kernel], tuple[Kernel, ...]]
 "Kernel inputs/outputs of `FanOut`, `FanInSum`, etc."
-_VMapAxis = Optional[PyTree]
+_VMapAxis = PyTree | None
 "A `PyTree` of integers"
 VMapAxisTriple = tuple[_VMapAxis, _VMapAxis, dict[str, _VMapAxis]]
 VMapAxes = Union[_VMapAxis, VMapAxisTriple]
@@ -231,7 +223,7 @@ def empirical_ntk_by_jacobian(
             contract_axes = _trace_axes + param_axes
             return _dot_general(x, y, contract_axes, _diagonal_axes) / size
 
-        return tree_reduce(operator.add, tree_map(contract, j1, j2))
+        return jax.tree.reduce(operator.add, jax.tree.map(contract, j1, j2))
 
     def ntk_fn(
         x1: PyTree, x2: PyTree | None, params: PyTree, **apply_fn_kwargs
@@ -272,16 +264,16 @@ def empirical_ntk_by_jacobian(
         def j_fn(x, *args):
             _kwargs = {k: v for k, v in zip(keys, args)}
             fx = _get_f_params(f, x, x_axis, fx_axis, kw_axes, **_kwargs)
-            jx = jacobian(fx)(params)
+            jx = jax.jacobian(fx)(params)
             return jx
 
         if not utils.all_none(x_axis) or not utils.all_none(kw_axes):
             in_axes = [x_axis] + [kw_axes[k] if k in kw_axes else None for k in keys]
-            j_fn = vmap(j_fn, in_axes=in_axes, out_axes=fx_axis)
+            j_fn = jax.vmap(j_fn, in_axes=in_axes, out_axes=fx_axis)
 
         j1 = j_fn(x1, *args1)
         j2 = j_fn(x2, *args2) if not utils.all_none(x2) else j1
-        ntk = tree_map(sum_and_contract, fx1, j1, j2)
+        ntk = jax.tree.map(sum_and_contract, fx1, j1, j2)
         return ntk
 
     return ntk_fn
@@ -313,13 +305,13 @@ def _get_f_params(
 
 
 def _ndim(x: PyTree) -> PyTree:
-    return tree_map(lambda x: x.ndim, x)
+    return jax.tree.map(lambda x: x.ndim, x)
 
 
 def _mod(x: PyTree | None, y: PyTree) -> PyTree:
     if x is None:
         return None
-    return tree_map(operator.mod, x, y)
+    return jax.tree.map(operator.mod, x, y)
 
 
 def _squeeze(x: PyTree, axis: PyTree | None) -> PyTree:
@@ -348,7 +340,7 @@ def _squeeze(x: PyTree, axis: PyTree | None) -> PyTree:
 
         return jnp.squeeze(x, non_zero_axes)
 
-    return tree_map(squeeze, x, axis)
+    return jax.tree.map(squeeze, x, axis)
 
 
 def _expand_dims_array(x: _ArrayOrShape, axis: int) -> _ArrayOrShape:
@@ -356,7 +348,7 @@ def _expand_dims_array(x: _ArrayOrShape, axis: int) -> _ArrayOrShape:
         return jnp.expand_dims(x, axis)
 
     if isinstance(x, ShapedArray):
-        return eval_shape(expand, x)
+        return jax.eval_shape(expand, x)
 
     if isinstance(x, jnp.ndarray):
         return expand(x)
@@ -369,7 +361,7 @@ def _expand_dims(
 ) -> PyTree | None:
     if axis is None or x is None or isinstance(x, UndefinedPrimal):
         return x
-    return tree_map(_expand_dims_array, x, axis)
+    return jax.tree.map(_expand_dims_array, x, axis)
 
 
 def _get_args(
@@ -382,8 +374,8 @@ def _get_args(
 ):
     kwargs1, kwargs2 = utils.split_kwargs(apply_fn_kwargs, x1, x2)
 
-    fx1 = eval_shape(f, params, x1, **kwargs1)
-    fx2 = fx1 if utils.all_none(x2) else eval_shape(f, params, x2, **kwargs2)
+    fx1 = jax.eval_shape(f, params, x1, **kwargs1)
+    fx2 = fx1 if utils.all_none(x2) else jax.eval_shape(f, params, x2, **kwargs2)
 
     x_axis, fx_axis, kw_axes = _canonicalize_axes(vmap_axes, x1, fx1, **kwargs1)
 
@@ -402,13 +394,13 @@ def _canonicalize_axes(
         x_axis, fx_axis, kw_axes = vmap_axes, vmap_axes, {}
 
     if isinstance(x_axis, int):
-        x_axis = tree_map(lambda _: x_axis, x)
+        x_axis = jax.tree.map(lambda _: x_axis, x)
 
     if isinstance(fx_axis, int):
-        fx_axis = tree_map(lambda _: fx_axis, fx)
+        fx_axis = jax.tree.map(lambda _: fx_axis, fx)
 
     if isinstance(kw_axes, int):
-        kw_axes = tree_map(lambda _: kw_axes, kwargs)
+        kw_axes = jax.tree.map(lambda _: kw_axes, kwargs)
 
     x_axis = _mod(x_axis, _ndim(x))
     fx_axis = _mod(fx_axis, _ndim(fx))
@@ -467,7 +459,7 @@ def _dot_general(
 
     dimension_numbers = ((contracting_dims, contracting_dims), (batch_dims, batch_dims))
 
-    prod = lax.dot_general(lhs, rhs, dimension_numbers, precision)
+    prod = jax.lax.dot_general(lhs, rhs, dimension_numbers, precision)
     prod = utils.zip_axes(prod, n_batch_dims)
 
     res_batch_dims = _get_res_batch_dims(contracting_dims, batch_dims)

@@ -16,5 +16,5 @@ from .base import LocalOperatorBase
 from .numba import LocalOperatorNumba
 from .jax import LocalOperatorJax
 
-# The default PauliStrings class is the Numba version
-LocalOperator = LocalOperatorNumba
+# The default PauliStrings class is the Jax version
+LocalOperator = LocalOperatorJax

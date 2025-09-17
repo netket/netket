@@ -16,5 +16,5 @@ from .base import IsingBase
 from .numba import IsingNumba
 from .jax import IsingJax
 
-# Default Ising class is the Numba version
-Ising = IsingNumba
+# Default Ising class is the Jax version
+Ising = IsingJax

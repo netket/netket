@@ -250,7 +250,7 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
 
 
 @common.skipif_mpi
-def test_chunk_size_api(vstate, _mpi_size):
+def test_chunk_size_api(vstate):
     assert vstate.chunk_size is None
 
     with raises(ValueError):

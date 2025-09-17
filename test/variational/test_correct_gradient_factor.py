@@ -137,7 +137,7 @@ def test_forces_gradient_rule():
     )
 
 
-@common.skipif_sharding  # no jax version of LocalLiouvillian
+@common.skipif_distributed  # no jax version of LocalLiouvillian
 def test_forces_gradient_rule_ldagl():
     nh = 8
     ma1 = M1(nh)

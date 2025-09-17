@@ -85,7 +85,7 @@ sx = [[0, 1], [1, 0]]
 sy = [[0, -1.0j], [1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
+hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
 for name, LocalOp_impl in [
     ("numba", nk.operator.LocalOperatorNumba),
@@ -138,6 +138,34 @@ operators["FermionOperator2ndJax(_mode=mask)"] = nk.operator.FermionOperator2ndJ
     terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
     _mode="mask",
+)
+
+hi = nk.hilbert.Spin(0.5, 3)
+operators["SumOperatorJax"] = nk.operator.SumOperator(
+    nk.operator.spin.sigmax(hi, 0),
+    nk.operator.spin.sigmay(hi, 1).to_pauli_strings(),
+    coefficients=[0.5, 0.3],
+)
+
+operators["PermutationOperator"] = nk.operator.permutation.PermutationOperator(
+    nk.hilbert.Qubit(4),
+    nk.utils.group.Permutation(
+        permutation_array=jnp.array([1, 2, 3, 0]), name="translation_1"
+    ),
+)
+operators["PermutationOperatorFermion"] = (
+    nk.operator.permutation.PermutationOperatorFermion(
+        nk.hilbert.SpinOrbitalFermions(2, 1 / 2, n_fermions_per_spin=[1, 1]),
+        nk.utils.group.Permutation(
+            permutation_array=jnp.array([1, 0, 3, 2]), name="xyz"
+        ),
+    )
+)
+
+operators["ProductOperatorJax"] = nk.operator.ProductOperator(
+    nk.operator.spin.sigmax(hi, 0),
+    nk.operator.spin.sigmay(hi, 1),
+    coefficient=2.0,
 )
 
 # Remove non jax operators when sharding is activated
@@ -205,6 +233,17 @@ def test_produce_elements_in_hilbert(op, attr):
 )
 @common.skipif_distributed
 def test_is_hermitian(op):
+
+    # There should be a list of Hermitian operators instead of having this weird skip condition
+    if isinstance(
+        op,
+        (
+            nk.operator.permutation.PermutationOperator,
+            nk.operator.permutation.PermutationOperatorFermion,
+        ),
+    ):
+        pytest.skip(reason="Not Hermitian")
+
     rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
@@ -237,6 +276,16 @@ def test_is_hermitian(op):
     [pytest.param(op, id=name) for name, op in operators.items()],
 )
 def test_lazy_hermitian(op):
+
+    if isinstance(
+        op,
+        (
+            nk.operator.permutation.PermutationOperator,
+            nk.operator.permutation.PermutationOperatorFermion,
+        ),
+    ):
+        pytest.skip(reason="Not Hermitian")
+
     if op.is_hermitian:
         assert isinstance(op.H, type(op))
         assert op == op.H
@@ -429,7 +478,7 @@ def test_operator_on_subspace():
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
-@common.skipif_sharding
+@common.skipif_distributed
 def test_operator_jax_conversion(op):
     op_jax = op.to_jax_operator()
     op_numba = op_jax.to_numba_operator()
@@ -581,6 +630,39 @@ def test_jax_operator_to_jax_operator(op):
     assert op == op.to_jax_operator()
 
 
+@pytest.mark.parametrize(
+    "op",
+    [
+        pytest.param(op, id=name)
+        for name, op in operators.items()
+        if isinstance(op, DiscreteJaxOperator)
+    ],
+)
+@pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
+def test_jax_operator_sharding_preserved(op):
+    """Check that get_conn_padded preserves sharding for JAX operators"""
+    hi = op.hilbert
+    _get_conn_padded = jax.jit(lambda op, x: op.get_conn_padded(x))
+
+    n_devices = jax.device_count()
+    for shape in [(n_devices,), (n_devices, 3)]:
+        x = hi.random_state(jax.random.PRNGKey(0), shape, dtype=np.float64)
+        x_sharded = shard_along_axis(x, axis=0)
+
+        sp, mels = _get_conn_padded(op, x_sharded)
+
+        # Output should preserve the 'S' sharding on the first axis
+        assert mels.sharding.spec == jax.P("S")
+        assert sp.sharding.spec == jax.P("S")
+
+    # test replicated propagated
+    if jax.sharding.get_abstract_mesh().are_all_axes_explicit:
+        x = hi.random_state(jax.random.PRNGKey(0), shape, dtype=np.float64)
+        sp, mels = _get_conn_padded(op, x)
+        assert mels.sharding.is_fully_replicated
+        assert sp.sharding.is_fully_replicated
+
+
 @common.skipif_distributed
 def test_bose_hubbard_precision():
     # Issue #1994
@@ -611,7 +693,7 @@ def test_bose_hubbard_precision():
         if not name.startswith("Bose Hubbard Complex")
     ],
 )
-@common.skipif_sharding
+@common.skipif_distributed
 def test_operator_jax_n_conn(op):
     """Check that n_conn returns the same result for jax and numba operators"""
     op_jax = op.to_jax_operator()

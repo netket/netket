@@ -30,13 +30,13 @@ __all__ = [
     "identify_framework",
 ]
 
-from .base import (
+from netket.utils.model_frameworks.base import (
     ModuleFramework as ModuleFramework,
     maybe_wrap_module as maybe_wrap_module,
     registered_frameworks as registered_frameworks,
     identify_framework as identify_framework,
 )
 
-from . import flax, jax, haiku, equinox, nnx
+from netket.utils.model_frameworks import flax, jax, haiku, equinox, nnx
 
-from . import nnx_wrapped
+from netket.utils.model_frameworks import nnx_wrapped

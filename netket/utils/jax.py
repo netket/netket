@@ -14,15 +14,16 @@
 
 from collections.abc import Callable
 
-from flax.linen import Module
+from flax.linen import Module as LinenModule
+from flax.nnx import Module as NNXModule
 
 import jax.numpy as jnp
 
+from netket.errors import NNXModuleToSamplerInput
+from netket.utils.partial import HashablePartial
+from netket.utils.types import ModuleOrApplyFun, PyTree, Array
 
-from .partial import HashablePartial
-from .types import ModuleOrApplyFun, PyTree, Array
-
-from . import struct
+from netket.utils import struct
 
 
 def get_afun_if_module(mod_or_fun) -> Callable:
@@ -44,10 +45,13 @@ class WrappedApplyFun:
         return f"{type(self).__name__}(apply={self.apply}, hash={hash(self)})"
 
 
-def wrap_afun(mod_or_fun: ModuleOrApplyFun) -> Module:
+def wrap_afun(mod_or_fun: ModuleOrApplyFun) -> LinenModule:
     """Wraps a callable to be a module-like object with the method `apply`.
     Does nothing if it already has an apply method.
     """
+    if isinstance(mod_or_fun, NNXModule):
+        raise NNXModuleToSamplerInput()
+
     if hasattr(mod_or_fun, "apply"):
         return mod_or_fun  # type: ignore
     else:

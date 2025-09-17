@@ -21,11 +21,13 @@ import numpy as np
 
 if TYPE_CHECKING:
     import matplotlib
+    import matplotlib.figure
+    import matplotlib.axes
 
-from ..dispatch import dispatch
-from ..numbers import is_scalar
-from ..types import Array, DType
-from ..optional_deps import import_optional_dependency
+from netket.utils.dispatch import dispatch
+from netket.utils.numbers import is_scalar
+from netket.utils.types import Array, DType
+from netket.utils.optional_deps import import_optional_dependency
 
 
 def raise_if_len_not_match(length, expected_length, string):
@@ -67,6 +69,10 @@ class History:
 
     If only one time-series is provided, without a key, then its name will
     be `value`.
+
+    For managing multiple History objects with independent time axes or
+    complex nested structures, see :class:`~netket.utils.history.HistoryDict`
+    and :func:`~netket.utils.history.accum_histories_in_tree`.
     """
 
     __slots__ = ("_value_dict", "_value_name", "_single_value", "_keys")
@@ -251,7 +257,7 @@ class History:
             it: the time corresponding to this new value. If
                 not defined, increment by 1.
         """
-        append(self, val, it)
+        append(self, val, it)  # type: ignore
 
     def get(self) -> tuple[Array, Array]:
         """
@@ -348,7 +354,7 @@ class History:
             all = True
 
         if fig is None:
-            fig = plt.figure()
+            fig = plt.figure()  # type: ignore
 
         if all:
             n_plots = len(self.keys())
@@ -378,10 +384,10 @@ class History:
                         yscale = "linear"
                 ax.set_yscale(yscale)
 
-        plt.xlabel("Iterations")
-        plt.legend()
+        plt.xlabel("Iterations")  # type: ignore
+        plt.legend()  # type: ignore
         if show:
-            plt.show()
+            plt.show()  # type: ignore
 
         if n_plots == 1:
             return axes[0]
@@ -442,11 +448,11 @@ def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
 @dispatch
 def append(self: History, val: Any, it: Any):  # noqa: E0102, F811
     if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
-        append(self, {"value": val}, it)
+        append(self, {"value": val}, it)  # type: ignore
     elif hasattr(val, "to_compound"):
-        append(self, val.to_compound()[1], it)
+        append(self, val.to_compound()[1], it)  # type: ignore
     elif hasattr(val, "to_dict"):
-        append(self, val.to_dict(), it)
+        append(self, val.to_dict(), it)  # type: ignore
     else:
-        append(self, {"value": val}, it)
+        append(self, {"value": val}, it)  # type: ignore
     return self

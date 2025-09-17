@@ -15,7 +15,7 @@
 from typing import Union, SupportsFloat, SupportsComplex, TYPE_CHECKING
 
 import numbers
-
+import warnings
 
 import numpy as np
 import jax.numpy as jnp
@@ -24,6 +24,7 @@ from scipy.sparse import issparse
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
 from netket.utils.numbers import dtype as _dtype, is_scalar
+from netket.errors import OperatorMultiplicationDeprecationWarning
 
 from .._discrete_operator import DiscreteOperator
 from .._lazy import Transpose
@@ -54,9 +55,28 @@ def _is_sorted(a):
 
 
 class LocalOperatorBase(DiscreteOperator):
-    """A custom local operator. This is a sum of an arbitrary number of operators
-    acting locally on a limited set of k quantum numbers (i.e. k-local,
-    in the quantum information sense).
+    """Base implementation of an operator composed of a sum of
+    local terms, each of which acts on a small number of sites.
+
+    .. warning::
+
+        The complexity of the constructor of this operator scales
+        exponentially with the number of sites on which each term
+        acts, and linearly with the number of terms.
+
+        The memory requirement scales the same, because this operator
+        stores internally a lookup table as large as the local hilbert
+        space size of each term.
+
+        Refrain from using this for terms acting on more than
+        6-sites. For Spin-1/2 systems, prefer instead
+        :class:`netket.operator.PauliStrings`. For non spin-1/2
+        there is nothing that will work efficiently out of the box,
+        but you can easily roll your own.
+
+    The runtime complexity is proportional to the number of
+    connected entries
+    :attr:`~netket.operator.DiscreteOperator.max_conn_size`
     """
 
     def __init__(
@@ -258,7 +278,9 @@ class LocalOperatorBase(DiscreteOperator):
         return new
 
     def __radd__(self, other):
-        return self.__add__(other)
+        if is_scalar(other):
+            return self.__add__(other)
+        return super().__radd__(other)
 
     def __sub__(self, other):
         return self + (-other)
@@ -273,9 +295,11 @@ class LocalOperatorBase(DiscreteOperator):
         return -1 * self
 
     def __add__(self, other: Union["LocalOperatorBase", numbers.Number]):
-        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
-        op = op.__iadd__(other)
-        return op
+        if isinstance(other, LocalOperatorBase) or is_scalar(other):
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
+            op = op.__iadd__(other)
+            return op
+        return super().__add__(other)
 
     def __iadd__(self, other):
         if isinstance(other, LocalOperatorBase):
@@ -320,6 +344,8 @@ class LocalOperatorBase(DiscreteOperator):
 
     def __mul__(self, other):
         if isinstance(other, DiscreteOperator):
+            # TODO: Deprecated in September 2025
+            warnings.warn(OperatorMultiplicationDeprecationWarning())
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imatmul__(other)
         elif is_scalar(other):

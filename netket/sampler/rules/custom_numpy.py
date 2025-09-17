@@ -20,6 +20,7 @@ import numpy as np
 from flax import struct
 
 from netket.operator import DiscreteOperator
+from netket.operator._discrete_operator_jax import DiscreteJaxOperator
 from netket.utils.types import Array
 
 from .base import MetropolisRule
@@ -44,6 +45,8 @@ class CustomRuleNumpy(MetropolisRule):
             operator: a LocalOperator describing the possible moves.
             weight_list: an optional list of probability for every move.
         """
+        if isinstance(operator, DiscreteJaxOperator):
+            operator = operator.to_numba_operator()
         if not isinstance(operator, DiscreteOperator):
             raise TypeError(
                 "Argument to CustomRuleNumpy must be a valid operator, "

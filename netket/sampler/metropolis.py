@@ -28,7 +28,6 @@ from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
 from netket import config
 from netket.utils import wrap_afun
 from netket.utils.types import PyTree, DType
-from netket.utils.deprecation import warn_deprecation
 from netket.utils import struct
 
 from netket.jax.sharding import (
@@ -239,7 +238,6 @@ class MetropolisSampler(Sampler):
         hilbert: AbstractHilbert,
         rule: MetropolisRule,
         *,
-        n_sweeps: int = None,
         sweep_size: int = None,
         reset_chains: bool = False,
         n_chains: int | None = None,
@@ -282,14 +280,6 @@ class MetropolisSampler(Sampler):
         if not isinstance(reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
 
-        if n_sweeps is not None:
-            warn_deprecation(
-                "Specifying `n_sweeps` when constructing sampler is deprecated. Please use `sweep_size` instead."
-            )
-            if sweep_size is not None:
-                raise ValueError("Cannot specify both `sweep_size` and `n_sweeps`")
-            sweep_size = n_sweeps
-
         if sweep_size is None:
             sweep_size = hilbert.size
 
@@ -330,13 +320,6 @@ class MetropolisSampler(Sampler):
         self.reset_chains = reset_chains
         self.rule = rule
         self.sweep_size = sweep_size
-
-    @property
-    def n_sweeps(self):
-        warn_deprecation(
-            "`MetropolisSampler.n_sweeps` is deprecated. Please use `MetropolisSampler.sweep_size` instead."
-        )
-        return self.sweep_size
 
     def sample_next(
         self,
@@ -441,13 +424,14 @@ class MetropolisSampler(Sampler):
             machine.apply, in_axes=(None, 0), chunk_size=self.chunk_size
         )
 
-        def loop_body(i, s):
+        def loop_body(i, state):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
-            s["key"], key1, key2 = jax.random.split(s["key"], 3)
+            new_rng, key1, key2 = jax.random.split(state.rng, 3)
 
             σp, log_prob_correction = self.rule.transition(
-                self, machine, parameters, state, key1, s["σ"]
+                self, machine, parameters, state, key1, state.σ
             )
+
             _assert_good_sample_shape(
                 σp,
                 (self.n_batches, self.hilbert.size),
@@ -460,39 +444,22 @@ class MetropolisSampler(Sampler):
             uniform = jax.random.uniform(key2, shape=(self.n_batches,))
             if log_prob_correction is not None:
                 do_accept = uniform < jnp.exp(
-                    proposal_log_prob - s["log_prob"] + log_prob_correction
+                    proposal_log_prob - state.log_prob + log_prob_correction
                 )
             else:
-                do_accept = uniform < jnp.exp(proposal_log_prob - s["log_prob"])
+                do_accept = uniform < jnp.exp(proposal_log_prob - state.log_prob)
 
-            # do_accept must match ndim of proposal and state (which is 2)
-            s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
-            s["accepted"] += do_accept
-
-            s["log_prob"] = jax.numpy.where(
-                do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
+            return state.replace(
+                σ=jnp.where(do_accept.reshape(-1, 1), σp, state.σ),
+                log_prob=jax.numpy.where(
+                    do_accept.reshape(-1), proposal_log_prob, state.log_prob
+                ),
+                rng=new_rng,
+                n_accepted_proc=state.n_accepted_proc + do_accept,
+                n_steps_proc=state.n_steps_proc + self.n_batches,
             )
 
-            return s
-
-        s = {
-            "key": state.rng,
-            "σ": state.σ,
-            # Log prob is already computed in reset, so don't recompute it.
-            # "log_prob": self.machine_pow * apply_machine(parameters, state.σ).real,
-            "log_prob": state.log_prob,
-            # for logging
-            "accepted": state.n_accepted_proc,
-        }
-        s = jax.lax.fori_loop(0, self.sweep_size, loop_body, s)
-
-        new_state = state.replace(
-            rng=s["key"],
-            σ=s["σ"],
-            log_prob=s["log_prob"],
-            n_accepted_proc=s["accepted"],
-            n_steps_proc=state.n_steps_proc + self.sweep_size * self.n_batches,
-        )
+        new_state = jax.lax.fori_loop(0, self.sweep_size, loop_body, state)
 
         return new_state, (new_state.σ, new_state.log_prob)
 
@@ -749,7 +716,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
        >>> # Construct a MetropolisHamiltonian Sampler
        >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRuleNumba(operator=IsingNumba(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
+       MetropolisSampler(rule = HamiltonianRuleJax(operator=IsingJax(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
     """
     from .rules import HamiltonianRule
 

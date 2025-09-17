@@ -27,7 +27,7 @@ import netket as nk
 from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.experimental.hilbert import Particle
-from netket.utils import array_in, mpi
+from netket.utils import array_in
 
 
 from .. import common
@@ -217,6 +217,53 @@ def model_and_weights(request):
         # init network
         w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
 
+        # Create more featureful weights for better convergence testing
+        if not isinstance(sampler, nk.sampler.ARDirectSampler) and not isinstance(
+            hilb, Particle
+        ):
+            # Create structured weights that lead to a more peaked distribution
+            # This creates correlations between spins and non-trivial structure
+            key = jax.random.PRNGKey(WEIGHT_SEED + 1)
+            key1, key2, key3 = jax.random.split(key, 3)
+
+            # Visible biases: create alternating pattern to favor certain configurations
+            # Use smaller amplitudes to avoid making the distribution too peaked
+            visible_bias = jax.random.normal(key1, (hilb.size,)) * 0.2
+            # Add structured bias that creates correlations
+            for i in range(hilb.size):
+                visible_bias = visible_bias.at[i].set(
+                    visible_bias[i] + 0.15 * (-1) ** i
+                )
+
+            # Hidden biases: moderate values to create structure
+            hidden_bias = (
+                jax.random.normal(key2, (w["params"]["Dense"]["bias"].shape[0],)) * 0.15
+            )
+
+            # Kernel weights: create correlations between neighboring spins
+            kernel = (
+                jax.random.normal(key3, w["params"]["Dense"]["kernel"].shape) * 0.15
+            )
+            # Add structured correlations with smaller amplitude
+            for i in range(min(hilb.size, kernel.shape[0])):
+                for j in range(kernel.shape[1]):
+                    # Create nearest-neighbor-like interactions
+                    if i < hilb.size - 1:
+                        kernel = kernel.at[i, j].set(
+                            kernel[i, j] + 0.2 * jnp.cos(2 * jnp.pi * i / hilb.size)
+                        )
+
+            # Update the weights with the more structured values
+            w = {
+                "params": {
+                    "visible_bias": visible_bias,
+                    "Dense": {
+                        "kernel": kernel,
+                        "bias": hidden_bias,
+                    },
+                }
+            }
+
         return ma, w
 
     # Do something with the data
@@ -290,8 +337,6 @@ def test_states_in_hilbert(sampler, model_and_weights):
 
 
 def test_return_log_probabilities(sampler, model_and_weights):
-    if isinstance(sampler, nk.sampler.ARDirectSampler):
-        pytest.skip("ARDirectSampler does not support return_log_probabilities.")
     if (
         isinstance(sampler, nk.sampler.MetropolisNumpy)
         and nk.config.netket_experimental_sharding
@@ -305,10 +350,11 @@ def test_return_log_probabilities(sampler, model_and_weights):
     (samples, log_probs), ss = sampler.sample(
         ma, w, chain_length=chain_length, return_log_probabilities=True
     )
-    log_probs_computed = sampler.machine_pow * ma.apply(w, samples).real
+
+    log_probs_computed = jax.vmap(ma.apply, in_axes=(None, 0))(w, samples)
+    log_probs_computed = sampler.machine_pow * log_probs_computed.real
 
     assert log_probs.shape == samples.shape[:-1]
-    print(log_probs / log_probs_computed)
     np.testing.assert_allclose(log_probs, log_probs_computed)
 
 
@@ -499,6 +545,26 @@ def test_sampling_sharded_not_communicating(
             assert o not in l
 
 
+def test_nnx_module_error():
+    """Test that passing a bare NNX module to sampler raises
+    NNXModuleToSamplerInput error
+    """
+    from flax.nnx import Module as NNXModule
+
+    class MockNNXModule(NNXModule):
+        def __init__(self):
+            pass
+
+        def __call__(self, x):
+            return x
+
+    nnx_module = MockNNXModule()
+    sampler = nk.sampler.MetropolisLocal(hi)
+
+    with pytest.raises(nk.errors.NNXModuleToSamplerInput):
+        sampler.sample(nnx_module, {}, chain_length=10)
+
+
 @common.skipif_distributed
 def test_throwing(model_and_weights):
     with pytest.raises(TypeError):
@@ -613,7 +679,7 @@ def test_exact_sampler(sampler):
         assert sampler.n_chains_per_rank == 1
     else:
         assert sampler.is_exact is False
-        assert sampler.n_chains == 16 * mpi.n_nodes * jax.device_count()
+        assert sampler.n_chains == 16 * jax.device_count()
 
 
 @common.skipif_distributed

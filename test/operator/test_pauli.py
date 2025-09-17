@@ -70,12 +70,12 @@ def test_pauli(hilbert, Op):
     op_l = (
         0.1
         * nk.operator.spin.sigmax(op.hilbert, 0, dtype=complex)
-        * nk.operator.spin.sigmax(op.hilbert, 1)
+        @ nk.operator.spin.sigmax(op.hilbert, 1)
     )
     op_l += (
         0.2
         * nk.operator.spin.sigmay(op.hilbert, 0)
-        * nk.operator.spin.sigmaz(op.hilbert, 1)
+        @ nk.operator.spin.sigmaz(op.hilbert, 1)
     )
     op_l -= 1.4 * nk.operator.spin.sigmaz(op.hilbert, 1)
 
@@ -158,15 +158,15 @@ def test_pauli_order(Op):
     op1_true = (
         coeff1
         * nk.operator.spin.sigmaz(op.hilbert, 1, dtype=complex)
-        * nk.operator.spin.sigmax(op.hilbert, 2)
-        * nk.operator.spin.sigmay(op.hilbert, 3)
+        @ nk.operator.spin.sigmax(op.hilbert, 2)
+        @ nk.operator.spin.sigmay(op.hilbert, 3)
     )
     op2_true = (
         coeff2
         * nk.operator.spin.sigmaz(op.hilbert, 0, dtype=complex)
-        * nk.operator.spin.sigmaz(op.hilbert, 1)
-        * nk.operator.spin.sigmay(op.hilbert, 2)
-        * nk.operator.spin.sigmax(op.hilbert, 3)
+        @ nk.operator.spin.sigmaz(op.hilbert, 1)
+        @ nk.operator.spin.sigmay(op.hilbert, 2)
+        @ nk.operator.spin.sigmax(op.hilbert, 3)
     )
     np.testing.assert_allclose(op1.to_dense(), op1_true.to_dense())
     np.testing.assert_allclose(op2.to_dense(), op2_true.to_dense())
@@ -198,18 +198,18 @@ def test_pauli_matmul(Op):
     op1_true += (
         weights1[1]
         * nk.operator.spin.sigmax(op.hilbert, 1, dtype=complex)
-        * nk.operator.spin.sigmay(op.hilbert, 2)
+        @ nk.operator.spin.sigmay(op.hilbert, 2)
     )
     op2_true = (
         weights2[0]
         * nk.operator.spin.sigmax(op.hilbert, 0, dtype=complex)
-        * nk.operator.spin.sigmaz(op.hilbert, 1)
-        * nk.operator.spin.sigmaz(op.hilbert, 2)
+        @ nk.operator.spin.sigmaz(op.hilbert, 1)
+        @ nk.operator.spin.sigmaz(op.hilbert, 2)
     )
     op2_true += (
         weights2[1]
         * nk.operator.spin.sigmay(op.hilbert, 0, dtype=complex)
-        * nk.operator.spin.sigmaz(op.hilbert, 2)
+        @ nk.operator.spin.sigmaz(op.hilbert, 2)
     )
     op2_true += weights2[2] * nk.operator.spin.sigmaz(op.hilbert, 0, dtype=complex)
     op2_true += weights2[3] * nk.operator.spin.sigmay(op.hilbert, 2, dtype=complex)

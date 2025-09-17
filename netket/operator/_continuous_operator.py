@@ -17,18 +17,22 @@ from collections.abc import Callable
 from collections.abc import Hashable
 
 from netket.jax import canonicalize_dtypes
+from netket.utils import struct
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import AbstractOperator
 
 
-class ContinuousOperator(AbstractOperator):
+class ContinuousOperator(AbstractOperator, struct.Pytree):
     r"""This class is the abstract base class for operators defined on a
     continuous Hilbert space. Users interested in implementing new
     quantum Operators for continuous Hilbert spaces should subclass
     `ContinuousOperator` and implement its interface.
     """
+
+    _hilbert: AbstractHilbert = struct.static_field()
+    _dtype: DType = struct.static_field()
 
     def __init__(self, hilbert: AbstractHilbert, dtype: DType | None = None):
         r"""
@@ -42,7 +46,6 @@ class ContinuousOperator(AbstractOperator):
         """
         dtype = canonicalize_dtypes(float, dtype=dtype)
         self._dtype = dtype
-        self._hash = None
         super().__init__(hilbert)
 
     @property
@@ -51,31 +54,24 @@ class ContinuousOperator(AbstractOperator):
 
     @abc.abstractmethod
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: PyTree | None
-    ):
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
+    ) -> Array:
         r"""This method defines the action of the local operator on a given quantum state
         `logpsi` for a given configuration `x`.
         :math:`O_{loc}(x) =  \frac{\bra{x}O{\ket{\psi}}{\bra{x}\ket{\psi}}`
         This method is executed inside of a `jax.jit` block.
-        Any static data from the operator itself should be captured in the method.
-        Any additional data is provided by the `_pack_arguments`-method
-        and will be passed as the `data` argument in this method (Example: masses in kinetic energy).
+
+        .. note::
+            The operator itself must be a Pytree.
 
         Args:
             logpsi: variational state
             params: parameters for the variational state
             x: a sample of particle positions
-            data: additional data
         """
-
-    @abc.abstractmethod
-    def _pack_arguments(self) -> PyTree | None:
-        r"""This methods should return a PyTree that will be passed as the `data` argument
-        to the `_expect_kernel`. The PyTree should be composed of jax arrays or hashable
-        objects.
-
-        For example for the kinetic energy this method would return the masses of the
-        individual particles."""
 
     @abc.abstractproperty
     def _attrs(self) -> tuple[Hashable, ...]:
@@ -84,6 +80,18 @@ class ContinuousOperator(AbstractOperator):
 
         To hash arrays you can return them as `nk.utils.HashableArray`.
         """
+
+    @struct.property_cached(pytree_ignore=True)
+    def _hash(self) -> int:
+        return hash((type(self), self._attrs))
+
+    def __hash__(self) -> int:
+        return self._hash
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, type(self)):
+            return self._attrs == other._attrs
+        return False
 
     def __add__(self, other):
         if isinstance(self, ContinuousOperator) and isinstance(
@@ -102,7 +110,7 @@ class ContinuousOperator(AbstractOperator):
             return NotImplemented  # pragma: no cover
 
     def __mul__(self, other):
-        if isinstance(self, ContinuousOperator) and isinstance(other, float):
+        if isinstance(other, float):
             from netket.operator import SumOperator
 
             return SumOperator(self, coefficients=other)
@@ -117,13 +125,3 @@ class ContinuousOperator(AbstractOperator):
 
     def __neg__(self):
         return -1.0 * self
-
-    def __hash__(self):
-        if self._hash is None:
-            self._hash = hash((type(self), self._attrs))
-        return self._hash
-
-    def __eq__(self, other) -> bool:
-        if isinstance(other, type(self)):
-            return self._attrs == other._attrs
-        return False

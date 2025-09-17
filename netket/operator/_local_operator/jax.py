@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
-from jax.util import safe_map
 from jax.tree_util import register_pytree_node_class
 
 from netket.errors import JaxOperatorNotConvertibleToNumba
@@ -105,7 +104,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     # compute the number of connected elements
     #
     # extract the number of (nonzero) off-diagonal elements of the rows
-    n_conn_offdiag_ = safe_map(_index_at, n_conns_, i_row_)
+    n_conn_offdiag_ = tuple(map(_index_at, n_conns_, i_row_))
     # sum for each group of operators acting on a certain number of sites
     # and sum over all gropus to get the total
     n_conn_offdiag = sum([n.sum(axis=-1) for n in n_conn_offdiag_])
@@ -118,7 +117,7 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     if nonzero_diagonal:
         xp_diag = x
         # extract diagonal mels of the rows
-        mels_diag_ = safe_map(_index_at, diag_mels_, i_row_)
+        mels_diag_ = tuple(map(_index_at, diag_mels_, i_row_))
         # sum over operators
         mels_diag = constant + sum([m.sum(axis=-1) for m in mels_diag_])
     else:
@@ -204,8 +203,29 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
 
 @register_pytree_node_class
 class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
-    """
-    Jax-compatible version of :class:`netket.operator.LocalOperator`.
+    """Jax implementation of an operator composed of a sum of
+    local terms, each of which acts on a small number of sites.
+
+    .. warning::
+
+        The complexity of the constructor of this operator scales
+        exponentially with the number of sites on which each term
+        acts, and linearly with the number of terms.
+
+        Refrain from using this for terms acting on more than
+        6-sites. For Spin-1/2 systems, prefer instead
+        :class:`netket.operator.PauliStrings`. For non spin-1/2
+        there is nothing that will work efficiently out of the box,
+        but you can easily roll your own.
+
+    .. warning::
+
+        The runtime complexity is proportional to the number of
+        connected entries
+        :attr:`~netket.operator.DiscreteJaxOperator.max_conn_size`.
+
+    For the numba-based implementation, look at
+    :class:`netket.operator.LocalOperatorNumba`.
     """
 
     _convertible: bool = True
@@ -267,7 +287,9 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
-    def n_conn(self, x):
+    def n_conn(self, x, out=None):
+        if out is not None:
+            raise NotImplementedError()
         _, _, n_conn = self._get_conn_padded(x)
         return n_conn
 

@@ -14,36 +14,21 @@
 from collections.abc import Callable
 from collections.abc import Hashable
 
+import jax
+import jax.numpy as jnp
+
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
-from netket.utils import struct, HashableArray
-
-import jax
-import jax.numpy as jnp
-
-
-@struct.dataclass
-class PotentialOperatorPyTree:
-    """Internal class used to pass data from the operator to the jax kernel.
-
-    This is used such that we can pass a PyTree containing some static data.
-    We could avoid this if the operator itself was a pytree, but as this is not
-    the case we need to pass as a separte object all fields that are used in
-    the kernel.
-
-    We could forego this, but then the kernel could not be marked as
-    @staticmethod and we would recompile every time we construct a new operator,
-    even if it is identical
-    """
-
-    potential_fun: Callable = struct.field(pytree_node=False)
-    coefficient: Array
+from netket.utils import HashableArray, struct
 
 
 class PotentialEnergy(ContinuousOperator):
     r"""Returns the local potential energy defined in afun"""
+
+    _potential_fun: Callable = struct.static_field()
+    _coefficient: Array
 
     def __init__(
         self,
@@ -60,10 +45,8 @@ class PotentialEnergy(ContinuousOperator):
             dtype: Data type of the coefficient
         """
 
-        self._afun = afun
+        self._potential_fun = afun
         self._coefficient = jnp.array(coefficient, dtype=dtype)
-
-        self.__attrs = None
 
         super().__init__(hilbert, self._coefficient.dtype)
 
@@ -75,25 +58,27 @@ class PotentialEnergy(ContinuousOperator):
     def is_hermitian(self) -> bool:
         return True
 
-    @staticmethod
     def _expect_kernel(
-        logpsi: Callable, params: PyTree, x: Array, data: PyTree | None
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
     ) -> Array:
-        return data.coefficient * jax.vmap(data.potential_fun, in_axes=(0,))(x)
+        x_dtype = jnp.promote_types(self.dtype, x.dtype)
+        return self.coefficient * jax.vmap(self._potential_fun, in_axes=(0,))(
+            x.astype(x_dtype)
+        )
 
-    def _pack_arguments(self) -> PotentialOperatorPyTree:
-        return PotentialOperatorPyTree(self._afun, self.coefficient)
-
-    @property
+    @struct.property_cached(pytree_ignore=True)
     def _attrs(self) -> tuple[Hashable, ...]:
-        if self.__attrs is None:
-            self.__attrs = (
-                self.hilbert,
-                self._afun,
-                self.dtype,
-                HashableArray(self.coefficient),
-            )
-        return self.__attrs
+        return (
+            self.hilbert,
+            self._potential_fun,
+            self.dtype,
+            HashableArray(self.coefficient),
+        )
 
     def __repr__(self):
-        return f"Potential(coefficient={self.coefficient}, function={self._afun})"
+        return (
+            f"Potential(coefficient={self.coefficient}, function={self._potential_fun})"
+        )

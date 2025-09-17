@@ -39,7 +39,7 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.3.37, <0.6",
+    "jax>=0.7.0",
     "equinox>=0.11.3",
     "flax>=0.10.2",
     "orjson>=3.4, <4",
@@ -50,6 +50,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cuda = ["jax[cuda12]; sys_platform == 'linux'"]
 pyscf = ["pyscf>=2.0"]
 extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4"]
 dev = [
@@ -61,8 +62,8 @@ dev = [
     "pytest-json-report>=1.3",
     "coverage>=5",
     "pre-commit>=2.7",
-    "black==24.1.0",
-    "ruff==0.9.4",
+    "black==25.1.0",
+    "ruff==0.12.2",
     "qutip>=5",
     "wheel>=0.38.1",
     "build>=1",
@@ -76,6 +77,9 @@ docs = [
     "myst-parser>=2.0.0,<4.1.0",
     "myst-nb>=1.0,<1.4",
     "sphinx-book-theme~=1.1.0",
+    "sphinx-copybutton>=0.5.2",
+    "nbconvert>=7.16.6",
+    "ipywidgets>=8.1.7",
 ]
 
 [project.scripts]
@@ -99,16 +103,17 @@ version-file = "netket/_version.py"
 
 [tool.uv]
 dev-dependencies = [
-    "netket[dev,docs]",
-    "jax>=0.4.33",
+    "netket[pyscf,extra,dev,docs]",
     "ipykernel>=6.20",
+    "pyscf>=2.9.0",
 ]
+
 
 # Development tools
 
 [tool.black]
 line-length = 88
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py311', 'py312', 'py313']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -150,18 +155,18 @@ filterwarnings = [
     "ignore:Defaulting to `holomorphic=False`,",
     "ignore::PendingDeprecationWarning: the matrix subclass",
     "ignore::netket.errors.HolomorphicUndeclaredWarning",
-    "ignore::netket.errors.UndeclaredSpinOderingWarning",
     "ignore::netket.errors.UnoptimalSRtWarning",
+    "ignore::netket.errors.InitializePeriodicLatticeOnSmallLatticeWarning",
 ]
 testpaths = ["test"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 88
 exclude = ["Examples", "docs/conf.py", "*.ipynb"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "D410", "UP"]
+select = ["E", "F", "W", "D410", "UP", "TID252"]
 fixable = ["E", "F", "W", "D", "UP"]
 ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035", "UP038"]
 #ignore = ["E266"]
@@ -171,7 +176,7 @@ ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035", "UP038"]
 "netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
 "docs/sphinx_extensions/*" = ["UP", "D"]
-
+"!netket/utils/*.py" = ["TID252"]
 
 [tool.mypy]
 show_error_codes = true

@@ -13,9 +13,5 @@
 # limitations under the License.
 
 
-def test_tools_check_mpi():
-    from netket.tools import check_mpi  # noqa: F401
-
-
 def test_tools_info():
     from netket.tools import info  # noqa: F401

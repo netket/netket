@@ -12,13 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+2D planar symmetry groups and transformations.
+
+This module provides functions to construct point groups and symmetry operations
+for 2D systems, including rotations, reflections, and glide operations.
+It includes common 2D point groups like cyclic (C) and dihedral (D) groups,
+as well as specific groups for rectangles and squares.
+"""
+
 import numpy as np
 
 from netket.utils.types import Array
 from netket.utils.moduletools import export, hide_unexported
 
-from ._point_group import PGSymmetry, PointGroup
-from ._semigroup import Identity
+from netket.utils.group._point_group import PGSymmetry, PointGroup
+from netket.utils.group._semigroup import Identity
 
 
 hide_unexported(__name__)

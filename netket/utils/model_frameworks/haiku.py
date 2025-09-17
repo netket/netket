@@ -16,7 +16,7 @@ import sys
 
 from flax import serialization
 
-from .base import ModuleFramework, framework
+from netket.utils.model_frameworks.base import ModuleFramework, framework
 
 
 # expose jax-stax as a flax module

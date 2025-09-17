@@ -23,7 +23,7 @@ from jax.nn.initializers import zeros, lecun_normal
 from flax.linen.module import Module, compact
 from flax.linen.dtypes import promote_dtype
 
-from netket.utils import HashableArray, warn_deprecation
+from netket.utils import HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils.group import PermutationGroup
 from collections.abc import Sequence
@@ -741,7 +741,7 @@ def DenseSymm(
 
 def DenseEquivariant(
     symmetries,
-    features: int | None = None,
+    features: int,
     mode="auto",
     shape=None,
     point_group=None,
@@ -798,26 +798,6 @@ def DenseEquivariant(
     """
     if mask is not None:
         mask = HashableArray(mask)
-
-    # deprecate in_features
-    if in_features is not None:
-        warn_deprecation(
-            "`in_features` is now automatically detected from the input and deprecated."
-            "Please remove it when calling `DenseEquivariant`."
-        )
-    if "out_features" in kwargs:
-        warn_deprecation(
-            "`out_features` has been renamed to `features` and the old name is "
-            "now deprecated. Please update your code."
-        )
-        if features is not None:
-            raise ValueError(
-                "You must only specify `features`. `out_features` is deprecated."
-            )
-        features = kwargs.pop("out_features")
-
-    if features is None:
-        raise ValueError("`features` not specified (the number of output features).")
 
     kwargs["features"] = features
 

@@ -29,7 +29,6 @@ import itertools
 
 from netket import jax as nkjax
 from netket import stats as nkstats
-from netket.utils import mpi
 from netket.optimizer.qgt import (
     qgt_onthefly_logic,
     qgt_jacobian_pytree,
@@ -138,17 +137,25 @@ def tree_subtract_mean(tree):
 
 
 def divide_by_sqrt_n_samp(oks, samples):
-    n_samp = samples.shape[0] * mpi.n_nodes  # MPI
+    n_samp = samples.shape[0]
     sqrt_n = math.sqrt(n_samp)  # enforce weak type
     return jax.tree_util.tree_map(lambda x: x / sqrt_n, oks)
 
 
 class Example:
     def f_real_flat(self, p, samples):
-        return self.f(reassemble_complex(p, target=self.params), samples)
+        return self.f(
+            {
+                "params": reassemble_complex(p["params"], target=self.params),
+                **self.model_state,
+            },
+            samples,
+        )
 
     def f_real_flat_scalar(self, params, x):
-        return self.f_real_flat(params, jnp.expand_dims(x, 0))[0]
+        return self.f_real_flat(
+            {"params": params, **self.model_state}, jnp.expand_dims(x, 0)
+        )[0]
 
     # same as in nk.machine.Jax R->C
     @partial(jax.vmap, in_axes=(None, None, 0))
@@ -169,6 +176,7 @@ class Example:
             "b": jnp.array(0, dtype=jnp.float64),
             "c": jnp.array(0j, dtype=jnp.complex64),
         }
+        self.model_state = {"shift_nondiff": jnp.array(0.0, dtype=jnp.float64)}
 
         if pardtype is None:  # mixed precision as above
             pass
@@ -188,34 +196,41 @@ class Example:
             jax.random.normal(k2, (n_samp,), self.dtype).astype(self.dtype)
         )  # TODO remove astype once its fixed in jax
         self.params = tree_random_normal_like(k3, self.target)
+        self.variables = {"params": self.params, **self.model_state}
         self.v = tree_random_normal_like(k4, self.target)
         self.grad = tree_random_normal_like(k5, self.target)
 
         if holomorphic:
 
             @partial(jax.vmap, in_axes=(None, 0))
-            def f(params, x):
+            def f(variables, x):
+                params = variables["params"]
+                shift_nondiff = variables["shift_nondiff"]
                 return astype_unsafe(
                     params["a"][0][0][0] * x[0]
                     + params["b"] * x[1]
                     + params["c"] * (x[0] * x[1])
                     + jnp.sin(x[1] * params["a"][0][1][0])
                     * jnp.cos(x[0] * params["b"] + 1j)
-                    * params["c"],
+                    * params["c"]
+                    + shift_nondiff,
                     self.dtype,
                 )
 
         else:
 
             @partial(jax.vmap, in_axes=(None, 0))
-            def f(params, x):
+            def f(variables, x):
+                params = variables["params"]
+                shift_nondiff = variables["shift_nondiff"]
                 return astype_unsafe(
                     params["a"][0][0][0].conjugate() * x[0]
                     + params["b"] * x[1]
                     + params["c"] * (x[0] * x[1])
                     + jnp.sin(x[1] * params["a"][0][1][0])
                     * jnp.cos(x[0] * params["b"].conjugate() + 1j)
-                    * params["c"].conjugate(),
+                    * params["c"].conjugate()
+                    + shift_nondiff,
                     self.dtype,
                 )
 
@@ -273,7 +288,7 @@ def test_matvec(e, jit, chunk_size):
     diag_shift = 0.01
 
     def f(params_model_state, x):
-        return e.f(params_model_state["params"], x)
+        return e.f(params_model_state, x)
 
     samples = e.samples
     if chunk_size is None:
@@ -284,7 +299,7 @@ def test_matvec(e, jit, chunk_size):
             qgt_onthefly_logic.mat_vec_chunked_factory, chunk_size=chunk_size
         )
 
-    mv = mat_vec_factory(f, e.params, {}, samples)
+    mv = mat_vec_factory(f, e.params, e.model_state, samples)
     if jit:
         mv = jax.jit(mv)
     actual = mv(e.v, diag_shift)
@@ -302,7 +317,7 @@ def test_matvec(e, jit, chunk_size):
 @common.named_parametrize("chunk_size", [8, None])
 def test_matvec_linear_transpose(e, jit, chunk_size):
     def f(params_model_state, x):
-        return e.f(params_model_state["params"], x)
+        return e.f(params_model_state, x)
 
     samples = e.samples
 
@@ -313,7 +328,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
             qgt_onthefly_logic.mat_vec_chunked_factory, chunk_size=chunk_size
         )
 
-    mv = mat_vec_factory(f, e.params, {}, samples)
+    mv = mat_vec_factory(f, e.params, e.model_state, samples)
 
     def mvt(v, w):
         (res,) = jax.linear_transpose(lambda v_: mv(v_, 0.0), v)(w)
@@ -368,7 +383,9 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
         mv = jax.jit(mv)
         centered_jacobian_fun = jax.jit(centered_jacobian_fun)
 
-    centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
+    centered_oks = centered_jacobian_fun(
+        e.f, {"params": e.params, **e.model_state}, e.samples
+    )["params"]
     centered_oks = divide_by_sqrt_n_samp(centered_oks, e.samples)
     actual = mv(e.v, centered_oks)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
@@ -384,10 +401,10 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
-    model_state = {}
+    model_state = e.model_state
 
-    def apply_fun(params, samples):
-        return e.f(params["params"], samples)
+    def apply_fun(variables, samples):
+        return e.f(variables, samples)
 
     mv = qgt_jacobian_pytree.mat_vec
 
@@ -455,9 +472,12 @@ def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
         jacobian_fun = nkjax._jacobian.jacobian_pytree.jacobian_real_holo
         ndims = 1
 
+    def _fun_ms(w, s):
+        return e.f({"params": w, **e.model_state}, s)
+
     jacobian_fun = jax.vmap(jacobian_fun, in_axes=(None, None, 0))
     centered_jacobian_fun = nkjax.compose(tree_subtract_mean, jacobian_fun)
-    centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
+    centered_oks = centered_jacobian_fun(_fun_ms, e.params, e.samples)
     centered_oks = divide_by_sqrt_n_samp(centered_oks, e.samples)
 
     centered_oks_scaled, scale = qgt_jacobian_common.rescale(

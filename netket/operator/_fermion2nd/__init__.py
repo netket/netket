@@ -19,4 +19,4 @@ from .base import FermionOperator2ndBase
 from .numba import FermionOperator2ndNumba
 from .jax import FermionOperator2ndJax
 
-FermionOperator2nd = FermionOperator2ndNumba
+FermionOperator2nd = FermionOperator2ndJax

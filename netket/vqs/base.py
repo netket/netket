@@ -22,7 +22,7 @@ import jax.numpy as jnp
 from jax.nn.initializers import normal
 
 from flax import core as fcore
-from flax.core.scope import CollectionFilter
+from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 from plum import Callable  # noqa: F401
 
 from netket.hilbert.discrete_hilbert import DiscreteHilbert

@@ -12,16 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Cubic and related 3D symmetry groups.
+
+This module provides functions to construct symmetry groups for cubic systems,
+including tetrahedral, octahedral, and icosahedral point groups. It includes
+both pure rotational groups and full point groups with inversions, as well as
+space groups for crystal lattices like diamond and pyrochlore.
+"""
+
 import numpy as np
 
 from netket.utils.moduletools import export, hide_unexported
 
-from .axial import cuboid, cuboid_rotations  # noqa: F401
-from .axial import inversion_group as _inv_group
-from .axial import reflection_group as _refl_group
-from .axial import rotation as _rotation
-from ._point_group import PointGroup
-from ._semigroup import Identity
+from netket.utils.group.axial import cuboid, cuboid_rotations  # noqa: F401
+from netket.utils.group.axial import inversion_group as _inv_group
+from netket.utils.group.axial import reflection_group as _refl_group
+from netket.utils.group.axial import rotation as _rotation
+from netket.utils.group._point_group import PointGroup
+from netket.utils.group._semigroup import Identity
 
 
 hide_unexported(__name__)

@@ -982,94 +982,6 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
         )
 
 
-class UndeclaredSpinOderingWarning(NetketWarning):
-    """
-    Warning thrown when a Spin Hilbert space is created without specifying the spin ordering.
-
-    This warning is thrown in the transition period of NetKet 3.14 to NetKet 3.15 (september to
-    december 2024), to warn users that the correspondence between ±1 and spin up/down will change
-    according to the table below.
-
-    +----------+----------------------------------+-----------------------------------+
-    | State    | Old Behavior                     | New Behavior                      |
-    |          | :code:`inverted_ordering=True`   | :code:`inverted_ordering=False`   |
-    +==========+==================================+===================================+
-    | ↑ ↑ ↑    | -1 -1 -1                         | +1 +1 +1                          |
-    +----------+----------------------------------+-----------------------------------+
-    | ↑ ↑ ↓    | -1 -1 +1                         | +1 +1 -1                          |
-    +----------+----------------------------------+-----------------------------------+
-    | ↑ ↓ ↑    | -1 +1 -1                         | +1 -1 +1                          |
-    +----------+----------------------------------+-----------------------------------+
-    | ↑ ↓ ↓    | -1 +1 +1                         | +1 -1 -1                          |
-    +----------+----------------------------------+-----------------------------------+
-    | ↓ ↑ ↑    | +1 -1 -1                         | -1 +1 +1                          |
-    +----------+----------------------------------+-----------------------------------+
-    | ↓ ↑ ↓    | +1 -1 +1                         | -1 +1 -1                          |
-    +----------+----------------------------------+-----------------------------------+
-    | ↓ ↓ ↑    | +1 +1 -1                         | -1 -1 +1                          |
-    +----------+----------------------------------+-----------------------------------+
-    | ↓ ↓ ↓    | +1 +1 +1                         | -1 -1 -1                          |
-    +----------+----------------------------------+-----------------------------------+
-
-    The old behaviour is the default behaviour of NetKet 3.14 and before, while the new
-    behaviour will become the default starting 1st january 2025.
-    For that reason, in the transition period, we will print warnings asking to explicitly
-    specify which ordering you want
-
-    .. warning::
-
-        The ordering of the Spin Hilbert space basis has historically always been
-        such that `-1=↑, 1=↓`, but it will be changed 1st january 2025 to
-        be such that `1=↑, -1=↓`.
-
-        The change will break:
-            - code that relies on the assumption that -1=↑;
-            - all saves because the inputs to the network will change;
-            - custom operators that rely on the basis being ordered;
-
-        To avoid distruption, NetKet will support **both** conventions in the (near)
-        future. You can specify the ordering you need with :code:`inverted_ordering = True`
-        (historical ordering) or :code:`inverted_ordering=False` (future default behaviour).
-
-        If you do not specify this flag, a future version of NetKet might break your
-        serialized weights or other logic, so we strongly reccomend that you either
-        limit yourself to NetKet 3.14, or that you specify :code:`inverted_ordering`
-        explicitly.
-
-    To avoid this warning, you can :
-
-     - explicitly specify the ordering you want wit the `inverted_ordering` flag, which will
-       ensure that your code will still work in the future with no changes. If possible,
-       we suggest you use the new ordering `inverted_ordering=False`, but if you want to
-       keep loading parameters serialized before th switch, you should use `inverted_ordering=True`.
-
-     - You can silence this warning by setting the environment variable
-       ``NETKET_SPIN_ORDERING_WARNING=0`` or by setting
-       ``nk.config.netket_spin_ordering_warning = False`` in your code.
-
-    """
-
-    def __init__(self):
-        super().__init__(
-            _dedent(
-                """
-                You have not explicitly specified the spin ordering for the Hilbert space.
-                The default behaviour is currently `-1=↑, 1=↓`, but it will be changed 1st january 2025 to `1=↑, -1=↓`.
-
-                - To maintain the current behaviour in the future, specify `inverted_ordering=True` (this
-                    allows you to load NN parameters you have saved in the past)
-                - To opt-in today in the future default, specify `inverted_ordering=False` (so your code will
-                    work without changes in the future)
-
-                If you do not care about this warning, you can silence it by setting the environment variable
-                `NETKET_SPIN_ORDERING_WARNING=0` or by executing `nk.config.netket_spin_ordering_warning = False`
-
-                This warning will be shown once per day during interactive sessions, and always in scripts and JAX/SLURM jobs unless silenced.
-                """
-            )
-        )
-
-
 class ParameterMismatchError(NetketError):
     """
     Error thrown when the structure of the parameters does not match the expected structure.
@@ -1098,6 +1010,47 @@ class ParameterMismatchError(NetketError):
         )
 
 
+class OperatorMultiplicationDeprecationWarning(NetketWarning):
+    """
+    Warning issued when using deprecated ``A*B`` syntax for operator multiplication.
+
+    The ``A*B`` syntax for operator multiplication is deprecated and will be removed
+    in a future version of NetKet. Use ``A@B`` instead for matrix multiplication of
+    operators, which follows Python's standard matrix multiplication operator.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            result = operator1 * operator2  # Deprecated
+
+        Use:
+
+        .. code-block:: python
+
+            result = operator1 @ operator2  # Correct
+
+    Note:
+        The ``@`` operator was introduced in Python 3.5 specifically for matrix
+        multiplication and is the standard way to express this operation in NumPy,
+        JAX, and other scientific computing libraries.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            The '*' operator for multiplying operators is deprecated and will be removed in a future version.
+
+            Please use the '@' operator instead:
+              - Replace: operator1 * operator2
+              - With:    operator1 @ operator2
+
+            The '@' operator is Python's standard matrix multiplication operator.
+            """
+        )
+
+
 #################################################
 # Functions to throw errors                     #
 #################################################
@@ -1116,14 +1069,9 @@ def concrete_or_error(force, value, error_class, *args, **kwargs):
       *args: any additional argument and keyword argument to pass to the custom
         error type constructor.
     """
-    import jax
     from jax.core import concrete_or_error
 
-    # TODO: remove once we require jax >= 0.5.0
-    if hasattr(jax.errors, "ConcretizationTypeError"):
-        from jax.errors import ConcretizationTypeError
-    else:
-        from jax.core import ConcretizationTypeError
+    from jax.errors import ConcretizationTypeError
 
     try:
         return concrete_or_error(
@@ -1167,5 +1115,41 @@ class InitializePeriodicLatticeOnSmallLatticeWarning(NetketWarning):
 
             To avoid this warning, consider either using a lattice with more than two sites in the direction you want to be periodic,
             or define the graph using :class:`~netket.graph.Graph` by adding the edges manually.
+            """
+        )
+
+
+#################################################
+# Sampler errors                                  #
+#################################################
+
+
+class NNXModuleToSamplerInput(NetketError):
+    """
+    Error thrown when attempting to use a sampler with a bare NNX module.
+
+    NetKet's samplers do not accept a nnx module directly, because the nnx
+    module wraps both the 'logic' and the 'variables'. Instead, the NNX
+    module must be converted to a linen-compatible interface.
+
+    The simplest way to do that is to call
+    {func}`netket.utils.model_frameworks.maybe_wrap_module` which will return
+    a linen-like static class and the variable dictionary, which you can then
+    pass to the sampler.
+
+    You can also implement this logic yourself if you want to customize it more,
+    by using {func}`flax.nnx.split` and {func}`flax.nnx.merge`, knowing that the
+    {class}`flax.nnx.GraphDef` state can be treated as static.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            You are attempting to use a sampler with a bare NNX module, which is not allowed.
+
+            You must first convert it to a linen-like interface by calling.
+
+                variables, module = nk.utils.model_frameworks.maybe_wrap_module(nnx_module)
+
             """
         )

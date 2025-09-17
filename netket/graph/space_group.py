@@ -147,7 +147,9 @@ def _pg_to_permutation(lattice: Lattice, point_group: PointGroup) -> Permutation
         else:
             # note that we need the preimages in the permutation
             perm = lattice.id_from_position(p.preimage(lattice.positions))
-            perms.append(Permutation(inverse_permutation_array=perm, name=str(p)))
+            perms.append(
+                Permutation(inverse_permutation_array=perm, name=str(p), validate=False)
+            )
     return PermutationGroup(perms, degree=lattice.n_nodes)
 
 

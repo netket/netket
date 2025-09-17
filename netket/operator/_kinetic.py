@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Hashable
 from collections.abc import Callable
-from functools import partial
 
 import numpy as np
 
 import jax
 import jax.numpy as jnp
 
+from netket.utils import struct
 from netket.utils.types import DType, PyTree, Array
 import netket.jax as nkjax
 from netket.hilbert import AbstractHilbert
@@ -31,9 +32,11 @@ def jacrev(f):
         y, vjp_fun = nkjax.vjp(f, x)
         if y.size == 1:
             eye = jnp.eye(y.size, dtype=x.dtype)[0]
+            eye = jax.lax.pvary(eye, tuple(jax.typeof(y).vma))
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         else:
             eye = jnp.eye(y.size, dtype=x.dtype)
+            eye = jax.lax.pvary(eye, tuple(jax.typeof(y).vma))
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         return J
 
@@ -55,6 +58,9 @@ class KineticEnergy(ContinuousOperator):
     :math:`E_{kin} = -1/2 ( \sum_i \frac{1}{m_i} (\log(\psi))'^2 + (\log(\psi))'' )`
     """
 
+    _is_hermitian: bool = struct.static_field()
+    _mass: Array = struct.field()
+
     def __init__(
         self,
         hilbert: AbstractHilbert,
@@ -68,9 +74,7 @@ class KineticEnergy(ContinuousOperator):
         """
 
         self._mass = jnp.asarray(mass, dtype=dtype)
-
         self._is_hermitian = np.allclose(self._mass.imag, 0.0)
-        self.__attrs = None
 
         super().__init__(hilbert, self._mass.dtype)
 
@@ -83,32 +87,35 @@ class KineticEnergy(ContinuousOperator):
         return self._is_hermitian
 
     def _expect_kernel_single(
-        self, logpsi: Callable, params: PyTree, x: Array, inverse_mass: PyTree | None
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
     ):
         def logpsi_x(x):
             return logpsi(params, x)
 
         dlogpsi_x = jacrev(logpsi_x)
+        inverse_mass = jnp.reciprocal(self._mass)
 
         dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
         dp_dx = dlogpsi_x(x)[0][0] ** 2
 
         return -0.5 * jnp.sum(inverse_mass * (dp_dx2 + dp_dx), axis=-1)
 
-    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, coefficient: PyTree | None
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
     ):
-        return self._expect_kernel_single(logpsi, params, x, coefficient)
+        return jax.vmap(
+            lambda x_: self._expect_kernel_single(logpsi, params, x_), in_axes=(0)
+        )(x)
 
-    def _pack_arguments(self) -> PyTree:
-        return 1.0 / self._mass
-
-    @property
-    def _attrs(self):
-        if self.__attrs is None:
-            self.__attrs = (self.hilbert, self.dtype, HashableArray(self.mass))
-        return self.__attrs
+    @struct.property_cached(pytree_ignore=True)
+    def _attrs(self) -> tuple[Hashable, ...]:
+        return (self.hilbert, self.dtype, HashableArray(self.mass))
 
     def __repr__(self):
         return f"KineticEnergy(m={self._mass})"

@@ -20,7 +20,6 @@ import numpy as np
 import jax
 
 import netket as nk
-from netket.utils import mpi
 
 
 pytestmark = common.onlyif_mpi
@@ -40,7 +39,7 @@ def test_metropolis_numpy_works():
 
     sampler = nk.sampler.MetropolisLocalNumpy(hi, n_chains_per_rank=8)
     assert sampler.n_chains_per_rank == 8
-    assert sampler.n_chains == 8 * mpi.n_nodes
+    assert sampler.n_chains == 8
 
     # check it works
     CHAIN_LEN = 4
@@ -58,5 +57,5 @@ def test_metropolis_numpy_works():
         sampler_state.n_steps_proc
         == sampler.n_chains_per_rank * CHAIN_LEN * sampler.sweep_size
     )
-    assert sampler_state.n_steps == sampler_state.n_steps_proc * mpi.n_nodes
+    assert sampler_state.n_steps == sampler_state.n_steps_proc
     assert sampler_state.n_accepted_proc < sampler_state.n_steps_proc

@@ -36,7 +36,7 @@ sz = [[1, 0], [0, -1]]
 sm = [[0, 0], [1, 0]]
 sp = [[0, 1], [0, 0]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(8)])
-hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 sy_sparse = sparse.csr_matrix(sy)
 
@@ -299,8 +299,6 @@ def test_mul_matmul():
 
     sx0sy1_hat = sx0_hat @ sy1_hat
     assert_same_matrices(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
-    sx0sy1_hat = sx0_hat * sy1_hat
-    assert_same_matrices(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
 
     op = nk.operator.LocalOperatorNumba(hi, sx, [0])
     with raises(ValueError):
@@ -442,7 +440,7 @@ def test_is_hermitian_generic_op(ops):
     "jax",
     [pytest.param(op) for op in [True, False]],
 )
-@common.skipif_sharding
+@common.skipif_distributed
 def test_qutip_conversion(jax):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -466,8 +464,8 @@ def test_qutip_conversion(jax):
 def test_notsharing():
     # This test will fail if operators alias some underlying arrays upon copy().
     hi = nk.hilbert.Spin(0.5, 2)
-    a = nk.operator.spin.sigmax(hi, 0) * nk.operator.spin.sigmax(hi, 1, dtype=complex)
-    b = nk.operator.spin.sigmay(hi, 0) * nk.operator.spin.sigmaz(hi, 1)
+    a = nk.operator.spin.sigmax(hi, 0) @ nk.operator.spin.sigmax(hi, 1, dtype=complex)
+    b = nk.operator.spin.sigmay(hi, 0) @ nk.operator.spin.sigmaz(hi, 1)
     delta = b - a
 
     a_orig = a.to_dense()
@@ -501,8 +499,8 @@ def test_operator():
     hi = nk.hilbert.Fock(n_max, N=1) * nk.hilbert.Qubit()
     a = nk.operator.boson.destroy(hi, 0)
     sp = nk.operator.spin.sigmap(hi, 1)
-    op1 = a * sp
-    op2 = sp * a
+    op1 = a @ sp
+    op2 = sp @ a
 
     assert_same_matrices(op1, op2)
 
@@ -542,10 +540,10 @@ def test_identity():
     assert_same_matrices(I @ X, X)
 
 
-@common.skipif_sharding
+@common.skipif_distributed
 def test_not_recompiling():
     hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
-    op = bcreate(hi, 0) * bdestroy(hi, 2)
+    op = bcreate(hi, 0) @ bdestroy(hi, 2)
 
     assert not op._initialized
     op.get_conn_padded(hi.numbers_to_states(1))
@@ -649,3 +647,25 @@ def test_pauli_strings_conversion_no_warn():
         TypeError, match=r".* hilbert spaces with local dimension != 2.*"
     ):
         nk.operator.spin.sigmax(nk.hilbert.Spin(1.0, 3), 0).to_pauli_strings()
+
+
+def test_operator_multiplication_deprecation_warning():
+    """Test that operator multiplication with * throws deprecation warning."""
+    import warnings
+    from netket.errors import OperatorMultiplicationDeprecationWarning
+
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
+    op1 = nk.operator.spin.sigmax(hi, 0)
+    op2 = nk.operator.spin.sigmaz(hi, 1)
+
+    # Test that * operator throws deprecation warning
+    with pytest.warns(OperatorMultiplicationDeprecationWarning):
+        result = op1 * op2
+
+    # Test that @ operator does NOT throw warning
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", OperatorMultiplicationDeprecationWarning)
+        result_correct = op1 @ op2
+
+    # Verify both give same result (backward compatibility)
+    assert_same_matrices(result, result_correct)

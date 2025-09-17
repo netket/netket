@@ -20,12 +20,14 @@ import numpy as np
 
 import jax
 
+from netket.operator import AbstractOperator
 from netket.utils.types import DType
 from netket.operator import DiscreteOperator, Transpose
 from netket.operator._pauli_strings.base import _count_of_locations
 from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
+from netket.errors import OperatorMultiplicationDeprecationWarning
 
 from netket.hilbert import Fock, SpinOrbitalFermions
 
@@ -101,11 +103,11 @@ class FermionOperator2ndBase(DiscreteOperator):
             >>> hi = nk.hilbert.SpinOrbitalFermions(3)
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2ndNumba(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
+            FermionOperator2ndJax(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> terms = ("0^ 1", "2^ 1")
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2ndNumba(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
+            FermionOperator2ndJax(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> op.hilbert
             SpinOrbitalFermions(n_orbitals=3)
             >>> op.hilbert.size
@@ -423,9 +425,11 @@ class FermionOperator2ndBase(DiscreteOperator):
         return self.__add__(other)
 
     def __add__(self, other):
-        dtype = np.promote_types(self.dtype, _dtype(other))
-        op = self.copy(dtype=dtype)
-        return op.__iadd__(other)
+        if is_scalar(other) or isinstance(other, FermionOperator2ndBase):
+            dtype = np.promote_types(self.dtype, _dtype(other))
+            op = self.copy(dtype=dtype)
+            return op.__iadd__(other)
+        return super().__add__(other)
 
     def __iadd__(self, other):
         if is_scalar(other):
@@ -494,12 +498,19 @@ class FermionOperator2ndBase(DiscreteOperator):
         return self
 
     def __mul__(self, scalar):
-        if not is_scalar(scalar):
+        if is_scalar(scalar):
+            dtype = np.promote_types(self.dtype, _dtype(scalar))
+            op = self.copy(dtype=dtype)
+            return op.__imul__(scalar)
+        if isinstance(scalar, AbstractOperator):
+            # TODO: Deprecated in September 2025
+            warnings.warn(OperatorMultiplicationDeprecationWarning())
             # we will overload this as matrix multiplication
-            return self._op__matmul__(scalar)
-        dtype = np.promote_types(self.dtype, _dtype(scalar))
-        op = self.copy(dtype=dtype)
-        return op.__imul__(scalar)
+            res = self._op__matmul__(scalar)
+            if res is not NotImplemented:
+                return res
+
+        return super().__mul__(scalar)
 
     def transpose(self, *, concrete=False):
         r"""Returns the transpose of this operator.

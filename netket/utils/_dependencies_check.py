@@ -21,7 +21,7 @@ silently or unexpectedly.
 from textwrap import dedent
 
 
-from .version_check import module_version, version_string
+from netket.utils.version_check import module_version, version_string
 
 
 def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_name=None):
@@ -51,10 +51,9 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_nam
     )
 
 
-if not module_version("jax") >= (0, 4, 35):  # pragma: no cover
+if not module_version("jax") >= (0, 7, 0):  # pragma: no cover
     cur_version = version_string("jax")
-    raise ImportError(create_msg("jax", cur_version, "0.4.35"))
-
+    raise ImportError(create_msg("jax", cur_version, "0.7.0"))
 
 if not module_version("optax") >= (0, 2, 2):  # pragma: no cover
     cur_version = version_string("optax")

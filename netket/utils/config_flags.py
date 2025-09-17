@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any
 
 import os
 from textwrap import dedent
@@ -61,12 +62,13 @@ class Config:
     _HAS_DYNAMIC_ATTRIBUTES = True
 
     def __init__(self):
-        self._values = {}
-        self._types = {}
-        self._editable_at_runtime = {}
+        object.__setattr__(self, "_values", {})
+        object.__setattr__(self, "_types", {})
+        object.__setattr__(self, "_editable_at_runtime", {})
+        object.__setattr__(self, "_meta", {})
 
-        self._readonly = ReadOnlyDict(self._values)
-        self._callbacks = {}
+        object.__setattr__(self, "_readonly", ReadOnlyDict(self._values))
+        object.__setattr__(self, "_callbacks", {})
 
     def define(
         self,
@@ -99,21 +101,16 @@ class Config:
         self._editable_at_runtime[name] = runtime
         self._values[name] = get_env(name, type, default)
         self._callbacks[name] = callback
+        self._meta[name] = (
+            type,
+            [],
+            {
+                "help": help,
+            },
+        )
 
         if callback is not None and not lazy:
             callback(self._values[name])
-
-        @property
-        def _read_config(self):
-            return self.FLAGS[name]
-
-        @_read_config.setter
-        def _read_config(self, value):
-            if self._callbacks[name] is not None:
-                self._callbacks[name](value)
-            self.update(name, value)
-
-        setattr(Config, name.lower(), _read_config)
 
     @property
     def FLAGS(self):
@@ -161,6 +158,26 @@ class Config:
 
     def __dir__(self):
         return list(k.lower() for k in self._values.keys())
+
+    def __getattr__(self, name: str) -> Any:
+        """Handle dynamically created attributes."""
+        if name == name.lower():
+            upper_name = name.upper()
+            if upper_name in self._values:
+                return self.FLAGS[upper_name]
+        raise AttributeError(f"'Config' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Handle setting dynamically created attributes."""
+        if name == name.lower() and name.upper() in self._values:
+            # Handle config flag setting
+            upper_name = name.upper()
+            if self._callbacks[upper_name] is not None:
+                self._callbacks[upper_name](value)
+            self.update(upper_name, value)
+            return
+        # Use default behavior for everything else
+        super().__setattr__(name, value)
 
 
 config = Config()
@@ -215,26 +232,9 @@ config.define(
     runtime=True,
 )
 
-# TODO: removed in january 2025, defaults to True now.
-config.define(
-    "NETKET_EXPERIMENTAL_DISABLE_ODE_JIT",
-    bool,
-    default=True,
-    help=dedent(
-        """
-        Deprecated: jax does not support reentrant callbacks anymore.
-
-        Disables the jitting of the whole ode solver, mainly used within TDVP solvers.
-        The jitting is sometimes incompatible with GPU-based calculations, and on large
-        calculations it gives negligible speedups so it might be beneficial to disable it.
-        """
-    ),
-    runtime=True,
-)
-
 
 def _setup_experimental_sharding_cpu(n_procs):
-    if n_procs >= 1:
+    if n_procs > 1:
         import jax
 
         jax.config.update("jax_num_cpu_devices", n_procs)
@@ -295,19 +295,55 @@ config.define(
 )
 
 
-def _setup_experimental_sharding(val):
-    # TODO: Remove once we require jax 0.5
+def _setup_experimental_sharding(val, explicit=False):
     if val:
-        from jax import config as jax_config
+        import jax
+        from jax.sharding import AxisType
 
-        # TODO: Remove once we require jax 0.5
-        jax_config.update("jax_threefry_partitionable", True)
+        kwargs = {}
+        if explicit:
+            kwargs["axis_types"] = (AxisType.Explicit,)
+        mesh = jax.make_mesh(
+            (len(jax.devices()),),
+            ("S"),
+            **kwargs,
+        )
+        jax.sharding.set_mesh(mesh)
+
+        # mode_type = "Explicit" if explicit else "Auto"
+        # warnings.warn(
+        #     f"""
+        #     NETKET_EXPERIMENTAL_SHARDING mode detected:
+        #         - SHARDING IS NOW ALWAYS ENABLED, BUT TO USE MORE THAN 1 DEVICE YOU MUST
+        #         DEFINE THE MESH AND SPECIFY IT IN YOUR CODE.
+
+        #         - For backward compatibility, specifying `NETKET_EXPERIMENTAL_SHARDING` will
+        #         create create and set a single-axis mesh with all devices for you.
+
+        #         - You should UPDATE YOUR CODE to include the following lines, and stop declaring
+        #         `NETKET_EXPERIMENTAL_SHARDING` in your code.
+
+        #         import jax
+        #         import netket as nk
+
+        #         # Create a mesh with all the devices
+        #         mesh = jax.make_mesh(
+        #             (len(jax.devices()),),  # How many devices
+        #             ("S"),                  # The name of the axis. 'S' is standard for 'samples'.
+        #             axis_types=(
+        #                 AxisType.{mode_type},  # Explicit/Auto sharding mode
+        #             ),
+        #         )
+        #         jax.sharding.set_mesh(mesh) # Set this as the default mesh for jax.
+
+        #     """
+        # )
 
 
 config.define(
     "NETKET_EXPERIMENTAL_SHARDING",
     bool,
-    default=int_env("NETKET_EXPERIMENTAL_SHARDING_CPU", 0) > 0,
+    default=True,
     help=dedent(
         """
         Enables highly expermiental support of netket for running on multiple jax devices.
@@ -348,20 +384,6 @@ config.define(
         If True (Defaults False) does not gather data on the master process when
         using flax.serialization methods. This allows to use orbax-checkpoint with
         higher efficiency.
-        """
-    ),
-)
-
-
-config.define(
-    "NETKET_SPIN_ORDERING_WARNING",
-    bool,
-    default=True,
-    runtime=True,
-    help=dedent(
-        """
-        If True (Defaults True) warns if the ordering of spins in the Hilbert space
-        is not declared.
         """
     ),
 )

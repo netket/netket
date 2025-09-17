@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from flax import serialization
 
 
-from ..version_check import module_version
+from netket.utils.version_check import module_version
 
 if TYPE_CHECKING:
     from flax import nnx

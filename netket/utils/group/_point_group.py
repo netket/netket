@@ -18,6 +18,7 @@
 import itertools
 from functools import partial
 from math import pi
+from typing import overload, Literal, Any
 
 import numpy as np
 from scipy.linalg import schur
@@ -27,8 +28,8 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.types import Array, Shape
 from netket.utils.dispatch import dispatch
 
-from ._group import FiniteGroup
-from ._semigroup import Element, Identity
+from netket.utils.group._group import FiniteGroup
+from netket.utils.group._semigroup import Element, Identity
 
 ############ POINT GROUP SYMMETRY CLASS ########################################
 
@@ -95,7 +96,7 @@ class PGSymmetry(Element):
     @property
     def is_proper(self) -> bool:
         """Returns True if `self` is a proper rotation (det(`self.matrix`) is +1)."""
-        return np.isclose(np.linalg.det(self.matrix), 1.0)
+        return bool(np.isclose(np.linalg.det(self.matrix), 1.0))
 
     @property
     def is_symmorphic(self) -> bool:
@@ -469,7 +470,17 @@ class PointGroup(FiniteGroup):
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)
 
-    def remove_duplicates(self, *, return_inverse=False) -> "PointGroup":
+    @overload
+    def remove_duplicates(
+        self, *, return_inverse: Literal[False] = False
+    ) -> "PointGroup": ...
+
+    @overload
+    def remove_duplicates(
+        self, *, return_inverse: Literal[True]
+    ) -> tuple["PointGroup", Any]: ...
+
+    def remove_duplicates(self, *, return_inverse=False):
         """
         Returns a new :code:`PointGroup` with duplicate elements (that is, elements
         which represent identical transformations) removed.

@@ -80,7 +80,7 @@ def vstate(request):
     "solver",
     [pytest.param(solver, id=name) for name, solver in solvers.items()],
 )
-def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
+def test_qgt_solve(qgt, vstate, solver):
     is_holo = nk.jax.is_complex_dtype(vstate.model.param_dtype)
     S = qgt(vstate, holomorphic=is_holo)
 

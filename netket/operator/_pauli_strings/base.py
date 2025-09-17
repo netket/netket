@@ -125,7 +125,17 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
 
 
 class PauliStringsBase(DiscreteOperator):
-    """A Hamiltonian consisting of the sum of products of Pauli operators."""
+    """A Hamiltonian consisting of the sum of products of
+    Pauli operators, acting on any number of sites.
+
+    .. note::
+
+        Compared to :class:`netket.operator.LocalOperator` this
+        operator can easily handle operators containg terms acting
+        on an arbitrary number of sites, as long as the number
+        of connected entries is 'reasonable'.
+
+    """
 
     def __init__(
         self,
@@ -272,8 +282,11 @@ class PauliStringsBase(DiscreteOperator):
 
     def __repr__(self):
         print_list = []
-        for op, w in zip(self.operators, self.weights):
-            print_list.append(f"    {op} : {str(w)}")
+        try:
+            for op, w in zip(self.operators, self.weights):
+                print_list.append(f"    {op} : {str(w)}")
+        except Exception:
+            print_list.append("...#error rendering#...")
         s = "{}(hilbert={}, n_strings={}, dtype={}, dict(operators:weights)=\n{}\n)".format(
             type(self).__name__,
             self.hilbert,
@@ -360,7 +373,7 @@ class PauliStringsBase(DiscreteOperator):
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
 
-        return NotImplemented
+        return super().__mul__(other)
 
     def __imul__(self, other):
         if isinstance(other, AbstractOperator):
@@ -398,15 +411,19 @@ class PauliStringsBase(DiscreteOperator):
         return -1 * self
 
     def __radd__(self, other):
-        return self.__add__(other)
+        if is_scalar(other):
+            return self.__add__(other)
+        return super().__radd__(other)
 
     def __isub__(self, other):
         return self.__iadd__(-other)
 
     def __add__(self, other: Union["PauliStringsBase", Number]):
-        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
-        op = op.__iadd__(other)
-        return op
+        if isinstance(other, PauliStringsBase) or is_scalar(other):
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
+            op = op.__iadd__(other)
+            return op
+        return super().__add__(other)
 
     def __iadd__(self, other):
         if isinstance(other, PauliStringsBase):
@@ -437,7 +454,7 @@ class PauliStringsBase(DiscreteOperator):
                 return self.__iadd__(other * self.identity(self.hilbert))
             return self
 
-        raise NotImplementedError
+        return NotImplemented
 
 
 def _count_of_locations(of_qubit_operator):

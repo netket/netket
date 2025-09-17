@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 import numpy as np
 import netket as nk
+import netket.experimental as nkx
 
 import flax.linen as nn
 
@@ -9,9 +10,7 @@ class test(nn.Module):
     @nn.compact
     def __call__(self, x):
         _ = self.param("nothing", lambda *args: jnp.ones(1))
-        if len(x.shape) != 1:
-            return jnp.array(x.size * [1.0])
-        return 1.0
+        return jnp.ones_like(x[..., 0])
 
 
 class test2(nn.Module):
@@ -33,9 +32,7 @@ def v2(x):
 
 
 def test_expect():
-    hilb = nk.experimental.hilbert.Particle(
-        N=1, geometry=nk.experimental.geometry.Cell(d=1, L=5.0, pbc=True)
-    )
+    hilb = nkx.hilbert.Particle(N=1, geometry=nkx.geometry.Cell(d=1, L=5.0, pbc=True))
     pot = nk.operator.PotentialEnergy(hilb, v1)
     kin = nk.operator.KineticEnergy(hilb, mass=1.0)
     e = pot + kin

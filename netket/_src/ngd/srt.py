@@ -3,7 +3,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import PositionalSharding
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import jax as nkjax
 from netket import config
@@ -34,17 +34,16 @@ def _compute_srt_update(
     if momentum is not None:
         dv -= momentum * (O_L @ old_updates)
 
-    # Equivalent to MPI.alltoall, shards the data across axis 1
     # (#ns, np) -> (ns, #np)
     O_LT = O_L
     if config.netket_experimental_sharding:
         nkjax.sharding.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
         O_LT = jax.lax.with_sharding_constraint(
             O_LT,
-            PositionalSharding(jax.devices()).reshape(1, -1),
+            NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None)),
         )
         dv = jax.lax.with_sharding_constraint(
-            dv, PositionalSharding(jax.devices()).replicate()
+            dv, NamedSharding(jax.sharding.get_abstract_mesh(), P())
         )
 
     # This does the contraction (ns, #np) x (#np, ns) -> (ns, ns).
@@ -73,12 +72,7 @@ def _compute_srt_update(
     else:
         info = {}
 
-    # aus_vector, token = mpi.mpi_scatter_jax(aus_vector, root=0, token=token)
-
     # (np, #ns) x (#ns) -> (np).
-    # The sum over #ns is done automatically in sharding.
-    # Under MPI we need to do it manually with an allreduce_sum.
-    # updates, token = mpi.mpi_allreduce_sum_jax(O_L.T @ aus_vector, token=token)
     updates = O_L.T @ aus_vector
     if momentum is not None:
         updates += momentum * old_updates
@@ -91,9 +85,9 @@ def _compute_srt_update(
         updates = updates[:num_p] + 1j * updates[num_p:]
 
     if config.netket_experimental_sharding:
-        out_shardings = (
-            PositionalSharding(jax.devices()).replicate().reshape((1,) * updates.ndim)
-        ).replicate()
+        out_shardings = NamedSharding(
+            jax.sharding.get_abstract_mesh(), P(*(None,) * updates.ndim)
+        )
         updates = jax.lax.with_sharding_constraint(updates, out_shardings)
 
     return updates, old_updates, info

@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+3D axial symmetry groups and transformations.
+
+This module provides functions to construct point groups and symmetry operations
+for 3D systems with axial symmetry, including rotations, reflections, inversions,
+and their combinations. It includes common point groups like cyclic (C), dihedral (D),
+pyramidal (Cv), prismatic (Dh), and antiprismatic (Dd) groups.
+"""
+
 from itertools import count
 
 import numpy as np
@@ -20,8 +29,8 @@ from netket.utils.float import is_approx_int
 from netket.utils.types import Array
 from netket.utils.moduletools import export, hide_unexported
 
-from ._point_group import PGSymmetry, PointGroup
-from ._semigroup import Identity
+from netket.utils.group._point_group import PGSymmetry, PointGroup
+from netket.utils.group._semigroup import Identity
 
 hide_unexported(__name__)
 

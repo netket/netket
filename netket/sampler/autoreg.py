@@ -17,6 +17,7 @@ from functools import partial
 import flax
 import jax
 from jax import numpy as jnp
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import jax as nkjax
 from netket import config
@@ -116,17 +117,12 @@ class ARDirectSampler(Sampler):
         chain_length,
         return_log_probabilities: bool = False,
     ):
-        if return_log_probabilities:
-            raise NotImplementedError(
-                "return_log_probability is not implemented for ARDirectSampler"
-            )
-
         if "cache" in variables:
             variables, _ = flax.core.pop(variables, "cache")
         variables_no_cache = variables
 
         def scan_fun(carry, index):
-            σ, cache, key = carry
+            σ, cache, key, log_prob = carry
             if cache:
                 variables = {**variables_no_cache, "cache": cache}
             else:
@@ -143,15 +139,22 @@ class ARDirectSampler(Sampler):
             cache = mutables.get("cache")
 
             local_states = jnp.asarray(self.hilbert.local_states, dtype=self.dtype)
-            new_σ = nkjax.batch_choice(key, local_states, p)
+
+            if return_log_probabilities:
+                new_σ, new_p = nkjax.batch_choice(
+                    key, local_states, p, return_prob=True
+                )
+                log_prob = log_prob + jnp.log(new_p)
+            else:
+                new_σ = nkjax.batch_choice(key, local_states, p)
+
             σ = σ.at[:, index].set(new_σ)
 
-            return (σ, cache, new_key), None
+            return (σ, cache, new_key, log_prob), None
 
         new_key, key_init, key_scan = jax.random.split(state.key, 3)
 
         # Initialize a buffer for `σ` before generating a batch of samples
-        # The result should not depend on its initial content
         σ = jnp.zeros(
             (self.n_batches * chain_length, self.hilbert.size),
             dtype=self.dtype,
@@ -159,11 +162,11 @@ class ARDirectSampler(Sampler):
 
         if config.netket_experimental_sharding:
             σ = jax.lax.with_sharding_constraint(
-                σ, jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1)
+                σ,
+                NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
             )
 
-        # Initialize `cache` before generating a batch of samples,
-        # even if `variables` is not changed and `reset` is not called
+        # Initialize `cache` before generating a batch of samples
         cache = self._init_cache(model, σ, key_init)
         if cache:
             variables = {**variables_no_cache, "cache": cache}
@@ -172,8 +175,21 @@ class ARDirectSampler(Sampler):
 
         indices = jnp.arange(self.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
-        (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
+
+        if return_log_probabilities:
+            log_prob = jnp.zeros((self.n_batches * chain_length,))
+        else:
+            log_prob = None
+
+        (σ, _, _, log_prob), _ = jax.lax.scan(
+            scan_fun, (σ, cache, key_scan, log_prob), indices
+        )
         σ = σ.reshape((self.n_batches, chain_length, self.hilbert.size))
 
         new_state = state.replace(key=new_key)
-        return σ, new_state
+
+        if return_log_probabilities:
+            log_prob = log_prob.reshape((self.n_batches, chain_length))
+            return (σ, log_prob), new_state
+        else:
+            return σ, new_state

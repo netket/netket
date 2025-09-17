@@ -16,4 +16,4 @@ from .base import BoseHubbardBase
 from .numba import BoseHubbardNumba
 from .jax import BoseHubbardJax
 
-BoseHubbard = BoseHubbardNumba
+BoseHubbard = BoseHubbardJax

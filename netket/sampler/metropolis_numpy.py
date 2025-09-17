@@ -147,7 +147,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         return self.n_chains_per_rank
 
     def _init_state(self, machine, parameters, key):
-        rgen = np.random.default_rng(np.asarray(key))
+        key_data = jax.random.key_data(key)
+        rgen = np.random.default_rng(np.asarray(key_data))
 
         σ = np.zeros((self.n_batches, self.hilbert.size), dtype=self.dtype)
 
@@ -235,7 +236,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 )
                 assert len(_log_prob.addressable_shards) == 1
                 _log_prob = global_array_to_host_local_array(
-                    log_prob, global_mesh, pspecs
+                    _log_prob, global_mesh, pspecs
                 )
             else:
                 _log_prob = (

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 from numba import jit
@@ -65,7 +66,7 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
             N-tensor containing the matrix elements :math:`O(x,x')`
             associated to each x' for every batch.
         """
-        if config.netket_experimental_sharding:
+        if config.netket_experimental_sharding and jax.device_count() > 1:
             raise RuntimeError(
                 "When using Sharding mode, only jax operators are supported."
             )
@@ -271,9 +272,10 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
         ):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
-            return self._op__matmul__(other)
-        else:
-            return NotImplemented
+            res = self._op__matmul__(other)
+            if res is not NotImplemented:
+                return res
+        return super().__matmul__(other)
 
     def _op__matmul__(self, other):
         "Implementation on subclasses of __matmul__"
@@ -288,9 +290,10 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
             # return self.apply(other)
             return NotImplemented
         elif isinstance(other, AbstractOperator):
-            return self._op__rmatmul__(other)
-        else:
-            return NotImplemented
+            res = self._op__rmatmul__(other)
+            if res is not NotImplemented:
+                return res
+        return super().__rmatmul__(other)
 
     def _op__rmatmul__(self, other):
         "Implementation on subclasses of __matmul__"

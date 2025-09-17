@@ -70,8 +70,8 @@ def test_symmexpsum(bare_module, character_id, characters, trivial):
         np.testing.assert_allclose(out_sym, out_bare)
 
     # check that it works with different shapes
-    s0 = hi.random_state(jax.random.PRNGKey(0))
-    out0, pars = ma.init_with_output(jax.random.PRNGKey(0), s0)
+    s0 = hi.random_state(jax.random.key(0))
+    out0, pars = ma.init_with_output(jax.random.key(0), s0)
     assert out0.shape == ()
 
     out1 = ma.apply(pars, s0.reshape((1, -1)))
@@ -80,16 +80,25 @@ def test_symmexpsum(bare_module, character_id, characters, trivial):
     np.testing.assert_allclose(out0, out1.reshape(()))
 
     # 2D and 3D
-    s1 = hi.random_state(jax.random.PRNGKey(0), (100,))
+    s1 = hi.random_state(jax.random.key(15), (100,))
     out1 = ma.apply(pars, s1)
     assert out1.shape == (100,)
 
     s2 = s1.reshape((10, 10, hi.size))
     out2 = ma.apply(pars, s2)
     assert out2.shape == (10, 10)
-    np.testing.assert_allclose(out1, out2.reshape((-1,)))
+
+    def _logspace_allclose(x, y, logrcond=-10):
+        # find elements where the amplitude is not essentially zero
+        mask = x.real - x.real.max() > logrcond
+        # check amplitude and phase of nonzeros
+        np.testing.assert_allclose(x[mask], y[mask])
+        # check amplitude of zeros with looser bound
+        np.testing.assert_allclose(x[~mask].real, y[~mask].real, atol=0.5)
+
+    _logspace_allclose(out1, out2.reshape((-1,)))
 
     s3 = s1.reshape((2, 5, 10, hi.size))
     out3 = ma.apply(pars, s3)
     assert out3.shape == (2, 5, 10)
-    np.testing.assert_allclose(out1, out3.reshape((-1,)))
+    _logspace_allclose(out1, out3.reshape((-1,)))

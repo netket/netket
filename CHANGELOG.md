@@ -3,46 +3,90 @@
 
 # Change Log
 
+## NetKet 3.20 (In development)
+
+### Breaking Changes
+
+### New features
+
+* A systematic overhaul of how symmetries can be manipulated has been merged as part of the symmetry overhaul [PR #2122](https://github.com/netket/netket/pull/2122). In particular:
+	* A new main netket module `netket.symmetry` is introduced.
+	* A clear distinction is now made between symmetry groups and their representations via the  {class}`netket.symmetry.Representation` class. 
+	* The {class}`~netket.symmetry.Representation` class allows the users to define representations of any given group, not just lattice symmetries. This class can construct a {meth}`~netket.symmetry.Representation.projector` onto the subspace, which is an operator, and can construct a simmetry-projected state with the method {meth}`~netket.symmetry.Representation.project`.
+	* Netket now supports representations of permutation groups on spin and fermionic Hilbert spaces via the {class}`netket.operator.permutation.PermutationOperator` and {class}`netket.operator.permutation.PermutationOperatorFermion` classes. The `get_conn_padded` method of {class}`~netket.operator.permutation.PermutationOperatorFermion` calculates the sign from permuting the occupancies of single-particle states. 
+	* A new [tutorial](../docs/tutorials/symmetry_tutorial.ipynb) explaining how to use these tools is available. 
+	* [Documentation](../docs/advanced/symmetry.md) regarding symmetries and representation theory is available
+* `chunk_size` does no longer need to be a divisor of the number of samples per rank. You are now free to set it however you want [#2083](https://github.com/netket/netket/pull/2083).
+
+### Deprecations and Removals
+
+* The `*` operator for multiplying operators is now deprecated and will be removed in a future version in 2026. Use the `@` operator instead for operator multiplication: `A * B` → `A @ B` [#2133](https://github.com/netket/netket/pull/2133).
+
+## NetKet 3.19.1
+
+* Fix a bug where using non-differentiable parameters with chunking would lead to tracer leaks and errors when using `nk.optimizer.qgt.QGTOnTheFly`. This was due to incorrect capturing of the 'model_state' in some shard_maps.
+* Fix constraint validation bug in `SumConstrainedHilbertIndex` where `all_states()` returned invalid states for edge cases with single valid configurations (e.g., `Spin(s=1, N=4, total_sz=4)`). Fixes [#2126](https://github.com/netket/netket/issues/2126).
+
 ## NetKet 3.19 (In development)
 
-## Breaking Changes
-* MPI is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing.
-* {func}`netket.operator.GraphOperator` is now a function and not a class anymore.
+This version will be the last one supporting Jax 0.5, and therefore will be the last to run on manylinux2014. 
+In practice, this will be the last version to run on computers/clusters with outdated OS/GLIBC. 
+The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly more powerful.
 
-## New features
+In PR [#2070](https://github.com/netket/netket/pull/2070) and [#2072](https://github.com/netket/netket/pull/2072) the explicit use of `shard_map` was removed from some places throught the codebase, which leads to a simpler and more flexible code when using operators inside of complex codebases.
+This rests upon the shoulders of improvements within jax, which are only available starting so make sure to use the most recent jax version possible.
+
+### Breaking Changes
+* mpi4jax is no longer supported as a parallelization mode for NetKet. JAX sharding is now the only supported method for distributed computing. For MPI on cpu enable the native jax mpi collectives by setting `JAX_CPU_COLLECTIVES_IMPLEMENTATION=mpi`.
+* {func}`netket.operator.GraphOperator` is now a function and not a class anymore.
+* {meth}`netket.operator.DiscreteJaxOperator.to_sparse` now returns a scipy sparse matrix by default [#2092](https://github.com/netket/netket/pull/2092).
+* The default implementation of all NetKet operator constructed has been swapped from the previous Numba implementation to the Jax one. The class names `LocalOperator`, `PauliStrings` and `FermionOperator2nd` are now aliases for `LocalOperatorJax`, `PaulistringsJax` and  `FermionOperator2ndJax`. To use the previous operators, you should use `FermionOperator2ndNumba`, `LocalOperatorNumba` and so on.
+* {class}`netket.operator.ContinuousOperator`s and subclasses have had their interface considerably changed, and they are now Pytrees. If you have custom Continuous Operators and your code is somewhere accessible with a few stars on GitHub, I've notified you. If you haven't, you are a bit evil but worry not. Just look at NetKet's implementation of classes like {class}`netket.operator.KineticOperator` to understand what to change [#2097](https://github.com/netket/netket/pull/2097).
+* Python 3.11 is now required and will be the minimum version required until summer 2026.
+
+### New features
 * A new {class}`netket.experimental.driver.VMC_SR` driver, which implements both standard SR and the kernel trick/minSR variant, using an often more efficient implementation, is now available. We advise everyone using SR to switch to this driver [#2007](https://github.com/netket/netket/pull/2007).
 * {class}`netket.nn.blocks.SymmExpSum` supports specifying group characters as an array in addition to their index in the full character table [#2075](https://github.com/netket/netket/pull/2075).
 * {class}`netket.utils.group.FiniteGroup` can now compute projective irrep characters of groups in addition to standard linear irreps [#2080](https://github.com/netket/netket/pull/2080).
-* `chunk_size` does no longer need to be a divisor of the number of samples per rank. You are now free to set it however you want [#2083](https://github.com/netket/netket/pull/2083).
+* {class}`netket.sampler.rules.LangevinRule` will not inherit the `chunk_size` from the sampler if its own chunk size is not set.
+* {class}`netket.stats.Stats` repr logic is improved to switch to scientific notation more often when the quantity is close to 0. Moreover, the character count is fixed so the progress bar will wiggle less [#2102](https://github.com/netket/netket/pull/2102).
+* When using sub-optimal {class}`netket.operator.FermionOperator2nd` with hilbert spaces with a fixed number of particles, a warning will be now printed suggesting users to switch to Particle Number Conserving operators [#2088](https://github.com/netket/netket/pull/2088).
+* A new, general implementation of {class}`netket.operator.SumOperator` can be used to sum 2 or more different operators of any different type, which was previously not possible.
+* A new {class}`netket.experimental.observable.InfidelityOperator` for computing the infidelity between two quantum states (possibly with an operator in the middle) and a new {class}`netket.experimental.driver.Infidelity_SR` driver for minimizing it, which implements both standard SR and the kernel trick/minSR variant, are now available. [#2076](https://github.com/netket/netket/pull/2076).
 
-## Deprecations and Removals
+
+### Deprecations and Removals
 * {class}`netket.experimental.driver.VMC_SRt` has been deprecated in favour of {class}`netket.experimental.driver.VMC_SR`, which implements both standard SR and the kernel trick/minSR variant, and possibly more efficiently [#2007](https://github.com/netket/netket/pull/2007).
+* Finalized deprecations from August 2024 and earlier [#2108](https://github.com/netket/netket/pull/2108).
+* Constructing an MCState with numpy arrays as variables is deprecated. Please specify jax arrays.
 
-## Bug Fixes
+### Bug Fixes
+* Do not error when the `chunk_size` of a sampler is larger than the number of chains.
 * {class}`netket.graph.space_group.SpaceGroup` now generates correct space-group irreps for nonsymmorphic space groups [#2080](https://github.com/netket/netket/pull/2080).
+* Addressed an issue with Metropolis Samplers providing to the transition rule a non-up-to-date sampler state inside a sweep. In practice nobody ever reported this bug before.
+* Support `flax.nnx` for flax version 10.7.
+
 
 ## NetKet 3.18 (3 July 2025)
 
-This version will be the last one supporting Python 3.10 and Jax 0.5. The next NetKet version will require Jax 0.7 and Python 3.11 and be incredibly more powerful.
+This version will be the last one supporting Python 3.10.
 
-## New features
+### New features
 * Added particle-number conserving fermionic operators {class}`netket.experimental.operator.ParticleNumberConservingFermioperator2nd` and {class}`netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd`
 which are more efficient and produce fewer connected elements than the generic {class}`netket.operator.FermionOperator2ndJax` operator, and a explicit Fermi-Hubbard operator implementation {class}`netket.experimental.operator.FermiHubbardJax` based on it [#2024](https://github.com/netket/netket/pull/2024).
 * The functionality of {class}`netket.graph.space_group.SpaceGroupBuilder` is merged into a subclass of {class}`~netket.utils.group.PermutationGroup` called {class}`~netket.graph.space_group.SpaceGroup` that also represents the space group itself. The product table of {class}`~netket.graph.space_group.SpaceGroup` is implemented with reference to its structure, making group-theory calculations much faster than for a generic {class}`~netket.utils.group.PermutationGroup`. Another subclass of {class}`~netket.utils.group.PermutationGroup`, {class}`~netket.graph.space_group.TranslationGroup`, is introduced to handle translation groups efficiently. All functionality of {meth}`~netket.graph.Lattice.space_group_builder()` is taken over by {meth}`~netket.graph.Lattice.space_group()`, so the former is deprecated [#2051](https://github.com/netket/netket/pull/2051).
 
-## Deprecations and Removals
+### Deprecations and Removals
 
 * The `nk.utils.group.Permutation` class, which was constructed by passing an _inverse permutation_, can now be constructed by passing both a _permutation_ array or an _inverse permutation_ array. It's attributes have also been updated to reflect the change. If you were operating directly on those objects you will have to update how you build them [#2067](https://github.com/netket/netket/pull/2067).
 * Removed `nk.hilbert.CustomHilbert`, as it has been deprecated for a long time and was not fully functional anymore. If you need to build a custom Hilbert space, define a class. [#2073](https://github.com/netket/netket/pull/2073).
 * Some methods specific to {class}`netket.graph.space_group.SpaceGroupBuilder` have been removed as it has been merged with {class}`~netket.graph.space_group.SpaceGroup`. If you were manipulating this object directly you might have to update some usages. See the new feature above as well [#2051](https://github.com/netket/netket/pull/2051).
 * The Particle Hilbert space has been moved to experiemntal to reflect the fact that it has seen very little development since its inception [#2058](https://github.com/netket/netket/pull/2058).
 
-## Bug Fixes
+### Bug Fixes
 * Fixed a bug in the computation of the Autocorrelation time when using sharding [#2044](https://github.com/netket/netket/pull/2044).
 * When using a Parallel Tempering sampler with a custom set of diffusion parameters their normalisation was computed incorrectly. This has been fixed [#2041](https://github.com/netket/netket/pull/2041).
 
-
-### Breaking Changes
 
 ## NetKet 3.17 (20 April 2025)
 

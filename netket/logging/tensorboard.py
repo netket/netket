@@ -16,12 +16,12 @@ from typing import Any, TYPE_CHECKING
 from numbers import Number
 
 from netket.utils.optional_deps import import_optional_dependency
+from netket.vqs import VariationalState
 
 from .base import AbstractLog
 
 if TYPE_CHECKING:
     import tensorboardX
-    from netket.vqs import VariationalState
 
 
 def tree_log(tree, root, data):
@@ -144,7 +144,7 @@ class TensorBoardLog(AbstractLog):
         self,
         step: int,
         item: dict[str, Any],
-        variational_state: "VariationalState | None" = None,
+        variational_state: VariationalState | None = None,
     ):
         if not self._is_master_process:
             return

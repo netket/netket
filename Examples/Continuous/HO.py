@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import netket as nk
+from netket import experimental as nkx
 
 import jax.numpy as jnp
 
@@ -20,7 +21,8 @@ def v(x):
     return jnp.linalg.norm(x) ** 2
 
 
-hilb = nk.hilbert.Particle(N=10, L=(jnp.inf, jnp.inf, jnp.inf), pbc=False)
+space = nkx.geometry.Cell(d=3, L=(jnp.inf, jnp.inf, jnp.inf), pbc=False)
+hilb = nkx.hilbert.Particle(N=10, geometry=space)
 
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.1, n_chains=16, sweep_size=32)
 

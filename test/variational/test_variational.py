@@ -25,7 +25,7 @@ import netket as nk
 from jax.nn.initializers import normal
 
 from .finite_diff import expval as _expval, central_diff_grad, same_derivatives
-from .. import common
+from test import common
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
@@ -123,8 +123,8 @@ def vstate(request):
     return vs
 
 
-def check_consistent(vstate, mpi_size):
-    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
+def check_consistent(vstate, n_devices):
+    assert vstate.n_samples == vstate.n_samples_per_rank * n_devices
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 
@@ -201,7 +201,7 @@ def test_n_samples_api(vstate, _device_count):
 
 
 @common.skipif_mpi
-def test_chunk_size_api(vstate, _mpi_size):
+def test_chunk_size_api(vstate):
     assert vstate.chunk_size is None
 
     with raises(ValueError):
@@ -474,7 +474,6 @@ def test_local_estimators(vstate, operator):
 
 # Have a different test because the above is marked as xfail.
 # This only checks that the code runs.
-@common.xfailif_mpi
 def test_expect_grad_nonhermitian_works(vstate):
     op = nk.operator.spin.sigmap(vstate.hilbert, 0).to_jax_operator()
     O_stat, O_grad = vstate.expect_and_grad(op)
@@ -496,7 +495,6 @@ def test_expect_grad_nonhermitian_works(vstate):
 def test_expect_chunking(vstate, operator, n_chunks):
     vstate.n_samples = 200
     chunk_size = vstate.n_samples_per_rank // n_chunks
-
     eval_nochunk = vstate.expect(operator)
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)
@@ -558,3 +556,17 @@ def test_error_wrong_variables():
         vs.variables = {"params": {"a": 1}}
     with pytest.raises(nk.errors.ParameterMismatchError):
         vs.parameters = {"a": 1}
+
+
+def test_mcstate_inits():
+    g = nk.graph.Chain(2)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ma = nk.models.RBM(alpha=1, param_dtype=float)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=4)
+    vs = nk.vqs.MCState(sa, ma, n_samples=128)
+    # This shoul lead us to a SingleDeviceArray sharding
+    variables = jax.tree.map(np.array, vs.variables)
+    variables = jax.tree.map(jax.numpy.asarray, variables)
+
+    # does not crash
+    _ = nk.vqs.MCState(sa, ma, variables=variables)

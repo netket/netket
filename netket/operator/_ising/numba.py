@@ -167,3 +167,7 @@ class IsingNumba(IsingBase):
         )
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
+
+
+# Keep the old name for backward compatibility
+Ising = IsingNumba
