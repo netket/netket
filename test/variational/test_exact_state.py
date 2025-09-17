@@ -260,10 +260,8 @@ def test_chunk_size_api(vstate):
         vstate.chunk_size = 1.5
 
     # does not divide hi.n_states
-    with raises(ValueError):
-        vstate.chunk_size = 3
-
-    assert vstate.chunk_size is None
+    vstate.chunk_size = 3
+    assert vstate.chunk_size == 3
 
     vstate.chunk_size = vstate.hilbert.n_states // 4
     assert vstate.chunk_size == vstate.hilbert.n_states // 4

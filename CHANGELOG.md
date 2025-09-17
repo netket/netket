@@ -16,6 +16,7 @@
 	* Netket now supports representations of permutation groups on spin and fermionic Hilbert spaces via the {class}`netket.operator.permutation.PermutationOperator` and {class}`netket.operator.permutation.PermutationOperatorFermion` classes. The `get_conn_padded` method of {class}`~netket.operator.permutation.PermutationOperatorFermion` calculates the sign from permuting the occupancies of single-particle states. 
 	* A new [tutorial](../docs/tutorials/symmetry_tutorial.ipynb) explaining how to use these tools is available. 
 	* [Documentation](../docs/advanced/symmetry.md) regarding symmetries and representation theory is available
+* `chunk_size` does no longer need to be a divisor of the number of samples per rank. You are now free to set it however you want [#2083](https://github.com/netket/netket/pull/2083).
 
 ### Deprecations and Removals
 

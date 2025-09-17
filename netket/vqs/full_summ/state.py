@@ -41,7 +41,7 @@ from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
 from ..base import VariationalState, QGTConstructor
-from ..mc.mc_state.state import check_chunk_size, _is_power_of_two
+from ..mc.mc_state.state import _is_power_of_two
 
 
 @partial(jax.jit, static_argnums=0)
@@ -274,9 +274,6 @@ class FullSumState(VariationalState):
             warnings.warn(
                 "For performance reasons, we suggest to use a power-of-two chunk size."
             )
-
-        # TODO JAX aware check for valid size
-        check_chunk_size(self.hilbert.n_states, chunk_size)
 
         self._chunk_size = chunk_size
 

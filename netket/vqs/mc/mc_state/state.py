@@ -39,6 +39,7 @@ from netket.utils import (
     timing,
     _serialization as serialization_utils,
 )
+from netket.utils.deprecation import deprecated
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -76,6 +77,9 @@ def compute_chain_length(n_chains, n_samples):
     return chain_length
 
 
+@deprecated(
+    "This function has been removed. People should be free to use the chunk size they prefer."
+)
 def check_chunk_size(n_samples, chunk_size):
     n_samples_per_rank = n_samples // jax.device_count()
 
@@ -415,7 +419,8 @@ class MCState(VariationalState):
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int):
-        self.n_samples = n_samples_per_rank * jax.device_count()
+        n_devices = jax.device_count() if config.netket_experimental_sharding else 1
+        self.n_samples = n_samples_per_rank * n_devices
 
     @property
     def chain_length(self) -> int:
@@ -430,10 +435,6 @@ class MCState(VariationalState):
     def chain_length(self, chain_length: int):
         if chain_length <= 0:
             raise ValueError(f"Invalid chain length: chain_length={chain_length}")
-
-        n_samples = chain_length * self.sampler.n_chains
-        check_chunk_size(n_samples, self.chunk_size)
-
         self._chain_length = chain_length
         self.reset()
 
@@ -506,8 +507,6 @@ class MCState(VariationalState):
                 stacklevel=2,
             )
 
-        check_chunk_size(self.n_samples, chunk_size)
-
         self._chunk_size = chunk_size
 
     def reset(self):
@@ -544,9 +543,6 @@ class MCState(VariationalState):
                 raise ValueError("Cannot specify both `chain_length` and `n_samples`.")
             elif chain_length is None:
                 chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
-
-            if self.chunk_size is not None:
-                check_chunk_size(chain_length * self.sampler.n_chains, self.chunk_size)
 
         if n_discard_per_chain is None:
             n_discard_per_chain = self.n_discard_per_chain
