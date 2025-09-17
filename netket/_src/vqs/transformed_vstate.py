@@ -15,13 +15,19 @@ def chunk_size_divisor(chunk_size: int, n_samples_per_rank: int):
     return max(divisors) 
 
 
-def apply_operator(operator, vstate, *, seed=None):
+def apply_operator(operator, vstate, *, seed=None, adapt_chunk_size: bool=True):
     """
     Apply an operator to a variational state.
 
     The returned variational state wraps the model of vstate inside another model
     that simulates the application of the operator. The operator can still be
     accessed in the resulting variational state as `op_vstate.variables['operator']`.
+
+    Args:
+        operator: the operator to apply
+        vstate: variational state
+        adapt_chunk_size: whether to adapt the chunk size of the new state. 
+        This is based on the max connectivity of the operator and the number of samples per rank.
     """
 
     if not isinstance(vstate, (FullSumState, MCState)):
@@ -34,9 +40,12 @@ def apply_operator(operator, vstate, *, seed=None):
     if vstate.chunk_size is None: 
         chunk_size = None
 
-    else:
+    if adapt_chunk_size and vstate.chunk_size is not None:
         chunk_size_temp = vstate.chunk_size // operator.max_conn_size
         chunk_size = chunk_size_divisor(chunk_size_temp, vstate.n_samples_per_rank)
+
+    else: 
+        chunk_size = vstate.chunk_size
         
 
     if isinstance(vstate, FullSumState):
