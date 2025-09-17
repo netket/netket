@@ -9,6 +9,11 @@ from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 # Eventually, we should have classes TransformedMCState and TransformedFullSumState that allow access to the underlying operator and model.
 # In this implementation, we have access to the operator in the new variables, but not to the original model/apply_fun.
 
+def chunk_size_divisor(chunk_size: int, n_samples_per_rank: int):
+    """Returns the largest divisor of n_samples_per_rank that is <= chunk_size."""
+    divisors = [i for i in range(1, n_samples_per_rank + 1) if (n_samples_per_rank % i == 0 and i <= chunk_size)]
+    return max(divisors) 
+
 
 def apply_operator(operator, vstate, *, seed=None):
     """
@@ -25,11 +30,14 @@ def apply_operator(operator, vstate, *, seed=None):
     transformed_apply_fun, new_variables = make_logpsi_op_afun(
         vstate._apply_fun, operator, vstate.variables
     )
-    chunk_size = (
-        None
-        if vstate.chunk_size is None
-        else vstate.chunk_size / operator.max_conn_size
-    )
+
+    if vstate.chunk_size is None: 
+        chunk_size = None
+
+    else:
+        chunk_size_temp = vstate.chunk_size // operator.max_conn_size
+        chunk_size = chunk_size_divisor(chunk_size_temp, vstate.n_samples_per_rank)
+        
 
     if isinstance(vstate, FullSumState):
         transformed_vstate = FullSumState(
