@@ -24,10 +24,11 @@ def apply_operator(operator, vstate, *, seed=None, adapt_chunk_size: bool=True):
     accessed in the resulting variational state as `op_vstate.variables['operator']`.
 
     Args:
-        operator: the operator to apply
-        vstate: variational state
-        adapt_chunk_size: whether to adapt the chunk size of the new state. 
-        This is based on the max connectivity of the operator and the number of samples per rank.
+        operator: The operator to apply.
+        vstate: The variational state.
+        adapt_chunk_size: Whether to adapt the chunk size of the new state. Since the number of calls to the 
+            model is multiplied by operator.max_conn_size, the chunk size is divided by operator.max_conn_size.
+            Then, it needs to be adjusted to be a divisor of the number of samples per rank.
     """
 
     if not isinstance(vstate, (FullSumState, MCState)):
