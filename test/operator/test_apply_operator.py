@@ -8,13 +8,13 @@ import netket as nk
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
 s3_representation = graph.space_group_representation(hilbert_space)
-projector = s3_representation.projector(1)
+projector = s3_representation.projector(2)
 
 ising_ham = nk.operator.IsingJax(
     hilbert_space, nk.graph.Chain(hilbert_space.size), 1, 1
 )
 
-operator_list = [ising_ham, projector, s3_representation[1]]
+operator_list = [ising_ham, projector, s3_representation[2]]
 
 
 model = nk.models.RBM(alpha=2)
@@ -22,8 +22,9 @@ sampler = nk.sampler.MetropolisLocal(hilbert_space)
 
 mc_vstate = nk.vqs.MCState(sampler, model, n_samples=2**12, n_discard_per_chain=15)
 fs_vstate = nk.vqs.FullSumState(hilbert_space, model)
+mc_vstate_chunked = nk.vqs.MCState(sampler, model, n_samples=64, n_discard_per_chain=15, chunk_size=32)
 
-vstate_list = [mc_vstate, fs_vstate]
+vstate_list = [mc_vstate, fs_vstate, mc_vstate_chunked]
 
 
 @pytest.mark.parametrize("operator", operator_list)
@@ -44,9 +45,11 @@ def test_apply_operator(operator, vstate):
     if vstate.chunk_size is None:
         assert transformed_vstate.chunk_size is None
     else:
-        assert (
-            transformed_vstate.chunk_size == vstate.chunk_size / operator.max_conn_size
-        )
+        assert transformed_vstate.chunk_size <= vstate.chunk_size / operator.max_conn_size
+        if isinstance(vstate, nk.vqs.MCState):
+            assert (
+                transformed_vstate.n_samples_per_rank % transformed_vstate.chunk_size == 0
+            )
 
     if isinstance(vstate, nk.vqs.FullSumState):
 
