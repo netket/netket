@@ -108,6 +108,9 @@ dev-dependencies = [
     "pyscf>=2.9.0",
 ]
 
+[tool.uv.sources]
+jax = { git = "https://github.com/jax-ml/jax" }
+
 
 # Development tools
 
