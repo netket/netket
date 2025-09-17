@@ -42,8 +42,10 @@ def apply_operator(operator, vstate, *, seed=None, adapt_chunk_size: bool=True):
         chunk_size = None
 
     if adapt_chunk_size and vstate.chunk_size is not None:
-        chunk_size_temp = vstate.chunk_size // operator.max_conn_size
-        chunk_size = chunk_size_divisor(chunk_size_temp, vstate.n_samples_per_rank)
+
+        chunk_size = vstate.chunk_size // operator.max_conn_size
+        if isinstance(vstate, MCState):
+            chunk_size = chunk_size_divisor(chunk_size, vstate.n_samples_per_rank)
 
     else: 
         chunk_size = vstate.chunk_size
