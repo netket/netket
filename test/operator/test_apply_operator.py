@@ -22,9 +22,8 @@ sampler = nk.sampler.MetropolisLocal(hilbert_space)
 
 mc_vstate = nk.vqs.MCState(sampler, model, n_samples=2**12, n_discard_per_chain=15)
 fs_vstate = nk.vqs.FullSumState(hilbert_space, model)
-mc_vstate_chunked = nk.vqs.MCState(sampler, model, n_samples=64, n_discard_per_chain=15, chunk_size=32)
 
-vstate_list = [mc_vstate, fs_vstate, mc_vstate_chunked]
+vstate_list = [mc_vstate, fs_vstate]
 
 
 @pytest.mark.parametrize("operator", operator_list)
@@ -42,15 +41,6 @@ def test_apply_operator(operator, vstate):
 
     assert transformed_vstate.hilbert == vstate.hilbert
 
-    if vstate.chunk_size is None:
-        assert transformed_vstate.chunk_size is None
-    else:
-        assert transformed_vstate.chunk_size <= vstate.chunk_size / operator.max_conn_size
-        if isinstance(vstate, nk.vqs.MCState):
-            assert (
-                transformed_vstate.n_samples_per_rank % transformed_vstate.chunk_size == 0
-            )
-
     if isinstance(vstate, nk.vqs.FullSumState):
 
         assert isinstance(transformed_vstate, nk.vqs.FullSumState)
@@ -63,3 +53,10 @@ def test_apply_operator(operator, vstate):
         assert transformed_vstate.n_samples == vstate.n_samples
         assert transformed_vstate.n_samples_per_rank == vstate.n_samples_per_rank
         assert transformed_vstate.n_discard_per_chain == vstate.n_discard_per_chain
+
+
+    #change the chunk size and check that it has been adapted correctly. 
+    vstate.chunk_size = 2**10
+    transformed_vstate = nk.vqs.apply_operator(operator, vstate)
+
+    assert transformed_vstate.chunk_size == vstate.chunk_size//operator.max_conn_size
