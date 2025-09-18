@@ -18,13 +18,14 @@ def apply_operator(operator, vstate, *, seed=None):
     that simulates the application of the operator. The operator can still be
     accessed in the resulting variational state as `op_vstate.variables['operator']`.
 
+    .. note::
+
+        Note that is the vstate's chunk size is specified, the chunk size of the transformed vstate will
+        be set to `vstate.chunk_size // operator.max_conn_size` to account for the increased memory usage.
+
     Args:
-        operator: The operator to apply.
-        vstate: The variational state.
-
-
-    Note that is the vstate's chunk size is specified, the chunk size of the transformed vstate will
-    be set to `vstate.chunk_size // operator.max_conn_size` to account for the increased memory usage.
+        operator: The operator to apply in front of the variational state ket
+        vstate: The variational state (or ket)
     """
 
     if not isinstance(vstate, (FullSumState, MCState)):
