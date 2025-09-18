@@ -254,9 +254,7 @@ def sharding_decorator(
 
             # workaround for shard_map not supporting non-array args part 1/2
             # Compute nonarray_args BEFORE PRNGKey treatment to maintain structure consistency
-            nonarray_args = tuple(
-                not hasattr(a, "dtype") for a in args
-            )
+            nonarray_args = tuple(not hasattr(a, "dtype") for a in args)
 
             # PRNGKey treatment 1/2
             args = tuple(

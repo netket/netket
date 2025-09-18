@@ -9,6 +9,7 @@ from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 # Eventually, we should have classes TransformedMCState and TransformedFullSumState that allow access to the underlying operator and model.
 # In this implementation, we have access to the operator in the new variables, but not to the original model/apply_fun.
 
+
 def apply_operator(operator, vstate, *, seed=None):
     """
     Apply an operator to a variational state.
@@ -21,9 +22,9 @@ def apply_operator(operator, vstate, *, seed=None):
         operator: The operator to apply.
         vstate: The variational state.
 
-    
-    Note that is the vstate's chunk size is specified, the chunk size of the transformed vstate will 
-    be set to `vstate.chunk_size // operator.max_conn_size` to account for the increased memory usage. 
+
+    Note that is the vstate's chunk size is specified, the chunk size of the transformed vstate will
+    be set to `vstate.chunk_size // operator.max_conn_size` to account for the increased memory usage.
     """
 
     if not isinstance(vstate, (FullSumState, MCState)):
@@ -33,11 +34,11 @@ def apply_operator(operator, vstate, *, seed=None):
         vstate._apply_fun, operator, vstate.variables
     )
 
-    if vstate.chunk_size is None: 
+    if vstate.chunk_size is None:
         chunk_size = None
-    
-    else: 
-        chunk_size = vstate.chunk_size//operator.max_conn_size
+
+    else:
+        chunk_size = vstate.chunk_size // operator.max_conn_size
 
     if isinstance(vstate, FullSumState):
         transformed_vstate = FullSumState(

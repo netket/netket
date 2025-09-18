@@ -54,9 +54,8 @@ def test_apply_operator(operator, vstate):
         assert transformed_vstate.n_samples_per_rank == vstate.n_samples_per_rank
         assert transformed_vstate.n_discard_per_chain == vstate.n_discard_per_chain
 
-
-    #change the chunk size and check that it has been adapted correctly. 
+    # change the chunk size and check that it has been adapted correctly.
     vstate.chunk_size = 2**10
     transformed_vstate = nk.vqs.apply_operator(operator, vstate)
 
-    assert transformed_vstate.chunk_size == vstate.chunk_size//operator.max_conn_size
+    assert transformed_vstate.chunk_size == vstate.chunk_size // operator.max_conn_size
