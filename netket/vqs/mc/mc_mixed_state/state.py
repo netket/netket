@@ -19,11 +19,13 @@ from jax import numpy as jnp
 from flax import serialization
 
 import netket
+from netket import config
 from netket import jax as nkjax
 from netket.hilbert import DiscreteHilbert
 from netket.sampler import Sampler
 from netket.stats import Stats
 from netket.utils.types import PyTree
+from netket.utils import _serialization as serialization_utils
 from netket.operator import AbstractOperator
 
 from netket.vqs import VariationalMixedState
@@ -270,6 +272,19 @@ def deserialize_MCMixedState(vstate, state_dict):
     new_vstate._diagonal = serialization.from_state_dict(
         vstate._diagonal, state_dict["diagonal"]
     )
+
+    vars = jax.tree_util.tree_map(
+        jnp.asarray,
+        serialization.from_state_dict(vstate.variables, state_dict["variables"]),
+    )
+    vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
+    if config.netket_experimental_sharding:
+        vars = jax.tree_util.tree_map(
+            lambda t, val: jax.device_put(val, t.sharding),
+            vstate.variables,
+            vars,
+        )
+    new_vstate.variables = vars
 
     new_vstate.variables = jax.tree_util.tree_map(
         jnp.asarray,
