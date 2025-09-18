@@ -9,13 +9,7 @@ from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 # Eventually, we should have classes TransformedMCState and TransformedFullSumState that allow access to the underlying operator and model.
 # In this implementation, we have access to the operator in the new variables, but not to the original model/apply_fun.
 
-def chunk_size_divisor(chunk_size: int, n_samples_per_rank: int):
-    """Returns the largest divisor of n_samples_per_rank that is <= chunk_size."""
-    divisors = [i for i in range(1, n_samples_per_rank + 1) if (n_samples_per_rank % i == 0 and i <= chunk_size)]
-    return max(divisors) 
-
-
-def apply_operator(operator, vstate, *, seed=None, adapt_chunk_size: bool=True):
+def apply_operator(operator, vstate, *, seed=None):
     """
     Apply an operator to a variational state.
 
@@ -26,9 +20,10 @@ def apply_operator(operator, vstate, *, seed=None, adapt_chunk_size: bool=True):
     Args:
         operator: The operator to apply.
         vstate: The variational state.
-        adapt_chunk_size: Whether to adapt the chunk size of the new state. Since the number of calls to the 
-            model is multiplied by operator.max_conn_size, the chunk size is divided by operator.max_conn_size.
-            Then, it needs to be adjusted to be a divisor of the number of samples per rank.
+
+    
+    Note that is the vstate's chunk size is specified, the chunk size of the transformed vstate will 
+    be set to `vstate.chunk_size // operator.max_conn_size` to account for the increased memory usage. 
     """
 
     if not isinstance(vstate, (FullSumState, MCState)):
@@ -40,16 +35,9 @@ def apply_operator(operator, vstate, *, seed=None, adapt_chunk_size: bool=True):
 
     if vstate.chunk_size is None: 
         chunk_size = None
-
-    if adapt_chunk_size and vstate.chunk_size is not None:
-
-        chunk_size = vstate.chunk_size // operator.max_conn_size
-        if isinstance(vstate, MCState):
-            chunk_size = chunk_size_divisor(chunk_size, vstate.n_samples_per_rank)
-
+    
     else: 
-        chunk_size = vstate.chunk_size
-        
+        chunk_size = vstate.chunk_size//operator.max_conn_size
 
     if isinstance(vstate, FullSumState):
         transformed_vstate = FullSumState(
