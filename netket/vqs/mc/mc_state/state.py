@@ -854,7 +854,7 @@ def deserialize_MCState(vstate, state_dict):
     vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
     if config.netket_experimental_sharding:
         vars = jax.tree_util.tree_map(
-            lambda x, y: jax.lax.with_sharding_constraint(jnp.asarray(y), x.sharding),
+            lambda t, val: jax.device_put(val, t.sharding),
             vstate.variables,
             vars,
         )
