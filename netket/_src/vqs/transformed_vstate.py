@@ -39,7 +39,7 @@ def apply_operator(operator, vstate, *, seed=None):
         chunk_size = None
 
     else:
-        chunk_size = vstate.chunk_size // operator.max_conn_size
+        chunk_size = max(vstate.chunk_size // operator.max_conn_size, 1)
 
     if isinstance(vstate, FullSumState):
         transformed_vstate = FullSumState(
