@@ -8,13 +8,13 @@ import netket as nk
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
 s3_representation = graph.space_group_representation(hilbert_space)
-projector = s3_representation.projector(1)
+projector = s3_representation.projector(2)
 
 ising_ham = nk.operator.IsingJax(
     hilbert_space, nk.graph.Chain(hilbert_space.size), 1, 1
 )
 
-operator_list = [ising_ham, projector, s3_representation[1]]
+operator_list = [ising_ham, projector, s3_representation[2]]
 
 
 model = nk.models.RBM(alpha=2)
@@ -41,13 +41,6 @@ def test_apply_operator(operator, vstate):
 
     assert transformed_vstate.hilbert == vstate.hilbert
 
-    if vstate.chunk_size is None:
-        assert transformed_vstate.chunk_size is None
-    else:
-        assert (
-            transformed_vstate.chunk_size == vstate.chunk_size / operator.max_conn_size
-        )
-
     if isinstance(vstate, nk.vqs.FullSumState):
 
         assert isinstance(transformed_vstate, nk.vqs.FullSumState)
@@ -60,3 +53,9 @@ def test_apply_operator(operator, vstate):
         assert transformed_vstate.n_samples == vstate.n_samples
         assert transformed_vstate.n_samples_per_rank == vstate.n_samples_per_rank
         assert transformed_vstate.n_discard_per_chain == vstate.n_discard_per_chain
+
+    # change the chunk size and check that it has been adapted correctly.
+    vstate.chunk_size = 2**10
+    transformed_vstate = nk.vqs.apply_operator(operator, vstate)
+
+    assert transformed_vstate.chunk_size == vstate.chunk_size // operator.max_conn_size

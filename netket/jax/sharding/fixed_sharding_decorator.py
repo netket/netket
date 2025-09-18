@@ -252,18 +252,20 @@ def sharding_decorator(
             _not = lambda t: tuple(not x for x in t)
             _sele2 = lambda cond, x, y: tuple(x if c else y for c in cond)
 
+            # workaround for shard_map not supporting non-array args part 1/2
+            # Compute nonarray_args BEFORE PRNGKey treatment to maintain structure consistency
+            nonarray_args = tuple(not hasattr(a, "dtype") for a in args)
+
             # PRNGKey treatment 1/2
             args = tuple(
                 jax.random.split(a, jax.device_count()) if c == "key" else a
                 for a, c in safe_zip(args, sharded_args)
             )
 
-            # workaround for shard_map not supporting non-array args part 1/2
-            nonarray_args = jax.tree.map(lambda a: not hasattr(a, "dtype"), args)
-            args = jax.tree.map(
-                lambda c, a: Partial(partial(lambda x: x, a)) if c else a,
-                nonarray_args,
-                args,
+            # Apply the nonarray transformation after PRNGKey treatment
+            args = tuple(
+                Partial(partial(lambda x: x, a)) if c else a
+                for c, a in safe_zip(nonarray_args, args)
             )
 
             mesh = jax.sharding.get_abstract_mesh()

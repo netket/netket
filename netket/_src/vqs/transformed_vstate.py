@@ -17,6 +17,15 @@ def apply_operator(operator, vstate, *, seed=None):
     The returned variational state wraps the model of vstate inside another model
     that simulates the application of the operator. The operator can still be
     accessed in the resulting variational state as `op_vstate.variables['operator']`.
+
+    .. note::
+
+        Note that is the vstate's chunk size is specified, the chunk size of the transformed vstate will
+        be set to `vstate.chunk_size // operator.max_conn_size` to account for the increased memory usage.
+
+    Args:
+        operator: The operator to apply in front of the variational state ket
+        vstate: The variational state (or ket)
     """
 
     if not isinstance(vstate, (FullSumState, MCState)):
@@ -25,11 +34,12 @@ def apply_operator(operator, vstate, *, seed=None):
     transformed_apply_fun, new_variables = make_logpsi_op_afun(
         vstate._apply_fun, operator, vstate.variables
     )
-    chunk_size = (
-        None
-        if vstate.chunk_size is None
-        else vstate.chunk_size / operator.max_conn_size
-    )
+
+    if vstate.chunk_size is None:
+        chunk_size = None
+
+    else:
+        chunk_size = max(vstate.chunk_size // operator.max_conn_size, 1)
 
     if isinstance(vstate, FullSumState):
         transformed_vstate = FullSumState(
