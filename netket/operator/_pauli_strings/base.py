@@ -330,8 +330,22 @@ class PauliStringsBase(DiscreteOperator):
     def _op__matmul__(self, other):
         if not isinstance(other, PauliStringsBase):
             return NotImplemented
+
+        promoted_dtype = jnp.promote_types(self.dtype, _dtype(other))
+
+        # X@Z=-iY, which is technically real dtype with a complex
+        # cofficient. as for now we require that the coefficient dtype
+        # is same as operator dtype, we upcast to complex in this case.
+        # this could be improved in the zukumpft.
+        if not nkjax.is_complex_dtype(
+            promoted_dtype
+        ) and _will_matmul_produce_complex_coefficients(
+            self.operators, other.operators
+        ):
+            promoted_dtype = jnp.promote_types(promoted_dtype, complex)
+
         op = self.copy(
-            dtype=jnp.promote_types(self.dtype, _dtype(other)),
+            dtype=promoted_dtype,
             cutoff=min(self._cutoff, other._cutoff),
         )
         return op._op_imatmul_(other)
@@ -582,6 +596,33 @@ def _reduce_pauli_string(op_arr, w_arr):
     )
     operators, weights = _remove_zero_weights(operators_unique, summed_weights)
     return operators, weights
+
+
+@jit(nopython=True)
+def _will_matmul_produce_complex_coefficients(op_arr1, op_arr2):
+    """Check if multiplication will produce complex coefficients.
+
+    Returns True if any result string has an odd number of Y operators.
+    """
+    for op1 in op_arr1:
+        for op2 in op_arr2:
+            y_count = 0
+            for i in range(len(op1)):
+                p1, p2 = op1[i], op2[i]
+
+                # Count Y's in result
+                if p1 == p2:
+                    continue  # Same operators -> I (no Y)
+                elif p1 == "I" and p2 == "Y":
+                    y_count += 1  # I*Y=Y
+                elif p2 == "I" and p1 == "Y":
+                    y_count += 1  # Y*I=Y
+                elif (p1 == "X" and p2 == "Z") or (p1 == "Z" and p2 == "X"):
+                    y_count += 1  # X*Z=Y, Z*X=Y
+
+            if y_count % 2 == 1:
+                return True
+    return False
 
 
 def _matmul(op_arr1, w_arr1, op_arr2, w_arr2, *, dtype):

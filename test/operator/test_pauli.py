@@ -217,6 +217,35 @@ def test_pauli_matmul(Op):
 
 
 @pytest.mark.parametrize("Op", operators)
+def test_pauli_matmul_dtype_promotion(Op):
+    """Test that X@Z properly promotes dtype to complex when needed."""
+    # See https://github.com/netket/netket/issues/2144
+    # Test the specific bug: X@Z = -iY should work with real dtypes
+    x = nk.operator.PauliStrings("XII")
+    z = nk.operator.PauliStrings("ZII")
+
+    # Both operators should have real dtype initially
+    assert not np.iscomplexobj(x.weights)
+    assert not np.iscomplexobj(z.weights)
+
+    expected = -1j * nk.operator.PauliStrings("YII")
+    result = x @ z
+
+    # Check that the result has complex dtype
+    assert np.iscomplexobj(result.weights)
+
+    # Check that the result is correct
+    np.testing.assert_allclose(result.to_dense(), expected.to_dense())
+
+    # Also test the reverse: Z@X = iY
+    result_reverse = z @ x
+    expected_reverse = 1j * nk.operator.PauliStrings("YII")
+
+    assert np.iscomplexobj(result_reverse.weights)
+    np.testing.assert_allclose(result_reverse.to_dense(), expected_reverse.to_dense())
+
+
+@pytest.mark.parametrize("Op", operators)
 def test_pauli_add_and_multiply(Op):
     op1 = Op(["X"], [1])
     op2 = Op(["X", "Y", "Z"], [-1, 1, 1])
