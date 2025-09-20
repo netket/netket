@@ -160,7 +160,8 @@ def compute_constrained_to_bare_conversion_table(
             to lower the memory cost. The default chunk size has been chosen arbitrarily
             and might need tweaking depending on the particular constraint_fun.
     """
-
+    # TODO: do this in a sharded way, by splitting the hilbert space into chunks
+    # and computing the constraint function on each chunk separately.
     with jax.ensure_compile_time_eval():
         n_chunks = int(np.ceil(hilbert_index.n_states / chunk_size))
         bare_number_chunks = []
