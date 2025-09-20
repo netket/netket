@@ -39,11 +39,16 @@ def _compute_sr_update(
     if (momentum is not None) or (old_updates is not None) or (proj_reg is not None):
         raise ValueError("Not implemented")
 
+    if jax.sharding.get_abstract_mesh().are_all_axes_explicit:
+        sharding_replicate = jax.P()
+    else:
+        sharding_replicate = None
+
     # (np, #ns) x (#ns) -> (np) - where the sum over #ns is done automatically
-    F = O_L.T @ dv
+    F = jnp.matmul(O_L.T, dv, out_sharding=sharding_replicate)
 
     # This does the contraction (np, #ns) x (#ns, np) -> (np, np).
-    matrix = O_L.T @ O_L
+    matrix = jnp.matmul(O_L.T, O_L, out_sharding=sharding_replicate)
     matrix_side = matrix.shape[-1]  # * it can be ns or 2*ns, depending on mode
 
     shifted_matrix = jax.lax.add(

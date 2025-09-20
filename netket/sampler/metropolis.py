@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
+from functools import partial, wraps
 from typing import Any
 from collections.abc import Callable
 from textwrap import dedent
@@ -20,23 +20,37 @@ from textwrap import dedent
 import numpy as np
 
 import jax
+from jax import NamedSharding, numpy as jnp
+from jax.sharding import PartitionSpec as P, get_abstract_mesh
 from flax import linen as nn
-from jax import numpy as jnp
 
 from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
-
-from netket import config
+from netket.jax.sharding import canonicalize_sharding
 from netket.utils import wrap_afun
 from netket.utils.types import PyTree, DType
 from netket.utils import struct
-
-from netket.jax.sharding import (
-    shard_along_axis,
-)
-from netket.jax import apply_chunked, dtype_real
+from netket.jax import dtype_real, lax as nklax
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
+
+
+def _make_sharded_creator(fn):
+    @wraps(fn)
+    def _wrapped(*args, device=None, **kwargs):
+        if isinstance(device, NamedSharding):
+            if getattr(device.mesh, "_any_axis_auto", False):
+                out = fn(*args, **kwargs)
+                return jax.lax.with_sharding_constraint(out, device)
+            return fn(*args, **kwargs, device=device)
+        return fn(*args, **kwargs)
+
+    return _wrapped
+
+
+_jnp_zeros = _make_sharded_creator(jnp.zeros)
+_jnp_ones = _make_sharded_creator(jnp.ones)
+_jnp_full = _make_sharded_creator(jnp.full)
 
 
 class MetropolisSamplerState(SamplerState):
@@ -79,17 +93,25 @@ class MetropolisSamplerState(SamplerState):
         rng: jnp.ndarray,
         rule_state: Any | None,
         log_prob: jnp.ndarray | None = None,
+        out_sharding: P | None = None,
     ):
         self.σ = σ
         self.rng = rng
         self.rule_state = rule_state
-
+        self.out_sharding = canonicalize_sharding(
+            out_sharding, api_name="MetropolisSamplerState.__init__", accept_auto=True
+        )
         if log_prob is None:
-            log_prob = jnp.full(self.σ.shape[:-1], -jnp.inf, dtype=float)
-        self.log_prob = shard_along_axis(log_prob, axis=0)
+            log_prob = jnp.full(
+                self.σ.shape[:-1], -jnp.inf, dtype=float, device=self.out_sharding
+            )
+        else:
+            # TODO: Maybe ensure correctly sharded?
+            pass
+        self.log_prob = log_prob
 
-        self.n_accepted_proc = shard_along_axis(
-            jnp.zeros(σ.shape[0], dtype=int), axis=0
+        self.n_accepted_proc = _jnp_zeros(
+            σ.shape[0], dtype=int, device=self.out_sharding
         )
         self.n_steps_proc = jnp.zeros((), dtype=int)
         super().__init__()
@@ -288,18 +310,13 @@ class MetropolisSampler(Sampler):
             # TODO set it to a few hundred if on GPU?
             n_chains_per_rank = 16
 
-        if config.netket_experimental_sharding:
-            device_count = jax.device_count()
-        else:
-            device_count = 1
-
         n_chains = _round_n_chains_to_next_multiple(
             n_chains,
             n_chains_per_rank,
-            device_count,
+            jax.device_count(),
             "rank",
         )
-        n_chains_per_rank = n_chains // device_count
+        n_chains_per_rank = n_chains // jax.device_count()
 
         if (
             chunk_size is not None
@@ -350,58 +367,97 @@ class MetropolisSampler(Sampler):
 
         return self._sample_next(wrap_afun(machine), parameters, state)
 
-    @partial(jax.jit, static_argnums=1)
-    def _init_state(self, machine, parameters, key):
+    @partial(jax.jit, static_argnames=("machine", "out_sharding"))
+    def _init_state(self, machine, parameters, key, out_sharding=None):
         key_state, key_rule = jax.random.split(key)
         rule_state = self.rule.init_state(self, machine, parameters, key_rule)
-        σ = jnp.zeros((self.n_batches, self.hilbert.size), dtype=self.dtype)
-        σ = shard_along_axis(σ, axis=0)
+        auto_sharding = get_abstract_mesh()._any_axis_auto
+
+        σ = _jnp_zeros(
+            (self.n_batches, self.hilbert.size),
+            dtype=self.dtype,
+            device=out_sharding,
+        )
 
         output_dtype = jax.eval_shape(machine.apply, parameters, σ).dtype
-        log_prob = jnp.full((self.n_batches,), -jnp.inf, dtype=dtype_real(output_dtype))
-        log_prob = shard_along_axis(log_prob, axis=0)
+        log_prob = jnp.full(
+            (self.n_batches,),
+            -jnp.inf,
+            dtype=dtype_real(output_dtype),
+            device=out_sharding if not auto_sharding else None,
+        )
+
+        # TODO: remove when we dont support auto sharding
+        if auto_sharding:
+            log_prob = jax.lax.with_sharding_constraint(log_prob, out_sharding)
 
         state = MetropolisSamplerState(
-            σ=σ, rng=key_state, rule_state=rule_state, log_prob=log_prob
+            σ=σ,
+            rng=key_state,
+            rule_state=rule_state,
+            log_prob=log_prob,
+            out_sharding=out_sharding,
         )
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
         if not self.reset_chains:
             key_state, rng = jax.jit(jax.random.split)(key_state)
-            σ = self.rule.random_state(self, machine, parameters, state, rng)
+            σ = self.rule.random_state(
+                self,
+                machine,
+                parameters,
+                state,
+                rng,
+                out_sharding=out_sharding if not auto_sharding else None,
+            )
+            if auto_sharding:
+                σ = jax.lax.with_sharding_constraint(σ, out_sharding)
             _assert_good_sample_shape(
                 σ,
                 (self.n_batches, self.hilbert.size),
                 self.dtype,
                 f"{self.rule}.random_state",
             )
-            σ = shard_along_axis(σ, axis=0)
             state = state.replace(σ=σ, rng=key_state)
         return state
 
     @partial(jax.jit, static_argnums=1)
     def _reset(self, machine, parameters, state):
         rng = state.rng
+        auto_sharding = get_abstract_mesh()._any_axis_auto
+        out_sharding = state.out_sharding
 
         if self.reset_chains:
             rng, key = jax.random.split(state.rng)
-            σ = self.rule.random_state(self, machine, parameters, state, key)
+            σ = self.rule.random_state(
+                self,
+                machine,
+                parameters,
+                state,
+                key,
+                out_sharding=out_sharding if not auto_sharding else None,
+            )
+            if auto_sharding:
+                σ = jax.lax.with_sharding_constraint(σ, out_sharding)
             _assert_good_sample_shape(
                 σ,
                 (self.n_batches, self.hilbert.size),
                 self.dtype,
                 f"{self.rule}.random_state",
             )
-            σ = shard_along_axis(σ, axis=0)
         else:
             σ = state.σ
 
         # Recompute the log_probability of the current samples
-        apply_machine = apply_chunked(
-            machine.apply, in_axes=(None, 0), chunk_size=self.chunk_size
-        )
-        log_prob_σ = self.machine_pow * apply_machine(parameters, σ).real
-
+        if self.chunk_size is None:
+            log_prob_σ = self.machine_pow * machine.apply(parameters, σ).real
+        else:
+            log_prob_σ = self.machine_pow * nklax.map(
+                lambda σ: machine.apply(parameters, σ).real,
+                σ,
+                batch_size=self.chunk_size,
+            )
+        _assert_good_log_prob_shape(log_prob_σ, self.n_batches, machine)
         rule_state = self.rule.reset(self, machine, parameters, state)
 
         return state.replace(
@@ -420,14 +476,10 @@ class MetropolisSampler(Sampler):
         If you subclass `MetropolisSampler`, you should override this and not `sample_next`
         itself, because `sample_next` contains some common logic.
         """
-        apply_machine = apply_chunked(
-            machine.apply, in_axes=(None, 0), chunk_size=self.chunk_size
-        )
 
         def loop_body(i, state):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
             new_rng, key1, key2 = jax.random.split(state.rng, 3)
-
             σp, log_prob_correction = self.rule.transition(
                 self, machine, parameters, state, key1, state.σ
             )
@@ -438,8 +490,16 @@ class MetropolisSampler(Sampler):
                 self.dtype,
                 f"{self.rule}.transition",
             )
-            proposal_log_prob = self.machine_pow * apply_machine(parameters, σp).real
-            _assert_good_log_prob_shape(proposal_log_prob, self.n_batches, machine)
+            if self.chunk_size is None:
+                proposal_log_prob = (
+                    self.machine_pow * machine.apply(parameters, σp).real
+                )
+            else:
+                proposal_log_prob = self.machine_pow * nklax.map(
+                    lambda σ: machine.apply(parameters, σ).real,
+                    σp,
+                    batch_size=self.chunk_size,
+                )
 
             uniform = jax.random.uniform(key2, shape=(self.n_batches,))
             if log_prob_correction is not None:

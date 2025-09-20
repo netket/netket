@@ -18,11 +18,11 @@ import numpy as np
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import get_abstract_mesh
 
 from equinox import error_if
 
 from netket.errors import InvalidConstraintInterface, UnhashableConstraintError
-from netket.jax import sharding
 from netket.utils import StaticRange, warn_deprecation
 from netket.utils.types import Array
 
@@ -254,7 +254,17 @@ class HomogeneousHilbert(DiscreteHilbert):
     def _states_to_numbers(self, states: np.ndarray):
         states = jnp.asarray(states)
 
-        if self.is_finite:
+        # equinox.error_if would cause a global reduction to check if one of the many
+        # ranks has a sample out of bounds. This incurs into a cost, so we do the user-friendly
+        # check only if the samples are:
+        # - explicit sharding, fully replicated
+        # - non explicit sharding, 1 device
+        can_statically_error = (
+            get_abstract_mesh().are_all_axes_explicit
+            and jax.typeof(states).sharding.is_fully_replicated
+        ) or jax.device_count() == 1
+
+        if self.is_finite and can_statically_error:
             start = self._local_states.start
             end = start + self._local_states.step * self._local_states.length
             if self._local_states.step < 0:
@@ -262,22 +272,18 @@ class HomogeneousHilbert(DiscreteHilbert):
                 start = start - self._local_states.step
                 end = end - self._local_states.step
 
-            # equinox.error_if is broken under shard_map.
-            # If we are using shard map, we skip this check
-            if sharding._get_SHARD_MAP_STACK_LEVEL() == 0 and jax.device_count() == 1:
-                states = error_if(
-                    states,
-                    (states < start).any() | (states >= end).any(),
-                    "States outside the range of allowed states.",
-                )
+            states = error_if(
+                states,
+                (states < start).any() | (states >= end).any(),
+                "States outside the range of allowed states.",
+            )
 
-        if self.constrained:
-            if sharding._get_SHARD_MAP_STACK_LEVEL() == 0 and jax.device_count() == 1:
-                states = error_if(
-                    states,
-                    ~self.constraint(states).all(),
-                    "States do not fulfill constraint.",
-                )
+        if self.constrained and can_statically_error:
+            states = error_if(
+                states,
+                ~self.constraint(states).all(),
+                "States do not fulfill constraint.",
+            )
 
         return self._hilbert_index.states_to_numbers(states)
 
