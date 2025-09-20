@@ -28,24 +28,29 @@ def dtype(x: Number):
 
 
 @dispatch
-def dtype(x: Array):  # noqa: F811, E0102
+def dtype(x: StaticZero):  # noqa: F811
     return x.dtype
 
 
 @dispatch
-def dtype(x: None):  # noqa: F811, E0102
+def dtype(x: Array):  # noqa: F811
+    return x.dtype
+
+
+@dispatch
+def dtype(x: None):  # noqa: F811
     return None
 
 
 @dispatch
-def dtype(x: type):  # noqa: F811, E0102
+def dtype(x: type):  # noqa: F811
     if issubclass(x, Number):
         return x
     raise TypeError(f"type {x} is not a numeric type")
 
 
 @dispatch
-def dtype(x: Any):  # noqa: F811, E0102
+def dtype(x: Any):  # noqa: F811
     if hasattr(x, "dtype"):
         return x.dtype
     raise TypeError(f"cannot deduce dtype of object type {type(x)}: {x}")
