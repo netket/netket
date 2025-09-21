@@ -7,6 +7,21 @@
 
 ### Breaking Changes
 
+### Major Changes
+
+This version of NetKet requires jax 0.7, and if you have custom code dealing with Sharding directly you will have to update it.
+
+NetKet previously used `jax.sharding.PositionalSharding(jax.devices).reshape(-1)` throughout NetKet to express sharding an array across all GPUs, but this is no longer supported by Jax.
+Instead, we now rely on {class}`jax.sharding.NamedSharding`.
+
+To update, you should only need to change occurrences of `PositionalSharding` with `NamedSharding(jax.sharding.get_abstract_mesh(), jax.P('S'))` when you want to have an array split across multiple GPUs, or with `jax.P()` if you want it to be replicated across GPUs. NetKet builds and sets a mesh with a single axis named `'S'`.
+
+NetKet relies for the time being on automatic sharding, but we will be transitioning to Explicit sharding in the near future.
+
+We strongly suggst you read jax's sharding documentation.
+
+
+
 ### New features
 
 * A systematic overhaul of how symmetries can be manipulated has been merged as part of the symmetry overhaul [PR #2122](https://github.com/netket/netket/pull/2122). In particular:
