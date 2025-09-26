@@ -19,10 +19,10 @@ def test_log_cosh(rdtype):
 
     # this rtol should be increased
     np.testing.assert_allclose(
-        nk.nn.log_cosh(x + 0j), nk.nn.log_cosh(x) + 0j, rtol=5e-6
+        nk.nn.activation.log_cosh(x + 0j), nk.nn.activation.log_cosh(x) + 0j, rtol=5e-6
     )
 
     # netket#768
-    yi = nk.nn.log_cosh(0 + 1j * x)
+    yi = nk.nn.activation.log_cosh(0 + 1j * x)
     yr = jnp.log(jnp.cos(x) + 0.0j)
     np.testing.assert_allclose(yi.real, yr.real)

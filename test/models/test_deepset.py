@@ -18,7 +18,6 @@ import jax.numpy as jnp
 import jax
 
 import netket as nk
-import netket.nn as nknn
 
 
 def test_deepset_model_output():
@@ -91,7 +90,7 @@ def test_rel_dist_deepsets_error():
         layers_rho=3,
         features_phi=(10, 10),
         features_rho=(10, 1),
-        output_activation=nknn.gelu,
+        output_activation=jax.nn.gelu,
     )
     with pytest.raises(ValueError):
         ds.init(jax.random.PRNGKey(42), x)

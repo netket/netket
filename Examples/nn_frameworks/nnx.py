@@ -45,7 +45,7 @@ class RBM(nnx.Module):
     def hidden_layer(self, x_in):
         # You can define subfunctions, and you can use them at any point in time
         # contrary to what happens with linen
-        y = nk.nn.log_cosh(self.linear(x_in))
+        y = nk.nn.activation.log_cosh(self.linear(x_in))
         return y
 
 

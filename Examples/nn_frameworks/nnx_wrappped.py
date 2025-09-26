@@ -35,7 +35,7 @@ class RBM(nnx.Module):
             self.visible_bias = False
 
     def __call__(self, x_in):
-        y = nk.nn.log_cosh(self.linear(x_in))
+        y = nk.nn.activation.log_cosh(self.linear(x_in))
         y = jnp.sum(y, axis=-1)
         if self.visible_bias is not None:
             # print(y)
@@ -46,7 +46,7 @@ class RBM(nnx.Module):
         return y
 
     def another_fun(self, x_in):
-        y = nk.nn.log_cosh(self.linear(x_in))
+        y = nk.nn.activation.log_cosh(self.linear(x_in))
         return y
 
 

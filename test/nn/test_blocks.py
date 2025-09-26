@@ -18,7 +18,6 @@ import jax
 import jax.numpy as jnp
 
 import netket as nk
-import netket.nn as nknn
 import netket.experimental
 
 
@@ -36,7 +35,7 @@ def test_mlp_dimensions():
         hidden_dims=(16, 32),
         param_dtype=np.float64,
         hidden_activations=None,
-        output_activation=nk.nn.gelu,
+        output_activation=jax.nn.gelu,
         use_output_bias=True,
     )
     x = np.zeros((1024, 16))
@@ -69,13 +68,15 @@ def test_mlp_input():
         ma = nk.nn.blocks.MLP(
             output_dim=1,
             hidden_dims=(16, 33),
-            hidden_activations=[nk.nn.gelu, nk.nn.gelu, nk.nn.gelu],
+            hidden_activations=(jax.nn.gelu, jax.nn.gelu, jax.nn.gelu),
         )
         _eval_model(ma)
 
     # this must run
     ma = nk.nn.blocks.MLP(
-        output_dim=1, hidden_dims=(16, 32), hidden_activations=[nk.nn.gelu, nk.nn.gelu]
+        output_dim=1,
+        hidden_dims=(16, 32),
+        hidden_activations=(jax.nn.gelu, jax.nn.gelu),
     )
     _eval_model(ma)
 
@@ -90,7 +91,7 @@ def test_mlp_input():
         ma = nk.nn.blocks.MLP(
             output_dim=1,
             hidden_dims=(16, 32),
-            hidden_activations=[nk.nn.gelu, nk.nn.gelu, nk.nn.gelu],
+            hidden_activations=(jax.nn.gelu, jax.nn.gelu, jax.nn.gelu),
         )
         _eval_model(ma)
 
@@ -127,7 +128,7 @@ def test_deepset():
     np.testing.assert_allclose(out, outp)
 
     ds = nk.nn.blocks.DeepSetMLP(
-        features_phi=16, features_rho=32, output_activation=nknn.gelu
+        features_phi=16, features_rho=32, output_activation=jax.nn.gelu
     )
     params = ds.init(key, x)
     out = ds.apply(params, x)

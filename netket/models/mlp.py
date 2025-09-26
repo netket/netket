@@ -51,7 +51,7 @@ class MLP(nn.Module):
     One must choose to either specify this or the hidden_dims keyword argument"""
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
-    hidden_activations: Callable | tuple[Callable, ...] | None = nknn.gelu
+    hidden_activations: Callable | tuple[Callable, ...] | None = jax.nn.gelu
     """The nonlinear activation function after each hidden layer.
     Can be provided as a single activation,
     where the same activation will be used for every layer."""

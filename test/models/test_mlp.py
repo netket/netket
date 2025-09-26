@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import jax
 
 import netket as nk
 
@@ -23,7 +24,7 @@ def test_mlp_model_output():
         hidden_dims=(16, 32),
         param_dtype=np.float64,
         hidden_activations=None,
-        output_activation=nk.nn.gelu,
+        output_activation=jax.nn.gelu,
         use_output_bias=True,
     )
     x = np.zeros((2, 1024, 16))
