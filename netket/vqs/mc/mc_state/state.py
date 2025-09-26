@@ -40,7 +40,7 @@ from netket.utils import (
     _serialization as serialization_utils,
 )
 from netket.utils.deprecation import deprecated
-from netket.utils.types import PyTree, SeedT, NNInitFunc
+from netket.utils.types import Array, PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
@@ -166,7 +166,7 @@ class MCState(VariationalState):
     _init_fun: Callable | None = None
     """The function used to initialise the parameters and model_state. This might be None if the model
     does not define an init method (e.g. when the model is a function, or for ``flax.nnx.Module``)."""
-    _apply_fun: Callable
+    _apply_fun: Callable[[PyTree], Array]
     """The function used to evaluate the model."""
 
     #############

@@ -75,16 +75,18 @@ sa = nk.sampler.MetropolisFermionHop(
     hi, graph=g, n_chains=16, sweep_size=64, spin_symmetric=True
 )
 
-# since the hilbert basis is a set of occupation numbers, we can take a general RBM
-# we take complex parameters, since it learns sign structures more easily, and for even fermion number, the wave function might be complex
+# since the hilbert basis is a set of occupation numbers
 ma = nk.models.RBM(alpha=1, param_dtype=complex, use_visible_bias=False)
+ma = nk.models.Slater2nd(hi)
 vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=10, n_samples=512)
 
 # we will use sgd with Stochastic Reconfiguration
 opt = nk.optimizer.Sgd(learning_rate=0.01)
-sr = nk.optimizer.SR(diag_shift=0.1, holomorphic=True)
+sr = nk.optimizer.SR(
+    diag_shift=0.1,
+)
 
-gs = nk.driver.VMC(ham, opt, variational_state=vs, preconditioner=sr)
+gs = nkx.driver.VMC_SR(ham, opt, variational_state=vs, diag_shift=0.1, mode="real")
 
 # now run the optimization
 # first step will take longer in order to compile

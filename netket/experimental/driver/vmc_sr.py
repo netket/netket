@@ -1,10 +1,12 @@
 from typing import Any
 from collections.abc import Callable
+from warnings import warn
 
 import jax
 from jax.flatten_util import ravel_pytree
 
 from netket import jax as nkjax
+from netket.hilbert import SpinOrbitalFermions
 from netket.optimizer.solver import cholesky
 from netket.vqs import MCState, FullSumState
 from netket.utils import timing, struct
@@ -305,11 +307,23 @@ class VMC_SR(AbstractVariationalDriver):
         elif on_the_fly and not use_ntk:
             raise ValueError(
                 """
-                `onthefly` is only supported when `use_ntk=True`.
+                `on_the_fly=True` is only supported when `use_ntk=True`.
 
                 We plan to support this mode for the standard NGD in the future.
-                In the meantime, use a standard VMC+SR QGTOnTheFly.
+                In the meantime, use a standard VMC+SR with QGTOnTheFly if you
+                really want to use `on_the_fly=True`
                 """
+            )
+
+        # for most fermionic calculations you want to use real mode, but the auto
+        # detect will pick complex
+        if mode is None and isinstance(variational_state.hilbert, SpinOrbitalFermions):
+            warn(
+                "`mode` not selected when working with Fermionic systems. Automatically falling back "
+                "to `mode='complex'` but for most fermionic calculations where the wave-function is real "
+                "valued with a sign (not a complex phase) `mode='real'` will truncate the imaginary part "
+                "of the QGT and lead to the same optimization but at a considerably lower cost (~8 times less)."
+                "\n\nIT'S LIKELY YOU WANT TO SPECIFY `mode='real'`.\n\n"
             )
 
         self._ham = hamiltonian
@@ -428,9 +442,6 @@ class VMC_SR(AbstractVariationalDriver):
 
     @mode.setter
     def mode(self, mode: str | JacobianMode | None):
-        # TODO: Add support for 'onthefly' mode
-        # At the moment, onthefly is only supported for use_ntk=True.
-        # We raise a warning if the user tries to use it with use_ntk=False.
         if mode is None:
             mode = nkjax.jacobian_default_mode(
                 self.state._apply_fun,
