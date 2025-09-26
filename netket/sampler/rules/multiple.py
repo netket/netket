@@ -17,10 +17,12 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import auto_axes, reshard
 
 from flax import linen as nn
 
 from netket import config
+from netket.jax.sharding import get_sharding_spec
 from netket.utils.types import Array, PyTree, PRNGKeyT
 
 # Necessary for the type annotation to work
@@ -28,6 +30,8 @@ if config.netket_sphinx_build:
     from netket import sampler
 
 from .base import MetropolisRule
+
+batch_select = auto_axes(jax.vmap(partial(jnp.take, axis=0)))
 
 
 class MultipleRules(MetropolisRule):
@@ -131,21 +135,36 @@ class MultipleRules(MetropolisRule):
             N,
             shape=(sampler.n_batches,),
             p=self.probabilities,
+            # out_sharding=jax.typeof(σ).sharding.spec[0],
         )
+        # TODO: When jax.random.choice supports sharding, we should pass it above and not reshard
+        idx_sharding = get_sharding_spec(σ, axis=0)
+        if idx_sharding is not None:
+            indices = reshard(indices, idx_sharding)
 
-        batch_select = jax.vmap(partial(jnp.take, axis=0))
-        σp = batch_select(jnp.stack(σps, axis=1), indices)
+        σp = batch_select(
+            jnp.stack(σps, axis=1), indices, out_sharding=get_sharding_spec(indices)
+        )
 
         # if not all log_prob_corr are 0, convert the Nones to 0s
         if any(x is not None for x in log_prob_corrs):
+            lp0 = tuple([x for x in log_prob_corrs if x is not None])[0]
             log_prob_corrs = jnp.stack(
                 [
-                    x if x is not None else jnp.zeros((sampler.n_batches,))
+                    (
+                        x
+                        if x is not None
+                        else jnp.zeros(
+                            (sampler.n_batches,), device=jax.typeof(lp0).sharding
+                        )
+                    )
                     for x in log_prob_corrs
                 ],
                 axis=1,
             )
-            log_prob_corr = batch_select(log_prob_corrs, indices)
+            log_prob_corr = batch_select(
+                log_prob_corrs, indices, out_sharding=get_sharding_spec(indices)
+            )
         else:
             log_prob_corr = None
 

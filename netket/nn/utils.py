@@ -17,9 +17,9 @@ from collections.abc import Callable
 from typing import cast
 
 import jax
-from jax import numpy as jnp
+from jax import NamedSharding, numpy as jnp
 from jax.core import concrete_or_error
-from jax.sharding import NamedSharding, PartitionSpec as P
+from jax.sharding import get_abstract_mesh
 import numpy as np
 from math import prod
 
@@ -27,12 +27,6 @@ from netket import jax as nkjax
 from netket.utils import get_afun_if_module
 from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert, DoubledHilbert
-
-from netket.utils import config
-from netket.jax.sharding import (
-    extract_replicated,
-    distribute_to_devices_along_axis,
-)
 
 
 def to_array(
@@ -43,6 +37,7 @@ def to_array(
     normalize: bool = True,
     allgather: bool = True,
     chunk_size: int | None = None,
+    parallel_compute_axes=True,
 ) -> Array:
     """
     Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
@@ -63,17 +58,29 @@ def to_array(
     """
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
+    if parallel_compute_axes is False or jax.sharding.get_abstract_mesh().empty:
+        parallel_compute_axes = None
+    elif parallel_compute_axes is True:
+        parallel_compute_axes = jax.sharding.get_abstract_mesh().axis_names
+    elif isinstance(parallel_compute_axes, jax.P):
+        parallel_compute_axes = tuple(parallel_compute_axes)
+
+    if jax.sharding.get_abstract_mesh().empty:
+        allgather = False
 
     apply_fun = get_afun_if_module(apply_fun)
 
-    if config.netket_experimental_sharding:  # type: ignore
-        x = hilbert.all_states()
-        xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
-        n_states = hilbert.n_states
-    else:
-        xs = hilbert.all_states()
-        mask = None
-        n_states = xs.shape[0]
+    xs = hilbert.all_states()
+    n_states = hilbert.n_states
+    if parallel_compute_axes is not None:
+        xs = nkjax.sharding.pad_axis_for_sharding(
+            xs, axis=0, axis_name=parallel_compute_axes
+        )
+        if get_abstract_mesh().are_all_axes_explicit:
+            xs = jax.sharding.reshard(xs, jax.P(parallel_compute_axes))
+        xs = jax.lax.with_sharding_constraint(
+            xs, NamedSharding(get_abstract_mesh(), jax.P(parallel_compute_axes))
+        )
 
     psi = _to_array_rank(
         apply_fun,
@@ -83,11 +90,7 @@ def to_array(
         normalize,
         allgather,
         chunk_size,
-        mask,
     )
-
-    if allgather and config.netket_experimental_sharding:  # type: ignore
-        psi = np.asarray(extract_replicated(psi))
 
     return psi
 
@@ -101,7 +104,6 @@ def _to_array_rank(
     normalize,
     allgather,
     chunk_size,
-    mask=None,
 ):
     """
     Computes apply_fun(variables, σ_rank) and gathers all results across all ranks.
@@ -111,19 +113,18 @@ def _to_array_rank(
         n_states: total number of elements in the hilbert space.
     """
 
-    if chunk_size is not None:
-        apply_fun = nkjax.apply_chunked(
-            apply_fun, in_axes=(None, 0), chunk_size=chunk_size
-        )
-
     # number of 'fake' states, in the last rank.
     n_fake_states = σ_rank.shape[0] - n_states
 
-    log_psi_local = apply_fun(variables, σ_rank)
+    log_psi_local = nkjax.lax.apply(
+        partial(apply_fun, variables), σ_rank, batch_size=chunk_size
+    )
 
     # last rank, get rid of fake elements
     if n_fake_states > 0:
-        log_psi_local = log_psi_local.at[-n_fake_states:].set(-jnp.inf)
+        log_psi_local = log_psi_local.at[-n_fake_states:].set(
+            -jnp.inf, out_sharding=jax.typeof(log_psi_local).sharding
+        )
 
     if normalize:
         # subtract logmax for better numerical stability
@@ -131,31 +132,15 @@ def _to_array_rank(
 
     psi_local = jnp.exp(log_psi_local)
 
-    if mask is not None:
-        # when running under netket_experimental_sharding,
-        # we pad the Hilbert space with extra fake entries,
-        # which in here we mask out to 0
-        psi_local = psi_local * mask
-
     if normalize:
         # compute normalization
         norm2 = jnp.linalg.norm(psi_local) ** 2
         psi_local /= jnp.sqrt(norm2)
 
     if allgather:
-        psi = psi_local.reshape(-1)
-    else:
-        psi = psi_local
-
-    # gather/replicate
-    if allgather and config.netket_experimental_sharding:  # type: ignore
-        sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
-        psi = jax.lax.with_sharding_constraint(psi, sharding)
-
-    # remove fake states
-    psi = psi[0:n_states]
-
-    return psi
+        psi = jax.sharding.reshard(psi_local, jax.P(None))
+        return psi[:n_states]
+    return psi_local
 
 
 def to_matrix(
