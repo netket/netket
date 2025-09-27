@@ -89,7 +89,7 @@ def test_gcnn(mode, complex_output):
         n_samples=8,
     )
 
-    vmc = nk.VMC(
+    vmc = nk.driver.VMC(
         nk.operator.IsingJax(hi, g, h=1.0),
         nk.optimizer.Sgd(0.1),
         variational_state=vs,

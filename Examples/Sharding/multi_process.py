@@ -80,14 +80,11 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 # Optimizer with a decreasing learning rate
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
 
-# SR
-sr = nk.optimizer.SR(diag_shift=0.01)
-
 # Variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
 # Variational monte carlo driver with a variational state
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC_SR(ha, op, variational_state=vs, diag_shift=0.01)
 
 # The logger is smart, and will accumulate data on every process, but will
 # only save to disk on the master process (process #0)

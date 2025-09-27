@@ -41,7 +41,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
         sr_config = nk.optimizer.SR(holomorphic=True if dtype is complex else False)
     else:
         sr_config = None
-    driver = nk.VMC(ha, op, variational_state=vs, preconditioner=sr_config)
+    driver = nk.driver.VMC(ha, op, variational_state=vs, preconditioner=sr_config)
 
     return ha, sx, vs, sa, driver
 

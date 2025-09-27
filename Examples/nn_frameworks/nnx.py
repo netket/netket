@@ -100,6 +100,6 @@ myfun_linen(vs._model, vs.variables, xs)
 # train
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
 sr = nk.optimizer.SR(diag_shift=0.01)
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC(ha, op, variational_state=vs, preconditioner=sr)
 log = nk.logging.RuntimeLog()
 gs.run(n_iter=500, out=log, timeit=True)

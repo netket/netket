@@ -76,7 +76,6 @@ model = nk.models.DeepSetRelDistance(
 vs = nk.vqs.MCState(sab, model, n_samples=4096, n_discard_per_chain=128)
 
 op = nk.optimizer.Sgd(0.01)
-sr = nk.optimizer.SR(diag_shift=0.01)
 
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC_SR(ha, op, variational_state=vs, diag_shift=0.01)
 gs.run(n_iter=1000, out="Helium_10_1d")

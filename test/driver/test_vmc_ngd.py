@@ -142,7 +142,7 @@ def test_advd_vs_nk_vmc(model, use_ntk, onthefly):
     gs.run(n_iter=n_iters, out=logger_srt)
 
     H, opt, vstate_sr = _setup(machine=model)
-    gs = nk.VMC(
+    gs = nk.driver.VMC(
         H,
         opt,
         variational_state=vstate_sr,

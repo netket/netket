@@ -29,7 +29,7 @@ def test_Jastrow(dtype):
 
     vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), ma)
 
-    vmc = nk.VMC(
+    vmc = nk.driver.VMC(
         nk.operator.IsingJax(hi, g, h=1.0),
         nk.optimizer.Sgd(0.1),
         variational_state=vs,

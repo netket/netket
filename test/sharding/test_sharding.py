@@ -143,7 +143,7 @@ def test_vmc(Op, qgt, chunk_size, reset_chains):
     ha = Op(hilbert=vs.hilbert, graph=g, h=1.0)
     opt = nk.optimizer.Sgd(learning_rate=0.05)
     sr = nk.optimizer.SR(qgt(holomorphic=True), diag_shift=0.01)
-    gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
+    gs = nk.driver.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(5)
 
     for l in jax.tree_util.tree_leaves(vs.variables):
@@ -230,7 +230,7 @@ def test_fullsumstate(chunk_size):
     sr = nk.optimizer.SR(
         nk.optimizer.qgt.QGTOnTheFly(holomorphic=True), diag_shift=0.01
     )
-    gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
+    gs = nk.driver.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(5)
 
 
@@ -257,7 +257,7 @@ def test_exactsampler(chunk_size):
     sr = nk.optimizer.SR(
         nk.optimizer.qgt.QGTOnTheFly(holomorphic=True), diag_shift=0.01
     )
-    gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
+    gs = nk.driver.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(5)
 
 
@@ -276,7 +276,7 @@ def test_autoreg():
     vs = nk.vqs.MCState(sa, ma, n_samples=256)
     pos_sharding = NamedSharding(vs.samples.sharding.mesh, P("S"))
     assert vs.samples.sharding.is_equivalent_to(pos_sharding, 3)
-    gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
+    gs = nk.driver.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(n_iter=5)
 
 
@@ -322,7 +322,7 @@ def test_loggers(tmp_path, logger):
     logger, out_fun = logger
     logger = logger(str(tmp_path))
     opt = nk.optimizer.Sgd(learning_rate=0.05)
-    gs = nk.VMC(ha, opt, variational_state=vs)
+    gs = nk.driver.VMC(ha, opt, variational_state=vs)
     gs.run(10, out=logger)
     out_fun(logger)
 
@@ -337,12 +337,12 @@ def test_serialization():
     vs = serialization.from_bytes(vs, b)
 
     opt = nk.optimizer.Sgd(learning_rate=0.05)
-    gs = nk.VMC(ha, opt, variational_state=vs)
+    gs = nk.driver.VMC(ha, opt, variational_state=vs)
     gs.run(1)
 
     b = serialization.to_bytes(gs.state)
     vs2 = serialization.from_bytes(gs.state, b)
-    gs2 = nk.VMC(ha, opt, variational_state=vs2)
+    gs2 = nk.driver.VMC(ha, opt, variational_state=vs2)
     gs2.run(1)
 
 
