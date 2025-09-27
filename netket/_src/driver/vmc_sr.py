@@ -43,7 +43,7 @@ def VMC_SRt(
     linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = cholesky,
     mode: str | None = None,
     jacobian_mode: str | None = None,
-    variational_state: MCState = None,
+    variational_state: MCState,
 ):
     if mode is None:
         mode = jacobian_mode
@@ -243,7 +243,7 @@ class VMC_SR(AbstractVariationalDriver):
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
         linear_solver_fn: Callable[[Array, Array], Array] = cholesky,
-        variational_state: MCState = None,
+        variational_state: MCState,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
         use_ntk: bool | None = None,
@@ -260,7 +260,7 @@ class VMC_SR(AbstractVariationalDriver):
         Args:
             hamiltonian: The Hamiltonian of which the ground-state is to be found.
             optimizer: The optimizer to use for the parameter updates. To perform proper
-                SR/NGD optimization this should be an instance of `optax.sgd`, but can be
+                SR/NGD optimization this should be an instance of :func:`optax.sgd`, but can be
                 any other optimizer if you are brave.
             variational_state: The variational state to optimize.
             diag_shift: The diagonal regularization parameter :math:`\lambda` for the QGT/NTK.
@@ -274,11 +274,32 @@ class VMC_SR(AbstractVariationalDriver):
                 Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
                 :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
                 (Defaults to None)
-            linear_solver_fn: The linear solver function to use for the NGD solver.
+            linear_solver_fn: The linear solver function to use for the NGD solver. Defaults to
+                :func:`netket.optimizer.solver.cholesky`, but can use other solvers from there. In general:
+
+                - :func:`~netket.optimizer.solver.cholesky` is faster because it relies on LU decomposition
+                  instead of a full diagonalization, but it is more prone to numerical instabilities,
+                  especially with explicitly simmetrized networks or very singular QGT/NTKs. Often the issue
+                  is that your matrix is numerically not hermitian/positive semidefinite because of numerical
+                  errors, and this breaks the method. **If you see NaNs in your weights
+                  during your optimization, this is likely the cause.**
+                - :func:`~netket.optimizer.solver.pinv_smooth` (a smoothed variant of
+                  :func:`~netket.optimizer.solver.pinv`) is considerably more stable and usually does
+                  not cause NaNs, but it is also considerably more expensive.
+                - :func:`~jax.scipy.sparse.linalg.cg` and other iterative solvers can sometimes be faster, but
+                  the quality of the solution is bad and they can lead to unpredictable step times because
+                  the number of CG iterations might vary with the condition number. While we used those a
+                  lot in the past, there is considerable evidence that they should be avoided (see Chen &
+                  Heyl Nature Physics).
+                In general, if you are not bottlenecked by the linear solver, it is a good idea to use the
+                more reliable :func:`~netket.optimizer.solver.pinv_smooth`.
             mode: The mode used to compute the jacobian of the variational state.
-                Can be `'real'` or `'complex'`. Real can be used for real-valued wavefunctions
-                with a sign, to truncate the arbitrary phase of the wavefunction. This leads
-                to lower computational cost.
+                Can be ``'real'`` or ``'complex'``. Real can be used for real-valued wavefunctions
+                with a sign, to truncate the arbitrary phase of the wavefunction. In complex mode, the QGT/NTK
+                is concretized as a real-valued :math:`2N \times 2N` where :math:`N` is either the number of
+                parameters or number of samples.
+                If your wavefunctino is real (as is usually the case for fermionic hamiltonians) you should
+                really set this to `real`.
             on_the_fly: Whether to compute the QGT or NTK using lazy evaluation methods.
                 This usually requires less memory. (Defaults to None, which will
                 automatically chose the potentially best method).
@@ -466,7 +487,9 @@ class VMC_SR(AbstractVariationalDriver):
     @property
     def on_the_fly(self) -> bool:
         """
-        Whether
+        Whether to use a lazy implementation of th NTK or QGT which does not concretize the jacobian.
+
+        This usually requires less memory.
         """
         return self._on_the_fly
 

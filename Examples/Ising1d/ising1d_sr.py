@@ -39,7 +39,7 @@ op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
 # Variational monte carlo driver with a variational state
-gs = nkx.driver.VMC_SR(
+gs = nk.driver.VMC_SR(
     ha,
     op,
     variational_state=vs,

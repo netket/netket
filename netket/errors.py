@@ -678,7 +678,7 @@ class UnoptimalSRtWarning(NetketWarning):
 
     .. note::
         a  detailed discussion can be found in the documentation of
-        :func:`netket.experimental.driver.VMC_SRt`).
+        :func:`netket.driver.VMC_SRt`).
 
     """
 

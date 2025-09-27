@@ -382,7 +382,7 @@ def test_srt():
     vs, _, ha = _setup(12, alpha=2)
     vs.n_samples = 64
     opt = nk.optimizer.Sgd(learning_rate=0.05)
-    gs = nkx.driver.VMC_SRt(
+    gs = nk.driver.VMC_SRt(
         ha,
         opt,
         variational_state=vs,

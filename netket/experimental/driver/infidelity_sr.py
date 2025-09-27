@@ -44,7 +44,7 @@ class Infidelity_SR(AbstractVariationalDriver):
     r"""
     Infidelity minimization with respect to a target state :math:`|\Phi\rangle` (with possibly an operator :math:`U` such that :math:`|\Phi\rangle \equiv U|\Phi\rangle`)
     using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.
-    The optimization is analogous to the one of :class:`netket.experimental.driver.VMC_SR` for ground state.
+    The optimization is analogous to the one of :class:`netket.driver.VMC_SR` for ground state.
     The infidelity :math:`I` among the variational state :math:`|\Psi\rangle` and the target state :math:`|\Phi\rangle` corresponds to:
 
     .. math::
