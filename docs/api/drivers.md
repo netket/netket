@@ -24,7 +24,8 @@ Those are the abstract classes you can inherit from to implement your own driver
 (drivers_concrete)=
 ## Concrete drivers
 
-Those are the optimization drivers already implemented in Netket:
+Those are the optimization drivers already implemented in Netket.
+Regarding VMC (ground-state optimization), we reccomend to use {class}`~netket.driver.VMC_SR` instead of the normal {class}`~netket.driver.VMC` in most cases.
 
 ```{eval-rst}
 .. currentmodule:: netket.driver
