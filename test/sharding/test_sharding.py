@@ -378,11 +378,11 @@ def test_timeevolution():
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
-def test_srt():
+def test_sr():
     vs, _, ha = _setup(12, alpha=2)
     vs.n_samples = 64
     opt = nk.optimizer.Sgd(learning_rate=0.05)
-    gs = nk.driver.VMC_SRt(
+    gs = nk.driver.VMC_SR(
         ha,
         opt,
         variational_state=vs,
