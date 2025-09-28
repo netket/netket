@@ -387,7 +387,7 @@ def test_sr():
         opt,
         variational_state=vs,
         diag_shift=0.1,
-        jacobian_mode="complex",
+        mode="complex",
     )
     gs.run(2)
 
