@@ -22,7 +22,7 @@ import optax
 
 import pytest
 
-from netket.experimental.driver import VMC_SR, VMC_SRt
+from netket.experimental.driver import VMC_SR
 from netket.optimizer.solver.solvers import solve
 
 
@@ -227,7 +227,7 @@ def test_SRt_constructor_errors():
     gs.run(1)
 
     with pytest.raises(ValueError):
-        gs = VMC_SRt(H, opt, variational_state=vstate_srt, diag_shift=0.1, mode="belin")
+        gs = VMC_SR(H, opt, variational_state=vstate_srt, diag_shift=0.1, mode="belin")
 
 
 def test_SRt_schedules():
@@ -235,7 +235,7 @@ def test_SRt_schedules():
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
     H, opt, vstate_srt = _setup()
-    gs = VMC_SRt(
+    gs = VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
@@ -249,7 +249,7 @@ def test_SRt_supports_netket_solvers():
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
     H, opt, vstate_srt = _setup()
-    gs = VMC_SRt(
+    gs = VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
