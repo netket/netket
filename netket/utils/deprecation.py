@@ -19,6 +19,13 @@ import inspect
 from textwrap import dedent
 
 
+# We use a class for deprecated args to avoid using Any/object types which can
+# introduce complications and mistakes in static analysis
+class DeprecatedArg:
+    def __repr__(self):
+        return "Deprecated"
+
+
 def deprecated(reason=None, func_name=None):
     r"""
     This is a decorator which can be used to mark functions as deprecated. It
@@ -79,23 +86,6 @@ def deprecated_new_name(func_name, reason=""):
         return deprecated_func
 
     return deprecated_decorator
-
-
-_dep_msg = """
-
-**DEPRECATION_WARNING:**
-    The `dtype` argument to neural-network layers and models is deprecated
-    throughout NetKet to maintain consistency with new releases of flax.
-    Please use `param_dtype` instead.
-
-    This warning will become an error in a future version of NetKet.
-
-"""
-
-
-def _dtype_deprecated(self):
-    warn_deprecation(_dep_msg)
-    return self.param_dtype
 
 
 def deprecation_getattr(module, deprecations):

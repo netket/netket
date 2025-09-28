@@ -11,6 +11,7 @@ from netket.optimizer.solver import cholesky
 from netket.vqs import MCState, FullSumState
 from netket.utils import timing, struct
 from netket.utils.citations import reference
+from netket.utils.deprecation import DeprecatedArg
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
@@ -40,10 +41,13 @@ def VMC_SRt(
     optimizer: Optimizer,
     *,
     diag_shift: ScalarOrSchedule,
-    linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = cholesky,
+    linear_solver: Callable[[jax.Array, jax.Array], jax.Array] = cholesky,
     mode: str | None = None,
     jacobian_mode: str | None = None,
     variational_state: MCState,
+    linear_solver_fn: (
+        Callable[[jax.Array, jax.Array], jax.Array] | DeprecatedArg
+    ) = DeprecatedArg(),
 ):
     if mode is None:
         mode = jacobian_mode
@@ -56,6 +60,7 @@ def VMC_SRt(
         hamiltonian,
         optimizer,
         diag_shift=diag_shift,
+        linear_solver=linear_solver,
         linear_solver_fn=linear_solver_fn,
         mode=mode,
         variational_state=variational_state,
@@ -107,7 +112,7 @@ class VMC_SR(AbstractVariationalDriver):
 
     .. code-block:: python
 
-        linear_solver_fn(A: Matrix, b: vector) -> tuple[jax.Array[vector], dict]
+        linear_solver(A: Matrix, b: vector) -> tuple[jax.Array[vector], dict]
 
     Where the vector is the solution and the dictionary may contain additional information about the solver or be None.
     The standard solver is based on the Cholesky decomposition :func:`~netket.optimizer.solver.cholesky`, but any other
@@ -221,7 +226,7 @@ class VMC_SR(AbstractVariationalDriver):
     _chunk_size_bwd: int | None = struct.field(serialize=False)
     _use_ntk: bool = struct.field(serialize=False)
     _on_the_fly: bool = struct.field(serialize=False)
-    _linear_solver_fn: Any = struct.field(serialize=False)
+    _linear_solver: Any = struct.field(serialize=False)
 
     # Internal things cached
     _unravel_params_fn: Any = struct.field(serialize=False)
@@ -242,7 +247,10 @@ class VMC_SR(AbstractVariationalDriver):
         diag_shift: ScalarOrSchedule,
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
-        linear_solver_fn: Callable[[Array, Array], Array] = cholesky,
+        linear_solver: Callable[[Array, Array], Array] = cholesky,
+        linear_solver_fn: (
+            Callable[[Array, Array], Array] | DeprecatedArg
+        ) = DeprecatedArg(),
         variational_state: MCState,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
@@ -274,7 +282,7 @@ class VMC_SR(AbstractVariationalDriver):
                 Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
                 :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
                 (Defaults to None)
-            linear_solver_fn: The linear solver function to use for the NGD solver. Defaults to
+            linear_solver: The linear solver function to use for the NGD solver. Defaults to
                 :func:`netket.optimizer.solver.cholesky`, but can use other solvers from there. In general:
 
                 - :func:`~netket.optimizer.solver.cholesky` is faster because it relies on LU decomposition
@@ -310,6 +318,17 @@ class VMC_SR(AbstractVariationalDriver):
                 SR and minSR. (Defaults to None, which will automatically choose the best
                 method)
         """
+        # TODO: Deprecated in September 2025, netket 3.20
+        if not isinstance(linear_solver_fn, DeprecatedArg):
+            warn(
+                """
+                The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
+                """,
+                category=FutureWarning,
+                stacklevel=2,
+            )
+            linear_solver = linear_solver_fn
+
         if isinstance(variational_state, FullSumState):
             raise TypeError(
                 "NGD drivers do not support FullSumState. Please use 'standard' drivers with SR."
@@ -358,7 +377,7 @@ class VMC_SR(AbstractVariationalDriver):
         self.mode = mode
         self._on_the_fly = on_the_fly
 
-        self._linear_solver_fn = linear_solver_fn
+        self._linear_solver = linear_solver
 
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
@@ -416,7 +435,7 @@ class VMC_SR(AbstractVariationalDriver):
             self.state.model_state,
             samples,
             diag_shift=diag_shift,
-            solver_fn=self._linear_solver_fn,
+            solver_fn=self._linear_solver,
             mode=self.mode,
             proj_reg=proj_reg,
             momentum=momentum,

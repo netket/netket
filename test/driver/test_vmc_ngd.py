@@ -135,7 +135,7 @@ def test_advd_vs_nk_vmc(model, use_ntk, onthefly):
         diag_shift=0.1,
         use_ntk=use_ntk,
         on_the_fly=onthefly,
-        linear_solver_fn=nk.optimizer.solver.cholesky,
+        linear_solver=nk.optimizer.solver.cholesky,
     )
     logger_srt = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_srt)
@@ -314,7 +314,7 @@ def test_SRt_supports_netket_solvers(use_ntk):
         opt,
         variational_state=vstate_srt,
         diag_shift=optax.linear_schedule(0.1, 0.001, 100),
-        linear_solver_fn=nk.optimizer.solver.pinv_smooth,
+        linear_solver=nk.optimizer.solver.pinv_smooth,
         use_ntk=use_ntk,
     )
     gs.run(1)

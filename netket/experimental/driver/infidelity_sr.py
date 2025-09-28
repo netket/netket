@@ -1,16 +1,17 @@
 from typing import Any
 from collections.abc import Callable
+from warnings import warn
 
 import jax
 from jax.flatten_util import ravel_pytree
-import flax
 
 from netket import jax as nkjax
 from netket.optimizer.solver import cholesky
-from netket.vqs import MCState, FullSumState, VariationalState
+from netket.utils.deprecation import DeprecatedArg
 from netket.utils import timing, struct
 from netket.utils.citations import reference
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
+from netket.vqs import MCState, FullSumState, VariationalState
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
 from netket import stats as nkstats
@@ -103,7 +104,7 @@ class Infidelity_SR(AbstractVariationalDriver):
     _chunk_size_bwd: int | None = struct.field(serialize=False)
     _use_ntk: bool = struct.field(serialize=False)
     _on_the_fly: bool = struct.field(serialize=False)
-    _linear_solver_fn: Any = struct.field(serialize=False)
+    _linear_solver: Any = struct.field(serialize=False)
 
     # Internal things cached
     _unravel_params_fn: Any = struct.field(serialize=False)
@@ -125,7 +126,10 @@ class Infidelity_SR(AbstractVariationalDriver):
         diag_shift: ScalarOrSchedule,
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
-        linear_solver_fn: Callable[[Array, Array], Array] = cholesky,
+        linear_solver: Callable[[Array, Array], Array] = cholesky,
+        linear_solver_fn: (
+            Callable[[Array, Array], Array] | DeprecatedArg
+        ) = DeprecatedArg(),
         variational_state: MCState = None,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
@@ -158,7 +162,7 @@ class Infidelity_SR(AbstractVariationalDriver):
                 Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
                 :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
                 (Defaults to None)
-            linear_solver_fn: The linear solver function to use for the NGD solver.
+            linear_solver: The linear solver function to use for the NGD solver.
             mode: The mode used to compute the jacobian of the variational state.
                 Can be `'real'` or `'complex'`. Real can be used for real-valued wavefunctions
                 with a sign, to truncate the arbitrary phase of the wavefunction. This leads
@@ -174,20 +178,18 @@ class Infidelity_SR(AbstractVariationalDriver):
                 method)
         """
 
+        # TODO: Deprecated in September 2025, netket 3.20
+        if not isinstance(linear_solver_fn, DeprecatedArg):
+            warn(
+                """
+                The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
+                """,
+                category=FutureWarning,
+                stacklevel=2,
+            )
+            linear_solver = linear_solver_fn
+
         if operator is not None:
-
-            def _logpsi_fun(apply_fun, variables, x, *args):
-                variables_applyfun, O = flax.core.pop(variables, "operator")
-
-                xp, mels = O.get_conn_padded(x)
-                xp = xp.reshape(-1, x.shape[-1])
-                logpsi_xp = apply_fun(variables_applyfun, xp, *args)
-                logpsi_xp = logpsi_xp.reshape(mels.shape)
-
-                return jax.scipy.special.logsumexp(
-                    logpsi_xp.astype(complex), axis=-1, b=mels
-                )
-
             logUpsi_fun, new_variables = make_logpsi_op_afun(
                 target_state._apply_fun, operator, target_state.variables
             )
@@ -246,7 +248,7 @@ class Infidelity_SR(AbstractVariationalDriver):
         self.mode = mode
         self._on_the_fly = on_the_fly
 
-        self._linear_solver_fn = linear_solver_fn
+        self._linear_solver = linear_solver
 
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
@@ -308,7 +310,7 @@ class Infidelity_SR(AbstractVariationalDriver):
             self.state.model_state,
             samples,
             diag_shift=diag_shift,
-            solver_fn=self._linear_solver_fn,
+            solver_fn=self._linear_solver,
             mode=self.mode,
             proj_reg=proj_reg,
             momentum=momentum,

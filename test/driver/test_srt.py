@@ -254,6 +254,6 @@ def test_SRt_supports_netket_solvers():
         opt,
         variational_state=vstate_srt,
         diag_shift=optax.linear_schedule(0.1, 0.001, 100),
-        linear_solver_fn=nk.optimizer.solver.pinv_smooth,
+        linear_solver=nk.optimizer.solver.pinv_smooth,
     )
     gs.run(5)
