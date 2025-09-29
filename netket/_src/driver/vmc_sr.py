@@ -373,6 +373,11 @@ class VMC_SR(AbstractVariationalDriver):
                 "\n\nIT'S LIKELY YOU WANT TO SPECIFY `mode='real'`.\n\n"
             )
 
+        # Default chunk_size_bwd to the variational's state chunk size. In any case,
+        # it usually should be smaller than the chunk size of variational state.
+        if chunk_size_bwd is None:
+            chunk_size_bwd = variational_state.chunk_size
+
         self._ham = hamiltonian
 
         self.diag_shift = diag_shift
@@ -540,5 +545,7 @@ class VMC_SR(AbstractVariationalDriver):
     @chunk_size_bwd.setter
     def chunk_size_bwd(self, value: int | None):
         if not isinstance(value, int | None):
-            raise TypeError("chunk_size must be an integer or None")
+            raise TypeError("chunk_size must be an integer or None.")
+        elif isinstance(value, int) and value <= 0:
+            raise ValueError("chunk_size_bwd must be a positive integer.")
         self._chunk_size_bwd = value

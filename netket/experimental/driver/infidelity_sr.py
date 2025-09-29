@@ -189,6 +189,11 @@ class Infidelity_SR(AbstractVariationalDriver):
             )
             linear_solver = linear_solver_fn
 
+        # Default chunk_size_bwd to the variational's state chunk size. In any case,
+        # it usually should be smaller than the chunk size of variational state.
+        if chunk_size_bwd is None:
+            chunk_size_bwd = variational_state.chunk_size
+
         if operator is not None:
             logUpsi_fun, new_variables = make_logpsi_op_afun(
                 target_state._apply_fun, operator, target_state.variables
@@ -213,8 +218,10 @@ class Infidelity_SR(AbstractVariationalDriver):
             self.target_state = target_state
 
         if isinstance(variational_state, FullSumState):
-            raise TypeError(
-                "NGD drivers do not support FullSumState. Please use 'standard' drivers with SR."
+            raise NotImplementedError(
+                "NGD drivers do not support FullSumState. It is not too hard to implement it"
+                "We would welcome a contribution towards it.\n"
+                "See https://github.com/netket/netket/issues/2152 \n"
             )
         super().__init__(
             variational_state, optimizer, minimized_quantity_name="Infidelity"
