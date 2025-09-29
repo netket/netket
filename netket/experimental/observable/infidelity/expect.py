@@ -34,6 +34,9 @@ def get_kernels(afun, afun_t, params, params_t, σ, σ_t, model_state, model_sta
     W = {"params": params, **model_state}
     W_t = {"params": params_t, **model_state_t}
 
+    σ = σ.reshape(-1, σ.shape[-1])
+    σ_t = σ_t.reshape(-1, σ_t.shape[-1])
+
     log_val = afun_t(W_t, σ) - afun(W, σ)
     log_val_t = afun(W, σ_t) - afun_t(W_t, σ_t)
 
@@ -73,13 +76,8 @@ def infidelity_sampling_inner(
     sigma_t,
     cv_coeff,
 ):
-    N = sigma.shape[-1]
-
-    σ = sigma.reshape(-1, N)
-    σ_t = sigma_t.reshape(-1, N)
-
     log_val, log_val_t = get_kernels(
-        afun, afun_t, params, params_t, σ, σ_t, model_state, model_state_t
+        afun, afun_t, params, params_t, sigma, sigma_t, model_state, model_state_t
     )
 
     if cv_coeff is not None:
