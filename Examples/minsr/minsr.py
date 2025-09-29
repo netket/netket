@@ -40,7 +40,7 @@ vs.init_parameters(jax.nn.initializers.normal(stddev=0.01), seed=1234)
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.01, 0.0001, 1000))
 
 # Variational monte carlo driver
-gs = nkx.driver.VMC_SR(
+gs = nk.driver.VMC_SR(
     ha, op, variational_state=vs, diag_shift=0.001, use_ntk=True, on_the_fly=False
 )
 

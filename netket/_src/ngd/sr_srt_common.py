@@ -101,7 +101,7 @@ def _sr_srt_common(
         diag_shift: The diagonal shift of the stochastic reconfiguration matrix. Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
         proj_reg: Weight before the matrix `1/N_samples \\bm{1} \\bm{1}^T` used to regularize the linear solver in SPRING.
         momentum: Momentum used to accumulate updates in SPRING.
-        linear_solver_fn: Callable to solve the linear problem associated to the updates of the parameters.
+        linear_solver: Callable to solve the linear problem associated to the updates of the parameters.
         mode: The mode used to compute the jacobian of the variational state. Can be `'real'` or `'complex'` (defaults to the dtype of the output of the model).
 
     Returns:

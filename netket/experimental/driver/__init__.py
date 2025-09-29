@@ -12,17 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tdvp import TDVP
-from .tdvp_schmitt import TDVPSchmitt
-from .vmc_sr import VMC_SR, VMC_SRt as _VMC_SRt_deprecated
-from .infidelity_sr import Infidelity_SR
+from netket.experimental.driver.tdvp import TDVP
+from netket.experimental.driver.tdvp_schmitt import TDVPSchmitt
+from netket.experimental.driver.infidelity_sr import Infidelity_SR
+
+from netket._src.driver.vmc_sr import (
+    VMC_SR as _VMC_SR_deprecated,
+    VMC_SRt as _VMC_SRt_deprecated,
+)
 
 _deprecations = {
-    # May 2024, NetKet 3.12
+    # May 2025, NetKet 3.17
     "VMC_SRt": (
-        "netket.experimental.driver.VMC_SRt is deprecated: use the new SR driver "
-        "netket.experimental.driver.VMC_SR(..., use_ntk=True) (netket >= 3.17)",
+        "netket.driver.VMC_SRt is deprecated: use the new SR driver "
+        "netket.driver.VMC_SR(..., use_ntk=True) (netket >= 3.17)",
         _VMC_SRt_deprecated,
+    ),
+    # September 2025, NetKet 3.20
+    "VMC_SR": (
+        "netket.driver.VMC_SR is now stable: use it from "
+        "netket.driver.VMC_SR (netket >= 3.20)",
+        _VMC_SR_deprecated,
     ),
 }
 

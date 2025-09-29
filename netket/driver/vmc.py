@@ -35,7 +35,7 @@ class VMC(AbstractVariationalDriver):
 
     .. note::
 
-        Consider using directly the new :class:`netket.experimental.driver.VMC_SR`
+        Consider using directly the new :class:`netket.driver.VMC_SR`
         class instead of this one if you want to use Stochastic Reconfiguration.
 
     """

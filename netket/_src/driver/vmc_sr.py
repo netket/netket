@@ -11,6 +11,7 @@ from netket.optimizer.solver import cholesky
 from netket.vqs import MCState, FullSumState
 from netket.utils import timing, struct
 from netket.utils.citations import reference
+from netket.utils.deprecation import DeprecatedArg
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
@@ -40,22 +41,33 @@ def VMC_SRt(
     optimizer: Optimizer,
     *,
     diag_shift: ScalarOrSchedule,
-    linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = cholesky,
+    linear_solver: Callable[[jax.Array, jax.Array], jax.Array] = cholesky,
     mode: str | None = None,
-    jacobian_mode: str | None = None,
-    variational_state: MCState = None,
+    jacobian_mode: str | None | DeprecatedArg = DeprecatedArg(),
+    variational_state: MCState,
+    linear_solver_fn: (
+        Callable[[jax.Array, jax.Array], jax.Array] | DeprecatedArg
+    ) = DeprecatedArg(),
 ):
-    if mode is None:
-        mode = jacobian_mode
-    elif mode is not None and jacobian_mode is not None:
-        raise ValueError(
-            "`jacobian_mode` is deprecated and renamed to `mode`. Just declare `mode`."
+    if not isinstance(jacobian_mode, DeprecatedArg):
+        if mode is not None:
+            raise ValueError(
+                "`jacobian_mode` is deprecated and renamed to `mode`. Just declare `mode`."
+            )
+        warn(
+            """
+            The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
+            """,
+            category=FutureWarning,
+            stacklevel=2,
         )
+        mode = jacobian_mode
 
     return VMC_SR(
         hamiltonian,
         optimizer,
         diag_shift=diag_shift,
+        linear_solver=linear_solver,
         linear_solver_fn=linear_solver_fn,
         mode=mode,
         variational_state=variational_state,
@@ -107,7 +119,7 @@ class VMC_SR(AbstractVariationalDriver):
 
     .. code-block:: python
 
-        linear_solver_fn(A: Matrix, b: vector) -> tuple[jax.Array[vector], dict]
+        linear_solver(A: Matrix, b: vector) -> tuple[jax.Array[vector], dict]
 
     Where the vector is the solution and the dictionary may contain additional information about the solver or be None.
     The standard solver is based on the Cholesky decomposition :func:`~netket.optimizer.solver.cholesky`, but any other
@@ -221,7 +233,7 @@ class VMC_SR(AbstractVariationalDriver):
     _chunk_size_bwd: int | None = struct.field(serialize=False)
     _use_ntk: bool = struct.field(serialize=False)
     _on_the_fly: bool = struct.field(serialize=False)
-    _linear_solver_fn: Any = struct.field(serialize=False)
+    _linear_solver: Any = struct.field(serialize=False)
 
     # Internal things cached
     _unravel_params_fn: Any = struct.field(serialize=False)
@@ -242,8 +254,11 @@ class VMC_SR(AbstractVariationalDriver):
         diag_shift: ScalarOrSchedule,
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
-        linear_solver_fn: Callable[[Array, Array], Array] = cholesky,
-        variational_state: MCState = None,
+        linear_solver: Callable[[Array, Array], Array] = cholesky,
+        linear_solver_fn: (
+            Callable[[Array, Array], Array] | DeprecatedArg
+        ) = DeprecatedArg(),
+        variational_state: MCState,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
         use_ntk: bool | None = None,
@@ -260,7 +275,7 @@ class VMC_SR(AbstractVariationalDriver):
         Args:
             hamiltonian: The Hamiltonian of which the ground-state is to be found.
             optimizer: The optimizer to use for the parameter updates. To perform proper
-                SR/NGD optimization this should be an instance of `optax.sgd`, but can be
+                SR/NGD optimization this should be an instance of :func:`optax.sgd`, but can be
                 any other optimizer if you are brave.
             variational_state: The variational state to optimize.
             diag_shift: The diagonal regularization parameter :math:`\lambda` for the QGT/NTK.
@@ -274,11 +289,32 @@ class VMC_SR(AbstractVariationalDriver):
                 Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
                 :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
                 (Defaults to None)
-            linear_solver_fn: The linear solver function to use for the NGD solver.
+            linear_solver: The linear solver function to use for the NGD solver. Defaults to
+                :func:`netket.optimizer.solver.cholesky`, but can use other solvers from there. In general:
+
+                - :func:`~netket.optimizer.solver.cholesky` is faster because it relies on LU decomposition
+                  instead of a full diagonalization, but it is more prone to numerical instabilities,
+                  especially with explicitly simmetrized networks or very singular QGT/NTKs. Often the issue
+                  is that your matrix is numerically not hermitian/positive semidefinite because of numerical
+                  errors, and this breaks the method. **If you see NaNs in your weights
+                  during your optimization, this is likely the cause.**
+                - :func:`~netket.optimizer.solver.pinv_smooth` (a smoothed variant of
+                  :func:`~netket.optimizer.solver.pinv`) is considerably more stable and usually does
+                  not cause NaNs, but it is also considerably more expensive.
+                - :func:`~jax.scipy.sparse.linalg.cg` and other iterative solvers can sometimes be faster, but
+                  the quality of the solution is bad and they can lead to unpredictable step times because
+                  the number of CG iterations might vary with the condition number. While we used those a
+                  lot in the past, there is considerable evidence that they should be avoided (see Chen &
+                  Heyl Nature Physics).
+                In general, if you are not bottlenecked by the linear solver, it is a good idea to use the
+                more reliable :func:`~netket.optimizer.solver.pinv_smooth`.
             mode: The mode used to compute the jacobian of the variational state.
-                Can be `'real'` or `'complex'`. Real can be used for real-valued wavefunctions
-                with a sign, to truncate the arbitrary phase of the wavefunction. This leads
-                to lower computational cost.
+                Can be ``'real'`` or ``'complex'``. Real can be used for real-valued wavefunctions
+                with a sign, to truncate the arbitrary phase of the wavefunction. In complex mode, the QGT/NTK
+                is concretized as a real-valued :math:`2N \times 2N` where :math:`N` is either the number of
+                parameters or number of samples.
+                If your wavefunctino is real (as is usually the case for fermionic hamiltonians) you should
+                really set this to `real`.
             on_the_fly: Whether to compute the QGT or NTK using lazy evaluation methods.
                 This usually requires less memory. (Defaults to None, which will
                 automatically chose the potentially best method).
@@ -289,6 +325,17 @@ class VMC_SR(AbstractVariationalDriver):
                 SR and minSR. (Defaults to None, which will automatically choose the best
                 method)
         """
+        # TODO: Deprecated in September 2025, netket 3.20
+        if not isinstance(linear_solver_fn, DeprecatedArg):
+            warn(
+                """
+                The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
+                """,
+                category=FutureWarning,
+                stacklevel=2,
+            )
+            linear_solver = linear_solver_fn
+
         if isinstance(variational_state, FullSumState):
             raise TypeError(
                 "NGD drivers do not support FullSumState. Please use 'standard' drivers with SR."
@@ -337,7 +384,7 @@ class VMC_SR(AbstractVariationalDriver):
         self.mode = mode
         self._on_the_fly = on_the_fly
 
-        self._linear_solver_fn = linear_solver_fn
+        self._linear_solver = linear_solver
 
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
@@ -395,7 +442,7 @@ class VMC_SR(AbstractVariationalDriver):
             self.state.model_state,
             samples,
             diag_shift=diag_shift,
-            solver_fn=self._linear_solver_fn,
+            solver_fn=self._linear_solver,
             mode=self.mode,
             proj_reg=proj_reg,
             momentum=momentum,
@@ -466,7 +513,9 @@ class VMC_SR(AbstractVariationalDriver):
     @property
     def on_the_fly(self) -> bool:
         """
-        Whether
+        Whether to use a lazy implementation of th NTK or QGT which does not concretize the jacobian.
+
+        This usually requires less memory.
         """
         return self._on_the_fly
 

@@ -23,7 +23,6 @@ import optax
 
 import pytest
 
-from netket import experimental as nkx
 from netket.models import RBM, RBMModPhase
 
 from test.common import skipif_distributed
@@ -129,14 +128,14 @@ def test_advd_vs_nk_vmc(model, use_ntk, onthefly):
     n_iters = 5
 
     H, opt, vstate_srt = _setup(machine=model)
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
         diag_shift=0.1,
         use_ntk=use_ntk,
         on_the_fly=onthefly,
-        linear_solver_fn=nk.optimizer.solver.cholesky,
+        linear_solver=nk.optimizer.solver.cholesky,
     )
     logger_srt = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iters, out=logger_srt)
@@ -177,7 +176,7 @@ def test_SRt_vs_SR(model, onthefly):
     n_iters = 5
 
     H, opt, vstate_srt = _setup(machine=model)
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
@@ -191,7 +190,7 @@ def test_SRt_vs_SR(model, onthefly):
     gs.run(n_iter=n_iters, out=logger_srt)
 
     H, opt, vstate_sr = _setup(machine=model)
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_sr,
@@ -223,7 +222,7 @@ def test_SRt_real_vs_complex(onthefly):
     n_iters = 5
 
     H, opt, vstate_complex = _setup(complex=False)
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_complex,
@@ -239,7 +238,7 @@ def test_SRt_real_vs_complex(onthefly):
     gs.run(n_iter=n_iters, out=logger_complex)
 
     H, opt, vstate_real = _setup(complex=False, real_output=True)
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_real,
@@ -272,7 +271,7 @@ def test_SRt_constructor_errors():
     Error if jacobian mode is malformed.
     """
     H, opt, vstate_srt = _setup()
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
@@ -283,7 +282,7 @@ def test_SRt_constructor_errors():
     gs.run(1)
 
     with pytest.raises(ValueError):
-        gs = nkx.driver.VMC_SR(
+        gs = nk.driver.VMC_SR(
             H, opt, variational_state=vstate_srt, diag_shift=0.1, mode="belin"
         )
 
@@ -294,7 +293,7 @@ def test_SRt_schedules():
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
     H, opt, vstate_srt = _setup()
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
@@ -310,12 +309,12 @@ def test_SRt_supports_netket_solvers(use_ntk):
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
     H, opt, vstate_srt = _setup()
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
         diag_shift=optax.linear_schedule(0.1, 0.001, 100),
-        linear_solver_fn=nk.optimizer.solver.pinv_smooth,
+        linear_solver=nk.optimizer.solver.pinv_smooth,
         use_ntk=use_ntk,
     )
     gs.run(1)
@@ -332,7 +331,7 @@ def test_srt_vs_ntk(model, momentum):
     n_iters = 5
 
     H, opt, vstate_srt = _setup(machine=model)
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_srt,
@@ -343,7 +342,7 @@ def test_srt_vs_ntk(model, momentum):
         use_ntk=True,
     )
     _, _, vstate_ntk = _setup(machine=model)
-    gs_ntk = nkx.driver.VMC_SR(
+    gs_ntk = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_ntk,
@@ -398,7 +397,7 @@ def test_SRt_chunked(use_ntk, onthefly, model, momentum, proj_reg):
     chunk_size = 64
 
     H, opt, vstate = _setup(machine=model, chunk_size=None)
-    gs = nkx.driver.VMC_SR(
+    gs = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate,
@@ -412,7 +411,7 @@ def test_SRt_chunked(use_ntk, onthefly, model, momentum, proj_reg):
     gs.run(n_iter=n_iters, out=logger)
 
     _, _, vstate_chunked = _setup(machine=model, chunk_size=chunk_size)
-    gs_chunked = nkx.driver.VMC_SR(
+    gs_chunked = nk.driver.VMC_SR(
         H,
         opt,
         variational_state=vstate_chunked,

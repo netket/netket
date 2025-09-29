@@ -7,7 +7,7 @@
 ```
 
 (drivers_abstract_classes)=
-## Abstract classes
+## Abstract Interface
 
 Those are the abstract classes you can inherit from to implement your own driver
 
@@ -24,7 +24,8 @@ Those are the abstract classes you can inherit from to implement your own driver
 (drivers_concrete)=
 ## Concrete drivers
 
-Those are the optimization drivers already implemented in Netket:
+Those are the optimization drivers already implemented in Netket.
+Regarding VMC (ground-state optimization), we reccomend to use {class}`~netket.driver.VMC_SR` instead of the normal {class}`~netket.driver.VMC` in most cases.
 
 ```{eval-rst}
 .. currentmodule:: netket.driver
@@ -34,8 +35,20 @@ Those are the optimization drivers already implemented in Netket:
    :nosignatures:
 
    VMC
+   VMC_SR
    SteadyState
 
 ```
 
-Also do give a look to the experimental SR driver in {class}`~netket.experimental.driver.VMC_SR` which combines VMC with SR naturally, allowing for advanced computational tricks.
+## State fitting
+
+```{eval-rst}
+.. currentmodule:: netket
+
+.. autosummary::
+   :toctree: _generated/experimental/driver
+   :nosignatures:
+
+   experimental.driver.Infidelity_SR
+
+```

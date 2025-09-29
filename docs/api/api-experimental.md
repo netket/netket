@@ -17,18 +17,6 @@ import netket.experimental as nkx
 
 (experimental-drivers-api)=
 ## Drivers
-Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration with the [kernel trick](https://arxiv.org/abs/2310.05715)
-(originally introduced under the name of [minSR by Ao Chen and Markus Heyl](https://arxiv.org/abs/2302.01941)). This is slightly more limited in
-features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/experimental/driver
-   :template: class
-   :nosignatures:
-
-   driver.VMC_SR
-```
 
 Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration to minimize the infidelity between two quantum states (possibly with an operator in the middle, see https://quantum-journal.org/papers/q-2023-10-10-1131 and https://quantum-journal.org/papers/q-2025-07-22-1803/ for references) with the kernel trick or minSR formulation. This is slightly more limited in features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters
 

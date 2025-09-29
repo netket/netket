@@ -86,7 +86,7 @@ sr = nk.optimizer.SR(
     diag_shift=0.1,
 )
 
-gs = nkx.driver.VMC_SR(ham, opt, variational_state=vs, diag_shift=0.1, mode="real")
+gs = nk.driver.VMC_SR(ham, opt, variational_state=vs, diag_shift=0.1, mode="real")
 
 # now run the optimization
 # first step will take longer in order to compile
