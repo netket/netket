@@ -38,7 +38,7 @@ sr = nk.optimizer.SR(diag_shift=optax.linear_schedule(0.1, 0.01, 200))
 vs = nk.vqs.FullSumState(hi, ma)
 
 # Variational monte carlo driver with a variational state
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC(ha, op, variational_state=vs, preconditioner=sr)
 
 # Run the optimization for 300 iterations
 gs.run(n_iter=300, out=None)

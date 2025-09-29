@@ -34,9 +34,6 @@ sa = nk.sampler.ARDirectSampler(hi)
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
-# SR
-sr = nk.optimizer.SR(diag_shift=0.01)
-
 # Variational state
 # With direct sampling, we don't need many samples in each step to form a
 # Markov chain, and we don't need to discard samples
@@ -47,7 +44,7 @@ vs = nk.vqs.MCState(sa, ma, n_samples=64)
 print("n_parameters:", vs.n_parameters)
 
 # Variational monte carlo driver with a variational state
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC_SR(ha, op, diag_shift=0.01, variational_state=vs)
 
 # Run the optimization for 1000 iterations
 gs.run(n_iter=1000, out="test")

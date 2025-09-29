@@ -34,13 +34,12 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.05)
-sr = nk.optimizer.SR(diag_shift=0.01)
 
 # Variational State
 vs = nk.vqs.MCState(sa, ma, n_samples=8000, n_discard_per_chain=20)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC_SR(ha, op, variational_state=vs, diag_shift=0.01)
 
 # Run the optimization for 300 iterations
 gs.run(

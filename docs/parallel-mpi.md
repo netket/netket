@@ -81,7 +81,7 @@ vs = nk.vqs.MCState(
 
 # Set up optimizer and driver
 opt = nk.optimizer.Sgd(learning_rate=0.01)
-gs = nk.VMC(ha, opt, variational_state=vs)
+gs = nk.driver.VMC(ha, opt, variational_state=vs)
 
 # Run optimization
 if jax.process_index() == 0:

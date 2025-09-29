@@ -244,7 +244,7 @@ def test_vmc_same(partial_model_pair, hilbert, param_dtype, machine_pow, skip):
         H += nk.operator.spin.sigmaz(hilbert, i) @ nk.operator.spin.sigmaz(hilbert, j)
 
     optimizer = optax.adam(learning_rate=1e-3)
-    vmc1 = nk.VMC(H, optimizer, variational_state=vstate1)
+    vmc1 = nk.driver.VMC(H, optimizer, variational_state=vstate1)
     vmc1.run(n_iter=3)
     samples_trained1 = vstate1.sample()
 
@@ -255,7 +255,7 @@ def test_vmc_same(partial_model_pair, hilbert, param_dtype, machine_pow, skip):
     # Samples from FastARNN* should be the same as those from ARNN*
     np.testing.assert_allclose(samples2, samples1)
 
-    vmc2 = nk.VMC(H, optimizer, variational_state=vstate2)
+    vmc2 = nk.driver.VMC(H, optimizer, variational_state=vstate2)
     vmc2.run(n_iter=3)
     samples_trained2 = vstate2.sample()
 

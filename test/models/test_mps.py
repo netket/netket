@@ -33,7 +33,7 @@ def test_mps_periodic(dtype):
     ha = nk.operator.IsingJax(hi, graph=g, h=1.0, dtype=dtype)
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
-    driver = nk.VMC(ha, op, variational_state=vs)
+    driver = nk.driver.VMC(ha, op, variational_state=vs)
 
     driver.run(1)
 
@@ -52,6 +52,6 @@ def test_mps_open(dtype):
     ha = nk.operator.IsingJax(hi, graph=g, h=1.0, dtype=dtype)
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
-    driver = nk.VMC(ha, op, variational_state=vs)
+    driver = nk.driver.VMC(ha, op, variational_state=vs)
 
     driver.run(1)

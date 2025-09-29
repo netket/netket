@@ -29,7 +29,7 @@ def _vmc(n_iter=20):
 
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    return nk.VMC(hamiltonian=ha, variational_state=vs, optimizer=op)
+    return nk.driver.VMC(hamiltonian=ha, variational_state=vs, optimizer=op)
 
 
 def _tdvp(n_iter=20):

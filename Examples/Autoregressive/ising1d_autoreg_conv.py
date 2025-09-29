@@ -47,7 +47,7 @@ vs = nk.vqs.MCState(sa, ma, n_samples=64)
 print("n_parameters:", vs.n_parameters)
 
 # Variational monte carlo driver with a variational state
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC(ha, op, variational_state=vs, preconditioner=sr)
 
 # Run the optimization for 1000 iterations
 gs.run(n_iter=1000, out="test")

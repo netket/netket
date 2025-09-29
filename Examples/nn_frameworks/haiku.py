@@ -59,7 +59,7 @@ op = nk.optimizer.Sgd(learning_rate=0.1)
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, variational_state=vs)
+gs = nk.driver.VMC(ha, op, variational_state=vs)
 
 # Run the optimization for 300 iterations
 gs.run(n_iter=300, out="test")

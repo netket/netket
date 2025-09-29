@@ -38,11 +38,8 @@ vs.init_parameters(jax.nn.initializers.normal(stddev=0.01), seed=1234)
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.01, 0.0001, 1000))
 
-# Stochastic Reconfiguration
-sr = nk.optimizer.SR(diag_shift=0.001)
-
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
+gs = nk.driver.VMC_SR(ha, op, variational_state=vs, diag_shift=0.001)
 
 # Create a JSON output file, and overwrite if file exists
 logger = nk.logging.JsonLog("test", "w")
