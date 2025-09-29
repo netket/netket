@@ -36,7 +36,7 @@ class PureRBM(nn.Module):
 
     param_dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.log_cosh
+    activation: Any = nknn.activation.log_cosh
     """The nonlinear activation function."""
     alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -98,7 +98,7 @@ class MixedRBM(nn.Module):
 
     param_dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.log_cosh
+    activation: Any = nknn.activation.log_cosh
     """The nonlinear activation function."""
     alpha: float | int = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -157,7 +157,7 @@ class NDM(nn.Module):
 
     param_dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.log_cosh
+    activation: Any = nknn.activation.log_cosh
     """The nonlinear activation function."""
     alpha: float | int = 1
     """The feature density for the pure-part of the ansatz.
