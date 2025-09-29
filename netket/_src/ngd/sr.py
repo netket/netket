@@ -63,7 +63,6 @@ def _compute_sr_update(
     else:
         info = {}
 
-    # Update old_updates for momentum (store in flat form before complex repacking)
     if momentum is not None:
         old_updates = updates
 
