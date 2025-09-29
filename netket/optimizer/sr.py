@@ -26,9 +26,6 @@ from netket.utils import struct
 from .qgt import QGTAuto
 from .preconditioner import AbstractLinearPreconditioner
 
-# Module-level flag to track if the samples warning has been shown
-_samples_warning_shown = False
-
 
 def check_conflicting_args_in_partial(
     qgt: functools.partial | Any,
@@ -180,20 +177,6 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         """
         This method constructs the left-hand side (LHS) operator for the linear system.
         """
-        from netket.vqs import MCState
-
-        global _samples_warning_shown
-        if isinstance(vstate, MCState):
-            if vstate.n_samples <= vstate.n_parameters and not _samples_warning_shown:
-                warnings.warn(
-                    "The number of samples ({vstate.n_samples}) is less than or equal to the "
-                    "number of parameters ({vstate.n_parameters}). You should switch to the NTK "
-                    "formulation of SR (minSR) by using netket.driver.VMC_SR instead of VMC.\n"
-                    "(VMC_SR is always reccomended when using SR).",
-                    UserWarning,
-                    stacklevel=3,
-                )
-                _samples_warning_shown = True
 
         diag_shift = self.diag_shift
         if callable(self.diag_shift):

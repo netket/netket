@@ -693,6 +693,72 @@ class UnoptimalSRtWarning(NetketWarning):
         )
 
 
+class InsufficientSamplesForSRWarning(NetketWarning):
+    """
+    Warning issued when using Stochastic Reconfiguration (SR) with insufficient samples.
+
+    This warning is raised when the number of samples is less than or equal to the number
+    of parameters in a Stochastic Reconfiguration calculation. In this regime, the
+    standard QGT-based formulation of SR becomes inefficient and potentially unstable.
+
+    Why this matters
+    ----------------
+
+    The standard SR/Natural Gradient Descent computes updates as:
+
+    .. math::
+        \\delta \\theta = \\tau (X^TX + \\lambda \\mathbb{I}_{N_P})^{-1} X^T E^{loc}
+
+    where :math:`X \\in \\mathbb{R}^{N_s \\times N_p}` is the Jacobian of the log-wavefunction,
+    with :math:`N_p` the number of parameters and :math:`N_s` the number of samples.
+
+    When :math:`N_s \\leq N_p`, the matrix :math:`X^TX` has rank at most :math:`N_s`, making
+    it severely under-determined and requiring large regularization. This leads to poor
+    convergence and potentially unstable optimization.
+
+    Recommended solution
+    --------------------
+
+    Switch to the **kernel/minSR formulation** which uses the Neural Tangent Kernel (NTK):
+
+    .. math::
+        \\delta \\theta = \\tau X^T(XX^T + \\lambda \\mathbb{I}_{N_s})^{-1} E^{loc}
+
+    This formulation inverts a :math:`N_s \\times N_s` matrix instead of :math:`N_p \\times N_p`,
+    which is much more efficient and stable when :math:`N_s < N_p`.
+
+    **Use :class:`netket.driver.VMC_SR` instead of :class:`netket.driver.VMC` with SR.**
+
+    The VMC_SR driver automatically chooses the optimal formulation and provides the same
+    mathematical result but with better performance and stability.
+
+    References
+    ----------
+    - The kernel trick for SR was introduced by `Chen & Heyl <https://arxiv.org/abs/2302.01941>`_
+      and `Rende et al. <https://arxiv.org/abs/2310.05715>`_.
+    - For a comprehensive discussion see the :class:`netket.driver.VMC_SR` documentation.
+    """
+
+    def __init__(self, n_samples, n_parameters):
+        super().__init__(
+            f"""
+            The number of samples ({n_samples}) is less than or equal to the number of parameters ({n_parameters}).
+
+            In this regime, the standard QGT-based SR formulation is inefficient and potentially unstable.
+            You should switch to the kernel/minSR formulation by using:
+
+                nk.driver.VMC_SR(hamiltonian, optimizer, diag_shift=0.01, variational_state=your_state)
+
+            instead of:
+
+                nk.driver.VMC(hamiltonian, optimizer, preconditioner=nk.optimizer.SR())
+
+            VMC_SR automatically chooses the optimal implementation and is always recommended when using SR.
+            This provides the same mathematical result but with much better performance and numerical stability.
+            """
+        )
+
+
 class InvalidConstraintInterface(NetketError):
     """Error thrown when a constraint for an Homogeneous
     Hilbert space does not conform to the expected interface.

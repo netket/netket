@@ -14,6 +14,7 @@
 
 
 from textwrap import dedent
+import warnings
 
 from netket.utils import timing
 from netket.utils.types import PyTree, Optimizer
@@ -25,6 +26,7 @@ from netket.optimizer import (
 )
 from netket.vqs import VariationalState
 from netket.jax import tree_cast
+from netket.errors import InsufficientSamplesForSRWarning
 
 from .abstract_variational_driver import AbstractVariationalDriver
 
@@ -79,6 +81,22 @@ class VMC(AbstractVariationalDriver):
         self._ham = hamiltonian.collect()  # type: AbstractOperator
 
         self.preconditioner = preconditioner
+
+        # Check for insufficient samples when using SR with MCState
+        from netket.optimizer.sr import SR
+        from netket.vqs import MCState
+
+        if (
+            isinstance(variational_state, MCState)
+            and isinstance(preconditioner, SR)
+            and variational_state.n_samples <= variational_state.n_parameters
+        ):
+            warnings.warn(
+                InsufficientSamplesForSRWarning(
+                    variational_state.n_samples, variational_state.n_parameters
+                ),
+                stacklevel=2,
+            )
 
         self._dp: PyTree = None
         self._S = None
