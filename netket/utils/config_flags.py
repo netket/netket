@@ -387,3 +387,17 @@ config.define(
         """
     ),
 )
+
+
+config.define(
+    "NETKET_NO_TIPS",
+    bool,
+    default=False,
+    runtime=True,
+    help=dedent(
+        """
+        If True, disables the display of random tips when NetKet is imported
+        interactively.
+        """
+    ),
+)

@@ -69,4 +69,10 @@ from .driver import VMC
 from .driver import SteadyState
 
 # Citation system
-from .utils.citations import cite
+from netket.utils.citations import cite
+
+# Show tips if in interactive mode
+from netket.utils._tips import show_random_tip
+
+show_random_tip()
+del show_random_tip
