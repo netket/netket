@@ -42,7 +42,7 @@ def _compute_sr_update(
     # (np, #ns) x (#ns) -> (np) - where the sum over #ns is done automatically
     F = O_L.T @ dv
 
-    # Add momentum term to F: F + λμdtheta_{i-1}
+    # Add momentum term to F: F + λ μ dθ_{i-1}
     if momentum is not None:
         F = F + diag_shift * momentum * old_updates
 
