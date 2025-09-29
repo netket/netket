@@ -177,6 +177,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         """
         This method constructs the left-hand side (LHS) operator for the linear system.
         """
+
         diag_shift = self.diag_shift
         if callable(self.diag_shift):
             if step is None:
