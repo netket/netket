@@ -168,7 +168,10 @@ def test_advd_vs_nk_vmc(model, use_ntk, onthefly):
 
 @pytest.mark.parametrize("model", machines)
 @pytest.mark.parametrize("onthefly", onthefly_vals)
-def test_SRt_vs_SR(model, onthefly):
+@pytest.mark.parametrize(
+    "momentum", [pytest.param(None, id=""), pytest.param(0.5, id="momentum")]
+)
+def test_SRt_vs_SR(model, onthefly, momentum):
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
@@ -181,8 +184,7 @@ def test_SRt_vs_SR(model, onthefly):
         opt,
         variational_state=vstate_srt,
         diag_shift=0.1,
-        # proj_reg=0.5,
-        # momentum=0.0,
+        momentum=momentum,
         use_ntk=True,
         on_the_fly=onthefly,
     )
@@ -195,6 +197,7 @@ def test_SRt_vs_SR(model, onthefly):
         opt,
         variational_state=vstate_sr,
         diag_shift=0.1,
+        momentum=momentum,
         use_ntk=False,
         on_the_fly=False,
     )

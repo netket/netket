@@ -36,11 +36,15 @@ def _compute_sr_update(
     # Typically solvers only accept the matrix and the right-hand side.
     solver_fn = ensure_accepts_kwargs(solver_fn, "dv")
 
-    if (momentum is not None) or (old_updates is not None) or (proj_reg is not None):
-        raise ValueError("Not implemented")
+    if proj_reg is not None:
+        raise ValueError("proj_reg not implemented for SR")
 
     # (np, #ns) x (#ns) -> (np) - where the sum over #ns is done automatically
     F = O_L.T @ dv
+
+    # Add momentum term to F: F + λ μ dθ_{i-1}
+    if momentum is not None:
+        F = F + diag_shift * momentum * old_updates
 
     # This does the contraction (np, #ns) x (#ns, np) -> (np, np).
     matrix = O_L.T @ O_L
@@ -58,6 +62,9 @@ def _compute_sr_update(
             info = {}
     else:
         info = {}
+
+    if momentum is not None:
+        old_updates = updates
 
     # If complex mode and we have complex parameters, we need
     # To repack the real coefficients in order to get complex updates
