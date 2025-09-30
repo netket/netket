@@ -36,7 +36,7 @@ TIPS = [
     "You can use flax.linen, flax.nnx and equinox to define neural networks.",
     # utils
     "You must cite NetKet according to our policy. Use nk.cite() to find out how.",
-    "Debug multi-node HPC? `djaxrun -np 2 python Examples/Sharding/multi_process.py`"
+    "Debug multi-node HPC? `djaxrun -np 2 python Examples/Sharding/multi_process.py`",
     # extras
     "uv is a replacement for pip which helps you follow good software practices.",
     "You can disable these tips by setting export NETKET_NO_TIPS=1 in your .bashrc.",
