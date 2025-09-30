@@ -14,43 +14,35 @@
 
 # To test this script on your local computer, you can use the following
 # command:
-# mpirun -np 2 python netket/Examples/multi_process.py
+# djaxrun -np 2 python netket/Examples/multi_process.py
+#
+# on slurm clusters, srun should tak care of it.
 #
 # This assumes that you have mpi4py installed, otherwise
 # refer to jax's guide
 # this same script can also be used on SLURM clusters
 
-# Set this BEFORE importing netket. Or you can set it in your shell
-import os
-
-os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
-
 import jax
+import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 
-import netket as nk
 import numpy as np
 import optax
 
+
 # Initialize jax distributed. This must be done before any operation
-# is performed on jax arrays.
+# is performed on jax arrays and BEFORE you import netket.
 print("\n---------------------------------------------")
-print("Initializing JAX distributed using GLOO...", flush=True)
+print("Initializing JAX distributed...", flush=True)
 
-# This line tells jax to use GLOO to make different processes communicate
-# when performing computations on CPU. If you are running on GPU, this line
-# is not necessary.
-# GLOO is very slow, so it's here just for demonstration purposes and should
-# be replaced by MPITrampoline if you are using the CPU (though getting it working
-# is complex).
-jax.config.update("jax_cpu_collectives_implementation", "gloo")
-
-# Initializes the jax distributed environment using mpi4py to detect the
-# number of processes and the local rank. This requires mpi4py to be installed.
+# Initializes the jax distributed environment using env variable detection
+# to detect the number of processes and the local rank
 #
-# Sometimes this does not work very well. The default is not to declare it, which
-# will make jax default to checking with SLURM (if you are using slurm) or fail.
-jax.distributed.initialize(cluster_detection_method="mpi4py")
+# djaxrun pretends you are running inside of slurm to make it work
+jax.distributed.initialize()
+
+
+import netket as nk
 
 default_string = f"r{jax.process_index()}/{jax.process_count()}: "
 print(default_string, jax.devices(), flush=True)
@@ -107,6 +99,9 @@ print(
     vs.samples.is_fully_addressable,
     flush=True,
 )
+print(
+    "Trying to `print(vs.samples)`. This will fail because it's not fully addressable."
+)
 try:
     print(vs.samples)
 except Exception as e:
@@ -125,3 +120,46 @@ print(
     np.array(samples_replicated).sum(),
     flush=True,
 )
+
+
+# The following code will cause a deadlock:
+print("Running a code that will deadlock (use Ctrl-C to exit)")
+print("Showing this so you know what you shan't do in 'da zukumpft")
+counter = jax.lax.with_sharding_constraint(
+    jnp.zeros((jax.device_count(),)),
+    shardings=jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
+)
+
+# This code deadlocks because in jax all `jnp/array` operations should be
+# performed on all processes, otherwise you are likely to get deadlocks.
+# This is because jax array operations might hide global communication.
+#
+# In the example below, we have an array of integers, where each element is stored on
+# a different process.
+# The addition is performed on each local process and it is fine but
+for i in range(10):
+    print(f"Performing iteration {i} in the loop")
+    counter = counter + i
+    if jax.process_index() == 0:
+        # To compute this .sum() the two processes must communicate.
+        # This is like a MPI.ALLREDUCE operation.
+        # when you run this .sum(), process 0 will send data to process 1, and will wait from
+        # process 1 to get his data.
+        # As process 1 never executes .sum(), he will never send this data and will end up
+        # waiting forever.
+        print(f"Executing counter_total = counter.sum()`")
+        counter_total = counter.sum()
+        # this line below will possibly execute because jax is 'lazy' and did not really
+        # do the operation above, but still advanced
+        print(
+            "actually waiting until `counter.sum()` is finished [this will never finish]"
+        )
+        jax.block_until_ready(counter_total)
+        # the line below will never execute
+        print("printing counter_total")
+        print(counter_total)
+
+# A good rule of thumb: never use `jax.process_index()` to gate logic with jax arrays.
+# Outside of `jax.process_index() ==0` put conversions to numpy array.
+# Within jax.process_index() == 0` only operate on numpy arrays, not jax arrays.
+# That way, you should be able to avoid deadlocks.
