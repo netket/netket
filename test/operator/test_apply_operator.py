@@ -7,7 +7,7 @@ import netket as nk
 
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
-s3_representation = graph.space_group_representation(hilbert_space)
+s3_representation = graph.group_representation(hilbert_space, graph.space_group())
 projector = s3_representation.projector(2)
 
 ising_ham = nk.operator.IsingJax(
