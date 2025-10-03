@@ -23,7 +23,7 @@ from .langevin import LangevinRule
 from .tensor import TensorRule
 from .multiple import MultipleRules
 from .fermion_2nd import FermionHopRule
-from .global_flip_rule import GlobalFlipRule
+from .global_flip_rule import GlobalSpinFlipRule
 
 # numpy backend
 from .local_numpy import LocalRuleNumpy
