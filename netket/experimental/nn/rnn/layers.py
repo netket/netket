@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import jax
+from jax import numpy as jnp
+from jax.sharding import get_abstract_mesh, NamedSharding
 
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
-from jax import numpy as jnp
 
 from netket.utils import HashableArray
 
@@ -127,7 +129,18 @@ class RNNLayer(nn.Module):
             unroll=self.unroll,
         )
 
-        cell_mem = jnp.zeros((batch_size, self.cell.features), dtype=inputs.dtype)
-        outputs = jnp.zeros((batch_size, N, self.cell.features), dtype=inputs.dtype)
+        if get_abstract_mesh().are_all_axes_explicit:
+            sharding = NamedSharding(
+                get_abstract_mesh(), jax.typeof(inputs).sharding.spec
+            )
+        else:
+            sharding = None
+
+        cell_mem = jnp.zeros(
+            (batch_size, self.cell.features), dtype=inputs.dtype, device=sharding
+        )
+        outputs = jnp.zeros(
+            (batch_size, N, self.cell.features), dtype=inputs.dtype, device=sharding
+        )
         (_, outputs), _ = scan(self.cell, (cell_mem, outputs), jnp.arange(N))
         return outputs
