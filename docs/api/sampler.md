@@ -118,6 +118,7 @@ Sampler. Rules with `Numpy` in their name can only be used with
 
   rules.MetropolisRule
   rules.LocalRule
+  rules.GlobalSpinFlipRule
   rules.CustomRuleNumpy
   rules.ExchangeRule
   rules.FixedRule
