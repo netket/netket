@@ -27,7 +27,6 @@ from netket.utils import HashableArray, deprecated_new_name, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup
 
-from netket.hilbert import DiscreteHilbert
 
 from .graph import Graph
 from ._lattice_edge_logic import (
@@ -41,7 +40,6 @@ from ._lattice_draw import draw_lattice
 
 if TYPE_CHECKING:
     from .space_group import SpaceGroup, TranslationGroup
-    from netket.symmetry import Representation
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
@@ -600,63 +598,6 @@ class Lattice(Graph):
             if dim is None
             else TranslationGroup(self, axes=dim)
         )
-
-    def group_representation(
-        self, hilbert: DiscreteHilbert, group: PermutationGroup
-    ) -> "Representation":
-        """
-        Return the representation of an arbitrary permutation group on the
-        given Hilbert space.
-
-        The representation operators depend on the Hilbert space.
-        In the case of a fermionic hilbert space, the permutations
-        are extended to match the number of single-particle states.
-
-        See the documentation for a precise definition of the operators
-        in each case.
-
-        Args:
-            hilbert: The Hilbert space on which the representation acts.
-            group: A `PermutationGroup` object describing the symmetry group.
-                   This can be obtained from methods like `translation_group()`,
-                   `point_group()`, `space_group()`, etc., or be a custom group.
-
-        Return:
-            The `Representation` object for the given group acting on the Hilbert space.
-
-        Examples:
-            Get the representation of the translation group:
-
-            >>> import netket as nk
-            >>> lattice = nk.graph.Square(4)
-            >>> hilbert = nk.hilbert.Spin(0.5, N=lattice.n_nodes)
-            >>> trans_group = lattice.translation_group()
-            >>> rep = lattice.group_representation(hilbert, trans_group)
-
-            Get the representation of a partial symmetry (translations along x only):
-
-            >>> trans_x = lattice.translation_group(dim=0)
-            >>> rep_x = lattice.group_representation(hilbert, trans_x)
-
-            Use a partial point group symmetry (e.g., C4 rotations only):
-
-            >>> pg = lattice.point_group(nk.symmetry.group.planar.C(4))
-            >>> rep_c4 = lattice.group_representation(hilbert, pg)
-
-            This approach is general and works with any `PermutationGroup`,
-            allowing you to select specific subgroups of the full symmetry group
-            or even use custom groups.
-        """
-        from netket._src.symmetry.representation_construction import (
-            physical_to_many_body_permutation_group,
-            permutation_group_representation,
-        )
-
-        # If fermionic hilbert space, increase the size of the permutation so it
-        # matches the number of single-particle states.
-        group = physical_to_many_body_permutation_group(group, hilbert)
-        return permutation_group_representation(hilbert, group)
-
 
     # Output and drawing
     # ------------------------------------------------------------------------
