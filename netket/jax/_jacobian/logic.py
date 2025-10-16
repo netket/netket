@@ -60,13 +60,13 @@ def jacobian(
     _axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
 ) -> PyTree:
     r"""
-    Computes the jacobian of a NN model with respect to its parameters. This function
+    Computes the Jacobian of a NN model with respect to its parameters. This function
     differs from :func:`jax.jacrev` because it supports models with both real and
     complex parameters, as well as non-holomorphic models.
 
-    In the context of NQS, if you pass the log-wavefunction to to this function, it
+    In the context of NQS, if you pass the log-wavefunction to this function, it
     will compute the log-derivative of the wavefunction with respect to the
-    parameters, i.e. the matrix commonly known as:
+    parameters, i.e., the matrix commonly known as:
 
     .. math::
 
@@ -76,26 +76,26 @@ def jacobian(
     This function has three modes of operation that must be specified through
     the :code:`mode` keyword-argument:
 
-    - :code:`mode="real"`: Which works for real-valued functions with real-
-      valued parameters, or truncating the imaginary part of the function.
+    - :code:`mode="real"` which works for real-valued functions with real-valued
+      parameters, or truncating the imaginary part of the function.
     - :code:`mode="complex"` which always returns the correct result, but
       results in redundant computations if the function is holomorphic.
-      For functions of real-parameters but complex output returns the
+      For functions of real-parameters but complex output, returns the
       derivatives of the real and imaginary part concatenated. If the
       parameters are complex the derivatives w.r.t. the real and imaginary
-      part of the parameters are split into two different jacobians.
-    - :code:`mode="holomorphic"` for complex-valued, complex parametrs
+      parts of the parameters are split into two different Jacobians.
+    - :code:`mode="holomorphic"` for complex-valued, complex parameters
       holomorphic functions.
 
     Args:
-        apply_fun: The function for which the jacobian should be computed. It
+        apply_fun: The function for which the Jacobian should be computed. It
             must have the signature :code:`f: PyTree, Array -> Array` where the
             first :class:`PyTree` are the parameters with respect to which the
-            jacobian will be computed, while the second argument is not
+            Jacobian will be computed, while the second argument is not
             differentiated. The second argument (samples) should be a 2D batch
             of inputs.
         params : The PyTree of parameters (:math:`\theta` in the equations),
-            with repsect to which the jacobian will computed.
+            with repsect to which the Jacobian will computed.
         samples : A batch of samples (:math:`\sigma` in the equations), encoded
             in a 2D matrix where the first dimension is the batch dimension and
             the latter dimension encodes the different degrees of freedom. The
@@ -113,9 +113,9 @@ def jacobian(
             which the gradient is simulataneously computed. Low-values will
             require lower amounts of memory, but might increase computational cost
             (chunking is disabled by default).
-        center: a boolean specifying if the jacobian should be centered (disabled
+        center: a boolean specifying if the Jacobian should be centered (disabled
             by default).
-        dense: a boolean flag (disabled by default) to specify if the jacobian
+        dense: a boolean flag (disabled by default) to specify if the Jacobian
             should be raveled to a contiguous dense array. For *real* and
             *holomorphic* mode this will return a 2D matrix where the first
             dimension matches the number of samples (the first axis of **samples**),
@@ -135,7 +135,7 @@ def jacobian(
             second :math:`N_\text{pars}` elements are the derivatives wrt the
             imaginary part of the paramters.
         _sqrt_rescale: **internal flag** (do not rely on it) a boolean flag
-            (disabled by default). If enabled, the jacobian is rescaled by
+            (disabled by default). If enabled, the Jacobian is rescaled by
             :math:`1/\sqrt{N_\text{samples}}` to match the scaling emerging in
             some use-cases such when building the Quantum Geometric Tensor.
             If a pdf is specified, the scaling will instead be
@@ -149,12 +149,12 @@ def jacobian(
     --------------------------------------
 
     This mode should be used for functions with real
-    output or if you wish to truncate the imaginary part of the jacobian.
+    output or if you wish to truncate the imaginary part of the Jacobian.
     Practically, it computes the Jacobian defined as
 
     .. math::
 
-       O_k(\sigma) = \frac{\partial \ln\Re[\Psi(\sigma)]}{\partial \Re[\theta_k]}
+       O_k(\sigma) = \frac{\partial \Re[\ln\Psi(\sigma)]}{\partial \Re[\theta_k]}
 
     and it should return a result roughly equivalent to the following listing:
 
@@ -164,9 +164,9 @@ def jacobian(
       parameters = jax.tree_util.tree_map(lambda x: x.real, parameters)
       O_k = jax.jacrev(lambda pars: logpsi(pars, samples).real)(parameters)
 
-    The jacobian that is returned is a PyTree with the same shape
+    The Jacobian that is returned is a PyTree with the same shape
     as :code:`parameters`, with real data type.
-    The Imaginary part of :math:`\ln\Psi(\sigma)` is discarded if present.
+    The imaginary part of :math:`\ln\Psi(\sigma)` is discarded if present.
     This mode is useful for models describing real-valued states with a sign.
     This coincides with the :math:`O_k(\sigma)` matrix for real-valued,
     real-output models.
@@ -183,7 +183,7 @@ def jacobian(
     - complex-valued functions with mixed real and complex parameters, which
       are therefore not-holomorphic;
     - complex-valued functions with complex parameters which are not
-      holomorphic (if the function is holomoprhic, the results will be correct
+      holomorphic (if the function is holomorphic, the results will be correct
       but the returned data will be redundant);
 
     **If all parameters** :math:`\theta_k` **are real**, this mode returns the
@@ -191,9 +191,9 @@ def jacobian(
 
     .. math::
 
-       O^{r}_k(\sigma) = \frac{\partial \ln\Re[\Psi(\sigma)]}{\partial \theta_k}
+       O^{r}_k(\sigma) = \frac{\partial \Re[\ln\Psi(\sigma)]}{\partial \theta_k}
        \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,
-       O^{i}_k(\sigma) = \frac{\partial \ln\Im[\Psi(\sigma)]}{\partial \theta_k}
+       O^{i}_k(\sigma) = \frac{\partial \Im[\ln\Psi(\sigma)]}{\partial \theta_k}
 
     where :math:`O^{r}_k(\sigma)` and :math:`O^{i}_k(\sigma)` are real-valued pytrees
     with the same shape as the original parameters. In practice,
@@ -212,7 +212,7 @@ def jacobian(
     do this for performance reason, but the downstream user is free to do it if
     he wishes.
 
-    If you wish to get the complex jacobian in the case of real parameters, it is
+    If you wish to get the complex Jacobian in the case of real parameters, it is
     possible to define
 
     .. math::
@@ -241,9 +241,9 @@ def jacobian(
 
     .. math::
 
-       O^{r}_k(\sigma) = \frac{\partial \ln\Re[\Psi(\sigma)]}{\partial \tilde\theta_k]}
+       O^{r}_k(\sigma) = \frac{\partial \Re[\ln\Psi(\sigma)]}{\partial \tilde\theta_k}
        \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,
-       O^{i}_k(\sigma) = \frac{\partial \ln\Im[\Psi(\sigma)]}{\partial \tilde\theta_k]}
+       O^{i}_k(\sigma) = \frac{\partial \Im[\ln\Psi(\sigma)]}{\partial \tilde\theta_{N+k}}
 
     where now those objects have twice the number of elements as the parameters.
     In practice, it should return a result roughly equivalent to the following listing:
@@ -286,16 +286,16 @@ def jacobian(
     If the function is not holomorphic the result will be numerically wrong.
 
 
-    The returned jacobian has the same PyTree structure as the parameters, with an
+    The returned Jacobian has the same PyTree structure as the parameters, with an
     additional leading dimension equal to the number of samples if
     :code:`mode=real/holomorphic` or if you have real-valued parameters
     and use :code:`mode=complex`. If you have complex-valued parameters
     and use :Code:`mode=complex`, the returned pytree will have two leading
     dimensions, the first iterating along the samples, and the second with size 2,
     iterating along the real and imaginary part of the parameters (essentially
-    giving the jacobian and conjugate-jacobian).
+    giving the Jacobian and conjugate-Jacobian).
 
-    If dense is True, the returned jacobian is a dense matrix, that is somewhat
+    If dense is True, the returned Jacobian is a dense matrix, that is somewhat
     similar to what would be obtained by calling
     :code:`jax.vmap(jax.grad(apply_fun))(parameters)`.
 
