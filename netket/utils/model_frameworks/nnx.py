@@ -80,12 +80,18 @@ class NNXWrapper:
         return nnx_module
 
     def __getattr__(self, name):
-        if hasattr(_get_graphdef_type(self.graphdef), name):
-            return partial(self.apply, method=name)
-        raise AttributeError(
-            f"{_get_graphdef_type(self.static_module)} (wrapped into a '{type(self).__name__}')"
-            f"has no attribute '{name}'"
-        )
+        # Use try-except instead of hasattr to avoid infinite recursion
+        # when checking for attributes that don't exist
+        graphdef_type = _get_graphdef_type(object.__getattribute__(self, "graphdef"))
+        try:
+            # Check if the attribute exists on the graphdef type's class
+            getattr(graphdef_type, name)
+            return partial(object.__getattribute__(self, "apply"), method=name)
+        except AttributeError:
+            raise AttributeError(
+                f"{graphdef_type} (wrapped into a '{type(self).__name__}')"
+                f" has no attribute '{name}'"
+            )
 
     def __hash__(self):
         return hash(("NNXWrapper", self.graphdef))
