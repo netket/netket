@@ -23,6 +23,7 @@ from netket.hilbert import SpinOrbitalFermions
 from netket.utils.types import NNInitFunc, DType
 from netket.nn.masked_linear import default_kernel_init
 from netket import jax as nkjax
+from netket.jax.sharding import get_sharding_spec, auto_axes_maybe
 
 
 class Slater2nd(nn.Module):
@@ -191,8 +192,8 @@ class Slater2nd(nn.Module):
         if not jnp.issubdtype(n, int):
             n = jnp.isclose(n, 1)
 
-        @partial(jnp.vectorize, signature="(n)->()")
-        def log_sd(n):
+        @partial(jnp.vectorize, signature="(n)->()", excluded=(0,))
+        def log_sd(orbitals, n):
             # Find the positions of the occupied sites
             R = n.nonzero(size=self.hilbert.n_fermions)[0]
             log_det_sum = 0
@@ -200,11 +201,11 @@ class Slater2nd(nn.Module):
 
             if self.generalized:
                 # extract Nf x Nf submatrix
-                A_i = self.orbitals[R, :]
+                A_i = orbitals[R, :]
                 log_det_sum = nkjax.logdet_cmplx(A_i)
             else:
                 for i, (n_fermions_i, M_i) in enumerate(
-                    zip(self.hilbert.n_fermions_per_spin, self.orbitals)
+                    zip(self.hilbert.n_fermions_per_spin, orbitals)
                 ):
                     if n_fermions_i == 0:
                         continue
@@ -221,7 +222,9 @@ class Slater2nd(nn.Module):
 
             return log_det_sum
 
-        return log_sd(n)
+        return auto_axes_maybe(
+            log_sd, out_sharding=get_sharding_spec(n, axes=slice(-1))
+        )(self.orbitals, n)
 
 
 class MultiSlater2nd(nn.Module):

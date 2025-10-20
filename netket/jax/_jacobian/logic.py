@@ -18,18 +18,15 @@ import math
 
 import jax
 import jax.numpy as jnp
-from jax.tree_util import Partial
 
-from netket.utils import config
 from netket.utils import timing
 from netket.utils.types import Array, PyTree
-from netket.jax import (
-    tree_to_real,
-    vmap_chunked,
-)
+from netket.utils.deprecation import warn_deprecation
+from netket.jax import tree_to_real
 
 from . import jacobian_dense
 from . import jacobian_pytree
+from ..lax import map as lax_map_custom
 
 
 @timing.timed
@@ -57,7 +54,7 @@ def jacobian(
     center: bool = False,
     dense: bool = False,
     _sqrt_rescale: bool = False,
-    _axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
+    _axis_0_is_sharded: bool | None = None,  # type: ignore[attr-defined]
 ) -> PyTree:
     r"""
     Computes the Jacobian of a NN model with respect to its parameters. This function
@@ -305,10 +302,13 @@ def jacobian(
     split-to-real pytree vectors
 
     """
-    if _axis_0_is_sharded is None:
-        _axis_0_is_sharded = config.netket_experimental_sharding
     if samples.ndim != 2:
         raise ValueError("samples must be a 2D array")
+
+    if _axis_0_is_sharded is not None:
+        warn_deprecation(
+            "axis_0_is_sharded is deprecated, and it is instead handled automatically."
+        )
 
     if model_state is None:
         model_state = {}
@@ -346,16 +346,14 @@ def jacobian(
     # jacobians is a tree with leaf shapes:
     # - (n_samples, 2, ...) if mode complex, holding the real and imaginary jacobian
     # - (n_samples, ...) if mode real/holomorphic
-    # here we wrap f with a Partial since the shard_map inside vmap_chunked
-    # does not support non-array arguments
-    jacobian_fun = vmap_chunked(
-        jacobian_fun,
-        in_axes=(None, None, 0),
-        chunk_size=chunk_size,
-        axis_0_is_sharded=_axis_0_is_sharded,
-    )  # see below
-
-    jacobians = jacobian_fun(Partial(f), params, samples)
+    if chunk_size is None or chunk_size >= samples.shape[0]:
+        # if chunk_size is None or larger than the number of samples, we can compute
+        # the jacobian in one go
+        jacobians = jax.vmap(jacobian_fun, in_axes=(None, None, 0))(f, params, samples)
+    else:
+        jacobians = lax_map_custom(
+            lambda x: jacobian_fun(f, params, x), samples, batch_size=chunk_size
+        )
 
     if pdf is None:
         if center:
