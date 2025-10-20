@@ -63,7 +63,7 @@ dev = [
     "coverage>=5",
     "pre-commit>=2.7",
     "black==25.1.0",
-    "ruff==0.12.2",
+    "ruff==0.14.1",
     "qutip>=5",
     "wheel>=0.38.1",
     "build>=1",
