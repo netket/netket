@@ -4,6 +4,7 @@ from flax import linen as nn
 from flax.linen.initializers import normal, variance_scaling
 import jax
 from jax import numpy as jnp
+from jax.flatten_util import ravel_pytree
 from jax.scipy.sparse.linalg import cg
 import numpy as np
 from typing import Any
@@ -79,7 +80,7 @@ def _benchmark(n_nodes, n_samples, n_layers, width):
     Tsamp_1 = timeit_gc(lambda: vstate.samples.block_until_ready())
 
     # Generate a random RHS of the same pytree shape as the parameters
-    vec, unravel = nk.jax.tree_ravel(vstate.parameters)
+    vec, unravel = ravel_pytree(vstate.parameters)
     vec1 = jax.random.normal(keys[0], shape=vec.shape, dtype=vec.dtype)
     rhs1 = unravel(vec1)
     vec2 = jax.random.normal(keys[1], shape=vec.shape, dtype=vec.dtype)

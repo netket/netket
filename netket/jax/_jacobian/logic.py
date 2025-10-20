@@ -121,8 +121,8 @@ def jacobian(
             dimension matches the number of samples (the first axis of **samples**),
             while the second dimension will match the total number of parameters.
             This raveling is equivalent to :func:`jax.vmap` of
-            :func:`netket.jax.tree_ravel`,
-            :code:`jax.vmap(nk.jax.tree_ravel, nk.jax.jacobian(...))`.
+            :func:`jax.flatten_util.ravel_pytree`,
+            :code:`jax.vmap(ravel_pytree, nk.jax.jacobian(...))`.
             If using **complex** mode with real parameters the returned tensor
             has 3 dimensions, where the first and last match the other modes while
             the middle one has size 2, and encodes the gradient of the real and

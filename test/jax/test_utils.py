@@ -2,6 +2,7 @@ import pytest
 
 import jax
 import jax.numpy as jnp
+from jax.flatten_util import ravel_pytree
 import netket as nk
 import numpy as np
 import operator
@@ -37,10 +38,10 @@ def test_tree_to_real(tree):
 @pytest.mark.parametrize("tree", trees)
 def test_tree_norm(tree):
     tree_norm = nk.jax.tree_norm(tree)
-    ravel_norm = jnp.linalg.norm(nk.jax.tree_ravel(tree)[0])
+    ravel_norm = jnp.linalg.norm(ravel_pytree(tree)[0])
     np.testing.assert_allclose(tree_norm, ravel_norm)
 
     for p in [0.5, 1, 2, 3]:
         tree_norm = nk.jax.tree_norm(tree, ord=p)
-        ravel_norm = jnp.linalg.norm(nk.jax.tree_ravel(tree)[0], ord=p)
+        ravel_norm = jnp.linalg.norm(ravel_pytree(tree)[0], ord=p)
         np.testing.assert_allclose(tree_norm, ravel_norm)

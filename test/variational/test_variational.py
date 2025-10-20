@@ -19,6 +19,7 @@ import pytest
 from pytest import approx, raises
 
 import jax
+from jax.flatten_util import ravel_pytree
 import numpy as np
 
 import netket as nk
@@ -391,7 +392,7 @@ def test_expect(vstate, operator):
 
     # Prepare the exact estimations
     pars_0 = vstate.parameters
-    pars, unravel = nk.jax.tree_ravel(pars_0)
+    pars, unravel = ravel_pytree(pars_0)
     op_sparse = operator.to_sparse()
 
     def expval_fun(par, vstate, H):
@@ -405,7 +406,7 @@ def test_expect(vstate, operator):
     err = 5 * O_stat.error_of_mean
     assert O_stat.mean == approx(O_exact, abs=err)
 
-    O_grad, _ = nk.jax.tree_ravel(O_grad)
+    O_grad, _ = ravel_pytree(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 

@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+from jax.flatten_util import ravel_pytree
 import numpy as np
 import netket as nk
 import netket.experimental as nkx
@@ -60,7 +61,7 @@ def test_expect():
     # x = vs_continuous2.samples.reshape(-1, 1)
     sol_nc = vs_continuous.expect(pot)
     O_stat_nc, O_grad_nc = vs_continuous2.expect_and_grad(e)
-    O_grad_nc, _ = nk.jax.tree_ravel(O_grad_nc)
+    O_grad_nc, _ = ravel_pytree(O_grad_nc)
 
     # O_grad_exact = 2 * jnp.dot(x.T, (v1(x) - jnp.mean(v1(x), axis=0))) / x.shape[0]
     r"""
@@ -78,7 +79,7 @@ def test_expect():
 
     sol = vs_continuous.expect(pot)
     O_stat, O_grad = vs_continuous2.expect_and_grad(e)
-    O_grad, _ = nk.jax.tree_ravel(O_grad)
+    O_grad, _ = ravel_pytree(O_grad)
 
     np.testing.assert_allclose(sol_nc.mean, sol.mean, atol=1e-7)
     np.testing.assert_allclose(O_grad_nc, O_grad, atol=1e-7)

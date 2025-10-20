@@ -19,6 +19,7 @@ from pytest import approx, raises
 
 import numpy as np
 import jax
+from jax.flatten_util import ravel_pytree
 import netket as nk
 from jax.nn.initializers import normal
 
@@ -428,7 +429,7 @@ def test_grad_finitedifferences(vstate, operator):
 
     # Prepare the exact estimations
     pars_0 = vstate.parameters
-    pars, unravel = nk.jax.tree_ravel(pars_0)
+    pars, unravel = ravel_pytree(pars_0)
 
     def expval_fun(par, vstate, H):
         return _expval(unravel(par), vstate, H, real=operator.is_hermitian)
@@ -439,5 +440,5 @@ def test_grad_finitedifferences(vstate, operator):
     if not operator.is_hermitian:
         grad_exact = jax.tree_util.tree_map(lambda x: x * 2, grad_exact)
 
-    O_grad, _ = nk.jax.tree_ravel(O_grad)
+    O_grad, _ = ravel_pytree(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)

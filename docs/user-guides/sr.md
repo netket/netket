@@ -44,7 +44,8 @@ qgt_times_grad = qgt@grad
 The quantum geometric tensor also acts on dense ravellings of the parameters
 
 ```python
-grad_dense, unravel = nk.jax.tree_ravel(grad)
+from jax.flatten_util import ravel_pytree
+grad_dense, unravel = ravel_pytree(grad)
 qgt_times_grad_dense = qgt@grad_dense
 ```
 

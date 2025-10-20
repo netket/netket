@@ -17,6 +17,7 @@ import pytest
 from functools import partial
 
 import jax
+from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 import numpy as np
 from numpy import testing
@@ -224,7 +225,7 @@ def test_qgt_matmul(qgt, vstate, chunk_size):
     jax.tree_util.tree_map(check_same_dtype, x, y)
 
     # test multiplication by dense gives same result...
-    y_dense, unravel = nk.jax.tree_ravel(y)
+    y_dense, unravel = ravel_pytree(y)
     x_dense = S @ y_dense
     x_dense_unravelled = unravel(x_dense)
 

@@ -17,15 +17,13 @@ from collections.abc import Callable
 
 
 import jax
-import netket.jax as nkjax
 from jax import numpy as jnp
 from jax.tree_util import (
     register_pytree_node,
-    tree_flatten,
-    tree_unflatten,
     tree_map,
     tree_leaves,
 )
+from jax.flatten_util import ravel_pytree
 
 from netket.utils.types import PyTree, Scalar
 from netket.utils.numbers import is_scalar
@@ -43,14 +41,7 @@ def tree_ravel(pytree: PyTree) -> tuple[jnp.ndarray, Callable]:
       unflattening a 1D vector of the same length back to a pytree of of the same
       structure as the input ``pytree``.
     """
-    leaves, treedef = tree_flatten(pytree)
-    flat, unravel_list = nkjax.vjp(_ravel_list, *leaves)
-    unravel_pytree = lambda flat: tree_unflatten(treedef, unravel_list(flat))
-    return flat, unravel_pytree
-
-
-def _ravel_list(*lst):
-    return jnp.concatenate([jnp.ravel(elt) for elt in lst]) if lst else jnp.array([])
+    return ravel_pytree(pytree)
 
 
 def eval_shape(fun, *args, has_aux=False, **kwargs):
@@ -131,7 +122,7 @@ def tree_norm(a: PyTree, ord: int = 2) -> Scalar:
     r"""
     Compute the norm of a pytree, intended as a 1D vector of values.
 
-    Equivalent to :code:`jnp.linalg.norm(nk.jax.tree_ravel(a)[0], ord)`.
+    Equivalent to :code:`jnp.linalg.norm(jax.flatten_util.ravel_pytree(a)[0], ord)`.
 
     Args:
         a: A pytree, interpreted as a vector
