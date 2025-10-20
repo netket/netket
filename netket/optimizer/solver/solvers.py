@@ -16,8 +16,7 @@
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
-
-from netket.jax import tree_ravel
+from jax.flatten_util import ravel_pytree
 from netket.utils.api_utils import partial_from_kwargs
 from netket.utils.deprecation import warn_deprecation
 
@@ -100,7 +99,7 @@ def pinv_smooth(
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
-    b, unravel = tree_ravel(b)
+    b, unravel = ravel_pytree(b)
 
     Σ, U = jnp.linalg.eigh(A)
 
@@ -166,7 +165,7 @@ def pinv(A, b, *, rtol: float = 1e-12, x0=None, rcond: float = None):
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
-    b, unravel = tree_ravel(b)
+    b, unravel = ravel_pytree(b)
 
     A_inv = jnp.linalg.pinv(A, rtol=rtol, hermitian=True)
 
@@ -197,7 +196,7 @@ def svd(A, b, *, rcond=None, x0=None):
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
-    b, unravel = tree_ravel(b)
+    b, unravel = ravel_pytree(b)
 
     x, residuals, rank, s = jnp.linalg.lstsq(A, b, rcond=rcond)
 
@@ -228,7 +227,7 @@ def cholesky(A, b, *, lower=False, x0=None):
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
-    b, unravel = tree_ravel(b)
+    b, unravel = ravel_pytree(b)
 
     c, low = jsp.linalg.cho_factor(A, lower=lower)
     x = jsp.linalg.cho_solve((c, low), b)
@@ -259,7 +258,7 @@ def LU(A, b, *, trans=0, x0=None):
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
-    b, unravel = tree_ravel(b)
+    b, unravel = ravel_pytree(b)
 
     lu, piv = jsp.linalg.lu_factor(A)
     x = jsp.linalg.lu_solve((lu, piv), b, trans=0)
@@ -291,7 +290,7 @@ def solve(A, b, *, assume_a="pos", x0=None):
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
-    b, unravel = tree_ravel(b)
+    b, unravel = ravel_pytree(b)
 
     x = jsp.linalg.solve(A, b, assume_a="pos")
     return unravel(x), None

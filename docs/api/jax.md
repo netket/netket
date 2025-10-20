@@ -37,7 +37,6 @@ This part of the API is not public, and can change without notice.
   tree_size
   tree_leaf_iscomplex
   tree_ishomogeneous
-  tree_ravel
   tree_to_real
 ```
 

@@ -36,6 +36,7 @@ We strongly suggst you read jax's sharding documentation.
 ### Deprecations and Removals
 
 * The `*` operator for multiplying operators is now deprecated and will be removed in a future version in 2026. Use the `@` operator instead for operator multiplication: `A * B` → `A @ B` [#2133](https://github.com/netket/netket/pull/2133).
+* {func}`netket.jax.tree_ravel` is deprecated in favor of {func}`jax.flatten_util.ravel_pytree`. Use `from jax.flatten_util import ravel_pytree` instead of `nk.jax.tree_ravel`.
 
 ## NetKet 3.19.1
 

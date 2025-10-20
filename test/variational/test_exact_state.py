@@ -19,6 +19,7 @@ from pytest import raises
 
 import numpy as np
 import jax
+from jax.flatten_util import ravel_pytree
 import netket as nk
 from jax.nn.initializers import normal
 
@@ -171,7 +172,7 @@ def test_derivatives_agree(machine):
 
     # Prepare the exact estimations
     pars_0 = vs.parameters
-    pars, unravel = nk.jax.tree_ravel(pars_0)
+    pars, unravel = ravel_pytree(pars_0)
     op_sparse = ha.to_sparse()
 
     def expval_fun(par, vstate, H):
@@ -179,7 +180,7 @@ def test_derivatives_agree(machine):
 
     grad_finite = central_diff_grad(expval_fun, pars, 1.0e-5, vs, op_sparse)
 
-    O_grad, _ = nk.jax.tree_ravel(grads_exact)
+    O_grad, _ = ravel_pytree(grads_exact)
     same_derivatives(O_grad, grad_finite, abs_eps=err, rel_eps=err)
 
 

@@ -17,6 +17,7 @@ import warnings
 
 import jax
 from jax import numpy as jnp
+from jax.flatten_util import ravel_pytree
 from flax import struct
 
 import netket.jax as nkjax
@@ -248,7 +249,7 @@ def onthefly_mat_treevec(
                              """
             )
 
-        _, unravel = nkjax.tree_ravel(S._params)
+        _, unravel = ravel_pytree(S._params)
         vec = unravel(vec)
         ravel_result = True
     else:
@@ -261,7 +262,7 @@ def onthefly_mat_treevec(
     res = S._mat_vec(vec, S.diag_shift)
 
     if ravel_result:
-        res, _ = nkjax.tree_ravel(res)
+        res, _ = ravel_pytree(res)
 
     return res
 

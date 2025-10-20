@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from jax import numpy as jnp
+from jax.flatten_util import ravel_pytree
 
 from netket.utils.types import Array, PyTree
 import netket.jax as nkjax
@@ -25,9 +26,9 @@ from .jacobian_pytree import (
 
 def ravel(x: PyTree) -> Array:
     """
-    shorthand for tree_ravel
+    shorthand for ravel_pytree
     """
-    dense, _ = nkjax.tree_ravel(x)
+    dense, _ = ravel_pytree(x)
     return dense
 
 

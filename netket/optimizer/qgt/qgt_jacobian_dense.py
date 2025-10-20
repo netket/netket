@@ -15,6 +15,7 @@
 
 import jax
 from jax import numpy as jnp
+from jax.flatten_util import ravel_pytree
 from flax import struct
 
 from netket.utils.types import Scalar, PyTree
@@ -286,6 +287,6 @@ def convert_tree_to_dense_format(vec, mode, *, disable=False):
         if mode != "holomorphic":
             vec, reassemble = nkjax.tree_to_real(vec)
         if not hasattr(vec, "ndim"):
-            vec, unravel = nkjax.tree_ravel(vec)
+            vec, unravel = ravel_pytree(vec)
 
     return vec, lambda x: reassemble(unravel(x))

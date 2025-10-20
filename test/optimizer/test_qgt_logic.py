@@ -21,6 +21,7 @@ import math
 import numpy as np
 
 import jax
+from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 import jax.flatten_util
 from jax.tree_util import Partial
@@ -534,9 +535,9 @@ def test_qgt_jacobian_imaginary(dense):
     xi, _ = Si.solve(solver, F)
     xh, _ = Sh.solve(solver, F)
 
-    xrd, _ = nk.jax.tree_ravel(xr)
-    xid, _ = nk.jax.tree_ravel(xi)
-    xhd, _ = nk.jax.tree_ravel(xh)
+    xrd, _ = ravel_pytree(xr)
+    xid, _ = ravel_pytree(xi)
+    xhd, _ = ravel_pytree(xh)
 
     np.testing.assert_allclose(Sr @ xrd, Si @ xid, rtol=1e-5)
 
@@ -571,7 +572,7 @@ def test_qgt_jacobian_imaginary_match():
     np.testing.assert_allclose(Sd.to_dense(), Sp.to_dense(), atol=1e-15)
 
     E, F = vs.expect_and_grad(ha)
-    F, _ = nk.jax.tree_ravel(F)
+    F, _ = ravel_pytree(F)
     xd = Sd @ F
     xp = Sp @ F
     np.testing.assert_allclose(xd, xp, atol=1e-15)

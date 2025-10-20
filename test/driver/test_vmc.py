@@ -5,6 +5,7 @@ from pytest import approx, raises
 
 import numpy as np
 import jax
+from jax.flatten_util import ravel_pytree
 import netket as nk
 
 from contextlib import redirect_stderr
@@ -91,7 +92,7 @@ def test_vmc_functions():
         assert a.shape == b.shape
 
     jax.tree_util.tree_map(check_shape, grads, ma.parameters)
-    grads, _ = nk.jax.tree_ravel(grads)
+    grads, _ = ravel_pytree(grads)
 
     assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
     # end
@@ -157,7 +158,7 @@ def test_vmc_gradient(dtype):
     driver.run(3, out=None)
 
     pars_0 = ma.parameters
-    pars, unravel = nk.jax.tree_ravel(pars_0)
+    pars, unravel = ravel_pytree(pars_0)
 
     def energy_fun(par, vstate, H):
         return _energy(unravel(par), vstate, H)
@@ -168,7 +169,7 @@ def test_vmc_gradient(dtype):
     driver.state.n_discard_per_chain = 1e3
     driver.state.parameters = pars_0
     _, _grad_approx = ma.expect_and_grad(ha)  # driver._forward_and_backward()
-    grad_approx, _ = nk.jax.tree_ravel(_grad_approx)
+    grad_approx, _ = ravel_pytree(_grad_approx)
 
     err = 6 / np.sqrt(driver.state.n_samples)  # improve error bound
     same_derivatives(grad_approx, grad_exact, abs_eps=err, rel_eps=1.0e-3)

@@ -15,6 +15,7 @@
 
 import jax
 from jax import numpy as jnp
+from jax.flatten_util import ravel_pytree
 from flax import struct
 
 from netket.utils.types import Array, PyTree, Scalar
@@ -71,7 +72,7 @@ class QGTJacobianPyTreeT(LinearOperator):
     def __matmul__(self, vec: PyTree | Array) -> PyTree | Array:
         # Turn vector RHS into PyTree
         if hasattr(vec, "ndim"):
-            _, unravel = nkjax.tree_ravel(self._params_structure)
+            _, unravel = ravel_pytree(self._params_structure)
             vec = unravel(vec)
             ravel = True
         else:
@@ -98,7 +99,7 @@ class QGTJacobianPyTreeT(LinearOperator):
 
         # Ravel PyTree back into vector as needed
         if ravel:
-            result, _ = nkjax.tree_ravel(result)
+            result, _ = ravel_pytree(result)
 
         return result
 
@@ -179,12 +180,12 @@ class QGTJacobianPyTreeT(LinearOperator):
         if self.mode == "complex" or self.mode == "imag":
             # I want to iterate across the samples and real/imaginary part
             O = jax.tree_util.tree_map(lambda x: x.reshape(-1, *x.shape[2:]), O)
-        O = jax.vmap(lambda l: nkjax.tree_ravel(l)[0])(O)
+        O = jax.vmap(lambda l: ravel_pytree(l)[0])(O)
 
         if self.scale is None:
             diag = jnp.eye(O.shape[-1])
         else:
-            scale, _ = nkjax.tree_ravel(self.scale)
+            scale, _ = ravel_pytree(self.scale)
             O = O * scale[jnp.newaxis, :]
             diag = jnp.diag(scale**2)
 

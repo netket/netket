@@ -1,6 +1,7 @@
 import netket as nk
 from netket.optimizer import qgt
 import jax
+from jax.flatten_util import ravel_pytree
 from jax.scipy.sparse.linalg import cg
 import timeit
 
@@ -49,7 +50,7 @@ def benchmark(side, n_samples, layers, features):
     Tsamp_1 = timeit_gc(lambda: vstate.samples.block_until_ready())
 
     # Generate a random RHS of the same pytree shape as the parameters
-    vec, unravel = nk.jax.tree_ravel(vstate.parameters)
+    vec, unravel = ravel_pytree(vstate.parameters)
     vec1 = jax.random.normal(keys[1], shape=vec.shape, dtype=vec.dtype)
     rhs1 = unravel(vec1)
     vec2 = jax.random.normal(keys[2], shape=vec.shape, dtype=vec.dtype)

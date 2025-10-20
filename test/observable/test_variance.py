@@ -1,3 +1,4 @@
+from jax.flatten_util import ravel_pytree
 import netket as nk
 import netket.experimental as nkx
 import numpy as np
@@ -74,11 +75,11 @@ def test_MCState(useExactSampler, use_Oloc_squared):
     vs, vs_exact, H, H2 = _setup(useExactSampler)
     var_op = nkx.observable.VarianceObservable(H, use_Oloc_squared=use_Oloc_squared)
 
-    params, unravel = nk.jax.tree_ravel(vs.parameters)
+    params, unravel = ravel_pytree(vs.parameters)
 
     var_stats1 = vs.expect(var_op)
     var_stats, var_grad = vs.expect_and_grad(var_op)
-    var_grad, _ = nk.jax.tree_ravel(var_grad)
+    var_grad, _ = ravel_pytree(var_grad)
 
     var_exact = var_exact_fun(vs.parameters, vs, H, H2)
 
@@ -110,11 +111,11 @@ def test_FullSumState(use_Oloc_squared):
     vs, vs_exact, H, H2 = _setup()
     var_op = nkx.observable.VarianceObservable(H, use_Oloc_squared=use_Oloc_squared)
 
-    params, unravel = nk.jax.tree_ravel(vs_exact.parameters)
+    params, unravel = ravel_pytree(vs_exact.parameters)
 
     var_stats1 = vs_exact.expect(var_op)
     var_stats, var_grad = vs_exact.expect_and_grad(var_op)
-    var_grad, _ = nk.jax.tree_ravel(var_grad)
+    var_grad, _ = ravel_pytree(var_grad)
 
     var_exact = var_exact_fun(vs_exact.parameters, vs_exact, H, H2)
 
