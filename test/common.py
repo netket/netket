@@ -69,6 +69,14 @@ onlyif_distributed = pytest.mark.skipif(
     reason="Only if distributed",
 )
 
+skipif_ndistributed = pytest.mark.skipif(
+    (nk.config.netket_experimental_sharding and jax.process_count() > 1),
+    reason="Skip if distributed",
+)
+onlyif_ndistributed = pytest.mark.skipif(
+    not (nk.config.netket_experimental_sharding and jax.process_count() > 1),
+)
+
 
 class set_config:
     """
