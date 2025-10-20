@@ -42,14 +42,6 @@ def tree_ravel(pytree: PyTree) -> tuple[jnp.ndarray, Callable]:
       structure as the input ``pytree``.
     """
     return ravel_pytree(pytree)
-    # leaves, treedef = tree_flatten(pytree)
-    # flat, unravel_list = nkjax.vjp(_ravel_list, *leaves)
-    # unravel_pytree = lambda flat: tree_unflatten(treedef, unravel_list(flat))
-    # return flat, unravel_pytree
-
-
-def _ravel_list(*lst):
-    return jnp.concatenate([jnp.ravel(elt) for elt in lst]) if lst else jnp.array([])
 
 
 def eval_shape(fun, *args, has_aux=False, **kwargs):
