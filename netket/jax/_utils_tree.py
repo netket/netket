@@ -17,12 +17,9 @@ from collections.abc import Callable
 
 
 import jax
-import netket.jax as nkjax
 from jax import numpy as jnp
 from jax.tree_util import (
     register_pytree_node,
-    tree_flatten,
-    tree_unflatten,
     tree_map,
     tree_leaves,
 )
