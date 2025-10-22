@@ -34,13 +34,16 @@ def _compute_srt_update(
     if momentum is not None:
         dv -= momentum * (O_L @ old_updates)
 
+    # Here we reshard the jacobian from being sharded along the sample axis to being
+    # sharded along the parameter axis, which we pad
     # (#ns, np) -> (ns, #np)
+    # In theory jax could figure this out, but maybe he does not, so we do it by hand.
     O_LT = O_L
     if config.netket_experimental_sharding:
-        nkjax.sharding.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
+        O_LT = nkjax.sharding.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
         O_LT = jax.lax.with_sharding_constraint(
             O_LT,
-            NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None)),
+            NamedSharding(jax.sharding.get_abstract_mesh(), P(None, "S")),
         )
         dv = jax.lax.with_sharding_constraint(
             dv, NamedSharding(jax.sharding.get_abstract_mesh(), P())
