@@ -1,6 +1,8 @@
 (netket_symmetry_api)=
 # netket.symmetry
 
+(Work in progress)
+
 Module with classes and utilities needed to operate on symmetry groups and their representations.
 
 The theory needed to understand those tools is discussed in {doc}`../advanced/symmetry` and an example notebook is in {doc}`../tutorials/symmetry_tutorial`
