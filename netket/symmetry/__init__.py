@@ -1,6 +1,6 @@
 from netket._src.symmetry.representation import Representation
-from netket._src.symmetry.canonical_group_representation import (
-    canonical_group_representation,
+from netket._src.symmetry.canonical_representation import (
+    canonical_representation,
 )
 
 from . import group

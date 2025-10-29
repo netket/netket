@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from netket.symmetry import Representation
 
 
-def canonical_group_representation(
+def canonical_representation(
     hilbert: DiscreteHilbert, group: PermutationGroup
 ) -> "Representation":
     """
@@ -68,22 +68,22 @@ def canonical_group_representation(
         >>> lattice = nk.graph.Square(4)
         >>> hilbert = nk.hilbert.Spin(0.5, N=lattice.n_nodes)
         >>> trans_group = lattice.translation_group()
-        >>> rep = nk.experimental.symmetry.canonical_group_representation(hilbert, trans_group)
+        >>> rep = nk.experimental.symmetry.canonical_representation(hilbert, trans_group)
 
         Get the representation of a partial symmetry (translations along x only):
 
         >>> trans_x = lattice.translation_group(dim=0)
-        >>> rep_x = nk.experimental.symmetry.canonical_group_representation(hilbert, trans_x)
+        >>> rep_x = nk.experimental.symmetry.canonical_representation(hilbert, trans_x)
 
         Use a point group symmetry (e.g., C4 rotations):
 
         >>> pg = lattice.point_group(nk.symmetry.group.planar.C(4))
-        >>> rep_c4 = nk.experimental.symmetry.canonical_group_representation(hilbert, pg)
+        >>> rep_c4 = nk.experimental.symmetry.canonical_representation(hilbert, pg)
 
         Use the full space group (translations + point group):
 
         >>> sg = lattice.space_group()
-        >>> rep_sg = nk.experimental.symmetry.canonical_group_representation(hilbert, sg)
+        >>> rep_sg = nk.experimental.symmetry.canonical_representation(hilbert, sg)
 
         This approach works with any :class:`~netket.utils.group.PermutationGroup`,
         allowing you to construct representations for specific subgroups of the full
@@ -97,7 +97,7 @@ def canonical_group_representation(
         ...     s=1/2,
         ...     n_fermions_per_spin=(4, 4)
         ... )
-        >>> rep_fermion = nk.experimental.symmetry.canonical_group_representation(
+        >>> rep_fermion = nk.experimental.symmetry.canonical_representation(
         ...     fermion_hilbert, trans_group
         ... )
 
@@ -107,7 +107,6 @@ def canonical_group_representation(
         - :meth:`~netket.graph.Lattice.translation_group`: Get translation group of a lattice.
         - :meth:`~netket.graph.Lattice.point_group`: Get point group of a lattice.
         - :meth:`~netket.graph.Lattice.space_group`: Get space group of a lattice.
-    test
     """
     from netket._src.symmetry.representation_construction import (
         physical_to_many_body_permutation_group,

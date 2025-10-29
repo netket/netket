@@ -7,7 +7,7 @@ import netket as nk
 
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
-s3_representation = nk.symmetry.canonical_group_representation(
+s3_representation = nk.symmetry.canonical_representation(
     hilbert_space, graph.space_group()
 )
 projector = s3_representation.projector(2)
