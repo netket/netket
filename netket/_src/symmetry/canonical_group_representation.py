@@ -107,6 +107,7 @@ def canonical_group_representation(
         - :meth:`~netket.graph.Lattice.translation_group`: Get translation group of a lattice.
         - :meth:`~netket.graph.Lattice.point_group`: Get point group of a lattice.
         - :meth:`~netket.graph.Lattice.space_group`: Get space group of a lattice.
+    test
     """
     from netket._src.symmetry.representation_construction import (
         physical_to_many_body_permutation_group,
