@@ -136,15 +136,19 @@ def canonical_representation(
     )
 
     if isinstance(group, PermutationGroup):
-        if not group.degree==hilbert.size:
-            raise ValueError("The permutations of group should be permutations " \
-            "over hilbert.size elements.")
+        if not group.degree == hilbert.size:
+            raise ValueError(
+                "The permutations of group should be permutations "
+                "over hilbert.size elements."
+            )
         if not isinstance(group, (SpaceGroup, TranslationGroup, PointGroup)):
             if not no_warning:
-                raise Warning("This function constructs a specific representation " \
-                "of the given permutation group that corresponds to spatial symmetries, as described above and in the documentation. Make sure that this is the intended representation. To disable this warning, pass a group of the class SpaceGroup, PointGroup, or TranslationGroup, or pass no_warning=True.")
+                raise Warning(
+                    "This function constructs a specific representation "
+                    "of the given permutation group that corresponds to spatial symmetries, as described above and in the documentation. Make sure that this is the intended representation. To disable this warning, pass a group of the class SpaceGroup, PointGroup, or TranslationGroup, or pass no_warning=True."
+                )
     else:
-       raise TypeError("group should be a PermutationGroup.")
+        raise TypeError("group should be a PermutationGroup.")
 
     # If fermionic hilbert space, increase the size of the permutation so it
     # matches the number of single-particle states.
