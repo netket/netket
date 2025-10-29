@@ -13,6 +13,7 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    :nosignatures:
 
 	Representation
+   canonical_representation
 ```
 
 ## Symmetry Group Manipulation
