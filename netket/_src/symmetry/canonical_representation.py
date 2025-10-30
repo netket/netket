@@ -137,27 +137,35 @@ def canonical_representation(
 
     if isinstance(group, PermutationGroup):
         if not isinstance(hilbert, (Qubit, Spin, Fock, SpinOrbitalFermions)):
-            raise ValueError("The permutation operators of this representation " \
-            "are only defined for a Hilbert space of the class Qubit, Spin, Fock, "
-            "or SpinOrbitalFermions.")
-        if isinstance(hilbert, (Qubit, Spin, Fock)) and not group.degree == hilbert.size:
             raise ValueError(
-                "In the case of a spin Hilbert space, the permutations of group " \
+                "The permutation operators of this representation "
+                "are only defined for a Hilbert space of the class Qubit, Spin, Fock, "
+                "or SpinOrbitalFermions."
+            )
+        if (
+            isinstance(hilbert, (Qubit, Spin, Fock))
+            and not group.degree == hilbert.size
+        ):
+            raise ValueError(
+                "In the case of a spin Hilbert space, the permutations of group "
                 "should be permutations over hilbert.size elements."
             )
-        if isinstance(hilbert, (SpinOrbitalFermions)) and not group.degree == hilbert.n_orbitals:
+        if (
+            isinstance(hilbert, (SpinOrbitalFermions))
+            and not group.degree == hilbert.n_orbitals
+        ):
             raise ValueError(
-                "In the case of a fermionic Hilbert space, the permutations of " \
+                "In the case of a fermionic Hilbert space, the permutations of "
                 "group should be permutations over hilbert.n_orbitals elements."
             )
         if not isinstance(group, (SpaceGroup, TranslationGroup, PointGroup)):
             if not no_warning:
                 raise Warning(
                     "This function constructs a specific representation "
-                    "of the given permutation group that corresponds to spatial " \
-                    "symmetries, as described above and in the documentation. " \
-                    "Make sure that this is the intended representation. " \
-                    "To disable this warning, pass a group of the class " \
+                    "of the given permutation group that corresponds to spatial "
+                    "symmetries, as described above and in the documentation. "
+                    "Make sure that this is the intended representation. "
+                    "To disable this warning, pass a group of the class "
                     "SpaceGroup, PointGroup, or TranslationGroup, "
                     "or pass no_warning=True."
                 )

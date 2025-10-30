@@ -110,7 +110,7 @@ class Representation:
 
     def __iter__(self):
         return zip(self.group.elems, self.operators, strict=True)
-    
+
     def __len__(self):
         return len(self.representation_dict)
 
