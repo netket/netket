@@ -38,7 +38,7 @@ class PermutationOperator(PermutationOperatorBase):
     """
 
     def get_conn_padded(self, x):
-        r"""Finds the connected elements of the Operator.
+        r"""Find the connected elements of the operator.
 
         Starting from a batch of quantum numbers :math:`x={x_1, ... x_n}` of
         size :math:`B \times M` where :math:`B` size of the batch and :math:`M`
@@ -54,12 +54,12 @@ class PermutationOperator(PermutationOperatorBase):
             Unlike most other operators defined in NetKet, a permutation operator
             is not Hermitian, and we thus have to be careful about the definition of
             connected elements. NetKet defines connected elements of :math:`x` as the
-            configurations :math:`x'` such that :math:`\langle x | P_\sigma | x' \rangle` .
+            configurations :math:`x'` such that :math:`\langle x | P_\sigma | x' \rangle`.
             Therefore, the connected elements are the configurations found in the
-            image of :math:`x` by :math:`P_{\sigma^{-1}}` , and not :math:`P_\sigma` .
+            image of :math:`x` by :math:`P_{\sigma^{-1}}`, and not :math:`P_\sigma`.
 
         Args:
-            x : A N-tensor of shape :math:`(...,hilbert.size)` containing
+            x : A N-tensor of shape :code:`(...,hilbert.size)` containing
                 the batch/batches of quantum numbers :math:`x`.
 
         Returns:
