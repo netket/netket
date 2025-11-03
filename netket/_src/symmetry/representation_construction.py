@@ -16,11 +16,6 @@ import numpy as np
 
 from netket.utils.group import PermutationGroup, Identity, Permutation, Element
 from netket.hilbert import DiscreteHilbert, SpinOrbitalFermions
-from netket.symmetry import Representation
-
-from netket._src.operator.permutation.permutation_operator_construct import (
-    construct_permutation_operator,
-)
 
 
 def _physical_to_fermionic_permutation(
@@ -65,14 +60,3 @@ def physical_to_logical_permutation_group(
         perm_group = PermutationGroup(fermionic_perms, degree=hilbert.size)
 
     return perm_group
-
-
-def permutation_group_representation(
-    hilbert: DiscreteHilbert, perm_group: PermutationGroup
-) -> "Representation":
-    """Construct the representation of a permutation group on a many-body Hilbert space."""
-
-    representation_dict = {
-        perm: construct_permutation_operator(hilbert, perm) for perm in perm_group
-    }
-    return Representation(perm_group, representation_dict)
