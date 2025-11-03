@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TYPE_CHECKING
 import warnings
 
 from netket.hilbert import DiscreteHilbert, Qubit, Spin, Fock, SpinOrbitalFermions
 from netket.symmetry.group import PermutationGroup, PointGroup
 from netket.graph.space_group import TranslationGroup, SpaceGroup
 
+from netket._src.symmetry.representation import Representation
 from netket._src.symmetry.representation_construction import (
     physical_to_logical_permutation_group,
 )
@@ -27,13 +27,9 @@ from netket._src.operator.permutation.permutation_operator_construct import (
 )
 
 
-if TYPE_CHECKING:
-    from netket.symmetry import Representation
-
-
 def canonical_representation(
     hilbert: DiscreteHilbert, group: PermutationGroup, warn: bool = True
-) -> "Representation":
+) -> Representation:
     r"""
     Construct the representation of a permutation group on a many-body
     Hilbert space where each permutation is mapped to the permutation operator
