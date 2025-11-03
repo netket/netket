@@ -44,11 +44,11 @@ def _physical_to_fermionic_permutation(
     return Permutation(permutation_array=fermionic_perm_array)
 
 
-def physical_to_many_body_permutation_group(
+def physical_to_logical_permutation_group(
     perm_group: PermutationGroup, hilbert: DiscreteHilbert
 ) -> PermutationGroup:
-    """Converts a permutation group of the lattice sites to a permutation group of the local degrees
-    of freedom on the many-body Hilbert space."""
+    """Converts a permutation group of the lattice sites to a permutation group
+    of the local degrees of freedom on the many-body Hilbert space."""
 
     if isinstance(hilbert, SpinOrbitalFermions):
         id_perm = np.arange(hilbert.size)

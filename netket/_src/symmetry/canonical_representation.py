@@ -13,13 +13,14 @@
 # limitations under the License.
 
 from typing import TYPE_CHECKING
+import warnings
 
 from netket.hilbert import DiscreteHilbert, Qubit, Spin, Fock, SpinOrbitalFermions
 from netket.symmetry.group import PermutationGroup, PointGroup
 from netket.graph.space_group import TranslationGroup, SpaceGroup
 
 from netket._src.symmetry.representation_construction import (
-    physical_to_many_body_permutation_group,
+    physical_to_logical_permutation_group,
     permutation_group_representation,
 )
 
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
 
 
 def canonical_representation(
-    hilbert: DiscreteHilbert, group: PermutationGroup, no_warning=False
+    hilbert: DiscreteHilbert, group: PermutationGroup, warn: bool = True
 ) -> "Representation":
     r"""
     Construct the representation of a permutation group on a many-body
@@ -74,7 +75,7 @@ def canonical_representation(
             :meth:`~netket.graph.Lattice.translation_group`,
             :meth:`~netket.graph.Lattice.point_group`,
             :meth:`~netket.graph.Lattice.space_group`, etc., or be a custom permutation group.
-        no_warning: If True, disable the warning on passing a
+        warn: If False, disable the warning on passing a
             :class:`~netket.symmetry.group.PermutationGroup` that is not a
             :class:`~netket.graph.space_group.SpaceGroup`,
             a :class:`~netket.symmetry.group.PointGroup`, or a
@@ -159,21 +160,20 @@ def canonical_representation(
                 "In the case of a fermionic Hilbert space, the permutations of "
                 "group should be permutations over hilbert.n_orbitals elements."
             )
-        if not isinstance(group, (SpaceGroup, TranslationGroup, PointGroup)):
-            if not no_warning:
-                raise Warning(
-                    "This function constructs a specific representation "
-                    "of the given permutation group that corresponds to spatial "
-                    "symmetries, as described above and in the documentation. "
-                    "Make sure that this is the intended representation. "
-                    "To disable this warning, pass a group of the class "
-                    "SpaceGroup, PointGroup, or TranslationGroup, "
-                    "or pass no_warning=True."
-                )
+        if warn and not isinstance(group, (SpaceGroup, TranslationGroup, PointGroup)):
+            warnings.warn(
+                "This function constructs a specific representation "
+                "of the given permutation group that corresponds to spatial "
+                "symmetries, as described above and in the documentation.\n\n"
+                "Make sure that this is the intended representation. "
+                "To disable this warning, pass a group of the class "
+                "SpaceGroup, PointGroup, or TranslationGroup, "
+                "or pass no_warning=True.\n\n"
+            )
     else:
         raise TypeError("group should be a PermutationGroup.")
 
     # If fermionic hilbert space, increase the size of the permutation so it
     # matches the number of single-particle states.
-    group = physical_to_many_body_permutation_group(group, hilbert)
+    group = physical_to_logical_permutation_group(group, hilbert)
     return permutation_group_representation(hilbert, group)
