@@ -26,12 +26,13 @@ We strongly suggst you read jax's sharding documentation.
 
 * A systematic overhaul of how symmetries can be manipulated has been merged as part of the symmetry overhaul [PR #2122](https://github.com/netket/netket/pull/2122). In particular:
 	* A new main netket module `netket.symmetry` is introduced.
-	* A clear distinction is now made between symmetry groups and their representations via the  {class}`netket.symmetry.Representation` class. 
+	* A clear distinction is now made between symmetry groups and their representations via the  {class}`netket.symmetry.Representation` class.
 	* The {class}`~netket.symmetry.Representation` class allows the users to define representations of any given group, not just lattice symmetries. This class can construct a {meth}`~netket.symmetry.Representation.projector` onto the subspace, which is an operator, and can construct a simmetry-projected state with the method {meth}`~netket.symmetry.Representation.project`.
-	* Netket now supports representations of permutation groups on spin and fermionic Hilbert spaces via the {class}`netket.operator.permutation.PermutationOperator` and {class}`netket.operator.permutation.PermutationOperatorFermion` classes. The `get_conn_padded` method of {class}`~netket.operator.permutation.PermutationOperatorFermion` calculates the sign from permuting the occupancies of single-particle states. 
-	* A new [tutorial](../docs/tutorials/symmetry_tutorial.ipynb) explaining how to use these tools is available. 
+	* Netket now supports representations of permutation groups on spin and fermionic Hilbert spaces via the {class}`netket.operator.permutation.PermutationOperator` and {class}`netket.operator.permutation.PermutationOperatorFermion` classes. The `get_conn_padded` method of {class}`~netket.operator.permutation.PermutationOperatorFermion` calculates the sign from permuting the occupancies of single-particle states.
+	* A new [tutorial](../docs/tutorials/symmetry_tutorial.ipynb) explaining how to use these tools is available.
 	* [Documentation](../docs/advanced/symmetry.md) regarding symmetries and representation theory is available
 * `chunk_size` does no longer need to be a divisor of the number of samples per rank. You are now free to set it however you want [#2083](https://github.com/netket/netket/pull/2083).
+* A new {class}`netket.errors.JaxOperatorGetConnInJitError` is raised when using `get_conn_flattened` or `get_conn` methods of Jax operators inside jax.jit or other Jax transformations. The error message provides clear guidance to use `get_conn_padded` instead, which is compatible with Jax transformations.
 
 ### Deprecations and Removals
 

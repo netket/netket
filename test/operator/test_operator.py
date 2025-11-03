@@ -573,6 +573,29 @@ def test_operator_numba_throws(op):
         _get_conn_padded(state)
 
 
+@pytest.mark.parametrize(
+    "op",
+    [
+        pytest.param(op, id=name)
+        for name, op in operators.items()
+        if isinstance(op, DiscreteJaxOperator)
+    ],
+)
+def test_operator_jax_get_conn_flattened_throws(op):
+    """Check that get_conn_flattened throws an error when called inside jax.jit"""
+    from netket.errors import JaxOperatorGetConnInJitError
+
+    state = op.hilbert.random_state(jax.random.PRNGKey(1), 2)
+    sections = np.empty(2, dtype=np.intp)
+
+    @jax.jit
+    def _get_conn_flattened(s):
+        return op.get_conn_flattened(s, sections)
+
+    with pytest.raises(JaxOperatorGetConnInJitError):
+        _get_conn_flattened(state)
+
+
 def test_pauli_string_operators_hashable_pytree():
     # Define the Hilbert space
     graph = nk.graph.Chain(4, pbc=True)
