@@ -21,6 +21,7 @@ Netket has the following classes of errors.
   InsufficientSamplesForSRWarning
   JaxOperatorSetupDuringTracingError
   JaxOperatorNotConvertibleToNumba
+  JaxOperatorGetConnInJitError
   NonHolomorphicQGTOnTheFlyDenseRepresentationError
   NumbaOperatorGetConnDuringTracingError
   OperatorMultiplicationDeprecationWarning

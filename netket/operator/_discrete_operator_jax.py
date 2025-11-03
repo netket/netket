@@ -20,6 +20,7 @@ import jax
 import jax.numpy as jnp
 from jax.experimental.sparse import JAXSparse, BCOO, BCSR
 
+from netket.errors import concrete_or_error, JaxOperatorGetConnInJitError
 from netket.operator import AbstractOperator, DiscreteOperator
 from netket.utils.optional_deps import import_optional_dependency
 
@@ -168,7 +169,13 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         """
         xp, mels = self.get_conn_padded(x)
-        xp = np.array(xp)
+
+        xp = concrete_or_error(
+            np.asarray,
+            xp,
+            JaxOperatorGetConnInJitError,
+            self,
+        )
         mels = np.array(mels)
 
         if pad:
