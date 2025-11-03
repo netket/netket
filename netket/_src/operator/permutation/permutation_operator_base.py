@@ -18,8 +18,8 @@ from jax.tree_util import register_pytree_node_class
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import DiscreteJaxOperator
-from netket.symmetry.group import Permutation, Identity
 from netket.jax import canonicalize_dtypes
+from netket.utils.group import Permutation, Identity
 from netket.utils.types import DType
 
 

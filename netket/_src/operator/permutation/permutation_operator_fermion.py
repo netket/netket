@@ -21,7 +21,7 @@ from jax.tree_util import register_pytree_node_class
 from functools import partial
 
 from netket.hilbert import SpinOrbitalFermions
-from netket.symmetry.group import Permutation
+from netket.utils.group import Permutation
 from netket.utils.types import DType
 
 from netket._src.operator.permutation.permutation_operator_base import (

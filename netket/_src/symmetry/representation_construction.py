@@ -15,9 +15,12 @@
 import numpy as np
 
 from netket.utils.group import PermutationGroup, Identity, Permutation, Element
-from netket.operator.permutation import construct_permutation_operator
 from netket.hilbert import DiscreteHilbert, SpinOrbitalFermions
 from netket.symmetry import Representation
+
+from netket._src.operator.permutation.permutation_operator_construct import (
+    construct_permutation_operator,
+)
 
 
 def _physical_to_fermionic_permutation(

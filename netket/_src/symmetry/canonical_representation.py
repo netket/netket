@@ -18,6 +18,11 @@ from netket.hilbert import DiscreteHilbert, Qubit, Spin, Fock, SpinOrbitalFermio
 from netket.symmetry.group import PermutationGroup, PointGroup
 from netket.graph.space_group import TranslationGroup, SpaceGroup
 
+from netket._src.symmetry.representation_construction import (
+    physical_to_many_body_permutation_group,
+    permutation_group_representation,
+)
+
 if TYPE_CHECKING:
     from netket.symmetry import Representation
 
@@ -130,10 +135,6 @@ def canonical_representation(
         - :meth:`~netket.graph.Lattice.space_group`: Get the space group of a lattice.
         - :meth:`~netket.graph.Lattice.point_group`: Get the point group of a lattice.
     """
-    from netket._src.symmetry.representation_construction import (
-        physical_to_many_body_permutation_group,
-        permutation_group_representation,
-    )
 
     if isinstance(group, PermutationGroup):
         if not isinstance(hilbert, (Qubit, Spin, Fock, SpinOrbitalFermions)):
