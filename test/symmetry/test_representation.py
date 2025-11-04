@@ -9,7 +9,9 @@ representation_list = []
 # Qubit Hilbert space
 hilbert_space = nk.hilbert.Qubit(3)
 graph = nk.graph.Chain(3, pbc=True)
-s3_representation = graph.space_group_representation(hilbert_space)
+s3_representation = nk.symmetry.canonical_representation(
+    hilbert_space, graph.space_group()
+)
 representation_list.append(pytest.param(s3_representation, id="S3"))
 
 # Fermion Hilbert space
@@ -80,7 +82,9 @@ graph_list = [
 def test_fermion_group_construction(
     hilbert: nk.hilbert.SpinOrbitalFermions, graph: nk.graph.Lattice
 ):
-    space_group_representation_fermion = graph.space_group_representation(hilbert)
+    space_group_representation_fermion = nk.symmetry.canonical_representation(
+        hilbert, graph.space_group()
+    )
 
     rep_dict = space_group_representation_fermion.representation_dict
     for op in rep_dict.values():

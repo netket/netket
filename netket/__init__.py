@@ -46,6 +46,7 @@ from . import stats
 
 from . import graph
 from . import hilbert
+from . import operator
 
 from . import nn
 
@@ -53,7 +54,6 @@ from . import (
     exact,
     callbacks,
     logging,
-    operator,
     models,
     sampler,
     vqs,

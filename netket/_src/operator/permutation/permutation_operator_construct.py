@@ -13,9 +13,14 @@
 # limitations under the License.
 
 from netket.hilbert import AbstractHilbert, Qubit, Spin, Fock, SpinOrbitalFermions
-from netket.operator.permutation import PermutationOperator, PermutationOperatorFermion
+from netket.utils.group import Permutation
 
-from netket.symmetry.group import Permutation
+from netket._src.operator.permutation.permutation_operator_spin import (
+    PermutationOperator,
+)
+from netket._src.operator.permutation.permutation_operator_fermion import (
+    PermutationOperatorFermion,
+)
 
 
 def construct_permutation_operator(
