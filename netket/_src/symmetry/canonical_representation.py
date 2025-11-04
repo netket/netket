@@ -22,7 +22,7 @@ from netket._src.symmetry.representation import Representation
 from netket._src.symmetry.representation_construction import (
     physical_to_logical_permutation_group,
 )
-from netket._src.operator.permutation.permutation_operator_construct import (
+from netket._src.operator.permutation.construct import (
     construct_permutation_operator,
 )
 

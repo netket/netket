@@ -4,12 +4,12 @@ __all__ = [
     "construct_permutation_operator",
 ]
 
-from netket._src.operator.permutation.permutation_operator_spin import (
+from netket._src.operator.permutation.spin import (
     PermutationOperator as PermutationOperator,
 )
-from netket._src.operator.permutation.permutation_operator_fermion import (
+from netket._src.operator.permutation.fermion import (
     PermutationOperatorFermion as PermutationOperatorFermion,
 )
-from netket._src.operator.permutation.permutation_operator_construct import (
+from netket._src.operator.permutation.construct import (
     construct_permutation_operator as construct_permutation_operator,
 )

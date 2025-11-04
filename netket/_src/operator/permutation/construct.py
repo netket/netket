@@ -15,10 +15,10 @@
 from netket.hilbert import AbstractHilbert, Qubit, Spin, Fock, SpinOrbitalFermions
 from netket.utils.group import Permutation
 
-from netket._src.operator.permutation.permutation_operator_spin import (
+from netket._src.operator.permutation.spin import (
     PermutationOperator,
 )
-from netket._src.operator.permutation.permutation_operator_fermion import (
+from netket._src.operator.permutation.fermion import (
     PermutationOperatorFermion,
 )
 

@@ -3,7 +3,9 @@
 
 # Change Log
 
-## NetKet 3.20 (In development)
+## NetKet 3.21 (In development)
+
+## NetKet 3.20 (15 Octobre 2025)
 
 ### Breaking Changes
 

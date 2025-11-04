@@ -24,7 +24,7 @@ from netket.hilbert import SpinOrbitalFermions
 from netket.utils.group import Permutation
 from netket.utils.types import DType
 
-from netket._src.operator.permutation.permutation_operator_base import (
+from netket._src.operator.permutation.base import (
     PermutationOperatorBase,
 )
 from netket._src.operator.permutation.trace_utils import (

@@ -18,7 +18,7 @@ from jax.tree_util import register_pytree_node_class
 from netket.hilbert import HomogeneousHilbert
 from netket.hilbert.constraint import SumConstraint
 
-from netket._src.operator.permutation.permutation_operator_base import (
+from netket._src.operator.permutation.base import (
     PermutationOperatorBase,
 )
 from netket._src.operator.permutation.trace_utils import count_n_uplets

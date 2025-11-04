@@ -8,7 +8,7 @@ import netket as nk
 from netket.operator.permutation import PermutationOperatorFermion
 from netket.hilbert import SpinOrbitalFermions
 
-from netket._src.operator.permutation.permutation_operator_fermion import (
+from netket._src.operator.permutation.fermion import (
     get_antisymmetric_signs,
 )
 
