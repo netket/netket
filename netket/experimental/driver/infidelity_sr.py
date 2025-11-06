@@ -36,6 +36,16 @@ def _flatten_samples(x):
     return jax.lax.collapse(x, 0, x.ndim - 1)
 
 
+def get_samples_and_pdf(vstate):
+    if isinstance(vstate, FullSumState):
+        samples = vstate.hilbert.all_states()
+        pdf = vstate.probability_distribution()
+    else:
+        samples = _flatten_samples(vstate.samples)
+        pdf = None
+    return samples, pdf
+
+
 @reference(
     ["Sinibaldi2023Unbiasing", "Gravina2024PTVMC"],
     condition="If using infidelity estimators and optimizers",
@@ -217,16 +227,16 @@ class Infidelity_SR(AbstractVariationalDriver):
         else:
             self.target_state = target_state
 
-        if isinstance(variational_state, FullSumState):
-            raise NotImplementedError(
-                "NGD drivers do not support FullSumState. It is not too hard to implement it"
-                "We would welcome a contribution towards it.\n"
-                "See https://github.com/netket/netket/issues/2152 \n"
-            )
         super().__init__(
             variational_state, optimizer, minimized_quantity_name="Infidelity"
         )
 
+        if isinstance(variational_state, FullSumState):
+            if use_ntk:
+                raise ValueError(
+                    "NTK makes no sense for a variational FullSumState and is not supported."
+                )
+            use_ntk = False
         if use_ntk is None:
             use_ntk = variational_state.n_parameters > variational_state.n_samples
             print("Automatic SR implementation choice: ", "NTK" if use_ntk else "QGT")
@@ -285,7 +295,15 @@ class Infidelity_SR(AbstractVariationalDriver):
             self.target_state,
             self.cv_coeff,
         )
-        self._loss_stats = nkstats.statistics(1 - local_energies_cv)
+        if isinstance(self.state, FullSumState):
+            I = 1 - local_energies_cv
+            self._loss_stats = nkstats.Stats(
+                mean=I,
+                error_of_mean=0.0,
+                variance=0.0,
+            )
+        else:
+            self._loss_stats = nkstats.statistics(1 - local_energies_cv)
 
         # Extract the hyperparameters which might be iteration dependent
         diag_shift = self.diag_shift
@@ -309,7 +327,8 @@ class Infidelity_SR(AbstractVariationalDriver):
             else:
                 compute_sr_update_fun = sr
 
-        samples = _flatten_samples(self.state.samples)
+        samples, pdf = get_samples_and_pdf(self.state)
+
         self._dp, self._old_updates, self.info = compute_sr_update_fun(
             self.state._apply_fun,
             local_energies,
@@ -323,6 +342,7 @@ class Infidelity_SR(AbstractVariationalDriver):
             momentum=momentum,
             old_updates=self._old_updates,
             chunk_size=self.chunk_size_bwd,
+            weights=pdf,
         )
 
         self._dp = jax.tree_util.tree_map(lambda x: -x, self._dp)

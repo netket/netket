@@ -3,12 +3,18 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-from netket.vqs import MCState, expect
+from netket.vqs import MCState, FullSumState, expect
 from netket.stats import Stats
 
 from netket.experimental.observable.infidelity.infidelity_operator import (
     InfidelityOperator,
 )
+
+
+@jax.jit
+def _flatten_samples(x):
+    # return x.reshape(-1, x.shape[-1])
+    return jax.lax.collapse(x, 0, x.ndim - 1)
 
 
 @expect.dispatch
@@ -40,23 +46,42 @@ def get_kernels(afun, afun_t, params, params_t, σ, σ_t, model_state, model_sta
     return log_val, log_val_t
 
 
+def get_weighted_samples(vstate):
+    if isinstance(vstate, FullSumState):
+        samples = vstate.hilbert.all_states()
+        weights = vstate.probability_distribution()
+    else:
+        samples = _flatten_samples(vstate.samples)
+        weights = 1.0 / samples.shape[0]
+    return samples, weights
+
+
 def get_local_estimator(vstate, target_state, cv_coeff=-0.5):
+    samples, weights = get_weighted_samples(vstate)
+    samples_t, weights_t = get_weighted_samples(target_state)
+
     log_val, log_val_t = get_kernels(
         vstate._apply_fun,
         target_state._apply_fun,
         vstate.parameters,
         target_state.parameters,
-        vstate.samples,
-        target_state.samples,
+        samples,
+        samples_t,
         vstate.model_state,
         target_state.model_state,
     )
 
-    Hloc = jnp.exp(log_val) * jnp.mean(jnp.exp(log_val_t))
+    Hloc = jnp.exp(log_val) * jnp.sum(weights_t * jnp.exp(log_val_t))
 
-    Hloc_cv = jnp.exp(log_val + log_val_t).real + cv_coeff * (
-        jnp.exp(2 * (log_val + log_val_t).real) - 1
-    )
+    if isinstance(vstate, FullSumState):
+        # TODO: warn about this within the driver?
+        Hloc_cv = jnp.sum(weights * Hloc)
+    elif isinstance(target_state, FullSumState):
+        Hloc_cv = Hloc
+    else:
+        Hloc_cv = jnp.exp(log_val + log_val_t).real + cv_coeff * (
+            jnp.exp(2 * (log_val + log_val_t).real) - 1
+        )
 
     return Hloc, Hloc_cv
 

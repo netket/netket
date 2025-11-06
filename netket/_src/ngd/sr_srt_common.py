@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from functools import partial
+from typing import Union
 
 import jax
 import jax.numpy as jnp
@@ -13,17 +14,34 @@ from netket._src.ngd.sr import _compute_sr_update
 from netket._src.ngd.srt import _compute_srt_update
 
 
+def _prepare_weights(
+    weights: Union[Array, None],
+    n_samples: int,
+) -> tuple[Union[Array, None], Union[Array, float]]:
+    # Normalize weights for self-normalized importance sampling
+    if weights is not None:
+        weights = weights / jnp.mean(weights)
+        # p(x) = q(x) * w(x) / jnp.mean(w)
+        pdf = weights / n_samples
+        mass = pdf
+    else:
+        pdf = None
+        mass = 1 / n_samples
+    return pdf, mass
+
+
 @partial(jax.jit, static_argnames=("mode",))
 def _prepare_input(
     O_L,
     local_grad,
     *,
     mode: str,
+    scaling_factor: Union[Array, float],
 ) -> tuple[jax.Array, jax.Array]:
     r"""
     Prepare the input for the SR/SRt solvers.
 
-    The local eneriges and the jacobian are reshaped, centered and normalized by the number of Monte Carlo samples.
+    The local energies and the jacobian are reshaped, centered and normalized by the number of Monte Carlo samples.
     The complex case is handled by concatenating the real and imaginary parts of the jacobian and the local energies.
 
     We use [Re_x1, Im_x1, Re_x2, Im_x2, ...] so that shards are contiguous, and jax can keep track of the sharding information.
@@ -37,13 +55,13 @@ def _prepare_input(
     Returns:
         The reshaped jacobian and the reshaped local energies.
     """
-    N_mc = O_L.shape[0]
-
     local_grad = local_grad.flatten()
-    de = local_grad - jnp.mean(local_grad)
+    de = local_grad - jnp.sum(scaling_factor * local_grad)
 
-    O_L = O_L / jnp.sqrt(N_mc)
-    dv = 2.0 * de / jnp.sqrt(N_mc)
+    dv = 2.0 * de * jnp.sqrt(scaling_factor)
+    if jax.numpy.ndim(scaling_factor) != 0:
+        scaling_factor = jax.lax.broadcast_in_dim(scaling_factor, O_L.shape, (0,))
+    O_L = O_L * jnp.sqrt(scaling_factor)
 
     if mode == "complex":
         # Concatenate the real and imaginary derivatives of the ansatz
@@ -86,6 +104,7 @@ def _sr_srt_common(
     old_updates: PyTree | None = None,
     chunk_size: int | None = None,
     use_ntk: bool = False,
+    weights: Array | None = None,
 ):
     r"""
     Compute the SR/Natural gradient update for the model specified by
@@ -107,10 +126,17 @@ def _sr_srt_common(
     Returns:
         The new parameters, the old updates, and the info dictionary.
     """
+    if use_ntk and weights is not None:
+        raise NotImplementedError(
+            "pdf is not currently supported when using NTK/MinSR. Please set pdf=None."
+        )
+
     _, unravel_params_fn = ravel_pytree(parameters)
     _params_structure = jax.tree_util.tree_map(
         lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), parameters
     )
+
+    pdf, mass = _prepare_weights(weights, samples.shape[0])
 
     jacobians = nkjax.jacobian(
         log_psi,
@@ -121,9 +147,10 @@ def _sr_srt_common(
         dense=True,
         center=True,
         chunk_size=chunk_size,
+        pdf=pdf,
     )  # jacobian is centered
 
-    O_L, dv = _prepare_input(jacobians, local_grad, mode=mode)
+    O_L, dv = _prepare_input(jacobians, local_grad, mode=mode, scaling_factor=mass)
 
     if old_updates is None and momentum is not None:
         old_updates = jnp.zeros(jacobians.shape[-1], dtype=jacobians.dtype)
