@@ -14,7 +14,7 @@
 
 from ._abstract_operator import AbstractOperator
 
-from ._discrete_operator import DiscreteOperator
+from ._discrete_operator import DiscreteOperator, to_sparse_cached
 from ._discrete_operator_jax import DiscreteJaxOperator
 
 from ._pauli_strings import PauliStringsNumba, PauliStringsJax, PauliStrings

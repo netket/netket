@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import lru_cache
+
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -301,3 +303,19 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
 
     def to_linear_operator(self):
         return self.to_sparse()
+
+
+# TODO: This cache is here so that we don't re-compute the sparse representation of the operators at every VMC step
+# but instead we cache the last 5 used. Should investigate a better way to implement this caching.
+@lru_cache(5)
+def to_sparse_cached(Ô: DiscreteOperator) -> _csr_matrix:
+    """
+    Returns the sparse matrix representation of the operator with caching.
+
+    Equivalent to :meth:`DiscreteOperator.to_sparse` but, caches the result of the last
+    5 calls to avoid recomputing the sparse matrix multiple times for the same operator.
+
+    Args:
+        Ô: The discrete operator to convert to sparse format.
+    """
+    return Ô.to_sparse()
