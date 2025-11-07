@@ -42,7 +42,13 @@ def srt_onthefly(
     momentum: float | Array | None = None,
     old_updates: Array | None = None,
     chunk_size: int | None = None,
+    weights: Array | None = None,
 ):
+    if weights is not None:
+        raise NotImplementedError(
+            "Weighted samples are not yet supported in srt_onthefly."
+        )
+
     N_mc = local_energies.size
 
     # Split all parameters into real and imaginary parts separately
