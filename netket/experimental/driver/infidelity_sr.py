@@ -132,7 +132,7 @@ class Infidelity_SR(AbstractVariationalDriver):
         target_state: VariationalState,
         optimizer: Optimizer,
         *,
-        operator: AbstractOperator = None,
+        operator: AbstractOperator | None = None,
         diag_shift: ScalarOrSchedule,
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
@@ -140,7 +140,7 @@ class Infidelity_SR(AbstractVariationalDriver):
         linear_solver_fn: (
             Callable[[Array, Array], Array] | DeprecatedArg
         ) = DeprecatedArg(),
-        variational_state: MCState = None,
+        variational_state: VariationalState | None = None,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
         use_ntk: bool | None = None,
