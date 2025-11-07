@@ -122,3 +122,52 @@ def test_MCState(useExactSampler, useOperator):
         I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
 
     assert I_exact < 1e-12
+
+
+@pytest.mark.parametrize(
+    "fullsumTarget",
+    [
+        pytest.param(True, id="FullSumState target"),
+        pytest.param(False, id="MCState  target"),
+    ],
+)
+@pytest.mark.parametrize(
+    "useOperator",
+    [
+        pytest.param(True, id="useOperator"),
+        pytest.param(False, id="useOperator"),
+    ],
+)
+def test_FullSumState(fullsumTarget, useOperator):
+    _, vs_target_mc, vs_exact, vs_exact_target, H = _setup(useExactSampler=True)
+
+    # Use FullSumState as the variational state
+    vs = vs_exact
+
+    # Set the target state based on the parameter
+    vs_target = vs_exact_target if fullsumTarget else vs_target_mc
+
+    optimizer = nk.optimizer.Sgd(learning_rate=0.1)
+    diag_shift = 0.001
+
+    if useOperator:
+        driver = nkx.driver.Infidelity_SR(
+            target_state=vs_target,
+            optimizer=optimizer,
+            diag_shift=diag_shift,
+            variational_state=vs,
+        )
+        driver.run(n_iter=200)
+        I_exact = I_exact_fun(vs.parameters, vs, vs_target)
+    else:
+        driver = nkx.driver.Infidelity_SR(
+            target_state=vs_target,
+            optimizer=optimizer,
+            diag_shift=diag_shift,
+            variational_state=vs,
+            operator=H,
+        )
+        driver.run(n_iter=200)
+        I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
+
+    assert I_exact < 1e-12
