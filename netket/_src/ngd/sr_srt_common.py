@@ -9,9 +9,20 @@ from jax.flatten_util import ravel_pytree
 import netket.jax as nkjax
 from netket.utils import timing
 from netket.utils.types import Array, PyTree
-
+from netket.vqs import FullSumState
 from netket._src.ngd.sr import _compute_sr_update
 from netket._src.ngd.srt import _compute_srt_update
+
+
+def get_samples_and_pdf(vstate):
+    if isinstance(vstate, FullSumState):
+        samples = vstate.hilbert.all_states()
+        pdf = vstate.probability_distribution()
+    else:
+        samples = vstate.samples
+        samples = jax.lax.collapse(samples, 0, samples.ndim - 1)
+        pdf = None
+    return samples, pdf
 
 
 def _prepare_weights(

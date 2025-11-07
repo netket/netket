@@ -19,7 +19,7 @@ from netket import stats as nkstats
 from netket.driver.abstract_variational_driver import (
     AbstractVariationalDriver,
 )
-from netket._src.ngd.sr_srt_common import sr, srt
+from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
 from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 from netket.experimental.observable.infidelity.expect import get_local_estimator
@@ -28,22 +28,6 @@ ApplyFun = Callable[[PyTree, Array], Array]
 KernelArgs = tuple[ApplyFun, PyTree, Array, tuple[Any, ...]]
 KernelFun = Callable[[PyTree, Array], KernelArgs]
 DeriativesArgs = tuple[ApplyFun, PyTree, PyTree, Array]
-
-
-@jax.jit
-def _flatten_samples(x):
-    # return x.reshape(-1, x.shape[-1])
-    return jax.lax.collapse(x, 0, x.ndim - 1)
-
-
-def get_samples_and_pdf(vstate):
-    if isinstance(vstate, FullSumState):
-        samples = vstate.hilbert.all_states()
-        pdf = vstate.probability_distribution()
-    else:
-        samples = _flatten_samples(vstate.samples)
-        pdf = None
-    return samples, pdf
 
 
 @reference(
