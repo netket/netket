@@ -18,8 +18,8 @@ def _prepare_weights(
     weights: Union[Array, None],
     n_samples: int,
 ) -> tuple[Union[Array, None], Union[Array, float]]:
-    # Normalize weights for self-normalized importance sampling
     if weights is not None:
+        # Normalize weights for self-normalized importance sampling
         weights = weights / jnp.mean(weights)
         # p(x) = q(x) * w(x) / jnp.mean(w)
         pdf = weights / n_samples
@@ -51,6 +51,7 @@ def _prepare_input(
         O_L: The jacobian of the ansatz.
         local_grad: The local energies.
         mode: The mode of the jacobian: `'real'` or `'complex'`.
+        scaling_factor: The mass given to each sample, e.g. `1/n_samples` when using Monte Carlo sampling.
 
     Returns:
         The reshaped jacobian and the reshaped local energies.
@@ -122,6 +123,7 @@ def _sr_srt_common(
         momentum: Momentum used to accumulate updates in SPRING.
         linear_solver: Callable to solve the linear problem associated to the updates of the parameters.
         mode: The mode used to compute the jacobian of the variational state. Can be `'real'` or `'complex'` (defaults to the dtype of the output of the model).
+        weights: Importance sampling weights for the samples. If `None`, uniform weights are assumed.
 
     Returns:
         The new parameters, the old updates, and the info dictionary.
