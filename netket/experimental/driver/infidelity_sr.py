@@ -272,15 +272,24 @@ class Infidelity_SR(AbstractVariationalDriver):
     @timing.timed
     def _forward_and_backward(self):
         self.state.reset()
+        self.target_state.reset()
+
+        samples, weights = get_samples_and_pdf(self.state)
+        samples_t, weights_t = get_samples_and_pdf(self.target_state)
 
         # Compute the local infidelity estimator and average Infidelity
         local_energies, local_energies_cv = get_local_estimator(
             self.state,
             self.target_state,
+            samples,
+            weights,
+            samples_t,
+            weights_t,
             self.cv_coeff,
         )
+        # TODO: just reweight local_energies when weights is not None
         if isinstance(self.state, FullSumState):
-            I = 1 - local_energies_cv
+            I = 1 - jax.numpy.sum(weights * local_energies_cv)
             self._loss_stats = nkstats.Stats(
                 mean=I,
                 error_of_mean=0.0,
@@ -311,8 +320,6 @@ class Infidelity_SR(AbstractVariationalDriver):
             else:
                 compute_sr_update_fun = sr
 
-        samples, pdf = get_samples_and_pdf(self.state)
-
         self._dp, self._old_updates, self.info = compute_sr_update_fun(
             self.state._apply_fun,
             local_energies,
@@ -326,7 +333,7 @@ class Infidelity_SR(AbstractVariationalDriver):
             momentum=momentum,
             old_updates=self._old_updates,
             chunk_size=self.chunk_size_bwd,
-            weights=pdf,
+            weights=weights,
         )
 
         self._dp = jax.tree_util.tree_map(lambda x: -x, self._dp)
