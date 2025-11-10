@@ -40,7 +40,9 @@ def get_kernels(afun, afun_t, params, params_t, σ, σ_t, model_state, model_sta
     return log_val, log_val_t
 
 
-def get_local_estimator(vstate, target_state, samples, weights, samples_t, weights_t, cv_coeff=-0.5):
+def get_local_estimator(
+    vstate, target_state, samples, weights, samples_t, weights_t, cv_coeff=-0.5
+):
 
     log_val, log_val_t = get_kernels(
         vstate._apply_fun,
