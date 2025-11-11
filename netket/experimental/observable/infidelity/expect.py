@@ -31,6 +31,9 @@ def infidelity(vstate: MCState, op: InfidelityOperator, chunk_size: None):
 
 @partial(jax.jit, static_argnames=("afun", "afun_t"))
 def get_kernels(afun, afun_t, params, params_t, σ, σ_t, model_state, model_state_t):
+    σ = σ.reshape(-1, σ.shape[-1])
+    σ_t = σ_t.reshape(-1, σ_t.shape[-1])
+
     W = {"params": params, **model_state}
     W_t = {"params": params_t, **model_state_t}
 
