@@ -278,6 +278,7 @@ class Infidelity_SR(AbstractVariationalDriver):
     @timing.timed
     def _forward_and_backward(self):
         self.state.reset()
+        self.target_state.reset()
 
         # Compute the local infidelity estimator and average Infidelity
         local_energies, local_energies_cv = get_local_estimator(
