@@ -289,7 +289,7 @@ class Infidelity_SR(AbstractVariationalDriver):
         )
         # TODO: just reweight local_energies when weights is not None
         if isinstance(self.state, FullSumState):
-            I = 1 - jax.numpy.sum(weights * local_energies_cv)
+            I = 1 - jnp.sum(weights * local_energies_cv)
             self._loss_stats = nkstats.Stats(
                 mean=I,
                 error_of_mean=0.0,
