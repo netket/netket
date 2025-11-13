@@ -33,7 +33,7 @@ from netket.jax import tree_cast
 
 from netket.stats import statistics
 
-from .dataset import RawQuantumDataset
+from .dataset import RawQuantumDataset, ProcessedQuantumDataset
 from .logic_helpers import (
     _grad_local_value_rotated,
     _local_value_rotated_amplitude,
@@ -106,12 +106,13 @@ class QSR(AbstractVariationalDriver):
         batch_sample_replace: bool | None = True,
         control_variate_update_freq: None | (int | str) = None,
         chunk_size: int | None = None,
+        preprocessed_data: ProcessedQuantumDataset | None = None,
     ):
         r"""Initializes the QSR driver class.
 
         Args:
-            training_data: A tuple of two arrays (sigma_s, Us). sigma_s is a the
-                sampled states and Us is the corresponding rotations.
+            training_data: A tuple of two arrays (sigma_s, Us) or a RawQuantumDataset.
+                sigma_s is the sampled states and Us is the corresponding rotations.
             training_batch_size: The training batch size.
             optimizer: The optimizer to use. You can use optax optimizers or
                 choose from the predefined optimizers netket offers.
@@ -123,6 +124,8 @@ class QSR(AbstractVariationalDriver):
             control_variate_update_freq: The frequency of updating the control variates. Defaults to None.
                 "Adaptive" for adaptive update frequency, i.e. n_samples // batch size.
             chunk_size: The chunk size for the control variates. Defaults to None.
+            preprocessed_data: Optional preprocessed dataset from RawQuantumDataset.preprocess().
+                If provided, skips the preprocessing step for faster initialization.
 
         Raises:
             Warning: If the chunk size is not a divisor of the training data size.
@@ -131,22 +134,28 @@ class QSR(AbstractVariationalDriver):
         super().__init__(variational_state, optimizer)
         self.preconditioner = preconditioner
 
+        # mixed states - need to determine this before preprocessing
+        self.mixed_states = variational_state.__class__.__name__ in ["MCMixedState"]
+
+        # Convert to RawQuantumDataset if needed
         if not isinstance(training_data, RawQuantumDataset):
             training_data = RawQuantumDataset(training_data)
+
+        self._raw_dataset = training_data
+
+        # Use preprocessed data if provided, otherwise preprocess now
+        if preprocessed_data is not None:
+            self._dataset = preprocessed_data
+        else:
+            self._dataset = training_data.preprocess(
+                hilbert=self.state.hilbert, mixed_state_target=self.mixed_states
+            )
 
         seed = nkjax.PRNGKey(seed)
         self._rng = np.random.default_rng(np.asarray(jax.random.key_data(seed)))
 
-        # mixed states
-        self.mixed_states = variational_state.__class__.__name__ in ["MCMixedState"]
-
         self.batch_sample_replace = batch_sample_replace
         self.training_batch_size = training_batch_size
-
-        self._raw_dataset = training_data
-        self._dataset = training_data.preprocess(
-            hilbert=self.state.hilbert, mixed_state_target=self.mixed_states
-        )
 
         # statistical constants
         self._entropy = None
