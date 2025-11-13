@@ -168,6 +168,20 @@ Those are easy-to-use constructors for a {class}`~netket.operator.LocalOperator`
 
 ```
 
+## Utilities
+
+
+```{eval-rst}
+.. currentmodule:: netket.operator
+
+.. autosummary::
+   :toctree: _generated/operator
+   :nosignatures:
+
+   to_sparse_cached
+   
+```
+
 
 ```{eval-rst}
 .. Hide these internal implementation classes but still generate their documentation
