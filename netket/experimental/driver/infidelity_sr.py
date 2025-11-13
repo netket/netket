@@ -3,6 +3,7 @@ from collections.abc import Callable
 from warnings import warn
 
 import jax
+import jax.numpy as jnp
 from jax.flatten_util import ravel_pytree
 
 from netket import jax as nkjax

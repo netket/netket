@@ -3,7 +3,7 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-from netket.vqs import MCState, FullSumState, expect
+from netket.vqs import MCState, expect
 from netket.stats import Stats
 
 from netket.experimental.observable.infidelity.infidelity_operator import (
@@ -61,12 +61,12 @@ def get_local_estimator(
 
     Hloc = jnp.exp(log_val) * jnp.sum(weights_t * jnp.exp(log_val_t))
 
-    if isinstance(target_state, FullSumState):
-        Hloc_cv = Hloc
-    else:
+    if isinstance(target_state, MCState) and isinstance(vstate, MCState):
         Hloc_cv = jnp.exp(log_val + log_val_t).real + cv_coeff * (
             jnp.exp(2 * (log_val + log_val_t).real) - 1
         )
+    else:
+        Hloc_cv = Hloc
 
     return Hloc, Hloc_cv
 
