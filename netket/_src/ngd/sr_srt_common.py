@@ -71,7 +71,7 @@ def _prepare_input(
     de = local_grad - jnp.sum(scaling_factor * local_grad)
 
     dv = 2.0 * de * jnp.sqrt(scaling_factor)
-    if jax.numpy.ndim(scaling_factor) != 0:
+    if jnp.ndim(scaling_factor) != 0:
         scaling_factor = jax.lax.broadcast_in_dim(scaling_factor, O_L.shape, (0,))
     O_L = O_L * jnp.sqrt(scaling_factor)
 
