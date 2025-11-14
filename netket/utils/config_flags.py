@@ -300,13 +300,15 @@ def _setup_experimental_sharding(val, explicit=False):
         import jax
         from jax.sharding import AxisType
 
-        kwargs = {}
         if explicit:
-            kwargs["axis_types"] = (AxisType.Explicit,)
+            axis_types = AxisType.Explicit
+        else:
+            axis_types = AxisType.Auto
+
         mesh = jax.make_mesh(
             (len(jax.devices()),),
             ("S"),
-            **kwargs,
+            axis_types=axis_types,
         )
         jax.sharding.set_mesh(mesh)
 
