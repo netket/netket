@@ -42,6 +42,8 @@ def apply_operator(operator, vstate, *, seed=None):
         chunk_size = max(vstate.chunk_size // operator.max_conn_size, 1)
 
     if isinstance(vstate, FullSumState):
+        del seed
+
         transformed_vstate = FullSumState(
             hilbert=vstate.hilbert,
             apply_fun=transformed_apply_fun,
@@ -61,12 +63,15 @@ def apply_operator(operator, vstate, *, seed=None):
             sampler_seed=seed,
         )
         if isinstance(vstate.sampler_state, MetropolisSamplerState):
+            # fold in a random counter so that we don't have the same seed as sampler
+            # itself.
+            seed = jax.random.fold_in(PRNGKey(seed), 123)
+
             x = vstate.sampler_state.σ
             xp, mels = operator.get_conn_padded(x)
-            seed = PRNGKey(seed)
             ids = jax.random.randint(seed, (x.shape[0],), 0, operator.max_conn_size)
             new_x = xp[jnp.arange(x.shape[0]), ids, :]
-            transformed_vstate.sampler_state = new_x
-
-            transformed_vstate.sampler_state = vstate.sampler_state.replace(σ=new_x)
+            transformed_vstate.sampler_state = transformed_vstate.sampler_state.replace(
+                σ=new_x
+            )
         return transformed_vstate

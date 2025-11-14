@@ -40,23 +40,33 @@ def get_kernels(afun, afun_t, params, params_t, σ, σ_t, model_state, model_sta
     return log_val, log_val_t
 
 
-def get_local_estimator(vstate, target_state, cv_coeff=-0.5):
+def get_local_estimator(
+    vstate, target_state, samples, weights, samples_t, weights_t, cv_coeff=-0.5
+):
+
     log_val, log_val_t = get_kernels(
         vstate._apply_fun,
         target_state._apply_fun,
         vstate.parameters,
         target_state.parameters,
-        vstate.samples,
-        target_state.samples,
+        samples,
+        samples_t,
         vstate.model_state,
         target_state.model_state,
     )
+    if weights is None:
+        weights = 1.0 / samples.shape[0]
+    if weights_t is None:
+        weights_t = 1.0 / samples_t.shape[0]
 
-    Hloc = jnp.exp(log_val) * jnp.mean(jnp.exp(log_val_t))
+    Hloc = jnp.exp(log_val) * jnp.sum(weights_t * jnp.exp(log_val_t))
 
-    Hloc_cv = jnp.exp(log_val + log_val_t).real + cv_coeff * (
-        jnp.exp(2 * (log_val + log_val_t).real) - 1
-    )
+    if isinstance(target_state, MCState) and isinstance(vstate, MCState):
+        Hloc_cv = jnp.exp(log_val + log_val_t).real + cv_coeff * (
+            jnp.exp(2 * (log_val + log_val_t).real) - 1
+        )
+    else:
+        Hloc_cv = Hloc
 
     return Hloc, Hloc_cv
 

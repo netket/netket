@@ -86,8 +86,15 @@ class RBM(nn.Module):
             return jnp.sum(x, axis=-1).astype(jnp.complex128)
 
 
-def _setup(*, complex=True, machine=None, real_output=False, chunk_size=None):
-    L = 5
+def _setup(
+    *,
+    complex=True,
+    machine=None,
+    real_output=False,
+    chunk_size=None,
+    fullsum: bool = False,
+):
+    L = 2
     Ns = L * L
     lattice = nk.graph.Square(L, max_neighbor_order=2)
     hi = nk.hilbert.Spin(s=1 / 2, N=lattice.n_nodes, inverted_ordering=False)
@@ -106,15 +113,22 @@ def _setup(*, complex=True, machine=None, real_output=False, chunk_size=None):
         d_max=2,
     )
     opt = nk.optimizer.Sgd(learning_rate=0.035)
-    vstate = nk.vqs.MCState(
-        sampler=sampler,
-        model=machine,
-        n_samples=512,
-        n_discard_per_chain=0,
-        seed=0,
-        sampler_seed=0,
-        chunk_size=chunk_size,
-    )
+    if not fullsum:
+        vstate = nk.vqs.MCState(
+            sampler=sampler,
+            model=machine,
+            n_samples=512,
+            n_discard_per_chain=0,
+            seed=0,
+            sampler_seed=0,
+            chunk_size=chunk_size,
+        )
+    else:
+        vstate = nk.vqs.FullSumState(
+            hilbert=hi,
+            model=machine,
+            seed=0,
+        )
 
     return H, opt, vstate
 
@@ -439,3 +453,51 @@ def test_SRt_chunked(use_ntk, onthefly, model, momentum, proj_reg):
         energy_chunked = logger_chunked.data["Energy"]["Mean"]
 
         np.testing.assert_allclose(energy, energy_chunked, atol=1e-10)
+
+
+@pytest.mark.parametrize(
+    "momentum", [pytest.param(None, id=""), pytest.param(0.9, id="momentum")]
+)
+@pytest.mark.parametrize("model", machines)
+def test_fullsum_vmc_vs_vmcsr(model, momentum):
+    """
+    All nk.driver.VMC_kernelSR must give **exactly** the same dynamics even with momentum
+    """
+    n_iters = 5
+    solver = nk.optimizer.solver.cholesky
+
+    H, opt, vstate = _setup(machine=model, fullsum=True)
+    gs = nk.driver.VMC(
+        H,
+        opt,
+        variational_state=vstate,
+        preconditioner=nk.optimizer.SR(diag_shift=0.1, solver=solver),
+    )
+    _, _, vstate_sr = _setup(machine=model, fullsum=True)
+    gs_sr = nk.driver.VMC_SR(
+        H,
+        opt,
+        variational_state=vstate_sr,
+        diag_shift=0.1,
+        linear_solver=solver,
+    )
+    logger_vmc = nk.logging.RuntimeLog()
+    logger_sr = nk.logging.RuntimeLog()
+
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose, vstate.parameters, vstate_sr.parameters
+    )
+
+    gs.run(n_iter=n_iters, out=logger_vmc)
+    gs_sr.run(n_iter=n_iters, out=logger_sr)
+
+    # check same parameters
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose, vstate.parameters, vstate_sr.parameters
+    )
+
+    if jax.process_index() == 0:
+        energy_vmc = logger_vmc.data["Energy"]["Mean"]
+        energy_SR = logger_sr.data["Energy"]["Mean"]
+
+        np.testing.assert_allclose(energy_vmc, energy_SR, atol=1e-10)

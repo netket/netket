@@ -3,6 +3,7 @@ from collections.abc import Callable
 from warnings import warn
 
 import jax
+import jax.numpy as jnp
 from jax.flatten_util import ravel_pytree
 
 from netket import jax as nkjax
@@ -19,7 +20,7 @@ from netket import stats as nkstats
 from netket.driver.abstract_variational_driver import (
     AbstractVariationalDriver,
 )
-from netket._src.ngd.sr_srt_common import sr, srt
+from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
 from netket._src.operator.hpsi_utils import make_logpsi_op_afun
 from netket.experimental.observable.infidelity.expect import get_local_estimator
@@ -28,12 +29,6 @@ ApplyFun = Callable[[PyTree, Array], Array]
 KernelArgs = tuple[ApplyFun, PyTree, Array, tuple[Any, ...]]
 KernelFun = Callable[[PyTree, Array], KernelArgs]
 DeriativesArgs = tuple[ApplyFun, PyTree, PyTree, Array]
-
-
-@jax.jit
-def _flatten_samples(x):
-    # return x.reshape(-1, x.shape[-1])
-    return jax.lax.collapse(x, 0, x.ndim - 1)
 
 
 @reference(
@@ -122,7 +117,7 @@ class Infidelity_SR(AbstractVariationalDriver):
         target_state: VariationalState,
         optimizer: Optimizer,
         *,
-        operator: AbstractOperator = None,
+        operator: AbstractOperator | None = None,
         diag_shift: ScalarOrSchedule,
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
@@ -130,7 +125,7 @@ class Infidelity_SR(AbstractVariationalDriver):
         linear_solver_fn: (
             Callable[[Array, Array], Array] | DeprecatedArg
         ) = DeprecatedArg(),
-        variational_state: MCState = None,
+        variational_state: VariationalState | None = None,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
         use_ntk: bool | None = None,
@@ -217,16 +212,16 @@ class Infidelity_SR(AbstractVariationalDriver):
         else:
             self.target_state = target_state
 
-        if isinstance(variational_state, FullSumState):
-            raise NotImplementedError(
-                "NGD drivers do not support FullSumState. It is not too hard to implement it"
-                "We would welcome a contribution towards it.\n"
-                "See https://github.com/netket/netket/issues/2152 \n"
-            )
         super().__init__(
             variational_state, optimizer, minimized_quantity_name="Infidelity"
         )
 
+        if isinstance(variational_state, FullSumState):
+            if use_ntk:
+                raise ValueError(
+                    "NTK makes no sense for a variational FullSumState and is not supported."
+                )
+            use_ntk = False
         if use_ntk is None:
             use_ntk = variational_state.n_parameters > variational_state.n_samples
             print("Automatic SR implementation choice: ", "NTK" if use_ntk else "QGT")
@@ -278,14 +273,31 @@ class Infidelity_SR(AbstractVariationalDriver):
     @timing.timed
     def _forward_and_backward(self):
         self.state.reset()
+        self.target_state.reset()
+
+        samples, weights = get_samples_and_pdf(self.state)
+        samples_t, weights_t = get_samples_and_pdf(self.target_state)
 
         # Compute the local infidelity estimator and average Infidelity
         local_energies, local_energies_cv = get_local_estimator(
             self.state,
             self.target_state,
+            samples,
+            weights,
+            samples_t,
+            weights_t,
             self.cv_coeff,
         )
-        self._loss_stats = nkstats.statistics(1 - local_energies_cv)
+        # TODO: just reweight local_energies when weights is not None
+        if isinstance(self.state, FullSumState):
+            I = 1 - jnp.sum(weights * local_energies_cv)
+            self._loss_stats = nkstats.Stats(
+                mean=I,
+                error_of_mean=0.0,
+                variance=0.0,
+            )
+        else:
+            self._loss_stats = nkstats.statistics(1 - local_energies_cv)
 
         # Extract the hyperparameters which might be iteration dependent
         diag_shift = self.diag_shift
@@ -309,7 +321,6 @@ class Infidelity_SR(AbstractVariationalDriver):
             else:
                 compute_sr_update_fun = sr
 
-        samples = _flatten_samples(self.state.samples)
         self._dp, self._old_updates, self.info = compute_sr_update_fun(
             self.state._apply_fun,
             local_energies,
@@ -323,6 +334,7 @@ class Infidelity_SR(AbstractVariationalDriver):
             momentum=momentum,
             old_updates=self._old_updates,
             chunk_size=self.chunk_size_bwd,
+            weights=weights,
         )
 
         self._dp = jax.tree_util.tree_map(lambda x: -x, self._dp)

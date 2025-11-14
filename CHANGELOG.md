@@ -5,6 +5,10 @@
 
 ## NetKet 3.21 (In development)
 
+### New Features
+* {class}`netket.driver.VMC_SR` and {class}`netket.experimental.driver.Infidelity_SR` now also support {class}`netket.vqs.FullSumState` [PR #2171](https://github.com/netket/netket/pull/2171).
+
+
 ## NetKet 3.20 (15 Octobre 2025)
 
 ### Breaking Changes

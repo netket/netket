@@ -3,6 +3,7 @@ from collections.abc import Callable
 from warnings import warn
 
 import jax
+import jax.numpy as jnp
 from jax.flatten_util import ravel_pytree
 
 from netket import jax as nkjax
@@ -14,13 +15,13 @@ from netket.utils.citations import reference
 from netket.utils.deprecation import DeprecatedArg
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
-from netket.operator import AbstractOperator
+from netket.operator import AbstractOperator, to_sparse_cached
 from netket import stats as nkstats
 
 from netket.driver.abstract_variational_driver import (
     AbstractVariationalDriver,
 )
-from netket._src.ngd.sr_srt_common import sr, srt
+from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
 
 
@@ -28,12 +29,6 @@ ApplyFun = Callable[[PyTree, Array], Array]
 KernelArgs = tuple[ApplyFun, PyTree, Array, tuple[Any, ...]]
 KernelFun = Callable[[PyTree, Array], KernelArgs]
 DeriativesArgs = tuple[ApplyFun, PyTree, PyTree, Array]
-
-
-@jax.jit
-def _flatten_samples(x):
-    # return x.reshape(-1, x.shape[-1])
-    return jax.lax.collapse(x, 0, x.ndim - 1)
 
 
 def VMC_SRt(
@@ -336,12 +331,14 @@ class VMC_SR(AbstractVariationalDriver):
             )
             linear_solver = linear_solver_fn
 
-        if isinstance(variational_state, FullSumState):
-            raise TypeError(
-                "NGD drivers do not support FullSumState. Please use 'standard' drivers with SR."
-            )
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
+        if isinstance(variational_state, FullSumState):
+            if use_ntk:
+                raise ValueError(
+                    "NTK makes no sense for a variational FullSumState and is not supported."
+                )
+            use_ntk = False
         if use_ntk is None:
             use_ntk = variational_state.n_parameters > variational_state.n_samples
             print("Automatic SR implementation choice: ", "NTK" if use_ntk else "QGT")
@@ -414,8 +411,23 @@ class VMC_SR(AbstractVariationalDriver):
         self.state.reset()
 
         # Compute the local energy estimator and average Energy
-        local_energies = self.state.local_estimators(self._ham)
-        self._loss_stats = nkstats.statistics(local_energies)
+        if isinstance(self.state, FullSumState):
+            O = to_sparse_cached(self._ham)
+            Ψ = self.state.to_array()
+
+            # TODO: This performs the full computation on all JAX devices.
+            # It would be great if we could split the computation among ranks.
+            OΨ = O @ Ψ
+            expval_O = (Ψ.conj() * OΨ).sum()
+            local_energies = OΨ / Ψ
+
+            variance = jnp.sum(jnp.abs(OΨ - expval_O * Ψ) ** 2)
+            self._loss_stats = nkstats.Stats(
+                mean=expval_O, error_of_mean=0.0, variance=variance
+            )
+        else:
+            local_energies = self.state.local_estimators(self._ham)
+            self._loss_stats = nkstats.statistics(local_energies)
 
         # Extract the hyperparameters which might be iteration dependent
         diag_shift = self.diag_shift
@@ -439,7 +451,8 @@ class VMC_SR(AbstractVariationalDriver):
             else:
                 compute_sr_update_fun = sr
 
-        samples = _flatten_samples(self.state.samples)
+        samples, pdf = get_samples_and_pdf(self.state)
+
         self._dp, self._old_updates, self.info = compute_sr_update_fun(
             self.state._apply_fun,
             local_energies,
@@ -453,6 +466,7 @@ class VMC_SR(AbstractVariationalDriver):
             momentum=momentum,
             old_updates=self._old_updates,
             chunk_size=self.chunk_size_bwd,
+            weights=pdf,
         )
 
         return self._dp
