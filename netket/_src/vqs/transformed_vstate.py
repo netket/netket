@@ -58,6 +58,7 @@ def apply_operator(operator, vstate, *, seed=None):
             n_samples=vstate.n_samples,
             n_discard_per_chain=vstate.n_discard_per_chain,
             chunk_size=chunk_size,
+            sampler_seed=seed,
         )
         if isinstance(vstate.sampler_state, MetropolisSamplerState):
             x = vstate.sampler_state.σ
@@ -67,5 +68,5 @@ def apply_operator(operator, vstate, *, seed=None):
             new_x = xp[jnp.arange(x.shape[0]), ids, :]
             transformed_vstate.sampler_state = new_x
 
-        transformed_vstate.sampler_state = vstate.sampler_state.replace(σ=new_x)
+            transformed_vstate.sampler_state = vstate.sampler_state.replace(σ=new_x)
         return transformed_vstate
