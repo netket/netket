@@ -12,9 +12,11 @@ def compute_pyscf_integrals(mol, mo_coeff):
     t_ij_ao = jnp.asarray(mol.intor("int1e_kin") + mol.intor("int1e_nuc"))
     v_ijkl_ao = jnp.asarray(mol.intor("int2e").transpose(0, 2, 3, 1))
     c = jnp.asarray(mo_coeff.T)
-    t_ij_mo = jax.jit(jnp.einsum, static_argnums=0)("ij,ai,bj->ab", t_ij_ao, c, c)
+    t_ij_mo = jax.jit(jnp.einsum, static_argnums=0)(
+        "ij,ai,bj->ab", t_ij_ao, c.conj(), c
+    )
     v_ijkl_mo = jax.jit(jnp.einsum, static_argnums=0)(
-        "ijkl,ai,bj,ck,dl->abcd", v_ijkl_ao, c, c, c, c
+        "ijkl,ai,bj,ck,dl->abcd", v_ijkl_ao, c.conj(), c.conj(), c, c
     )
     const = jnp.asarray(float(mol.energy_nuc()))
     return const, t_ij_mo, v_ijkl_mo
