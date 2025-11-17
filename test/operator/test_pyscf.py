@@ -68,3 +68,24 @@ def test_pyscf_default():
 
     # check that ED gives same value as FCI in pyscf
     np.testing.assert_allclose(E_fci, nk.exact.lanczos_ed(ha))
+
+
+def test_complex_orbitals():
+    from pyscf import gto, scf
+    import scipy.stats
+
+    bond_length = 1.5109
+    geometry = [
+        ("Li", (0.0, 0.0, -bond_length / 2)),
+        ("H", (0.0, 0.0, bond_length / 2)),
+    ]
+    molecule = gto.M(atom=geometry, basis="STO-3G")
+
+    mf = scf.HF(molecule).run(verbose=0)
+
+    ha_re = nkx.operator.from_pyscf_molecule(molecule, mf.mo_coeff)
+    U = scipy.stats.unitary_group.rvs(molecule.nao)
+    ha_cplx = nkx.operator.from_pyscf_molecule(molecule, mf.mo_coeff @ U)
+    e_re = nk.exact.full_ed(ha_re)
+    e_cplx = nk.exact.full_ed(ha_cplx)
+    np.testing.assert_allclose(e_cplx, e_re)
