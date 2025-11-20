@@ -120,7 +120,7 @@ class UnknownFramework(ModuleFramework):
         return wrapped_module
 
 
-def identify_framework(module):
+def identify_framework(module) -> ModuleFramework:
     for _framework in registered_frameworks:
         if _framework.is_loaded() and _framework.is_my_module(module):
             return _framework
