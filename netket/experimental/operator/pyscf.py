@@ -14,7 +14,7 @@
 
 
 import numpy as np
-
+import jax.experimental.multihost_utils
 
 from netket.operator import DiscreteOperator
 from netket.hilbert import SpinOrbitalFermions
@@ -134,6 +134,9 @@ def from_pyscf_molecule(
 
         mf = pyscf.scf.HF(molecule).run(verbose=0)
         mo_coeff = mf.mo_coeff
+
+        if jax.process_count() > 1:
+            mo_coeff = jax.experimental.multihost_utils.broadcast_one_to_all(mo_coeff)
 
     if implementation in [FermionOperator2ndJax, FermionOperator2ndJax]:
         E_nuc, Tij, Vijkl = TV_from_pyscf_molecule(molecule, mo_coeff, cutoff=cutoff)
