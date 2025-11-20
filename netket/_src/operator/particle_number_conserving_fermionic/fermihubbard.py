@@ -10,7 +10,9 @@ import jax.numpy as jnp
 from netket.utils import struct
 from netket.hilbert import SpinOrbitalFermions
 
-from . import ParticleNumberAndSpinConservingFermioperator2nd
+from netket._src.operator.particle_number_conserving_fermionic.operators import (
+    ParticleNumberAndSpinConservingFermioperator2nd,
+)
 
 
 @struct.dataclass

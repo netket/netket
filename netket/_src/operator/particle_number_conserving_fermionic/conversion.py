@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from netket.jax import COOArray
 from netket.utils.types import Array
 
-from .._normal_order_utils import (
+from netket._src.operator.normal_order_utils import (
     split_spin_sectors,
     OperatorArrayDict,
     SpinOperatorArrayDict,

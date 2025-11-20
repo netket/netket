@@ -12,7 +12,7 @@ import jax.numpy as jnp
 from netket.jax import COOArray
 from netket.utils.types import Array
 
-from ._operator_data import PNCOperatorDataType
+from .operator_data import PNCOperatorDataType
 
 
 def _comb(kl: Array, n: int) -> Array:

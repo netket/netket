@@ -14,7 +14,7 @@ from netket.utils.types import Array
 
 import sparse
 
-from .._normal_order_utils import SpinOperatorArrayTerms
+from ..normal_order_utils import SpinOperatorArrayTerms
 
 PNCOperatorDataType = tuple[Union[Array, COOArray, None], Union[Array, None], Array]
 r"""
