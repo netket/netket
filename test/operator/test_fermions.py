@@ -969,6 +969,8 @@ def test_fermion_ordering():
         hi, terms=("0^ 1", "0^ 1^", "0 1^", "1 1^"), weights=(2, 3, 4j, 7j), constant=1
     )
     op1_ordered = op1.to_normal_order()
+    assert op1_ordered.order == "N"
+    assert "order=N" in repr(op1_ordered)
     op2 = nk.operator.FermionOperator2nd(
         hi,
         terms=("0^ 1", "1^ 0^", "1^ 0", "1^ 1"),
@@ -978,11 +980,14 @@ def test_fermion_ordering():
     np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
     np.testing.assert_allclose(op1_ordered.to_dense(), op2.to_dense())
     _dict_compare(op1_ordered.operators, op2.operators, 1e-8)
+    assert (op1 + op1_ordered).order is None
 
     op1 = nk.operator.FermionOperator2nd(
         hi, terms=("0^ 1", "0^ 1^", "0 1^", "1 1^"), weights=(2, 3, 4j, 7j), constant=1
     )
     op1_ordered = op1.to_pair_order()
+    assert op1_ordered.order == "P"
+    assert "order=P" in repr(op1_ordered)
     op2 = nk.operator.FermionOperator2nd(
         hi,
         terms=("1 0^", "1^ 0^", "1^ 0", "1^ 1"),
@@ -992,6 +997,10 @@ def test_fermion_ordering():
     np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
     np.testing.assert_allclose(op1_ordered.to_dense(), op2.to_dense())
     _dict_compare(op1_ordered.operators, op2.operators, 1e-8)
+    assert (op1 + op1_ordered).order is None
+
+    assert (op1_ordered @ op1_ordered).order is None
+    assert op1_ordered.copy().order == op1_ordered.order
 
 
 @pytest.mark.parametrize(
