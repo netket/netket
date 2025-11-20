@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flax.linen as nn
-import jax.numpy as jnp
-
 from functools import partial
+
+import jax
+import jax.numpy as jnp
+import jax.scipy as jsp
+import flax.linen as nn
 
 import numpy as np
 
@@ -222,6 +224,130 @@ class Slater2nd(nn.Module):
             return log_det_sum
 
         return log_sd(n)
+
+    def rdm_one_body(self) -> jax.Array:
+        r"""
+        Compute the one-body reduced density matrix from the current model parameters.
+
+        For a Slater determinant with orbitals :math:`\phi_\mu`, the density matrix is:
+
+        .. math::
+
+            \rho_{ij} = \sum_{\mu \in \text{occupied}} \phi^*_{i,\mu} \phi_{j,\mu}
+
+        This can be written as :math:`\rho = M (M^\dagger M)^{-1} M^\dagger` where
+        :math:`M` is the orbital matrix.
+
+        Args:
+            model: The Slater2nd
+            params: the parameters of the model
+
+        Returns:
+            The one-body density matrix of shape (n_modes, n_modes)
+        """
+        if self.generalized:
+            M = self.orbitals
+            overlap_inv = jnp.linalg.inv(M.conj().T @ M)
+            return M @ overlap_inv @ M.conj().T
+
+        elif self.restricted:
+            # Restricted (spin-conserving)Hartree-Fock
+            # Same orbitals for all spin sectors
+            M = self.orbitals[0]  # shape (n_orbitals, n_fermions_per_spin)
+            overlap_inv = jnp.linalg.inv(M.conj().T @ M)
+            rho_sector = M @ overlap_inv @ M.conj().T
+
+            # Repeat for each spin sector
+            n_spin_sectors = self.hilbert.n_spin_subsectors
+            return jsp.linalg.block_diag(*[rho_sector] * n_spin_sectors)
+
+        else:
+            # Unrestricted (spin-conserving) Hartree-Fock
+            # Different orbitals for each spin sector
+            n_spin_sectors = self.hilbert.n_spin_subsectors
+            rhos = []
+
+            for i in range(n_spin_sectors):
+                M_i = self.orbitals[i]  # shape (n_orbitals, n_fermions_i)
+                overlap_inv_i = jnp.linalg.inv(M_i.conj().T @ M_i)
+                rho_i = M_i @ overlap_inv_i @ M_i.conj().T
+                rhos.append(rho_i)
+
+            return jsp.linalg.block_diag(*rhos)
+
+    def qgt_by_wick(self) -> jax.Array:
+        r"""
+        Compute the centered quantum geometric tensor (QGT) for the Slater determinant.
+
+        For a Slater determinant parameterized by orbital coefficients :math:`C_{\mu i}`,
+        the centered QGT for general non-orthonormal orbitals is:
+
+        .. math::
+
+            Q_{(\mu i),(\nu j)} = [\delta_{\mu\nu} - P_{\mu\nu}] (S^{-1})_{ji}
+
+        where:
+            - :math:`S = C^\dagger C` is the orbital overlap matrix
+            - :math:`P = C S^{-1} C^\dagger` is the projector onto occupied orbitals (the 1-RDM)
+
+        In Kronecker notation: :math:`Q = (I - P) \otimes S^{-T}`.
+
+        Equivalently, for orbital variations :math:`dC_1` and :math:`dC_2`:
+
+        .. math::
+
+            \langle d\Psi_1 | d\Psi_2 \rangle_c = \mathrm{Tr}[S^{-1} dC_1^\dagger (I - P) dC_2]
+
+        The QGT is returned as a 2D matrix of shape (n_parameters, n_parameters) where
+        n_parameters is the total number of orbital coefficients, matching the standard
+        NetKet QGT interface.
+
+        Returns:
+            The centered QGT as a 2D matrix of shape (n_parameters, n_parameters).
+        """
+        if self.generalized:
+            M = self.orbitals
+            # Compute rdm as above, but we need some intermediates
+            S = M.conj().T @ M
+            S_inv = jnp.linalg.inv(S)
+            P = M @ S_inv @ M.conj().T
+
+            I_minus_P = jnp.eye(self.hilbert.size) - P
+            Q = jnp.kron(I_minus_P, S_inv.T)
+            return Q
+
+        elif self.restricted:
+            # For RHF, the same M is used for ALL spin sectors
+            # Compute rdm as above, but keep some intermediates
+            M = self.orbitals[0]
+            S = M.conj().T @ M
+            S_inv = jnp.linalg.inv(S)
+            P_sector = M @ S_inv @ M.conj().T
+
+            I_minus_P_sector = jnp.eye(self.hilbert.n_orbitals) - P_sector
+            Q_single_sector = jnp.kron(I_minus_P_sector, S_inv.T)
+            # Multiply by number of spin sectors since each parameter affects all sectors
+            n_spin_sectors = self.hilbert.n_spin_subsectors
+            Q = n_spin_sectors * Q_single_sector
+            return Q
+
+        else:
+            # Unrestricted HF: build block-diagonal QGT
+            Q_blocks = []
+            for n_fermions_i, M_i in zip(
+                self.hilbert.n_fermions_per_spin, self.orbitals
+            ):
+                if n_fermions_i == 0:
+                    continue
+
+                S_i = M_i.conj().T @ M_i
+                S_inv_i = jnp.linalg.inv(S_i)
+                P_i = M_i @ S_inv_i @ M_i.conj().T
+                I_minus_P_i = jnp.eye(self.hilbert.n_orbitals) - P_i
+                Q_i = jnp.kron(I_minus_P_i, S_inv_i.T)
+                Q_blocks.append(Q_i)
+
+            return jsp.linalg.block_diag(*Q_blocks)
 
 
 class MultiSlater2nd(nn.Module):
