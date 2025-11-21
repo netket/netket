@@ -123,3 +123,50 @@ class LinearOperator:
 
     def __post_init__(self):
         pass
+
+
+@struct.dataclass
+class DenseOperator(LinearOperator):
+    """
+    A simple wrapper around a dense matrix that implements the LinearOperator interface.
+
+    This operator stores a dense matrix representation and delegates operations to it.
+    Useful when you have a precomputed dense matrix that needs to be used with
+    the LinearOperator API (e.g., for QGT in mean-field states).
+    """
+
+    matrix: jnp.ndarray = Uninitialized  # type: ignore
+    """The dense matrix representation."""
+
+    def __matmul__(self, vec):
+        """Matrix-vector multiplication."""
+        if hasattr(vec, "ndim"):
+            # vec is already a dense array
+            result = self.matrix @ vec
+            if self.diag_shift != 0:
+                result = result + self.diag_shift * vec
+            return result
+        else:
+            # vec is a PyTree, need to flatten it
+            from jax.flatten_util import ravel_pytree
+
+            vec_flat, unravel = ravel_pytree(vec)
+            result_flat = self.matrix @ vec_flat
+            if self.diag_shift != 0:
+                result_flat = result_flat + self.diag_shift * vec_flat
+            return unravel(result_flat)
+
+    def to_dense(self) -> jnp.ndarray:
+        """
+        Return the dense matrix representation.
+
+        Returns:
+            The dense matrix, with diagonal shift added if nonzero.
+        """
+        if self.diag_shift == 0:
+            return self.matrix
+        else:
+            return self.matrix + self.diag_shift * jnp.eye(self.matrix.shape[0])
+
+    def __repr__(self):
+        return f"DenseOperator(shape={self.matrix.shape}, diag_shift={self.diag_shift})"
