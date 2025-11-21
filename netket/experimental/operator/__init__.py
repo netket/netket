@@ -22,7 +22,7 @@ __all__ = [
     "ParticleNumberAndSpinConservingFermioperator2nd",
 ]
 
-from netket._src.operator.pyscf import from_pyscf_molecule
+from netket._src.operator.pyscf_api import from_pyscf_molecule as from_pyscf_molecule
 from netket._src.operator.particle_number_conserving_fermionic.operators import (
     ParticleNumberConservingFermioperator2nd,
     ParticleNumberAndSpinConservingFermioperator2nd,

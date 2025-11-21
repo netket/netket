@@ -13,8 +13,8 @@
 # limitations under the License.
 
 # TODO: re-evaluate what should be exposedd as public API
-from netket._src.operator.pyscf import operator_from_arrays as operator_from_arrays
-from netket._src.operator.pyscf import from_pyscf_molecule as from_pyscf_molecule
+from netket._src.operator.pyscf_api import operator_from_arrays as operator_from_arrays
+from netket._src.operator.pyscf_api import from_pyscf_molecule as from_pyscf_molecule
 from netket._src.operator.pyscf_utils import (
     TV_from_pyscf_molecule as TV_from_pyscf_molecule,
     arrays_to_terms as arrays_to_terms,
