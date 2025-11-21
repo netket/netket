@@ -84,6 +84,7 @@ class FermionOperator2ndNumba(FermionOperator2ndBase):
             self.hilbert, cutoff=self._cutoff, dtype=self.dtype
         )
         new_op._operators = self._operators.copy()
+        new_op._order = self.order
         return new_op
 
     def get_conn_flattened(self, x, sections, pad=False):

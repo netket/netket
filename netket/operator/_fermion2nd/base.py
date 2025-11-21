@@ -132,6 +132,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         self._initialized = False
         self._is_hermitian = None  # set when requested
         self._max_conn_size = None
+        self._order = None
 
     def _reset_caches(self):
         """
@@ -258,10 +259,13 @@ class FermionOperator2ndBase(DiscreteOperator):
         return cls(hilbert, terms, weights=weights, cutoff=cutoff, dtype=dtype)
 
     def __repr__(self):
-        return (
+        rep_str = (
             f"{type(self).__name__}(hilbert={self.hilbert}, "
-            f"n_operators={len(self._operators)}, dtype={self.dtype})"
+            f"n_operators={len(self._operators)}, dtype={self.dtype}"
         )
+        if self.order:
+            rep_str = rep_str + f", order={self.order}"
+        return rep_str + ")"
 
     def reduce(self, order: bool = True, inplace: bool = True, cutoff: float = None):
         """
@@ -283,6 +287,9 @@ class FermionOperator2ndBase(DiscreteOperator):
 
         obj = self if inplace else self.copy()
         obj._operators, _ = _canonicalize_input(terms, weights, self.dtype, cutoff)
+
+        if order:
+            obj._order = "N"
         return obj
 
     @property
@@ -346,6 +353,7 @@ class FermionOperator2ndBase(DiscreteOperator):
             }
 
         op._operators = operators_new
+        op._order = self.order
         return op
 
     def _remove_zeros(self, cutoff: float = None):
@@ -410,6 +418,7 @@ class FermionOperator2ndBase(DiscreteOperator):
                     new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
 
         self._operators = new_operators
+        self._order = None
         self._reset_caches()
         return self
 
@@ -462,6 +471,8 @@ class FermionOperator2ndBase(DiscreteOperator):
                     del self_ops[t]
                 else:
                     self_ops[t] = w
+        if self._order != other._order:
+            self._order = None
         self._reset_caches()
         return self
 
@@ -542,6 +553,14 @@ class FermionOperator2ndBase(DiscreteOperator):
             new._operators = {k: np.conjugate(v) for k, v in self._operators.items()}
             return new
 
+    @property
+    def order(self) -> str | None:
+        """
+        The ordering of the operator. None if not ordered, "N" for normal
+        ordering and "P" for pair ordering.
+        """
+        return self._order
+
     def to_normal_order(self):
         """Reoder the operators to normal order.
         Normal ordering corresponds to placing creating operators on the left and annihilation on the right.
@@ -559,6 +578,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         )
         new._cutoff = self._cutoff
         new.reduce(order=False)  # already ordered
+        new._order = "N"
         return new
 
     def to_pair_order(self):
@@ -577,4 +597,5 @@ class FermionOperator2ndBase(DiscreteOperator):
         )
         new._cutoff = self._cutoff
         new.reduce(order=False)  # already ordered
+        new._order = "P"
         return new

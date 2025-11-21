@@ -595,6 +595,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
             "operators": self._operators,
             "dtype": self.dtype,
             "max_conn_size": self._max_conn_size,
+            "order": self._order,
         }
         return data, metadata
 
@@ -607,6 +608,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
 
         op._operators = metadata["operators"]
         op._max_conn_size = metadata["max_conn_size"]
+        op._order = metadata["order"]
         op._initialized = True
         (op._terms_list_diag, op._terms_list_offdiag) = data
         return op
@@ -622,6 +624,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
             self.hilbert, cutoff=self._cutoff, dtype=self.dtype
         )
         new_op._operators = self._operators.copy()
+        new_op._order = self.order
         return new_op
 
     def get_conn_padded(self, x):
