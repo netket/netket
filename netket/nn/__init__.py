@@ -61,8 +61,12 @@ from netket.nn.utils import (
 
 from netket.nn import blocks as blocks
 from netket.nn import activation as activation
+from netket.nn import apply_operator as apply_operator
 
-from netket._src.operator.hpsi_utils import make_logpsi_op_afun as make_logpsi_op_afun
+# Import for deprecation machinery
+from netket._src.nn.apply_operator.functional import (
+    make_logpsi_op_afun as _deprecated_make_logpsi_op_afun,
+)
 
 
 # Deprecation machinery for activation functions
@@ -160,6 +164,11 @@ _deprecations = {
     "reim": (
         "netket.nn.reim is deprecated: use netket.nn.activation.reim",
         _deprecated_reim,
+    ),
+    # December 2025, NetKet 3.21
+    "make_logpsi_op_afun": (
+        "netket.nn.make_logpsi_op_afun is deprecated: use netket.nn.apply_operator.make_logpsi_op_afun",
+        _deprecated_make_logpsi_op_afun,
     ),
 }
 

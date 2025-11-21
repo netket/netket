@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Functional approach for transforming apply functions with operators.
+
+This module provides the functional approach for cases where the model
+is neither a Linen module nor an NNX module. It wraps an apply function
+to apply an operator transformation.
+"""
+
 import jax
 import flax
 
