@@ -254,7 +254,19 @@ def sharding_decorator(
 
             # workaround for shard_map not supporting non-array args part 1/2
             # Compute nonarray_args BEFORE PRNGKey treatment to maintain structure consistency
-            nonarray_args = tuple(not hasattr(a, "dtype") for a in args)
+            def _check_nonarray(a):
+                na = (not hasattr(l, "dtype") for l in jax.tree.leaves(a))
+                if all(na):
+                    return True
+                elif any(na):
+                    raise NotImplementedError(
+                        "Arguments need to be (Pytrees of) jax arrays or python objects, but not a combination of both. "
+                        "Please rewrite your function so that different arguments are used."
+                    )
+                else:
+                    return False
+
+            nonarray_args = tuple(map(_check_nonarray, args))
 
             # PRNGKey treatment 1/2
             args = tuple(
