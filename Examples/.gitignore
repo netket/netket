@@ -1,0 +1,6 @@
+# Ignore generated figures from examples
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.log

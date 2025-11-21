@@ -62,9 +62,13 @@ def default_qgt_matrix(
     Determines default metric tensor depending on variational_state and solver
     """
     from netket.vqs import FullSumState
+    from netket._src.vqs.fermion_mf.state import DeterminantVariationalState
+    from netket._src.vqs.fermion_mf.qgt import QGTByWick
 
     if isinstance(variational_state, FullSumState):
         return partial(QGTJacobianPyTree, **kwargs)
+    elif isinstance(variational_state, DeterminantVariationalState):
+        return partial(QGTByWick, **kwargs)
 
     n_param_leaves = len(jax.tree_util.tree_leaves(variational_state.parameters))
     n_params = variational_state.n_parameters
