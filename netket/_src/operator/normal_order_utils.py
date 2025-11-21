@@ -68,7 +68,7 @@ def parity(x: Array):
 
     Example:
         >>> import numpy as np
-        >>> from netket.experimental.operator._normal_order_utils import parity
+        >>> from netket._src.operator.normal_order_utils import parity
         >>> print(parity(np.array([0,1,2])))
         False
         >>> print(parity(np.array([0,2,1])))

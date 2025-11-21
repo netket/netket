@@ -25,6 +25,7 @@ from netket._src.operator.particle_number_conserving_fermionic.fermihubbard impo
 )
 
 from netket.experimental.operator import fermion as fermion
+from netket.experimental.operator import pyscf as pyscf
 
 from netket.operator import FermionOperator2nd as _deprecated_FermionOperator2nd
 from netket.operator import FermionOperator2ndJax as _deprecated_FermionOperator2ndJax
