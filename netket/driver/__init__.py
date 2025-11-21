@@ -18,6 +18,8 @@ from netket.driver.steady_state import SteadyState
 
 from netket._src.driver.vmc_sr import VMC_SR
 
+from .auto_chunk import find_chunk_size
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)
