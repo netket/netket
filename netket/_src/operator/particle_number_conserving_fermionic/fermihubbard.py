@@ -10,7 +10,9 @@ import jax.numpy as jnp
 from netket.utils import struct
 from netket.hilbert import SpinOrbitalFermions
 
-from . import ParticleNumberAndSpinConservingFermioperator2nd
+from netket._src.operator.particle_number_conserving_fermionic.operators import (
+    ParticleNumberAndSpinConservingFermioperator2nd,
+)
 
 
 @struct.dataclass
@@ -48,10 +50,9 @@ class FermiHubbardJax(ParticleNumberAndSpinConservingFermioperator2nd):
            Constructs a FermiHubbardJax operator for a 2D system at half filling.
 
            >>> import netket as nk
-           >>> import netket.experimental
            >>> g = nk.graph.Hypercube(length=4, n_dim=2, pbc=True)
            >>> hi = nk.hilbert.SpinOrbitalFermions(n_orbitals=g.n_nodes, s=1/2, n_fermions_per_spin=(4,4))
-           >>> op = netket.experimental.operator.FermiHubbardJax(hi, t=1.0, U=1.0, graph=g)
+           >>> op = nk.experimental.operator.FermiHubbardJax(hi, t=1.0, U=1.0, graph=g)
         """
 
         if isinstance(t, Sequence):

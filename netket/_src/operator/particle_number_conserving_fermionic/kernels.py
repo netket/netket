@@ -12,7 +12,9 @@ import jax.numpy as jnp
 from netket.jax import COOArray
 from netket.utils.types import Array
 
-from ._operator_data import PNCOperatorDataType
+from netket._src.operator.particle_number_conserving_fermionic.operator_data import (
+    PNCOperatorDataType,
+)
 
 
 def _comb(kl: Array, n: int) -> Array:

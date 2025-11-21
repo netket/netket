@@ -595,6 +595,12 @@ def test_operator_jax_get_conn_flattened_throws(op):
     with pytest.raises(JaxOperatorGetConnInJitError):
         _get_conn_flattened(state)
 
+    # FIXME:
+    # The code above may leak a Tracer because it called _setup inside the jit.
+    # We try to undo it
+    if hasattr(op, "_initialized"):
+        op._initialized = False
+
 
 def test_pauli_string_operators_hashable_pytree():
     # Define the Hilbert space

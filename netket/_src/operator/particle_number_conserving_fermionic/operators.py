@@ -18,23 +18,23 @@ from netket.utils.types import Array
 from netket.operator import FermionOperator2nd, FermionOperator2ndJax
 from netket.utils.optional_deps import import_optional_dependency
 
-from .._pyscf_utils import (
+from netket._src.operator.pyscf_utils import (
     TV_from_pyscf_molecule,
     to_desc_order_sparse,
     compute_pyscf_integrals,
 )
 
-from .._normal_order_utils import (
+from netket._src.operator.normal_order_utils import (
     to_normal_order,
     to_normal_order_sector,
     SpinOperatorArrayDict,
 )
-from ._conversion import (
+from netket._src.operator.particle_number_conserving_fermionic.conversion import (
     fermiop_to_pnc_format_helper,
     fermiop_to_pnc_format_spin_helper,
     pnc_format_to_fermiop_helper,
 )
-from ._operator_data import (
+from netket._src.operator.particle_number_conserving_fermionic.operator_data import (
     collect_ops,
     sparse_arrays_to_coords_data_dict,
     prepare_operator_data_from_coords_data_dict,
@@ -45,7 +45,10 @@ from ._operator_data import (
     CoordsDataDictSectorCooArrayType,
     CoordsDataDictSectorType,
 )
-from ._kernels import get_conn_padded_pnc, get_conn_padded_pnc_spin
+from netket._src.operator.particle_number_conserving_fermionic.kernels import (
+    get_conn_padded_pnc,
+    get_conn_padded_pnc_spin,
+)
 
 
 @struct.dataclass

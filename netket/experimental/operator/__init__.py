@@ -13,17 +13,26 @@
 # limitations under the License.
 
 
-__all__ = ["FermionOperator2nd", "FermionOperator2ndJax"]
+__all__ = [
+    "from_pyscf_molecule",
+    "fermion",
+    "pyscf",
+    "FermiHubbardJax",
+    "ParticleNumberConservingFermioperator2nd",
+    "ParticleNumberAndSpinConservingFermioperator2nd",
+]
 
-from .pyscf import from_pyscf_molecule
-from ._particle_number_conserving_fermionic import (
+from netket._src.operator.pyscf_api import from_pyscf_molecule as from_pyscf_molecule
+from netket._src.operator.particle_number_conserving_fermionic.operators import (
     ParticleNumberConservingFermioperator2nd,
     ParticleNumberAndSpinConservingFermioperator2nd,
+)
+from netket._src.operator.particle_number_conserving_fermionic.fermihubbard import (
     FermiHubbardJax,
 )
 
-
-from . import fermion
+from netket.experimental.operator import fermion as fermion
+from netket.experimental.operator import pyscf as pyscf
 
 from netket.operator import FermionOperator2nd as _deprecated_FermionOperator2nd
 from netket.operator import FermionOperator2ndJax as _deprecated_FermionOperator2ndJax
