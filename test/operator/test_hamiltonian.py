@@ -230,3 +230,37 @@ def test_special_sum_sub_nonsumop():
     assert isinstance(H - a, nk.operator.LocalOperator)
     assert isinstance(a + H, nk.operator.LocalOperator)
     assert isinstance(a - H, nk.operator.LocalOperator)
+
+
+def test_special_hamiltonian_matmul():
+    """Test that SpecialHamiltonian @ LocalOperator and LocalOperator @ SpecialHamiltonian
+    produce correct results (regression test for operator composition bug).
+
+    Bug was in SpecialHamiltonian._op__rmatmul__ which had the operator order reversed.
+    """
+    hilbert = nk.hilbert.Spin(s=0.5, N=4)
+    graph = nk.graph.Chain(4)
+
+    # Create operators
+    ising = nk.operator.Ising(hilbert, graph, h=1.0)
+    sx = nk.operator.spin.sigmax(hilbert, 0)
+    sy = nk.operator.spin.sigmay(hilbert, 1)
+    sz = nk.operator.spin.sigmaz(hilbert, 2)
+
+    # Test both orders of composition
+    for local_op in [sx, sy, sz]:
+        # Test LocalOperator @ Ising
+        composed1 = local_op @ ising
+        expected1 = local_op.to_dense() @ ising.to_dense()
+        np.testing.assert_allclose(composed1.to_dense(), expected1)
+
+        # Test Ising @ LocalOperator
+        composed2 = ising @ local_op
+        expected2 = ising.to_dense() @ local_op.to_dense()
+        np.testing.assert_allclose(composed2.to_dense(), expected2)
+
+    # Test with operator sums
+    sum_op = sx + sz
+    composed3 = sum_op @ ising
+    expected3 = sum_op.to_dense() @ ising.to_dense()
+    np.testing.assert_allclose(composed3.to_dense(), expected3)
