@@ -362,6 +362,23 @@ class TestProductOperator:
             matmul_result = h_ising @ prod
             assert hasattr(matmul_result, "hilbert")
 
+    def test_pauli_strings_composition(self):
+        """Regression test for PauliStrings @ LocalOperator composition."""
+        hilbert = nk.hilbert.Spin(s=0.5, N=4)
+
+        pauli = nk.operator.PauliStrings(hilbert, ["XXII", "IIZZ"])
+        sy = nk.operator.spin.sigmay(hilbert, 0)
+
+        # Test LocalOperator @ PauliStrings
+        composed1 = sy @ pauli
+        expected1 = sy.to_dense() @ pauli.to_dense()
+        np.testing.assert_allclose(composed1.to_dense(), expected1)
+
+        # Test PauliStrings @ LocalOperator
+        composed2 = pauli @ sy
+        expected2 = pauli.to_dense() @ sy.to_dense()
+        np.testing.assert_allclose(composed2.to_dense(), expected2)
+
 
 # Integration tests that may require specific test data or fixtures
 class TestProductOperatorIntegration:

@@ -52,7 +52,7 @@ class ProductDiscreteJaxOperator(ProductOperator, DiscreteJaxOperator):
             mels = (mels * op_mels).reshape(Ns, -1, 1)
 
         ys = samples.reshape(*x.shape[:-1], -1, x.shape[-1])
-        mels = jnp.concatenate(mels, axis=1).reshape(*ys.shape[:-1])
+        mels = mels.reshape(*ys.shape[:-1])
         return ys, mels
 
     def to_numba_operator(self) -> "ProductOperator":  # noqa: F821
