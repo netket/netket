@@ -83,4 +83,4 @@ class SpecialHamiltonian(DiscreteOperator):
         if hasattr(other, "to_local_operator"):
             other = other.to_local_operator()
 
-        return self.to_local_operator().__matmul__(other)
+        return other.__matmul__(self.to_local_operator())
