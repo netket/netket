@@ -231,3 +231,17 @@ def test_pnc_operators_sharding_regression(n_devices, operator_class):
 
     # Just verify we get a finite result (the exact value doesn't matter for this regression test)
     assert jnp.isfinite(result.mean)
+
+
+@pytest.mark.parametrize("term", ["4^ 2^ 5 0", "2^ 0", "4^ 5"])
+def test_pnc_sector_order(term):
+    hi = SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 2))
+    ha = FermionOperator2nd(
+        hi,
+        terms=[
+            term,
+        ],
+        weights=[1.23],
+    )
+    ha_pnc = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha)
+    np.testing.assert_allclose(ha.to_dense(), ha_pnc.to_dense())
