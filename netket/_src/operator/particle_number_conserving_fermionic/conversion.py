@@ -112,3 +112,112 @@ def pnc_format_to_fermiop_helper(
     terms = np.concatenate([sites[..., None], daggers[..., None]], axis=-1)
 
     return terms, weights
+
+
+def pnasc_format_to_fermiop_helper(
+    index_array: Array,
+    create_array: Array,
+    weight_array: Array,
+    sectors: tuple,
+    n_orbitals: int,
+) -> tuple[OperatorTermsList, OperatorWeightsList]:
+    r"""
+    Convert spin-conserving PNC format to FermionOperator format
+
+    Args:
+        index_array: destruction operator indices (orbital indices within sectors)
+        create_array: creation operator indices (orbital indices within sectors)
+        weight_array: weights
+        sectors: which spin sectors are acted upon, e.g.:
+            - () for constant term
+            - (0,) for single sector 0
+            - (0, 1) for multiple sectors with same matrix
+            - ((0, 1),) for mixed sectors (create in 0, destroy in 1)
+        n_orbitals: number of orbitals per sector
+
+    Returns:
+        (terms, weights) in FermionOperator2nd format with global site indices
+    """
+    # First convert to terms using the existing helper
+    terms_base, weights_base = pnc_format_to_fermiop_helper(
+        index_array, create_array, weight_array
+    )
+
+    if len(terms_base) == 0 or (len(terms_base) > 0 and terms_base.shape[1] == 0):
+        # Empty or constant term
+        return terms_base, weights_base
+
+    # Now handle sector encoding: site_global = site_orbital + sector * n_orbitals
+    all_terms = []
+    all_weights = []
+
+    if sectors == ():
+        # Constant term, no sector adjustment needed
+        return terms_base, weights_base
+
+    # Check if this is a same-sector or mixed-sector case
+    if len(sectors) > 0 and isinstance(sectors[0], (int, np.integer)):
+        # Same sector: all operators in the same sector
+        # sectors could be (0,) or (0, 1, 2) if multiple sectors share the same matrix
+        for sector in sectors:
+            terms_copy = terms_base.copy()
+            terms_copy[:, :, 0] += sector * n_orbitals
+            all_terms.append(terms_copy)
+            all_weights.append(weights_base)
+    else:
+        # Mixed sector: ((i, j),) or ((i, j), (k, l))
+        # The encoding transforms the original term to match pattern: c_i,σ^ c_j,ρ^ c_k,ρ c_l,σ
+        # where sectors contains [σ, ρ]
+        # During encoding, destruction operators are swapped and a minus sign is applied
+        # We need to reverse this transformation during decoding
+        for sector_pair in sectors:
+            terms_copy = terms_base.copy()
+            weights_copy = weights_base.copy()
+            n_ops = terms_copy.shape[1]
+
+            if n_ops == 4:
+                # The stored format has:
+                # - Creation orbitals [i, j] in sectors [σ, ρ]
+                # - Destruction orbitals [k, l] in sectors [ρ, σ] (swapped during encoding!)
+                # - Weight negated during encoding
+
+                # To decode to the original term, we need to:
+                # 1. Swap destruction operators back: [k, l] in [ρ, σ] → [l, k] in [σ, ρ]
+                # 2. Negate the weight
+
+                sector_create1, sector_create2 = sector_pair  # σ, ρ
+
+                # Apply sector offsets
+                # Creation operators stay as-is
+                terms_copy[:, 0, 0] += sector_create1 * n_orbitals  # first creation in sector σ
+                terms_copy[:, 1, 0] += sector_create2 * n_orbitals  # second creation in sector ρ
+
+                # Destruction operators need to be swapped back
+                # Stored as [k, l] in sectors [ρ, σ]
+                # Need to convert to [l, k] in sectors [σ, ρ]
+                # So: operator at position 2 goes to sector σ (should be at position 3 originally)
+                #     operator at position 3 goes to sector ρ (should be at position 2 originally)
+                # Therefore we swap the sector assignments:
+                terms_copy[:, 2, 0] += sector_create1 * n_orbitals  # first destruction → sector σ
+                terms_copy[:, 3, 0] += sector_create2 * n_orbitals  # second destruction → sector ρ
+
+                # Negate weight to reverse the encoding transformation
+                weights_copy = -weights_copy
+            else:
+                # General case (shouldn't happen based on current implementation)
+                sector_create, sector_destroy = sector_pair
+                half_n_ops = n_ops // 2
+                terms_copy[:, :half_n_ops, 0] += sector_create * n_orbitals
+                terms_copy[:, half_n_ops:, 0] += sector_destroy * n_orbitals
+
+            all_terms.append(terms_copy)
+            all_weights.append(weights_copy)
+
+    if len(all_terms) > 1:
+        terms = np.concatenate(all_terms, axis=0)
+        weights = np.concatenate(all_weights, axis=0)
+    else:
+        terms = all_terms[0]
+        weights = all_weights[0]
+
+    return terms, weights
