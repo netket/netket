@@ -351,7 +351,7 @@ def get_conn_padded_pnc_spin(
             assert i > j  # here i>j
             # e.g. take operator data to be c_ijkl + c_jilk so that here we only need to sum  ρ > σ (i.e. σ=d, ρ=u)
             *_, melsij = _get_conn_padded_interaction_up_down(
-                n_fermions_per_spin[j], n_fermions_per_spin[i], xs[j], xs[i], *v
+                n_fermions_per_spin[i], n_fermions_per_spin[j], xs[i], xs[j], *v
             )
             mels_diag = mels_diag + melsij
             xp_diag = x[..., None, :]
@@ -377,8 +377,8 @@ def get_conn_padded_pnc_spin(
         for i, j in sectors:
             assert i > j  # here i>j
             # e.g. take operator data to be c_ijkl + c_jilk so that here we only need to sum  ρ > σ (i.e. σ=d, ρ=u)
-            xpj, xpi, melsij = _get_conn_padded_interaction_up_down(
-                n_fermions_per_spin[j], n_fermions_per_spin[i], xs[j], xs[i], *v
+            xpi, xpj, melsij = _get_conn_padded_interaction_up_down(
+                n_fermions_per_spin[i], n_fermions_per_spin[j], xs[i], xs[j], *v
             )
             xpij = pack_spin_sectors(
                 *xs_diag[:j], xpj, *xs_diag[j + 1 : i], xpi, *xs_diag[i + 1 :]
