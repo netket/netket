@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   slow_tests:
-    # Only run on pull request comments from users with write access, or on workflow_dispatch, or on push to master
+    # Only run on pull request comments from users with write access, or on workflow_dispatch, or on push to main
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'push' ||
