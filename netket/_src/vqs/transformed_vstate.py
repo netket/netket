@@ -7,6 +7,7 @@ from flax import linen
 from netket.sampler import MetropolisSamplerState
 from netket.jax import PRNGKey
 from netket.vqs import MCState, FullSumState
+from netket.operator import ContinuousOperator, DiscreteOperator
 from netket.operator._prod.base import ProductOperator
 from netket._src.nn.apply_operator.linen import ApplyOperatorModuleLinen
 from netket._src.nn.apply_operator.nnx import ApplyOperatorModuleNNX
@@ -124,15 +125,20 @@ def apply_operator(operator, vstate, *, seed=None):
             sampler_seed=seed,
         )
         if isinstance(vstate.sampler_state, MetropolisSamplerState):
-            # fold in a random counter so that we don't have the same seed as sampler
-            # itself.
-            seed = jax.random.fold_in(PRNGKey(seed), 123)
+            if isinstance(operator, DiscreteOperator):
+                # fold in a random counter so that we don't have the same seed as sampler
+                # itself.
+                seed = jax.random.fold_in(PRNGKey(seed), 123)
 
-            x = vstate.sampler_state.σ
-            xp, mels = operator.get_conn_padded(x)
-            ids = jax.random.randint(seed, (x.shape[0],), 0, operator.max_conn_size)
-            new_x = xp[jnp.arange(x.shape[0]), ids, :]
-            transformed_vstate.sampler_state = transformed_vstate.sampler_state.replace(
-                σ=new_x
-            )
+                x = vstate.sampler_state.σ
+                xp, mels = operator.get_conn_padded(x)
+                ids = jax.random.randint(seed, (x.shape[0],), 0, operator.max_conn_size)
+                new_x = xp[jnp.arange(x.shape[0]), ids, :]
+                transformed_vstate.sampler_state = (
+                    transformed_vstate.sampler_state.replace(σ=new_x)
+                )
+            elif isinstance(operator, ContinuousOperator):
+                # TODO: Implement
+                pass
+
         return transformed_vstate
