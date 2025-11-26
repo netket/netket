@@ -34,26 +34,28 @@ class ApplyOperatorModuleNNX(nnx.Module):
         base_module: The NNX module to wrap
         operator: The operator to apply
 
-    Example:
-        >>> import netket as nk
-        >>> from netket.models import RBM
-        >>> from flax import nnx
-        >>> # Create base NNX module (already initialized with parameters)
-        >>> base_module = RBM(N=10, alpha=2, rngs=nnx.Rngs(0))
-        >>> operator = nk.operator.spin.sigmax(hilbert, 0)
-        >>>
-        >>> # Create transformed module
-        >>> transformed = ApplyOperatorModuleNNX(base_module, operator)
-        >>>
-        >>> # Use it directly (NNX style)
-        >>> logpsi = transformed(x)
-        >>>
-        >>> # Or use with MCState
-        >>> vstate = nk.vqs.MCState(sampler, transformed, n_samples=1000)
-        >>>
-        >>> # The operator can be updated
-        >>> transformed.operator = new_operator
-        >>> logpsi = transformed(x)
+    Example::
+
+        import netket as nk
+        from netket.models import RBM
+        from flax import nnx
+
+        # Create base NNX module (already initialized with parameters)
+        base_module = RBM(N=10, alpha=2, rngs=nnx.Rngs(0))
+        operator = nk.operator.spin.sigmax(hilbert, 0)
+
+        # Create transformed module
+        transformed = ApplyOperatorModuleNNX(base_module, operator)
+
+        # Use it directly (NNX style)
+        logpsi = transformed(x)
+
+        # Or use with MCState
+        vstate = nk.vqs.MCState(sampler, transformed, n_samples=1000)
+
+        # The operator can be updated
+        transformed.operator = new_operator
+        logpsi = transformed(x)
     """
 
     def __init__(self, base_module: nnx.Module, operator):

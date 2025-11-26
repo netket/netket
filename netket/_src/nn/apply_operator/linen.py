@@ -33,28 +33,30 @@ class ApplyOperatorModuleLinen(nn.Module):
         base_module: The Flax module to wrap
         operator_treedef: The pytree structure of the operator (obtained from jax.tree.flatten)
 
-    Example:
-        >>> import netket as nk
-        >>> base_module = nk.models.RBM(alpha=1)
-        >>> operator = nk.operator.spin.sigmax(hilbert, 0)
-        >>>
-        >>> # Flatten the operator to separate static structure from dynamic data
-        >>> leaves, treedef = jax.tree.flatten(operator)
-        >>> transformed = ApplyOperatorModuleLinen(base_module=base_module, operator_treedef=treedef)
-        >>>
-        >>> # Initialize: first init the base module to get its params
-        >>> base_params = base_module.init(key, x)
-        >>> # Then add only the operator leaves to the variables dict
-        >>> variables = {**base_params, 'operator': {'leaves': leaves}}
-        >>>
-        >>> # Apply the transformed module
-        >>> logpsi = transformed.apply(variables, x)
-        >>>
-        >>> # The operator can be updated without recompilation
-        >>> # Only update the leaves (treedef is fixed in the module)
-        >>> new_leaves, _ = jax.tree.flatten(new_operator)
-        >>> variables['operator']['leaves'] = new_leaves
-        >>> logpsi = transformed.apply(variables, x)
+    Example::
+
+        import netket as nk
+        hilbert = nk.hilbert.Spin(0.5, 4)
+        base_module = nk.models.RBM(alpha=1)
+        operator = nk.operator.spin.sigmax(hilbert, 0)
+
+        # Flatten the operator to separate static structure from dynamic data
+        leaves, treedef = jax.tree.flatten(operator)
+        transformed = ApplyOperatorModuleLinen(base_module=base_module, operator_treedef=treedef)
+
+        # Initialize: first init the base module to get its params
+        base_params = base_module.init(jax.random.key(1), hilbert.all_states())
+        # Then add only the operator leaves to the variables dict
+        variables = {**base_params, 'operator': {'leaves': leaves}}
+
+        # Apply the transformed module
+        logpsi = transformed.apply(variables, x)
+
+        # The operator can be updated without recompilation
+        # Only update the leaves (treedef is fixed in the module)
+        new_leaves, _ = jax.tree.flatten(new_operator)
+        variables['operator']['leaves'] = new_leaves
+        logpsi = transformed.apply(variables, x)
     """
 
     base_module: nn.Module
