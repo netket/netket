@@ -34,6 +34,7 @@ class ApplyOperatorModuleLinen(nn.Module):
         operator_treedef: The pytree structure of the operator (obtained from jax.tree.flatten)
 
     Example:
+        >>> import netket as nk
         >>> base_module = nk.models.RBM(alpha=1)
         >>> operator = nk.operator.spin.sigmax(hilbert, 0)
         >>>

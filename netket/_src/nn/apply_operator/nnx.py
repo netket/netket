@@ -35,6 +35,9 @@ class ApplyOperatorModuleNNX(nnx.Module):
         operator: The operator to apply
 
     Example:
+        >>> import netket as nk
+        >>> from netket.models import RBM
+        >>> from flax import nnx
         >>> # Create base NNX module (already initialized with parameters)
         >>> base_module = RBM(N=10, alpha=2, rngs=nnx.Rngs(0))
         >>> operator = nk.operator.spin.sigmax(hilbert, 0)
