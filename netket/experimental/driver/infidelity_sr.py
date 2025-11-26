@@ -22,7 +22,7 @@ from netket.driver.abstract_variational_driver import (
 )
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
-from netket._src.operator.hpsi_utils import make_logpsi_op_afun
+from netket._src.nn.apply_operator.functional import make_logpsi_op_afun
 from netket.experimental.observable.infidelity.expect import get_local_estimator
 
 ApplyFun = Callable[[PyTree, Array], Array]
