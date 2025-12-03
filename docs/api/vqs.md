@@ -38,10 +38,23 @@ This module defines the variational states, the heart of NetKet itself.
   MCState
   MCMixedState
 ```
+and the experimental Variational state for a single slater determinant state (which does not use Monte-Carlo sampling)
+
+```{eval-rst}
+.. currentmodule:: netket.experimental.vqs
+
+.. autosummary::
+  :toctree: _generated/vqs
+  :nosignatures:
+
+  DeterminantVariationalState
+```
 
 ## Functions
 
 ```{eval-rst}
+.. currentmodule:: netket.vqs
+
 .. autosummary::
   :toctree: _generated/vqs
   :nosignatures:

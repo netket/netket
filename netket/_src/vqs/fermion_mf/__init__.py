@@ -1,4 +1,4 @@
-# Copyright 2020, 2021 The NetKet Authors - All rights reserved.
+# Copyright 2025 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .io import variables_from_file, variables_from_tar
-from netket._src.vqs.fermion_mf import DeterminantVariationalState
-
-__all__ = ["variables_from_file", "variables_from_tar", "DeterminantVariationalState"]
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from netket._src.vqs.fermion_mf.state import DeterminantVariationalState
+from netket._src.vqs.fermion_mf import expectation as _expectation
+from netket._src.vqs.fermion_mf.qgt import QGTByWick
