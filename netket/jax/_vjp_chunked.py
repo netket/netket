@@ -6,8 +6,6 @@ import jax
 from jax.tree_util import Partial
 
 from netket.utils import HashablePartial
-from netket.utils import config
-from netket.jax.sharding import sharding_decorator
 
 from ._utils_tree import compose
 from ._scanmap import scanmap, scan_append_reduce
@@ -297,72 +295,6 @@ def vjp_chunked(
 
     if chunk_argnums == ():
         chunk_size = None
-
-    ############################################################################
-    # sharding
-
-    if config.netket_experimental_sharding and chunk_size is not None:
-        # assume the chunk_argnums are also sharded
-        # later we might introduce an extra arg for it
-        sharded_argnums = chunk_argnums
-        sharded_args = tuple(i in sharded_argnums for i in range(len(primals)))
-
-        # for the output we need to consult nondiff_argnums, which are removed
-        non_sharded_argnums = tuple(
-            set(range(len(primals))).difference(sharded_argnums)
-        )
-        out_args = _gen_append_cond_vjp(primals, nondiff_argnums, non_sharded_argnums)
-        red_ops = jax.tree_util.tree_map(
-            lambda c: jax.lax.psum if c else False, out_args
-        )
-
-        # jax will psum in every vjp, but we want to do one by hand at the end
-        # so we need to set the sharded args we differentiate as varying
-        # see https://github.com/jax-ml/jax/discussions/29608
-        pvary_argnums = tuple(set(range(len(primals))).difference(nondiff_argnums))
-        pvary_args = tuple(i in pvary_argnums for i in range(len(primals)))
-
-        # check the chunk_size is not larger than the shard per device
-        chunk_size = sharding_decorator(
-            partial(check_chunk_size, chunk_argnums, chunk_size),
-            sharded_args_tree=sharded_args,
-            reduction_op_tree=True,
-        )(*primals)
-
-        if chunk_size is not None:
-            _vjpc = _vjp_chunked(
-                fun,
-                has_aux=has_aux,
-                chunk_argnums=chunk_argnums,
-                chunk_size=chunk_size,
-                nondiff_argnums=nondiff_argnums,
-                return_forward=return_forward,
-                conjugate=conjugate,
-            )
-
-            reduction_op_tree = (red_ops,)
-            if has_aux:
-                reduction_op_tree = (*reduction_op_tree, False)
-            if return_forward:
-                reduction_op_tree = (False, *reduction_op_tree)
-            if len(reduction_op_tree) == 1:  # not (has_aux or return_forward)
-                (reduction_op_tree,) = reduction_op_tree
-
-            vjp_fun_sh = Partial(
-                sharding_decorator(
-                    _vjpc,
-                    sharded_args_tree=(sharded_args, True),
-                    reduction_op_tree=reduction_op_tree,
-                    pvary_args_tree=(pvary_args, False),
-                ),
-                primals,
-            )
-            return vjp_fun_sh
-        else:
-            pass  # no chunking, continue below
-
-    ############################################################################
-    # no sharding (or sharded, but not chunking)
 
     # check the chunk_size is not larger than the arrays
     chunk_size = check_chunk_size(chunk_argnums, chunk_size, *primals)
