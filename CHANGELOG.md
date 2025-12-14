@@ -6,7 +6,19 @@
 ## NetKet 3.21 (In development)
 
 ### New Features
-* {class}`netket.driver.VMC_SR` and {class}`netket.experimental.driver.Infidelity_SR` now also support {class}`netket.vqs.FullSumState` [PR #2171](https://github.com/netket/netket/pull/2171).
+* {class}`netket.driver.VMC_SR` and {class}`netket.experimental.driver.Infidelity_SR` now also support {class}`netket.vqs.FullSumState` [PR #2171](https://github.com/netket/netket/pull/2171)
+* Introduced a set of linen/nnx modules to apply operators to a state that can be nested multiple times (see {class}`netket.nn.apply_operator.ApplyOperatorModuleLinen`, {class}`netket.nn.apply_operator.ApplyOperatorModuleNNX` that replace {meth}`netket.nn.apply_operator.make_logpsi_op_afun`). Those are used by {fun}`netket.vqs.apply_operator`.
+* Implement the new variational state class {class}``netket.experimental.vqs.DeterminantVariationalState`` that uses a {class}``netket.models.Slater2nd`` model but computes expectation values, gradients and quantum geometric tensor exactly with no error [PR #2181](https://github.com/netket/netket/pull/2181).
+* It is now possible to change the ordering of a fermionic 2nd quantisation operator, and the ordering (if any) is maintained when possible.
+
+### Bug fixes
+* Fixed a bug where sharding was not declared correctly in exotic cases involving operators [PR #2182](https://github.com/netket/netket/pull/2182).
+* Fixed a bug where Particle Number Conserving operators where computing the connected elements incorectly if the operator was not conserving the spin of the bitstring [PR #2182](https://github.com/netket/netket/pull/2182).
+* Fixed a bug where doing ``A @ B`` with operators inheriting from ``SpecialOperator`` lead to incorrect results.
+* Fixed a bug where the connected elements of ``ProductDiscreteJaxOperator`` where incorrectly computed.	
+* Fixed a bug where defining a Quantum Chemistry 2nd quantised Hamiltonian across multiple nodes lead by default to different hamiltonians on every node [PR #2178](https://github.com/netket/netket/pull/2178).
+
+### Neural
 
 
 ## NetKet 3.20 (15 Octobre 2025)
