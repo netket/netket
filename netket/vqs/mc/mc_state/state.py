@@ -231,7 +231,7 @@ class MCState(VariationalState):
         if variables is not None:
             # TODO: Always have shardings...
             if config.netket_experimental_sharding:
-                mesh = jax.sharding.get_abstract_mesh()
+                mesh = jax.sharding.get_mesh()
                 par_sharding = jax.sharding.NamedSharding(mesh, jax.P())
             else:
                 par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
