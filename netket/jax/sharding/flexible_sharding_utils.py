@@ -262,6 +262,9 @@ def auto_axes_maybe(
 
         if sharding_mesh.empty and cur_mesh.empty:
             return fun(*args, **kwargs)
+        elif cur_mesh.are_all_axes_auto:
+            # If mesh is already auto, do nothing.
+            return fun(*args, **kwargs)
         else:
             return auto_axes(fun, out_sharding=_out_sharding, axes=axes)(
                 *args, **kwargs
