@@ -138,7 +138,7 @@ class MultipleRules(MetropolisRule):
             # out_sharding=jax.typeof(σ).sharding.spec[0],
         )
         # TODO: When jax.random.choice supports sharding, we should pass it above and not reshard
-        idx_sharding = get_sharding_spec(σ, axis=0)
+        idx_sharding = get_sharding_spec(σ, axes=0)
         if idx_sharding is not None:
             indices = reshard(indices, idx_sharding)
 
