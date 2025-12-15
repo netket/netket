@@ -45,20 +45,20 @@ class ProductDiscreteJaxOperator(ProductOperator, DiscreteJaxOperator):
         return prod(op.max_conn_size for op in self.operators)
 
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        s_shape, N = x.shape[:-1], x.shape[-1]
+        x_r = x.reshape(-1, 1, x.shape[-1])
+        Ns, N = x_r.shape[0], x_r.shape[-1]
         out_sharding = None
         if get_abstract_mesh().are_all_axes_explicit:
             out_sharding = jax.typeof(x).sharding
         samples = x
-        mels = jnp.full(s_shape + (1,), self.coefficient)
+        mels = jnp.full((1, 1, 1), self.coefficient)
         for op in self.operators:
             op_ys, op_mels = op.get_conn_padded(samples)
-            samples = op_ys.reshape(s_shape + (-1, N), out_sharding=out_sharding)
-            op_mels = op_mels.reshape(s_shape + (-1,), out_sharding=out_sharding)
-            mels = (mels * op_mels).reshape(s_shape + (-1,), out_sharding=out_sharding)
+            samples = op_ys.reshape(Ns, -1, N, out_sharding=out_sharding)
+            mels = (mels * op_mels).reshape(Ns, -1, 1, out_sharding=out_sharding)
 
-        ys = samples.reshape(*x.shape[:-1], -1, x.shape[-1])
-        mels = mels.reshape(*ys.shape[:-1])
+        ys = samples.reshape(*x.shape[:-1], -1, x.shape[-1], out_sharding=out_sharding)
+        mels = mels.reshape(*ys.shape[:-1], out_sharding=out_sharding)
         return ys, mels
 
     def to_numba_operator(self) -> "ProductOperator":  # noqa: F821
