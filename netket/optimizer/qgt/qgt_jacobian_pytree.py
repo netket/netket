@@ -309,7 +309,7 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     """
     return jax.tree_util.tree_map(
         lambda x: jnp.tensordot(
-            w, x, axes=w.ndim, out_sharding=get_sharding_spec(x, axes=1)
+            w, x, axes=w.ndim, out_sharding=get_sharding_spec(x, axes=slice(1, None))
         ),
         oks,
     )
