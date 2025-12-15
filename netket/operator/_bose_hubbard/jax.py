@@ -57,7 +57,7 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
     def get_conn_padded(self, x):
         x_ids = self.hilbert.states_to_local_indices(x)
 
-        sharding = get_sharding_spec(x, only_if_explicit=True)
+        sharding = get_sharding_spec(x)
         if sharding is not None:
             out_specs = (P(*sharding[:-1]), P(*sharding[:-1]))
             decorator = partial(
