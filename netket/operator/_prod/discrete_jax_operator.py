@@ -45,11 +45,11 @@ class ProductDiscreteJaxOperator(ProductOperator, DiscreteJaxOperator):
         return prod(op.max_conn_size for op in self.operators)
 
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        x_r = x.reshape(-1, 1, x.shape[-1])
-        Ns, N = x_r.shape[0], x_r.shape[-1]
         out_sharding = None
         if get_abstract_mesh().are_all_axes_explicit:
             out_sharding = jax.typeof(x).sharding
+        x_r = x.reshape(-1, 1, x.shape[-1], out_sharding=out_sharding)
+        Ns, N = x_r.shape[0], x_r.shape[-1]
         samples = x
         mels = jnp.full((1, 1, 1), self.coefficient)
         for op in self.operators:
