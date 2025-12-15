@@ -677,6 +677,7 @@ def test_pauli_string_operators_hashable_pytree():
     [pytest.param(op, id=name) for name, op in op_finite_size.items()],
 )
 def test_matmul_sparse_vector(op):
+    op = fix_mesh(op)
     v = np.zeros((op.hilbert.n_states, 1), dtype=op.dtype)
     v[0, 0] = 1
 
