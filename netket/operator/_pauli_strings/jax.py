@@ -21,8 +21,9 @@ import jax
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
-from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.errors import concrete_or_error, JaxOperatorSetupDuringTracingError
+from netket.hilbert import AbstractHilbert, HomogeneousHilbert
+from netket.jax.sharding import get_sharding_spec, is_sharded
 from netket.utils.types import DType
 from netket.utils import HashableArray
 
@@ -275,7 +276,7 @@ def _pauli_strings_mels_jax(z_data, x):
 
 
 @jax.jit
-def _pauli_strings_kernel_jax(x_flip_masks_all, z_data, x, cutoff=None):
+def _pauli_strings_kernel_jax(x, x_flip_masks_all, z_data, cutoff=None):
     mels = _pauli_strings_mels_jax(z_data, x)
     if cutoff is not None:
         nonzero_mels_mask = jnp.abs(mels) > cutoff
@@ -291,9 +292,9 @@ def _pauli_strings_kernel_jax(x_flip_masks_all, z_data, x, cutoff=None):
 
 
 @jax.jit
-def _pauli_strings_n_conn_jax(x_flip_masks_all, z_data, x, cutoff=None):
+def _pauli_strings_n_conn_jax(x, x_flip_masks_all, z_data, cutoff=None):
     _, _, nonzero_mels_mask = _pauli_strings_kernel_jax(
-        x_flip_masks_all, z_data, x, cutoff
+        x, x_flip_masks_all, z_data, cutoff
     )
     if nonzero_mels_mask is not None:
         return nonzero_mels_mask.sum(axis=-1, dtype=np.int32)
@@ -409,23 +410,38 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     def n_conn(self, x):
         self._setup()
         x_ids = self.hilbert.states_to_local_indices(x)
-        return _pauli_strings_n_conn_jax(
-            self._x_flip_masks_stacked,
-            self._z_data,
-            x_ids,
-            cutoff=self._cutoff,
-        )
+        op_data = (self._x_flip_masks_stacked, self._z_data, self._cutoff)
+
+        if is_sharded(x):
+            in_specs = get_sharding_spec((x, *op_data))
+            out_specs = get_sharding_spec(x.sum(axis=-1))
+            nconn = jax.shard_map(
+                _pauli_strings_n_conn_jax,
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(x_ids, *op_data)
+        else:
+            nconn = _pauli_strings_n_conn_jax(x_ids, *op_data)
+        return nconn
 
     def get_conn_padded(self, x):
         self._setup()
-
         x_ids = self.hilbert.states_to_local_indices(x)
-        xp_ids, mels, _ = _pauli_strings_kernel_jax(
-            self._x_flip_masks_stacked,
-            self._z_data,
-            x_ids,
-            cutoff=self._cutoff,
-        )
+        op_data = (self._x_flip_masks_stacked, self._z_data, self._cutoff)
+
+        if is_sharded(x):
+            in_specs = get_sharding_spec((x, *op_data))
+            out_specs = get_sharding_spec((x, x, x.sum(axis=-1)))
+            xp_ids, mels, _ = jax.shard_map(
+                _pauli_strings_kernel_jax,
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(x_ids, *op_data)
+        else:
+            xp_ids, mels, _ = _pauli_strings_kernel_jax(x_ids, *op_data)
+
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
 

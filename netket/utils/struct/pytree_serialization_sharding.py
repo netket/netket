@@ -173,7 +173,7 @@ def from_flax_state_dict_sharding_relaxed(
     unsharded_update = serialization.from_state_dict(
         value_target, value_state, name=name
     )
-    result = jax.lax.with_sharding_constraint(unsharded_update, value_target.sharding)
+    result = jax.device_put(unsharded_update, value_target.sharding)
     return result
 
 
