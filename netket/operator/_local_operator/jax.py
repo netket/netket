@@ -285,6 +285,8 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         return xp, mels, n_conn
 
     def get_conn_padded(self, x):
+        self._setup()
+
         if is_sharded(x):
             in_specs = get_sharding_spec((self, x))
             # the outputs are xp, mels and nconn which have 3,2,1 dimensions.
