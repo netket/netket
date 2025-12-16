@@ -114,23 +114,26 @@ def _langevin_step(
         out_sharding=get_sharding_spec(r),
     )
 
-    def _log_prob(x):
+    def _log_prob(params, x):
         """Conversion to a log probability"""
-        return machine_pow * apply_fun(parameters, x).real
+        return machine_pow * apply_fun(params, x).real
 
-    def _single_grad(x):
+    def _single_grad(params, x):
         """Derivative of log_prob with respect to a single sample x"""
-        g = nkjax.grad(lambda xi: _log_prob(xi).ravel()[0])(x)
+        g = nkjax.grad(lambda xi: _log_prob(params, xi).ravel()[0])(x)
         return g if jnp.iscomplexobj(r) else g.real
 
-    if get_abstract_mesh()._any_axis_auto:
-        raise NotImplementedError("causes global comms")
-
-    grad_logp_r = nkjax.lax.map(
-        _single_grad,
-        r,
-        batch_size=chunk_size,
-    )
+    if get_abstract_mesh()._any_axis_auto and not get_abstract_mesh().empty:
+        raise NotImplementedError("Must use explicit sharding.")
+        # def _vmap(params, samples):
+        #     return nkjax.vmap_chunked(partial(_single_grad, parameters), chunk_size=chunk_size)(samples)
+        # grad_logp_r = jax.shard_map(_vmap, out_specs=jax.P('S'), in_specs=(None,jax.P('S')))(parameters, r)
+    else:
+        grad_logp_r = nkjax.lax.map(
+            partial(_single_grad, parameters),
+            r,
+            batch_size=chunk_size,
+        )
 
     rp = r + dt * grad_logp_r + jnp.sqrt(2 * dt) * noise_vec
 
@@ -139,7 +142,7 @@ def _langevin_step(
     else:
         log_q_xp = -0.5 * jnp.sum(noise_vec**2, axis=-1)
         grad_logp_rp = nkjax.lax.map(
-            _single_grad,
+            partial(_single_grad, parameters),
             rp,
             batch_size=chunk_size,
         )

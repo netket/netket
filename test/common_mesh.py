@@ -158,6 +158,7 @@ def fix_mesh(tree):
         tree._sampler_seed = fix_mesh(tree._sampler_seed)
         tree.variables = fix_mesh(tree.variables)
         tree.sampler = fix_mesh(tree.sampler)
+        tree.reset()
         return tree
     else:
         return jax.tree.map(_fix, tree)
