@@ -46,6 +46,8 @@ class ProductDiscreteJaxOperator(ProductOperator, DiscreteJaxOperator):
 
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         out_sharding = None
+        if isinstance(x, np.ndarray):
+            x = jnp.asarray(x)
         if get_abstract_mesh().are_all_axes_explicit:
             out_sharding = jax.typeof(x).sharding
         x_r = x.reshape(-1, 1, x.shape[-1], out_sharding=out_sharding)
