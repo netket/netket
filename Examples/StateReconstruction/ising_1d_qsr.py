@@ -4,6 +4,7 @@ from basis_generators import BasisGeneratorFull
 from generate_data import generate
 
 import netket.experimental as nkx
+from netket.experimental.qsr import RawQuantumDataset
 
 import matplotlib.pyplot as plt
 
@@ -25,10 +26,10 @@ n_discard = 128
 # training
 batch_size = 100
 lr = 0.01
-n_iter = 1000
+n_iter = 500
 log_fname = "log"
 # plot
-plot = False
+plot = True
 plot_fname = "ising_1d_qsr.png"
 
 basis_gen = BasisGeneratorFull(N)
@@ -45,14 +46,19 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
 op = nk.optimizer.Adam(learning_rate=lr)
 vs = nk.vqs.MCState(sa, ma, n_samples=n_samples, n_discard_per_chain=n_discard)
 
+
+training_dataset = RawQuantumDataset((training_samples, rotations))
+preprocessed_data = training_dataset.preprocess(hilbert=hi, mixed_state_target=False)
+
 # define driver
 qsr = nkx.QSR(
-    training_data=(training_samples, rotations),
+    training_data=training_dataset,
     training_batch_size=batch_size,
     optimizer=op,
     variational_state=vs,
     control_variate_update_freq=10,
     chunk_size=97,
+    preprocessed_data=preprocessed_data,
 )
 
 
