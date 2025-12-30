@@ -157,6 +157,6 @@ def from_pyscf_molecule(
         ParticleNumberConservingFermioperator2nd,
         ParticleNumberAndSpinConservingFermioperator2nd,
     ]:
-        return implementation.from_pyscf_molecule(molecule, mo_coeff)
+        return implementation.from_pyscf_molecule(molecule, mo_coeff, cutoff=cutoff)
     else:
         raise ValueError("unknown implementation")
