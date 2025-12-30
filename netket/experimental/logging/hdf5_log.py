@@ -173,7 +173,10 @@ class HDF5Log(AbstractLog):
         if self._writer is None:
             self._init_output_file()
 
-        if self._steps_notsaved_params % self._save_params_every == 0:
+        if (
+            self._save_params
+            and self._steps_notsaved_params % self._save_params_every == 0
+        ):
             variables = variational_state.variables
 
             # TODO: remove - FrozenDict are deprecated
