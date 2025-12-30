@@ -3,7 +3,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import NamedSharding, PartitionSpec as P
+from jax.sharding import NamedSharding, PartitionSpec as P, get_abstract_mesh, reshard
 
 from netket import jax as nkjax
 from netket import config
@@ -40,19 +40,24 @@ def _compute_srt_update(
     # In theory jax could figure this out, but maybe he does not, so we do it by hand.
     O_LT = O_L
     if config.netket_experimental_sharding:
-        O_LT = nkjax.sharding.pad_axis_for_sharding(O_LT, axis=1, padding_value=0.0)
-        O_LT = jax.lax.with_sharding_constraint(
-            O_LT,
-            NamedSharding(jax.sharding.get_abstract_mesh(), P(None, "S")),
-        )
+        # nkjax.sharding.pad_axis_for_sharding(
+        #    O_LT, axis=1, axis_name="S", padding_value=0.0
+        # )
+        if get_abstract_mesh().are_all_axes_explicit:
+            # O_LT = reshard(O_LT, P(None, "S"))
+            dv = reshard(dv, P())
+        # O_LT = jax.lax.with_sharding_constraint(
+        #     O_LT,
+        #     NamedSharding(get_abstract_mesh(), P(None, "S")),
+        # )
         dv = jax.lax.with_sharding_constraint(
-            dv, NamedSharding(jax.sharding.get_abstract_mesh(), P())
+            dv, NamedSharding(get_abstract_mesh(), P())
         )
 
     # This does the contraction (ns, #np) x (#np, ns) -> (ns, ns).
     # When using sharding the sum over #ns is done automatically.
     # When using MPI we need to do it manually with an allreduce_sum.
-    matrix = O_LT @ O_LT.T
+    matrix = jnp.matmul(O_LT, O_LT.T, out_sharding=P())
     matrix_side = matrix.shape[-1]  # * it can be ns or 2*ns, depending on mode
 
     shifted_matrix = jax.lax.add(
@@ -76,7 +81,9 @@ def _compute_srt_update(
         info = {}
 
     # (np, #ns) x (#ns) -> (np).
-    updates = O_L.T @ aus_vector
+    if get_abstract_mesh().are_all_axes_explicit:
+        aus_vector = reshard(aus_vector, P("S"))
+    updates = jnp.matmul(O_L.T, aus_vector, out_sharding=jax.P())
     if momentum is not None:
         updates += momentum * old_updates
         old_updates = updates
@@ -88,9 +95,8 @@ def _compute_srt_update(
         updates = updates[:num_p] + 1j * updates[num_p:]
 
     if config.netket_experimental_sharding:
-        out_shardings = NamedSharding(
-            jax.sharding.get_abstract_mesh(), P(*(None,) * updates.ndim)
+        updates = jax.lax.with_sharding_constraint(
+            updates, NamedSharding(get_abstract_mesh(), P())
         )
-        updates = jax.lax.with_sharding_constraint(updates, out_shardings)
 
     return updates, old_updates, info

@@ -33,10 +33,16 @@ from netket.jax.sharding.fixed_sharding_utils import (
     gather as gather,
 )
 
-from netket.jax.sharding.flexible_sharding import (
+from netket.jax.sharding.flexible_sharding_utils import (
+    auto_shard_map as auto_shard_map,
+    get_sharding_spec as get_sharding_spec,
+    is_sharded as is_sharded,
+    check_compatible_sharding as check_compatible_sharding,
+    canonicalize_sharding as canonicalize_sharding,
     pad_axis_for_sharding as pad_axis_for_sharding,
+    auto_axes_maybe as auto_axes_maybe,
+    drop_sharding_if_auto as drop_sharding_if_auto,
 )
-
 
 from netket.utils import _hide_submodules
 from netket.utils.deprecation import warn_deprecation as _warn_deprecation
