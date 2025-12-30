@@ -268,26 +268,58 @@ def test_is_hermitian(op):
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
 
-    def _get_nonzero_conn(op, s):
-        sp, mels = op.get_conn(s)
-        return sp[mels != 0, :], mels[mels != 0]
+    n_samples = 100
+    rstates = hi.random_state(rng.next(), n_samples)  # (n_samples, N)
 
-    rstates = hi.random_state(rng.next(), 100)
-    for i in range(len(rstates)):
-        rstate = rstates[i]
-        rstatet, mels = _get_nonzero_conn(op, rstate)
+    # Get all connected states in one call
+    # xp: (n_samples, max_conn, N), mels: (n_samples, max_conn)
+    xp, mels = op.get_conn_padded(rstates)
+    max_conn = xp.shape[1]
+    N = xp.shape[2]
 
-        for k, state in enumerate(rstatet):
-            invstates, mels1 = _get_nonzero_conn(op, state)
+    # Flatten xp to apply get_conn_padded to all connected states at once
+    # Shape: (n_samples * max_conn, N)
+    xp_flat = xp.reshape(-1, N)
 
-            found = False
-            for kp, invstate in enumerate(invstates):
-                if np.array_equal(rstate, invstate.flatten()):
-                    found = True
-                    np.testing.assert_allclose(mels1[kp], np.conj(mels[k]))
-                    break
+    # Get connections of the connected states
+    # xpp: (n_samples * max_conn, max_conn, N)
+    # mels_inv: (n_samples * max_conn, max_conn)
+    xpp, mels_inv = op.get_conn_padded(xp_flat)
 
-            assert found
+    # Reshape back: xpp -> (n_samples, max_conn, max_conn, N)
+    xpp = xpp.reshape(n_samples, max_conn, -1, N)
+    mels_inv = mels_inv.reshape(n_samples, max_conn, -1)
+
+    # For each (i, k), check if rstates[i] appears in xpp[i, k, :, :]
+    # and that the corresponding matrix element is conj(mels[i, k])
+    # Broadcast rstates to compare: (n_samples, 1, 1, N) vs (n_samples, max_conn, max_conn2, N)
+    rstates_broadcast = rstates[:, None, None, :]
+    # matches: (n_samples, max_conn, max_conn2) - True where xpp matches the original state
+    matches = np.all(xpp == rstates_broadcast, axis=-1)
+
+    # For each (i, k) with non-zero mel, there should be at least one match in xpp[i, k, :]
+    nonzero_mels = mels != 0
+
+    # Check that every non-zero connection has a reverse connection
+    has_match = np.any(matches, axis=-1)  # (n_samples, max_conn)
+    assert np.all(has_match | ~nonzero_mels), (
+        "Some connected states do not have a reverse connection to the original state"
+    )
+
+    # Check that the matrix elements are conjugates
+    # For each (i, k) with non-zero mel, find the matching kp and check mels_inv[i, k, kp] == conj(mels[i, k])
+    for i in range(n_samples):
+        for k in range(max_conn):
+            if mels[i, k] == 0:
+                continue
+            # Find kp where xpp[i, k, kp] == rstates[i]
+            match_indices = np.where(matches[i, k])[0]
+            assert len(match_indices) > 0
+            kp = match_indices[0]
+            np.testing.assert_allclose(
+                mels_inv[i, k, kp], np.conj(mels[i, k]),
+                err_msg=f"Hermiticity check failed for sample {i}, connection {k}"
+            )
 
 
 @pytest.mark.parametrize(
@@ -645,6 +677,7 @@ def test_operator_jax_get_conn_flattened_throws(op):
     # We try to undo it
     if hasattr(op, "_initialized"):
         op._initialized = False
+
 
 
 def test_pauli_string_operators_hashable_pytree():
