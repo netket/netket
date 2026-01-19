@@ -317,6 +317,26 @@ def test_pauli_zero(Op):
 
 
 @pytest.mark.parametrize("Op", operators)
+def test_pauli_empty(Op):
+    """Test that empty PauliStrings operator has correct properties."""
+    hi = nk.hilbert.Spin(s=1 / 2, N=4)
+    op = Op(hi, [], [])
+
+    # Empty operator should have max_conn_size = 0
+    assert op.max_conn_size == 0
+
+    # Empty operator should have no diagonal
+    if hasattr(op, "_nonzero_diag"):
+        assert op._nonzero_diag is False
+
+    # get_conn_padded should return empty arrays
+    all_states = op.hilbert.all_states()
+    xp, mels = op.get_conn_padded(all_states)
+    assert xp.shape == (all_states.shape[0], 0, hi.size)
+    assert mels.shape == (all_states.shape[0], 0)
+
+
+@pytest.mark.parametrize("Op", operators)
 def test_openfermion_conversion(Op):
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")

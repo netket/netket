@@ -395,11 +395,18 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             else:
                 self._operators_hashable = None
 
-            x_flip_masks_stacked, z_data = pack_internals_jax(
-                self.operators, weights, weight_dtype=self.dtype, mode=self._mode
-            )
-            self._x_flip_masks_stacked = x_flip_masks_stacked
-            self._z_data = z_data
+            # Handle empty operator case
+            if len(self.operators) == 0:
+                self._x_flip_masks_stacked = jnp.zeros(
+                    (0, self.hilbert.size), dtype=jnp.bool_
+                )
+                self._z_data = ([], [], [], [])
+            else:
+                x_flip_masks_stacked, z_data = pack_internals_jax(
+                    self.operators, weights, weight_dtype=self.dtype, mode=self._mode
+                )
+                self._x_flip_masks_stacked = x_flip_masks_stacked
+                self._z_data = z_data
             self._initialized = True
 
     def _reset_caches(self):
