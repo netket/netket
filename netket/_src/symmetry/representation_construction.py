@@ -49,6 +49,11 @@ def physical_to_logical_permutation_group(
         id_perm = np.arange(hilbert.size)
         fermionic_perms = []
 
+        # Remove duplicate permutations that may be there if the group has some elemens
+        # that are encoded by the same permutation. This is an issue with for example
+        # 2x2 space group. (Maybe it's a bug in group itself?)
+        perm_group = perm_group.remove_duplicates()
+
         for perm in perm_group:
             if isinstance(perm, Identity):
                 fermionic_perms.append(Permutation(permutation_array=id_perm))
