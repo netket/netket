@@ -16,11 +16,13 @@ import warnings
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import NamedSharding, get_abstract_mesh, PartitionSpec as P
 from jax.tree_util import register_pytree_node_class
 
 from functools import partial
 
 from netket.hilbert import SpinOrbitalFermions
+from netket.jax.sharding import get_sharding_spec
 from netket.utils.group import Permutation
 from netket.utils.types import DType
 
@@ -69,7 +71,7 @@ def get_antisymmetric_signs(
 ) -> jax.Array:
     """Return the sign of the permutation for a batch of fermionic Fock states x."""
     occupied = get_occupied_orbitals(x, n_fermions)
-    permuted = permutation[occupied]
+    permuted = permutation.at[occupied].get(out_sharding=get_sharding_spec(permutation))
     parity = get_parity(permuted)
     sign = 1 - 2 * parity
     return sign
@@ -204,11 +206,6 @@ class PermutationOperatorFermion(PermutationOperatorBase):
 
         super().__init__(hilbert, permutation, dtype=dtype)
 
-    def _get_signs(self, x):
-        return get_antisymmetric_signs(
-            x, self.permutation.inverse_permutation_array, self.hilbert.n_fermions
-        )
-
     def get_conn_padded(self, x):
         r"""Finds the connected elements of the Operator.
 
@@ -241,10 +238,26 @@ class PermutationOperatorFermion(PermutationOperatorBase):
         """
 
         x = jnp.asarray(x)
-        connected_elements = x.at[..., None, self.permutation.permutation_array].get(
+
+        perm_sharding = (
+            NamedSharding(get_abstract_mesh(), P())
+            if get_sharding_spec(x) is not None
+            else None
+        )
+        permutation = jnp.asarray(
+            self.permutation.permutation_array, device=perm_sharding
+        )
+        connected_elements = x.at[..., None, permutation].get(
             unique_indices=True, mode="promise_in_bounds"
         )
-        signs = self._get_signs(x).astype(self.dtype)
+
+        inverse_permutation = jnp.asarray(
+            self.permutation.inverse_permutation_array, device=perm_sharding
+        )
+        signs = get_antisymmetric_signs(
+            x, inverse_permutation, self.hilbert.n_fermions
+        ).astype(self.dtype)
+
         return connected_elements, signs[..., jnp.newaxis]
 
     def trace(self) -> int:

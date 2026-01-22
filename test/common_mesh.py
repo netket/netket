@@ -1,12 +1,17 @@
 from functools import partial, wraps
 import inspect
 
+from copy import copy
+
 import math
 import numpy as np
 
 import jax
-from jax.sharding import AxisType
+import jax.numpy as jnp
+from jax.sharding import AxisType, get_abstract_mesh
 import pytest
+
+from netket.vqs.mc.mc_state.state import MCState
 
 
 def create_mesh(mesh_shape, axis_names, iota_order=False, axis_types=None):
@@ -122,3 +127,38 @@ def with_explicit_meshes(sizes_and_names):
 
 def with_auto_meshes(sizes_and_names):
     return with_meshes(auto=sizes_and_names)
+
+
+def fix_mesh(tree):
+    # out_sharding = jax.sharding.NamedSharding(jax.sharding.get_abstract_mesh(), jax.P())
+    target_mesh = get_abstract_mesh()
+    concrete_mesh = jax.make_mesh(
+        target_mesh.axis_sizes, target_mesh.axis_names, target_mesh.axis_types
+    )
+    target_sharding = jax.NamedSharding(concrete_mesh, jax.P())
+
+    def _fix(x):
+        if isinstance(x, jax.Array):
+            # workaround to jax bug. Maybe can be a jax.device_put in the future.
+            if target_mesh.empty:
+                is_new_style_key = jnp.issubdtype(x.dtype, jax.dtypes.prng_key)
+                if is_new_style_key:
+                    _impl = jax.random.key_impl(x)
+                    x = jax.random.key_data(x)
+                x = jnp.array(np.asarray(x))
+                if is_new_style_key:
+                    x = jax.random.wrap_key_data(x, impl=_impl)
+            else:
+                x = jax.device_put(x, target_sharding)
+
+        return x
+
+    if isinstance(tree, MCState):
+        tree = copy(tree)
+        tree._sampler_seed = fix_mesh(tree._sampler_seed)
+        tree.variables = fix_mesh(tree.variables)
+        tree.sampler = fix_mesh(tree.sampler)
+        tree.reset()
+        return tree
+    else:
+        return jax.tree.map(_fix, tree)

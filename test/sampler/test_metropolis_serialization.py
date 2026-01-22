@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from jax import numpy as jnp
 from flax import serialization
+
+import jax
+from jax import numpy as jnp
+from jax.sharding import get_abstract_mesh
 from jax.experimental import multihost_utils
 
 import pytest
 import numpy as np
-import jax
 
 import netket as nk
 
@@ -101,11 +103,31 @@ def test_metropolis_serialization(key_type, sampler, tmp_path_distributed):
                     sampler_state.σ.sharding, sampler_state.σ.ndim
                 )
             assert bool(
-                jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :])
+                jnp.all(
+                    sampler_state_2.σ
+                    == sampler_state.σ.at[: sa.n_batches, :].get(
+                        out_sharding=(
+                            sampler_state_2.σ.sharding
+                            if get_abstract_mesh().are_all_axes_explicit
+                            else None
+                        )
+                    )
+                )
             )
         else:
             assert sampler_state_2.σ.sharding.shape == (len(jax.devices()), 1)
-        assert bool(jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :]))
+        assert bool(
+            jnp.all(
+                sampler_state_2.σ
+                == sampler_state.σ.at[: sa.n_batches, :].get(
+                    out_sharding=(
+                        sampler_state_2.σ.sharding
+                        if get_abstract_mesh().are_all_axes_explicit
+                        else None
+                    )
+                )
+            )
+        )
 
         # verify that it works
         sa.samples(ma, pars, state=sampler_state_2)

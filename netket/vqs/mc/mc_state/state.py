@@ -20,7 +20,6 @@ import numpy as np
 
 import jax
 from jax import numpy as jnp
-from jax.sharding import NamedSharding, PartitionSpec as P
 
 from flax import serialization, linen as nn, core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
@@ -224,26 +223,24 @@ class MCState(VariationalState):
         """
         super().__init__(sampler.hilbert)
 
-        if variables is not None and config.netket_experimental_sharding:
-            par_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
-        else:
-            par_sharding = None
-
-        # TODO: deprecated in July 2025
-        # For simplicity, we do not accept numpy inputs in variables
-        if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
-            # resultis in SingleDeviceSharding if par_sharding is None
-            variables = jax.tree.map(
-                partial(jnp.asarray, device=par_sharding), variables
+        # TODO: Move this somewhere else below?
+        # If variables is specified manually, we will enforce that it's leafs are
+        # jax arrays and that it has the good 'replicated sharding'
+        # This assumption is needed for saving and loading of those states, and could
+        # be broken if variables is malformed.
+        if variables is not None:
+            # TODO: Always have shardings...
+            if config.netket_experimental_sharding:
+                mesh = jax.sharding.get_mesh()
+                par_sharding = jax.sharding.NamedSharding(mesh, jax.P())
+            else:
+                par_sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
+            variables = jax.tree_util.tree_map(
+                lambda x: jax.lax.with_sharding_constraint(
+                    jnp.asarray(x), par_sharding
+                ),
+                variables,
             )
-
-        if variables is not None and config.netket_experimental_sharding:
-            # TODO: Move this somewhere else below?
-            # If variables is specified manually, we will enforce that it's leaves are
-            # jax arrays and that it has the good 'replicated sharding'
-            # This assumption is needed for saving and loading of those states, and could
-            # be broken if variables is malformed.
-            variables = _ensure_sharding(variables, par_sharding)
 
         # Init type 1: pass in a model
         if model is not None:
@@ -333,7 +330,9 @@ class MCState(VariationalState):
             dtype = self.sampler.dtype
         key = nkjax.PRNGKey(seed)
         dummy_input = self.hilbert.random_state(key, 1, dtype=dtype)
-        self.variables = self._init_fun({"params": key}, dummy_input)
+
+        variables = jax.jit(self._init_fun)({"params": key}, dummy_input)
+        self.variables = variables
 
     @property
     def model(self) -> nn.Module:
@@ -759,13 +758,14 @@ class MCState(VariationalState):
         if not isinstance(self.hilbert, DiscreteHilbert):
             raise TypeError("Cannot convert to array a non-discrete Hilbert space.")
 
-        return nknn.to_array(  # type: ignore[return-value]
+        arr = nknn.to_array(  # type: ignore[return-value]
             self.hilbert,
             self._apply_fun,
             self.variables,
             normalize=normalize,
             chunk_size=self.chunk_size,
         )
+        return np.asarray(arr)
 
     def __repr__(self):
         return (
