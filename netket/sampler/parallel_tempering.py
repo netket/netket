@@ -600,7 +600,7 @@ def ParallelTemperingExchange(
           >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
           >>>
           >>> # Construct a MetropolisExchange Sampler
-          >>> sa = nk.sampler.ParallelTemperingExchange(hi, graph=g)
+          >>> sa = nk.sampler.ParallelTemperingExchange(hi, graph=g, n_chains=16)
           >>> print(sa)
           ParallelTemperingSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
 
@@ -648,7 +648,7 @@ def ParallelTemperingHamiltonian(hilbert, hamiltonian, *args, **kwargs):
        >>> ha = nk.operator.Ising(hilbert=hi, h=1.0, graph=g)
        >>>
        >>> # Construct a MetropolisExchange Sampler
-       >>> sa = nk.sampler.ParallelTemperingHamiltonian(hi, hamiltonian=ha)
+       >>> sa = nk.sampler.ParallelTemperingHamiltonian(hi, hamiltonian=ha, n_chains=16)
        >>> print(sa)
        ParallelTemperingSampler(rule = HamiltonianRuleJax(operator=IsingJax(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
 

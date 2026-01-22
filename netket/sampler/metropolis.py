@@ -646,7 +646,7 @@ def MetropolisExchange(
           >>> hi=nk.hilbert.Spin(s=0.5, N=g.n_nodes)
           >>>
           >>> # Construct a MetropolisExchange Sampler
-          >>> sa = nk.sampler.MetropolisExchange(hi, graph=g)
+          >>> sa = nk.sampler.MetropolisExchange(hi, graph=g, n_chains=16)
           >>> print(sa)
           MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
     """
@@ -714,7 +714,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
        >>> ha = nk.operator.Ising(hilbert=hi, h=1.0, graph=g)
        >>>
        >>> # Construct a MetropolisHamiltonian Sampler
-       >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
+       >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha, n_chains=16)
        >>> print(sa)
        MetropolisSampler(rule = HamiltonianRuleJax(operator=IsingJax(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = int8)
     """

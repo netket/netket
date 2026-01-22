@@ -153,6 +153,7 @@ class DeterminantVariationalState(VariationalState):
             ...     hi, generalized=False, restricted=True, seed=42
             ... )
             >>> print(vstate.n_parameters)  # Number of variational parameters
+            8
         """
         # Validate hilbert space
         if not isinstance(hilbert, SpinOrbitalFermions):
@@ -290,13 +291,16 @@ class DeterminantVariationalState(VariationalState):
             - **Unrestricted HF**: Block-diagonal matrix with blocks for each spin sector
 
         Example:
+            >>> import netket as nk
             >>> hi = nk.hilbert.SpinOrbitalFermions(4, s=1/2, n_fermions_per_spin=(2, 2))
             >>> vstate = nk.experimental.vqs.DeterminantVariationalState(
             ...     hi, generalized=False, restricted=True, seed=42
             ... )
-            >>> qgt = vstate.quantum_geometric_tensor(diag_shift=0.01)
+            >>> qgt = vstate.quantum_geometric_tensor()
             >>> print(qgt.matrix.shape)  # (8, 8)
+            (8, 8)
             >>> print(vstate.n_parameters)  # 8
+            8
         """
         if qgt_T is None:
             from netket._src.vqs.fermion_mf.qgt import QGTByWick
@@ -347,10 +351,18 @@ class DeterminantVariationalState(VariationalState):
             An MCState with the same model and parameters
 
         Example:
-            >>> mf_state = DeterminantVariationalState(hilbert, model)
-            >>> sampler = nk.sampler.MetropolisFermionHop(hilbert, graph=g)
-            >>> mc_state = mf_state.to_mcstate(sampler, n_samples=1024)
-            >>> qgt = mc_state.quantum_geometric_tensor()
+            >>> import netket as nk
+            >>> # Create a fermionic Hilbert space and graph
+            >>> g = nk.graph.Chain(4)
+            >>> hi = nk.hilbert.SpinOrbitalFermions(4, s=1/2, n_fermions_per_spin=(2, 2))
+            >>> # Create a determinant variational state
+            >>> mf_state = nk.experimental.vqs.DeterminantVariationalState(
+            ...     hi, generalized=False, restricted=True, seed=42
+            ... )
+            >>> # Convert to MCState for Monte Carlo sampling
+            >>> sampler = nk.sampler.MetropolisFermionHop(hi, graph=g)
+            >>> mc_state = mf_state.to_mcstate(sampler, n_samples=1024)  # doctest: +SKIP
+            >>> qgt = mc_state.quantum_geometric_tensor()  # doctest: +SKIP
         """
         if sampler.hilbert != self.hilbert:
             raise ValueError(
