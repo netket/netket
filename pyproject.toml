@@ -51,7 +51,7 @@ dependencies = [
 
 [project.optional-dependencies]
 cuda = ["jax[cuda12]; sys_platform == 'linux'"]
-rocm = ["jax==0.7.1", "jax-rocm7-plugin; sys_platform == 'linux'"]
+rocm = ["jax==0.9.0", "jax-rocm7-plugin; sys_platform == 'linux'"]
 pyscf = ["pyscf>=2.0"]
 extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4"]
 dev = [
