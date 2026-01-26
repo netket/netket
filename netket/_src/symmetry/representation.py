@@ -141,7 +141,6 @@ class Representation:
 
         # Filter out the characters that vanish (do before normalizing to avoid even smaller values)
         mask = ~np.isclose(np.conj(character_table[character_index]), 0.0, atol=atol)
-        operators = np.array([self[g] for g in self.group], dtype=object)
         coefficients = prefactor * np.conj(character_table[character_index])
 
         operators = operators[mask]
