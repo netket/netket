@@ -15,7 +15,8 @@ from flax import struct
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert import SpinOrbitalFermions
 from netket.utils.types import Array
-from netket.operator import FermionOperator2nd, FermionOperator2ndJax
+from netket.operator import FermionOperator2ndJax
+from netket.operator._fermion2nd import FermionOperator2ndBase
 from netket.utils.optional_deps import import_optional_dependency
 
 from netket._src.operator.pyscf_utils import (
@@ -214,9 +215,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
         return cls._from_coords_data_normal_order(hilbert, terms, **kwargs)
 
     @classmethod
-    def from_fermionoperator2nd(
-        cls, ha: FermionOperator2nd | FermionOperator2ndJax, **kwargs
-    ):
+    def from_fermionoperator2nd(cls, ha: FermionOperator2ndBase, **kwargs):
         """
         Convert from FermionOperator2nd
 
@@ -225,6 +224,12 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
 
         Throws an error if the original operator is not particle-number conserving.
         """
+        if not isinstance(cls, FermionOperator2ndBase):
+            raise TypeError(
+                f"Can only convert to this format an operator of type `{FermionOperator2ndBase}`"
+                f" but was provided an operator of type `{type(ha)}"
+            )
+
         # ha = ha.to_normal_order()
         t = fermiop_to_pnc_format_helper(ha.terms, ha.weights)
         t = to_normal_order(t)
@@ -471,9 +476,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
         return cls._from_coords_data(hilbert, coords_data)
 
     @classmethod
-    def from_fermionoperator2nd(
-        cls, ha: FermionOperator2nd | FermionOperator2ndJax, cutoff: float = 1e-11
-    ):
+    def from_fermionoperator2nd(cls, ha: FermionOperator2ndBase, cutoff: float = 1e-11):
         r"""
         Convert from FermionOperator2nd
 
@@ -484,6 +487,12 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
 
         Throws an error if the original operator is not particle-number conserving, or spin-Z-conserving.
         """
+        if not isinstance(cls, FermionOperator2ndBase):
+            raise TypeError(
+                f"Can only convert to this format an operator of type `{FermionOperator2ndBase}`"
+                f" but was provided an operator of type `{type(ha)}"
+            )
+
         hilbert = ha.hilbert
         n_orbitals = hilbert.n_orbitals
         n_spin_subsectors = hilbert.n_spin_subsectors
