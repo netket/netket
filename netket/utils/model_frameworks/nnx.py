@@ -138,8 +138,8 @@ class NNXFramework(ModuleFramework):
         graphdef, params, model_state = nnx.split(module, nnx.Param, ...)
 
         variables = {
-            "model_state": model_state.to_pure_dict(),
-            "params": params.to_pure_dict(),
+            "model_state": nnx.to_pure_dict(model_state),
+            "params": nnx.to_pure_dict(params),
         }
 
         return variables, NNXWrapper(graphdef)
