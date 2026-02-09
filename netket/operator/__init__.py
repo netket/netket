@@ -40,6 +40,7 @@ from ._fermion2nd import (
 
 from ._sum import SumOperator
 from ._prod import ProductOperator
+from ._embed import EmbedOperator
 
 
 from . import spin, boson, fermion
