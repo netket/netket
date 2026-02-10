@@ -224,7 +224,7 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
 
         Throws an error if the original operator is not particle-number conserving.
         """
-        if not isinstance(cls, FermionOperator2ndBase):
+        if not isinstance(ha, FermionOperator2ndBase):
             raise TypeError(
                 f"Can only convert to this format an operator of type `{FermionOperator2ndBase}`"
                 f" but was provided an operator of type `{type(ha)}"
@@ -487,7 +487,7 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
 
         Throws an error if the original operator is not particle-number conserving, or spin-Z-conserving.
         """
-        if not isinstance(cls, FermionOperator2ndBase):
+        if not isinstance(ha, FermionOperator2ndBase):
             raise TypeError(
                 f"Can only convert to this format an operator of type `{FermionOperator2ndBase}`"
                 f" but was provided an operator of type `{type(ha)}"
