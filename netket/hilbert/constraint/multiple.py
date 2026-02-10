@@ -17,6 +17,7 @@ from textwrap import dedent
 import jax
 import jax.numpy as jnp
 
+from netket import config
 from netket.utils import struct, dispatch
 
 from .base import (
@@ -107,3 +108,9 @@ class ExtraConstraint(DiscreteHilbertConstraint):
         return type(base_constraint), type(extra_constraint)
 
     # ------ End of Parametric class definition
+
+
+# Ensure Sphinx can access the method from the class __dict__ when using
+# sphinx_autodoc_typehints with @dispatch.parametric classes.
+if config.netket_sphinx_build:
+    ExtraConstraint.__call__ = ExtraConstraint.__call__

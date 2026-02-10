@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from netket.operator._discrete_operator import DiscreteOperator
 
 from netket.operator._prod.base import ProductOperator
+
+if TYPE_CHECKING:
+    from netket.operator._prod.discrete_jax_operator import ProductDiscreteJaxOperator
 
 
 class ProductDiscreteOperator(ProductOperator, DiscreteOperator):

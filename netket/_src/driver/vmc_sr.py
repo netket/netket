@@ -301,6 +301,7 @@ class VMC_SR(AbstractVariationalDriver):
                   the number of CG iterations might vary with the condition number. While we used those a
                   lot in the past, there is considerable evidence that they should be avoided (see Chen &
                   Heyl Nature Physics).
+
                 In general, if you are not bottlenecked by the linear solver, it is a good idea to use the
                 more reliable :func:`~netket.optimizer.solver.pinv_smooth`.
             mode: The mode used to compute the jacobian of the variational state.

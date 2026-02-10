@@ -15,6 +15,7 @@ from functools import wraps
 
 import jax.numpy as jnp
 
+from netket import config
 from netket.utils.dispatch import parametric
 from netket.utils.types import Array, DType
 
@@ -177,3 +178,9 @@ class DoubledHilbert(DiscreteHilbert):
     @property
     def _attrs(self):
         return (self.physical,)
+
+
+# Ensure Sphinx can access the method from the class __dict__ when using
+# sphinx_autodoc_typehints with @dispatch.parametric classes.
+if config.netket_sphinx_build:
+    DoubledHilbert.local_indices_to_states = DoubledHilbert.local_indices_to_states

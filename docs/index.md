@@ -61,6 +61,7 @@ Guidelines on citation are provided in the [Citing](https://www.netket.org/cite)
 install
 First Tutorial <tutorials/gs-ising>
 parallel
+distributed-computing
 cite
 ```
 

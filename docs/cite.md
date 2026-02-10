@@ -78,7 +78,7 @@ and Flax~\cite{flax2020github}.
 Several algorithms implemented in NetKet are derived from academic publications unrelated to NetKet itself. 
 Those contributions should also be acknowledged.
 NetKet provides a command-line tool `netket-cite` to help you generate the appropriate references and acknowledgment text.
-You can also find an automatically-generated list of references below in the section [Algorithm-Specific Citations](#algorithm-specific-citations)
+You can also find an automatically-generated list of references below in the section {ref}`Algorithm-Specific Citations <algorithm-specific-citations>`
 
 
 
@@ -118,6 +118,7 @@ If you use NetKet's MPI functionality, please also cite the mpi4jax library that
 }
 ```
 
+(algorithm-specific-citations)=
 ### Algorithm-Specific Citations
 
 Many algorithms implemented in NetKet are based on original research publications. When using specific features or algorithms, cite the relevant papers that introduced these methods. The citation tools help identify these references.
