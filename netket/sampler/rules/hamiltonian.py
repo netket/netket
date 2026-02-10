@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
 import math
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import NamedSharding, PartitionSpec as P
 
 import numpy as np
 
@@ -94,39 +96,62 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
         """
         log_prob_dtype = jax.dtypes.canonicalize_dtype(float)
 
-        def _transition(v, rand_vec):
-            log_prob_corr = np.zeros((v.shape[0],), dtype=log_prob_dtype)
-            v_proposed = np.empty(v.shape, dtype=v.dtype)
+        σ_t = jax.typeof(σ)
+        σ_sharding = σ_t.sharding
+        if (
+            isinstance(σ_sharding, NamedSharding)
+            and not σ_sharding.mesh.empty
+            and σ_sharding.spec is not None
+        ):
+            sharding_decorator = partial(
+                jax.shard_map,
+                mesh=σ_sharding.mesh,
+                in_specs=(σ_sharding.spec, jax.typeof(key).sharding.spec),
+                out_specs=(σ_sharding.spec, P(*σ_sharding.spec[:-1])),
+            )
+            axis_name = σ_sharding.spec[0]
+        else:
+            sharding_decorator = lambda f: f
+            axis_name = None
 
-            sections = np.empty(v.shape[0], dtype=np.int32)
-            vp, _ = rule.operator.get_conn_flattened(v, sections)
+        @sharding_decorator
+        def _transition(σ, key):
+            # ideally we would pass the key to python/numba in _choose, initialise a
+            # np.random.default_rng(key) and use it to generate random uniform integers.
+            # However, numba does not support np states, and reseeding its MT1998 implementation
+            # would be slow so we generate floats in the [0,1] range in jax and pass those
+            # to python
+            if axis_name is not None:
+                key = jax.random.fold_in(key, jax.lax.axis_index(axis_name))
+            rand_vec = jax.random.uniform(key, shape=(σ.shape[0],))
 
-            _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
+            def _transition_cb(v, rand_vec):
+                log_prob_corr = np.zeros((v.shape[0],), dtype=log_prob_dtype)
+                v_proposed = np.empty(v.shape, dtype=v.dtype)
 
-            rule.operator.n_conn(v_proposed, sections)
+                sections = np.empty(v.shape[0], dtype=np.int32)
+                vp, _ = rule.operator.get_conn_flattened(v, sections)
 
-            log_prob_corr -= np.log(sections)
-            return v_proposed, log_prob_corr
+                _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
 
-        # ideally we would pass the key to python/numba in _choose, initialise a
-        # np.random.default_rng(key) and use it to generate random uniform integers.
-        # However, numba does not support np states, and reseeding its MT1998 implementation
-        # would be slow so we generate floats in the [0,1] range in jax and pass those
-        # to python
-        rand_vec = jax.random.uniform(key, shape=(σ.shape[0],))
+                rule.operator.n_conn(v_proposed, sections)
 
-        σp, log_prob_correction = jax.pure_callback(
-            _transition,
-            (
-                jax.ShapeDtypeStruct(σ.shape, σ.dtype),
-                jax.ShapeDtypeStruct((σ.shape[0],), log_prob_dtype),
-            ),
-            σ,
-            rand_vec,
-            vmap_method="expand_dims",
-        )
+                log_prob_corr -= np.log(sections)
+                return v_proposed, log_prob_corr
 
-        return σp, log_prob_correction
+            σp, log_prob_correction = jax.pure_callback(
+                _transition_cb,
+                (
+                    jax.ShapeDtypeStruct(σ.shape, σ.dtype),
+                    jax.ShapeDtypeStruct((σ.shape[0],), log_prob_dtype),
+                ),
+                σ,
+                rand_vec,
+                vmap_method="expand_dims",
+            )
+            return σp, log_prob_correction
+
+        return _transition(σ, key)
 
 
 @jit(nopython=True)

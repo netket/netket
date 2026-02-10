@@ -23,6 +23,7 @@ import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from netket.errors import JaxOperatorNotConvertibleToNumba
+from netket.jax.sharding import get_sharding_spec, is_sharded
 
 from .base import LocalOperatorBase
 from .compile_helpers import pack_internals_jax
@@ -68,12 +69,21 @@ def _index_at(diag_mels, i):
     # special case for empty operator
     if len(diag_mels) == 0:
         return jnp.zeros((), dtype=diag_mels.dtype)
-    return diag_mels[i]
+    out_sharding = get_sharding_spec(i)
+    if out_sharding is not None and any(o is not None for o in out_sharding):
+        raise NotImplementedError()
+    return diag_mels.at[i].get(out_sharding=out_sharding)
 
 
 @partial(jax.jit, static_argnums=(0, 1))
 def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_args, x):
     assert x.ndim == 2
+
+    x_spec = get_sharding_spec(x)
+    if x_spec is not None:
+        if any(x is not None for x in x_spec):
+            raise NotImplementedError
+    out_sharding = get_sharding_spec(x, axes=0)
 
     # in the foollowing variables with a trailing underscore are per group
     # of operators with the same number of sites they act on
@@ -139,16 +149,21 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         # (not all operators have the same number nonzeros per row, and the
         # arrays we use here are padded to the max within each group)
         # this mask is False whenever it's just padding
-        conn_maskall = jnp.arange(ncmax_[k])[None, None] < n_conns_[k][a, i][:, :, None]
+        conn_maskall = (
+            jnp.arange(ncmax_[k]).at[None, None].get(out_sharding=out_sharding)
+            < n_conns_[k].at[a, i].get(out_sharding=out_sharding)[:, :, None]
+        )
 
         # set mels in the padding to 0
         # TODO check this is necessary (shouldn't it already be 0 ???)
-        mels_offdiag = mels_[k][a, i] * conn_maskall
+        mels_offdiag = mels_[k].at[a, i].get(out_sharding=out_sharding) * conn_maskall
         #
         # compute xp
         #
         # we start from the xp for the sites the operator is acting on
-        new = x_prime_[k][a, i].astype(x.dtype)  # (Ns, terms, ncmax, nsitesactiongon)
+        new = (
+            x_prime_[k].at[a, i].get(out_sharding=out_sharding).astype(x.dtype)
+        )  # (Ns, terms, ncmax, nsitesactiongon)
         acting_on = acting_on_[k]
         old = x[:, acting_on]  # (Ns, terms, nsitesactiongon)
         old = jnp.broadcast_to(old[:, :, None, :], new.shape)
@@ -284,13 +299,34 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         return xp, mels, n_conn
 
     def get_conn_padded(self, x):
-        xp, mels, _ = self._get_conn_padded(x)
+        self._setup()
+
+        if is_sharded(x):
+            in_specs = get_sharding_spec((self, x))
+            # the outputs are xp, mels and nconn which have 3,2,1 dimensions.
+            out_specs = get_sharding_spec((x, x, x.sum(axis=-1)))
+            xp, mels, _ = jax.shard_map(
+                lambda op, x: op._get_conn_padded(x),
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(self, x)
+        else:
+            xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
-    def n_conn(self, x, out=None):
-        if out is not None:
-            raise NotImplementedError()
-        _, _, n_conn = self._get_conn_padded(x)
+    def n_conn(self, x):
+        if is_sharded(x):
+            in_specs = get_sharding_spec((self, x))
+            out_specs = get_sharding_spec((x, x, x.sum(axis=-1)))
+            _, _, n_conn = jax.shard_map(
+                lambda op, x: op._get_conn_padded(x),
+                in_specs=in_specs,
+                out_specs=out_specs,
+                mesh=jax.typeof(x).sharding.mesh,
+            )(self, x)
+        else:
+            _, _, n_conn = self._get_conn_padded(x)
         return n_conn
 
     def tree_flatten(self):
