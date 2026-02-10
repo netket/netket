@@ -94,7 +94,7 @@ class SumOperator(metaclass=SumOperatorMeta):
 
     _operators: tuple[ContinuousOperator, ...]
     _coefficients: Array
-    _is_hermitian: bool
+    _is_hermitian: bool = None
 
     def __init__(
         self,
@@ -154,6 +154,10 @@ class SumOperator(metaclass=SumOperatorMeta):
             The numpy/JAX dtype used for the coefficients array.
         """
         return self._dtype
+
+    @property
+    def is_hermitian(self):
+        return self._is_hermitian
 
     @property
     def operators(self) -> tuple[AbstractOperator, ...]:

@@ -32,6 +32,8 @@ class SumDiscreteOperator(SumOperator, DiscreteOperator):
                 f"{list(type(op) for op in operators)}\n"
             )
         self._initialized = False
+        # TODO: This is wrong. But computing it properly might be complicated...
+        self._is_hermitian = True
         super().__init__(
             operators, operators[0].hilbert, coefficients=coefficients, dtype=dtype
         )
