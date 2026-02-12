@@ -165,8 +165,9 @@ def srt_onthefly(
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
     if config.netket_experimental_sharding:
+        # this sharding constraint should be useless, but let's keep it for safety.
         ntk = jax.lax.with_sharding_constraint(
-            ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P())
+            ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
         )
     else:
         ntk = ntk_local
