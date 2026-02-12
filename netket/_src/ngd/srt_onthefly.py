@@ -217,6 +217,7 @@ def srt_onthefly(
 
     # some solvers return a tuple, some others do not.
     aus_vector = solver_fn(ntk_shifted, dv)
+
     if isinstance(aus_vector, tuple):
         aus_vector, info = aus_vector
     else:
@@ -224,6 +225,12 @@ def srt_onthefly(
 
     if info is None:
         info = {}
+
+    if config.netket_experimental_sharding:
+        aus_vector = jax.lax.with_sharding_constraint(
+            aus_vector,
+            NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
+        )
 
     # Center the vector, equivalent to centering the Jacobian
     # This is mathematically equivalent to: aus_vector = delta_conc @ aus_vector
