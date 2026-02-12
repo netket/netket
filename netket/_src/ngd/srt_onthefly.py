@@ -175,21 +175,37 @@ def srt_onthefly(
         # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
         ntk = rearrange(ntk, "i j z w -> (i z) (j w)")
 
-    # Center the NTK by multiplying with a carefully designed matrix
-    # shape [N_mc, N_mc] symmetric matrix
+    # Center the NTK using an efficient algorithm that minimizes all-reduce operations
+    # in distributed settings. This is mathematically equivalent to:
+    # delta = jnp.eye(N_mc) - 1 / N_mc
+    # ntk = (delta_conc @ (ntk @ delta_conc)) / N_mc
+    # but avoids creating large delta matrices and reduces communication overhead.
+    if mode == "complex":
+        ntk = ntk.reshape(N_mc, 2, N_mc, 2)
+        # Compute means efficiently - axis 0 and 2 require all-reduce
+        mean_0 = ntk.mean(axis=0, keepdims=True)  # all-reduce
+        mean_2 = ntk.mean(axis=2, keepdims=True)  # all-reduce
+        mean_02 = mean_0.mean(axis=2, keepdims=True)  # local, reuse mean_0
+        ntk = ntk - mean_0 - mean_2 + mean_02
+        ntk = ntk.reshape(2 * N_mc, 2 * N_mc)
+    else:
+        # Compute means efficiently to minimize all-reduces
+        row_means = ntk.mean(axis=1, keepdims=True)  # local: mean over columns
+        col_means = ntk.mean(axis=0, keepdims=True)  # all-reduce: mean over rows
+        global_mean = col_means.mean()  # local: col_means is already replicated
+        ntk = ntk - col_means - row_means + global_mean
+
+    ntk = ntk / N_mc
+
+    # TODO: delta_conc still needed for aux_vector centering below, will be removed in next commit
     delta = jnp.eye(N_mc) - 1 / N_mc
     if mode == "complex":
-        # shape [2*N_mc, 2*N_mc]
-        # Gets applied to the sub-blocks corresponding to the real part and imaginary part
         delta_conc = jnp.zeros((2 * N_mc, 2 * N_mc)).at[0::2, 0::2].set(delta)
         delta_conc = delta_conc.at[1::2, 1::2].set(delta)
         delta_conc = delta_conc.at[0::2, 1::2].set(0.0)
         delta_conc = delta_conc.at[1::2, 0::2].set(0.0)
     else:
         delta_conc = delta
-
-    # shape [2*N_mc, 2*N_mc] centering the jacobian
-    ntk = (delta_conc @ (ntk @ delta_conc)) / N_mc
 
     # add diag shift
     # Create a sharded identity matrix to match ntk's sharding
