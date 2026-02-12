@@ -19,6 +19,8 @@ import jax.scipy as jsp
 from jax.flatten_util import ravel_pytree
 from netket.utils.api_utils import partial_from_kwargs
 from netket.utils.deprecation import warn_deprecation
+from netket.utils.optional_deps import import_optional_dependency
+from netket.utils.citations import reference
 
 
 @partial_from_kwargs
@@ -293,4 +295,108 @@ def solve(A, b, *, assume_a="pos", x0=None):
     b, unravel = ravel_pytree(b)
 
     x = jsp.linalg.solve(A, b, assume_a="pos")
+    return unravel(x), None
+
+
+@reference(
+    "Wiersema2026jaxmg",
+    condition="If using cholesky_distributed solver",
+    message="This work used the JAXMg distributed linear solver described in Ref.",
+)
+@partial_from_kwargs
+def cholesky_distributed(A, b, *, T_A=None, mesh=None, in_specs=None, x0=None):
+    """
+    Solve the linear system using a distributed Cholesky factorization.
+
+    This is the distributed/multi-GPU equivalent of :func:`~netket.optimizer.solver.cholesky`.
+    It uses jaxmg's `potrs` function (LAPACK POTRF+POTRS) which performs a
+    Cholesky factorization followed by triangular solves, optimized for
+    sharded arrays with automatic tiling and communication optimization.
+
+    .. note::
+
+        This solver requires the optional `jaxmg` package to be installed:
+
+        .. code-block:: bash
+
+            pip install jaxmg
+
+        If jaxmg is not installed, an ImportError will be raised.
+
+    .. note::
+
+        If you pass only keyword arguments, this solver will directly create
+        a partial capturing them.
+
+    .. note::
+
+        This solver is specifically designed for use with
+        `config.netket_experimental_sharding = True` and expects the input
+        matrix A to be sharded with `P("S", None)`.
+
+        For single-device or small-scale computations, use
+        :func:`~netket.optimizer.solver.cholesky` instead, which has less
+        overhead. Use `cholesky_distributed` when:
+
+        - Running on multiple GPUs with sharded arrays
+        - NTK/QGT matrix is very large and doesn't fit on a single device
+        - You need to minimize communication in distributed settings
+
+    Args:
+        A: the matrix A in Ax=b (should be positive definite, sharded)
+        b: the vector b in Ax=b
+        T_A: Tile size for matrix A. Defaults to shape[0] (no tiling).
+             Smaller values use less memory but more communication.
+             Recommended: 2**10 to 2**14 depending on matrix size.
+        mesh: JAX mesh for distributed computation. Defaults to the current
+              abstract mesh from `jax.sharding.get_abstract_mesh()`.
+        in_specs: Input sharding specifications as a tuple (spec_A, spec_b).
+                  Defaults to `(P("S", None), P(None, None))` for sharded A
+                  and replicated b.
+        x0: unused (kept for API compatibility)
+
+    Returns:
+        tuple: (solution, None) where solution is the unraveled result.
+
+    Example:
+        >>> import netket as nk
+        >>> import jax
+        >>> from jax.sharding import PartitionSpec as P
+        >>>
+        >>> # For multi-GPU setup with sharding enabled
+        >>> solver = nk.optimizer.solver.cholesky_distributed(T_A=2**12)
+        >>> driver = nk.driver.VMC_SR(
+        ...     hamiltonian, optimizer, variational_state=vstate,
+        ...     linear_solver=solver, diag_shift=0.01
+        ... )
+    """
+    del x0
+
+    jaxmg = import_optional_dependency("jaxmg", descr="cholesky_distributed solver")
+    from jax.sharding import PartitionSpec as P
+
+    if not isinstance(A, jax.Array):
+        A = A.to_dense()
+    b, unravel = ravel_pytree(b)
+
+    # JAXMg's potrs expects b to be 2D
+    if b.ndim == 1:
+        b = jnp.expand_dims(b, axis=1)
+        squeeze_output = True
+    else:
+        squeeze_output = False
+
+    # Set defaults
+    if T_A is None:
+        T_A = A.shape[0]  # No tiling by default
+    if mesh is None:
+        mesh = jax.sharding.get_abstract_mesh()
+    if in_specs is None:
+        in_specs = (P("S", None), P(None, None))
+
+    x = jaxmg.potrs(A, b, T_A=T_A, mesh=mesh, in_specs=in_specs)
+
+    if squeeze_output:
+        x = jnp.squeeze(x, axis=1)
+
     return unravel(x), None
