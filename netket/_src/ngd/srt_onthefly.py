@@ -192,7 +192,18 @@ def srt_onthefly(
     ntk = (delta_conc @ (ntk @ delta_conc)) / N_mc
 
     # add diag shift
-    ntk_shifted = ntk + diag_shift * jnp.eye(ntk.shape[0])
+    # Create a sharded identity matrix to match ntk's sharding
+    if config.netket_experimental_sharding:
+        # Create identity matrix with same sharding as ntk: P("S", None)
+        local_size = ntk.shape[0]
+        identity = jnp.eye(local_size)
+        identity = jax.lax.with_sharding_constraint(
+            identity, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
+        )
+    else:
+        identity = jnp.eye(ntk.shape[0])
+
+    ntk_shifted = ntk + diag_shift * identity
 
     # add projection regularization
     if proj_reg is not None:
