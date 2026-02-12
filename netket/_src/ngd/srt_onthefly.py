@@ -197,16 +197,6 @@ def srt_onthefly(
 
     ntk = ntk / N_mc
 
-    # TODO: delta_conc still needed for aux_vector centering below, will be removed in next commit
-    delta = jnp.eye(N_mc) - 1 / N_mc
-    if mode == "complex":
-        delta_conc = jnp.zeros((2 * N_mc, 2 * N_mc)).at[0::2, 0::2].set(delta)
-        delta_conc = delta_conc.at[1::2, 1::2].set(delta)
-        delta_conc = delta_conc.at[0::2, 1::2].set(0.0)
-        delta_conc = delta_conc.at[1::2, 0::2].set(0.0)
-    else:
-        delta_conc = delta
-
     # add diag shift
     # Create a sharded identity matrix to match ntk's sharding
     if config.netket_experimental_sharding:
@@ -235,14 +225,20 @@ def srt_onthefly(
     if info is None:
         info = {}
 
-    # Center the vector, equivalent to centering
-    # The Jacobian
-    aus_vector = aus_vector / jnp.sqrt(N_mc)
-    aus_vector = delta_conc @ aus_vector
+    # Center the vector, equivalent to centering the Jacobian
+    # This is mathematically equivalent to: aus_vector = delta_conc @ aus_vector
+    # but more efficient as it avoids matrix multiplication
+    aus_vector = jnp.squeeze(aus_vector)
+    if mode == "real":
+        aus_vector = (
+            aus_vector - jnp.mean(aus_vector, axis=0, keepdims=True)
+        ) / jnp.sqrt(N_mc)
 
-    # shape [N_mc,2]
     if mode == "complex":
-        aus_vector = aus_vector.reshape(-1, 2)
+        aus_vector = aus_vector.reshape((N_mc, 2))
+        aus_vector = (
+            aus_vector - jnp.mean(aus_vector, axis=0, keepdims=True)
+        ) / jnp.sqrt(N_mc)
     # shape [N_mc // p.size,2]
     if config.netket_experimental_sharding:
         aus_vector = jax.lax.with_sharding_constraint(
