@@ -175,18 +175,15 @@ def srt_onthefly(
         # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
         ntk = rearrange(ntk, "i j z w -> (i z) (j w)")
 
-    # Center the NTK using an efficient algorithm that minimizes all-reduce operations
-    # in distributed settings. This is mathematically equivalent to:
-    # delta = jnp.eye(N_mc) - 1 / N_mc
+    # Center the NTK by avoiding the construction of a big dense matrix to lower memory pressure.
+    # Equivalent to the 'old'  delta = jnp.eye(N_mc) - 1 / N_mc
     # ntk = (delta_conc @ (ntk @ delta_conc)) / N_mc
-    # but avoids creating large delta matrices and reduces communication overhead.
     if mode == "complex":
         ntk = ntk.reshape(N_mc, 2, N_mc, 2)
-        # Compute means efficiently - axis 0 and 2 require all-reduce
-        mean_0 = ntk.mean(axis=0, keepdims=True)  # all-reduce
-        mean_2 = ntk.mean(axis=2, keepdims=True)  # all-reduce
-        mean_02 = mean_0.mean(axis=2, keepdims=True)  # local, reuse mean_0
-        ntk = ntk - mean_0 - mean_2 + mean_02
+        col_means = ntk.mean(axis=0, keepdims=True)  # all-reduce
+        row_means = ntk.mean(axis=2, keepdims=True)  # all-reduce
+        global_mean = col_means.mean(axis=2, keepdims=True)  # local, reuse mean_0
+        ntk = ntk - col_means - row_means + global_mean
         ntk = ntk.reshape(2 * N_mc, 2 * N_mc)
     else:
         row_means = ntk.mean(axis=1, keepdims=True)  # local: mean over columns
@@ -196,10 +193,8 @@ def srt_onthefly(
 
     ntk = ntk / N_mc
 
-    # add diag shift
-    # Create a sharded identity matrix to match ntk's sharding
+    # Create identity matrix with same sharding as ntk: P("S", None)
     if config.netket_experimental_sharding:
-        # Create identity matrix with same sharding as ntk: P("S", None)
         local_size = ntk.shape[0]
         identity = jnp.eye(local_size)
         identity = jax.lax.with_sharding_constraint(
@@ -208,6 +203,7 @@ def srt_onthefly(
     else:
         identity = jnp.eye(ntk.shape[0])
 
+    # add diag shift
     ntk_shifted = ntk + diag_shift * identity
 
     # add projection regularization
@@ -219,10 +215,9 @@ def srt_onthefly(
 
     if isinstance(aus_vector, tuple):
         aus_vector, info = aus_vector
+        if info is None:
+            info = {}
     else:
-        info = {}
-
-    if info is None:
         info = {}
 
     if config.netket_experimental_sharding:
@@ -236,8 +231,7 @@ def srt_onthefly(
         aus_vector = aus_vector.reshape((N_mc, 2))
 
     # Center the vector, equivalent to centering the Jacobian
-    # This is mathematically equivalent to: aus_vector = delta_conc @ aus_vector
-    # but more efficient as it avoids matrix multiplication
+    # This is equivalent to: aus_vector = delta_conc @ aus_vector
     aus_vector = (aus_vector - jnp.mean(aus_vector, axis=0, keepdims=True)) / jnp.sqrt(
         N_mc
     )
