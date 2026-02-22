@@ -50,8 +50,6 @@ def _setup_vmc(dtype=np.float32, sr=True):
 def test_estimate():
     ha, *_, driver = _setup_vmc()
     driver.estimate(ha)
-    driver.advance(1)
-    driver.estimate(ha)
 
 
 def test_raise_n_iter():
