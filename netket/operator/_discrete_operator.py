@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import lru_cache
+from typing import TypeVar
 
 import numpy as np
 import jax
@@ -28,7 +29,10 @@ from netket.operator import AbstractOperator
 from netket.utils.optional_deps import import_optional_dependency
 
 
-class DiscreteOperator(AbstractOperator[DiscreteHilbert]):
+DiscreteHilbertType = TypeVar("DiscreteHilbertType", bound=DiscreteHilbert)
+
+
+class DiscreteOperator(AbstractOperator[DiscreteHilbertType]):
     r"""This class is the base class for operators defined on a
     discrete Hilbert space. Users interested in implementing new
     quantum Operators for discrete Hilbert spaces should derive

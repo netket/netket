@@ -24,7 +24,7 @@ from netket.hilbert import AbstractHilbert
 from netket.operator import AbstractOperator
 
 
-class ContinuousOperator(AbstractOperator, struct.Pytree):
+class ContinuousOperator(AbstractOperator[AbstractHilbert], struct.Pytree):
     r"""This class is the abstract base class for operators defined on a
     continuous Hilbert space. Users interested in implementing new
     quantum Operators for continuous Hilbert spaces should subclass

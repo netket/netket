@@ -20,7 +20,7 @@ from .._abstract_operator import AbstractOperator
 from .base import EmbedOperator
 
 
-class EmbedGenericOperator(EmbedOperator, AbstractOperator):
+class EmbedGenericOperator(EmbedOperator, AbstractOperator[TensorHilbert]):
     def __init__(
         self,
         hilbert: TensorHilbert,

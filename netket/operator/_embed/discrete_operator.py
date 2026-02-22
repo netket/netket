@@ -19,17 +19,17 @@ from scipy.sparse import csr_matrix as _csr_matrix
 from scipy.sparse import identity as sp_identity
 from scipy.sparse import kron as sp_kron
 
-from netket.hilbert import TensorHilbert
+from netket.hilbert.tensor_hilbert_discrete import TensorDiscreteHilbert
 
 from .._discrete_operator import DiscreteOperator
 
 from .base import EmbedOperator
 
 
-class EmbedDiscreteOperator(EmbedOperator, DiscreteOperator):
+class EmbedDiscreteOperator(EmbedOperator, DiscreteOperator[TensorDiscreteHilbert]):
     def __init__(
         self,
-        hilbert: TensorHilbert,
+        hilbert: TensorDiscreteHilbert,
         operator: DiscreteOperator,
         subspace: int,
     ):
@@ -45,6 +45,8 @@ class EmbedDiscreteOperator(EmbedOperator, DiscreteOperator):
     def _setup(self, force: bool = False):
         if not self._initialized:
             self._initialized = True
+            if hasattr(self.operator, "_setup"):
+                self.operator._setup(force=force)
 
     def get_conn_flattened(
         self,
