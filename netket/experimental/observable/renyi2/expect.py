@@ -35,6 +35,9 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | Non
 
     if n_chains % 2 != 0 and not vstate.sampler.is_exact:
         raise ValueError("Use an even number of chains.")
+    sharding = None
+    if samples.sharding.mesh.are_all_axes_explicit:
+        sharding = samples.sharding
 
     if n_chains == 1:
         if n_samples % 2 != 0:
@@ -43,8 +46,8 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | Non
         σp_ηp = samples[:, (n_samples // 2) :]
 
     else:
-        σ_η = samples[: (n_chains // 2)]
-        σp_ηp = samples[(n_chains // 2) :]
+        σ_η = samples.at[::2].get(out_sharding=sharding)
+        σp_ηp = samples.at[1::2].get(out_sharding=sharding)
 
     return Renyi2_sampling_MCState(
         vstate._apply_fun,

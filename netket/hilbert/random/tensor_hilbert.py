@@ -20,11 +20,17 @@ from netket.utils.dispatch import dispatch
 
 
 @dispatch
-def random_state(hilb: TensorHilbert, key, batches: int, *, dtype):
+def random_state(hilb: TensorHilbert, key, batches: int, *, dtype, out_sharding=None):
     keys = jax.random.split(key, hilb._n_hilbert_spaces)
 
     vs = [
-        random_state(hilb._hilbert_spaces[i], keys[i], batches, dtype=dtype)
+        random_state(
+            hilb._hilbert_spaces[i],
+            keys[i],
+            batches,
+            dtype=dtype,
+            out_sharding=out_sharding,
+        )
         for i in range(hilb._n_hilbert_spaces)
     ]
 
@@ -34,8 +40,6 @@ def random_state(hilb: TensorHilbert, key, batches: int, *, dtype):
 def _make_subfun(hilb, i, sub_hi):
     def subfun(args):
         key, state, index = args
-
-        # jax.experimental.host_callback.id_print(index, text=f"printing subfun_{i}:")
 
         sub_state = state[hilb._cum_indices[i] : hilb._cum_sizes[i]]
         new_sub_state, old_val = flip_state_scalar(

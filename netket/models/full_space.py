@@ -16,6 +16,7 @@ import flax.linen as nn
 import jax.numpy as jnp
 
 from netket.hilbert import DiscreteHilbert
+from netket.jax.sharding import get_sharding_spec
 from netket.utils.types import DType, Array, NNInitFunc
 
 
@@ -51,4 +52,7 @@ class LogStateVector(nn.Module):
         )
 
     def __call__(self, x_in: Array):
-        return self.logstate[self.hilbert.states_to_numbers(x_in)]
+        out_sharding = get_sharding_spec(x_in, axes=slice(-1))
+        return self.logstate.at[self.hilbert.states_to_numbers(x_in)].get(
+            out_sharding=out_sharding
+        )

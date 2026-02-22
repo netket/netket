@@ -16,6 +16,7 @@
 import jax
 from jax import numpy as jnp
 from jax.flatten_util import ravel_pytree
+from jax.sharding import PartitionSpec as P
 from flax import struct
 
 from netket.utils.types import Scalar, PyTree
@@ -149,16 +150,19 @@ class QGTJacobianDenseT(LinearOperator):
             diag = jnp.diag(self.scale**2)
 
         # concatenate samples with real/Imaginary dimension
+        out_sharding = None if jax.sharding.get_abstract_mesh().empty else P(None, None)
         if self.mode == "imag":
             # Equivalent to Jr.T@Ji - Ji.T@Jr
             flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
             Ol = (flip_sign * O).reshape(-1, O.shape[-1])
             Or = jnp.flip(O, axis=1).reshape(-1, O.shape[-1])
-            return Ol.T @ Or + self.diag_shift * diag
+            S = jnp.matmul(Ol.T, Or, out_sharding=out_sharding)
+            return S + self.diag_shift * diag
         else:
             # Equivalent to Jr.T@Jr + Ji.T@Ji
             O = O.reshape(-1, O.shape[-1])
-            return O.conj().T @ O + self.diag_shift * diag
+            S = jnp.matmul(O.conj().T, O, out_sharding=out_sharding)
+            return S + self.diag_shift * diag
 
     def to_real_part(self) -> "QGTJacobianDenseT":
         """
@@ -254,7 +258,9 @@ def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar, imag: bool = False) -> PyT
         # with a vector. In the standard case, it does the multiplication equivalent
         # to J_r.T@(J_r@v_r) + J_i.T@(J_i@v_i) + diag_shift*v
         w = O @ v
-        res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
+        res = jnp.tensordot(
+            w.conj(), O, axes=w.ndim, out_sharding=jax.typeof(v).sharding
+        ).conj()
         return res + diag_shift * v
     else:
         # Matrix vector product of the imaginary part of the QGT matrix
@@ -266,7 +272,9 @@ def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar, imag: bool = False) -> PyT
 
         flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
         Ol = (flip_sign * O).reshape(-1, O.shape[-1])
-        res = jnp.tensordot(w.conj(), Ol, axes=w.ndim).conj()
+        res = jnp.tensordot(
+            w.conj(), Ol, axes=w.ndim, out_sharding=jax.typeof(v).sharding
+        ).conj()
         return res + diag_shift * v
 
 

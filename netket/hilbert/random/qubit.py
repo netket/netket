@@ -13,21 +13,24 @@
 # limitations under the License.
 
 import jax
-from jax import numpy as jnp
 
 from netket.hilbert import Qubit
 from netket.utils.dispatch import dispatch
+from netket.jax.sharding import get_sharding_spec
 
 
 @dispatch
-def random_state(hilb: Qubit, key, batches: int, *, dtype):
+def random_state(hilb: Qubit, key, batches: int, *, dtype, out_sharding=None):
     if dtype is None:
         dtype = hilb._local_states.dtype
 
-    rs = jax.random.randint(key, shape=(batches, hilb.size), minval=0, maxval=2)
-    return jnp.asarray(rs, dtype=dtype)
+    rs = jax.random.randint(
+        key, shape=(batches, hilb.size), minval=0, maxval=2, out_sharding=out_sharding
+    )
+    return rs.astype(dtype)
 
 
 @dispatch
 def flip_state_scalar(hilb: Qubit, key, x, i):
-    return x.at[i].set(-x[i] + 1), x[i]
+    x_old = x.at[i].get(out_sharding=get_sharding_spec(x))
+    return x.at[i].set(-x_old + 1), x_old

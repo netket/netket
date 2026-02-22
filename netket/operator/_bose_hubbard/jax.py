@@ -18,10 +18,12 @@ from typing import TYPE_CHECKING
 import jax
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node_class
+from jax.sharding import PartitionSpec as P, get_abstract_mesh
 
 from netket.graph import AbstractGraph
 from netket.hilbert import Fock
 from netket.utils.types import DType
+from netket.jax.sharding import get_sharding_spec
 
 from .._discrete_operator_jax import DiscreteJaxOperator
 
@@ -55,12 +57,27 @@ class BoseHubbardJax(BoseHubbardBase, DiscreteJaxOperator):
     def get_conn_padded(self, x):
         x_ids = self.hilbert.states_to_local_indices(x)
 
+        sharding = get_sharding_spec(x)
+        if sharding is not None:
+            if get_abstract_mesh().are_all_axes_auto:
+                # auto sharding mode:
+                decorator = lambda fun: fun
+            else:
+                out_specs = (P(*sharding[:-1]), P(*sharding[:-1]))
+                decorator = partial(
+                    jax.shard_map,
+                    out_specs=out_specs,
+                )
+        else:
+            decorator = lambda fun: fun
+
         # Note that the calculation of the matrix elements will be done
-        # in double precision, and we cast to the dtype of the oeprator
+        # in double precision, and we cast to the dtype of the operator
         # only at the end. Otherwise jnp.sqrt might return 'bad' results.
-        xp_ids, mels = _bh_kernel_jax(
-            x_ids, self._edges, self.U, self.V, self.J, self.mu, self._n_max
+        xp_ids, mels = decorator(partial(_bh_kernel_jax, n_max=self._n_max))(
+            x_ids, self._edges, self.U, self.V, self.J, self.mu
         )
+
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels.astype(self.dtype)
 

@@ -204,7 +204,7 @@ class Example:
         if holomorphic:
 
             @partial(jax.vmap, in_axes=(None, 0))
-            def f(variables, x):
+            def f_batched(variables, x):
                 params = variables["params"]
                 shift_nondiff = variables["shift_nondiff"]
                 return astype_unsafe(
@@ -221,7 +221,7 @@ class Example:
         else:
 
             @partial(jax.vmap, in_axes=(None, 0))
-            def f(variables, x):
+            def f_batched(variables, x):
                 params = variables["params"]
                 shift_nondiff = variables["shift_nondiff"]
                 return astype_unsafe(
@@ -234,6 +234,13 @@ class Example:
                     + shift_nondiff,
                     self.dtype,
                 )
+
+        # Wrap to support both single samples (1D) and batched samples (2D+)
+        # This mimics the behavior of NetKet's wrap_to_support_scalar
+        def f(variables, x):
+            xb = jnp.atleast_2d(x)
+            res = f_batched(variables, xb)
+            return res.reshape(()) if x.ndim == 1 else res
 
         self.f = Partial(f)
 
@@ -294,7 +301,6 @@ def test_matvec(e, jit, chunk_size):
     samples = e.samples
     if chunk_size is None:
         mat_vec_factory = qgt_onthefly_logic.mat_vec_factory
-
     else:
         mat_vec_factory = partial(
             qgt_onthefly_logic.mat_vec_chunked_factory, chunk_size=chunk_size

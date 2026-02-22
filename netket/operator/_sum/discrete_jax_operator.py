@@ -39,10 +39,13 @@ class SumDiscreteJaxOperator(SumOperator, DiscreteJaxOperator):
         )
 
     def _setup(self, force: bool = False):
-        self._initialized = True
-        for op in self.operators:
-            if hasattr(op, "_setup"):
-                op._setup(force=force)
+        if force or not self._initialized:
+            self._initialized = True
+            for op in self.operators:
+                if hasattr(op, "_setup"):
+                    # If we are running setup we must force running the setup on the sub-operators
+                    # otherwise we might have wrongly initialised operators inside.
+                    op._setup(force=True)
 
     @property
     def max_conn_size(self) -> int:

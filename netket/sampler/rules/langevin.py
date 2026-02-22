@@ -15,6 +15,7 @@
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import get_abstract_mesh
 import numpy as np
 from functools import partial
 
@@ -22,6 +23,7 @@ from flax import struct
 
 from .base import MetropolisRule
 import netket.jax as nkjax
+from netket.jax.sharding import get_sharding_spec
 
 
 class LangevinRule(MetropolisRule):
@@ -105,19 +107,33 @@ def _langevin_step(
     n_chains, hilb_size = r.shape
 
     # steps with Langevin dynamics
-    noise_vec = jax.random.normal(key, shape=(n_chains, hilb_size), dtype=r.dtype)
+    noise_vec = jax.random.normal(
+        key,
+        shape=(n_chains, hilb_size),
+        dtype=r.dtype,
+        out_sharding=get_sharding_spec(r),
+    )
 
-    def _log_prob(x):
+    def _log_prob(params, x):
         """Conversion to a log probability"""
-        return machine_pow * apply_fun(parameters, x).real
+        return machine_pow * apply_fun(params, x).real
 
-    def _single_grad(x):
+    def _single_grad(params, x):
         """Derivative of log_prob with respect to a single sample x"""
-        x = x.reshape(x.shape[-1])
-        g = nkjax.grad(lambda xi: _log_prob(xi).ravel()[0])(x)
+        g = nkjax.grad(lambda xi: _log_prob(params, xi).ravel()[0])(x)
         return g if jnp.iscomplexobj(r) else g.real
 
-    grad_logp_r = nkjax.vmap_chunked(_single_grad, chunk_size=chunk_size)(r)
+    if get_abstract_mesh()._any_axis_auto and not get_abstract_mesh().empty:
+        raise NotImplementedError("Must use explicit sharding.")
+        # def _vmap(params, samples):
+        #     return nkjax.vmap_chunked(partial(_single_grad, parameters), chunk_size=chunk_size)(samples)
+        # grad_logp_r = jax.shard_map(_vmap, out_specs=jax.P('S'), in_specs=(None,jax.P('S')))(parameters, r)
+    else:
+        grad_logp_r = nkjax.lax.map(
+            partial(_single_grad, parameters),
+            r,
+            batch_size=chunk_size,
+        )
 
     rp = r + dt * grad_logp_r + jnp.sqrt(2 * dt) * noise_vec
 
@@ -125,7 +141,11 @@ def _langevin_step(
         return rp
     else:
         log_q_xp = -0.5 * jnp.sum(noise_vec**2, axis=-1)
-        grad_logp_rp = nkjax.vmap_chunked(_single_grad, chunk_size=chunk_size)(rp)
+        grad_logp_rp = nkjax.lax.map(
+            partial(_single_grad, parameters),
+            rp,
+            batch_size=chunk_size,
+        )
         log_q_x = -jnp.sum((r - rp - dt * grad_logp_rp) ** 2, axis=-1) / (4 * dt)
 
         return rp, log_q_x - log_q_xp

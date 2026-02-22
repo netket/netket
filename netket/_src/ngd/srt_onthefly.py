@@ -5,6 +5,7 @@ from einops import rearrange
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import get_abstract_mesh, reshard
 from jax.tree_util import tree_map
 
 from jax.sharding import NamedSharding, PartitionSpec as P
@@ -106,12 +107,16 @@ def srt_onthefly(
 
     # Collect all samples on all MPI ranks, those label the columns of the T matrix
     all_samples = samples
+    if get_abstract_mesh().are_all_axes_explicit:
+        all_samples = reshard(all_samples, P())
+        dv = reshard(dv, P())
+
     if config.netket_experimental_sharding:
         samples = jax.lax.with_sharding_constraint(
-            samples, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
+            samples, NamedSharding(get_abstract_mesh(), P("S", None))
         )
         all_samples = jax.lax.with_sharding_constraint(
-            samples, NamedSharding(jax.sharding.get_abstract_mesh(), P())
+            all_samples, NamedSharding(get_abstract_mesh(), P())
         )
 
     _jacobian_contraction = nt.empirical_ntk_by_jacobian(
@@ -142,7 +147,7 @@ def srt_onthefly(
 
     # If we are sharding, use shard_map manually
     if config.netket_experimental_sharding:
-        mesh = jax.sharding.get_abstract_mesh()
+        mesh = get_abstract_mesh()
         # SAMPLES, ALL_SAMPLES PARAMETERS_REAL
         in_specs = (P("S", None), P(), P())
         out_specs = P("S", None)
@@ -161,15 +166,17 @@ def srt_onthefly(
     # This disables the nkjax.sharding_decorator in here, which might appear
     # in the apply function inside.
     with nkjax.sharding._increase_SHARD_MAP_STACK_LEVEL():
-        ntk_local = jacobian_contraction(samples, all_samples, parameters_real).real
+        ntk = jacobian_contraction(samples, all_samples, parameters_real).real
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
+    if get_abstract_mesh().are_all_axes_explicit:
+        ntk = reshard(ntk, jax.P())
+
     if config.netket_experimental_sharding:
         ntk = jax.lax.with_sharding_constraint(
-            ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P())
+            ntk, NamedSharding(get_abstract_mesh(), P())
         )
-    else:
-        ntk = ntk_local
+
     if mode == "complex":
         # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
         ntk = rearrange(ntk, "i j z w -> (i z) (j w)")
@@ -216,12 +223,14 @@ def srt_onthefly(
     if mode == "complex":
         aus_vector = aus_vector.reshape(-1, 2)
     # shape [N_mc // p.size,2]
+    if get_abstract_mesh().are_all_axes_explicit:
+        aus_vector = reshard(aus_vector, P("S"))
     if config.netket_experimental_sharding:
         aus_vector = jax.lax.with_sharding_constraint(
             aus_vector,
             NamedSharding(
-                jax.sharding.get_abstract_mesh(),
-                P("S", *(None,) * (aus_vector.ndim - 1)),
+                get_abstract_mesh(),
+                P("S"),
             ),
         )
 

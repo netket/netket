@@ -22,6 +22,8 @@ import netket as nk
 import netket.experimental as nkx
 from netket.operator import fermion
 
+from .. import common
+
 
 class TestDeterminantVariationalState:
     @pytest.fixture
@@ -203,6 +205,7 @@ class TestDeterminantVariationalState:
         with pytest.raises(ValueError, match="hilbert space"):
             vstate.to_mcstate(sampler, n_samples=100)
 
+    @common.skipif_distributed
     def test_to_array(self, small_hilbert):
         """Test to_array method."""
         vstate = nkx.vqs.DeterminantVariationalState(

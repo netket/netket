@@ -17,21 +17,22 @@ from functools import partial
 import flax
 import jax
 from jax import numpy as jnp
-from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket import jax as nkjax
-from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.sampler import Sampler, SamplerState
 from netket.utils.types import PRNGKeyT, DType
+
+from netket.sampler.metropolis import _jnp_zeros
 
 
 class ARDirectSamplerState(SamplerState):
     key: PRNGKeyT
     """state of the random number generator."""
 
-    def __init__(self, key):
+    def __init__(self, key, out_sharding=None):
         self.key = key
+        self.out_sharding = out_sharding
         super().__init__()
 
 
@@ -100,8 +101,8 @@ class ARDirectSampler(Sampler):
         cache = variables.get("cache")
         return cache
 
-    def _init_state(self, model, variables, key):
-        return ARDirectSamplerState(key=key)
+    def _init_state(self, model, variables, key, out_sharding=None):
+        return ARDirectSamplerState(key=key, out_sharding=out_sharding)
 
     def _reset(self, model, variables, state):
         return state
@@ -155,18 +156,22 @@ class ARDirectSampler(Sampler):
         new_key, key_init, key_scan = jax.random.split(state.key, 3)
 
         # Initialize a buffer for `σ` before generating a batch of samples
-        σ = jnp.zeros(
+        # The result should not depend on its initial content
+        if state.out_sharding is not None:
+            n_dev = state.out_sharding.mesh.shape[state.out_sharding.spec[0]]
+            if self.n_batches * chain_length % n_dev != 0:
+                raise ValueError(
+                    "The number of samples must be divisible by the number of devices. "
+                    f"Got {chain_length = } * {self.n_batches = } = {self.n_batches * chain_length}, "
+                    f"which is not divisible by {n_dev = }."
+                )
+        σ = _jnp_zeros(
             (self.n_batches * chain_length, self.hilbert.size),
             dtype=self.dtype,
+            device=state.out_sharding,
         )
-
-        if config.netket_experimental_sharding:
-            σ = jax.lax.with_sharding_constraint(
-                σ,
-                NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
-            )
-
-        # Initialize `cache` before generating a batch of samples
+        # Initialize `cache` before generating a batch of samples,
+        # even if `variables` is not changed and `reset` is not called
         cache = self._init_cache(model, σ, key_init)
         if cache:
             variables = {**variables_no_cache, "cache": cache}
@@ -185,7 +190,6 @@ class ARDirectSampler(Sampler):
             scan_fun, (σ, cache, key_scan, log_prob), indices
         )
         σ = σ.reshape((self.n_batches, chain_length, self.hilbert.size))
-
         new_state = state.replace(key=new_key)
 
         if return_log_probabilities:

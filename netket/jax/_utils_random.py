@@ -15,7 +15,6 @@ from typing import Literal, overload
 
 import jax
 import jax.numpy as jnp
-from jax.sharding import NamedSharding, PartitionSpec as P
 
 from netket.utils import random_seed, config
 from netket.utils.types import PRNGKeyT, SeedT
@@ -66,13 +65,8 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0) -> PRNGKeyT:
     else:
         raise TypeError(f"unsupported type {type(seed)}")
 
-    mesh = jax.sharding.get_abstract_mesh()
-    if not mesh.empty:
-        if len(mesh.explicit_axes) >= 0:
-            key = jax.sharding.reshard(key, P())
-        else:
-            sharding = NamedSharding(mesh, P())
-            key = jax.lax.with_sharding_constraint(key, sharding)
+    if not config.netket_experimental_sharding:
+        key = _bcast_key(key, root=root)
     return key
 
 
@@ -155,9 +149,21 @@ def batch_choice(
       If return_prob is True, returns a tuple of (samples, probabilities).
     """
     p_cumsum = p.cumsum(axis=1)
-    r = p_cumsum[:, -1:] * jax.random.uniform(key, shape=(p.shape[0], 1))
+    out_sharding = jax.typeof(p_cumsum).sharding
+    if isinstance(out_sharding, jax.sharding.NamedSharding) and all(
+        s is None for s in out_sharding.spec
+    ):
+        out_sharding = None
+
+    r = p_cumsum.at[:, -1:].get(out_sharding=out_sharding) * jax.random.uniform(
+        key, shape=(p.shape[0], 1), out_sharding=out_sharding
+    )
     indices = (r > p_cumsum).sum(axis=1)
-    out = a[indices]
+
+    if out_sharding is not None:
+        out = a.at[indices].get(out_sharding=jax.typeof(indices).sharding)
+    else:
+        out = a[indices]
 
     if return_prob:
         probs = jnp.take_along_axis(p, indices[:, None], axis=1).squeeze(axis=1)

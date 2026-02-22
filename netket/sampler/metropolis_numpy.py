@@ -146,7 +146,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         """
         return self.n_chains_per_rank
 
-    def _init_state(self, machine, parameters, key):
+    def _init_state(self, machine, parameters, key, out_sharding=None):
+        del out_sharding
         key_data = jax.random.key_data(key)
         rgen = np.random.default_rng(np.asarray(key_data))
 
