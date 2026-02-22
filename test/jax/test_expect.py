@@ -15,7 +15,7 @@ def test_expect():
 
     key = jax.random.key(3)
     N = 10
-    Ns = 30
+    Ns = jax.device_count() * 20
     psi = jax.random.normal(key, (N,))
     H = jax.random.normal(key, (N, N))
     x = jax.random.choice(key, N, (Ns,), replace=True, p=jnp.abs(psi) ** 2)

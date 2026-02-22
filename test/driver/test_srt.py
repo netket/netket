@@ -22,7 +22,7 @@ import optax
 
 import pytest
 
-from netket.experimental.driver import VMC_SR
+from netket.driver import VMC_SR
 from netket.optimizer.solver.solvers import solve
 
 

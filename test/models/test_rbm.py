@@ -54,7 +54,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
         nk.optimizer.Sgd(0.1),
         variational_state=vs,
     )
-    vmc.advance(1)
+    vmc.run(1)
 
 
 def test_RBMSymm_creation():
@@ -115,4 +115,4 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
         nk.optimizer.Sgd(0.1),
         variational_state=vs,
     )
-    vmc.advance(1)
+    vmc.run(1)

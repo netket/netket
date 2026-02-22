@@ -62,19 +62,10 @@ def test_raise_n_iter():
         driver.run("prova", 12)
 
 
-def test_reset():
-    ha, *_, driver = _setup_vmc()
-    assert driver.step_count == 0
-    driver.advance(1)
-    assert driver.step_count == 1
-    driver.reset()
-    assert driver.step_count == 0
-
-
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 
-    driver.advance(500)
+    driver.run(500)
 
     tol = driver.energy.error_of_mean * 5
     assert driver.energy.mean == approx(ma.expect(ha).mean, abs=tol)
