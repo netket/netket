@@ -65,6 +65,7 @@ Errors arising when working with Hilbert spaces and their constraints:
   :nosignatures:
 
   LogAdditionalDataSignatureDeprecationWarning
+  DriverResetDeprecationWarning
   ForwardAndBackwardDeprecationWarning
 ```
 
