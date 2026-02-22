@@ -31,6 +31,7 @@ def pinv_smooth(
     x0=None,
     rcond: float = None,
     rcond_smooth: float = None,
+    return_eigvals: bool = False,
 ):
     r"""
     Solve the linear system by building a pseudo-inverse from the
@@ -80,6 +81,7 @@ def pinv_smooth(
             above.
         rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
         rcond_smooth: (deprecated) Alias for `rtol_smooth`. Will be removed in a future release.
+        return_eigvals: If True, also return the eigenvalues of A.
     """
     del x0
 
@@ -113,11 +115,30 @@ def pinv_smooth(
 
     x = U @ (Σ_inv * (U.conj().T @ b))
 
-    return unravel(x), None
+    rank = jnp.sum(Σ > rtol * Σ[-1])
+    cond_number = Σ[-1] / Σ[0]
+    info = {
+        "eval_min": Σ[0],
+        "eval_max": Σ[-1],
+        "rank": rank,
+        "cond_number": cond_number,
+    }
+    if return_eigvals:
+        info["evals"] = Σ
+
+    return unravel(x), info
 
 
 @partial_from_kwargs
-def pinv(A, b, *, rtol: float = 1e-12, x0=None, rcond: float = None):
+def pinv(
+    A,
+    b,
+    *,
+    rtol: float = 1e-12,
+    x0=None,
+    rcond: float = None,
+    return_eigvals: bool = False,
+):
     """
     Solve the linear system using jax's implementation of the
     pseudo-inverse.
@@ -200,7 +221,13 @@ def svd(A, b, *, rcond=None, x0=None):
 
     x, residuals, rank, s = jnp.linalg.lstsq(A, b, rcond=rcond)
 
-    return unravel(x), (residuals, rank, s)
+    info = {
+        "residuals": residuals,
+        "rank": rank,
+        "singular_values": s,
+    }
+
+    return unravel(x), info
 
 
 @partial_from_kwargs
