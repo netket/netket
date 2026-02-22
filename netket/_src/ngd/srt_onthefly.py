@@ -165,8 +165,9 @@ def srt_onthefly(
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
     if config.netket_experimental_sharding:
+        # this sharding constraint should be useless, but let's keep it for safety.
         ntk = jax.lax.with_sharding_constraint(
-            ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P())
+            ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
         )
     else:
         ntk = ntk_local
@@ -174,24 +175,36 @@ def srt_onthefly(
         # shape [2*N_mc, 2*N_mc] checked with direct calculation of J^T J
         ntk = rearrange(ntk, "i j z w -> (i z) (j w)")
 
-    # Center the NTK by multiplying with a carefully designed matrix
-    # shape [N_mc, N_mc] symmetric matrix
-    delta = jnp.eye(N_mc) - 1 / N_mc
+    # Center the NTK by avoiding the construction of a big dense matrix to lower memory pressure.
+    # Equivalent to the 'old'  delta = jnp.eye(N_mc) - 1 / N_mc
+    # ntk = (delta_conc @ (ntk @ delta_conc)) / N_mc
     if mode == "complex":
-        # shape [2*N_mc, 2*N_mc]
-        # Gets applied to the sub-blocks corresponding to the real part and imaginary part
-        delta_conc = jnp.zeros((2 * N_mc, 2 * N_mc)).at[0::2, 0::2].set(delta)
-        delta_conc = delta_conc.at[1::2, 1::2].set(delta)
-        delta_conc = delta_conc.at[0::2, 1::2].set(0.0)
-        delta_conc = delta_conc.at[1::2, 0::2].set(0.0)
+        ntk = ntk.reshape(N_mc, 2, N_mc, 2)
+        col_means = ntk.mean(axis=0, keepdims=True)  # all-reduce
+        row_means = ntk.mean(axis=2, keepdims=True)  # all-reduce
+        global_mean = col_means.mean(axis=2, keepdims=True)  # local, reuse mean_0
+        ntk = ntk - col_means - row_means + global_mean
+        ntk = ntk.reshape(2 * N_mc, 2 * N_mc)
     else:
-        delta_conc = delta
+        row_means = ntk.mean(axis=1, keepdims=True)  # local: mean over columns
+        col_means = ntk.mean(axis=0, keepdims=True)  # all-reduce: mean over rows
+        global_mean = col_means.mean()  # local: col_means is already replicated
+        ntk = ntk - col_means - row_means + global_mean
 
-    # shape [2*N_mc, 2*N_mc] centering the jacobian
-    ntk = (delta_conc @ (ntk @ delta_conc)) / N_mc
+    ntk = ntk / N_mc
+
+    # Create identity matrix with same sharding as ntk: P("S", None)
+    if config.netket_experimental_sharding:
+        local_size = ntk.shape[0]
+        identity = jnp.eye(local_size)
+        identity = jax.lax.with_sharding_constraint(
+            identity, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
+        )
+    else:
+        identity = jnp.eye(ntk.shape[0])
 
     # add diag shift
-    ntk_shifted = ntk + diag_shift * jnp.eye(ntk.shape[0])
+    ntk_shifted = ntk + diag_shift * identity
 
     # add projection regularization
     if proj_reg is not None:
@@ -199,22 +212,29 @@ def srt_onthefly(
 
     # some solvers return a tuple, some others do not.
     aus_vector = solver_fn(ntk_shifted, dv)
+
     if isinstance(aus_vector, tuple):
         aus_vector, info = aus_vector
+        if info is None:
+            info = {}
     else:
         info = {}
 
-    if info is None:
-        info = {}
+    if config.netket_experimental_sharding:
+        aus_vector = jax.lax.with_sharding_constraint(
+            aus_vector,
+            NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
+        )
 
-    # Center the vector, equivalent to centering
-    # The Jacobian
-    aus_vector = aus_vector / jnp.sqrt(N_mc)
-    aus_vector = delta_conc @ aus_vector
-
-    # shape [N_mc,2]
+    aus_vector = jnp.squeeze(aus_vector)
     if mode == "complex":
-        aus_vector = aus_vector.reshape(-1, 2)
+        aus_vector = aus_vector.reshape((N_mc, 2))
+
+    # Center the vector, equivalent to centering the Jacobian
+    # This is equivalent to: aus_vector = delta_conc @ aus_vector
+    aus_vector = (aus_vector - jnp.mean(aus_vector, axis=0, keepdims=True)) / jnp.sqrt(
+        N_mc
+    )
     # shape [N_mc // p.size,2]
     if config.netket_experimental_sharding:
         aus_vector = jax.lax.with_sharding_constraint(
