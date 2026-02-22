@@ -189,7 +189,6 @@ def srt_onthefly(
         ntk = ntk - mean_0 - mean_2 + mean_02
         ntk = ntk.reshape(2 * N_mc, 2 * N_mc)
     else:
-        # Compute means efficiently to minimize all-reduces
         row_means = ntk.mean(axis=1, keepdims=True)  # local: mean over columns
         col_means = ntk.mean(axis=0, keepdims=True)  # all-reduce: mean over rows
         global_mean = col_means.mean()  # local: col_means is already replicated
@@ -232,20 +231,16 @@ def srt_onthefly(
             NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
         )
 
+    aus_vector = jnp.squeeze(aus_vector)
+    if mode == "complex":
+        aus_vector = aus_vector.reshape((N_mc, 2))
+
     # Center the vector, equivalent to centering the Jacobian
     # This is mathematically equivalent to: aus_vector = delta_conc @ aus_vector
     # but more efficient as it avoids matrix multiplication
-    aus_vector = jnp.squeeze(aus_vector)
-    if mode == "real":
-        aus_vector = (
-            aus_vector - jnp.mean(aus_vector, axis=0, keepdims=True)
-        ) / jnp.sqrt(N_mc)
-
-    if mode == "complex":
-        aus_vector = aus_vector.reshape((N_mc, 2))
-        aus_vector = (
-            aus_vector - jnp.mean(aus_vector, axis=0, keepdims=True)
-        ) / jnp.sqrt(N_mc)
+    aus_vector = (aus_vector - jnp.mean(aus_vector, axis=0, keepdims=True)) / jnp.sqrt(
+        N_mc
+    )
     # shape [N_mc // p.size,2]
     if config.netket_experimental_sharding:
         aus_vector = jax.lax.with_sharding_constraint(
