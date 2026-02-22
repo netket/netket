@@ -13,14 +13,17 @@
 # limitations under the License.
 
 
+from typing import Any
+
 from netket.operator import Squared, AbstractSuperOperator
 from netket.vqs import MCMixedState
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
 )
+from netket.utils import struct
 from netket.jax import tree_cast
-from netket.utils.types import Optimizer
+from netket.utils.types import Optimizer, PyTree
 
 from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
 
@@ -29,6 +32,16 @@ class SteadyState(AbstractVariationalDriver):
     """
     Steady-state driver minimizing L^†L.
     """
+
+    _lind: AbstractSuperOperator = struct.field(pytree_node=False, serialize=False)
+    _ldag_l: Squared = struct.field(pytree_node=False, serialize=False)
+    _preconditioner: PreconditionerT = struct.field(pytree_node=False, serialize=False)
+
+    # Serialized state
+    _old_updates: PyTree = None
+    _loss_grad: PyTree = None
+    _dp: PyTree = struct.field(serialize=False)
+    info: Any | None = None
 
     def __init__(
         self,
@@ -62,8 +75,6 @@ class SteadyState(AbstractVariationalDriver):
         self.preconditioner = preconditioner
 
         self._dp = None
-        self._S = None
-        self._sr_info = None
 
     def compute_loss_and_update(self):
         """

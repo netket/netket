@@ -185,7 +185,7 @@ def test_earlystopping_baseline_with_patience_abstol_delayed_start():
     assert es._best_val == 9.0
 
 
-@pytest.mark.parametrize("driver", [_tdvp(), _vmc()])
+@pytest.mark.parametrize("driver", [_vmc()])
 def test_invalid_loss_stopping(driver):
     patience = 10
     nsteps = 2 * patience

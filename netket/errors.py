@@ -1129,6 +1129,7 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
 
     def __init__(self, pytree, attribute, valid_attributes):
         pytreeT = f"{type(pytree).__module__}.{type(pytree).__name__}"
+        cls_name = type(pytree).__name__
         super().__init__(
             f"""
             Tried to assign an undeclared attribute "{attribute}" to the Pytree class "{pytreeT}" during
@@ -1139,18 +1140,17 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
             This error is thrown when you try to assign an attribute to a NetKet-style Pytree ( a class that
             inherits from `nk.utils.struct.Pytree`) that was not declared in the class definition.
 
-            To fix this error, simply declare the attributes in the class definition as shown in the example below:
+            To fix this error, declare "{attribute}" in the class body of "{cls_name}".
+            If "{attribute}" is a JAX array or another Pytree (a dynamic/traced value), declare it as:
 
-                from netket.utils import struct
-                import jax
+                class {cls_name}(struct.Pytree):
+                    {attribute}: SomeType = struct.field(pytree_node=True)   # traced by JAX
 
-                class MyPytree(struct.Pytree):
-                    my_dynamic_attribute: jax.Array
-                    my_static_attribute : int = struct.field(pytree_node=False)
+            If "{attribute}" is a static value (e.g. an int, bool, or Python object that should
+            NOT be traced by JAX), declare it as:
 
-                    def __init__(self, dyn_val, static_val):
-                        self.my_dynamic_attribute = dyn_val
-                        self.my_static_attribute = static_val
+                class {cls_name}(struct.Pytree):
+                    {attribute}: SomeType = struct.field(pytree_node=False)  # not traced by JAX
 
             """
         )

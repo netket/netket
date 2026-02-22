@@ -22,7 +22,7 @@ def _setup_system():
         ha += (
             (2.0 / 4.0)
             * nk.operator.spin.sigmaz(hi, i)
-            * nk.operator.spin.sigmaz(hi, (i + 1) % L)
+            @ nk.operator.spin.sigmaz(hi, (i + 1) % L)
         )
         j_ops.append(nk.operator.spin.sigmam(hi, i))
 
@@ -71,7 +71,7 @@ def test_estimate():
     lind, _, driver = _setup_ss()
 
     driver.estimate(lind.H @ lind)
-    driver.advance(1)
+    driver.run(1)
     driver.estimate(lind.H @ lind)
 
 
