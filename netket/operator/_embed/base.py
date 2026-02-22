@@ -88,19 +88,23 @@ class EmbedOperator(ABC):
 
             Try to always simplify first, then embed:
 
-            >>> # Build the full operator on the subspace first
-            >>> h_fermion = sum(nk.operator.boson.number(hi_boson, i) for i in range(N))
-            >>> h_embed = nk.operator.EmbedOperator(hi_joint, h_fermion, subspace=0)
-            >>> H = H + h_embed  # Single embedded operator
+            .. code-block:: python
+
+                # Build the full operator on the subspace first
+                h_fermion = sum(nk.operator.boson.number(hi_boson, i) for i in range(N))
+                h_embed = nk.operator.EmbedOperator(hi_joint, h_fermion, subspace=0)
+                H = H + h_embed  # Single embedded operator
 
             as opposed to this **negative example below**
 
-            >>> # Don't do this! Creates many embedded operators that can't be simplified
-            >>> for i in range(N):
-            >>>     h_fermion = nk.operator.boson.number(hi_boson, i)
-            >>>     # Embedding inside the loop prevents simplification!
-            >>>     h_embed = nk.operator.EmbedOperator(hi_joint, h_fermion, subspace=0)
-            >>>     H = H + h_embed  # Many redundant embedded operators!
+            .. code-block:: python
+
+                # Don't do this! Creates many embedded operators that can't be simplified
+                for i in range(N):
+                    h_fermion = nk.operator.boson.number(hi_boson, i)
+                    # Embedding inside the loop prevents simplification!
+                    h_embed = nk.operator.EmbedOperator(hi_joint, h_fermion, subspace=0)
+                    H = H + h_embed  # Many redundant embedded operators!
 
             The first approach creates a single embedded operator with optimized connected
             elements, while the second creates N separate embedded operators that cannot

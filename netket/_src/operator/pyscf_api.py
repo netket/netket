@@ -91,7 +91,7 @@ def from_pyscf_molecule(
         >>> E_fci = fci.FCI(mf).kernel()[0]
         >>>
         >>> ha = nkx.operator.from_pyscf_molecule(mol)  # doctest:+ELLIPSIS
-        >>> E0 = float(nk.exact.lanczos_ed(ha))
+        >>> E0 = np.asarray(nk.exact.lanczos_ed(ha)).item()
         >>> print(f"{E0 = :.5f}, {E_fci = :.5f}")
         E0 = -7.88253, E_fci = -7.88253
 
