@@ -12,10 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .early_stopping import EarlyStopping
-from .timeout import Timeout
-from .invalid_loss_stopping import InvalidLossStopping
-from .convergence_stopping import ConvergenceStopping
+from netket._src.callbacks.base import (
+    AbstractCallback as AbstractCallback,
+)
+
+from netket._src.callbacks.auto_chunk_size import (
+    AutoChunkSize as AutoChunkSize,
+)
+from netket._src.callbacks.auto_slurm_requeue import (
+    AutoSlurmRequeue as AutoSlurmRequeue,
+)
+
+from netket.callbacks.early_stopping import EarlyStopping
+from netket.callbacks.timeout import Timeout
+from netket.callbacks.invalid_loss_stopping import InvalidLossStopping
+from netket.callbacks.convergence_stopping import ConvergenceStopping
 
 from netket.utils import _hide_submodules
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket._src.driver.abstract_variational_driver_old import AbstractVariationalDriver
+from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
 from netket.driver.vmc import VMC
 from netket.driver.steady_state import SteadyState
 

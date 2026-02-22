@@ -22,7 +22,7 @@ from netket.optimizer import (
 from netket.jax import tree_cast
 from netket.utils.types import Optimizer
 
-from netket._src.driver.abstract_variational_driver_old import AbstractVariationalDriver
+from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
 
 
 class SteadyState(AbstractVariationalDriver):
@@ -65,7 +65,7 @@ class SteadyState(AbstractVariationalDriver):
         self._S = None
         self._sr_info = None
 
-    def _forward_and_backward(self):
+    def compute_loss_and_update(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -85,7 +85,7 @@ class SteadyState(AbstractVariationalDriver):
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = tree_cast(self._dp, self.state.parameters)
 
-        return self._dp
+        return self._loss_stats, self._dp
 
     @property
     def preconditioner(self):

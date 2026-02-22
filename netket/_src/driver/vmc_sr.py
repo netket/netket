@@ -18,9 +18,10 @@ from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator, to_sparse_cached
 from netket import stats as nkstats
 
-from netket._src.driver.abstract_variational_driver_old import (
+from netket._src.driver.abstract_variational_driver import (
     AbstractVariationalDriver,
 )
+from netket._src.callbacks.auto_chunk_size import get_forward_operator
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
 
@@ -408,9 +409,7 @@ class VMC_SR(AbstractVariationalDriver):
             )
 
     @timing.timed
-    def _forward_and_backward(self):
-        self.state.reset()
-
+    def compute_loss_and_update(self):
         # Compute the local energy estimator and average Energy
         if isinstance(self.state, FullSumState):
             O = to_sparse_cached(self._ham)
@@ -470,10 +469,10 @@ class VMC_SR(AbstractVariationalDriver):
             weights=pdf,
         )
 
-        return self._dp
+        return self._loss_stats, self._dp
 
     @timing.timed
-    def _log_additional_data(self, log_dict: dict, step: int):
+    def _log_additional_data(self, log_dict: dict):
         """
         Method to be implemented in sub-classes of AbstractVariationalDriver to
         log additional data at every step.
@@ -564,3 +563,8 @@ class VMC_SR(AbstractVariationalDriver):
         elif isinstance(value, int) and value <= 0:
             raise ValueError("chunk_size_bwd must be a positive integer.")
         self._chunk_size_bwd = value
+
+
+@get_forward_operator.dispatch
+def get_forward_operator_VMCSR(driver: VMC_SR):
+    return driver._ham

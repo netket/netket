@@ -14,9 +14,9 @@
 
 from typing import Any
 from textwrap import dedent
-import warnings
 
-from netket.utils import timing, struct
+
+from netket.utils import struct
 from netket.utils.types import PyTree, Optimizer
 from netket.operator import AbstractOperator
 from netket.stats import Stats
@@ -26,31 +26,20 @@ from netket.optimizer import (
 )
 from netket.vqs import VariationalState
 from netket.jax import tree_cast
-from netket.errors import InsufficientSamplesForSRWarning
 
-from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
-from netket._src.callbacks.auto_chunk_size import get_forward_operator
+from netket._src.driver.abstract_variational_driver import (
+    AbstractVariationalDriver,
+)
 
 
 class VMC(AbstractVariationalDriver):
     """
     Energy minimization using Variational Monte Carlo (VMC).
-
-    .. note::
-
-        Consider using directly the new :class:`netket.driver.VMC_SR`
-        class instead of this one if you want to use Stochastic Reconfiguration.
-
     """
 
+    _preconditioner: PreconditionerT = identity_preconditioner
     _ham: AbstractOperator = struct.field(pytree_node=False, serialize=False)
-    _preconditioner: PreconditionerT = struct.field(pytree_node=False, serialize=False)
-
-    # Serialized state
-    _old_updates: PyTree = None
-    _loss_grad: PyTree = None
-    _dp: PyTree = struct.field(serialize=False)
-    info: Any | None = None
+    _S: Any = struct.field(pytree_node=True, serialize=True)
 
     def __init__(
         self,
@@ -92,23 +81,9 @@ class VMC(AbstractVariationalDriver):
 
         self.preconditioner = preconditioner
 
-        # Check for insufficient samples when using SR with MCState
-        from netket.optimizer.sr import SR
-        from netket.vqs import MCState
-
-        if (
-            isinstance(variational_state, MCState)
-            and isinstance(preconditioner, SR)
-            and variational_state.n_samples <= variational_state.n_parameters
-        ):
-            warnings.warn(
-                InsufficientSamplesForSRWarning(
-                    variational_state.n_samples, variational_state.n_parameters
-                ),
-                stacklevel=2,
-            )
-
+        self._loss_stats = Stats()
         self._dp: PyTree = None
+        self._S = None
 
     @property
     def preconditioner(self):
@@ -119,7 +94,7 @@ class VMC(AbstractVariationalDriver):
 
         .. code-block:: python
 
-            precondtioner(vstate: VariationalState,
+            preconditioner(vstate: VariationalState,
                           grad: PyTree,
                           step: Optional[Scalar] = None)
 
@@ -140,28 +115,19 @@ class VMC(AbstractVariationalDriver):
 
         self._preconditioner = val
 
-    @timing.timed
     def compute_loss_and_update(self):
-        """
-        Performs a number of VMC optimization steps.
-
-        Args:
-            n_steps (int): Number of steps to perform.
-        """
-
-        self.state.reset()
 
         # Compute the local energy estimator and average Energy
-        self._loss_stats, self._loss_grad = self.state.expect_and_grad(self._ham)
+        energy, grad = self.state.expect_and_grad(self._ham)
 
-        # if it's the identity it does
+        # if it is the identity it does
         # self._dp = self._loss_grad
-        self._dp = self.preconditioner(self.state, self._loss_grad, self.step_count)
+        dp = self.preconditioner(self.state, grad, self.step_count)
 
-        # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._dp = tree_cast(self._dp, self.state.parameters)
+        # If parameters are real, then take only real part of the gradient (if it is complex)
+        dp = tree_cast(dp, self.state.parameters)
 
-        return self._loss_stats, self._dp
+        return energy, dp
 
     @property
     def energy(self) -> Stats:
@@ -179,6 +145,63 @@ class VMC(AbstractVariationalDriver):
         )
 
 
-@get_forward_operator.dispatch
-def get_forward_operator_VMC(driver: VMC):
-    return driver._ham
+# from netket.driver import VMC
+
+
+# serialization
+# def serialize_AbstractVariationalDriver(driver):
+#     state_dict = {
+#         "state": serialization.to_state_dict(driver._variational_state),
+#         "optimizer_state": serialization.to_state_dict(driver._optimizer_state),
+#         "loss_stats": serialization.to_state_dict(driver._loss_stats),
+#         "step_count": driver._step_count,
+#         # "timer": driver._timer,
+#     }
+#     return state_dict
+#
+#
+# def deserialize_AbstractVariationalDriver(driver, state_dict):
+#     import copy
+#
+#     new_driver = copy.copy(driver)
+#     new_driver._variational_state = serialization.from_state_dict(
+#         driver._variational_state, state_dict["state"]
+#     )
+#     new_driver._optimizer_state = serialization.from_state_dict(
+#         driver._optimizer_state, state_dict["optimizer_state"]
+#     )
+#     new_driver._loss_stats = serialization.from_state_dict(
+#         driver._loss_stats, state_dict["loss_stats"]
+#     )
+#     new_driver._step_count = state_dict["step_count"]
+#
+#     return new_driver
+#
+#
+# # serialization.register_serialization_state(
+# #     AbstractVariationalDriver,
+# #     serialize_AbstractVariationalDriver,
+# #     deserialize_AbstractVariationalDriver,
+# # )
+#
+#
+# # serialization
+# def serialize_VMC(driver):
+#     state_dict = serialize_AbstractVariationalDriver(driver)
+#     state_dict["preconditioner"] = serialization.to_state_dict(driver.preconditioner)
+#     return state_dict
+#
+#
+# def deserialize_VMC(driver, state_dict):
+#     driver = deserialize_AbstractVariationalDriver(driver, state_dict)
+#     driver.preconditioner = serialization.from_state_dict(
+#         driver.preconditioner, state_dict["preconditioner"]
+#     )
+#     return driver
+
+
+# serialization.register_serialization_state(
+#     VMC,
+#     serialize_VMC,
+#     deserialize_VMC,
+# )

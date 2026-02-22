@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Any, Union
 import warnings
 
 import numpy as np
@@ -20,7 +20,8 @@ import jax
 import jax.numpy as jnp
 
 from netket import jax as nkjax
-from netket._src.driver.abstract_variational_driver_old import AbstractVariationalDriver
+from netket.utils import struct
+from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
 from netket.operator import AbstractOperator
 from netket.vqs import VariationalState
 from netket.optimizer import (
@@ -94,6 +95,39 @@ class QSR(AbstractVariationalDriver):
     the control variate since the mini-batch is sampled uniformly from the whole dataset.
     """
 
+    # Configuration (static, non-JAX)
+    _preconditioner: PreconditionerT = struct.field(pytree_node=False, serialize=False)
+    mixed_states: bool = struct.field(pytree_node=False, serialize=False)
+    batch_sample_replace: bool = struct.field(pytree_node=False, serialize=False)
+    training_batch_size: int = struct.field(pytree_node=False, serialize=False)
+    _raw_dataset: Any = struct.field(pytree_node=False, serialize=False)
+    _dataset: Any = struct.field(pytree_node=False, serialize=False)
+    _rng: Any = struct.field(pytree_node=False, serialize=False)
+    _entropy: Any = struct.field(pytree_node=False, serialize=False)
+    _control_variate_update_freq: Any = struct.field(pytree_node=False, serialize=False)
+    _chunk_size: Any = struct.field(pytree_node=False, serialize=False)
+    n_chunk: Any = struct.field(pytree_node=False, serialize=False, default=None)
+    _chunked_indices: Any = struct.field(
+        pytree_node=False, serialize=False, default=None
+    )
+
+    # Dynamic JAX state (pytree nodes)
+    _control_variate_expectation: Any = None
+    _control_variate_params: Any = None
+
+    @property
+    def preconditioner(self):
+        """
+        The preconditioner used to modify the gradient.
+        """
+        return self._preconditioner
+
+    @preconditioner.setter
+    def preconditioner(self, val: PreconditionerT | None):
+        if val is None:
+            val = identity_preconditioner
+        self._preconditioner = val
+
     def __init__(
         self,
         training_data: RawQuantumDataset | tuple[list, list],
@@ -101,7 +135,7 @@ class QSR(AbstractVariationalDriver):
         optimizer,
         *,
         variational_state: VariationalState,
-        preconditioner: PreconditionerT | None = identity_preconditioner,
+        preconditioner: PreconditionerT = identity_preconditioner,
         seed: int | None = None,
         batch_sample_replace: bool | None = True,
         control_variate_update_freq: None | (int | str) = None,
@@ -181,7 +215,7 @@ class QSR(AbstractVariationalDriver):
     def dataset(self):
         return self._dataset
 
-    def _forward_and_backward(self):
+    def compute_loss_and_update(self):
         state = self.state
 
         if self.mixed_states:
@@ -192,23 +226,23 @@ class QSR(AbstractVariationalDriver):
         state.reset()
 
         # compute the neg gradient of log Z
-        self._grad_neg = _grad_negative(state_diag)
+        grad_neg = _grad_negative(state_diag)
 
         # sample training data for pos grad
-        self._batch_data = self.dataset.subsample(
+        batch_data = self.dataset.subsample(
             self.training_batch_size,
             rng=self._rng,
             batch_sample_replace=self.batch_sample_replace,
         )
 
         # compute the pos gradient of log p
-        _log_val_rot, self._grad_pos = _grad_local_value_rotated(
+        _log_val_rot, grad_pos = _grad_local_value_rotated(
             state._apply_fun,
             state.parameters,
             state.model_state,
-            self._batch_data.sigma_p,
-            self._batch_data.mels,
-            self._batch_data.secs,
+            batch_data.sigma_p,
+            batch_data.mels,
+            batch_data.secs,
         )
 
         # control variates
@@ -217,7 +251,7 @@ class QSR(AbstractVariationalDriver):
             if self.step_count % self._control_variate_update_freq == 0:
                 if self._chunk_size is not None:
                     self._control_variate_expectation = jax.tree_util.tree_map(
-                        jnp.zeros_like, self._grad_pos
+                        jnp.zeros_like, grad_pos
                     )
 
                     for i in range(self.n_chunk):
@@ -250,44 +284,44 @@ class QSR(AbstractVariationalDriver):
                 self._control_variate_params = state.parameters
 
             # control variate gradient
-            # it's the graident evaluated at an earlier point
-            _, self._grad_pos_cv = _grad_local_value_rotated(
+            # it's the gradient evaluated at an earlier point
+            _, grad_pos_cv = _grad_local_value_rotated(
                 state._apply_fun,
                 self._control_variate_params,
                 state.model_state,
-                self._batch_data.sigma_p,
-                self._batch_data.mels,
-                self._batch_data.secs,
+                batch_data.sigma_p,
+                batch_data.mels,
+                batch_data.secs,
             )
 
             # gather gradient
             # grad <- grad - grad_cv + E[grad_cv]
-            self._grad_pos = jax.tree_util.tree_map(
+            grad_pos = jax.tree_util.tree_map(
                 lambda x, y, Ey: x - y + Ey,
-                self._grad_pos,
-                self._grad_pos_cv,
+                grad_pos,
+                grad_pos_cv,
                 self._control_variate_expectation,
             )
 
         # compose neg and pos gradient
         # and take complex conjugate
-        self._loss_grad = _compose_grads(self._grad_neg, self._grad_pos)
+        loss_grad = _compose_grads(grad_neg, grad_pos)
 
         # restore the square in prob = |psi|^2
         if not self.mixed_states:
-            self._loss_grad = jax.tree_util.tree_map(lambda x: x * 2.0, self._loss_grad)
+            loss_grad = jax.tree_util.tree_map(lambda x: x * 2.0, loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._loss_grad = tree_cast(self._loss_grad, self.state.parameters)
+        loss_grad = tree_cast(loss_grad, self.state.parameters)
 
         # if it's the identity it does
-        # self._dp = self._loss_grad
-        self._dp = self.preconditioner(self.state, self._loss_grad)
+        # self._dp = loss_grad
+        self._dp = self.preconditioner(self.state, loss_grad, self.step_count)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = tree_cast(self._dp, self.state.parameters)
 
-        return self._dp
+        return None, self._dp
 
     def nll(self, return_stats: bool | None = True):
         r"""

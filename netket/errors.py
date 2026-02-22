@@ -1225,6 +1225,119 @@ class OperatorMultiplicationDeprecationWarning(NetketWarning):
         )
 
 
+class LogAdditionalDataSignatureDeprecationWarning(NetketWarning):
+    """
+    Warning issued when a driver subclass overrides ``_log_additional_data``
+    with the old two-argument signature ``(self, log_dict, step)`` instead of
+    the current one-argument signature ``(self, log_dict)``.
+
+    The ``step`` parameter was removed because the current step is always
+    accessible as ``self.step_count`` inside the method body.
+
+    NetKet will automatically wrap your old implementation so that it continues
+    to work, but you should update your code to silence this warning.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def _log_additional_data(self, log_dict: dict, step: int):
+                    log_dict["my_value"] = self.compute_something(step)
+
+        Use:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def _log_additional_data(self, log_dict: dict):
+                    log_dict["my_value"] = self.compute_something(self.step_count)
+    """
+
+    def __init__(self, cls_name: str):
+        super().__init__(
+            f"""
+            Class {cls_name!r} overrides `_log_additional_data` with the old signature
+            `(self, log_dict, step)`. The `step` argument has been removed; use
+            `self.step_count` inside the method instead.
+
+            Instead of:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def _log_additional_data(self, log_dict: dict, step: int):
+                        ...
+
+            Use:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def _log_additional_data(self, log_dict: dict):
+                        # use self.step_count instead of step
+                        ...
+            """
+        )
+
+
+class ForwardAndBackwardDeprecationWarning(NetketWarning):
+    """
+    Warning issued when a driver subclass overrides the deprecated
+    ``_forward_and_backward`` method instead of the renamed
+    ``compute_loss_and_update``.
+
+    The method ``_forward_and_backward`` has been renamed to
+    ``compute_loss_and_update`` in the new driver base class. The two methods
+    differ in their return value: the old one returned only the gradient
+    (setting ``self._loss_stats`` as a side-effect), while the new one must
+    return a ``(loss_stats, gradient)`` tuple.
+
+    NetKet will automatically wrap your old implementation so that it is
+    compatible with the new interface, but you should update your code to
+    silence this warning.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def _forward_and_backward(self):
+                    # ... compute loss and gradient ...
+                    self._loss_stats = loss
+                    return gradient
+
+        Use:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def compute_loss_and_update(self):
+                    # ... compute loss and gradient ...
+                    return loss, gradient
+    """
+
+    def __init__(self, cls_name: str):
+        super().__init__(
+            f"""
+            Class {cls_name!r} overrides `_forward_and_backward`, which has been renamed
+            to `compute_loss_and_update`. Your code will continue to work for now, but
+            you should rename the method and update its return value to silence this warning.
+
+            Instead of:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def _forward_and_backward(self):
+                        self._loss_stats = loss  # side-effect
+                        return gradient
+
+            Use:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def compute_loss_and_update(self):
+                        return loss, gradient    # explicit tuple
+            """
+        )
+
+
 #################################################
 # Functions to throw errors                     #
 #################################################
