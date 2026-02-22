@@ -49,7 +49,6 @@ class VMC(AbstractVariationalDriver):
     # Serialized state
     _old_updates: PyTree = None
     _loss_grad: PyTree = None
-    _dp: PyTree = struct.field(serialize=False)
     info: Any | None = None
 
     def __init__(
@@ -107,8 +106,6 @@ class VMC(AbstractVariationalDriver):
                 ),
                 stacklevel=2,
             )
-
-        self._dp: PyTree = None
 
     @property
     def preconditioner(self):

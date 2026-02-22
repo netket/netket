@@ -52,6 +52,12 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
     This class must be inherited from in order to create an optimization driver that
     immediately works with NetKet loggers and callback mechanism.
 
+    The :meth:`run` method executes the optimisation loop and invokes
+    :class:`~netket.callbacks.AbstractCallback` hooks at well-defined points during each step.
+    To stop the loop early from a callback, raise :class:`~netket.callbacks.StopRun`.
+    For a detailed description of the loop structure and the available callback hooks, see
+    :ref:`advanced_custom_callbacks`.
+
     .. note::
 
         How to implement a new driver
@@ -66,16 +72,16 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
           driver is minimising a loss function and you want its name to show up automatically
           in the progress bar/output files you should pass the optional keyword argument.
 
-        - :meth:`~netket.driver.AbstractVariationalDriver._do_step`,
-          that should compute the loss function and the gradient, returning the latter.
+        - :meth:`~netket.driver.AbstractVariationalDriver.compute_loss_and_update`,
+          that should compute the loss function and the gradient, returning both as a tuple.
           If the driver is minimizing or maximising some loss function,
-          this quantity should be assigned to the field `self._loss_stats`
-          in order to monitor it.
+          this quantity should be returned as the first element of the tuple so it is
+          automatically logged.
 
         - :meth:`~netket.driver.AbstractVariationalDriver._estimate_stats` should return
           the expectation value over the variational state of a single observable.
 
-        - :meth:`~netket.driver.AbstractVariationalDriver.reset`,
+        - :meth:`~netket.driver.AbstractVariationalDriver.reset_step`,
           should reset the driver (usually the sampler). The basic implementation will call
           :meth:`~netket.vqs.VariationalState.reset`, but you are responsible for resetting
           extra fields in the driver itself.
@@ -132,6 +138,8 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
 
         self._variational_state = variational_state
         self.optimizer = optimizer
+
+        self._dp = jax.tree.map(jax.numpy.zeros_like, self.state.parameters)
 
     def _forward_and_backward(self):
         self.reset_step()
@@ -373,6 +381,12 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
         logged at every step. For example, this can be used to log additional quantities
         such as the acceptance rate of a sampler.
 
+        Alternatively, :class:`~netket.callbacks.AbstractCallback` subclasses can be
+        used to hook into more stages of the loop.  To stop the optimisation early from
+        any callback hook, raise :class:`~netket.callbacks.StopRun`: the driver will
+        catch it, finalise all callbacks via their ``on_run_end`` method, and return
+        normally without propagating the exception.
+
         Loggers are specified as an iterable passed to the keyword argument `out`. If only
         a string is specified, this will create by default a :class:`nk.logging.JsonLog`.
         To know about the output format check its documentation. The logger object is
@@ -451,11 +465,10 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
                     if self._loss_stats is not None:
                         step_log_data[self._loss_name] = self._loss_stats
 
-                    # Execute callbacks before loggers because they can append to log_data
                     self._log_additional_data(step_log_data)
-                    callbacks.on_legacy_run(self.step_count, step_log_data, self)
-
-                    callbacks.on_parameter_update(self.step_count, step_log_data, self)
+                    callbacks.before_parameter_update(
+                        self.step_count, step_log_data, self
+                    )
                     self.update_parameters(self._dp)
 
                     callbacks.on_step_end(self.step_count, step_log_data, self)

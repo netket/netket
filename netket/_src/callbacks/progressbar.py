@@ -35,7 +35,7 @@ class ProgressBarCallback(AbstractCallback, mutable=True):
         self._pbar.unpause()
         self._pbar.refresh()
 
-    def on_legacy_run(self, step, log_data, driver):
+    def before_parameter_update(self, step, log_data, driver):
         # if the cost-function is defined then report it in the progress bar
         if driver._loss_stats is not None:
             self._pbar.set_postfix_str(

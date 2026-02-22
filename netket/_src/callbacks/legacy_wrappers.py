@@ -26,7 +26,7 @@ class LegacyCallbackWrapper(AbstractCallback):
     def __init__(self, callback: LegacyCallbackT):
         self.callback = callback
 
-    def on_legacy_run(self, step, log_data, driver):
+    def before_parameter_update(self, step, log_data, driver):
         do_continue = self.callback(step, log_data, driver)
         if not do_continue:
             raise StopRun(f"Legacy callback {self.callback} requested to stop the run.")
@@ -55,7 +55,7 @@ class LegacyLoggerWrapper(AbstractCallback):
     def callback_order(self) -> int:
         return 10
 
-    def on_parameter_update(self, step, log_data, driver):
+    def before_parameter_update(self, step, log_data, driver):
         # Store the vstate internally so that if we modify the parameters
         # we can still log the previous one.
         self._vstate = copy.copy(driver.state)

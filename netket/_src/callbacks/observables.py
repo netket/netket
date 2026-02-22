@@ -32,7 +32,7 @@ class ObservableCallback(AbstractCallback, mutable=True):
         self._interval = interval
         self._fullsum = fullsum
 
-    def on_legacy_run(self, step, log_data, driver):
+    def before_parameter_update(self, step, log_data, driver):
         if step % self._interval == 0:
             with timing.timed_scope(name="observables"):
                 log_data.update(

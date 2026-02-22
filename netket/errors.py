@@ -1443,6 +1443,60 @@ class InitializePeriodicLatticeOnSmallLatticeWarning(NetketWarning):
 #################################################
 
 
+class CallbackLegacyHookError(NetketError):
+    """
+    Error raised when an :class:`~netket.callbacks.AbstractCallback` subclass defines
+    the removed hook methods ``on_legacy_run`` or ``on_parameter_update``.
+
+    These two hooks have been merged into a single hook called
+    ``before_parameter_update``.  If your callback defined only one of them,
+    rename it.  If it defined both, merge the two bodies into the single
+    ``before_parameter_update`` method — the ordering that was previously
+    enforced by having two hooks is now handled by
+    :attr:`~netket.callbacks.AbstractCallback.callback_order`.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            class MyCallback(nk.callbacks.AbstractCallback):
+                def on_legacy_run(self, step, log_data, driver):
+                    log_data["my_obs"] = driver.estimate(obs)
+
+                def on_parameter_update(self, step, log_data, driver):
+                    self._snapshot = copy.copy(driver.state)
+
+        Use:
+
+        .. code-block:: python
+
+            class MyCallback(nk.callbacks.AbstractCallback):
+                def before_parameter_update(self, step, log_data, driver):
+                    log_data["my_obs"] = driver.estimate(obs)
+                    self._snapshot = copy.copy(driver.state)
+    """
+
+    def __init__(self, cls_name: str, old_methods: list[str]):
+        methods_str = " and ".join(f"`{m}`" for m in old_methods)
+        super().__init__(
+            f"""
+            Class {cls_name!r} defines the removed callback hook {methods_str}.
+
+            These hooks have been merged into a single hook called
+            `before_parameter_update`. Please rename or merge your implementation:
+
+                class {cls_name}(AbstractCallback):
+                    def before_parameter_update(self, step, log_data, driver):
+                        ...  # combined body here
+
+            If you defined both hooks, merge their bodies into `before_parameter_update`.
+            The execution order that was previously enforced by the two-hook split is now
+            handled by `callback_order` (lower values run first).
+            """
+        )
+
+
 class NNXModuleToSamplerInput(NetketError):
     """
     Error thrown when attempting to use a sampler with a bare NNX module.

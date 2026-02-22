@@ -8,4 +8,5 @@ custom_expect
 custom_preconditioners
 custom_operators
 custom_hilbert_constraints
+custom_callbacks
 ```

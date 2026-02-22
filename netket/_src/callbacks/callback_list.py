@@ -35,13 +35,9 @@ class CallbackList(AbstractCallback):
                 reject_step = True
         return reject_step
 
-    def on_parameter_update(self, step, log_data, driver):
+    def before_parameter_update(self, step, log_data, driver):
         for callback in self.callbacks:
-            callback.on_parameter_update(step, log_data, driver)
-
-    def on_legacy_run(self, step, log_data, driver):
-        for callback in self.callbacks:
-            callback.on_legacy_run(step, log_data, driver)
+            callback.before_parameter_update(step, log_data, driver)
 
     def on_step_end(self, step, log_data, driver):
         for callback in self.callbacks:

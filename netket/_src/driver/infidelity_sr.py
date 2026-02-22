@@ -109,7 +109,6 @@ class Infidelity_SR(AbstractVariationalDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    _dp: PyTree = struct.field(serialize=False)
     info: Any | None = None
     """
     PyTree to pass on information from the solver,e.g, the quadratic model.
@@ -259,7 +258,6 @@ class Infidelity_SR(AbstractVariationalDriver):
         self._unravel_params_fn = jax.jit(unravel_params_fn)
 
         self._old_updates: PyTree = None
-        self._dp: PyTree = None
 
         # PyTree to pass on information from the solver, e.g, the quadratic model
         self.info = None

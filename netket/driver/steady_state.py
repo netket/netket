@@ -15,12 +15,14 @@
 
 from typing import Any
 
+
 from netket.operator import Squared, AbstractSuperOperator
 from netket.vqs import MCMixedState
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
 )
+from netket.stats import Stats
 from netket.utils import struct
 from netket.jax import tree_cast
 from netket.utils.types import Optimizer, PyTree
@@ -40,7 +42,6 @@ class SteadyState(AbstractVariationalDriver):
     # Serialized state
     _old_updates: PyTree = None
     _loss_grad: PyTree = None
-    _dp: PyTree = struct.field(serialize=False)
     info: Any | None = None
 
     def __init__(
@@ -74,8 +75,6 @@ class SteadyState(AbstractVariationalDriver):
 
         self.preconditioner = preconditioner
 
-        self._dp = None
-
     def compute_loss_and_update(self):
         """
         Performs a number of VMC optimization steps.
@@ -99,7 +98,7 @@ class SteadyState(AbstractVariationalDriver):
         return self._loss_stats, self._dp
 
     @property
-    def preconditioner(self):
+    def preconditioner(self) -> PreconditionerT:
         """
         The preconditioner used to modify the gradient.
 
@@ -129,7 +128,7 @@ class SteadyState(AbstractVariationalDriver):
         self._preconditioner = val
 
     @property
-    def ldagl(self):
+    def ldagl(self) -> Stats:
         """
         Return MCMC statistics for the expectation value of observables in the
         current state of the driver.
