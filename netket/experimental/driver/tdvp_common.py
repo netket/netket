@@ -22,11 +22,11 @@ from tqdm.auto import tqdm
 
 import netket as nk
 from netket.driver import AbstractVariationalDriver
-from netket.driver.abstract_variational_driver import _to_iterable
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.utils import timing
 from netket.utils.dispatch import dispatch
+from netket.utils.iterators import to_iterable
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
 from netket.experimental.dynamics import AbstractSolver, Integrator
@@ -299,8 +299,8 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         elif out is None:
             out = ()
 
-        loggers = _to_iterable(out)
-        callbacks = _to_iterable(callback)
+        loggers = to_iterable(out)
+        callbacks = to_iterable(callback)
         callback_stop = False
 
         t_end = np.asarray(self.t + T)

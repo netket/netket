@@ -28,24 +28,13 @@ from netket import config
 from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
 from netket.utils import timing
+from netket.utils.iterators import to_iterable
 from netket.utils.types import Optimizer, PyTree
 from netket.vqs import VariationalState
 
 CallbackT = Callable[[int, dict, "AbstractVariationalDriver"], bool]
 
 T = TypeVar("T")
-
-
-def _to_iterable(maybe_iterable: T | Iterable[T]) -> tuple[T, ...]:
-    """
-    _to_iterable(maybe_iterable)
-
-    Ensure the result is iterable. If the input is not iterable, it is wrapped into a tuple.
-    """
-    if not isinstance(maybe_iterable, Iterable):
-        maybe_iterable = (maybe_iterable,)
-
-    return tuple(maybe_iterable)
 
 
 class AbstractVariationalDriver(abc.ABC):
@@ -330,8 +319,8 @@ class AbstractVariationalDriver(abc.ABC):
         elif out is None:
             out = ()
 
-        loggers = _to_iterable(out)
-        callbacks = _to_iterable(callback)
+        loggers = to_iterable(out)
+        callbacks = to_iterable(callback)
         callback_stop = False
 
         with timing.timed_scope(force=timeit) as timer:
