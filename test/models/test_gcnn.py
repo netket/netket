@@ -94,7 +94,7 @@ def test_gcnn(mode, complex_output):
         nk.optimizer.Sgd(0.1),
         variational_state=vs,
     )
-    vmc.advance(1)
+    vmc.run(1)
 
 
 def test_gcnn_mask():

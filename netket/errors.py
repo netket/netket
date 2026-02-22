@@ -1129,6 +1129,7 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
 
     def __init__(self, pytree, attribute, valid_attributes):
         pytreeT = f"{type(pytree).__module__}.{type(pytree).__name__}"
+        cls_name = type(pytree).__name__
         super().__init__(
             f"""
             Tried to assign an undeclared attribute "{attribute}" to the Pytree class "{pytreeT}" during
@@ -1139,18 +1140,17 @@ class NetKetPyTreeUndeclaredAttributeAssignmentError(AttributeError, NetketError
             This error is thrown when you try to assign an attribute to a NetKet-style Pytree ( a class that
             inherits from `nk.utils.struct.Pytree`) that was not declared in the class definition.
 
-            To fix this error, simply declare the attributes in the class definition as shown in the example below:
+            To fix this error, declare "{attribute}" in the class body of "{cls_name}".
+            If "{attribute}" is a JAX array or another Pytree (a dynamic/traced value), declare it as:
 
-                from netket.utils import struct
-                import jax
+                class {cls_name}(struct.Pytree):
+                    {attribute}: SomeType = struct.field(pytree_node=True)   # traced by JAX
 
-                class MyPytree(struct.Pytree):
-                    my_dynamic_attribute: jax.Array
-                    my_static_attribute : int = struct.field(pytree_node=False)
+            If "{attribute}" is a static value (e.g. an int, bool, or Python object that should
+            NOT be traced by JAX), declare it as:
 
-                    def __init__(self, dyn_val, static_val):
-                        self.my_dynamic_attribute = dyn_val
-                        self.my_static_attribute = static_val
+                class {cls_name}(struct.Pytree):
+                    {attribute}: SomeType = struct.field(pytree_node=False)  # not traced by JAX
 
             """
         )
@@ -1221,6 +1221,151 @@ class OperatorMultiplicationDeprecationWarning(NetketWarning):
               - With:    operator1 @ operator2
 
             The '@' operator is Python's standard matrix multiplication operator.
+            """
+        )
+
+
+class LogAdditionalDataSignatureDeprecationWarning(NetketWarning):
+    """
+    Warning issued when a driver subclass overrides ``_log_additional_data``
+    with the old two-argument signature ``(self, log_dict, step)`` instead of
+    the current one-argument signature ``(self, log_dict)``.
+
+    The ``step`` parameter was removed because the current step is always
+    accessible as ``self.step_count`` inside the method body.
+
+    NetKet will automatically wrap your old implementation so that it continues
+    to work, but you should update your code to silence this warning.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def _log_additional_data(self, log_dict: dict, step: int):
+                    log_dict["my_value"] = self.compute_something(step)
+
+        Use:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def _log_additional_data(self, log_dict: dict):
+                    log_dict["my_value"] = self.compute_something(self.step_count)
+    """
+
+    def __init__(self, cls_name: str):
+        super().__init__(
+            f"""
+            Class {cls_name!r} overrides `_log_additional_data` with the old signature
+            `(self, log_dict, step)`. The `step` argument has been removed; use
+            `self.step_count` inside the method instead.
+
+            Instead of:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def _log_additional_data(self, log_dict: dict, step: int):
+                        ...
+
+            Use:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def _log_additional_data(self, log_dict: dict):
+                        # use self.step_count instead of step
+                        ...
+            """
+        )
+
+
+class ForwardAndBackwardDeprecationWarning(NetketWarning):
+    """
+    Warning issued when a driver subclass overrides the deprecated
+    ``_forward_and_backward`` method instead of the renamed
+    ``compute_loss_and_update``.
+
+    The method ``_forward_and_backward`` has been renamed to
+    ``compute_loss_and_update`` in the new driver base class. The two methods
+    differ in their return value: the old one returned only the gradient
+    (setting ``self._loss_stats`` as a side-effect), while the new one must
+    return a ``(loss_stats, gradient)`` tuple.
+
+    NetKet will automatically wrap your old implementation so that it is
+    compatible with the new interface, but you should update your code to
+    silence this warning.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def _forward_and_backward(self):
+                    # ... compute loss and gradient ...
+                    self._loss_stats = loss
+                    return gradient
+
+        Use:
+
+        .. code-block:: python
+
+            class MyDriver(nk.driver.AbstractVariationalDriver):
+                def compute_loss_and_update(self):
+                    # ... compute loss and gradient ...
+                    return loss, gradient
+    """
+
+    def __init__(self, cls_name: str):
+        super().__init__(
+            f"""
+            Class {cls_name!r} overrides `_forward_and_backward`, which has been renamed
+            to `compute_loss_and_update`. Your code will continue to work for now, but
+            you should rename the method and update its return value to silence this warning.
+
+            Instead of:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def _forward_and_backward(self):
+                        self._loss_stats = loss  # side-effect
+                        return gradient
+
+            Use:
+
+                class {cls_name}(AbstractVariationalDriver):
+                    def compute_loss_and_update(self):
+                        return loss, gradient    # explicit tuple
+            """
+        )
+
+
+class DriverResetDeprecationWarning(NetketWarning):
+    """
+    Warning issued when calling the deprecated ``reset()`` method on a driver.
+
+    The method ``reset()`` has been split into two separate concerns:
+    - ``reset_step()`` to reset the sampler state at the start of each step.
+    - ``_step_count`` is no longer reset by default; construct a new driver if you need a fresh step count.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            driver.reset()
+
+        Use:
+
+        .. code-block:: python
+
+            driver.reset_step()
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            `driver.reset()` is deprecated. Use `driver.reset_step()` to reset the
+            sampler state at the start of a step. Note that `reset()` also reset
+            `step_count` to 0, which `reset_step()` does not do.
             """
         )
 
@@ -1296,6 +1441,60 @@ class InitializePeriodicLatticeOnSmallLatticeWarning(NetketWarning):
 #################################################
 # Sampler errors                                  #
 #################################################
+
+
+class CallbackLegacyHookError(NetketError):
+    """
+    Error raised when an :class:`~netket.callbacks.AbstractCallback` subclass defines
+    the removed hook methods ``on_legacy_run`` or ``on_parameter_update``.
+
+    These two hooks have been merged into a single hook called
+    ``before_parameter_update``.  If your callback defined only one of them,
+    rename it.  If it defined both, merge the two bodies into the single
+    ``before_parameter_update`` method — the ordering that was previously
+    enforced by having two hooks is now handled by
+    :attr:`~netket.callbacks.AbstractCallback.callback_order`.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            class MyCallback(nk.callbacks.AbstractCallback):
+                def on_legacy_run(self, step, log_data, driver):
+                    log_data["my_obs"] = driver.estimate(obs)
+
+                def on_parameter_update(self, step, log_data, driver):
+                    self._snapshot = copy.copy(driver.state)
+
+        Use:
+
+        .. code-block:: python
+
+            class MyCallback(nk.callbacks.AbstractCallback):
+                def before_parameter_update(self, step, log_data, driver):
+                    log_data["my_obs"] = driver.estimate(obs)
+                    self._snapshot = copy.copy(driver.state)
+    """
+
+    def __init__(self, cls_name: str, old_methods: list[str]):
+        methods_str = " and ".join(f"`{m}`" for m in old_methods)
+        super().__init__(
+            f"""
+            Class {cls_name!r} defines the removed callback hook {methods_str}.
+
+            These hooks have been merged into a single hook called
+            `before_parameter_update`. Please rename or merge your implementation:
+
+                class {cls_name}(AbstractCallback):
+                    def before_parameter_update(self, step, log_data, driver):
+                        ...  # combined body here
+
+            If you defined both hooks, merge their bodies into `before_parameter_update`.
+            The execution order that was previously enforced by the two-hook split is now
+            handled by `callback_order` (lower values run first).
+            """
+        )
 
 
 class NNXModuleToSamplerInput(NetketError):

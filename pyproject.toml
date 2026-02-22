@@ -142,7 +142,7 @@ command_line = "-m pytest --verbose test"
 source = ["netket"]
 
 [tool.pytest.ini_options]
-addopts = "--color=yes --verbose --durations=50 -n auto --tb=short"
+addopts = "--color=yes --verbose --durations=50 -n auto --tb=short --import-mode=importlib"
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
 markers = [
     "slow: marks tests as slow (deselected by default in CI)",

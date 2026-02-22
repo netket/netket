@@ -13,22 +13,36 @@
 # limitations under the License.
 
 
+from typing import Any
+
+
 from netket.operator import Squared, AbstractSuperOperator
 from netket.vqs import MCMixedState
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
 )
+from netket.stats import Stats
+from netket.utils import struct
 from netket.jax import tree_cast
-from netket.utils.types import Optimizer
+from netket.utils.types import Optimizer, PyTree
 
-from .abstract_variational_driver import AbstractVariationalDriver
+from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
 
 
 class SteadyState(AbstractVariationalDriver):
     """
     Steady-state driver minimizing L^†L.
     """
+
+    _lind: AbstractSuperOperator = struct.field(pytree_node=False, serialize=False)
+    _ldag_l: Squared = struct.field(pytree_node=False, serialize=False)
+    _preconditioner: PreconditionerT = struct.field(pytree_node=False, serialize=False)
+
+    # Serialized state
+    _old_updates: PyTree = None
+    _loss_grad: PyTree = None
+    info: Any | None = None
 
     def __init__(
         self,
@@ -61,11 +75,7 @@ class SteadyState(AbstractVariationalDriver):
 
         self.preconditioner = preconditioner
 
-        self._dp = None
-        self._S = None
-        self._sr_info = None
-
-    def _forward_and_backward(self):
+    def compute_loss_and_update(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -85,10 +95,10 @@ class SteadyState(AbstractVariationalDriver):
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = tree_cast(self._dp, self.state.parameters)
 
-        return self._dp
+        return self._loss_stats, self._dp
 
     @property
-    def preconditioner(self):
+    def preconditioner(self) -> PreconditionerT:
         """
         The preconditioner used to modify the gradient.
 
@@ -118,7 +128,7 @@ class SteadyState(AbstractVariationalDriver):
         self._preconditioner = val
 
     @property
-    def ldagl(self):
+    def ldagl(self) -> Stats:
         """
         Return MCMC statistics for the expectation value of observables in the
         current state of the driver.

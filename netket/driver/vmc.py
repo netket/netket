@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from typing import Any
 from textwrap import dedent
 import warnings
 
-from netket.utils import timing
+from netket.utils import timing, struct
 from netket.utils.types import PyTree, Optimizer
 from netket.operator import AbstractOperator
 from netket.stats import Stats
@@ -28,7 +28,8 @@ from netket.vqs import VariationalState
 from netket.jax import tree_cast
 from netket.errors import InsufficientSamplesForSRWarning
 
-from .abstract_variational_driver import AbstractVariationalDriver
+from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
+from netket._src.callbacks.auto_chunk_size import get_forward_operator
 
 
 class VMC(AbstractVariationalDriver):
@@ -41,6 +42,14 @@ class VMC(AbstractVariationalDriver):
         class instead of this one if you want to use Stochastic Reconfiguration.
 
     """
+
+    _ham: AbstractOperator = struct.field(pytree_node=False, serialize=False)
+    _preconditioner: PreconditionerT = struct.field(pytree_node=False, serialize=False)
+
+    # Serialized state
+    _old_updates: PyTree = None
+    _loss_grad: PyTree = None
+    info: Any | None = None
 
     def __init__(
         self,
@@ -98,9 +107,6 @@ class VMC(AbstractVariationalDriver):
                 stacklevel=2,
             )
 
-        self._dp: PyTree = None
-        self._S = None
-
     @property
     def preconditioner(self):
         """
@@ -132,7 +138,7 @@ class VMC(AbstractVariationalDriver):
         self._preconditioner = val
 
     @timing.timed
-    def _forward_and_backward(self):
+    def compute_loss_and_update(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -152,7 +158,7 @@ class VMC(AbstractVariationalDriver):
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = tree_cast(self._dp, self.state.parameters)
 
-        return self._dp
+        return self._loss_stats, self._dp
 
     @property
     def energy(self) -> Stats:
@@ -168,3 +174,8 @@ class VMC(AbstractVariationalDriver):
             + f"\n  step_count = {self.step_count},"
             + f"\n  state = {self.state})"
         )
+
+
+@get_forward_operator.dispatch
+def get_forward_operator_VMC(driver: VMC):
+    return driver._ham

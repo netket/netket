@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
@@ -39,10 +40,11 @@ class SumDiscreteJaxOperator(SumOperator, DiscreteJaxOperator):
         )
 
     def _setup(self, force: bool = False):
-        self._initialized = True
-        for op in self.operators:
-            if hasattr(op, "_setup"):
-                op._setup(force=force)
+        if force or not self._initialized:
+            self._initialized = True
+            for op in self.operators:
+                if hasattr(op, "_setup"):
+                    op._setup(force=True)
 
     @property
     def max_conn_size(self) -> int:
@@ -50,6 +52,11 @@ class SumDiscreteJaxOperator(SumOperator, DiscreteJaxOperator):
         return sum(op.max_conn_size for op in self.operators)
 
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        # Outside of a JAX transform (x is not a tracer), ensure inner operators
+        # are properly initialized. When inside jit with op as a pytree argument,
+        # tree_flatten already calls _setup() before tracing starts.
+        if not isinstance(x, jax.core.Tracer):
+            self._setup()
         x_r = x.reshape(-1, x.shape[-1])
         ys = []
         mels = []

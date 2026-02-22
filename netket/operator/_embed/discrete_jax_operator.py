@@ -15,12 +15,14 @@
 from functools import reduce
 
 import numpy as np
+import jax
 import jax.numpy as jnp
+
 from jax.experimental.sparse import BCOO, BCSR, JAXSparse
 from jax.tree_util import register_pytree_node_class
 from scipy.sparse import csr_matrix as _csr_matrix
 
-from netket.hilbert import TensorHilbert
+from netket.hilbert.tensor_hilbert_discrete import TensorDiscreteHilbert
 
 from .._discrete_operator_jax import DiscreteJaxOperator
 
@@ -28,10 +30,12 @@ from .base import EmbedOperator
 
 
 @register_pytree_node_class
-class EmbedDiscreteJaxOperator(EmbedOperator, DiscreteJaxOperator):
+class EmbedDiscreteJaxOperator(
+    EmbedOperator, DiscreteJaxOperator[TensorDiscreteHilbert]
+):
     def __init__(
         self,
-        hilbert: TensorHilbert,
+        hilbert: TensorDiscreteHilbert,
         operator: DiscreteJaxOperator,
         subspace: int,
     ):
@@ -49,7 +53,13 @@ class EmbedDiscreteJaxOperator(EmbedOperator, DiscreteJaxOperator):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         return self.operator.max_conn_size
 
+    def _setup(self, force: bool = False):
+        if hasattr(self.operator, "_setup"):
+            self.operator._setup(force=force)
+
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        if not isinstance(x, jax.core.Tracer):
+            self._setup()
         x_sub = x[
             ...,
             self.hilbert._cum_indices[self.subspace] : self.hilbert._cum_indices[

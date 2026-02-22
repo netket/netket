@@ -22,10 +22,11 @@ from jax.experimental.sparse import JAXSparse, BCOO, BCSR
 
 from netket.errors import concrete_or_error, JaxOperatorGetConnInJitError
 from netket.operator import AbstractOperator, DiscreteOperator
+from netket.operator._discrete_operator import DiscreteHilbertType
 from netket.utils.optional_deps import import_optional_dependency
 
 
-class DiscreteJaxOperator(DiscreteOperator):
+class DiscreteJaxOperator(DiscreteOperator[DiscreteHilbertType]):
     r"""Abstract base class for discrete operators that can
     be manipulated inside of jax function transformations.
 

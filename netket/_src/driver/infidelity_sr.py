@@ -17,13 +17,16 @@ from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
 from netket import stats as nkstats
 
-from netket.driver.abstract_variational_driver import (
+from netket._src.driver.abstract_variational_driver import (
     AbstractVariationalDriver,
 )
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
 from netket._src.nn.apply_operator.functional import make_logpsi_op_afun
+from netket._src.callbacks.auto_chunk_size import get_forward_operator
 from netket.experimental.observable.infidelity.expect import get_local_estimator
+from netket.experimental.observable.infidelity import InfidelityOperator
+
 
 ApplyFun = Callable[[PyTree, Array], Array]
 KernelArgs = tuple[ApplyFun, PyTree, Array, tuple[Any, ...]]
@@ -106,7 +109,6 @@ class Infidelity_SR(AbstractVariationalDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    _dp: PyTree = struct.field(serialize=False)
     info: Any | None = None
     """
     PyTree to pass on information from the solver,e.g, the quadratic model.
@@ -256,7 +258,6 @@ class Infidelity_SR(AbstractVariationalDriver):
         self._unravel_params_fn = jax.jit(unravel_params_fn)
 
         self._old_updates: PyTree = None
-        self._dp: PyTree = None
 
         # PyTree to pass on information from the solver, e.g, the quadratic model
         self.info = None
@@ -271,8 +272,7 @@ class Infidelity_SR(AbstractVariationalDriver):
             )
 
     @timing.timed
-    def _forward_and_backward(self):
-        self.state.reset()
+    def compute_loss_and_update(self):
         self.target_state.reset()
 
         samples, weights = get_samples_and_pdf(self.state)
@@ -339,10 +339,10 @@ class Infidelity_SR(AbstractVariationalDriver):
 
         self._dp = jax.tree_util.tree_map(lambda x: -x, self._dp)
 
-        return self._dp
+        return self._loss_stats, self._dp
 
     @timing.timed
-    def _log_additional_data(self, log_dict: dict, step: int):
+    def _log_additional_data(self, log_dict: dict):
         """
         Method to be implemented in sub-classes of AbstractVariationalDriver to
         log additional data at every step.
@@ -351,7 +351,6 @@ class Infidelity_SR(AbstractVariationalDriver):
         Args:
             log_dict: The dictionary containing all logged data. It must be
                 **modified in-place** adding new keys.
-            step: the current step number.
         """
         # Always log the acceptance.
         if hasattr(self.state, "sampler_state"):
@@ -432,3 +431,8 @@ class Infidelity_SR(AbstractVariationalDriver):
         if not isinstance(value, int | None):
             raise TypeError("chunk_size must be an integer or None")
         self._chunk_size_bwd = value
+
+
+@get_forward_operator.dispatch
+def get_forward_operator_InfidelitySR(driver: Infidelity_SR):
+    return InfidelityOperator(driver.target_state, operator=driver.operator)
