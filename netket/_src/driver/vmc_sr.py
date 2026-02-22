@@ -18,7 +18,7 @@ from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator, to_sparse_cached
 from netket import stats as nkstats
 
-from netket.driver.abstract_variational_driver import (
+from netket._src.driver.abstract_variational_driver_old import (
     AbstractVariationalDriver,
 )
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf

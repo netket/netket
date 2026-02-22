@@ -28,7 +28,7 @@ from netket.vqs import VariationalState
 from netket.jax import tree_cast
 from netket.errors import InsufficientSamplesForSRWarning
 
-from .abstract_variational_driver import AbstractVariationalDriver
+from netket._src.driver.abstract_variational_driver_old import AbstractVariationalDriver
 
 
 class VMC(AbstractVariationalDriver):

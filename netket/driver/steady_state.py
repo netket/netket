@@ -22,7 +22,7 @@ from netket.optimizer import (
 from netket.jax import tree_cast
 from netket.utils.types import Optimizer
 
-from .abstract_variational_driver import AbstractVariationalDriver
+from netket._src.driver.abstract_variational_driver_old import AbstractVariationalDriver
 
 
 class SteadyState(AbstractVariationalDriver):
