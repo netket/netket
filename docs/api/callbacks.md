@@ -17,4 +17,5 @@ Those callbacks can be used with the optimisation drivers.
    ConvergenceStopping
    InvalidLossStopping
    Timeout
+   BestLoss
 ```
