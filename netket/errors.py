@@ -1338,6 +1338,38 @@ class ForwardAndBackwardDeprecationWarning(NetketWarning):
         )
 
 
+class DriverResetDeprecationWarning(NetketWarning):
+    """
+    Warning issued when calling the deprecated ``reset()`` method on a driver.
+
+    The method ``reset()`` has been split into two separate concerns:
+    - ``reset_step()`` to reset the sampler state at the start of each step.
+    - ``_step_count`` is no longer reset by default; construct a new driver if you need a fresh step count.
+
+    Examples:
+        Instead of:
+
+        .. code-block:: python
+
+            driver.reset()
+
+        Use:
+
+        .. code-block:: python
+
+            driver.reset_step()
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            `driver.reset()` is deprecated. Use `driver.reset_step()` to reset the
+            sampler state at the start of a step. Note that `reset()` also reset
+            `step_count` to 0, which `reset_step()` does not do.
+            """
+        )
+
+
 #################################################
 # Functions to throw errors                     #
 #################################################

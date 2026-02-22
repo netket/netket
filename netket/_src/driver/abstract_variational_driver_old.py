@@ -168,6 +168,16 @@ class AbstractVariationalDriver(abc.ABC):
         self.state.reset()
         self._step_count = 0
 
+    def reset_step(self, hard: bool = False):
+        """
+        Resets the sampler state at the beginning of a new step.
+
+        This is a forward-compatible alias added so that code written against
+        the new :class:`AbstractVariationalDriver` API also works with drivers
+        that still inherit from the old base class (e.g. TDVP).
+        """
+        self.state.reset()
+
     @property
     def state(self):
         """

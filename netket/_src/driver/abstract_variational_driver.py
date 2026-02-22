@@ -215,6 +215,21 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
         """
         raise NotImplementedError()  # pragma: no cover
 
+    def reset(self):
+        """
+        .. deprecated::
+
+            Use :meth:`reset_step` to reset the sampler state at the beginning of a step.
+            Note that the old ``reset()`` also reset ``step_count`` to 0; this behaviour
+            is no longer supported.
+        """
+        import warnings
+        from netket.errors import DriverResetDeprecationWarning
+
+        warnings.warn(DriverResetDeprecationWarning(), stacklevel=2)
+        self.reset_step()
+        # self._step_count = 0
+
     def reset_step(self, hard: bool = False):
         """
         Resets the state of the driver at the beginning of a new step.
