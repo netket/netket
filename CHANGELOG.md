@@ -3,10 +3,17 @@
 
 # Change Log
 
-## NetKet 3.21 (In development)
+## NetKet 3.22 (In development)
+
+### Breaking Changes
+* {class}`netket.experimental.driver.Infidelity_SR` has been stabilized and moved to {class}`netket.driver.Infidelity_SR`. The old path raises a deprecation warning.
 
 ### New Features
-* {class}`netket.driver.VMC_SR` and {class}`netket.experimental.driver.Infidelity_SR` now also support {class}`netket.vqs.FullSumState` [PR #2171](https://github.com/netket/netket/pull/2171)
+
+## NetKet 3.21
+
+### New Features
+* {class}`netket.driver.VMC_SR` and {class}`netket.driver.Infidelity_SR` now also support {class}`netket.vqs.FullSumState` [PR #2171](https://github.com/netket/netket/pull/2171)
 * Introduced a set of linen/nnx modules to apply operators to a state that can be nested multiple times (see {class}`netket.nn.apply_operator.ApplyOperatorModuleLinen`, {class}`netket.nn.apply_operator.ApplyOperatorModuleNNX` that replace {meth}`netket.nn.apply_operator.make_logpsi_op_afun`). Those are used by {func}`netket.vqs.apply_operator`.
 * Implement the new variational state class {class}``netket.experimental.vqs.DeterminantVariationalState`` that uses a {class}``netket.models.Slater2nd`` model but computes expectation values, gradients and quantum geometric tensor exactly with no error [PR #2181](https://github.com/netket/netket/pull/2181).
 * It is now possible to change the ordering of a fermionic 2nd quantisation operator, and the ordering (if any) is maintained when possible.

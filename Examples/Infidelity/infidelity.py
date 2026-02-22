@@ -1,5 +1,5 @@
 import netket as nk
-import netket.experimental as nkx
+import netket.experimental as nkx  # for nkx.observable.InfidelityOperator
 import matplotlib.pyplot as plt
 
 # Hilbert space and Hamiltonian
@@ -19,7 +19,7 @@ print("Infidelity among Psi and HPhi: ", vs.expect(I_op))
 
 # Create the driver to minimize the infidelity between Psi and HPhi
 optimizer = nk.optimizer.Sgd(learning_rate=0.01)
-driver = nkx.driver.Infidelity_SR(
+driver = nk.driver.Infidelity_SR(
     vs_target,
     optimizer,
     operator=H,

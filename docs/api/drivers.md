@@ -43,12 +43,12 @@ Regarding VMC (ground-state optimization), we reccomend to use {class}`~netket.d
 ## State fitting
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.driver
 
 .. autosummary::
-   :toctree: _generated/experimental/driver
+   :toctree: _generated/driver
    :nosignatures:
 
-   experimental.driver.Infidelity_SR
+   Infidelity_SR
 
 ```

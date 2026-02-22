@@ -16,7 +16,8 @@ from netket.driver.abstract_variational_driver import AbstractVariationalDriver
 from netket.driver.vmc import VMC
 from netket.driver.steady_state import SteadyState
 
-from netket._src.driver.vmc_sr import VMC_SR
+from netket._src.driver.infidelity_sr import Infidelity_SR as Infidelity_SR
+from netket._src.driver.vmc_sr import VMC_SR as VMC_SR
 
 from netket.utils import _hide_submodules
 

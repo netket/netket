@@ -1,5 +1,4 @@
 import netket as nk
-import netket.experimental as nkx
 import jax.numpy as jnp
 
 import pytest
@@ -102,7 +101,7 @@ def test_MCState(useExactSampler, useOperator):
     diag_shift = 0.001
 
     if useOperator:
-        driver = nkx.driver.Infidelity_SR(
+        driver = nk.driver.Infidelity_SR(
             target_state=vs_target,
             optimizer=optimizer,
             diag_shift=diag_shift,
@@ -111,7 +110,7 @@ def test_MCState(useExactSampler, useOperator):
         driver.run(n_iter=200)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target)
     else:
-        driver = nkx.driver.Infidelity_SR(
+        driver = nk.driver.Infidelity_SR(
             target_state=vs_target,
             optimizer=optimizer,
             diag_shift=diag_shift,
@@ -151,7 +150,7 @@ def test_FullSumState(fullsumTarget, useOperator):
     diag_shift = 0.001
 
     if useOperator:
-        driver = nkx.driver.Infidelity_SR(
+        driver = nk.driver.Infidelity_SR(
             target_state=vs_target,
             optimizer=optimizer,
             diag_shift=diag_shift,
@@ -160,7 +159,7 @@ def test_FullSumState(fullsumTarget, useOperator):
         driver.run(n_iter=200)
         I_exact = I_exact_fun(vs.parameters, vs, vs_target)
     else:
-        driver = nkx.driver.Infidelity_SR(
+        driver = nk.driver.Infidelity_SR(
             target_state=vs_target,
             optimizer=optimizer,
             diag_shift=diag_shift,

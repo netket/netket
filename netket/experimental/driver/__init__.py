@@ -14,12 +14,12 @@
 
 from netket.experimental.driver.tdvp import TDVP
 from netket.experimental.driver.tdvp_schmitt import TDVPSchmitt
-from netket.experimental.driver.infidelity_sr import Infidelity_SR
 
 from netket._src.driver.vmc_sr import (
     VMC_SR as _VMC_SR_deprecated,
     VMC_SRt as _VMC_SRt_deprecated,
 )
+from netket._src.driver.infidelity_sr import Infidelity_SR as _InfidelitySR_deprecated
 
 _deprecations = {
     # May 2025, NetKet 3.17
@@ -33,6 +33,12 @@ _deprecations = {
         "netket.driver.VMC_SR is now stable: use it from "
         "netket.driver.VMC_SR (netket >= 3.20)",
         _VMC_SR_deprecated,
+    ),
+    # March 2026 NetKet 3.22
+    "Infidelity_SR": (
+        "netket.experimental.driver.Infidelity_SR is now stable: use it from "
+        "netket.driver.Infidelity_SR (netket >= 3.22)",
+        _InfidelitySR_deprecated,
     ),
 }
 
