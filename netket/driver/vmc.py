@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from typing import Any
 from textwrap import dedent
 import warnings
 
-from netket.utils import timing
+from netket.utils import timing, struct
 from netket.utils.types import PyTree, Optimizer
 from netket.operator import AbstractOperator
 from netket.stats import Stats
@@ -41,6 +41,15 @@ class VMC(AbstractVariationalDriver):
         class instead of this one if you want to use Stochastic Reconfiguration.
 
     """
+
+    _ham: AbstractOperator = struct.field(pytree_node=False, serialize=False)
+    _preconditioner: PreconditionerT = struct.field(pytree_node=False, serialize=False)
+
+    # Serialized state
+    _old_updates: PyTree = None
+    _loss_grad: PyTree = None
+    _dp: PyTree = struct.field(serialize=False)
+    info: Any | None = None
 
     def __init__(
         self,
@@ -99,7 +108,6 @@ class VMC(AbstractVariationalDriver):
             )
 
         self._dp: PyTree = None
-        self._S = None
 
     @property
     def preconditioner(self):
