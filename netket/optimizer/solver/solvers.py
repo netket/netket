@@ -328,7 +328,7 @@ def solve(A, b, *, assume_a="pos", x0=None):
 @reference(
     "Wiersema2026jaxmg",
     condition="If using cholesky_distributed solver",
-    message="This work used the JAXMg distributed linear solver described in Ref.",
+    message="This work used the JAXMg distributed linear solver from Ref.",
 )
 @partial_from_kwargs
 def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
@@ -342,32 +342,19 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
 
     .. note::
 
-        This solver requires the optional `jaxmg` package to be installed:
-
-        .. code-block:: bash
-
-            pip install jaxmg
-
-        If jaxmg is not installed, an ImportError will be raised.
+        This solver requires `jaxmg` package to be installed.
 
     .. note::
 
-        If you pass only keyword arguments, this solver will directly create
-        a partial capturing them.
-
-    .. note::
-
-        This solver is specifically designed for use with
-        `config.netket_experimental_sharding = True` and expects the input
-        matrix A to be sharded with `P("S", None)`.
+        This solver expects the input matrix A to be sharded
+        with `P("S", None)`.
 
         For single-device or small-scale computations, use
         :func:`~netket.optimizer.solver.cholesky` instead, which has less
         overhead. Use `cholesky_distributed` when:
 
-        - Running on multiple GPUs with sharded arrays
+        - Running on multiple GPUs with sharded arrays and >= 8k samples.
         - NTK/QGT matrix is very large and doesn't fit on a single device
-        - You need to minimize communication in distributed settings
 
     Args:
         A: the matrix A in Ax=b (should be positive definite, sharded)
@@ -479,32 +466,7 @@ def pinv_smooth_distributed(
 
     .. note::
 
-        This solver requires the optional `jaxmg` package to be installed:
-
-        .. code-block:: bash
-
-            pip install jaxmg
-
-        If jaxmg is not installed, an ImportError will be raised.
-
-    .. note::
-
-        If you pass only keyword arguments, this solver will directly create
-        a partial capturing them.
-
-    .. note::
-
-        This solver is specifically designed for use with
-        `config.netket_experimental_sharding = True` and expects the input
-        matrix A to be sharded with `P("S", None)`.
-
-        For single-device or small-scale computations, use
-        :func:`~netket.optimizer.solver.pinv_smooth` instead, which has less
-        overhead. Use `pinv_smooth_distributed` when:
-
-        - Running on multiple GPUs with sharded arrays
-        - NTK/QGT matrix is very large and doesn't fit on a single device
-        - You need to minimize communication in distributed settings
+        This solver requires `jaxmg` package to be installed.
 
     Args:
         A: the matrix A in Ax=b (should be symmetric/Hermitian, sharded)

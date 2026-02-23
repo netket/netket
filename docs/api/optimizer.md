@@ -86,10 +86,11 @@ And the following dense solvers for Stochastic Reconfiguration:
    solver.svd
 ```
 
-And the following dense solvers parallelize among multiple GPUs by making use of
-`jax_mg <https://flatironinstitute.github.io/jaxmg/>`_. They are not really much faster than
-the ones above, but allow you to use ~100k samples because they keep the NTK sharded across
-the multiple GPUs.
+(multi-gpu-solvers)=
+### Multi-GPU solvers
+
+And the following dense solvers parallelize among multiple GPUs by making use of [jax_mg](https://flatironinstitute.github.io/jaxmg/). 
+They are not really much faster than the ones above, but allow you to use ~100k samples because they keep the NTK sharded across the multiple GPUs.
 
 :::{warning}
 At the time of writing, those only work if you have a single node with many GPUs, and do not work
