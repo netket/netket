@@ -3,8 +3,7 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-from jax.api_util import argnums_partial
-
+from jax.api_util import argnums_partial, debug_info as jax_debug_info
 from jax.extend import linear_util as lu
 
 from ._utils_tree import compose
@@ -137,7 +136,12 @@ def scanmap(fun, scan_fun, argnums=0):
     """
 
     def f_(*args, **kwargs):
-        f = lu.wrap_init(fun, kwargs)
+        # We could use a functools.partial here to close over the static args,
+        # but we use JAX's argnums_partial to propagate proper debug info for
+        # tracing error messages.
+        f = lu.wrap_init(
+            fun, kwargs, debug_info=jax_debug_info("scanmap", fun, args, kwargs)
+        )
         f_partial, dyn_args = argnums_partial(
             f, argnums, args, require_static_args_hashable=False
         )
