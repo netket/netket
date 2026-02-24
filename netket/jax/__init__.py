@@ -45,7 +45,6 @@ from ._utils_random import (
     batch_choice,
 )
 
-
 from ._vjp import vjp
 from ._grad import grad, value_and_grad
 
@@ -68,7 +67,7 @@ from . import sharding
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__, ignore="sharding")
+_hide_submodules(__name__, ignore=("sharding"))
 
 # Deprecation machinery
 _deprecations = {

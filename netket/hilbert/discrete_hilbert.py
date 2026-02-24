@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Iterator
 from textwrap import dedent
 from functools import partial, reduce
 
@@ -24,7 +23,6 @@ import jax.numpy as jnp
 from equinox import error_if
 
 from netket.utils.types import Array, DType
-from netket.jax import sharding
 
 from .abstract_hilbert import AbstractHilbert
 from .index import is_indexable
@@ -157,11 +155,15 @@ class DiscreteHilbert(AbstractHilbert):
         if not self.is_indexable:
             raise RuntimeError("The hilbert space is too large to be indexed.")
 
-        numbers = jnp.asarray(numbers, dtype=np.int32)
+        if isinstance(numbers, (list, tuple)):
+            numbers = jnp.array(numbers, dtype=np.int32)
 
-        # equinox.error_if is broken under shard_map.
-        # If we are using shard map, we skip this check
-        if sharding._get_SHARD_MAP_STACK_LEVEL() == 0 and jax.device_count() == 1:
+        numbers = numbers.astype(np.int32)
+
+        # equinox.error_if would cause a global reduction to check if one of the many
+        # ranks has a sample out of bounds. This incurs into a cost, so we do the user-friendly
+        # check only if the hilbert space is not sharded.
+        if jax.typeof(numbers).sharding.is_fully_replicated:
             numbers = error_if(
                 numbers,
                 (numbers >= self.n_states).any() | (numbers < 0).any(),
@@ -231,16 +233,6 @@ class DiscreteHilbert(AbstractHilbert):
             A vector of numbers.
         """
         raise NotImplementedError
-
-    def states(self) -> Iterator[np.ndarray]:
-        r"""Returns an iterator over all valid configurations of the Hilbert space.
-        Throws an exception iff the space is not indexable.
-        Iterating over all states with this method is typically inefficient,
-        and ```all_states``` should be preferred.
-
-        """
-        for i in range(self.n_states):
-            yield self.numbers_to_states(i).reshape(-1)
 
     @partial(jax.jit, static_argnums=0)
     def all_states(self) -> Array:
