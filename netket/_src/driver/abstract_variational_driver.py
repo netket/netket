@@ -339,7 +339,13 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
         callback_list = [maybe_wrap_legacy_callback(c) for c in callbacks]
         if obs is not None:
             callback_list.append(ObservableCallback(obs, step_size))
-        callback_list.extend(LegacyLoggerWrapper(log) for log in loggers)
+        for log in loggers:
+            if isinstance(log, AbstractCallback):
+                callback_list.append(log)
+            elif isinstance(log, AbstractLog):
+                callback_list.append(LegacyLoggerWrapper(log))
+            else:
+                callback_list.append(LegacyLoggerWrapper(log))
         if show_progress:
             callback_list.append(ProgressBarCallback(n_iter))
         callbacks = CallbackList(callback_list)

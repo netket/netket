@@ -37,7 +37,7 @@ While the loggers available for simulations are the following:
    JsonLog
    StateLog
    TensorBoardLog
-
+   SaveVariationalState
 ```
 
 In the [netket.experimental](api-experimental) module there are also some experimental loggers such as the {class}`HDF5 logger <netket.experimental.logging.HDF5Log>`

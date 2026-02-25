@@ -62,10 +62,12 @@ class LegacyLoggerWrapper(AbstractCallback):
 
     def on_step_end(self, step, log_data, driver):
         self.logger(step, log_data, self._vstate)
+        self._vstate = None
 
     def on_run_end(self, step, driver):
         self.logger.flush(driver.state)
         self._vstate = None
 
     def on_run_error(self, step, error, driver):
+        self.logger.flush(driver.state)
         self._vstate = None

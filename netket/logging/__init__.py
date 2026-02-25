@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import AbstractLog
-from .runtime_log import RuntimeLog
-from .json_log import JsonLog
-from .state_log import StateLog
-from .tensorboard import TensorBoardLog
+from netket.logging.base import AbstractLog
+from netket.logging.runtime_log import RuntimeLog
+from netket.logging.json_log import JsonLog
+from netket.logging.state_log import StateLog
+from netket.logging.tensorboard import TensorBoardLog
+
+from netket._src.callbacks.save_state import (
+    SaveVariationalState as SaveVariationalState,
+)
 
 
 from netket.utils import _hide_submodules, _auto_export
