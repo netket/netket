@@ -29,7 +29,6 @@ from jax.tree_util import Partial
 import itertools
 
 from netket import jax as nkjax
-from netket import stats as nkstats
 from netket.optimizer.qgt import (
     qgt_onthefly_logic,
     qgt_jacobian_pytree,
@@ -134,7 +133,7 @@ def astype_unsafe(x, dtype):
 
 
 def tree_subtract_mean(tree):
-    return jax.tree_util.tree_map(lambda x: nkstats.subtract_mean(x, axis=0), tree)
+    return jax.tree_util.tree_map(lambda x: x - jnp.mean(x, axis=0), tree)
 
 
 def divide_by_sqrt_n_samp(oks, samples):

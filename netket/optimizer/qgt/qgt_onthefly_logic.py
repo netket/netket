@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
-from jax.tree_util import Partial
 from functools import partial
-from netket.stats import subtract_mean
+
+import jax
+import jax.numpy as jnp
+from jax.tree_util import Partial
+
 from netket.jax import tree_conj, tree_axpy
 from netket.jax import (
     scanmap,
@@ -46,7 +48,7 @@ def _mat_vec(jvp_fn, v, diag_shift, pdf=None):
     w = jvp_fn(v)
     if pdf is None:
         w = w * (1.0 / w.size)
-        w = subtract_mean(w)  # w/ JAX sharding
+        w = w - jnp.mean(w)  # w/ JAX sharding
     else:
         w = pdf * (w - pdf @ w)
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
@@ -136,7 +138,7 @@ def _Odagger_DeltaO_v(
     w = _O_jvp(forward_fn, params, model_state, samples, v, chunk_size)
     if pdf is None:
         w = w * (1.0 / samples.shape[0])
-        w = subtract_mean(w)  # w/ JAX sharding
+        w = w - jnp.mean(w)  # w/ JAX sharding
     else:
         w = pdf * (w - pdf @ w)
     res = _OH_w(forward_fn, params, model_state, samples, w, chunk_size)
