@@ -68,6 +68,7 @@ class JsonLog(RuntimeLog):
             mode: Specify the behaviour in case the file already exists at this
                 output_prefix. Options are
                 - `[w]rite`: (default) overwrites file if it already exists;
+                - `[a]ppend`: loads existing data and continues logging from the last step;
                 - `[x]` or `fail`: fails if file already exists;
             save_params: bool flag indicating whether variables of the variational state
                 should be serialized at some interval. The output file is overwritten
@@ -90,9 +91,6 @@ class JsonLog(RuntimeLog):
                 "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or"
                 "`[x]`(fail)."
             )
-
-        if mode == "append":
-            raise ValueError("Append mode is no longer supported.")
 
         file_exists = _path.exists(output_prefix + ".log") or _path.exists(
             output_prefix + ".mpack"
@@ -127,6 +125,11 @@ class JsonLog(RuntimeLog):
 
         self._flush_log_time = 0.0
         self._flush_pars_time = 0.0
+
+        if mode == "append" and _path.exists(output_prefix + ".log"):
+            _existing = RuntimeLog.deserialize(output_prefix + ".log")
+            self._data = _existing._data
+            self._old_step = _existing._old_step
 
     def __call__(self, step, item, variational_state=None):
         old_step = self._old_step

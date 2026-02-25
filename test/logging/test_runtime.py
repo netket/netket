@@ -119,6 +119,64 @@ def test_serialize(vstate, tmp_path):
     assert len(log.data["energy"]["iters"] == 11)
 
 
+@common.skipif_distributed
+def test_deserialize(tmp_path):
+    log = nk.logging.RuntimeLog()
+
+    n_steps = 10
+    for i in range(n_steps):
+        log(i, {"energy": float(i), "nested": {"val": float(i * 2)}})
+
+    log.serialize(tmp_path / "out")
+
+    # deserialize without extension (mirrors serialize behaviour)
+    log2 = nk.logging.RuntimeLog.deserialize(tmp_path / "out")
+
+    assert log2._old_step == n_steps - 1
+    assert set(log2.data.keys()) == set(log.data.keys())
+    np.testing.assert_allclose(log2.data["energy"].iters, log.data["energy"].iters)
+    np.testing.assert_allclose(log2.data["energy"].value, log.data["energy"].value)
+    np.testing.assert_allclose(
+        log2.data["nested"]["val"].value, log.data["nested"]["val"].value
+    )
+
+    # deserialize with explicit .json extension
+    log3 = nk.logging.RuntimeLog.deserialize(tmp_path / "out.json")
+    np.testing.assert_allclose(log3.data["energy"].value, log.data["energy"].value)
+    assert log3._old_step == n_steps - 1
+
+
+@common.skipif_distributed
+def test_json_log_append(tmp_path):
+    prefix = str(tmp_path / "out")
+    n_first = 5
+    n_second = 5
+
+    # First run: write mode
+    log1 = nk.logging.JsonLog(prefix, mode="write", write_every=1, save_params=False)
+    for i in range(n_first):
+        log1(i, {"energy": float(i)})
+    log1.flush()
+
+    # Second run: append mode — should load previous data and continue
+    log2 = nk.logging.JsonLog(prefix, mode="append", write_every=1, save_params=False)
+
+    assert log2._old_step == n_first - 1
+    assert len(log2.data["energy"].iters) == n_first
+
+    for i in range(n_first, n_first + n_second):
+        log2(i, {"energy": float(i)})
+    log2.flush()
+
+    # Reload and verify all steps are present
+    log3 = nk.logging.RuntimeLog.deserialize(prefix + ".log")
+    assert len(log3.data["energy"].iters) == n_first + n_second
+    np.testing.assert_allclose(log3.data["energy"].iters, np.arange(n_first + n_second))
+    np.testing.assert_allclose(
+        log3.data["energy"].value, np.arange(n_first + n_second, dtype=float)
+    )
+
+
 @common.onlyif_distributed
 def test_write_only_on_master(tmp_path):
     # Check that the logger runs everywhere but serializes only on rank 0

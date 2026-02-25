@@ -71,6 +71,48 @@ class RuntimeLog(AbstractLog):
     def flush(self, variational_state=None):
         pass
 
+    @classmethod
+    def deserialize(cls, path: str | Path) -> "RuntimeLog":
+        r"""
+        Load a :class:`~netket.logging.RuntimeLog` from a file previously serialized with
+        :py:meth:`~netket.logging.RuntimeLog.serialize`.
+
+        If the path has no extension, ``.json`` is appended, consistent with the
+        behaviour of :py:meth:`~netket.logging.RuntimeLog.serialize`.
+
+        Args:
+            path: The path of the file to load.
+
+        Returns:
+            A new :class:`~netket.logging.RuntimeLog` instance with the data from the file.
+        """
+        if isinstance(path, str):
+            path = Path(path)
+
+        if isinstance(path, Path):
+            filename = path.name
+            if not filename.endswith((".log", ".json")):
+                path = path.parent / (filename + ".json")
+
+        data = HistoryDict.from_file(path)
+
+        log = cls.__new__(cls)
+        log._data = data
+
+        # Recover _old_step from the maximum last iter across all histories
+        def _find_last_step(d):
+            last = 0
+            for val in d.values():
+                if isinstance(val, dict):
+                    last = max(last, _find_last_step(val))
+                elif hasattr(val, "iters") and len(val.iters) > 0:
+                    last = max(last, int(val.iters[-1]))
+            return last
+
+        log._old_step = _find_last_step(data._data)
+
+        return log
+
     def serialize(self, path: str | Path | IO):
         r"""
         Serialize the content of :py:attr:`~netket.logging.RuntimeLog.data` to a file.
