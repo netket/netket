@@ -22,9 +22,6 @@ import numpy as np
 from netket import jax as nkjax
 from netket.utils import config
 
-from . import mean as _mean
-from . import var as _var
-from . import total_size as _total_size
 from .mc_stats import Stats
 
 
@@ -38,17 +35,17 @@ def _get_blocks(data, block_size):
 
 def _block_variance(data, l):
     blocks = _get_blocks(data, l)
-    ts = _total_size(blocks)
+    ts = blocks.size
     if ts > 0:
-        return _var(blocks), ts
+        return jnp.var(blocks), ts
     else:
         return jnp.nan, 0
 
 
 def _batch_variance(data):
-    b_means = data.mean(axis=1)
-    ts = _total_size(b_means)
-    return _var(b_means), ts
+    b_means = jnp.mean(data, axis=1)
+    ts = b_means.size
+    return jnp.var(b_means), ts
 
 
 # this is not batch_size maybe?
@@ -96,10 +93,10 @@ def _statistics(data, batch_size):
     if data.ndim > 2:
         raise NotImplementedError("Statistics are implemented only for ndim<=2")
 
-    mean = _mean(data)
-    variance = _var(data)
+    mean = jnp.mean(data)
+    variance = jnp.var(data)
 
-    ts = _total_size(data)
+    ts = data.size
 
     bare_var = variance
 

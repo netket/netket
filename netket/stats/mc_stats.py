@@ -20,9 +20,6 @@ from jax import numpy as jnp
 
 from netket.utils import config, struct
 
-from . import mean as _mean
-from . import var as _var
-from . import total_size as _total_size
 from ._autocorr import integrated_time
 
 
@@ -187,17 +184,17 @@ def _get_blocks(data, block_size):
 
 def _block_variance(data, l):
     blocks = _get_blocks(data, l)
-    ts = _total_size(blocks)
+    ts = blocks.size
     if ts > 0:
-        return _var(blocks), ts
+        return jnp.var(blocks), ts
     else:
         return jnp.nan, 0
 
 
 def _batch_variance(data):
-    b_means = data.mean(axis=1)
-    ts = _total_size(b_means)
-    return _var(b_means), ts
+    b_means = jnp.mean(data, axis=1)
+    ts = b_means.size
+    return jnp.var(b_means), ts
 
 
 def _split_R_hat(data, W):
@@ -279,8 +276,8 @@ def _statistics(data):
     if data.ndim > 2:
         raise NotImplementedError("Statistics are implemented only for ndim<=2")
 
-    mean = _mean(data)
-    variance = _var(data)
+    mean = jnp.mean(data)
+    variance = jnp.var(data)
 
     taus = jax.vmap(integrated_time)(data)
     tau_avg = jnp.mean(taus)
