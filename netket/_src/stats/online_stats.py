@@ -613,8 +613,6 @@ def online_statistics(
             estimator = nk.stats.online_statistics(batch, estimator)
         stats = estimator.get_stats()
     """
-    if decay is not None:
-        decay = jnp.float(decay)
     print("i am compiling something")
     if old_estimator is None:
         old_estimator = OnlineStats(
