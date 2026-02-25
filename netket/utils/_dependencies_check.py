@@ -64,12 +64,12 @@ if not module_version("optax") >= (0, 2, 2):  # pragma: no cover
                """
     raise ImportError(create_msg("optax", cur_version, "0.2.2", extra))
 
-if not module_version("flax") >= (0, 10, 4):  # pragma: no cover
+if not module_version("flax") >= (0, 10, 6):  # pragma: no cover
     cur_version = version_string("flax")
     extra = """Reason: Flax is NetKet's default neural-network library. Versions before 0.5 had
                a bug and did not properly support complex numbers.
                """
-    raise ImportError(create_msg("flax", cur_version, "0.10.4", extra))
+    raise ImportError(create_msg("flax", cur_version, "0.10.6", extra))
 
 if not module_version("plum") >= (2, 4, 0):  # pragma: no cover
     raise ImportError(

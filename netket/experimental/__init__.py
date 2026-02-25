@@ -16,7 +16,6 @@ __all__ = [
     "driver",
     "dynamics",
     "geometry",
-    "sampler",
     "vqs",
     "TDVP",
     "models",
@@ -32,7 +31,6 @@ from . import hilbert
 from . import operator
 from . import driver
 from . import dynamics
-from . import sampler
 from . import vqs
 from . import logging
 from . import qsr

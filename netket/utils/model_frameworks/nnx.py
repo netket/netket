@@ -17,7 +17,6 @@ from functools import partial
 
 import sys
 
-from netket.utils.version_check import module_version
 
 from netket.utils.model_frameworks.base import ModuleFramework, framework
 
@@ -26,13 +25,8 @@ if TYPE_CHECKING:
 
 
 def _get_graphdef_type(graphdef):
-    # TODO: Once we require Jax 0.10.6 (probably once we require jax 0.7)
-    # drop this check
-    if module_version("flax") >= (0, 10, 6):
-        assert len(graphdef.nodes) > 0
-        return graphdef.nodes[0].type
-    else:
-        return graphdef.type
+    assert len(graphdef.nodes) > 0
+    return graphdef.nodes[0].type
 
 
 # expose jax-stax as a flax module
