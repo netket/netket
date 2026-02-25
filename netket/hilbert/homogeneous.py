@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable
-
 import numpy as np
 
 import jax
@@ -23,7 +21,7 @@ from equinox import error_if
 
 from netket.errors import InvalidConstraintInterface, UnhashableConstraintError
 from netket.jax import sharding
-from netket.utils import StaticRange, warn_deprecation
+from netket.utils import StaticRange
 from netket.utils.types import Array
 
 from .discrete_hilbert import DiscreteHilbert
@@ -35,43 +33,20 @@ from .index import (
 )
 
 
-def check_and_deprecate_constraint(
-    constraint,
-    constraint_fn,
-):
+def check_constraint(constraint):
     __tracebackhide__ = True
-
-    if constraint is not None and constraint_fn is not None:
-        raise ValueError(
-            "Cannot specify at the same time `constraint` and `constraint_fn`, which"
-            "has been deprecated. Please remove the latter."
-        )
-    elif constraint_fn is not None and constraint is None:
-        constraint = constraint_fn
-        warn_deprecation(
-            "The keyword argument `constraint_fn` was renamed to `constraint` and "
-            "deprecated. Moreover, you can no longer pass a function, but must specify a class "
-            "according to the documentation."
-        )
-
     if constraint is None:
-        return constraint
-
-    # now
+        return None
     if not isinstance(constraint, DiscreteHilbertConstraint):
         raise InvalidConstraintInterface()
-
-    # Check that the constraint is well behaved and is jax-friendly hashable
     try:
-        leaves, struct = jax.tree_util.tree_flatten(constraint)
+        leaves, _ = jax.tree_util.tree_flatten(constraint)
         if not len(leaves) == 0:
             raise TypeError
         hash(constraint)
         constraint == constraint
-
     except Exception as err:
         raise UnhashableConstraintError(constraint) from err
-
     return constraint
 
 
@@ -88,7 +63,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         In particular, you can override the following properties and methods:
 
-        - Do not specify the :code:`constraint_fn` keyword argument when
+        - Do not specify the :code:`constraint` keyword argument when
           calling the init method of this abstract class.
         - Override the property :py:attr:`~nk.hilbert.HomogeneousHilbert.constrained`,
           to return `True` or `False` depending on your own logic.
@@ -104,7 +79,6 @@ class HomogeneousHilbert(DiscreteHilbert):
         N: int = 1,
         *,
         constraint: DiscreteHilbertConstraint | None = None,
-        constraint_fn: Callable | None = None,
     ):
         r"""
         Constructs a new :class:`~netket.hilbert.HomogeneousHilbert` given a list of
@@ -131,7 +105,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         self._local_states = local_states
 
-        self._constraint = check_and_deprecate_constraint(constraint, constraint_fn)
+        self._constraint = check_constraint(constraint)
 
         self._hilbert_index_: HilbertIndex | None = None
 
