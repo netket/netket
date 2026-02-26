@@ -38,6 +38,7 @@ def plot_mc_convergence(
     from matplotlib.gridspec import GridSpec
 
     R = final_sweep / orig_sweep_size  # lag unit: sweeps per ACF sample
+    n_chains = stats.n_chains
 
     fig = plt.figure(figsize=(14, 8))
     gs = GridSpec(2, 3, figure=fig, hspace=0.4, wspace=0.35)
@@ -123,6 +124,8 @@ def plot_mc_convergence(
     # Background bands: green [1, 1.05], yellow [1.05, 1.1], red [1.1, ∞)
     # ------------------------------------------------------------------
     xs, ys = _get("R_hat")
+    _, sweep_sizes_rhat = _get("sweep_size")
+    xs_rhat_chain = xs * sweep_sizes_rhat / n_chains
     if not np.all(np.isnan(ys)):
         valid = ys[~np.isnan(ys)]
         data_ymax = max(float(np.max(valid)) * 1.02, 1.12)
@@ -133,7 +136,7 @@ def plot_mc_convergence(
         ax_rhat.axhspan(1.05, 1.10, alpha=0.15, color="gold", zorder=0)
         ax_rhat.axhspan(1.10, data_ymax + 10, alpha=0.15, color="salmon", zorder=0)
 
-        ax_rhat.plot(xs, ys, ".-", color="C2", zorder=3)
+        ax_rhat.plot(xs_rhat_chain, ys, ".-", color="C2", zorder=3)
         ax_rhat.axhline(1.0, color="k", linewidth=0.8, linestyle="--", zorder=2)
         ax_rhat.set_ylim(data_ymin, data_ymax)
     else:
@@ -147,7 +150,7 @@ def plot_mc_convergence(
             color="gray",
         )
     _setup_log_xaxis(ax_rhat)
-    ax_rhat.set_xlabel("Samples")
+    ax_rhat.set_xlabel("Chain length (MC steps)")
     ax_rhat.set_ylabel(r"$\hat{R}$")
     ax_rhat.set_title(r"$\hat{R}$  (Gelman-Rubin)")
 
@@ -163,13 +166,15 @@ def plot_mc_convergence(
     xs_batch, ys_batch = _get("tau_corr_batch")
     _, sweep_sizes = _get("sweep_size")
 
-    # Convert to original-sweep units
+    # Convert tau to sweep units; convert x to chain length (MC steps per chain)
     ys_acf_sw = ys_acf * sweep_sizes / orig_sweep_size
     ys_batch_sw = ys_batch * sweep_sizes / orig_sweep_size
+    xs_acf_chain = xs_acf * sweep_sizes / n_chains
+    xs_batch_chain = xs_batch * sweep_sizes / n_chains
 
     if not np.all(np.isnan(ys_acf_sw)):
         ax_tau.plot(
-            xs_acf,
+            xs_acf_chain,
             ys_acf_sw,
             ".-",
             color="C3",
@@ -177,15 +182,15 @@ def plot_mc_convergence(
         )
     if not np.all(np.isnan(ys_batch_sw)):
         ax_tau.plot(
-            xs_batch,
+            xs_batch_chain,
             ys_batch_sw,
             ".-",
             color="C4",
             label=r"$\tau_\mathrm{batch}$",
         )
     _setup_log_xaxis(ax_tau)
-    ax_tau.set_xlabel("Samples")
-    ax_tau.set_ylabel("τ (original sweeps)")
+    ax_tau.set_xlabel("Chain length (MC steps)")
+    ax_tau.set_ylabel("τ (sweeps)")
     ax_tau.set_title("Autocorrelation time")
     ax_tau.legend(fontsize="small")
 
@@ -245,7 +250,7 @@ def plot_mc_convergence(
                 label=rf"$\tau_\mathrm{{batch}}$ = {tau_batch_sweeps:.2g} sweeps",
             )
 
-        ax_acf.set_xlabel("Lag (original sweeps)")
+        ax_acf.set_xlabel("Lag (sweeps)")
         ax_acf.set_ylabel("Autocorrelation")
         ax_acf.set_title("Autocorrelation function (final)")
         ax_acf.legend(fontsize="small")
