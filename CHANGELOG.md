@@ -5,10 +5,59 @@
 
 ## NetKet 3.22 (In development)
 
-### Breaking Changes
-* {class}`netket.experimental.driver.Infidelity_SR` has been stabilized and moved to {class}`netket.driver.Infidelity_SR`. The old path raises a deprecation warning.
-
 ### New Features
+
+#### Drivers and Callbacks
+* Introduced a new structured callback system for variational drivers [PR #2198](https://github.com/netket/netket/pull/2198).
+  The new {class}`netket.callbacks.AbstractCallback` base class exposes fine-grained hooks that are called at every stage of the optimization loop:
+  `on_run_start`, `on_step_start`, `on_compute_update_start`, `on_compute_update_end`, `before_parameter_update`, `on_step_end`, `on_run_end`, and `on_run_error`.
+  Callbacks can also reject and retry a step by returning `True` from `on_compute_update_end`.
+  A `StopRun` exception can be raised inside any hook to gracefully terminate the run.
+  See the new [advanced documentation](advanced_custom_callbacks) for details and examples.
+* Added {class}`netket.callbacks.AutoChunkSize`, a callback that automatically tunes the `chunk_size` of the variational state during optimization.
+* Added {class}`netket.callbacks.AutoSlurmRequeue`, a callback that automatically requeues a Slurm job before its time limit is reached, checkpointing the current state.
+* {class}`netket.driver.VMC_SR` with `on_the_fly=True` in NTK mode has been significantly improved to reduce GPU memory consumption and to support distributed solvers [PR #2199](https://github.com/netket/netket/pull/2199).
+
+#### Operators
+* Added {class}`netket.operator.EmbedOperator`, which embeds an operator acting on a subspace into a larger {class}`~netket.hilbert.TensorHilbert` space.
+  This represents $\hat{O}_\text{embed} = \mathbb{I}_0 \otimes \cdots \otimes \hat{O}_i \otimes \cdots \otimes \mathbb{I}_N$ and is useful for constructing operators on composite systems such as coupled electron-phonon models.
+
+#### Optimizer
+* {func}`netket.optimizer.solver.pinv_smooth` now returns a dictionary with solver diagnostics (`eval_min`, `eval_max`, `rank`, `cond_number`) instead of `None` as the second return value. An optional `return_eigvals=True` flag also returns the full eigenvalue array. The `pinv` and `svd` solvers have similarly been updated to return structured info dictionaries.
+
+#### Statistics and Variational States
+* Added {func}`netket.stats.online_statistics`, an incremental statistics accumulator for streaming MCMC data.
+  It computes the mean, variance, standard error, $\hat{R}$ (Gelman-Rubin), and integrated autocorrelation time $\tau_\text{corr}$ via Geyer's initial positive sequence estimator, all in a single pass without storing the raw samples.
+  Batches of local estimators can be fed one at a time via the `old_estimator` argument, making it suitable for both post-hoc analysis and online monitoring during an optimization run.
+* Added {meth}`netket.vqs.MCState.check_mc_convergence` (experimental), a diagnostic tool that runs dedicated long Markov chains to assess whether the sampler is well-mixed at the current variational parameters.
+  It reports the Gelman-Rubin $\hat{R}$ statistic and the integrated autocorrelation time $\tau_\text{corr}$, recommends a minimum `sweep_size`, and optionally produces a diagnostic figure.
+  This is especially useful after optimization has converged, when the short chains used during training (typically 2–8 steps) are too short for reliable convergence diagnostics.
+* Added {meth}`netket.vqs.MCState.expect_to_precision` (experimental), which draws samples iteratively until the estimated standard error of $\langle O \rangle$ satisfies a user-specified absolute (`atol`) and/or relative (`rtol`) tolerance.
+  A progress bar shows the current error in real time.
+
+#### Logging
+* Added {class}`netket.logging.SaveVariationalState`, a callback that saves the variational state to disk at fixed intervals using the [`nqxpack`](https://github.com/NeuralQXLab/nqxpack) package (optional dependency).
+  Files are saved as `{root}_{step:05d}.nk` and can be reloaded with `nqxpack.load(path)`.
+* Added {meth}`netket.logging.RuntimeLog.deserialize`, a classmethod to load a previously serialized `RuntimeLog` from a `.json`/`.log` file.
+* {class}`netket.logging.JsonLog` now supports `mode="append"`, which loads existing log data and continues logging from the last recorded step.
+
+### Breaking Changes
+* Finalized removal of deprecated fermionic bindings from `netket.experimental` (deprecated since NetKet 3.12–3.13):
+  - `netket.experimental.hilbert.SpinOrbitalFermions` → use {class}`netket.hilbert.SpinOrbitalFermions`
+  - `netket.experimental.models.Slater2nd` / `MultiSlater2nd` → use {class}`netket.models.Slater2nd` / {class}`netket.models.MultiSlater2nd`
+  - `netket.experimental.operator.FermionOperator2nd` / `FermionOperator2ndJax` → use {class}`netket.operator.FermionOperator2nd` / {class}`netket.operator.FermionOperator2ndJax`
+  - `netket.experimental.operator.fermion` submodule (`destroy`, `create`, `number`, `identity`, `zero`) → use {mod}`netket.operator.fermion`
+  - `netket.experimental.sampler.MetropolisParticleExchange` → use {class}`netket.sampler.MetropolisFermionHop`
+  - `netket.experimental.sampler.rules.ParticleExchangeRule` → use {class}`netket.sampler.rules.FermionHopRule`
+* The minimum required version of `flax` has been bumped from 0.10.4 to **0.10.6**.
+* The deprecated `constraint_fn` keyword argument of {class}`netket.hilbert.HomogeneousHilbert` (and all subclasses such as {class}`netket.hilbert.Spin`, {class}`netket.hilbert.Fock`, etc.) has been removed. Use `constraint` instead.
+
+### Deprecations
+* {class}`netket.experimental.driver.Infidelity_SR` has been stabilized and moved to {class}`netket.driver.Infidelity_SR`. The old path raises a deprecation warning.
+* `netket.stats.mean`, `netket.stats.var`, `netket.stats.sum`, `netket.stats.subtract_mean`, and `netket.stats.total_size` are deprecated and will be removed in a future release. Use `jnp.mean`, `jnp.var`, `jnp.sum`, and array `.size` directly instead.
+
+### Bug Fixes
+* Fixed a bug where constructing a {class}`netket.operator.PauliStringsJax` with zero terms would crash. Empty operators now correctly return zero-sized connected elements.
 
 ## NetKet 3.21
 

@@ -137,6 +137,7 @@ Operators of different types, but acting on the same Hilbert space, can be combi
 
    SumOperator
    ProductOperator
+   EmbedOperator
 ```
 
 

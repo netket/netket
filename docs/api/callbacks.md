@@ -34,4 +34,5 @@ For a detailed description of the run loop and all available callback hooks, see
    InvalidLossStopping
    Timeout
    AutoChunkSize
+   AutoSlurmRequeue
 ```
