@@ -27,15 +27,26 @@ from netket._src.operator.particle_number_conserving_fermionic.operators import 
     ParticleNumberConservingFermioperator2nd,
     ParticleNumberAndSpinConservingFermioperator2nd,
 )
-from netket._src.operator.particle_number_conserving_fermionic.fermihubbard import (
-    FermiHubbardJax,
-)
 
 from netket.experimental.operator import pyscf as pyscf
 
+from netket._src.operator.particle_number_conserving_fermionic.fermihubbard import (
+    FermiHubbardJax as _deprecated_FermiHubbardJax,
+)
 
+_deprecations = {
+    # March 2026, NetKet 3.21
+    "FermiHubbardJax": (
+        "netket.experimental.operator.FermiHubbardJax is now stable: use "
+        "netket.operator.FermiHubbardJax",
+        _deprecated_FermiHubbardJax,
+    ),
+}
+
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _auto_export
 
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _auto_export(__name__)
 
-del _auto_export
+del _deprecation_getattr, _auto_export

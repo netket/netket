@@ -37,6 +37,9 @@ from ._fermion2nd import (
     FermionOperator2ndJax,
     FermionOperator2ndNumba,
 )
+from netket._src.operator.particle_number_conserving_fermionic.fermihubbard import (
+    FermiHubbardJax as FermiHubbardJax,
+)
 
 from ._sum import SumOperator
 from ._prod import ProductOperator
