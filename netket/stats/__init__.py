@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from netket.stats.mc_stats import statistics, Stats
-
+from netket._src.stats.online_stats import (
+    online_statistics,
+)
 
 from netket.stats.mpi_stats import (
     subtract_mean as _deprecated_subtract_mean,

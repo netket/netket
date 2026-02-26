@@ -57,7 +57,7 @@ ham = nkx.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermiono
 )
 # we see that ham.max_conn_size << ham_generic.max_conn_size
 # alternatively we can directly construct it with the provided operator
-# ham = nkx.operator.FermiHubbardJax(hi, t=t, U=U, graph=g)
+# ham = nk.operator.FermiHubbardJax(hi, t=t, U=U, graph=g)
 
 # metropolis exchange moves fermions around according to a graph
 # the physical graph has LxL vertices, but the computational basis defined by the

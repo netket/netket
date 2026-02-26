@@ -21,6 +21,7 @@ from netket import stats as nkstats
 from netket._src.driver.abstract_variational_driver import (
     AbstractVariationalDriver,
 )
+from netket._src.stats.online_stats import OnlineStats
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
@@ -231,6 +232,16 @@ class VMC_SR(AbstractVariationalDriver):
     _on_the_fly: bool = struct.field(serialize=False)
     _linear_solver: Any = struct.field(serialize=False)
 
+    # Internal, experimental mcmc diagnostics for sampling convergence
+    _loss_stats_online: OnlineStats | None
+    _mcmc_convergence_diagnostics_ema_window: int = struct.field(
+        serialize=False, default=50
+    )
+    # The exponential moving average window (in iterations) across which we compute the
+    # Autocorrelation function to estimate the correlation time and R_hat. This allows for
+    # estimation of those sampling convergence indicators even when at every iterations we have
+    # short chains that cannot be reliably used to estimate Rhat and tau_corr.
+
     # Internal things cached
     _unravel_params_fn: Any = struct.field(serialize=False)
 
@@ -342,7 +353,10 @@ class VMC_SR(AbstractVariationalDriver):
             use_ntk = False
         if use_ntk is None:
             use_ntk = variational_state.n_parameters > variational_state.n_samples
-            print("Automatic SR implementation choice: ", "NTK" if use_ntk else "QGT")
+            if jax.process_index() == 0:
+                print(
+                    "Automatic SR implementation choice: ", "NTK" if use_ntk else "QGT"
+                )
 
         if on_the_fly is None:
             if use_ntk:
@@ -406,6 +420,19 @@ class VMC_SR(AbstractVariationalDriver):
                 "Hybrid structures are not yet supported (but we would welcome contributions. Get in touch with us!)"
             )
 
+        # stats
+        self._loss_stats = None
+        self._loss_stats_online = None
+
+        decay = self._mcmc_convergence_diagnostics_ema_decay
+        if jax.process_index() == 0 and decay is not None:
+            print(
+                f"online_statistics: "
+                f"chain_length={self.state.chain_length}, "
+                f"exponential moving average window: {self._mcmc_convergence_diagnostics_ema_window}, "
+                f"decay={decay:.3f}"
+            )
+
     @timing.timed
     def compute_loss_and_update(self):
         # Compute the local energy estimator and average Energy
@@ -426,6 +453,17 @@ class VMC_SR(AbstractVariationalDriver):
         else:
             local_energies = self.state.local_estimators(self._ham)
             self._loss_stats = nkstats.statistics(local_energies)
+
+            # Experimental: compute some single-pass diagnostics by averaging
+            # across different MCMC iterations with an exponential moving average.
+            decay = self._mcmc_convergence_diagnostics_ema_decay
+            if decay is not None:
+                self._loss_stats_online = nkstats.online_statistics(
+                    local_energies,
+                    old_estimator=self._loss_stats_online,
+                    decay=decay,
+                    max_lag=32,
+                )
 
         # Extract the hyperparameters which might be iteration dependent
         diag_shift = self.diag_shift
@@ -490,6 +528,34 @@ class VMC_SR(AbstractVariationalDriver):
         # Log the quadratic model if requested.
         if self.info is not None:
             log_dict["info"] = self.info
+
+        if self._loss_stats_online is not None:
+            loss_name_ema = self._loss_name + "_ema"
+            log_dict[loss_name_ema] = self._loss_stats_online
+
+    @property
+    def _mcmc_convergence_diagnostics_ema_decay(self) -> float | None:
+        """The decay used for the exponential moving average decay rate
+        (in units of iterations) used to estimate some convergence estimators
+        on the loss.
+
+        It's computed in order to ensure that in the ema window there are at least
+        ``self._mcmc_convergence_diagnostics_ema_window`` samples per chain.
+
+        """
+        if not hasattr(self.state, "sampler"):
+            return None
+        if self.state.chain_length >= self._mcmc_convergence_diagnostics_ema_window:
+            return None
+        return max(
+            0.5,
+            min(
+                0.99,
+                1.0
+                - self.state.chain_length
+                / self._mcmc_convergence_diagnostics_ema_window,
+            ),
+        )
 
     @property
     def mode(self) -> JacobianMode:

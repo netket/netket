@@ -17,6 +17,7 @@ pytree
 :maxdepth: 1
 
 varstate
+mc_convergence
 drivers
 sr
 superop

@@ -4,6 +4,8 @@ import jax.numpy as jnp
 from netket.experimental.operator import (
     ParticleNumberConservingFermioperator2nd,
     ParticleNumberAndSpinConservingFermioperator2nd,
+)
+from netket.operator import (
     FermionOperator2nd,
     FermiHubbardJax,
 )

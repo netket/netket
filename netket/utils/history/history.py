@@ -293,7 +293,9 @@ class History:
         if attr in self._value_dict:
             return self._value_dict[attr]
 
-        raise AttributeError
+        raise AttributeError(
+            f"History object has no attribute {attr}. Available keys are {self.keys()}."
+        )
 
     def __repr__(self):
         if len(self.iters) < 5:

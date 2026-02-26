@@ -110,7 +110,7 @@ The following models are experimental, meaning that we could change them at some
 The following models are for 2nd-quantisation fermionic hilbert spaces ({class}`~netket.experimental.hilbert.SpinOrbitalFermions`).
 
 ```{eval-rst}
-.. currentmodule:: netket.experimental.models
+.. currentmodule:: netket.models
 
 ```
 

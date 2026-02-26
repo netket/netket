@@ -27,6 +27,7 @@ TIPS = [
     r"If timeit=True signals high \% spent sampling n_discarded, consider lowering it.",
     # Operators
     "Avoid LocalOperator with have N-body operators (N>4). PauliStrings is ok.",
+    "ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(op) is FASTER!",
     # Loggers
     "You can load logged data with nk.utils.history.HistoryDict.from_file(data.log).",
     "You can plot data with JsonLog.data['Energy'][:-30].plot().",

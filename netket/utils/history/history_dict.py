@@ -141,6 +141,27 @@ class HistoryDict:
         """
         return {k: self.__getitem__(k, wrap_dicts=False) for k in self._data.keys()}
 
+    def push(self, value, step: int) -> "HistoryDict":
+        """
+        Accumulate a new data point into this HistoryDict.
+
+        Updates the history by appending the values in ``value`` at the given
+        ``step``. Keys present in ``value`` but not yet in this HistoryDict are
+        added automatically; keys present in this HistoryDict but absent from
+        ``value`` are left unchanged (sparse logging is supported).
+
+        Args:
+            value: A (nested) dictionary whose leaves are the new scalar or
+                array values to record.
+            step: The iteration index associated with this data point.
+
+        Returns:
+            An updated :class:`HistoryDict` with the new data appended.
+        """
+        from netket.utils.history import accum_histories_in_tree
+
+        return accum_histories_in_tree(self, value, step=step)
+
     @classmethod
     def from_file(cls, fname: str) -> Self:
         """

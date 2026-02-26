@@ -767,6 +767,142 @@ class MCState(VariationalState):
             chunk_size=self.chunk_size,
         )
 
+    def check_mc_convergence(
+        self,
+        op: AbstractOperator,
+        *,
+        min_chain_length: int = 50,
+        max_chain_length: int = 500,
+        plot: bool = False,
+    ):
+        r"""Diagnose whether the sampler's sweep size produces decorrelated samples and whether the chains are stationary (thermalized).
+
+        .. warning::
+            **Experimental functionality.** This method is subject to change
+            without notice in future NetKet releases.
+            If you find it useful (or not!), please let us know with a
+            👍 / 👎 on `GitHub <https://github.com/netket/netket>`_
+            or on `Slack <https://netket.readthedocs.io/en/latest/community.html>`_.
+
+        This routine temporarily runs the sampler at unit sweep size (one raw
+        MC step per exposed sample) and estimates the integrated autocorrelation
+        time :math:`\tau_\text{corr}` of the local estimators of ``op`` via an
+        online Geyer IPS estimator.  It reports whether the current
+        :attr:`~netket.vqs.MCState.sweep_size` is sufficient to make consecutive
+        samples effectively independent (i.e. :math:`\tau_\text{corr}` expressed
+        in sweep units is less than 1).
+
+        When the autocorrelation window saturates — meaning the chains are still
+        too short to see the full ACF tail — the internal sweep size is doubled
+        adaptively, until convergence or until ``max_chain_length`` samples per
+        chain are reached.
+
+        The original state is **never mutated**: all sampling is done on a
+        shallow copy.
+
+        Args:
+            op: The operator whose local estimators are used to probe
+                correlations (typically the Hamiltonian).
+            min_chain_length: Minimum number of samples per chain to accumulate
+                before the convergence criterion is evaluated.
+            max_chain_length: Hard upper limit on samples per chain.  The
+                procedure stops unconditionally once this many samples have been
+                drawn, even if convergence has not been reached.
+            plot: If ``True``, display a diagnostic figure showing the
+                evolution of the mean, autocorrelation time, and :math:`\hat R`
+                across iterations.
+
+        Returns:
+            A tuple ``(stats, hist_data)`` where ``stats`` is the final
+            :class:`~netket.stats.OnlineStatistics` accumulator and
+            ``hist_data`` is a :class:`~netket.utils.history.HistoryDict`
+            recording the evolution of key diagnostics as the number of samples
+            is increased.
+
+        See Also:
+            :func:`netket._src.vqs.check_mc_convergence.check_mc_convergence`
+        """
+        from netket._src.vqs.check_mc_convergence import check_mc_convergence
+
+        return check_mc_convergence(
+            self,
+            op,
+            min_chain_length=min_chain_length,
+            max_chain_length=max_chain_length,
+            plot=plot,
+        )
+
+    def expect_to_precision(
+        self,
+        op: AbstractOperator,
+        *,
+        atol: float | None = None,
+        rtol: float | None = None,
+        max_iter: int = 10_000,
+        max_lag: int = 64,
+        verbose: bool = True,
+    ):
+        r"""Sample until the standard error of :math:`\langle O \rangle` meets the requested tolerance.
+
+        .. warning::
+            **Experimental functionality.** This method is subject to change
+            without notice in future NetKet releases.
+            If you find it useful (or not!), please let us know with a
+            👍 / 👎 on `GitHub <https://github.com/netket/netket>`_
+            or on `Slack <https://netket.readthedocs.io/en/latest/community.html>`_.
+
+        Iteratively draws new batches of samples and updates an online
+        statistics accumulator until the estimated standard error of the mean
+        satisfies the requested absolute and/or relative tolerance, or until
+        ``max_iter`` iterations are exhausted.  A progress bar is shown by
+        default.
+
+        At least one of ``atol`` or ``rtol`` must be provided.  If both are
+        given, sampling continues until *both* are simultaneously satisfied.
+
+        Unlike :meth:`expect`, this method modifies the state's sampler in
+        place (new samples are drawn on ``self`` directly), so the sampler
+        state is advanced as a side effect.
+
+        Args:
+            op: The operator :math:`O` whose expectation value
+                :math:`\langle O \rangle` is estimated.
+            atol: Desired absolute standard error of the mean.  Sampling stops
+                when ``error_of_mean ≤ atol``.
+            rtol: Desired relative standard error of the mean.  Sampling stops
+                when ``error_of_mean / |mean| ≤ rtol``.
+            max_iter: Maximum number of sampling iterations before stopping
+                unconditionally.
+            max_lag: Maximum lag used by the online autocorrelation estimator.
+            verbose: If ``True`` (default), display a :mod:`tqdm` progress bar
+                showing the current error and tolerances.
+
+        Returns:
+            The final :class:`~netket.stats.OnlineStatistics` accumulator.
+            Call ``.get_stats()`` on it to obtain a standard
+            :class:`~netket.stats.Stats` object with mean, variance, and
+            error of the mean.
+
+        Raises:
+            ValueError: If neither ``atol`` nor ``rtol`` is provided, or if
+                the sampler is not a
+                :class:`~netket.sampler.MetropolisSampler`.
+
+        See Also:
+            :func:`netket._src.vqs.check_mc_convergence.expect_to_precision`
+        """
+        from netket._src.vqs.check_mc_convergence import expect_to_precision
+
+        return expect_to_precision(
+            self,
+            op,
+            atol=atol,
+            rtol=rtol,
+            max_iter=max_iter,
+            max_lag=max_lag,
+            verbose=verbose,
+        )
+
     def __repr__(self):
         return (
             "MCState("
