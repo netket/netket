@@ -4,7 +4,9 @@ from typing import cast
 import copy
 import math
 
+import jax
 import jax.numpy as jnp
+from tqdm.auto import tqdm
 
 from netket.vqs.mc import MCState
 from netket.sampler import MetropolisSampler
@@ -15,14 +17,15 @@ from netket._src.stats.online_stats import (
     expand_max_lag,
     thin_acf_by_2,
 )
+from netket.utils.history import HistoryDict
 
 
 def check_mc_convergence(
     state_: MCState,
     op: AbstractOperator,
-    chain_length: int = 1000,
+    min_chain_length: int = 50,
     plot: bool = False,
-    max_iter: int = 2000,
+    max_chain_length: int = 500,
 ) -> list[bool]:
     if not isinstance(state_.sampler, MetropolisSampler):
         raise ValueError("check_mc_convergence only works for MetropolisSampler.")
@@ -38,57 +41,131 @@ def check_mc_convergence(
     sampler_state = state.sampler_state
     state.sampler = sampler.replace(sweep_size=1)
     state.sampler_state = sampler_state
-    print("sweep size", state.sampler.sweep_size)
+
+    _is_rank0 = jax.process_index() == 0
+
+    # Derive iteration bounds from chain-length units.
+    _chain_length = state.chain_length
+    min_iters = math.ceil(min_chain_length / _chain_length)
+    max_iters = max_chain_length // _chain_length
 
     state.sample()
     O_loc = state.local_estimators(op)
     stats = online_statistics(O_loc, max_lag=max_lag)
     iter = 0
-    while acf_window_saturated(stats) or not tau_corr_reliable(stats):
-        state.sample()
-        O_loc = state.local_estimators(op)
-        stats = online_statistics(O_loc, old_estimator=stats)
-        print(
-            f"{iter} - Operator {op}: stats={stats}, tau_corr={stats.tau_corr}, tau_corr_acf={stats.tau_corr_acf}"
-        )
-        print(
-            f"\t\t\t\t - acf_window_saturated={acf_window_saturated(stats)}, tau_corr_relaiable={tau_corr_reliable(stats)}"
-        )
-        if acf_window_saturated(stats):
-            new_sweep = state.sampler.sweep_size * 2
-            print(
-                f"\t\t\t\t - ACF window saturated: doubling sweep size to {new_sweep}"
+    hist_data = HistoryDict()
+
+    with tqdm(
+        desc="MC convergence",
+        total=max_chain_length,
+        initial=_chain_length,
+        unit=" spl/chain",
+        leave=True,
+        disable=not _is_rank0,
+    ) as pbar:
+        while (
+            iter < min_iters
+            or acf_window_saturated(stats)
+            or not tau_corr_reliable(stats)
+        ):
+            state.sample()
+            O_loc = state.local_estimators(op)
+            stats = online_statistics(O_loc, old_estimator=stats)
+            _s = stats.get_stats()
+            hist_data = hist_data.push(
+                {
+                    "mean": stats.mean,
+                    "error_of_mean": _s.error_of_mean,
+                    "variance": stats.variance,
+                    "R_hat": stats.R_hat,
+                    "tau_corr_acf": stats.tau_corr_acf,
+                    "tau_corr_batch": stats.tau_corr_batch,
+                    "sweep_size": state.sampler.sweep_size,
+                },
+                step=stats._n_samples_total,
             )
-            # Re-index ACF accumulators for the coarser sample rate, then
-            # restore the original window width for the new lags.
-            old_max_lag = stats.max_lag
-            stats = thin_acf_by_2(stats)
-            stats = expand_max_lag(stats, old_max_lag)
-            state.sampler = state.sampler.replace(sweep_size=new_sweep)
-            state.sampler_state = sampler_state
-        iter += 1
 
-        if iter > max_iter:
-            print(f"Reached maximum number of iterations ({max_iter}). Stopping.")
-            break
+            # Always compose postfix dict (touches JAX arrays on all ranks).
+            saturated = acf_window_saturated(stats)
+            postfix = {
+                "sweep": state.sampler.sweep_size,
+                "mean": f"{stats.mean:.4g}",
+                "tau": f"{stats.tau_corr_acf:.3g}",
+                "R_hat": f"{stats.R_hat:.4f}",
+                "sat": saturated,
+            }
+            pbar.set_postfix(postfix)
+            pbar.update(_chain_length)
 
-    print("Final stats:", stats)
-    print("Performed calculation with sweep size: ", state.sampler.sweep_size)
-    print("Correlation time estimate:", stats.tau_corr_acf)
-    print("")
-    R = state.sampler.sweep_size / orig_sweep_size
-    print("Effective correlation time:", stats.tau_corr_acf * R)
-    print(
-        "\t (For tau<1 you could reduce the sweep size to get more effective samples.)"
+            if saturated:
+                new_sweep = state.sampler.sweep_size * 2
+                # Compose on all ranks; only rank 0 writes.
+                msg = f"  [iter {iter}] ACF window saturated — doubling sweep size to {new_sweep}"
+                if _is_rank0:
+                    pbar.write(msg)
+                # Re-index ACF accumulators for the coarser sample rate, then
+                # restore the original window width for the new lags.
+                old_max_lag = stats.max_lag
+                stats = thin_acf_by_2(stats)
+                stats = expand_max_lag(stats, old_max_lag)
+                state.sampler = state.sampler.replace(sweep_size=new_sweep)
+                state.sampler_state = sampler_state
+            iter += 1
+
+            if iter >= max_iters:
+                msg = f"  Reached maximum chain length ({max_chain_length} samples/chain). Stopping."
+                if _is_rank0:
+                    pbar.write(msg)
+                break
+
+    # Always compute derived quantities on all ranks (avoids deadlocks).
+    # tau_corr_acf is in units of (final_sweep_size MC steps); rescale to raw steps.
+    final_sweep = state.sampler.sweep_size
+    tau_acf = stats.tau_corr_acf
+    tau_mc_steps = tau_acf * final_sweep  # correlation time in raw MC steps
+    tau_sweeps = (
+        tau_mc_steps / orig_sweep_size
+    )  # correlation time in user's sweep units
+    min_sweep_size = 2.0 * tau_mc_steps  # recommended minimum MCState.sweep_size
+
+    good = tau_sweeps < 1.0
+    sweep_emoji = "✅" if good else "❌"
+    summary = (
+        f"\n"
+        f"---- MC Convergence Results ----\n"
+        f"  Final statistics         : {stats}\n"
+        f"\n"
+        f"  τ_corr (MC steps)        : {tau_mc_steps:.3g}"
+        + (
+            f"  [τ_acf={tau_acf:.3g} × internal sweep_size={final_sweep}]\n"
+            if final_sweep > 1
+            else "\n"
+        )
+        + f"\n"
+        f"  MCState.sweep_size       : {orig_sweep_size}\n"
+        f"  τ_corr (MC sweeps)       : {tau_sweeps:.3g}  {sweep_emoji}"
+        f"  {'(< 1 sweep — good)' if good else '(≥ 1 sweep — consider increasing sweep_size)'}\n"
+        f"\n"
+        f"  Minimum sweep_size       : ~{min_sweep_size:.1f}  (= 2 × τ_corr in MC steps)\n"
+        f"\n"
+        f"  In NQS, keep sweep_size ≥ 2τ (MC steps) so that consecutive samples\n"
+        f"  are effectively independent and all samples carry useful information.\n"
+        f"--------------------------------"
     )
+    if _is_rank0:
+        print(summary)
     if plot:
+        from netket._src.vqs.plot_mc_convergence import plot_mc_convergence
         import matplotlib.pyplot as plt
 
-        acf = stats.acf
-        x = jnp.arange(len(acf)) * R
-        plt.plot(x, acf)
+        plot_mc_convergence(
+            stats,
+            hist_data,
+            orig_sweep_size=orig_sweep_size,
+            final_sweep=final_sweep,
+        )
         plt.show()
-    return stats
+    return stats, hist_data
 
 
 def acf_window_saturated(estimator) -> bool:
@@ -123,72 +200,104 @@ def tau_corr_reliable(estimator) -> bool:
     return (n_per_chain / tau) >= 50
 
 
-def sample_until_error_of_mean(
+def expect_to_precision(
     state: MCState,
     op: AbstractOperator,
     *,
-    target_error: float,
+    atol: float | None = None,
+    rtol: float | None = None,
     max_iter: int = 10_000,
     max_lag: int = 64,
     verbose: bool = True,
 ):
     """
-    Sample until the estimated standard error of the mean falls below
-    `target_error`.
+    Sample until the estimated standard error of the mean meets the requested
+    tolerance(s).
 
     This uses NetKet's online_statistics to update estimates incrementally.
 
-    Parameters
-    ----------
-    state : MCState
-    op : AbstractOperator
-    target_error : float
-        Desired absolute standard error.
-    max_iter : int
-        Maximum number of sampling iterations.
-    max_lag : int
-        Max lag used for autocorrelation estimation.
-    """
+    At least one of ``atol`` or ``rtol`` must be specified. If both are given,
+    sampling continues until *both* tolerances are satisfied simultaneously.
 
-    if target_error <= 0:
-        raise ValueError("target_error must be > 0.")
+    Args:
+        state: The MC state to sample from.
+        op: The operator whose expectation value is estimated.
+        atol: Desired absolute standard error of the mean. Sampling stops when
+            ``error_of_mean <= atol``.
+        rtol: Desired relative standard error of the mean. Sampling stops when
+            ``error_of_mean / |mean| <= rtol``.
+        max_iter: Maximum number of sampling iterations.
+        max_lag: Max lag used for autocorrelation estimation.
+        verbose: Whether to show a progress bar.
+    """
+    if atol is None and rtol is None:
+        raise ValueError("At least one of 'atol' or 'rtol' must be specified.")
+    if atol is not None and atol <= 0:
+        raise ValueError("atol must be > 0.")
+    if rtol is not None and rtol <= 0:
+        raise ValueError("rtol must be > 0.")
     if not isinstance(state.sampler, MetropolisSampler):
         raise ValueError("Only works with MetropolisSampler.")
+
+    _is_rank0 = jax.process_index() == 0
+
+    def _not_converged(stats) -> bool:
+        s = stats.get_stats()
+        err = s.error_of_mean
+        mean = s.mean
+        if atol is not None and err > atol:
+            return True
+        if rtol is not None and err / abs(mean) > rtol:
+            return True
+        return False
+
+    def _postfix(stats) -> dict:
+        s = stats.get_stats()
+        err = s.error_of_mean
+        mean = s.mean
+        d = {"err": f"{err:.4g}"}
+        if atol is not None:
+            d["atol"] = f"{atol:.4g}"
+        if rtol is not None:
+            d["rel_err"] = f"{err / abs(mean):.4g}"
+            d["rtol"] = f"{rtol:.4g}"
+        return d
 
     # initialize statistics from first batch
     state.sample()
     O_loc = state.local_estimators(op)
     stats = online_statistics(O_loc, max_lag=max_lag)
 
-    def _scalar(x):
-        return float(jnp.asarray(x))
-
-    err = _scalar(stats.get_stats().error_of_mean)
-
-    if verbose:
-        print(f"[init] error = {err:g}")
-
     it = 0
-    while err > target_error and it < max_iter:
-        print("estimating")
-        state.sample()
-        O_loc = state.local_estimators(op)
-        O_loc.block_until_ready()
-        print("oloc")
-        stats = online_statistics(O_loc, old_estimator=stats)
-        print("done")
+    with tqdm(
+        total=max_iter,
+        desc="Sampling",
+        unit="iter",
+        disable=not verbose or not _is_rank0,
+    ) as pbar:
+        pbar.set_postfix(_postfix(stats))
+        try:
+            while _not_converged(stats) and it < max_iter:
+                state.sample()
+                O_loc = state.local_estimators(op)
+                O_loc.block_until_ready()
+                stats = online_statistics(O_loc, old_estimator=stats)
 
-        err = _scalar(stats.get_stats().error_of_mean)
+                pbar.set_postfix(_postfix(stats))
+                pbar.update(1)
+                it += 1
+        except KeyboardInterrupt:
+            if _is_rank0:
+                pbar.write("  Early termination requested by user.")
 
-        if verbose:
-            print(f"[{it:05d}] error = {err:g}  (target {target_error:g})")
-
-        it += 1
-
-    if it >= max_iter:
-        print("Reached max_iter before target error.")
-
-    if verbose:
-        print(f"[done] error = {err:g}")
+        # Compose messages on all ranks; only rank 0 writes.
+        if it >= max_iter:
+            msg = "  Reached max_iter before target precision."
+            if _is_rank0:
+                pbar.write(msg)
+        s = stats.get_stats()
+        msg = f"  [done] error = {s.error_of_mean:g}"
+        if _is_rank0:
+            pbar.write(msg)
 
     return stats
