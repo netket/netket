@@ -18,7 +18,8 @@ import numpy as np
 import pytest
 
 import netket as nk
-from netket.stats import statistics, OnlineStats, online_statistics, expand_max_lag
+from netket.stats import statistics, online_statistics
+from netket._src.stats.online_stats import OnlineStats, expand_max_lag
 
 from .. import common
 
