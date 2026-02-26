@@ -15,4 +15,5 @@ Monte Carlo statistics functions.
    :nosignatures:
 
    statistics
+   online_statistics
 ```
