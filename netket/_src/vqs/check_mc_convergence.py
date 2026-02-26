@@ -134,7 +134,7 @@ def check_mc_convergence(
             or acf_window_saturated(stats)
             or not tau_corr_reliable(stats)
         ):
-            state.sample()
+            state.sample(n_discard_per_chain=0)
             O_loc = state.local_estimators(op)
             stats = online_statistics(O_loc, old_estimator=stats)
             _s = stats.get_stats()
@@ -344,7 +344,7 @@ def expect_to_precision(
         pbar.set_postfix(_postfix(stats))
         try:
             while _not_converged(stats) and it < max_iter:
-                state.sample()
+                state.sample(n_discard_per_chain=0)
                 O_loc = state.local_estimators(op)
                 O_loc.block_until_ready()
                 stats = online_statistics(O_loc, old_estimator=stats)
