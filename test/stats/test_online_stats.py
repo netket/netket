@@ -179,13 +179,13 @@ def test_decay_forgets_old():
     ), f"mean={est.mean} should be near 10 with strong decay"
 
 
-# --- Test 7: tau_corr is NaN with decay ---
+# --- Test 7: tau_corr is finite with decay ---
 
 
 def test_tau_corr_nan_with_decay():
     data = make_data(n_chains=8, n_samples=100)
     est = online_statistics(data, decay=0.99)
-    assert math.isnan(est.tau_corr), "tau_corr should be NaN when decay < 1.0"
+    assert math.isfinite(est.tau_corr), "tau_corr should be finite when decay < 1.0"
 
 
 # --- Test 8: Complex data ---
@@ -255,13 +255,14 @@ def test_tau_corr_acf_stable_across_chains():
     ), f"tau_corr_acf varies too much with n_chains: {taus}"
 
 
-# --- Test 15: ACF is None when max_lag=0 or decay != 1 ---
+# --- Test 15: ACF is None when max_lag=0; with decay it is still computed ---
 
 
 def test_acf_none_cases():
     data = make_data(n_chains=4, n_samples=100)
     assert online_statistics(data, max_lag=0).acf is None
-    assert online_statistics(data, decay=0.9).acf is None
+    # With decay, the ACF is still computed (EMA-weighted); it is not None.
+    assert online_statistics(data, decay=0.9).acf is not None
 
 
 # --- Test 16: tau_corr_acf consistent with ACF ---
@@ -336,9 +337,10 @@ def test_tau_corr_batch():
     est_s = online_statistics(make_data(n_chains=1, n_samples=500))
     assert math.isnan(est_s.tau_corr_batch)
 
-    # decay != 1 → NaN
+    # decay != 1 → tau_corr_batch is still computable (EMA-weighted between-chain estimate)
     est_d = online_statistics(data, decay=0.99)
-    assert math.isnan(est_d.tau_corr_batch)
+    assert math.isfinite(est_d.tau_corr_batch)
+    assert est_d.tau_corr_batch >= 0.0
 
     # With max_lag=0, tau_corr should fall back to tau_corr_batch for multi-chain
     est_no_acf = online_statistics(data, max_lag=0)

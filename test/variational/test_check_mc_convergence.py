@@ -110,3 +110,53 @@ def test_check_mc_convergence_plot(vstate):
     H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
     with patch("matplotlib.pyplot.show"):
         vstate.check_mc_convergence(H, max_chain_length=50, plot=True)
+
+
+# --- expect_to_precision ---
+
+
+def test_expect_to_precision_raises_no_tol(vstate):
+    """Must specify at least one of atol or rtol."""
+    H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
+    with pytest.raises(ValueError, match="atol.*rtol"):
+        vstate.expect_to_precision(H, verbose=False)
+
+
+def test_expect_to_precision_raises_non_metropolis():
+    """Raises ValueError if sampler is not a MetropolisSampler."""
+    hi = nk.hilbert.Spin(1 / 2, N=4)
+    vs = nk.vqs.MCState(
+        nk.sampler.ExactSampler(hi),
+        nk.models.RBM(alpha=1),
+        n_samples=16,
+        seed=0,
+    )
+    H = nk.operator.Ising(hi, nk.graph.Chain(4), h=1.0)
+    with pytest.raises(ValueError, match="MetropolisSampler"):
+        vs.expect_to_precision(H, atol=0.5, verbose=False)
+
+
+def test_expect_to_precision_atol(vstate):
+    """Converges to atol and returns finite OnlineStatistics."""
+    H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
+    stats = vstate.expect_to_precision(H, atol=0.5, max_iter=500, verbose=False)
+    s = stats.get_stats()
+    assert math.isfinite(s.mean)
+    assert s.error_of_mean <= 0.5
+
+
+def test_expect_to_precision_rtol(vstate):
+    """Converges to rtol and returns finite OnlineStatistics."""
+    H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
+    stats = vstate.expect_to_precision(H, rtol=0.1, max_iter=500, verbose=False)
+    s = stats.get_stats()
+    assert math.isfinite(s.mean)
+    assert s.error_of_mean / abs(s.mean) <= 0.1
+
+
+def test_expect_to_precision_max_iter(vstate):
+    """Stops at max_iter without error when tolerance is unachievable."""
+    H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
+    stats = vstate.expect_to_precision(H, atol=1e-10, max_iter=3, verbose=False)
+    s = stats.get_stats()
+    assert math.isfinite(s.mean)

@@ -173,4 +173,18 @@ def test_historydict_push():
 
     assert set(tree_accum.keys()) == set(tree_push.keys())
     for key in tree_accum.keys():
-        np.testing.assert_equal(tree_accum[key], tree_push[key])
+        v1 = tree_accum[key]
+        v2 = tree_push[key]
+        if isinstance(v1, nk.utils.History):
+            assert v1.keys() == v2.keys(), f"History keys differ for '{key}'"
+            np.testing.assert_array_equal(
+                v1.iters, v2.iters, err_msg=f"iters differ for '{key}'"
+            )
+            for hkey in v1.keys():
+                np.testing.assert_array_equal(
+                    v1[hkey], v2[hkey], err_msg=f"data differs for '{key}.{hkey}'"
+                )
+        elif isinstance(v1, nk.utils.history.HistoryDict):
+            assert set(v1.keys()) == set(
+                v2.keys()
+            ), f"HistoryDict keys differ for '{key}'"
