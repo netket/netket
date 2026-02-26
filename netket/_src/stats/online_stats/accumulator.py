@@ -394,7 +394,7 @@ class OnlineStats(struct.Pytree):
         tau_corr = self.tau_corr
         return Stats(
             mean=mean,
-            error_of_mean=self._compute_error_of_mean(variance, tau_corr),
+            error_of_mean=self._compute_error_of_mean(variance),
             variance=variance,
             tau_corr=tau_corr,
             R_hat=self.R_hat,
@@ -417,9 +417,19 @@ class OnlineStats(struct.Pytree):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _compute_error_of_mean(self, variance, tau_corr) -> float:
+    def _compute_error_of_mean(self, variance) -> float:
         if self.n_chains > 1:
-            return jnp.sqrt(jnp.var(jnp.real(self._chain_mean))) / self.n_chains
-        elif not jnp.isnan(tau_corr):
-            return jnp.sqrt(variance * (2 * tau_corr + 1) / self._n_samples_total)
+            # SE of grand mean = std(chain_means) / sqrt(n_chains)
+            return jnp.sqrt(jnp.var(jnp.real(self._chain_mean)) / self.n_chains)
+        # Single chain: choose formula matching the tau convention.
+        # tau_corr_acf uses the Sokal/full convention (tau_int = 1 for IID), so
+        #   Var(mean) = variance * tau_int / N  →  error = sqrt(variance * tau / N)
+        # tau_corr_batch uses the half convention (tau_batch = 0 for IID), so
+        #   tau_int = 2*tau_batch + 1  →  error = sqrt(variance * (2*tau+1) / N)
+        tau_acf = self.tau_corr_acf
+        if not isnan(tau_acf):
+            return jnp.sqrt(variance * tau_acf / self._n_samples_total)
+        tau_batch = self.tau_corr_batch
+        if not isnan(tau_batch):
+            return jnp.sqrt(variance * (2 * tau_batch + 1) / self._n_samples_total)
         return _NaN

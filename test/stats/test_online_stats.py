@@ -63,6 +63,62 @@ def test_incremental_consistency():
     np.testing.assert_allclose(est_full.variance, est_chunked.variance, rtol=1e-10)
 
 
+# --- Test: error_of_mean consistency with batch statistics() ---
+
+
+def test_error_of_mean_vs_batch():
+    """online_statistics and statistics agree on error_of_mean for multi-chain data.
+
+    Both use sqrt(var(chain_means) / n_chains) so the result is exact.
+    The old statistics() falls back to a blocking estimator when n_chains < 32,
+    so we use 64 chains to ensure both implementations take the inter-chain path.
+    """
+    data = make_data(n_chains=64, n_samples=400)
+    est = online_statistics(data)
+    batch = statistics(data)
+
+    np.testing.assert_allclose(
+        est.get_stats().error_of_mean,
+        float(batch.error_of_mean),
+        rtol=1e-10,
+        err_msg="error_of_mean must match between online_statistics and statistics",
+    )
+
+
+def test_error_of_mean_chunked_vs_oneshot():
+    """online_statistics error_of_mean is identical whether data arrives in one
+    shot or split into 5 chunks, and matches batch statistics().
+    """
+    # 64 chains: both online and batch statistics use the inter-chain formula
+    data = make_data(n_chains=64, n_samples=500)
+
+    # One-shot
+    est_full = online_statistics(data)
+
+    # 5-chunk
+    chunks = np.split(data, 5, axis=1)
+    est_chunked = None
+    for chunk in chunks:
+        est_chunked = online_statistics(chunk, est_chunked)
+
+    # Chunked == one-shot (exact)
+    np.testing.assert_allclose(
+        est_full.get_stats().error_of_mean,
+        est_chunked.get_stats().error_of_mean,
+        rtol=1e-10,
+        err_msg="error_of_mean must be identical for one-shot vs 5-chunk online update",
+    )
+
+    # Both == batch statistics (exact for inter-chain formula, n_chains >= 32)
+    batch = statistics(data)
+    np.testing.assert_allclose(
+        est_full.get_stats().error_of_mean,
+        float(batch.error_of_mean),
+        rtol=1e-10,
+        err_msg="error_of_mean must match between online_statistics and statistics",
+    )
+
+
 # --- Test 3: tau_corr (wide tolerance) ---
 
 
