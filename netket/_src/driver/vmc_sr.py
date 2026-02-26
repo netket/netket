@@ -424,9 +424,13 @@ class VMC_SR(AbstractVariationalDriver):
         self._loss_stats = None
         self._loss_stats_online = None
 
-        if jax.process_index() == 0:
+        decay = self._mcmc_convergence_diagnostics_ema_decay
+        if jax.process_index() == 0 and decay is not None:
             print(
-                f"online_statistics: chain_length={self.state.chain_length}, decay={self._mcmc_convergence_diagnostics_ema_decay:.3f}"
+                f"online_statistics: "
+                f"chain_length={self.state.chain_length}, "
+                f"exponential moving average window: {self._mcmc_convergence_diagnostics_ema_window}, "
+                f"decay={decay:.3f}"
             )
 
     @timing.timed
