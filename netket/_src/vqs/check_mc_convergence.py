@@ -26,7 +26,73 @@ def check_mc_convergence(
     min_chain_length: int = 50,
     plot: bool = False,
     max_chain_length: int = 500,
-) -> list[bool]:
+):
+    """
+    Diagnose whether the Markov-chain sweep size is long enough to produce
+    decorrelated samples for the expectation value of ``op``.
+
+    **Algorithm overview**
+
+    The function operates on a *temporary copy* of ``state_`` whose internal
+    sweep size is reset to 1, exposing every elementary MC step as an
+    individual sample row.  Batches of local estimators are fed one at a time
+    into :func:`~netket.stats.online_statistics`, which maintains running
+    estimates of the mean, variance, and the autocorrelation function (ACF)
+    via the Geyer *initial positive sequence* (IPS) estimator.
+
+    The loop continues until **all three** conditions are met:
+
+    1. At least ``min_chain_length`` samples/chain have been accumulated.
+    2. The ACF window is **not saturated** — i.e. the IPS found a non-positive
+       consecutive pair, confirming that ``max_lag`` was large enough to capture
+       the full tail of the ACF.
+    3. The integrated autocorrelation time ``τ`` is *reliable*: the number of
+       effective samples per chain is at least 50 (i.e.
+       ``n_per_chain / τ ≥ 50``).
+
+    **Adaptive coarsening when the ACF window saturates**
+
+    If the ACF window saturates (every consecutive pair ``(ρ[2t]+ρ[2t+1])``
+    is positive up to ``max_lag``), the current ``τ`` estimate is merely a
+    lower bound — the chains are too short or the sweep too fine.  The
+    algorithm then:
+
+    * doubles the internal sweep size (``sweep_size *= 2``), thinning the
+      Markov chain to make long-range correlations visible within the window;
+    * calls :func:`~netket.stats._src.online_stats.thin_acf_by_2` to
+      re-index the ACF accumulator for the coarser cadence; and
+    * calls :func:`~netket.stats._src.online_stats.expand_max_lag` to restore
+      the lag window width so the next iterations can probe further.
+
+    This doubling is repeated as needed until the window is no longer
+    saturated, or until ``max_chain_length`` samples/chain are exhausted.
+
+    **Final diagnosis**
+
+    After convergence the correlation time is re-expressed in terms of raw MC
+    steps (``τ_mc = τ_acf × final_sweep_size``) and of the user's original
+    sweep units (``τ_sweeps = τ_mc / orig_sweep_size``).  A sweep size is
+    considered adequate when ``τ_sweeps < 1``, meaning that consecutive
+    samples produced by the user's MCState are effectively independent.  The
+    recommended minimum sweep size is ``2 τ_mc`` raw steps.
+
+    Args:
+        state_: The :class:`~netket.vqs.MCState` to diagnose.  A shallow copy
+            is used internally; the original state is never mutated.
+        op: The operator whose local estimators are used to probe correlations.
+        min_chain_length: Minimum number of samples per chain to accumulate
+            before the convergence check is applied.
+        plot: If ``True``, display a diagnostic figure after the run.
+        max_chain_length: Hard upper limit on samples per chain.  The loop is
+            terminated unconditionally once this many samples have been drawn.
+
+    Returns:
+        A tuple ``(stats, hist_data)`` where ``stats`` is the final
+        :class:`~netket.stats.OnlineStatistics` accumulator and ``hist_data``
+        is a :class:`~netket.utils.history.HistoryDict` recording the
+        evolution of key diagnostics (mean, error, R̂, τ) as the number of samples
+        is increased.
+    """
     if not isinstance(state_.sampler, MetropolisSampler):
         raise ValueError("check_mc_convergence only works for MetropolisSampler.")
     sampler = cast(MetropolisSampler, state_.sampler)
