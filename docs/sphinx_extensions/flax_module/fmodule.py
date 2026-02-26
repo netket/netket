@@ -70,6 +70,16 @@ def render_module(modname: str, qualname: str, app):
     context = {}
     params = inspect.signature(ag.generate_autosummary_content).parameters
     if "config" in params:
+        kwargs = dict(
+            recursive=recursive,
+            context=context,
+            modname=modname,
+            qualname=qualname,
+            config=app.config,
+            events=app.events,
+        )
+        if "registry" in params:
+            kwargs["registry"] = app.registry
         return ag.generate_autosummary_content(
             qualname,
             obj,
@@ -77,13 +87,7 @@ def render_module(modname: str, qualname: str, app):
             template,
             template_name,
             imported_members,
-            recursive=recursive,
-            context=context,
-            modname=modname,
-            qualname=qualname,
-            config=app.config,
-            events=app.events,
-            registry=app.registry,
+            **kwargs,
         )
     else:
         return ag.generate_autosummary_content(
@@ -116,7 +120,8 @@ class FlaxModuleDirective(SphinxDirective):
 
         # Create a container for the rendered nodes
         container_node = nodes.container()
-        self.content = ViewList(module_template, self.content.parent)
+        source, _ = self.get_source_info()
+        self.content = ViewList(module_template, source=source)
         self.state.nested_parse(self.content, self.content_offset, container_node)
 
         return [container_node]

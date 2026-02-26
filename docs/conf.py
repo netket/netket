@@ -2,6 +2,15 @@
 import os
 import sys
 import pathlib
+import warnings
+
+# myst_nb 1.3.0 uses a deprecated Sphinx Parser.env API that will be removed in
+# Sphinx 10. Suppress these warnings until myst_nb releases a fix.
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    module=r"myst_nb\.sphinx_",
+)
 
 os.environ["NETKET_SPHINX_BUILD"] = "1"
 import netket as nk

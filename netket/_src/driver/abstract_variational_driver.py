@@ -225,7 +225,7 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
 
     def reset(self):
         """
-        .. deprecated::
+        .. deprecated:: 3.22
 
             Use :meth:`reset_step` to reset the sampler state at the beginning of a step.
             Note that the old ``reset()`` also reset ``step_count`` to 0; this behaviour
