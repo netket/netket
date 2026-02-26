@@ -161,3 +161,16 @@ def test_historydict():
         not isinstance(l, nk.utils.history.HistoryDict)
         for l in jax.tree.leaves(new_tree.to_dict())
     )
+
+
+def test_historydict_push():
+    # push is a shorthand for accum_histories_in_tree; results should be identical
+    data = create_mock_data_iter(0)
+    tree_accum = nk.utils.accum_histories_in_tree(
+        nk.utils.history.HistoryDict(), data, step=0
+    )
+    tree_push = nk.utils.history.HistoryDict().push(data, step=0)
+
+    assert set(tree_accum.keys()) == set(tree_push.keys())
+    for key in tree_accum.keys():
+        np.testing.assert_equal(tree_accum[key], tree_push[key])

@@ -40,13 +40,12 @@ def check_mc_convergence(
     estimates of the mean, variance, and the autocorrelation function (ACF)
     via the Geyer *initial positive sequence* (IPS) estimator.
 
-    The loop continues until **all three** conditions are met:
+    The loop continues until those conditions are met:
 
-    1. At least ``min_chain_length`` samples/chain have been accumulated.
-    2. The ACF window is **not saturated** — i.e. the IPS found a non-positive
+    1. The ACF window is **not saturated** — i.e. the IPS found a non-positive
        consecutive pair, confirming that ``max_lag`` was large enough to capture
        the full tail of the ACF.
-    3. The integrated autocorrelation time ``τ`` is *reliable*: the number of
+    2. The integrated autocorrelation time ``τ`` is *reliable*: the number of
        effective samples per chain is at least 50 (i.e.
        ``n_per_chain / τ ≥ 50``).
 

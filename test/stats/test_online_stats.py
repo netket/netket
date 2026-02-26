@@ -618,6 +618,23 @@ def test_expand_max_lag_from_zero():
     assert expanded.acf is not None
 
 
+def test_rolling_buffer_large_batch():
+    """n_batch >= max_lag branch: buffer becomes x[:, -max_lag:] and ACF stays valid."""
+    max_lag = 8
+    rng_loc = np.random.default_rng(17)
+    big_batch = rng_loc.standard_normal((4, 12))  # n_batch=12 > max_lag=8
+
+    est = online_statistics(big_batch, max_lag=max_lag)
+
+    np.testing.assert_array_equal(np.asarray(est._chain_buf), big_batch[:, -max_lag:])
+    assert int(est._buf_len) == max_lag
+
+    # Further small updates keep ACF valid.
+    for _ in range(5):
+        est = est.update(rng_loc.standard_normal((4, 6)))
+    assert est.acf is not None and math.isfinite(est.tau_corr)
+
+
 def test_expand_max_lag_invalid():
     """expand_max_lag raises ValueError when new_max_lag is not strictly larger."""
     data = make_data(n_chains=4, n_samples=100)
@@ -628,3 +645,29 @@ def test_expand_max_lag_invalid():
 
     with pytest.raises(ValueError, match="must be >"):
         expand_max_lag(est, 16)  # smaller value
+
+
+# --- Tests for max_lag=0 (ACF disabled) ---
+
+
+def test_max_lag_zero_basic():
+    """max_lag=0: ACF disabled, mean/variance still correct, repr works."""
+    data = make_data(n_chains=4, n_samples=200)
+    est = online_statistics(data, max_lag=0)
+
+    assert est.acf is None and math.isnan(est.tau_corr_acf)
+    assert est._chain_buf.shape == (4, 0)
+    np.testing.assert_allclose(est.mean, np.mean(data), rtol=1e-10)
+    np.testing.assert_allclose(est.variance, np.var(data), rtol=1e-10)
+    assert isinstance(repr(est), str)
+
+
+def test_max_lag_zero_incremental():
+    """Chunked updates with max_lag=0 give identical mean/variance to one-shot."""
+    data = make_data(n_chains=6, n_samples=300)
+    chunks = np.split(data, 10, axis=1)
+    est = None
+    for chunk in chunks:
+        est = online_statistics(chunk, est, max_lag=0)
+    np.testing.assert_allclose(est.mean, np.mean(data), rtol=1e-10)
+    np.testing.assert_allclose(est.variance, np.var(data), rtol=1e-10)
