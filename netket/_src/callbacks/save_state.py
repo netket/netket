@@ -32,14 +32,14 @@ class SaveVariationalState(AbstractCallback, mutable=True):
 
     Example usage:
         >>> import netket as nk
-        >>> import nqxpack
-        >>> ...
-        >>> driver.run(
+        >>> import nqxpack  # doctest: +SKIP
+        >>> ...  # doctest: +SKIP
+        >>> driver.run(  # doctest: +SKIP
         ...     n_iter=50,
         ...     out="test",
         ...     callback=nk.callbacks.SaveVariationalStateCallback(path="optimization", interval=10),
         ... )
-        >>> nqxpack.load("optimization/state_00010.nk")
+        >>> nqxpack.load("optimization/state_00010.nk")  # doctest: +SKIP
 
     """
 
