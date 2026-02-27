@@ -182,6 +182,9 @@ html_theme_options = {
     "collapse_navigation": True,
     # "navigation_depth": 1,
     "article_header_start": ["toggle-primary-sidebar.html", "breadcrumbs"],
+    "analytics": {
+        "google_analytics_id": "G-8HNCL67BNS",
+    },
 }
 
 html_context = {
