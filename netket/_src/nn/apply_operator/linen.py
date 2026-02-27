@@ -16,6 +16,8 @@ import jax
 from flax import linen as nn
 from typing import Any
 
+from netket import jax as nkjax
+
 
 class ApplyOperatorModuleLinen(nn.Module):
     """
@@ -147,8 +149,7 @@ class ApplyOperatorModuleLinen(nn.Module):
 
             # Call the base module on the connected configurations using apply()
             logpsi_xp = self.base_module(xp, *args, **kwargs)
-            logpsi_xp = logpsi_xp.reshape(mels.shape).astype(complex)
 
-            res = jax.scipy.special.logsumexp(logpsi_xp, axis=-1, b=mels)
+            res = nkjax.logsumexp_cplx(logpsi_xp.reshape(mels.shape), axis=-1, b=mels)
 
         return res

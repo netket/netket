@@ -3,6 +3,11 @@
 
 (Work in progress)
 
+```{note}
+To construct a symmetrized ansatz of the form log(O|ψ⟩) where O is a symmetry
+projector, see {ref}`netket_nn_apply_operator_api` in {mod}`netket.nn.apply_operator`.
+```
+
 Module with classes and utilities needed to operate on symmetry groups and their representations.
 
 The theory needed to understand those tools is discussed in {doc}`../advanced/symmetry` and an example notebook is in {doc}`../tutorials/symmetry_tutorial`

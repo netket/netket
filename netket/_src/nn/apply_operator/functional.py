@@ -20,7 +20,6 @@ is neither a Linen module nor an NNX module. It wraps an apply function
 to apply an operator transformation.
 """
 
-import jax
 import flax
 
 from netket import jax as nkjax
@@ -70,7 +69,6 @@ def _logpsi_op_fun(apply_fun, variables, x, *args, **kwargs):
         xp, mels = operator.get_conn_padded(x)
         xp = xp.reshape(-1, x.shape[-1])
         logpsi_xp = apply_fun(variables_applyfun, xp, *args, **kwargs)
-        logpsi_xp = logpsi_xp.reshape(mels.shape).astype(complex)
 
-        res = jax.scipy.special.logsumexp(logpsi_xp, axis=-1, b=mels)
+        res = nkjax.logsumexp_cplx(logpsi_xp.reshape(mels.shape), axis=-1, b=mels)
     return res

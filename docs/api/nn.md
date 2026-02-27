@@ -70,6 +70,27 @@ The following modules can be used in autoregressive neural networks, see {class}
 
    to_array
    to_matrix
+
+```
+
+(netket_nn_apply_operator_api)=
+## Apply Operator
+
+The {mod}`netket.nn.apply_operator` submodule provides modules and utilities to
+construct a new neural-network state log(O|ψ⟩) wrapping an existing model and an
+operator O.  This is used internally by NetKet when computing expectation values,
+but can also be used directly to build custom models.
+
+```{eval-rst}
+.. currentmodule:: netket.nn.apply_operator
+
+.. autosummary::
+   :toctree: _generated/nn/apply_operator
+   :template: flax_module_or_default
+   :nosignatures:
+
+   ApplyOperatorModuleLinen
+   ApplyOperatorModuleNNX
    make_logpsi_op_afun
 
 ```

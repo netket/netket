@@ -15,6 +15,8 @@
 import jax
 from flax import nnx
 
+from netket import jax as nkjax
+
 
 class ApplyOperatorModuleNNX(nnx.Module):
     """
@@ -137,9 +139,7 @@ class ApplyOperatorModuleNNX(nnx.Module):
 
             # Call the base module directly (NNX modules are stateful)
             logpsi_xp = self.base_module(xp, *args, **kwargs)
-            logpsi_xp = logpsi_xp.reshape(mels.shape).astype(complex)
 
-            # Compute log(sum(mels * exp(logpsi_xp)))
-            res = jax.scipy.special.logsumexp(logpsi_xp, axis=-1, b=mels)
+            res = nkjax.logsumexp_cplx(logpsi_xp.reshape(mels.shape), axis=-1, b=mels)
 
         return res
