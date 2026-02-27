@@ -99,6 +99,8 @@ but can also be used directly to build custom models.
 ## Blocks
 
 ```{eval-rst}
+.. currentmodule:: netket.nn
+
 .. autosummary::
    :toctree: _generated/nn
    :template: flax_module_or_default
