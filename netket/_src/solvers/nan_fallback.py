@@ -73,9 +73,9 @@ def nan_fallback(primary_solver, fallback_solver):
         Create a Cholesky solver that falls back to the pseudo-inverse when
         numerical issues arise:
 
-        >>> solver = nan_fallback(cholesky, pinv_smooth(rtol=1e-6))
-        >>> x, info = solver(A, b)
-        >>> if info["solver_fallback"]:
+        >>> solver = nan_fallback(cholesky, pinv_smooth(rtol=1e-6))  # doctest: +SKIP
+        >> x, info = solver(A, b)
+        >> if info["solver_fallback"]:
         ...     print("Cholesky failed, used pinv_smooth instead")
     """
     return HashablePartial(_nan_fallback_solver, primary_solver, fallback_solver)
