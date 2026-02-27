@@ -148,6 +148,15 @@ html_theme = "sphinx_book_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["assets/static"]
 html_css_files = ["css/custom.css", "css/navbar.css"]  # , "css/api.css"]
+html_js_files = [
+    (
+        "//gc.zgo.at/count.js",
+        {
+            "async": "async",
+            "data-goatcounter": "https://netket.goatcounter.com/count",
+        },
+    ),
+]
 html_favicon = "assets/static/favicon.ico"
 
 # Example configuration for intersphinx: refer to the Python standard library.
@@ -182,9 +191,6 @@ html_theme_options = {
     "collapse_navigation": True,
     # "navigation_depth": 1,
     "article_header_start": ["toggle-primary-sidebar.html", "breadcrumbs"],
-    "analytics": {
-        "google_analytics_id": "G-8HNCL67BNS",
-    },
 }
 
 html_context = {
