@@ -19,6 +19,10 @@ import jax.scipy as jsp
 from jax.flatten_util import ravel_pytree
 from netket.utils.api_utils import partial_from_kwargs
 from netket.utils.deprecation import warn_deprecation
+from netket._src.solvers.nan_fallback import (
+    _nan_fallback_solver,
+    nan_fallback as nan_fallback,
+)
 
 
 @partial_from_kwargs
@@ -236,7 +240,8 @@ def cholesky(A, b, *, lower=False, x0=None):
     Solve the linear system using a Cholesky Factorisation.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses :func:`jax.numpy.linalg.cho_solve`.
+    Internally uses :func:`jax.scipy.linalg.cho_factor` and
+    :func:`jax.scipy.linalg.cho_solve`.
 
     .. note::
 
@@ -267,7 +272,7 @@ def LU(A, b, *, trans=0, x0=None):
     Solve the linear system using a LU Factorisation.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses :func:`jax.numpy.linalg.lu_solve`.
+    Internally uses :func:`jax.scipy.linalg.lu_solve`.
 
     .. note::
 
@@ -290,6 +295,45 @@ def LU(A, b, *, trans=0, x0=None):
     lu, piv = jsp.linalg.lu_factor(A)
     x = jsp.linalg.lu_solve((lu, piv), b, trans=0)
     return unravel(x), None
+
+
+@partial_from_kwargs
+def cholesky_with_fallback(
+    A,
+    b,
+    *,
+    rtol: float = 1e-14,
+    rtol_smooth: float = 1e-14,
+    x0=None,
+):
+    r"""
+    Solve the linear system using a Cholesky factorisation, automatically
+    falling back to :func:`pinv_smooth` when the result contains NaN or Inf.
+
+    This combines the speed of :func:`cholesky`
+    with the robustness of :func:`~pinv_smooth`.
+    Refer to their docstring for complete information.
+
+    The returned info dict always contains a ``"solver_fallback"`` key
+    indicating whether the fallback was activated.
+
+    .. note::
+
+        This is exactly equivalent to using :func:`nan_fallback` as
+        ``nan_fallback(cholesky, pinv_smooth(rtol=rtol, rtol_smooth=rtol_smooth))``.
+
+    Args:
+        A: the matrix A in Ax=b
+        b: the vector or pytree b in Ax=b
+        rtol: Relative tolerance for small eigenvalues of :code:`A`, passed to
+            :func:`pinv_smooth`. Eigenvalues smaller than ``rtol`` times the
+            largest are truncated.
+        rtol_smooth: Soft regularisation parameter passed to :func:`pinv_smooth`.
+            See :func:`pinv_smooth` for details.
+        x0: unused
+    """
+    _fallback = pinv_smooth(rtol=rtol, rtol_smooth=rtol_smooth)
+    return _nan_fallback_solver(cholesky, _fallback, A, b, x0=x0)
 
 
 # I believe this internally uses a smarter/more efficient way to

@@ -20,10 +20,12 @@ import numpy as np
 
 import jax
 import jax.flatten_util
+import jax.numpy as jnp
 from jax.nn.initializers import normal
 
 import netket as nk
 from netket.optimizer import qgt
+from netket.optimizer.solver import cholesky, pinv_smooth, nan_fallback
 
 from .. import common  # noqa: F401
 
@@ -195,3 +197,93 @@ def test_solver_rcond_deprecation(solver_func):
 
     # Check that the solution is correct
     np.testing.assert_allclose(A @ x_new, b, rtol=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# nan_fallback tests
+# ---------------------------------------------------------------------------
+
+
+def _make_psd(n, key):
+    A_raw = jax.random.normal(key, (n, n))
+    return A_raw @ A_raw.T + n * jnp.eye(n)
+
+
+def _make_illconditioned(n, key):
+    evals = jnp.concatenate([jnp.ones(3), jnp.full(n - 3, 1e-20)])
+    vecs = jnp.linalg.qr(jax.random.normal(key, (n, n)))[0]
+    return vecs @ jnp.diag(evals) @ vecs.T
+
+
+def test_nan_fallback_no_fallback_under_jit():
+    """Primary solver succeeds: solver_fallback is False and result is correct."""
+    n = 8
+    A = _make_psd(n, jax.random.PRNGKey(0))
+    b = jax.random.normal(jax.random.PRNGKey(1), (n,))
+
+    solver = nan_fallback(cholesky, pinv_smooth)
+    x, info = jax.jit(solver)(A, b)
+
+    assert not info["solver_fallback"]
+    np.testing.assert_allclose(A @ x, b, rtol=1e-5)
+
+
+def test_nan_fallback_triggered_by_output_nan_under_jit():
+    """Ill-conditioned A causes cholesky to produce NaN/Inf; pinv_smooth recovers."""
+    n = 8
+    A = _make_illconditioned(n, jax.random.PRNGKey(0))
+    b = jax.random.normal(jax.random.PRNGKey(1), (n,))
+
+    solver = nan_fallback(cholesky, pinv_smooth)
+    x, info = jax.jit(solver)(A, b)
+
+    assert info["solver_fallback"]
+    assert not jnp.any(jnp.isnan(x))
+
+    # Result should match pinv_smooth directly
+    x_ref, _ = jax.jit(pinv_smooth)(A, b)
+    np.testing.assert_allclose(x, x_ref, rtol=1e-5)
+
+
+def test_nan_fallback_pytree_b_under_jit():
+    """Works correctly when b is a pytree (dict of arrays)."""
+    n = 8
+    A = _make_psd(n, jax.random.PRNGKey(0))
+    b_flat = jax.random.normal(jax.random.PRNGKey(1), (n,))
+    b_tree = {"a": b_flat[:4], "c": b_flat[4:]}
+
+    solver = nan_fallback(cholesky, pinv_smooth)
+    x_tree, info = jax.jit(solver)(A, b_tree)
+
+    assert not info["solver_fallback"]
+    assert set(x_tree.keys()) == {"a", "c"}
+    x_rec = jnp.concatenate([x_tree["a"], x_tree["c"]])
+    np.testing.assert_allclose(A @ x_rec, b_flat, rtol=1e-5)
+
+
+def test_nan_fallback_fallback_not_called_when_primary_succeeds():
+    """Fallback body does not execute at runtime when the primary is healthy."""
+    n = 8
+    A = _make_psd(n, jax.random.PRNGKey(0))
+    b = jax.random.normal(jax.random.PRNGKey(1), (n,))
+
+    call_log = []
+
+    def counting_fallback(A, b, *, x0=None):
+        jax.debug.callback(lambda: call_log.append(1))
+        return pinv_smooth(A, b, x0=x0)
+
+    solver = nan_fallback(cholesky, counting_fallback)
+    jax.jit(solver)(A, b)
+
+    assert len(call_log) == 0, "fallback should not have run"
+
+
+def test_nan_fallback_equality_and_hash():
+    """Two nan_fallback calls with the same solvers are equal and hash-equal."""
+    s1 = nan_fallback(cholesky, pinv_smooth)
+    s2 = nan_fallback(cholesky, pinv_smooth)
+
+    assert s1 == s2
+    assert hash(s1) == hash(s2)
+    assert s1 is not s2  # distinct objects

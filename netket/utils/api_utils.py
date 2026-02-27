@@ -18,6 +18,7 @@ import functools
 import inspect
 
 from netket.utils import config
+from netket.utils.partial import HashablePartial
 
 _KEYWORD_ONLY = inspect.Parameter.KEYWORD_ONLY
 _POSITIONAL_OR_KEYWORD = inspect.Parameter.POSITIONAL_OR_KEYWORD
@@ -107,6 +108,6 @@ def partial_from_kwargs(
                             f"Cannot specify both {kwarg} and {kwargs_exclusion_list[kwarg]} together."
                         )
 
-            return functools.partial(func, **kwargs)
+            return HashablePartial(func, **kwargs)
 
     return wrapper

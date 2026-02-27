@@ -78,10 +78,21 @@ And the following dense solvers for Stochastic Reconfiguration:
    :toctree: _generated/optim
    :nosignatures:
 
+   solver.cholesky_with_fallback
    solver.cholesky
    solver.LU
    solver.pinv
    solver.pinv_smooth
    solver.solve
    solver.svd
+```
+
+### Solver combinators
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/optim
+   :nosignatures:
+
+   solver.nan_fallback
 ```
