@@ -521,11 +521,7 @@ class VMC_SR(AbstractVariationalDriver):
                 **modified in-place** adding new keys.
             step: the current step number.
         """
-        # Always log the acceptance.
-        if hasattr(self.state, "sampler_state"):
-            acceptance = getattr(self.state.sampler_state, "acceptance", None)
-            if acceptance is not None:
-                log_dict["acceptance"] = acceptance
+        super()._log_additional_data(log_dict)
 
         # Log the quadratic model if requested.
         if self.info is not None:

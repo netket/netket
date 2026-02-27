@@ -15,6 +15,7 @@
 from typing import Any, Union
 from collections.abc import Iterable
 import sys
+import time
 
 import numbers
 from functools import partial
@@ -269,6 +270,8 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
             acceptance = getattr(self.state.sampler_state, "acceptance", None)
             if acceptance is not None:
                 log_dict["acceptance"] = acceptance
+
+        log_dict["wallclock"] = time.perf_counter()
 
     @property
     def state(self):

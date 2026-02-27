@@ -1252,6 +1252,7 @@ class LogAdditionalDataSignatureDeprecationWarning(NetketWarning):
 
             class MyDriver(nk.driver.AbstractVariationalDriver):
                 def _log_additional_data(self, log_dict: dict):
+                    super()._log_additional_data(log_dict)
                     log_dict["my_value"] = self.compute_something(self.step_count)
     """
 
