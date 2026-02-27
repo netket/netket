@@ -8,7 +8,7 @@ from jax.flatten_util import ravel_pytree
 
 from netket import jax as nkjax
 from netket.hilbert import SpinOrbitalFermions
-from netket.optimizer.solver import cholesky
+from netket.optimizer.solver import cholesky_with_fallback
 from netket.vqs import MCState, FullSumState
 from netket.utils import timing, struct
 from netket.utils.citations import reference
@@ -38,7 +38,7 @@ def VMC_SRt(
     optimizer: Optimizer,
     *,
     diag_shift: ScalarOrSchedule,
-    linear_solver: Callable[[jax.Array, jax.Array], jax.Array] = cholesky,
+    linear_solver: Callable[[jax.Array, jax.Array], jax.Array] = cholesky_with_fallback,
     mode: str | None = None,
     jacobian_mode: str | None | DeprecatedArg = DeprecatedArg(),
     variational_state: MCState,
@@ -87,7 +87,7 @@ class VMC_SR(AbstractVariationalDriver):
     r"""
     Energy minimization using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.
     This driver is mathematically equivalent to the standard :class:`netket.driver.VMC` with the
-    preconditioner :class:`netket.optimizer.SR(solver=netket.optimizer.solvers.cholesky) <netket.optimizer.SR>`,
+    preconditioner :class:`netket.optimizer.SR(solver=netket.optimizer.solver.cholesky_with_fallback) <netket.optimizer.SR>`,
     but can easily switch between the standard and the kernel/minSR formulation of Natural Gradient Descent.
 
     - The standard formulation computes the updates as:
@@ -260,7 +260,7 @@ class VMC_SR(AbstractVariationalDriver):
         diag_shift: ScalarOrSchedule,
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
-        linear_solver: Callable[[Array, Array], Array] = cholesky,
+        linear_solver: Callable[[Array, Array], Array] = cholesky_with_fallback,
         linear_solver_fn: (
             Callable[[Array, Array], Array] | DeprecatedArg
         ) = DeprecatedArg(),
@@ -296,7 +296,9 @@ class VMC_SR(AbstractVariationalDriver):
                 :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
                 (Defaults to None)
             linear_solver: The linear solver function to use for the NGD solver. Defaults to
-                :func:`netket.optimizer.solver.cholesky`, but can use other solvers from there. In general:
+                :func:`netket.optimizer.solver.cholesky_with_fallback`, which runs a Cholesky
+                factorisation and automatically falls back to :func:`~netket.optimizer.solver.pinv_smooth`
+                if NaN or Inf values are detected in the result. Other available solvers:
 
                 - :func:`~netket.optimizer.solver.cholesky` is faster because it relies on LU decomposition
                   instead of a full diagonalization, but it is more prone to numerical instabilities,
