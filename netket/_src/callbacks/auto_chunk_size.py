@@ -109,7 +109,7 @@ class AutoChunkSize(AbstractCallback):
         self.minimum_chunk_size = minimum_chunk_size
 
     def on_run_start(self, step, driver):
-        if jax.process_count() == 0:
+        if jax.process_index() == 0:
             print("Automatically tuning chunk size....")
 
         # Try to check if sampling works

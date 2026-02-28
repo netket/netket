@@ -500,7 +500,7 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
 
         if timeit:
             self._timer = timer
-            if jax.process_count() == 0:
+            if jax.process_index() == 0:
                 print(timer)
 
         return loggers

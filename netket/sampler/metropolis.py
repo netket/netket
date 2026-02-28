@@ -656,7 +656,7 @@ def MetropolisExchange(
         warn = True
         if graph is not None and graph.n_nodes < hilbert.size:
             warn = True
-        if jax.process_count() == 0 and warn:
+        if jax.process_index() == 0 and warn:
             import warnings
 
             warnings.warn(
