@@ -449,6 +449,47 @@ def test_computes_distances():
                     assert d1[i][j] == d[i][j]
 
 
+def test_lattice_computes_euclidean_distances():
+    lattice = Lattice([[2.0]], [3], pbc=False)
+    d = lattice.distances_euclidean()
+    expected = np.array([[0.0, 2.0, 4.0], [2.0, 0.0, 2.0], [4.0, 2.0, 0.0]])
+    np.testing.assert_allclose(d, expected)
+
+
+def test_lattice_computes_euclidean_distances_minimum_image():
+    lattice = Lattice([[1.0]], [4], pbc=True)
+    d_mic = lattice.distances_euclidean()
+    d_direct = lattice.distances_euclidean(minimum_image=False)
+
+    assert d_mic[0, 3] == 1.0
+    assert d_direct[0, 3] == 3.0
+
+
+def test_lattice_euclidean_distances_minimum_image_per_axis_pbc():
+    basis = [[1.0, 0.0], [0.0, 1.0]]
+    extent = [4, 6]
+    c1 = [0, 0, 0]
+    c2 = [3, 5, 0]
+
+    lattice_none = Lattice(basis, extent, pbc=[False, False])
+    i1 = lattice_none.id_from_basis_coords(c1)
+    i2 = lattice_none.id_from_basis_coords(c2)
+    d_none = lattice_none.distances_euclidean()
+    assert np.isclose(d_none[i1, i2], np.sqrt(34.0))
+
+    lattice_mixed = Lattice(basis, extent, pbc=[True, False])
+    i1 = lattice_mixed.id_from_basis_coords(c1)
+    i2 = lattice_mixed.id_from_basis_coords(c2)
+    d_mixed = lattice_mixed.distances_euclidean()
+    assert np.isclose(d_mixed[i1, i2], np.sqrt(26.0))
+
+    lattice_all = Lattice(basis, extent, pbc=[True, True])
+    i1 = lattice_all.id_from_basis_coords(c1)
+    i2 = lattice_all.id_from_basis_coords(c2)
+    d_all = lattice_all.distances_euclidean()
+    assert np.isclose(d_all[i1, i2], np.sqrt(2.0))
+
+
 def test_lattice_is_bipartite():
     for graph in graphs:
         print(graph)

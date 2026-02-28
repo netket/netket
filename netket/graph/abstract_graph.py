@@ -66,8 +66,11 @@ class AbstractGraph(abc.ABC):
 
     @abc.abstractmethod
     def distances(self) -> list[list]:
-        r"""List containing the distances between the nodes.
-        The distance between unconnected nodes (no path exists between them) is set to -1
+        r"""Return the *integer* graph distance between all pairs :math:`i,j` of sites in the graph.
+
+        The graph distance is the shortest-path length, i.e. the minimum number of
+        edges connecting two sites. The distance between unconnected nodes (no path
+        exists between them) is set to :math:`-1`.
         """
         raise NotImplementedError
 
