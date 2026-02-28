@@ -407,6 +407,26 @@ class Lattice(Graph):
         """basis coordinates of all lattice sites"""
         return self._basis_coords
 
+    def distances_euclidean(self, *, minimum_image: bool = True) -> _np.ndarray:
+        r"""
+        Return the Euclidean distance between all pairs :math:`i,j` of lattice sites.
+
+        Distances are computed from :attr:`positions` in real space and returned as a
+        dense matrix :math:`D` with :math:`D[i, j] = \|r_i-r_j\|_2`.
+
+        Args:
+            minimum_image: If ``True`` (default), apply the minimum-image convention
+                along periodic directions when computing pairwise displacements.
+        """
+        displacements = (
+            self.positions[:, _np.newaxis, :] - self.positions[_np.newaxis, :, :]
+        )
+        if minimum_image:
+            frac_disp = displacements @ self._inv_dims
+            frac_disp[:, :, self.pbc] -= _np.rint(frac_disp[:, :, self.pbc])
+            displacements = frac_disp @ self._lattice_dims
+        return _np.linalg.norm(displacements, axis=-1)
+
     # Site lookup
     # ------------------------------------------------------------------------
 

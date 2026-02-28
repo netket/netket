@@ -449,6 +449,22 @@ def test_computes_distances():
                     assert d1[i][j] == d[i][j]
 
 
+def test_lattice_computes_euclidean_distances():
+    lattice = Lattice([[2.0]], [3], pbc=False)
+    d = lattice.distances_euclidean()
+    expected = np.array([[0.0, 2.0, 4.0], [2.0, 0.0, 2.0], [4.0, 2.0, 0.0]])
+    np.testing.assert_allclose(d, expected)
+
+
+def test_lattice_computes_euclidean_distances_minimum_image():
+    lattice = Lattice([[1.0]], [4], pbc=True)
+    d_mic = lattice.distances_euclidean()
+    d_direct = lattice.distances_euclidean(minimum_image=False)
+
+    assert d_mic[0, 3] == 1.0
+    assert d_direct[0, 3] == 3.0
+
+
 def test_lattice_is_bipartite():
     for graph in graphs:
         print(graph)
