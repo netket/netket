@@ -29,12 +29,16 @@ from .variance_operator import VarianceObservable
 
 
 @expect.dispatch
-def expect(vstate: MCState, variance_operator: VarianceObservable, chunk_size: None):
+def expect(
+    vstate: MCState, variance_operator: VarianceObservable, chunk_size: int | None
+):
     if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
-    local_kernel = get_local_kernel(vstate, variance_operator.operator)
-    local_kernel2 = get_local_kernel(vstate, variance_operator.operator_squared)
+    local_kernel = get_local_kernel(vstate, variance_operator.operator, chunk_size)
+    local_kernel2 = get_local_kernel(
+        vstate, variance_operator.operator_squared, chunk_size
+    )
 
     sigma, args = get_local_kernel_arguments(vstate, variance_operator.operator)
     sigma, args2 = get_local_kernel_arguments(
@@ -51,6 +55,7 @@ def expect(vstate: MCState, variance_operator: VarianceObservable, chunk_size: N
         args,
         args2,
         return_grad=False,
+        chunk_size=chunk_size,
     )
 
 
@@ -65,8 +70,10 @@ def expect_and_grad(
     if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
-    local_kernel = get_local_kernel(vstate, variance_operator.operator)
-    local_kernel2 = get_local_kernel(vstate, variance_operator.operator_squared)
+    local_kernel = get_local_kernel(vstate, variance_operator.operator, chunk_size)
+    local_kernel2 = get_local_kernel(
+        vstate, variance_operator.operator_squared, chunk_size
+    )
 
     sigma, args = get_local_kernel_arguments(vstate, variance_operator.operator)
     sigma, args2 = get_local_kernel_arguments(
@@ -83,11 +90,19 @@ def expect_and_grad(
         args,
         args2,
         return_grad=True,
+        chunk_size=chunk_size,
     )
 
 
 @partial(
-    jax.jit, static_argnames=("afun", "local_kernel", "local_kernel2", "return_grad")
+    jax.jit,
+    static_argnames=(
+        "afun",
+        "local_kernel",
+        "local_kernel2",
+        "return_grad",
+        "chunk_size",
+    ),
 )
 def expect_and_grad_inner_mc(
     afun,
@@ -99,10 +114,15 @@ def expect_and_grad_inner_mc(
     args,
     args2,
     return_grad,
+    chunk_size,
 ):
     n_chains = sigma.shape[0]
 
     σ = sigma.reshape(-1, sigma.shape[-1])
+
+    if chunk_size is not None:
+        local_kernel = partial(local_kernel, chunk_size=chunk_size)
+        local_kernel2 = partial(local_kernel2, chunk_size=chunk_size)
 
     def expect_kernel_var(params):
         log_pdf = lambda params, σ: 2 * afun({"params": params, **model_state}, σ).real

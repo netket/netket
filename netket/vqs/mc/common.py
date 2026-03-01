@@ -47,7 +47,7 @@ def get_local_kernel_arguments(vstate: Any, Ô: Any):
 
 
 @dispatch.abstract
-def get_local_kernel(vstate: Any, Ô: Any):
+def get_local_kernel(vstate: Any, Ô: Any, chunk_size: int | None):
     """
     Returns the function computing the local estimator for the given variational
     state and operator.
@@ -55,10 +55,17 @@ def get_local_kernel(vstate: Any, Ô: Any):
     Args:
         vstate: the variational state
         Ô: the operator
+        chunk_size: The optional chunk size to be used for the calculation.
 
     Returns:
         A callable accepting the output of `get_configs(vstate, O)`.
     """
+
+
+# Default dispatch for when chunk_size is not explicitly specified.
+@dispatch(precedence=-10)
+def get_local_kernel(vstate: Any, Ô: Any, chunk_size: None):  # noqa: F811
+    return get_local_kernel(vstate, Ô)
 
 
 @jax.jit
