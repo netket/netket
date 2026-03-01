@@ -889,9 +889,9 @@ class MCState(VariationalState):
                 :class:`~netket.sampler.MetropolisSampler`.
 
         See Also:
-            :func:`netket._src.vqs.check_mc_convergence.expect_to_precision`
+            :func:`netket._src.vqs.expect_to_precision.expect_to_precision`
         """
-        from netket._src.vqs.check_mc_convergence import expect_to_precision
+        from netket._src.vqs.expect_to_precision import expect_to_precision
 
         return expect_to_precision(
             self,
