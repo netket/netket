@@ -25,6 +25,7 @@ import jax
 from jax.tree_util import Partial
 from jax.sharding import PartitionSpec as P
 
+import netket.jax as nkjax
 from netket.utils import config
 
 safe_zip = partial(zip, strict=True)
@@ -306,7 +307,9 @@ def sharding_decorator(
                 # pvary
                 args = jax.tree_util.tree_map(
                     lambda c, l: (
-                        jax.tree_util.tree_map(partial(jax.lax.pvary, axis_name="S"), l)
+                        jax.tree_util.tree_map(
+                            lambda x: nkjax.lax.pcast(x, "S", to="varying"), l
+                        )
                         if c
                         else l
                     ),

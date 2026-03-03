@@ -63,12 +63,14 @@ from ._sort import sort, searchsorted
 
 from ._expect import expect
 
+from . import lax
+
 # internal sharding utilities
 from . import sharding
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__, ignore="sharding")
+_hide_submodules(__name__, ignore=("sharding", "lax"))
 
 # Deprecation machinery
 _deprecations = {

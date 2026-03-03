@@ -25,6 +25,7 @@ from functools import partial
 import jax.numpy as jnp
 
 from netket.utils.types import Array
+import netket.jax as nkjax
 
 
 def _sort_lexicographic(x):
@@ -90,8 +91,8 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     shape = query.shape[:-1]
     pvary_axes = tuple(jax.typeof(query).vma)
     init = (
-        jax.lax.pvary(jnp.full(shape, dtype(0)), pvary_axes),
-        jax.lax.pvary(jnp.full(shape, dtype(n)), pvary_axes),
+        nkjax.lax.pcast(jnp.full(shape, dtype(0)), pvary_axes, to="varying"),
+        nkjax.lax.pcast(jnp.full(shape, dtype(n)), pvary_axes, to="varying"),
     )
     return jax.lax.fori_loop(0, n_levels, body_fun, init)[1]
 
