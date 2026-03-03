@@ -263,5 +263,3 @@ def tau_corr_reliable(estimator) -> bool:
         return False
     n_per_chain = estimator._n_samples_total / estimator.n_chains
     return (n_per_chain / tau) >= 50
-
-
