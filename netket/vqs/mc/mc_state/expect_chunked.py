@@ -68,8 +68,8 @@ def get_local_kernel(  # noqa: F811
 
 def _local_continuous_kernel(logpsi, pars, σ, op, *, chunk_size=None):
     return nkjax.apply_chunked(
-        lambda x: op._expect_kernel(logpsi, pars, x), in_axes=0, chunk_size=chunk_size
-    )(σ)
+        lambda op, x: op._expect_kernel(logpsi, pars, x), in_axes=(None, 0), chunk_size=chunk_size
+    )(op, σ)
 
 
 @dispatch
