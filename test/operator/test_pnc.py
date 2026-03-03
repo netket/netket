@@ -140,6 +140,9 @@ def test_pnc_spin(N, n, s):
     ha3 = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha3.to_dense())
 
+    ha4 = ha3.to_fermionoperator2nd()
+    np.testing.assert_allclose(ha.to_dense(), ha4.to_dense())
+
 
 def test_fermihubbard():
     t = 1.23
@@ -171,6 +174,10 @@ def test_fermihubbard():
     np.testing.assert_allclose(ha2.to_dense(), ha.to_dense())
     np.testing.assert_allclose(ha2.to_dense(), ha3.to_dense())
     np.testing.assert_allclose(ha2.to_dense(), ha4.to_dense())
+
+    # Test conversion back to FermionOperator2nd
+    ha3_converted = ha3.to_fermionoperator2nd()
+    np.testing.assert_allclose(ha2.to_dense(), ha3_converted.to_dense())
 
 
 @pytest.mark.parametrize("n_devices", [2])
@@ -247,3 +254,7 @@ def test_pnc_sector_order(term):
     )
     ha_pnc = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha_pnc.to_dense())
+
+    # Test conversion back to FermionOperator2nd
+    ha_converted = ha_pnc.to_fermionoperator2nd()
+    np.testing.assert_allclose(ha.to_dense(), ha_converted.to_dense())

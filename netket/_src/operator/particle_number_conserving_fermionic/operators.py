@@ -34,6 +34,7 @@ from netket._src.operator.particle_number_conserving_fermionic.conversion import
     fermiop_to_pnc_format_helper,
     fermiop_to_pnc_format_spin_helper,
     pnc_format_to_fermiop_helper,
+    pnasc_format_to_fermiop_helper,
 )
 from netket._src.operator.particle_number_conserving_fermionic.operator_data import (
     collect_ops,
@@ -334,6 +335,30 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
         return get_conn_padded_pnc_spin(
             self._operator_data, x, self._hilbert.n_fermions_per_spin
         )
+
+    def to_fermionoperator2nd(
+        self, _cls=FermionOperator2ndJax
+    ) -> FermionOperator2ndJax:
+        r"""
+        Convert to FermionOperator2ndJax
+        """
+        n_orbitals = self._hilbert.n_orbitals
+        terms = []
+        weights = []
+        for d in self._operator_data.values():
+            for k, v in d.items():
+                # Extract sectors from key: k should be (n_ops, sectors) tuple
+                if isinstance(k, tuple):
+                    sectors = k[1]
+                else:
+                    raise ValueError(
+                        f"Unexpected key format in operator data: {k}. "
+                        f"Expected tuple (n_ops, sectors), got {type(k).__name__}"
+                    )
+                t, w = pnasc_format_to_fermiop_helper(*v, sectors, n_orbitals)
+                terms = terms + t.tolist()
+                weights = weights + w.tolist()
+        return _cls(self._hilbert, terms, weights)
 
     @classmethod
     def _from_coords_data(
