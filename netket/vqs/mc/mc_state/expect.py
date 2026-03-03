@@ -156,13 +156,9 @@ def _expect(
     if σ.ndim >= 3:
         σ = jax.lax.collapse(σ, 0, 2)
 
-    def logpsi(w, σ):
-        return model_apply_fun({"params": w, **model_state}, σ)
+    variables = {"params": parameters, **model_state}
 
-    def log_pdf(w, σ):
-        return machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
-
-    L_σ = local_value_kernel(logpsi, parameters, σ, local_value_args)
+    L_σ = local_value_kernel(model_apply_fun, variables, σ, local_value_args)
     Ō_stats = statistics(L_σ.reshape((n_chains, -1)))
 
     return Ō_stats

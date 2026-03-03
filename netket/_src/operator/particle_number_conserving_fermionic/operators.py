@@ -52,7 +52,9 @@ from netket._src.operator.particle_number_conserving_fermionic.kernels import (
 )
 
 
-def _operator_data_orders(operator_data: PNCOperatorDataCollectionDict) -> tuple[int, ...]:
+def _operator_data_orders(
+    operator_data: PNCOperatorDataCollectionDict,
+) -> tuple[int, ...]:
     orders = set()
     for block_data in operator_data.values():
         for key in block_data:

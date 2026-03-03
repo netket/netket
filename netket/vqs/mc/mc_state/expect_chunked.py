@@ -68,7 +68,9 @@ def get_local_kernel(  # noqa: F811
 
 def _local_continuous_kernel(logpsi, pars, σ, op, *, chunk_size=None):
     return nkjax.apply_chunked(
-        lambda op, x: op._expect_kernel(logpsi, pars, x), in_axes=(None, 0), chunk_size=chunk_size
+        lambda op, x: op._expect_kernel(logpsi, pars, x),
+        in_axes=(None, 0),
+        chunk_size=chunk_size,
     )(op, σ)
 
 
@@ -135,16 +137,15 @@ def _expect_chunking(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    def logpsi(w, σ):
-        return model_apply_fun({"params": w, **model_state}, σ)
+    variables = {"params": parameters, **model_state}
 
     def log_pdf(w, σ):
-        return machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
+        return machine_pow * model_apply_fun(w, σ).real
 
     _, Ō_stats = nkjax.expect(
         log_pdf,
-        partial(local_value_kernel, logpsi, chunk_size=chunk_size),
-        parameters,
+        partial(local_value_kernel, model_apply_fun, chunk_size=chunk_size),
+        variables,
         σ,
         args,
         n_chains=σ_shape[0],
