@@ -247,3 +247,21 @@ def test_pnc_sector_order(term):
     )
     ha_pnc = ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(ha)
     np.testing.assert_allclose(ha.to_dense(), ha_pnc.to_dense())
+
+
+@pytest.mark.parametrize(
+    "operator_class",
+    [
+        ParticleNumberConservingFermioperator2nd,
+        ParticleNumberAndSpinConservingFermioperator2nd,
+    ],
+)
+def test_pnc_repr(operator_class):
+    hi = SpinOrbitalFermions(2, s=0.5, n_fermions_per_spin=(1, 1))
+    ha = number(hi, 0, sz=1) + number(hi, 1, sz=-1)
+    op = operator_class.from_fermionoperator2nd(ha)
+    rep = repr(op)
+    assert type(op).__name__ in rep
+    assert "n_operator_groups=" in rep
+    assert "orders=" in rep
+    assert "_operator_data" not in rep

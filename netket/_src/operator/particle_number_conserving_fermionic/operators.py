@@ -52,6 +52,18 @@ from netket._src.operator.particle_number_conserving_fermionic.kernels import (
 )
 
 
+def _operator_data_orders(operator_data: PNCOperatorDataCollectionDict) -> tuple[int, ...]:
+    orders = set()
+    for block_data in operator_data.values():
+        for key in block_data:
+            orders.add(key[0] if isinstance(key, tuple) else key)
+    return tuple(sorted(orders))
+
+
+def _operator_data_n_groups(operator_data: PNCOperatorDataCollectionDict) -> int:
+    return sum(len(block_data) for block_data in operator_data.values())
+
+
 @struct.dataclass
 class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     r"""
@@ -109,6 +121,14 @@ class ParticleNumberConservingFermioperator2nd(DiscreteJaxOperator):
     def is_hermitian(self):
         # TODO more efficient implementation
         return self.to_fermionoperator2nd().is_hermitian
+
+    def __repr__(self):
+        orders = _operator_data_orders(self._operator_data)
+        n_groups = _operator_data_n_groups(self._operator_data)
+        return (
+            f"{type(self).__name__}(hilbert={self.hilbert}, "
+            f"n_operator_groups={n_groups}, orders={orders})"
+        )
 
     @classmethod
     def _from_coords_data_normal_order(
@@ -329,6 +349,14 @@ class ParticleNumberAndSpinConservingFermioperator2nd(DiscreteJaxOperator):
         x = jax.ShapeDtypeStruct((1, self._hilbert.size), dtype=jnp.uint8)
         _, mels = jax.eval_shape(self.get_conn_padded, x)
         return mels.shape[-1]
+
+    def __repr__(self):
+        orders = _operator_data_orders(self._operator_data)
+        n_groups = _operator_data_n_groups(self._operator_data)
+        return (
+            f"{type(self).__name__}(hilbert={self.hilbert}, "
+            f"n_operator_groups={n_groups}, orders={orders})"
+        )
 
     def get_conn_padded(self, x):
         return get_conn_padded_pnc_spin(
