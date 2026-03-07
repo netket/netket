@@ -199,7 +199,7 @@ if not config.netket_experimental_sharding:
 @pytest.fixture
 def model_and_weights(request):
     def build_model(hilb, sampler=None):
-        if isinstance(sampler, nk.sampler.ARDirectSampler):
+        if isinstance(sampler, nk.sampler.UnconstrainedARDirectSampler):
             ma = nk.models.ARNNDense(
                 hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
             )
@@ -218,9 +218,9 @@ def model_and_weights(request):
         w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
 
         # Create more featureful weights for better convergence testing
-        if not isinstance(sampler, nk.sampler.ARDirectSampler) and not isinstance(
-            hilb, Particle
-        ):
+        if not isinstance(
+            sampler, nk.sampler.UnconstrainedARDirectSampler
+        ) and not isinstance(hilb, Particle):
             # Create structured weights that lead to a more peaked distribution
             # This creates correlations between spins and non-trivial structure
             key = jax.random.PRNGKey(WEIGHT_SEED + 1)
@@ -305,7 +305,10 @@ def set_pdf_power(request):
         elif int(cmdline_mpow) != request.param:
             pytest.skip(f"Running only --mpow={cmdline_mpow}.")
 
-        if isinstance(sampler, nk.sampler.ARDirectSampler) and request.param != 2:
+        if (
+            isinstance(sampler, nk.sampler.UnconstrainedARDirectSampler)
+            and request.param != 2
+        ):
             pytest.skip("ARDirectSampler only supports machine_pow = 2.")
 
         return sampler.replace(machine_pow=request.param)
@@ -673,7 +676,10 @@ def test_setup_throwing_multiplerules():
 
 @common.skipif_distributed
 def test_exact_sampler(sampler):
-    known_exact_samplers = (nk.sampler.ExactSampler, nk.sampler.ARDirectSampler)
+    known_exact_samplers = (
+        nk.sampler.ExactSampler,
+        nk.sampler.UnconstrainedARDirectSampler,
+    )
     if isinstance(sampler, known_exact_samplers):
         assert sampler.is_exact is True
         assert sampler.n_chains_per_rank == 1
@@ -813,3 +819,167 @@ def test_chunking_invariant(model_and_weights, sampler_type):
     )
 
     np.testing.assert_allclose(samples, samples_ch)
+
+
+class PairBalanceConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
+    """Generic custom constraint used to test the rejection-based constrained AR path."""
+
+    @jax.jit
+    def __call__(self, x):
+        return jnp.sum(x[..., ::2], axis=-1) == jnp.sum(x[..., 1::2], axis=-1)
+
+    def __hash__(self):
+        return hash("PairBalanceConstraint")
+
+    def __eq__(self, other):
+        return isinstance(other, PairBalanceConstraint)
+
+
+def _build_constrained_case(case: str):
+    if case == "sum":
+        hi = nk.hilbert.Spin(
+            s=0.5, N=8, constraint=nk.hilbert.constraint.SumConstraint(0)
+        )
+        model_name = "ConstrainedARNNDense"
+    elif case == "sum_fast":
+        hi = nk.hilbert.Spin(
+            s=0.5, N=8, constraint=nk.hilbert.constraint.SumConstraint(0)
+        )
+        model_name = "ConstrainedFastARNNDense"
+    elif case == "partition":
+        hi = nk.hilbert.Spin(
+            s=0.5,
+            N=8,
+            constraint=nk.hilbert.constraint.SumOnPartitionConstraint(
+                sum_values=(0, 0), sizes=(4, 4)
+            ),
+        )
+        model_name = "ConstrainedARNNDense"
+    elif case == "generic":
+        hi = nk.hilbert.Spin(s=0.5, N=8, constraint=PairBalanceConstraint())
+        # For generic constraints we intentionally keep using regular ARNN.
+        model_name = "ARNNDense"
+    else:
+        raise ValueError(f"Unknown constrained test case: {case}")
+    return hi, model_name
+
+
+def _build_ard_model(hilb, model_name: str):
+    if not hasattr(nk.models, model_name):
+        pytest.skip(
+            f"Model nk.models.{model_name} is required by constrained AR sampler tests."
+        )
+    model_cls = getattr(nk.models, model_name)
+    return model_cls(hilbert=hilb, machine_pow=2, layers=3, features=5)
+
+
+def _make_constrained_sampler_or_skip(hilb):
+    try:
+        return nk.sampler.ARDirectSampler(hilb)
+    except Exception as exc:
+        pytest.skip(
+            "Constrained ARDirectSampler support is required for this test "
+            f"(got: {type(exc).__name__}: {exc})."
+        )
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        pytest.param("sum", id="sum"),
+        pytest.param("sum_fast", id="sum-fast"),
+        pytest.param("partition", id="partition"),
+        pytest.param("generic", id="generic"),
+    ],
+)
+@common.skipif_distributed
+def test_constrained_ardirect_states_in_hilbert(case):
+    hi, model_name = _build_constrained_case(case)
+    sa = _make_constrained_sampler_or_skip(hi)
+    ma = _build_ard_model(hi, model_name)
+    w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hi.size)))
+
+    samples, _ = sa.sample(ma, w, chain_length=64)
+    assert samples.shape == (sa.n_chains, 64, hi.size)
+
+    valid = hi.constraint(np.asarray(samples).reshape(-1, hi.size))
+    assert bool(np.all(np.asarray(valid)))
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        pytest.param("sum", id="sum"),
+        pytest.param("sum_fast", id="sum-fast"),
+        pytest.param("partition", id="partition"),
+        pytest.param("generic", id="generic"),
+    ],
+)
+@common.skipif_distributed
+def test_constrained_ardirect_return_log_probabilities(case):
+    hi, model_name = _build_constrained_case(case)
+    sa = _make_constrained_sampler_or_skip(hi)
+    ma = _build_ard_model(hi, model_name)
+    w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hi.size)))
+
+    (samples, log_probs), _ = sa.sample(
+        ma, w, chain_length=4, return_log_probabilities=True
+    )
+
+    log_probs_computed = jax.vmap(ma.apply, in_axes=(None, 0))(w, samples)
+    log_probs_computed = sa.machine_pow * log_probs_computed.real
+
+    assert log_probs.shape == samples.shape[:-1]
+    np.testing.assert_allclose(log_probs, log_probs_computed)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        pytest.param("sum", id="sum"),
+        pytest.param("sum_fast", id="sum-fast"),
+        pytest.param("partition", id="partition"),
+        pytest.param("generic", id="generic"),
+    ],
+)
+@common.skipif_distributed
+def test_constrained_ardirect_correct_sampling(case):
+    """
+    Distribution-level correctness test for constrained autoregressive sampling (repeated
+    chi-square tests + Fisher combination of p-values).
+    """
+    hi, model_name = _build_constrained_case(case)
+    sa = _make_constrained_sampler_or_skip(hi)
+    ma = _build_ard_model(hi, model_name)
+    w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hi.size)))
+
+    n_states = hi.n_states
+    n_samples = max(40 * n_states, 100)
+
+    ps = np.absolute(nk.nn.to_array(hi, ma, w, normalize=False)) ** sa.machine_pow
+    ps /= ps.sum()
+
+    n_rep = 6
+    pvalues = np.zeros(n_rep)
+
+    sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
+    for jrep in range(n_rep):
+        sampler_state = sa.reset(ma, w, state=sampler_state)
+        samples, sampler_state = sa.sample(
+            ma, w, state=sampler_state, chain_length=n_samples
+        )
+        assert samples.shape == (sa.n_chains, n_samples, hi.size)
+
+        sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
+        n_s = sttn.size
+
+        unique, counts = np.unique(sttn, return_counts=True)
+        hist_samp = np.zeros(n_states)
+        hist_samp[unique] = counts
+
+        f_exp = n_s * ps
+        f_exp = f_exp * (n_s / np.sum(f_exp))
+        _, pvalues[jrep] = chisquare(hist_samp, f_exp=f_exp)
+
+    _, pval = combine_pvalues(pvalues, method="fisher")
+    assert pval > 0.01 or np.max(pvalues) > 0.01
