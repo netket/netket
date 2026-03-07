@@ -14,6 +14,7 @@
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from netket import config
 from netket.utils.struct import dataclass, field
@@ -28,12 +29,12 @@ class TableauRKExplicit:
     which, given the ODE :math:`dy/dt = F(t, y)`, updates the solution as
 
     .. math::
-        y_{t+dt} = y_t + \sum_l b_l k_l
+        y_{t+dt} = y_t + dt\sum_l b_l k_l
 
     with the intermediate slopes
 
     .. math::
-        k_l = F(t + c_l dt, y_t + \sum_{m < l} a_{lm} k_m).
+        k_l = F\left(t + c_l dt, y_t + dt\sum_{m < l} a_{lm} k_m\right).
 
     If :code:`self.is_adaptive`, the tableau also contains the coefficients :math:`b'_l`
     which can be used to estimate the local truncation error by the formula
@@ -63,8 +64,18 @@ class TableauRKExplicit:
 
     @property
     def is_adaptive(self):
-        """Boolean indication whether the integrator can beå adaptive."""
+        """Boolean indication whether the integrator can be adaptive."""
         return self.b.ndim == 2
+
+    @property
+    def is_fsal(self):
+        """Whether the tableau satisfies the FSAL (first same as last) condition."""
+        b = self.b[0] if self.is_adaptive else self.b
+        return (
+            self.c[-1] == 1
+            and np.all(self.a[-1] == b)
+            and b[-1] == 0
+        )
 
 
 # fmt: off
@@ -132,8 +143,8 @@ bt_rk23  = TableauRKExplicit(
                                [1/2, 0,   0,   0],
                                [0,   3/4, 0,   0],
                                [2/9, 1/3, 4/9, 0]], dtype=default_dtype),
-                b = jnp.array([[7/24,1/4, 1/3, 1/8],
-                               [2/9, 1/3, 4/9, 0]], dtype=default_dtype),
+                b = jnp.array([[2/9, 1/3, 4/9, 0],
+                               [7/24,1/4, 1/3, 1/8]], dtype=default_dtype),
                 c = jnp.array( [0, 1/2, 3/4, 1], dtype=default_dtype),
                 name = "RK23"
                 )
