@@ -166,6 +166,18 @@ bt_rk23  = TableauRKExplicit(
                 )
 
 
+# SSPRK33 (Shu--Osher third-order SSP Runge--Kutta)
+bt_ssprk33  = TableauRKExplicit(
+                order = (3,),
+                a = jnp.array([[0,   0,   0],
+                               [1,   0,   0],
+                               [1/4, 1/4, 0]], dtype=default_dtype),
+                b = jnp.array( [1/6, 1/6, 2/3], dtype=default_dtype),
+                c = jnp.array( [0, 1, 1/2], dtype=default_dtype),
+                name = "SSPRK33"
+                )
+
+
 bt_rk4_fehlberg = TableauRKExplicit(
                 order = (5,4),
                 a = jnp.array([[ 0,          0,          0,           0,            0,      0 ],
