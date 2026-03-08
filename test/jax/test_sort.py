@@ -5,7 +5,7 @@ import jax
 
 import netket as nk
 
-from ..common_mesh import with_meshes
+from test.common_mesh import with_meshes
 
 
 @with_meshes(auto=[None, ((2,), ("A",))])

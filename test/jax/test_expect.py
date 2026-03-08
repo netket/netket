@@ -4,6 +4,12 @@ import jax
 import jax.numpy as jnp
 
 import numpy as np
+import pytest
+
+import netket as nk
+import netket.experimental as nkx
+
+from test.common_mesh import with_meshes
 
 
 def test_expect():
@@ -38,3 +44,62 @@ def test_expect():
     # grad_analytic = (H[x]@psi) / psi[x]
     # print(grad_psi.shape, grad_analytic.shape)
     # np.testing.assert_allclose(grad_psi, grad_analytic, atol=1e-8)
+
+
+@with_meshes(auto=[((2,), ("S",))])
+@pytest.mark.parametrize(
+    "operator_kind",
+    ["FermionOperator2nd", "PNC", "PNC_spin", "FermiHubbardJax"],
+)
+@pytest.mark.parametrize("chunk_size", [8])
+def test_expect_fermionic_operators_chunked_sharding_regression(
+    mesh, operator_kind, chunk_size
+):
+    g = nk.graph.Hypercube(length=2, n_dim=2, pbc=False)
+    hi = nk.hilbert.SpinOrbitalFermions(g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2))
+
+    t = 1.0
+    U = 0.01
+    ham_generic = 0.0
+    for sz in (1, -1):
+        for u, v in g.edges():
+            ham_generic += -t * nk.operator.fermion.create(
+                hi, u, sz=sz
+            ) @ nk.operator.fermion.destroy(
+                hi, v, sz=sz
+            ) - t * nk.operator.fermion.create(
+                hi, v, sz=sz
+            ) @ nk.operator.fermion.destroy(
+                hi, u, sz=sz
+            )
+    for u in g.nodes():
+        ham_generic += (
+            U
+            * nk.operator.fermion.number(hi, u, sz=1)
+            @ nk.operator.fermion.number(hi, u, sz=-1)
+        )
+
+    if operator_kind == "FermionOperator2nd":
+        ham = ham_generic
+    elif operator_kind == "PNC":
+        ham = nkx.operator.ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(
+            ham_generic
+        )
+    elif operator_kind == "PNC_spin":
+        ham = nkx.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(
+            ham_generic
+        )
+    elif operator_kind == "FermiHubbardJax":
+        ham = nk.operator.FermiHubbardJax(hilbert=hi, graph=g, t=t, U=U)
+    else:
+        raise ValueError(f"Unknown operator kind {operator_kind}.")
+
+    sa = nk.sampler.MetropolisFermionHop(
+        hi, graph=g, n_chains=8, sweep_size=8, spin_symmetric=True
+    )
+    ma = nk.models.Slater2nd(hi)
+    vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=2, n_samples=16)
+    vs.chunk_size = chunk_size
+
+    res = vs.expect(ham)
+    assert jnp.isfinite(res.mean)
