@@ -42,6 +42,16 @@ class TableauRKExplicit:
     .. math::
         y_{\mathrm{err}} = \sum_l (b_l - b'_l) k_l.
 
+    The tableau stores the Runge--Kutta coefficients in the standard Butcher form:
+    :code:`a` is the strictly lower-triangular stage matrix, :code:`c` contains the
+    stage times, and :code:`b` contains the weights used to combine the stage
+    derivatives. For fixed-step methods, :code:`b` is a one-dimensional array of
+    shape :code:`(n_stages,)`. For embedded adaptive methods, :code:`b` is a
+    two-dimensional array of shape :code:`(2, n_stages)`, where row :code:`i`
+    corresponds to the solution estimate of order :code:`self.order[i]`.
+    The property :code:`is_fsal` reports whether the tableau satisfies the
+    first-same-as-last (FSAL) condition.
+
     [1] https://en.wikipedia.org/w/index.php?title=Runge%E2%80%93Kutta_methods&oldid=1055669759
     [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002).
     """
@@ -60,7 +70,17 @@ class TableauRKExplicit:
     """The name of the tableau."""
 
     def __repr__(self):
-        return self.name
+        if self.is_adaptive:
+            order_str = "/".join(str(o) for o in self.order)
+            adaptive_str = "adaptive"
+        else:
+            order_str = str(self.order[0])
+            adaptive_str = "fixed-step"
+
+        return (
+            f"{self.name}(order={order_str}, n_stages={self.a.shape[0]}, "
+            f"{adaptive_str}, fsal={self.is_fsal})"
+        )
 
     @property
     def is_adaptive(self):
@@ -71,11 +91,7 @@ class TableauRKExplicit:
     def is_fsal(self):
         """Whether the tableau satisfies the FSAL (first same as last) condition."""
         b = self.b[0] if self.is_adaptive else self.b
-        return (
-            self.c[-1] == 1
-            and np.all(self.a[-1] == b)
-            and b[-1] == 0
-        )
+        return self.c[-1] == 1 and np.all(self.a[-1] == b) and b[-1] == 0
 
 
 # fmt: off
