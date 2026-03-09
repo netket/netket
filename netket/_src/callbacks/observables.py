@@ -9,6 +9,9 @@ class ObservableCallback(AbstractCallback, mutable=True):
     _observables: Any = struct.field(pytree_node=False, serialize=False)
     _interval: int = struct.field(pytree_node=False, serialize=False, default=1)
     _fullsum: bool = struct.field(pytree_node=False, serialize=False, default=False)
+    _last_step: float = struct.field(
+        pytree_node=False, serialize=False, default=float("-inf")
+    )
 
     def __init__(
         self,
@@ -32,9 +35,14 @@ class ObservableCallback(AbstractCallback, mutable=True):
         self._interval = interval
         self._fullsum = fullsum
 
+        self._last_step = float("-inf")
+
     def before_parameter_update(self, step, log_data, driver):
-        if step % self._interval == 0:
+        if hasattr(driver, "t"):
+            step = driver.t
+        if step >= self._last_step + self._interval:
             with timing.timed_scope(name="observables"):
                 log_data.update(
                     driver.estimate(self._observables, fullsum=self._fullsum)
                 )
+            self._last_step = step

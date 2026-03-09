@@ -21,7 +21,7 @@ import jax.numpy as jnp
 
 from netket import jax as nkjax
 from netket.utils import struct
-from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
+from netket._src.driver.abstract_optimization_driver import AbstractOptimizationDriver
 from netket.operator import AbstractOperator
 from netket.vqs import VariationalState
 from netket.optimizer import (
@@ -45,7 +45,7 @@ from .logic_helpers import (
 BaseType = Union[AbstractOperator, np.ndarray, str]
 
 
-class QSR(AbstractVariationalDriver):
+class QSR(AbstractOptimizationDriver):
     r"""
     Quantum state reconstruction driver minimizing KL divergence.
 

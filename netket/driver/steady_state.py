@@ -27,10 +27,10 @@ from netket.utils import struct
 from netket.jax import tree_cast
 from netket.utils.types import Optimizer, PyTree
 
-from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
+from netket._src.driver.abstract_optimization_driver import AbstractOptimizationDriver
 
 
-class SteadyState(AbstractVariationalDriver):
+class SteadyState(AbstractOptimizationDriver):
     """
     Steady-state driver minimizing L^†L.
     """

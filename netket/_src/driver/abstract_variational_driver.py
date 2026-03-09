@@ -14,11 +14,11 @@
 
 from typing import Any, Union
 from collections.abc import Iterable
+from pathlib import Path
 import sys
 import time
 
 import numbers
-from functools import partial
 
 import jax
 
@@ -26,7 +26,7 @@ from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
 from netket.utils import struct, timing
 from netket.utils.iterators import to_iterable
-from netket.utils.types import Optimizer, PyTree
+from netket.utils.types import PyTree
 from netket.vqs import VariationalState, FullSumState
 
 from netket._src.callbacks.base import AbstractCallback, StopRun
@@ -47,13 +47,13 @@ def maybe_wrap_legacy_callback(callback):
         return LegacyCallbackWrapper(callback)
 
 
-class AbstractVariationalDriver(struct.Pytree, mutable=True):
-    """Abstract base class for NetKet Variational Monte Carlo drivers
+class AbstractDriver(struct.Pytree, mutable=True):
+    """Abstract base class for NetKet variational drivers.
 
-    This class must be inherited from in order to create an optimization driver that
+    This class must be inherited from in order to create a driver that
     immediately works with NetKet loggers and callback mechanism.
 
-    The :meth:`run` method executes the optimisation loop and invokes
+    The :meth:`run` method executes the driver loop and invokes
     :class:`~netket.callbacks.AbstractCallback` hooks at well-defined points during each step.
     To stop the loop early from a callback, raise :class:`~netket.callbacks.StopRun`.
     For a detailed description of the loop structure and the available callback hooks, see
@@ -65,27 +65,25 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
 
         For a concrete example, look at the file `netket/driver/vmc.py`.
 
-        If you want to inherit the nice interface of :class:`netket.driver.AbstractVariationalDriver`,
-        you should subclass it, and define the following methods:
+        To implement a new **optimization** driver (with an optax optimizer), subclass
+        :class:`~netket.driver.AbstractOptimizationDriver` instead.
 
-        - The :meth:`~netket.driver.AbstractVariationalDriver.__init__` method should be called
-          with the machine, optimizer and optionally the name of the loss minimised. If this
-          driver is minimising a loss function and you want its name to show up automatically
-          in the progress bar/output files you should pass the optional keyword argument.
+        To implement a new **dynamics** driver (time evolution), subclass
+        :class:`~netket.driver.AbstractDynamicsDriver` instead.
 
-        - :meth:`~netket.driver.AbstractVariationalDriver.compute_loss_and_update`,
-          that should compute the loss function and the gradient, returning both as a tuple.
-          If the driver is minimizing or maximising some loss function,
-          this quantity should be returned as the first element of the tuple so it is
-          automatically logged.
+        If subclassing :class:`AbstractDriver` directly, define:
 
-        - :meth:`~netket.driver.AbstractVariationalDriver._estimate_stats` should return
-          the expectation value over the variational state of a single observable.
+        - :meth:`~netket.driver.AbstractDriver.__init__`: call ``super().__init__(variational_state)``
+          and optionally pass ``minimized_quantity_name``.
 
-        - :meth:`~netket.driver.AbstractVariationalDriver.reset_step`,
-          should reset the driver (usually the sampler). The basic implementation will call
-          :meth:`~netket.vqs.VariationalState.reset`, but you are responsible for resetting
-          extra fields in the driver itself.
+        - :meth:`~netket.driver.AbstractDriver.compute_loss_and_update`:
+          compute the loss and the parameter update, returning both as a tuple.
+
+        - :meth:`~netket.driver.AbstractDriver.update_parameters`:
+          apply the parameter update returned by :meth:`compute_loss_and_update`.
+
+        - :meth:`~netket.driver.AbstractDriver.reset_step` (optional):
+          reset the sampler at the start of each step.
 
     """
 
@@ -97,8 +95,6 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
     _step_count: int = struct.field(serialize=True)
 
     # state of the driver
-    _optimizer: Optimizer = struct.field(pytree_node=False, serialize=False)
-    _optimizer_state: Any = struct.field(pytree_node=True, serialize=True)
     _variational_state: VariationalState = struct.field(
         pytree_node=False,
         serialize=True,
@@ -118,18 +114,13 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
     def __init__(
         self,
         variational_state: VariationalState,
-        optimizer: Optimizer,
         minimized_quantity_name: str = "loss",
     ):
         """
-        Initializes a variational optimization driver.
+        Initializes a variational driver.
 
         Args:
-            variational_state: The variational state to be optimized
-            optimizer: an `optax <https://optax.readthedocs.io/en/latest/>`_ optimizer.
-                If you do not want
-                to use an optimizer, just pass a sgd optimizer with
-                learning rate `-1`.
+            variational_state: The variational state.
             minimized_quantity_name: the name of the loss function in
                 the logged data set.
         """
@@ -138,7 +129,6 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
         self._step_count = 0
 
         self._variational_state = variational_state
-        self.optimizer = optimizer
 
         self._dp = jax.tree.map(jax.numpy.zeros_like, self.state.parameters)
 
@@ -256,7 +246,7 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
 
     def _log_additional_data(self, log_dict: dict):
         """
-        Method to be implemented in sub-classes of AbstractVariationalDriver to
+        Method to be implemented in sub-classes of AbstractDriver to
         log additional data at every step.
         This method is called at every iteration when executing with `run`.
 
@@ -279,19 +269,6 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
         Returns the machine that is optimized by this driver.
         """
         return self._variational_state
-
-    @property
-    def optimizer(self):
-        """
-        The optimizer used to update the parameters at every iteration.
-        """
-        return self._optimizer
-
-    @optimizer.setter
-    def optimizer(self, optimizer):
-        self._optimizer = optimizer
-        if optimizer is not None:
-            self._optimizer_state = optimizer.init(self.state.parameters)
 
     @property
     def step_count(self):
@@ -427,7 +404,7 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
             )
 
         # if out is a path, create an overwriting Json Log for output
-        if isinstance(out, str):
+        if isinstance(out, (str, Path)):
             out = (JsonLog(out, "w", save_params_every, write_every),)
         elif out is None:
             out = ()
@@ -536,21 +513,15 @@ class AbstractVariationalDriver(struct.Pytree, mutable=True):
 
     def update_parameters(self, dp):
         """
-        Updates the parameters of the machine using the optimizer in this driver
+        Updates the parameters of the variational state.
+
+        Subclasses must override this method.  Optimization drivers should
+        apply the optimizer; dynamics drivers should apply the delta directly.
 
         Args:
-            dp: the pytree containing the updates to the parameters
+            dp: the pytree containing the updates to the parameters.
         """
-        self._optimizer_state, self.state.parameters = apply_gradient(
-            self._optimizer.update, self._optimizer_state, dp, self.state.parameters
+        raise NotImplementedError(
+            f"{type(self).__name__} must implement update_parameters. "
+            "If you want an optimization driver, subclass AbstractOptimizationDriver."
         )
-
-
-@partial(jax.jit, static_argnums=0)
-def apply_gradient(optimizer_fun, optimizer_state, dp, params):
-    import optax
-
-    updates, new_optimizer_state = optimizer_fun(dp, optimizer_state, params)
-
-    new_params = optax.apply_updates(params, updates)
-    return new_optimizer_state, new_params

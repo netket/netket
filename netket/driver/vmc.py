@@ -28,11 +28,11 @@ from netket.vqs import VariationalState
 from netket.jax import tree_cast
 from netket.errors import InsufficientSamplesForSRWarning
 
-from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
+from netket._src.driver.abstract_optimization_driver import AbstractOptimizationDriver
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
 
 
-class VMC(AbstractVariationalDriver):
+class VMC(AbstractOptimizationDriver):
     """
     Energy minimization using Variational Monte Carlo (VMC).
 

@@ -8,9 +8,9 @@ from netket.utils import struct
 from netket._src.callbacks.base import AbstractCallback, StopRun
 
 if TYPE_CHECKING:
-    from netket._src.driver.abstract_variational_driver import AbstractVariationalDriver
+    from netket._src.driver.abstract_variational_driver import AbstractDriver
 
-LegacyCallbackT = Callable[[int, dict, "AbstractVariationalDriver"], bool]
+LegacyCallbackT = Callable[[int, dict, "AbstractDriver"], bool]
 
 
 class LegacyCallbackWrapper(AbstractCallback):

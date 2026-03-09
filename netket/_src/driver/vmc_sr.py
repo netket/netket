@@ -18,8 +18,8 @@ from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator, to_sparse_cached
 from netket import stats as nkstats
 
-from netket._src.driver.abstract_variational_driver import (
-    AbstractVariationalDriver,
+from netket._src.driver.abstract_optimization_driver import (
+    AbstractOptimizationDriver,
 )
 from netket._src.stats.online_stats import OnlineStats
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
@@ -83,7 +83,7 @@ def VMC_SRt(
     condition="If using minSR, VMC_SR(use_ntk=True) ",
     message="This work used the efficient kernel trick for SR described in Refs.",
 )
-class VMC_SR(AbstractVariationalDriver):
+class VMC_SR(AbstractOptimizationDriver):
     r"""
     Energy minimization using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.
     This driver is mathematically equivalent to the standard :class:`netket.driver.VMC` with the

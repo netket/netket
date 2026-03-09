@@ -17,8 +17,8 @@ from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator
 from netket import stats as nkstats
 
-from netket._src.driver.abstract_variational_driver import (
-    AbstractVariationalDriver,
+from netket._src.driver.abstract_optimization_driver import (
+    AbstractOptimizationDriver,
 )
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
@@ -39,7 +39,7 @@ DeriativesArgs = tuple[ApplyFun, PyTree, PyTree, Array]
     condition="If using infidelity estimators and optimizers",
     message="This work used the Infidelity estimators and optimizers from Refs.",
 )
-class Infidelity_SR(AbstractVariationalDriver):
+class Infidelity_SR(AbstractOptimizationDriver):
     r"""
     Infidelity minimization with respect to a target state :math:`|\Phi\rangle` (with possibly an operator :math:`U` such that :math:`|\Phi\rangle \equiv U|\Phi\rangle`)
     using Variational Monte Carlo (VMC) and **Stochastic Reconfiguration/Natural Gradient Descent**.
