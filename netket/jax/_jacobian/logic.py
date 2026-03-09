@@ -334,14 +334,19 @@ def jacobian(
         )
 
     # pre-apply the model state
-    forward_fn = lambda W, σ: apply_fun({"params": W, **model_state}, σ)
-
+    # Use Partial(_f, model_state) instead of a lambda closure so that model_state
+    # is a pytree leaf of the Partial object and passed through shard_map.
     if split_complex_params:
         # doesn't do anything if the params are already real
         params, reassemble = tree_to_real(params)
-        f = lambda W, σ: forward_fn(reassemble(W), σ)
+
+        def _f(ms, W, σ):
+            return apply_fun({"params": reassemble(W), **ms}, σ)
+
     else:
-        f = forward_fn
+
+        def _f(ms, W, σ):
+            return apply_fun({"params": W, **ms}, σ)
 
     # jacobians is a tree with leaf shapes:
     # - (n_samples, 2, ...) if mode complex, holding the real and imaginary jacobian
@@ -355,7 +360,7 @@ def jacobian(
         axis_0_is_sharded=_axis_0_is_sharded,
     )  # see below
 
-    jacobians = jacobian_fun(Partial(f), params, samples)
+    jacobians = jacobian_fun(Partial(_f, model_state), params, samples)
 
     if pdf is None:
         if center:
