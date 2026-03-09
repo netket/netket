@@ -16,6 +16,7 @@ import time
 
 import os
 from os import path as _path
+from pathlib import Path
 
 from flax import serialization
 
@@ -50,7 +51,7 @@ class JsonLog(RuntimeLog):
 
     def __init__(
         self,
-        output_prefix: str,
+        output_prefix: str | Path,
         mode: str = "write",
         save_params_every: int = 50,
         write_every: int = 50,
@@ -91,6 +92,10 @@ class JsonLog(RuntimeLog):
                 "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or"
                 "`[x]`(fail)."
             )
+
+        # TODO: change the whole logic to use paths
+        if isinstance(output_prefix, Path):
+            output_prefix = str(output_prefix)
 
         file_exists = _path.exists(output_prefix + ".log") or _path.exists(
             output_prefix + ".mpack"
