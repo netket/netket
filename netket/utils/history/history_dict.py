@@ -84,6 +84,9 @@ class HistoryDict:
             keys = key.split("/")
             val = self._data
             for subkey in keys:
+                # support integer keys for lists and tuples, e.g. "my_list/0"
+                if isinstance(val, (list, tuple)) and subkey.isdigit():
+                    subkey = int(subkey)
                 val = val[subkey]  # Traverse through subdictionaries
             if wrap_dicts and isinstance(val, dict):
                 return HistoryDict(val)
