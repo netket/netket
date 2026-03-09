@@ -145,10 +145,11 @@ class AbstractDynamicsDriver(AbstractDriver):
 
     def run(
         self,
-        T,
+        T=None,
         out: Iterable[AbstractLog] | None = (),
         obs=None,
         *,
+        n_iter: int | None = None,
         show_progress: bool = True,
         callback: Union[LegacyCallbackT, AbstractCallback, None] = None,
         timeit: bool = False,
@@ -171,18 +172,29 @@ class AbstractDynamicsDriver(AbstractDriver):
             callback: User callbacks.
             timeit: If True, print timing information after the run.
         """
-        stop_cb = _StopAtTime(T)
-        all_callbacks = [stop_cb, *to_iterable(callback, none_is_empty=True)]
-        n_iter = 100_000_000_000
-        if show_progress:
-            all_callbacks.append(TimeProgressBarCallback(T))
+        if n_iter is None and T is None:
+            raise ValueError(
+                "Must specify either a total time T or a step count n_iter."
+            )
+        elif n_iter is not None and T is not None:
+            raise ValueError(
+                "Cannot specify both a total time T and a step count n_iter."
+            )
+
+        if T is not None:
+            stop_cb = _StopAtTime(T)
+            callback = [stop_cb, *to_iterable(callback, none_is_empty=True)]
+            n_iter = 100_000_000_000
+            if show_progress:
+                callback.append(TimeProgressBarCallback(T))
+                show_progress = False
 
         return super().run(
             n_iter,
             out=out,
             obs=obs,
             show_progress=False,
-            callback=all_callbacks,
+            callback=callback,
             timeit=timeit,
             step_size=step_size,
         )
