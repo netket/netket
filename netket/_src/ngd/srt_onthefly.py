@@ -56,7 +56,7 @@ def srt_onthefly(
 
     # complex: (Nmc) -> (Nmc,2) - splitting real and imaginary output like 2 classes
     # real:    (Nmc) -> (Nmc,)  - no splitting
-    def _apply_fn(parameters_real, samples):
+    def _apply_fn(parameters_real, samples, model_state):
         variables = {"params": rss(parameters_real), **model_state}
         log_amp = log_psi(variables, samples)
 
@@ -68,12 +68,12 @@ def srt_onthefly(
         else:
             return log_amp.real  # shape [N_mc, ]
 
-    def jvp_f_chunk(parameters, vector, samples):
+    def jvp_f_chunk(parameters, model_state, vector, samples):
         r"""
         Creates the jvp of the function `_apply_fn` with respect to the parameters.
         This jvp is then evaluated in chunks of `chunk_size` samples.
         """
-        f = lambda params: _apply_fn(params, samples)
+        f = lambda params: _apply_fn(params, samples, model_state=model_state)
         _, acc = jax.jvp(f, (parameters,), (vector,))
         return acc
 
@@ -94,8 +94,8 @@ def srt_onthefly(
             old_updates = tree_map(jnp.zeros_like, parameters_real)
         else:
             acc = nkjax.apply_chunked(
-                jvp_f_chunk, in_axes=(None, None, 0), chunk_size=chunk_size
-            )(parameters_real, old_updates, samples)
+                jvp_f_chunk, in_axes=(None, None, None, 0), chunk_size=chunk_size
+            )(parameters_real, model_state, old_updates, samples)
 
             avg = jnp.mean(acc, axis=0)
             acc = (acc - avg) / jnp.sqrt(N_mc)
@@ -120,18 +120,20 @@ def srt_onthefly(
         vmap_axes=0,
     )
 
-    def jacobian_contraction(samples, all_samples, parameters_real):
+    def jacobian_contraction(samples, all_samples, parameters_real, model_state):
         if config.netket_experimental_sharding:
             parameters_real = nkjax.lax.pcast(parameters_real, "S", to="varying")
         if chunk_size is None:
             # STRUCTURED_DERIVATIVES returns a complex array, but the imaginary part is zero
             # shape [N_mc/p.size, N_mc, 2, 2]
-            return _jacobian_contraction(samples, all_samples, parameters_real).real
+            return _jacobian_contraction(
+                samples, all_samples, parameters_real, model_state=model_state
+            ).real
         else:
             _all_samples, _ = nkjax.chunk(all_samples, chunk_size=chunk_size)
             ntk_local = jax.lax.map(
                 lambda batch_lattice: _jacobian_contraction(
-                    samples, batch_lattice, parameters_real
+                    samples, batch_lattice, parameters_real, model_state=model_state
                 ).real,
                 _all_samples,
             )
@@ -144,7 +146,7 @@ def srt_onthefly(
     if config.netket_experimental_sharding:
         mesh = jax.sharding.get_abstract_mesh()
         # SAMPLES, ALL_SAMPLES PARAMETERS_REAL
-        in_specs = (P("S", None), P(), P())
+        in_specs = (P("S", None), P(), P(), P())
         out_specs = P("S", None)
 
         # By default, I'm not sure whether the jacobian_contraction of NeuralTangents
@@ -161,7 +163,9 @@ def srt_onthefly(
     # This disables the nkjax.sharding_decorator in here, which might appear
     # in the apply function inside.
     with nkjax.sharding._increase_SHARD_MAP_STACK_LEVEL():
-        ntk_local = jacobian_contraction(samples, all_samples, parameters_real).real
+        ntk_local = jacobian_contraction(
+            samples, all_samples, parameters_real, model_state
+        ).real
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
     if config.netket_experimental_sharding:
@@ -250,9 +254,10 @@ def srt_onthefly(
         _apply_fn,
         parameters_real,
         samples,
+        model_state,
         chunk_size=chunk_size,
         chunk_argnums=1,
-        nondiff_argnums=1,
+        nondiff_argnums=(1, 2),
     )
 
     (updates,) = vjp_fun(aus_vector)  # pytree [N_params,]

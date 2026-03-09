@@ -434,3 +434,36 @@ def test_jacobian_chunked():
 
     jax.tree.map(np.testing.assert_allclose, j_repl, j)
     jax.tree.map(np.testing.assert_allclose, j, jc)
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+def test_srt_onthefly_applyop():
+    """
+    Minimal working example to reproduce sharding crash.
+    """
+    hi = nk.hilbert.Spin(s=1 / 2, N=4)
+    ma = nk.models.RBM(alpha=1)
+    sampler = nk.sampler.MetropolisLocal(hi)
+    vs = nk.vqs.MCState(
+        sampler,
+        ma,
+        n_samples=64,
+    )
+
+    # Applying identity causes a crash; PauliStrings identity does not
+    op = nk.operator.spin.identity(hilbert=hi)
+    vs = nk.vqs.apply_operator(op, vs)
+
+    H = -sum(nk.operator.spin.sigmax(hilbert=hi, site=i) for i in range(hi.size))
+    driver = nk.driver.VMC_SR(
+        hamiltonian=H,
+        diag_shift=1e-3,
+        variational_state=vs,
+        optimizer=nk.optimizer.Sgd(learning_rate=0.05),
+        use_ntk=True,
+        on_the_fly=True,
+    )
+    driver.run(n_iter=5)
+    print("Done — no crash.")
