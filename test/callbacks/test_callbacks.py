@@ -222,7 +222,7 @@ def test_invalid_loss_stopping_correct_interval():
     cb = nk.callbacks.InvalidLossStopping(patience=patience)
 
     driver = nk.driver.AbstractVariationalDriver(
-        FakeState(), None, minimized_quantity_name="loss"
+        FakeState(), nk.optimizer.Sgd(0.01), minimized_quantity_name="loss"
     )
 
     log_data = {}
