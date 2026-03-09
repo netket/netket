@@ -31,12 +31,19 @@ class TimeProgressBarCallback(AbstractCallback, mutable=True):
 
     def on_run_start(self, step, driver):
         self._last_t = float(driver.t)
+        dt = float(driver.dt)
+        n_dec = max(4, math.ceil(-math.log10(dt))) if dt > 0 else 4
+        bar_format = (
+            f"{{l_bar}}{{bar}}| {{n:.{n_dec}f}}/{{total:.{n_dec}f}}"
+            " [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
+        )
         self._pbar = tqdm(
             total=self._T_final,
             unit="t",
             disable=not jax.process_index() == 0,
             dynamic_ncols=True,
             leave=self._leave,
+            bar_format=bar_format,
         )
         self._pbar.update(float(driver.t))
         self._pbar.unpause()

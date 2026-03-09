@@ -18,7 +18,7 @@ from collections.abc import Iterable
 import optax
 
 from netket.logging import AbstractLog
-from netket.utils import struct
+from netket.utils import struct, KahanSum
 from netket.utils.iterators import to_iterable
 from netket.vqs import VariationalState
 
@@ -61,7 +61,7 @@ class AbstractDynamicsDriver(AbstractDriver):
     mechanism internally so the full callback system works unchanged.
     """
 
-    _t: float = struct.field(pytree_node=False, serialize=True, default=0.0)
+    _t: KahanSum = struct.field(pytree_node=True, serialize=True, default=None)
 
     def __init__(
         self,
@@ -81,7 +81,7 @@ class AbstractDynamicsDriver(AbstractDriver):
         super().__init__(
             variational_state, minimized_quantity_name=minimized_quantity_name
         )
-        self._t = t0
+        self._t = KahanSum(t0)
 
     @property
     def dt(self) -> float:
@@ -100,11 +100,11 @@ class AbstractDynamicsDriver(AbstractDriver):
     @property
     def t(self) -> float:
         """Current simulation time."""
-        return self._t
+        return self._t.value
 
     @t.setter
     def t(self, value: float):
-        self._t = float(value)
+        self._t = KahanSum(float(value))
 
     def update_parameters(self, dp):
         """
@@ -114,7 +114,7 @@ class AbstractDynamicsDriver(AbstractDriver):
         (i.e. it includes the factor of ``dt`` from the integration scheme).
         """
         self.state.parameters = optax.apply_updates(self.state.parameters, dp)
-        self._t += self.dt
+        self._t = self._t + self.dt
 
     def reset_step(self, hard: bool = False):
         """
