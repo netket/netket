@@ -229,6 +229,21 @@ class AbstractDriver(struct.Pytree, mutable=True):
         self.reset_step()
         # self._step_count = 0
 
+    def _accept_step(self) -> bool:
+        """
+        Called after :meth:`compute_loss_and_update` to decide whether the
+        current step should be accepted.
+
+        Return ``False`` to reject the step and retry (``_step_attempt`` will
+        be incremented before the next attempt). Subclasses can override this
+        to implement driver-level acceptance criteria such as adaptive
+        step-size control: mutate driver state (e.g. ``self.dt``) as needed
+        before returning ``False``.
+
+        The default implementation always accepts.
+        """
+        return True
+
     def reset_step(self, hard: bool = False):
         """
         Resets the state of the driver at the beginning of a new step.
@@ -442,7 +457,8 @@ class AbstractDriver(struct.Pytree, mutable=True):
                         reject_step = callbacks.on_compute_update_end(
                             self.step_count, step_log_data, self
                         )
-                        if reject_step:
+                        driver_reject_step = not self._accept_step()
+                        if driver_reject_step or reject_step:
                             self._step_attempt += 1
                             continue
                         else:
