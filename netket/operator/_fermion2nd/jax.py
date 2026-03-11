@@ -22,13 +22,18 @@ from numbers import Number
 
 from jax.tree_util import register_pytree_node_class
 
+from netket.hilbert import SpinOrbitalFermions
 import netket.jax as nkjax
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.types import DType
 
 from .base import FermionOperator2ndBase
-from .utils import _is_diag_term
+from .utils import (
+    _is_diag_term,
+    _is_particle_number_conserving,
+    _is_spin_number_conserving,
+)
 
 if TYPE_CHECKING:
     from .numba import FermionOperator2ndNumba  # noqa: F401
@@ -673,3 +678,48 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
             x,
             apply_terms_fun=apply_terms_fun,
         )
+
+    def collect(self):
+        """
+        Return the most efficient concrete operator for this Hamiltonian.
+
+        If the operator conserves total particle number (equal number of creation
+        and annihilation operators in every term) and the Hilbert space has a fixed
+        particle number, this returns a
+        :class:`~netket.experimental.operator.ParticleNumberConservingFermioperator2nd`.
+
+        If, additionally, particle number is conserved in each spin subsector and
+        the Hilbert space has a fixed particle number per spin sector, this returns a
+        :class:`~netket.experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd`.
+
+        Otherwise, returns ``self``.
+        """
+        from netket.experimental.operator import (
+            ParticleNumberConservingFermioperator2nd,
+            ParticleNumberAndSpinConservingFermioperator2nd,
+        )
+
+        if not isinstance(self.hilbert, SpinOrbitalFermions):
+            return self
+
+        if not _is_particle_number_conserving(self._operators):
+            return self
+
+        # TODO: could return a PNC operator even when n_fermions is None, if the
+        # PNC implementation is extended to support Hilbert spaces without fixed N.
+        if self.hilbert.n_fermions is None:
+            return self
+
+        spin_n_fixed = self.hilbert.n_spin_subsectors >= 2 and all(
+            n is not None for n in self.hilbert.n_fermions_per_spin
+        )
+        if spin_n_fixed and _is_spin_number_conserving(
+            self._operators, self.hilbert.n_orbitals, self.hilbert.n_spin_subsectors
+        ):
+            return (
+                ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(
+                    self
+                )
+            )
+
+        return ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(self)

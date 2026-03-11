@@ -472,6 +472,32 @@ def _is_diag_term(term: OperatorTerm) -> bool:
     return all((x[0] == x[1]) for x in ops.values())
 
 
+def _is_particle_number_conserving(operators: OperatorDict) -> bool:
+    """Return True if every term has equal numbers of creation and annihilation operators."""
+    for term in operators:
+        n_dag = sum(dag for _, dag in term)
+        if 2 * n_dag != len(term):
+            return False
+    return True
+
+
+def _is_spin_number_conserving(
+    operators: OperatorDict, n_orbitals: int, n_spin_subsectors: int
+) -> bool:
+    """Return True if every term conserves particle number in each spin sector.
+
+    Orbital i belongs to spin sector ``i // n_orbitals``.
+    """
+    balance = np.zeros(n_spin_subsectors, dtype=np.intp)
+    for term in operators:
+        balance[:] = 0
+        for site, dag in term:
+            balance[site // n_orbitals] += 2 * dag - 1
+        if np.any(balance):
+            return False
+    return True
+
+
 def zero_defaultdict(dtype: DType) -> defaultdict:
     """
     Temporary function to make sure we get a good initializer for each dtype
