@@ -112,7 +112,7 @@ bt_midpoint = TableauRKExplicit(
                 a = jnp.array([[0,   0],
                                [1/2, 0]], dtype=default_dtype),
                 b = jnp.array([[0,   1],   # midpoint, order 2
-                               [1,   0]],  # Euler, order 1
+                               [1,   0]]),  # Euler, order 1
                 c = jnp.array( [0, 1/2], dtype=default_dtype),
                 name = "Midpoint"
                 )
@@ -123,7 +123,7 @@ bt_heun = TableauRKExplicit(
                 a = jnp.array([[0,   0],
                                [1,   0]], dtype=default_dtype),
                 b = jnp.array([[1/2, 1/2],   # Heun, order 2
-                               [1,   0  ]],  # Euler, order 1
+                               [1,   0  ]]),  # Euler, order 1
                 c = jnp.array( [0, 1], dtype=default_dtype),
                 name = "Heun"
                 )
