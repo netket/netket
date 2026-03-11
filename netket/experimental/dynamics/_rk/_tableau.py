@@ -108,24 +108,29 @@ bt_feuler = TableauRKExplicit(
 
 
 bt_midpoint = TableauRKExplicit(
-                order = (2,),
+                order = (2,1),
                 a = jnp.array([[0,   0],
                                [1/2, 0]], dtype=default_dtype),
-                b = jnp.array( [0,   1], dtype=default_dtype),
+                b = jnp.array([[0,   1],   # midpoint, order 2
+                               [1,   0]],  # Euler, order 1
                 c = jnp.array( [0, 1/2], dtype=default_dtype),
                 name = "Midpoint"
                 )
 
 
 bt_heun = TableauRKExplicit(
-                order = (2,),
+                order = (2,1),
                 a = jnp.array([[0,   0],
                                [1,   0]], dtype=default_dtype),
-                b = jnp.array( [1/2, 1/2], dtype=default_dtype),
+                b = jnp.array([[1/2, 1/2],   # Heun, order 2
+                               [1,   0  ]],  # Euler, order 1
                 c = jnp.array( [0, 1], dtype=default_dtype),
                 name = "Heun"
                 )
 
+# Adaptive step:
+# Heun Euler https://en.wikipedia.org/wiki/Runge–Kutta_methods
+bt_rk12  = bt_heun
 
 bt_rk4  = TableauRKExplicit(
                 order = (4,),
@@ -137,20 +142,6 @@ bt_rk4  = TableauRKExplicit(
                 c = jnp.array( [0, 1/2, 1/2, 1], dtype=default_dtype),
                 name = "RK4"
                 )
-
-
-# Adaptive step:
-# Heun Euler https://en.wikipedia.org/wiki/Runge–Kutta_methods
-bt_rk12  = TableauRKExplicit(
-                order = (2,1),
-                a = jnp.array([[0,   0],
-                               [1,   0]], dtype=default_dtype),
-                b = jnp.array([[1/2, 1/2],
-                               [1,   0]], dtype=default_dtype),
-                c = jnp.array( [0, 1], dtype=default_dtype),
-                name = "RK12"
-                )
-
 
 # Bogacki–Shampine coefficients
 bt_rk23  = TableauRKExplicit(
