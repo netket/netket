@@ -16,7 +16,9 @@
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
+from jax.sharding import PartitionSpec as P
 from jax.flatten_util import ravel_pytree
+
 from netket.utils.api_utils import partial_from_kwargs
 from netket.utils.deprecation import warn_deprecation
 from netket._src.solvers.nan_fallback import (
@@ -416,6 +418,8 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
              - **Smaller tiles** (64-1024): More communication, less memory per device,
                better load balancing
 
+             See `ArXiV:2601.14466 <https://arxiv.org/abs/2601.14466>`_ for details specific
+             to NQS.
              For most applications, the default (matrix size / device count) works well.
              Adjust if you encounter memory issues (decrease local_tile_size) or excessive
              communication overhead (increase local_tile_size).
@@ -439,18 +443,10 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
     del x0
 
     jaxmg = import_optional_dependency("jaxmg", descr="cholesky_distributed solver")
-    from jax.sharding import PartitionSpec as P
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
     b, unravel = ravel_pytree(b)
-
-    # JAXMg's potrs expects b to be 2D
-    if b.ndim == 1:
-        b = jnp.expand_dims(b, axis=1)
-        squeeze_output = True
-    else:
-        squeeze_output = False
 
     # Set default tile size: distribute matrix evenly across devices
     if local_tile_size is None:
@@ -459,10 +455,23 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
         local_tile_size = max(64, A.shape[0] // n_devices)
         # Clamp to matrix size
         local_tile_size = min(local_tile_size, A.shape[0])
+        # Max value is 8192, but it seems 4096 is ok
+        local_tile_size = min(local_tile_size, 4096)
 
-    mesh = jax.sharding.get_abstract_mesh()
-    in_specs = (P("S", None), P(None, None))
-    x = jaxmg.potrs(A, b, T_A=local_tile_size, mesh=mesh, in_specs=in_specs)
+    # JAXMg's potrs expects b to be 2D
+    if b.ndim == 1:
+        b = jnp.expand_dims(b, axis=1)
+        squeeze_output = True
+    else:
+        squeeze_output = False
+
+    x = jaxmg.potrs(
+        A,
+        b,
+        T_A=local_tile_size,
+        mesh=jax.sharding.get_abstract_mesh(),
+        in_specs=(P("S", None), P(None, None)),
+    )
 
     if squeeze_output:
         x = jnp.squeeze(x, axis=1)
@@ -484,8 +493,6 @@ def pinv_smooth_distributed(
     rtol_smooth: float = 1e-14,
     local_tile_size=None,
     x0=None,
-    rcond: float = None,
-    rcond_smooth: float = None,
 ):
     r"""
     Solve the linear system using a distributed pseudo-inverse from eigendecomposition.
@@ -535,12 +542,11 @@ def pinv_smooth_distributed(
              - **Smaller tiles** (64-1024): More communication, less memory per device,
                better load balancing
 
+             See `ArXiV:2601.14466 <https://arxiv.org/abs/2601.14466>`_ for details specific
+             to NQS.
              For most applications, the default (matrix size / device count) works well.
              Adjust if you encounter memory issues (decrease local_tile_size) or excessive
              communication overhead (increase local_tile_size).
-        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
-        rcond_smooth: (deprecated) Alias for `rtol_smooth`. Will be removed in a future release.
-        x0: unused (kept for API compatibility)
 
     Returns:
         tuple: (solution, None) where solution is the unraveled result.
@@ -561,22 +567,7 @@ def pinv_smooth_distributed(
     """
     del x0
 
-    if rcond is not None:
-        warn_deprecation(
-            "The 'rcond' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol' instead."
-        )
-        rtol = rcond
-
-    if rcond_smooth is not None:
-        warn_deprecation(
-            "The 'rcond_smooth' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol_smooth' instead."
-        )
-        rtol_smooth = rcond_smooth
-
     jaxmg = import_optional_dependency("jaxmg", descr="pinv_smooth_distributed solver")
-    from jax.sharding import PartitionSpec as P
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
@@ -589,12 +580,17 @@ def pinv_smooth_distributed(
         local_tile_size = max(64, A.shape[0] // n_devices)
         # Clamp to matrix size
         local_tile_size = min(local_tile_size, A.shape[0])
-
-    mesh = jax.sharding.get_abstract_mesh()
-    in_specs = (P("S", None),)
+        # Max value is 1024 (see https://docs.nvidia.com/cuda/pdf/CUSOLVER_Library.pdf#page=361)
+        # but 512 consumes less memory and seems ok
+        local_tile_size = min(local_tile_size, 512)
 
     # Compute eigendecomposition using distributed solver
-    Σ, U = jaxmg.syevd(A, T_A=local_tile_size, mesh=mesh, in_specs=in_specs)
+    Σ, U = jaxmg.syevd(
+        A,
+        T_A=local_tile_size,
+        mesh=jax.sharding.get_abstract_mesh(),
+        in_specs=(P("S", None),),
+    )
 
     # Discard eigenvalues below numerical precision
     Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
