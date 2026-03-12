@@ -23,6 +23,7 @@
   This represents $\hat{O}_\text{embed} = \mathbb{I}_0 \otimes \cdots \otimes \hat{O}_i \otimes \cdots \otimes \mathbb{I}_N$ and is useful for constructing operators on composite systems such as coupled electron-phonon models.
 
 #### Optimizer
+* Added {func}`netket.optimizer.solver.cholesky_distributed` and {func}`netket.optimizer.solver.pinv_smooth_distributed`, two optional `jaxmg`-backed multi-GPU dense solvers for SR/NTK matrices kept sharded across devices [PR #2200](https://github.com/netket/netket/pull/2200).
 * {func}`netket.optimizer.solver.pinv_smooth` now returns a dictionary with solver diagnostics (`eval_min`, `eval_max`, `rank`, `cond_number`) instead of `None` as the second return value. An optional `return_eigvals=True` flag also returns the full eigenvalue array. The `pinv` and `svd` solvers have similarly been updated to return structured info dictionaries.
 
 #### Statistics and Variational States
