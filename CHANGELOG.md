@@ -14,33 +14,46 @@
   Callbacks can also reject and retry a step by returning `True` from `on_compute_update_end`.
   A `StopRun` exception can be raised inside any hook to gracefully terminate the run.
   See the new [advanced documentation](advanced_custom_callbacks) for details and examples.
-* Added {class}`netket.callbacks.AutoChunkSize`, a callback that automatically tunes the `chunk_size` of the variational state during optimization.
-* Added {class}`netket.callbacks.AutoSlurmRequeue`, a callback that automatically requeues a Slurm job before its time limit is reached, checkpointing the current state.
+* Added {class}`netket.callbacks.AutoChunkSize`, a callback that automatically tunes the `chunk_size` of the variational state during optimization [PR #2198](https://github.com/netket/netket/pull/2198).
+* Added {class}`netket.callbacks.AutoSlurmRequeue`, a callback that automatically requeues a Slurm job before its time limit is reached, checkpointing the current state [PR #2198](https://github.com/netket/netket/pull/2198).
+* Exposed new public driver base classes {class}`netket.driver.AbstractDriver`, {class}`netket.driver.AbstractOptimizationDriver`, and {class}`netket.driver.AbstractDynamicsDriver`.
+  This is an experiment for now, and the API may still evolve.
 * {class}`netket.driver.VMC_SR` with `on_the_fly=True` in NTK mode has been significantly improved to reduce GPU memory consumption and to support distributed solvers [PR #2199](https://github.com/netket/netket/pull/2199).
 
 #### Operators
 * Added {class}`netket.operator.EmbedOperator`, which embeds an operator acting on a subspace into a larger {class}`~netket.hilbert.TensorHilbert` space.
   This represents $\hat{O}_\text{embed} = \mathbb{I}_0 \otimes \cdots \otimes \hat{O}_i \otimes \cdots \otimes \mathbb{I}_N$ and is useful for constructing operators on composite systems such as coupled electron-phonon models.
+* Added {meth}`netket.operator.FermionOperator2nd.collect`, which automatically converts a generic fermionic operator to a more efficient particle-number-conserving implementation when possible.
+
+#### Graphs
+* Added {meth}`netket.graph.Lattice.distances_euclidean`, which returns the pairwise Euclidean distances between lattice sites and optionally applies the minimum-image convention along periodic directions.
 
 #### Optimizer
 * Added {func}`netket.optimizer.solver.cholesky_distributed` and {func}`netket.optimizer.solver.pinv_smooth_distributed`, two optional `jaxmg`-backed multi-GPU dense solvers for SR/NTK matrices kept sharded across devices [PR #2200](https://github.com/netket/netket/pull/2200).
+* Added {func}`netket.optimizer.solver.nan_fallback`, a solver combinator that retries a solve with a fallback solver whenever the primary solver returns `NaN` or `Inf`.
+* Added {func}`netket.optimizer.solver.cholesky_with_fallback`, which combines the speed of Cholesky with an automatic fallback to {func}`~netket.optimizer.solver.pinv_smooth`.
+  This is now the default linear solver used by {class}`netket.driver.VMC_SR`, making SR more robust out of the box.
 * {func}`netket.optimizer.solver.pinv_smooth` now returns a dictionary with solver diagnostics (`eval_min`, `eval_max`, `rank`, `cond_number`) instead of `None` as the second return value. An optional `return_eigvals=True` flag also returns the full eigenvalue array. The `pinv` and `svd` solvers have similarly been updated to return structured info dictionaries.
 
 #### Statistics and Variational States
-* Added {func}`netket.stats.online_statistics`, an incremental statistics accumulator for streaming MCMC data.
+* Added {func}`netket.stats.online_statistics`, an incremental statistics accumulator for streaming MCMC data [PR #2202](https://github.com/netket/netket/pull/2202).
   It computes the mean, variance, standard error, $\hat{R}$ (Gelman-Rubin), and integrated autocorrelation time $\tau_\text{corr}$ via Geyer's initial positive sequence estimator, all in a single pass without storing the raw samples.
   Batches of local estimators can be fed one at a time via the `old_estimator` argument, making it suitable for both post-hoc analysis and online monitoring during an optimization run.
-* Added {meth}`netket.vqs.MCState.check_mc_convergence` (experimental), a diagnostic tool that runs dedicated long Markov chains to assess whether the sampler is well-mixed at the current variational parameters.
+* Added {meth}`netket.vqs.MCState.check_mc_convergence` (experimental), a diagnostic tool that runs dedicated long Markov chains to assess whether the sampler is well-mixed at the current variational parameters [PR #2202](https://github.com/netket/netket/pull/2202).
   It reports the Gelman-Rubin $\hat{R}$ statistic and the integrated autocorrelation time $\tau_\text{corr}$, recommends a minimum `sweep_size`, and optionally produces a diagnostic figure.
   This is especially useful after optimization has converged, when the short chains used during training (typically 2–8 steps) are too short for reliable convergence diagnostics.
-* Added {meth}`netket.vqs.MCState.expect_to_precision` (experimental), which draws samples iteratively until the estimated standard error of $\langle O \rangle$ satisfies a user-specified absolute (`atol`) and/or relative (`rtol`) tolerance.
+* Added {meth}`netket.vqs.MCState.expect_to_precision` (experimental), which draws samples iteratively until the estimated standard error of $\langle O \rangle$ satisfies a user-specified absolute (`atol`) and/or relative (`rtol`) tolerance [PR #2202](https://github.com/netket/netket/pull/2202).
   A progress bar shows the current error in real time.
+
+#### Experimental Observables
+* {class}`netket.experimental.observable.VarianceObservable` now supports chunked `expect` and `expect_and_grad` computations.
 
 #### Logging
 * Added {class}`netket.logging.SaveVariationalState`, a callback that saves the variational state to disk at fixed intervals using the [`nqxpack`](https://github.com/NeuralQXLab/nqxpack) package (optional dependency).
   Files are saved as `{root}_{step:05d}.nk` and can be reloaded with `nqxpack.load(path)`.
 * Added {meth}`netket.logging.RuntimeLog.deserialize`, a classmethod to load a previously serialized `RuntimeLog` from a `.json`/`.log` file.
-* {class}`netket.logging.JsonLog` now supports `mode="append"`, which loads existing log data and continues logging from the last recorded step.
+* {class}`netket.logging.JsonLog` now supports `mode="append"`, which loads existing log data and continues logging from the last recorded step, making it easier to resume a run from an existing log file.
+* Drivers now log a `wallclock` timestamp at every step.
 
 ### Breaking Changes
 * Finalized removal of deprecated fermionic bindings from `netket.experimental` (deprecated since NetKet 3.12–3.13):
@@ -59,6 +72,14 @@
 
 ### Bug Fixes
 * Fixed a bug where constructing a {class}`netket.operator.PauliStringsJax` with zero terms would crash. Empty operators now correctly return zero-sized connected elements.
+* Fixed a bug in chunked expectations for {class}`netket.operator.ContinuousOperator`. Apparently nobody had been using that code path, or this would have been found much sooner.
+* Fixed a bug in sharded, chunked expectation computations for fermionic operators.
+* Fixed an edge case in complex `operator @ state` computations with sharding and chunking triggered by newer JAX versions [PR #2206](https://github.com/netket/netket/pull/2206).
+* Fixed a bug in {class}`netket.experimental.logging.HDF5Log` where `save_params=False` was ignored and parameters were still saved [PR #2189](https://github.com/netket/netket/pull/2189).
+* Fixed a bug in fermionic symmetry representation construction for groups containing duplicate elements.
+* Fixed several bugs in the experimental Runge-Kutta tableaus used by dynamics drivers: `RK23` had the embedded 3rd- and 2nd-order rows swapped, and `RK45Fehlberg` had incorrect coefficients.
+  Those bugs had apparently been sitting there unnoticed for quite a while.
+* The `Midpoint` and `Heun` tableaus now expose consistent embedded lower-order formulas [PR #2210](https://github.com/netket/netket/pull/2210).
 
 ## NetKet 3.21
 
