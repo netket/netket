@@ -265,7 +265,7 @@ class MCState(VariationalState):
             )
             self._apply_fun = wrap_to_support_scalar(
                 nkjax.HashablePartial(
-                    lambda model, pars, x, **kwargs: model.apply(pars, x, **kwargs),
+                    lambda model, *args, **kwargs: model.apply(*args, **kwargs),
                     model,
                 )
             )
