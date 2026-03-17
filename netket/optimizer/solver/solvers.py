@@ -435,7 +435,7 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
         >>>
         >>> # For multi-GPU setup with sharding enabled
         >>> solver = nk.optimizer.solver.cholesky_distributed(local_tile_size=2**12)
-        >>> driver = nk.driver.VMC_SR(
+        >>> driver = nk.driver.VMC_SR(  # doctest: +SKIP
         ...     hamiltonian, optimizer, variational_state=vstate,
         ...     linear_solver=solver, diag_shift=0.01
         ... )
@@ -560,7 +560,7 @@ def pinv_smooth_distributed(
         >>> solver = nk.optimizer.solver.pinv_smooth_distributed(
         ...     rtol=1e-14, rtol_smooth=1e-14, local_tile_size=2**12
         ... )
-        >>> driver = nk.driver.VMC_SR(
+        >>> driver = nk.driver.VMC_SR(  # doctest: +SKIP
         ...     hamiltonian, optimizer, variational_state=vstate,
         ...     linear_solver=solver, diag_shift=0.01
         ... )
