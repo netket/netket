@@ -209,14 +209,15 @@ def local_value_kernel_jax_chunked(
     if chunk_size >= O.max_conn_size:
         # IMPORTANT: pars must be passed as explicit arg (not captured in lambda) so that
         # shard_map's pvary/pcast mechanism can give it Manual sharding inside shard_map.
-        def _local_value_kernel(pars, s):
+        def _local_value_kernel(pars, s, O):
             return local_value_kernel_jax(logpsi, pars, s, O)
 
         local_value_chunked = nkjax.apply_chunked(
             _local_value_kernel,
-            in_axes=(None, 0),
+            in_axes=(None, 0, None),
             chunk_size=max(1, chunk_size // O.max_conn_size),
+            pvary_argnums=(0,),
         )
-        return local_value_chunked(pars, σ)
+        return local_value_chunked(pars, σ, O)
     else:
         return local_value_kernel_jax_conn_chunked(logpsi, pars, σ, O, chunk_size)

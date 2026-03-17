@@ -103,3 +103,41 @@ def test_expect_fermionic_operators_chunked_sharding_regression(
 
     res = vs.expect(ham)
     assert jnp.isfinite(res.mean)
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+@with_meshes(auto=[((2,), ("S",))])
+def test_apply_chunked_pvary_argnums_regression(mesh):
+    meta = nk.jax.COOArray(
+        jnp.array([[1], [3]], dtype=jnp.int32),
+        jnp.array([3, 7], dtype=jnp.int32),
+        (4,),
+        fill_value=jnp.array(0, dtype=jnp.int32),
+    )
+    x = jnp.array([[1], [3], [1], [3]], dtype=jnp.int32)
+    pars = jnp.array(2, dtype=jnp.int32)
+
+    def f(pars, x, meta):
+        return pars * jax.vmap(lambda xi: meta[(xi,)])(x)
+
+    chunked_default = nk.jax.apply_chunked(
+        f,
+        in_axes=(None, 0, None),
+        chunk_size=2,
+        axis_0_is_sharded=True,
+    )
+    chunked_selective = nk.jax.apply_chunked(
+        f,
+        in_axes=(None, 0, None),
+        chunk_size=2,
+        axis_0_is_sharded=True,
+        pvary_argnums=(0,),
+    )
+
+    with pytest.raises(ValueError, match="pvary"):
+        chunked_default(pars, x, meta)
+
+    y = chunked_selective(pars, x, meta)
+    np.testing.assert_array_equal(y, np.array([[6], [14], [6], [14]], dtype=np.int32))

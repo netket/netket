@@ -37,7 +37,9 @@ def _eval_fun_in_chunks(vmapped_fun, chunk_size, argnums, *args, **kwargs):
         return vmapped_fun(*args, **kwargs)
 
 
-def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwargs):
+def _eval_fun_in_chunks_sharding(
+    vmapped_fun, chunk_size, argnums, pvary_argnums, *args, **kwargs
+):
     # Equivalent to `_eval_fun_in_chunks` above but preserves sharding,
     # by computing the vmapped_fun in chunks on every shard (which sits on a separate device)
     sharded_args_tree = tuple(i in argnums for i, a in enumerate(args))
@@ -45,7 +47,8 @@ def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwar
 
     # if the vmapped_fun e.g. does a vjp we need to make the params pvary here
     # to avoid it emitting an unwanted psum
-    pvary_argnums = tuple(set(range(len(args))).difference(argnums))
+    if pvary_argnums is None:
+        pvary_argnums = tuple(set(range(len(args))).difference(argnums))
     pvary_args_tree = tuple(i in pvary_argnums for i in range(len(args)))
 
     return sharding_decorator(f, sharded_args_tree, pvary_args_tree=pvary_args_tree)(
@@ -58,6 +61,7 @@ def _chunk_vmapped_function(
     chunk_size: int | None,
     argnums: int | tuple[int, ...] = 0,
     axis_0_is_sharded: bool = False,
+    pvary_argnums: tuple[int, ...] | None = None,
 ) -> Callable:
     """takes a vmapped function and computes it in chunks"""
 
@@ -70,7 +74,11 @@ def _chunk_vmapped_function(
         argnums = (argnums,)
     if axis_0_is_sharded:
         return HashablePartial(
-            _eval_fun_in_chunks_sharding, vmapped_fun, chunk_size, argnums
+            _eval_fun_in_chunks_sharding,
+            vmapped_fun,
+            chunk_size,
+            argnums,
+            pvary_argnums,
         )
     else:
         return HashablePartial(_eval_fun_in_chunks, vmapped_fun, chunk_size, argnums)
@@ -95,6 +103,7 @@ def apply_chunked(
     *,
     chunk_size: int | None,
     axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
+    pvary_argnums: tuple[int, ...] | None = None,
 ) -> Callable:
     """
     Takes an implicitly vmapped function over the axis 0 and uses scan to
@@ -127,13 +136,22 @@ def apply_chunked(
         axis_0_is_sharded: specifies if axis 0 of the arrays scanned is sharded among multiple devices,
             The function is then computed in chunks of size chunk_size on every device.
             Defaults True if config.netket_experimental_sharding, oterhwise defaults to False.
+        pvary_argnums: Explicit tuple of argument indices that should receive a pvary
+            annotation inside the sharded chunking path. If None, all non-chunked
+            arguments are marked as pvary, matching the historical behaviour.
+            This does not change how those arguments are physically sharded:
+            it only tells shard_map to treat them as varying rather than invariant.
+            This is mainly useful for differentiated inputs like parameters, where
+            treating them as invariant can trigger unwanted implicit psums.
 
     """
     if axis_0_is_sharded is None:
         axis_0_is_sharded = config.netket_experimental_sharding
 
     _, argnums = _parse_in_axes(in_axes)
-    return _chunk_vmapped_function(f, chunk_size, argnums, axis_0_is_sharded)
+    return _chunk_vmapped_function(
+        f, chunk_size, argnums, axis_0_is_sharded, pvary_argnums
+    )
 
 
 def vmap_chunked(
@@ -142,6 +160,7 @@ def vmap_chunked(
     *,
     chunk_size: int | None,
     axis_0_is_sharded: bool = None,  # type: ignore[attr-defined]
+    pvary_argnums: tuple[int, ...] | None = None,
 ) -> Callable:
     """
     Behaves like jax.vmap but uses scan to chunk the computations in smaller chunks.
@@ -166,6 +185,13 @@ def vmap_chunked(
         axis_0_is_sharded: specifies if axis 0 of the arrays scanned is sharded among multiple devices,
             The function is then computed in chunks of size chunk_size on every device.
             Defaults True if config.netket_experimental_sharding, oterhwise defaults to False.
+        pvary_argnums: Explicit tuple of argument indices that should receive a pvary
+            annotation inside the sharded chunking path. If None, all non-chunked
+            arguments are marked as pvary, matching the historical behaviour.
+            This does not change how those arguments are physically sharded:
+            it only tells shard_map to treat them as varying rather than invariant.
+            This is mainly useful for differentiated inputs like parameters, where
+            treating them as invariant can trigger unwanted implicit psums.
 
     Returns:
         A vectorised and chunked function
@@ -175,4 +201,6 @@ def vmap_chunked(
 
     in_axes, argnums = _parse_in_axes(in_axes)
     vmapped_fun = jax.vmap(f, in_axes=in_axes)
-    return _chunk_vmapped_function(vmapped_fun, chunk_size, argnums, axis_0_is_sharded)
+    return _chunk_vmapped_function(
+        vmapped_fun, chunk_size, argnums, axis_0_is_sharded, pvary_argnums
+    )
