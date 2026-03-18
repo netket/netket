@@ -643,6 +643,21 @@ def test_grid_translations():
     ) @ g.translation_group(1)
 
 
+def test_momentum_irrep_1d():
+    # Regression test: momentum_irrep on a 1D chain used to raise
+    # "IndexError: too many indices for array: array is 0-dimensional"
+    # because squeeze() collapsed the k-vector to a scalar.
+    tg = nk.graph.Chain(20).translation_group()
+    irrep = tg.momentum_irrep(0.0)
+    assert irrep.shape == (len(tg),)
+    np.testing.assert_allclose(irrep, np.ones(len(tg)))  # k=0 → all phases = 1
+
+    irrep_k1 = tg.momentum_irrep(1.0)
+    assert irrep_k1.shape == (len(tg),)
+    expected = np.exp(-2j * np.pi * 1.0 * np.arange(20) / 20)
+    np.testing.assert_allclose(irrep_k1, expected)
+
+
 @pytest.mark.parametrize("n_dim", [1, 2, 3, 4])
 def test_grid_point_group_dim(n_dim):
     # point group of n-dimensional Hypercube should be the

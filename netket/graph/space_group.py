@@ -247,7 +247,9 @@ class TranslationGroup(PermutationGroup):
         r"""Returns the irrep characters (phase factors) corresponding to
         crystal momentum :math:`\vec k`."""
         # switch to reciprocal lattice coordinates
-        k = self.lattice.to_reciprocal_lattice(_ensure_iterable(k)).squeeze()
+        k = np.atleast_1d(
+            self.lattice.to_reciprocal_lattice(_ensure_iterable(k)).squeeze()
+        )
 
         # prune axes with no nontrivial translations for performance
         shape = np.asarray(self.group_shape)
