@@ -35,6 +35,8 @@ TIPS = [
     "To build H|ψ⟩ use nk.vqs.apply_operator(H, vstate_ψ).",
     "log(ψ) ∈ ℜ → ψ = exp(logψ) ∈ ℜ₊ (real NN gives only positive wave-function).",
     "You can use flax.linen, flax.nnx and equinox to define neural networks.",
+    # symmetries
+    "nk.symmetry.spin_flip_representation(hi).project(vstate, 0) to make it spin-flip symmetric.",
     # utils
     "You must cite NetKet according to our policy. Use nk.cite() to find out how.",
     "Debug multi-node HPC? `djaxrun -np 2 python Examples/Sharding/multi_process.py`",

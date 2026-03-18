@@ -123,6 +123,20 @@ Operators representing permutations, mainly used to express the lattice symmetri
    permutation.construct_permutation_operator
 ```
 
+### Internal operators
+
+Operators used internally to implement symmetry representations. They are public but low-level; prefer the higher-level constructors in {mod}`netket.symmetry`.
+
+```{eval-rst}
+.. currentmodule:: netket._src.operator.spin_flip
+
+.. autosummary::
+   :toctree: _generated/operator
+   :nosignatures:
+
+   SpinFlipOperator
+```
+
 
 ### Composing different operators together
 

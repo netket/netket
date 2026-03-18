@@ -12,6 +12,8 @@ Module with classes and utilities needed to operate on symmetry groups and their
 
 The theory needed to understand those tools is discussed in {doc}`../advanced/symmetry` and an example notebook is in {doc}`../tutorials/symmetry_tutorial`
 
+## Common Symmetry Representations
+
 ```{eval-rst}
 .. currentmodule:: netket.symmetry
 
@@ -19,8 +21,20 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    :toctree: _generated/symmetry
    :nosignatures:
 
-	Representation
+   spin_flip_representation
    canonical_representation
+```
+
+## Representation
+
+```{eval-rst}
+.. currentmodule:: netket.symmetry
+
+.. autosummary::
+   :toctree: _generated/symmetry
+   :nosignatures:
+
+   Representation
 ```
 
 ## Symmetry Group Manipulation
@@ -32,8 +46,9 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
 
    group.FiniteGroup
 
-   group.Permutation 
-   group.PermutationGroup 
+   group.Permutation
+   group.PermutationGroup
+   group.cyclic_group
 
    group.PGSymmetry
    group.PointGroup
@@ -51,5 +66,3 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    group.cubic
    group.icosa
 ```
-
-

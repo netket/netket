@@ -29,6 +29,20 @@ rep_dict = {
 fermion_representation = nk.symmetry.Representation(group, rep_dict)
 representation_list.append(pytest.param(fermion_representation, id="fermions"))
 
+spin_flip_spin_representation = nk.symmetry.spin_flip_representation(
+    nk.hilbert.Spin(1 / 2, 4)
+)
+representation_list.append(
+    pytest.param(spin_flip_spin_representation, id="spin-flip-spin")
+)
+
+spin_flip_fermion_representation = nk.symmetry.spin_flip_representation(
+    nk.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(2, 2))
+)
+representation_list.append(
+    pytest.param(spin_flip_fermion_representation, id="spin-flip-fermion")
+)
+
 
 @pytest.mark.parametrize("representation", representation_list)
 def test_projectors(representation):
@@ -121,3 +135,48 @@ def test_fermion_canonical_representation_with_duplicates():
     # Verify all operators have the correct size
     for op in sg_rep.representation_dict.values():
         assert op.hilbert == hi
+
+
+def test_spin_flip_action_on_spin():
+    hilbert = nk.hilbert.Spin(1 / 2, 4)
+    representation = nk.symmetry.spin_flip_representation(hilbert)
+    spin_flip = representation[1]
+
+    state = jnp.array([[1, -1, 1, -1]])
+    new_state, matrix_elements = spin_flip.get_conn_padded(state)
+
+    assert jnp.all(new_state == -state[:, None, :])
+    assert jnp.all(matrix_elements == 1)
+
+
+def test_spin_flip_action_on_fermions():
+    hilbert = nk.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions_per_spin=(1, 1))
+    representation = nk.symmetry.spin_flip_representation(hilbert)
+    spin_flip = representation[1]
+
+    state = jnp.array([[1, 0, 0, 0, 1, 0]])
+    new_state, matrix_elements = spin_flip.get_conn_padded(state)
+
+    assert jnp.all(new_state == jnp.array([[[0, 1, 0, 1, 0, 0]]]))
+    assert jnp.all(matrix_elements == jnp.array([[-1]]))
+
+
+def test_spin_flip_invalid_spin_constraint():
+    hilbert = nk.hilbert.Spin(1 / 2, 4, total_sz=1)
+
+    with pytest.raises(ValueError, match="zero total magnetization"):
+        nk.symmetry.spin_flip_representation(hilbert)
+
+
+def test_spin_flip_invalid_fermion_constraints():
+    hilbert = nk.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(2, 1))
+
+    with pytest.raises(ValueError, match="does not preserve"):
+        nk.symmetry.spin_flip_representation(hilbert)
+
+
+def test_spin_flip_invalid_spinless_fermions():
+    hilbert = nk.hilbert.SpinOrbitalFermions(4, n_fermions=2)
+
+    with pytest.raises(ValueError, match="spinful"):
+        nk.symmetry.spin_flip_representation(hilbert)
