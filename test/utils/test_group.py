@@ -383,6 +383,24 @@ def test_call_point(grp):
 
 
 # cycle_1 and cycle_2 are deprecated
+def test_cyclic_group():
+    from netket.utils.group import cyclic_group
+
+    for n in [2, 3, 5]:
+        g = cyclic_group(n)
+        assert len(g) == n
+        assert g.degree == n
+        # k-th element maps i -> (i+k) % n; to_array() returns inverse permutations
+        arr = g.to_array()
+        for k in range(n):
+            assert_equal(arr[k], np.roll(np.arange(n), -k))
+        # closure: product table should be a valid group
+        g.product_table  # should not raise
+
+    with pytest.raises(ValueError):
+        cyclic_group(0)
+
+
 def test_permutations():
 
     cycle_array = [1, 2, 0]

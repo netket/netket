@@ -14,7 +14,11 @@
 
 from netket.utils.group._semigroup import Element, Identity
 from netket.utils.group._group import FiniteGroup
-from netket.utils.group._permutation_group import Permutation, PermutationGroup
+from netket.utils.group._permutation_group import (
+    Permutation,
+    PermutationGroup,
+    cyclic_group,
+)
 from netket.utils.group._point_group import PGSymmetry, PointGroup, trivial_point_group
 
 from netket.utils.group import axial, cubic, planar, icosa

@@ -374,3 +374,31 @@ def product(G: PermutationGroup, x: Array):  # noqa: F811
         )
     else:
         return np.moveaxis(x[..., G.to_array()], -2, 0)
+
+
+def cyclic_group(n: int) -> PermutationGroup:
+    r"""
+    Returns the cyclic `PermutationGroup` :math:`\mathbb{Z}_n` acting on :math:`n`
+    elements by cyclic shifts.
+
+    The :math:`k`-th element maps :math:`i \mapsto (i + k) \bmod n`.
+
+    Arguments:
+        n: Order of the cyclic group (must be a positive integer).
+
+    Returns:
+        A `PermutationGroup` of degree :math:`n` with :math:`n` elements.
+    """
+    if n < 1:
+        raise ValueError(f"Order of cyclic group must be a positive integer, got {n}.")
+    return PermutationGroup(
+        elems=[
+            Permutation(
+                permutation_array=np.roll(np.arange(n), k),
+                name="E" if k == 0 else (f"C{n}" if k == 1 else f"C{n}^{k}"),
+                validate=False,
+            )
+            for k in range(n)
+        ],
+        degree=n,
+    )
