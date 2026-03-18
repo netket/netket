@@ -659,6 +659,54 @@ def test_momentum_irrep_1d():
     np.testing.assert_allclose(irrep_k1, expected)
 
 
+def test_translation_group_strides():
+    # 1D: stride divides extent → group size = extent / stride
+    tg = nk.graph.Chain(8, pbc=True).translation_group(strides=2)
+    assert len(tg) == 4
+    assert tg.group_shape.tolist() == [4]
+    assert tg.strides == (2,)
+
+    # scalar stride broadcasts to all axes
+    tg2d = nk.graph.Square(6, pbc=True).translation_group(strides=2)
+    assert len(tg2d) == 9
+    assert tg2d.group_shape.tolist() == [3, 3]
+
+    # per-axis strides
+    g = Grid([8, 6], pbc=True)
+    tg_mixed = g.translation_group(strides=(2, 3))
+    assert len(tg_mixed) == 4 * 2
+    assert tg_mixed.group_shape.tolist() == [4, 2]
+
+    # stride=1 produces the same permutations as no stride
+    g8 = nk.graph.Chain(8, pbc=True)
+    tg_full = g8.translation_group()
+    tg_s1 = g8.translation_group(strides=1)
+    np.testing.assert_array_equal(tg_full.to_array(), tg_s1.to_array())
+
+    # strided group is a subgroup of the full group
+    tg_full2d = nk.graph.Square(4, pbc=True).translation_group()
+    tg_str2d = nk.graph.Square(4, pbc=True).translation_group(strides=2)
+    full_elems = set(map(tuple, tg_full2d.to_array().tolist()))
+    for perm in tg_str2d.to_array().tolist():
+        assert tuple(perm) in full_elems
+
+    # product table closure
+    pt = tg_str2d.product_table
+    assert set(pt.ravel()) == set(range(len(tg_str2d)))
+
+    # error: stride does not divide extent
+    with pytest.raises(ValueError, match="does not divide"):
+        nk.graph.Chain(8, pbc=True).translation_group(strides=3)
+
+    # error: stride < 1
+    with pytest.raises(ValueError, match="positive"):
+        nk.graph.Chain(8, pbc=True).translation_group(strides=0)
+
+    # error: wrong number of strides
+    with pytest.raises(ValueError, match="same length"):
+        nk.graph.Chain(8, pbc=True).translation_group(strides=(1, 2))
+
+
 @pytest.mark.parametrize("n_dim", [1, 2, 3, 4])
 def test_grid_point_group_dim(n_dim):
     # point group of n-dimensional Hypercube should be the

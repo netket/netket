@@ -110,25 +110,30 @@ def _ensure_iterable(x):
 
 
 # This function doesn't seem to be tested
-def _translations_along_axis(lattice: Lattice, axis: int) -> PermutationGroup:
+def _translations_along_axis(
+    lattice: Lattice, axis: int, stride: int = 1
+) -> PermutationGroup:
     """
     The group of valid translations along an axis as a `PermutationGroup`
-    acting on the sites of `lattice.`
+    acting on the sites of `lattice`.
+
+    With `stride > 1`, only every `stride`-th translation is included,
+    giving a subgroup of size `extent // stride`.
     """
     if lattice._pbc[axis]:
+        n_steps = lattice.extent[axis] // stride
         trans_list = [Identity()]
-        # note that we need the preimages in the permutation
+        # preimage permutation for a single translation by `stride` cells
         trans_perm = lattice.id_from_position(
-            lattice.positions - lattice.basis_vectors[axis]
+            lattice.positions - stride * lattice.basis_vectors[axis]
         )
         vector = np.zeros(lattice.ndim, dtype=int)
-        vector[axis] = 1
-        trans_by_one = Translation(
+        vector[axis] = stride
+        trans_by_stride = Translation(
             inverse_permutation_array=trans_perm, displacement=vector
         )
-
-        for _ in range(1, lattice.extent[axis]):
-            trans_list.append(trans_list[-1] @ trans_by_one)
+        for _ in range(1, n_steps):
+            trans_list.append(trans_list[-1] @ trans_by_stride)
 
         return PermutationGroup(trans_list, degree=lattice.n_nodes)
     else:
@@ -170,6 +175,15 @@ class TranslationGroup(PermutationGroup):
     """The lattice whose translation group is represented."""
     axes: tuple[int]
     """Axes translations along which are represented by the group."""
+    strides: tuple[int]
+    """
+    Step size (in unit cells) for translations along each axis in :attr:`axes`.
+
+    A stride of 1 (the default) includes all unit-cell translations along that
+    axis. A stride of *s* includes only every *s*-th translation, giving a
+    subgroup of size ``extent // s``. Must divide the lattice extent for
+    periodic axes.
+    """
 
     def __repr__(self):
         shape = self.group_shape
@@ -177,26 +191,40 @@ class TranslationGroup(PermutationGroup):
         _var_names = ["m", "n", "l"]
         if active and len(active) <= 3:
             vars_ = _var_names[: len(active)]
-            terms = [f"2/{shape[i]}*{v}" for v, i in zip(vars_, active)]
-            formula = f"momenta k/π = ({', '.join(terms)})"
+            terms = [f"2π/{shape[i]}*{v}" for v, i in zip(vars_, active)]
+            formula = f"momenta k = ({', '.join(terms)})"
         elif active:
-            formula = (
-                f"momenta k/π: {len(active)}D, extents {[shape[i] for i in active]}"
-            )
+            formula = f"momenta k: {len(active)}D, extents {[shape[i] for i in active]}"
         else:
-            formula = "momenta k/π = (0,)"
+            formula = "momenta k = (0,)"
+        strides_str = (
+            f"\n  strides:{list(self.strides)}"
+            if any(s > 1 for s in self.strides)
+            else ""
+        )
         return (
             type(self).__name__
-            + f"(lattice:\n{self.lattice}\naxes:{self.axes}\n{formula})"
+            + f"(lattice:\n  {self.lattice}\n  axes:{self.axes}{strides_str}  \n  {formula}\n)"
         )
 
     def __pre_init__(
-        self, lattice: Lattice, axes: int | tuple[int] | None = None
+        self,
+        lattice: Lattice,
+        axes: int | tuple[int] | None = None,
+        strides: int | tuple[int] | None = None,
     ) -> tuple[tuple, dict]:
         if axes is None:
             axes = tuple(range(lattice.ndim))
         elif isinstance(axes, int):
-            axes = [axes]
+            axes = (axes,)
+        axes = tuple(axes)
+
+        if strides is None:
+            strides = tuple(1 for _ in axes)
+        elif isinstance(strides, int):
+            strides = tuple(strides for _ in axes)
+        else:
+            strides = tuple(strides)
 
         if len(set(axes)) != len(axes):
             raise ValueError(
@@ -206,14 +234,32 @@ class TranslationGroup(PermutationGroup):
             raise ValueError(
                 f"Axes must be integers in the range [0, {lattice.ndim}) (got `{axes}`)."
             )
+        if len(strides) != len(axes):
+            raise ValueError(
+                f"`strides` must have the same length as `axes` ({len(axes)}), "
+                f"got {len(strides)}."
+            )
+        for ax, s in zip(axes, strides):
+            if s < 1:
+                raise ValueError(
+                    f"All strides must be positive integers, got stride={s} for axis {ax}."
+                )
+            if lattice._pbc[ax] and lattice.extent[ax] % s != 0:
+                raise ValueError(
+                    f"stride={s} does not divide extent={lattice.extent[ax]} "
+                    f"along axis {ax}."
+                )
 
         # compute translation group by axis and overall
-        translation_by_axis = [_translations_along_axis(lattice, i) for i in axes]
+        translation_by_axis = [
+            _translations_along_axis(lattice, ax, s) for ax, s in zip(axes, strides)
+        ]
         translation_group = reduce(PermutationGroup.__matmul__, translation_by_axis)
 
         return (), dict(
             lattice=lattice,
-            axes=tuple(axes),
+            axes=axes,
+            strides=strides,
             elems=translation_group.elems,
             degree=lattice.n_nodes,
         )
@@ -227,14 +273,17 @@ class TranslationGroup(PermutationGroup):
         Tuple of the number of translations represented by the group along
         each lattice direction.
 
-        :code:`self.group_shape[i]` is :code:`self.lattice.extent[i]`
+        :code:`self.group_shape[i]` is :code:`self.lattice.extent[i] // stride_i`
         if both :code:`i in self.axes` and :code:`self.lattice.pbc[i] is True`,
         otherwise 1.
         """
         axes_bool = np.zeros(self.lattice.ndim, dtype=bool)
         axes_bool[list(self.axes)] = True
         in_group = np.logical_and(self.lattice.pbc, axes_bool)
-        shape = np.where(in_group, self.lattice.extent, 1)
+        strides = np.ones(self.lattice.ndim, dtype=int)
+        for ax, s in zip(self.axes, self.strides):
+            strides[ax] = s
+        shape = np.where(in_group, self.lattice.extent // strides, 1)
         return shape
 
     @struct.property_cached

@@ -625,19 +625,28 @@ class Lattice(Graph):
         return TranslationGroup(self)
 
     def translation_group(
-        self, dim: int | Sequence[int] | None = None
+        self,
+        dim: int | Sequence[int] | None = None,
+        strides: int | Sequence[int] | None = None,
     ) -> "TranslationGroup":
         """
         Return the group of lattice translations of `self` as a `PermutationGroup`
         acting on the sites of `self`.
+
+        Args:
+            dim: Axes along which to include translations. If None, all axes
+                with periodic boundary conditions are included.
+            strides: Step size (in unit cells) for translations along each axis
+                in `dim`. A stride of *s* includes only every *s*-th translation,
+                giving a subgroup of size ``extent // s``. Must divide the lattice
+                extent for each periodic axis. If None, defaults to 1 (all
+                translations included).
         """
         from .space_group import TranslationGroup
 
-        return (
-            self.full_translation_group
-            if dim is None
-            else TranslationGroup(self, axes=dim)
-        )
+        if strides is None and dim is None:
+            return self.full_translation_group
+        return TranslationGroup(self, axes=dim, strides=strides)
 
     # Output and drawing
     # ------------------------------------------------------------------------
