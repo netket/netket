@@ -172,7 +172,23 @@ class TranslationGroup(PermutationGroup):
     """Axes translations along which are represented by the group."""
 
     def __repr__(self):
-        return type(self).__name__ + f"(lattice:\n{self.lattice}\naxes:{self.axes})"
+        shape = self.group_shape
+        active = [i for i in range(len(shape)) if shape[i] > 1]
+        _var_names = ["m", "n", "l"]
+        if active and len(active) <= 3:
+            vars_ = _var_names[: len(active)]
+            terms = [f"2/{shape[i]}*{v}" for v, i in zip(vars_, active)]
+            formula = f"momenta k/π = ({', '.join(terms)})"
+        elif active:
+            formula = (
+                f"momenta k/π: {len(active)}D, extents {[shape[i] for i in active]}"
+            )
+        else:
+            formula = "momenta k/π = (0,)"
+        return (
+            type(self).__name__
+            + f"(lattice:\n{self.lattice}\naxes:{self.axes}\n{formula})"
+        )
 
     def __pre_init__(
         self, lattice: Lattice, axes: int | tuple[int] | None = None
@@ -245,7 +261,16 @@ class TranslationGroup(PermutationGroup):
 
     def momentum_irrep(self, *k: Array) -> np.ndarray:
         r"""Returns the irrep characters (phase factors) corresponding to
-        crystal momentum :math:`\vec k`."""
+        crystal momentum :math:`\vec k`.
+
+        :math:`\vec k` must be given in Cartesian units. For a lattice with
+        extent :math:`L` along an axis, the valid momenta along that axis are
+        :math:`k = 2\pi m / L` for :math:`m = 0, 1, \ldots, L-1`.
+
+        Example (1D chain of length 4, momentum :math:`k = \pi/2`)::
+
+            tg.momentum_irrep(2 * np.pi * 1 / 4)   # m=1 -> k = 2π/4 = π/2
+        """
         # switch to reciprocal lattice coordinates
         k = np.atleast_1d(
             self.lattice.to_reciprocal_lattice(_ensure_iterable(k)).squeeze()
