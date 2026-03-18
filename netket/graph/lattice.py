@@ -149,6 +149,7 @@ class Lattice(Graph):
         point_group: PointGroup | None = None,
         max_neighbor_order: int | None = None,
         custom_edges: Sequence[CustomEdgeT] | None = None,
+        _known_name: str | None = None,
     ):
         """
         Construct a new ``Lattice`` given its side length and the features of the unit
@@ -184,6 +185,8 @@ class Lattice(Graph):
                 * color of the edge (optional)
                 If colors are not supplied, they are assigned sequentially starting from 0.
                 Cannot be used together with `max_neighbor_order`.
+            _known_name: Private display name used by NetKet's builtin lattice
+                constructors to provide a more informative string representation.
 
         Examples:
             Constructs a Kagome lattice with 3 × 3 unit cells:
@@ -256,6 +259,7 @@ class Lattice(Graph):
         self._inv_dims = _np.linalg.inv(self._lattice_dims)
 
         self._point_group = point_group
+        self._known_name = _known_name
 
         # Generate sites
         self._sites, self._basis_coords, self._positions = _create_sites(
@@ -621,7 +625,28 @@ class Lattice(Graph):
 
     # Output and drawing
     # ------------------------------------------------------------------------
+    def __str__(self) -> str:
+        if self._known_name is not None:
+            return (
+                f"{self._known_name}("
+                f"extent={self._extent.tolist()}, "
+                f"pbc={self._repr_pbc()})"
+            )
+        return self.__repr__()
+
+    def _repr_pbc(self):
+        if _np.all(self._pbc == self._pbc[0]):
+            return bool(self._pbc[0])
+        return self._pbc.tolist()
+
     def __repr__(self) -> str:
+        if self._known_name is not None:
+            return (
+                f"{self._known_name}("
+                f"extent={self._extent.tolist()}, "
+                f"pbc={self._repr_pbc()}, "
+                f"n_nodes={self.n_nodes})"
+            )
         return REPR_TEMPLATE.format(
             self.n_nodes,
             self._extent,

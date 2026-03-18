@@ -652,9 +652,10 @@ def test_momentum_irrep_1d():
     assert irrep.shape == (len(tg),)
     np.testing.assert_allclose(irrep, np.ones(len(tg)))  # k=0 → all phases = 1
 
-    irrep_k1 = tg.momentum_irrep(1.0)
+    # k = 2π/20 is the smallest valid reciprocal lattice vector for Chain(20)
+    irrep_k1 = tg.momentum_irrep(2 * np.pi / 20)
     assert irrep_k1.shape == (len(tg),)
-    expected = np.exp(-2j * np.pi * 1.0 * np.arange(20) / 20)
+    expected = np.exp(-2j * np.pi * np.arange(20) / 20)
     np.testing.assert_allclose(irrep_k1, expected)
 
 
@@ -779,6 +780,23 @@ def test_duplicate_atoms():
         site_offsets=[[0, 0], [0, 0]],
     )
     np.testing.assert_almost_equal(lattice.site_offsets, np.array([[0, 0]]))
+
+
+def test_builtin_lattice_repr_and_str():
+    square = nk.graph.Square(3, pbc=False)
+    assert str(square) == "Square(extent=[3, 3], pbc=False)"
+    assert repr(square) == "Square(extent=[3, 3], pbc=False, n_nodes=9)"
+
+    honeycomb = nk.graph.Honeycomb([3, 3], pbc=[True, False])
+    assert str(honeycomb) == "Honeycomb(extent=[3, 3], pbc=[True, False])"
+    assert repr(honeycomb) == "Honeycomb(extent=[3, 3], pbc=[True, False], n_nodes=18)"
+
+
+def test_generic_lattice_repr_unchanged():
+    lattice = Lattice([[1.0]], [3], pbc=False)
+    assert str(lattice) == repr(lattice)
+    assert repr(lattice).startswith("Lattice(")
+    assert "basis_vectors=" in repr(lattice)
 
 
 def test_edge_color_accessor():

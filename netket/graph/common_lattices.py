@@ -164,6 +164,7 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True, **kwargs) -> Lat
     if not isinstance(length, int) or length <= 0:
         raise TypeError("Argument `length` must be a positive integer")
     length_vector = [length] * n_dim
+    kwargs.setdefault("_known_name", "Hypercube")
     return Grid(length_vector, pbc=pbc, **kwargs)
 
 
@@ -187,7 +188,7 @@ def Cube(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
         >>> print(g.n_nodes)
         1000
     """
-    return Hypercube(length, pbc=pbc, n_dim=3, **kwargs)
+    return Hypercube(length, pbc=pbc, n_dim=3, _known_name="Cube", **kwargs)
 
 
 def Square(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
@@ -210,7 +211,7 @@ def Square(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
         >>> print(g.n_nodes)
         100
     """
-    return Hypercube(length, pbc=pbc, n_dim=2, **kwargs)
+    return Hypercube(length, pbc=pbc, n_dim=2, _known_name="Square", **kwargs)
 
 
 def Chain(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
@@ -232,7 +233,7 @@ def Chain(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
         >>> print(g.n_nodes)
         10
     """
-    return Hypercube(length, pbc=pbc, n_dim=1, **kwargs)
+    return Hypercube(length, pbc=pbc, n_dim=1, _known_name="Chain", **kwargs)
 
 
 def BCC(
@@ -273,7 +274,12 @@ def BCC(
         # determine if full point group is realised by the simulation box
         point_group = cubic.Oh() if np.all(pbc) and len(set(extent)) == 1 else None
     return Lattice(
-        basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group, **kwargs
+        basis_vectors=basis,
+        extent=extent,
+        pbc=pbc,
+        point_group=point_group,
+        _known_name="BCC",
+        **kwargs,
     )
 
 
@@ -315,7 +321,12 @@ def FCC(
         # determine if full point group is realised by the simulation box
         point_group = cubic.Oh() if np.all(pbc) and len(set(extent)) == 1 else None
     return Lattice(
-        basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group, **kwargs
+        basis_vectors=basis,
+        extent=extent,
+        pbc=pbc,
+        point_group=point_group,
+        _known_name="FCC",
+        **kwargs,
     )
 
 
@@ -365,6 +376,7 @@ def Diamond(
         extent=extent,
         pbc=pbc,
         point_group=point_group,
+        _known_name="Diamond",
         **kwargs,
     )
 
@@ -415,6 +427,7 @@ def Pyrochlore(
         extent=extent,
         pbc=pbc,
         point_group=point_group,
+        _known_name="Pyrochlore",
         **kwargs,
     )
 
@@ -483,7 +496,9 @@ def Triangular(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattic
                 InitializePeriodicLatticeOnSmallLatticeWarning(extent[i], i),
                 UserWarning,
             )
-    return _hexagonal_general(extent, site_offsets=None, pbc=pbc, **kwargs)
+    return _hexagonal_general(
+        extent, site_offsets=None, pbc=pbc, _known_name="Triangular", **kwargs
+    )
 
 
 def Honeycomb(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
@@ -517,6 +532,7 @@ def Honeycomb(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice
         extent,
         site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]],
         pbc=pbc,
+        _known_name="Honeycomb",
         **kwargs,
     )
 
@@ -552,6 +568,7 @@ def Kagome(extent, *, pbc: bool | Sequence[bool] = True, **kwargs) -> Lattice:
         extent,
         site_offsets=[[0.5, 0], [0.25, 0.75**0.5 / 2], [0.75, 0.75**0.5 / 2]],
         pbc=pbc,
+        _known_name="Kagome",
         **kwargs,
     )
 
@@ -602,6 +619,7 @@ def KitaevHoneycomb(
         site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]],
         pbc=pbc,
         point_group=point_group,
+        _known_name="KitaevHoneycomb",
         custom_edges=[
             (0, 1, [0.5, 0.5 / 3**0.5]),
             (0, 1, [-0.5, 0.5 / 3**0.5]),
