@@ -18,24 +18,27 @@ from netket.utils.group import PermutationGroup, Identity, Permutation, Element
 from netket.hilbert import DiscreteHilbert, SpinOrbitalFermions
 
 
-def _physical_to_fermionic_permutation(
-    perm: Element, hilbert: SpinOrbitalFermions
-) -> Element:
-    """Converts a permutation of the lattice sites to a permutation of single-particles states
-    in a fermionic Hilbert space."""
+def _to_logical_perm(hilbert: DiscreteHilbert, perm: Element) -> Element:
+    """Map a physical site permutation to a logical (single-particle state) permutation.
+
+    For non-fermionic Hilbert spaces, returns the permutation unchanged.
+    For fermionic Hilbert spaces, remaps to act on single-particle states across
+    all spin sectors, tiling the physical permutation once per spin species.
+    """
+    if not isinstance(hilbert, SpinOrbitalFermions):
+        return perm
+    if isinstance(perm, Identity):
+        return Permutation(permutation_array=np.arange(hilbert.size))
 
     assert isinstance(perm, Permutation)
-
     perm_array = perm.permutation_array
     fermionic_perm_array = np.copy(perm_array)
-
     offset = 0
     while offset < hilbert.size - hilbert.n_orbitals:
         offset += hilbert.n_orbitals
         fermionic_perm_array = np.concatenate(
             (fermionic_perm_array, perm_array + offset)
         )
-
     return Permutation(permutation_array=fermionic_perm_array)
 
 
@@ -46,22 +49,11 @@ def physical_to_logical_permutation_group(
     of the local degrees of freedom on the many-body Hilbert space."""
 
     if isinstance(hilbert, SpinOrbitalFermions):
-        id_perm = np.arange(hilbert.size)
-        fermionic_perms = []
-
         # Remove duplicate permutations that may be there if the group has some elemens
         # that are encoded by the same permutation. This is an issue with for example
         # 2x2 space group. (Maybe it's a bug in group itself?)
         perm_group = perm_group.remove_duplicates()
-
-        for perm in perm_group:
-            if isinstance(perm, Identity):
-                fermionic_perms.append(Permutation(permutation_array=id_perm))
-
-            else:
-                fermionic_perm = _physical_to_fermionic_permutation(perm, hilbert)
-                fermionic_perms.append(fermionic_perm)
-
+        fermionic_perms = [_to_logical_perm(hilbert, perm) for perm in perm_group]
         perm_group = PermutationGroup(fermionic_perms, degree=hilbert.size)
 
     return perm_group

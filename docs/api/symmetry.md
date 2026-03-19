@@ -25,7 +25,7 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    canonical_representation
 ```
 
-## Representation
+## Representation Classes
 
 ```{eval-rst}
 .. currentmodule:: netket.symmetry
@@ -35,6 +35,8 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    :nosignatures:
 
    Representation
+   LabeledRepresentation
+   TranslationRepresentation
 ```
 
 ## Symmetry Group Manipulation

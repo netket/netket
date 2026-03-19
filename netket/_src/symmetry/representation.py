@@ -149,13 +149,18 @@ class Representation:
         projector = SumOperator(*operators, coefficients=coefficients)
         return projector
 
-    def project(self, state, character_index: int, *, atol: float = 1e-15) -> MCState:
+    def project(
+        self, state, character_index=None, *, atol: float = 1e-15, **kwargs
+    ) -> MCState:
         """Return the state projected onto the subspace associated to the
         irreducible representation specified by character_index.
+
+        Additional keyword arguments are forwarded to :meth:`projector`, so
+        subclasses that accept ``label=``, ``k=``, etc. can be used here too.
         """
         from netket._src.vqs.transformed_vstate import apply_operator
 
-        projector = self.projector(character_index, atol=atol)
+        projector = self.projector(character_index, atol=atol, **kwargs)
         projected_state = apply_operator(projector, state)
         return projected_state
 

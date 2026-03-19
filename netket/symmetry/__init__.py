@@ -1,4 +1,6 @@
 from netket._src.symmetry.representation import Representation
+from netket._src.symmetry.labeled_representation import LabeledRepresentation
+from netket._src.symmetry.translation_representation import TranslationRepresentation
 from netket._src.symmetry.canonical_representation import (
     canonical_representation,
 )

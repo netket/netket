@@ -19,8 +19,11 @@ from netket.symmetry.group import PermutationGroup, PointGroup
 from netket.graph.space_group import TranslationGroup, SpaceGroup
 
 from netket._src.symmetry.representation import Representation
+from netket._src.symmetry.labeled_representation import LabeledRepresentation
+from netket._src.symmetry.translation_representation import TranslationRepresentation
 from netket._src.symmetry.representation_construction import (
     physical_to_logical_permutation_group,
+    _to_logical_perm,
 )
 from netket._src.operator.permutation.construct import (
     construct_permutation_operator,
@@ -172,9 +175,20 @@ def canonical_representation(
             "or pass no_warning=True.\n\n"
         )
 
-    # If fermionic hilbert space, increase the size of the permutation so it
-    # matches the number of single-particle states.
+    if isinstance(group, TranslationGroup):
+        # Keep the TranslationGroup as-is so geometry (lattice, group_shape) is
+        # preserved. For fermionic hilbert spaces, remap only the operators.
+        representation_dict = {
+            perm: construct_permutation_operator(
+                hilbert, _to_logical_perm(hilbert, perm)
+            )
+            for perm in group
+        }
+        return TranslationRepresentation(group, representation_dict)
+
+    # For all other groups, remap the group itself for fermionic hilbert spaces.
     group = physical_to_logical_permutation_group(group, hilbert)
-    return Representation(
-        group, {perm: construct_permutation_operator(hilbert, perm) for perm in group}
-    )
+    representation_dict = {
+        perm: construct_permutation_operator(hilbert, perm) for perm in group
+    }
+    return LabeledRepresentation(group, representation_dict)
