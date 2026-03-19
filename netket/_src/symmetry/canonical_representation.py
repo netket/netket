@@ -84,9 +84,11 @@ def canonical_representation(
             :class:`~netket.graph.space_group.TranslationGroup`.
 
     Returns:
-        A :class:`~netket.symmetry.Representation` object encoding the action of the
-        permutation group on the Hilbert space. The representation includes a dictionary
-        mapping each group element to the corresponding operator that acts on quantum states.
+        A :class:`~netket.symmetry.TranslationRepresentation` if ``group`` is a
+        :class:`~netket.graph.space_group.TranslationGroup` (with Bloch-momentum
+        indexing via :meth:`~netket.symmetry.TranslationRepresentation.projector`),
+        or a :class:`~netket.symmetry.LabeledRepresentation` for all other groups
+        (with automatic irrep labels derived from the character table).
 
     Examples:
         Get the representation of the translation group on a spin system:
@@ -132,7 +134,9 @@ def canonical_representation(
         ... )
 
     See Also:
-        - :class:`~netket.symmetry.Representation`: The representation class that is returned.
+        - :class:`~netket.symmetry.Representation`: Base representation class.
+        - :class:`~netket.symmetry.LabeledRepresentation`: Returned for point/space groups.
+        - :class:`~netket.symmetry.TranslationRepresentation`: Returned for translation groups.
         - :class:`~netket.utils.group.PermutationGroup`: Permutation group class.
         - :meth:`~netket.graph.Lattice.translation_group`: Get the translation group of a lattice.
         - :meth:`~netket.graph.Lattice.space_group`: Get the space group of a lattice.
@@ -172,7 +176,7 @@ def canonical_representation(
             "Make sure that this is the intended representation. "
             "To disable this warning, pass a group of the class "
             "SpaceGroup, PointGroup, or TranslationGroup, "
-            "or pass no_warning=True.\n\n"
+            "or pass warn=False.\n\n"
         )
 
     if isinstance(group, TranslationGroup):

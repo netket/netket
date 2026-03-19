@@ -104,12 +104,15 @@ class TranslationRepresentation(LabeledRepresentation):
         ranges = [np.arange(s) for s in active_shape]
         grids = np.meshgrid(*ranges, indexing="ij")
         m_all = np.stack([g.ravel() for g in grids], axis=1)  # (n_irreps, n_active)
-        k_over_pi = 2.0 * m_all / active_shape
-        return (((k_over_pi + 1.0) % 2.0) - 1.0) * np.pi  # shift to (-π, π]
+        k_frac = 2.0 * m_all / active_shape  # k/π, used to center the BZ
+        return (((k_frac + 1.0) % 2.0) - 1.0) * np.pi  # shift to (-π, π]
 
     @cached_property
     def irrep_labels(self) -> list[str]:
-        """``"k=v"`` (1D) or ``"k=(v0, v1, ...)"`` (nD) labels for every irrep."""
+        """``"k=vπ"`` (1D) or ``"k=(v0π, v1π, ...)"`` (nD) labels for every irrep.
+
+        Zero components are formatted as ``"0"`` (no π suffix).
+        """
         kpts = self.k_points()
         n_active = kpts.shape[1]
         if n_active == 1:
