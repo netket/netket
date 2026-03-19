@@ -93,6 +93,7 @@ class TranslationRepresentation(LabeledRepresentation):
             )
         super().__init__(group, representation_dict)
 
+    @property
     def k_points(self) -> np.ndarray:
         """Bloch momenta for all irreps.
 
@@ -113,7 +114,7 @@ class TranslationRepresentation(LabeledRepresentation):
 
         Zero components are formatted as ``"0"`` (no π suffix).
         """
-        kpts = self.k_points()
+        kpts = self.k_points
         n_active = kpts.shape[1]
         if n_active == 1:
             return [f"k={_fmt_k(kpts[i, 0])}" for i in range(len(kpts))]
@@ -165,7 +166,7 @@ class TranslationRepresentation(LabeledRepresentation):
 
         if label is not None:
             idx = _label_to_character_index(self.irrep_labels, label)
-            k = self.k_points()[idx]
+            k = self.k_points[idx]
 
         # if w have a k wave-vector specified, use this fast path
         if k is not None:

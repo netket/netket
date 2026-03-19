@@ -57,7 +57,7 @@ Errors arising when working with Hilbert spaces and their constraints:
   NetKetPyTreeUndeclaredAttributeAssignmentError
 ```
 
-# Driver update warnings
+## Driver update warnings
 
 ```{eval-rst}
 .. autosummary::

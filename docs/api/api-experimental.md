@@ -89,6 +89,27 @@ This module contains experimental loggers that can be used with the optimization
 
 ```
 
+(netket_geometry_api)=
+## Geometry
+
+```{eval-rst}
+.. currentmodule:: netket.experimental
+```
+
+The :mod:`netket.experimental.geometry` module contains helper classes to describe the geometry of continuous spaces.
+These objects can be passed to {class}`~netket.experimental.hilbert.Particle` and provide utilities such as distance computations.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/geometry
+   :template: class
+   :nosignatures:
+
+   geometry.Cell
+   geometry.FreeSpace
+```
+
+
 (experimental-variational-api)=
 ## Variational State Interface
 
