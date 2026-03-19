@@ -50,7 +50,30 @@ class InvalidSiteError(Exception):
 
 
 class InvalidWaveVectorError(Exception):
-    pass
+    @classmethod
+    def from_lattice(cls, lattice_dims, extents, pbc, invalid_ks):
+        """Construct a descriptive error for invalid wave vectors."""
+        axis_lines = []
+        for i in range(len(extents)):
+            L = lattice_dims[i]
+            L_norm = _np.linalg.norm(L)
+            bc = "PBC" if pbc[i] else "OBC"
+            N = extents[i]
+            if pbc[i]:
+                axis_lines.append(
+                    f"  axis {i} {L.tolist()} ({bc}): valid k satisfy "
+                    f"k·{L.tolist()} = 2π·m for integer m, "
+                    f"i.e. k = (2π/{L_norm}) * m with m = 0, 1, ..., {N - 1}"
+                )
+            else:
+                axis_lines.append(f"  axis {i} {L.tolist()} ({bc}): k must be 0")
+        msg = (
+            "Some wave vectors are not reciprocal lattice vectors of the simulation "
+            "box spanned by\n"
+            + "\n".join(axis_lines)
+            + f"\nGot invalid wave vector(s): {invalid_ks.squeeze().tolist()}"
+        )
+        return cls(msg)
 
 
 @dataclass
@@ -508,16 +531,9 @@ class Lattice(Graph):
         # Check that these are integers
         is_valid = is_approx_int(result)
         if not _np.all(is_valid):
-            raise InvalidWaveVectorError(
-                "Some wave vectors are not reciprocal lattice vectors of the simulation"
-                "box spanned by\n"
-                + "\n".join(
-                    [
-                        str(self._lattice_dims[i])
-                        + (" (PBC)" if self.pbc[i] else " (OBC)")
-                        for i in range(self.ndim)
-                    ]
-                )
+            invalid_ks = ks[~_np.all(is_valid, axis=-1)]
+            raise InvalidWaveVectorError.from_lattice(
+                self._lattice_dims, self._extent, self.pbc, invalid_ks
             )
 
         result = _np.asarray(_np.rint(result), dtype=int)
