@@ -5,7 +5,7 @@
 
 ```{note}
 To construct a symmetrized ansatz of the form log(O|ψ⟩) where O is a symmetry
-projector, see {ref}`netket_nn_apply_operator_api` in {mod}`netket.nn.apply_operator`.
+projector, see {ref}`netket_nn_apply_operator_api` in {func}`netket.vqs.apply_operator`.
 ```
 
 Module with classes and utilities needed to operate on symmetry groups and their representations.
@@ -77,13 +77,12 @@ but are not part of the public ``netket.symmetry`` namespace.
 They are documented here for reference.
 
 ```{eval-rst}
-.. autoclass:: netket._src.symmetry.labeled_representation_coset_filter.LabeledRepresentationCosetFilter
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. currentmodule:: netket._src.symmetry
 
-.. autoclass:: netket._src.symmetry.translation_coset_filter.TranslationCosetFilter
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autosummary::
+   :toctree: _generated/symmetry
+   :nosignatures:
+
+   labeled_representation_coset_filter.LabeledRepresentationCosetFilter
+   translation_coset_filter.TranslationCosetFilter
 ```

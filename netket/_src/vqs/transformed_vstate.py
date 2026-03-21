@@ -6,28 +6,30 @@ from flax import linen
 
 from netket.sampler import MetropolisSamplerState
 from netket.jax import PRNGKey
-from netket.vqs import MCState, FullSumState
-from netket.operator import ContinuousOperator, DiscreteOperator
+from netket.vqs import MCState, FullSumState, VariationalState
+from netket.operator import AbstractOperator, ContinuousOperator, DiscreteOperator
 from netket.operator._prod.base import ProductOperator
 from netket._src.nn.apply_operator.linen import ApplyOperatorModuleLinen
 from netket._src.nn.apply_operator.nnx import ApplyOperatorModuleNNX
 from netket._src.nn.apply_operator.functional import make_logpsi_op_afun
 
 
-def apply_operator(operator, vstate, *, seed=None):
+def apply_operator(
+    operator: AbstractOperator, vstate: VariationalState, *, seed=None
+) -> VariationalState:
     """
     Apply an operator to a variational state.
 
     The returned variational state wraps the model of vstate with an operator transformation.
     The implementation depends on the model type:
 
-    - **Linen modules**: Wrapped in an ApplyOperatorModuleLinen. Operator stored in flattened form with
-      leaves accessible as `op_vstate.variables['operator']['leaves']` and treedef stored in
-      the module as `op_vstate._model.operator_treedef`.
-    - **NNX modules**: Wrapped in an ApplyOperatorModuleNNX. Operator accessible as
-      `op_vstate.model.operator`.
-    - **Other (functional)**: Uses the functional approach with make_logpsi_op_afun.
-      Operator accessible as `op_vstate.variables['operator']`.
+    - **Linen modules**: Wrapped in a :class:`~netket.nn.apply_operator.ApplyOperatorModuleLinen`. Operator stored in flattened form with
+      leaves accessible as ``op_vstate.variables['operator']['leaves']`` and treedef stored in
+      the module as ``op_vstate._model.operator_treedef``.
+    - **NNX modules**: Wrapped in a :class:`~netket.nn.apply_operator.ApplyOperatorModuleNNX`. Operator accessible as
+      ``op_vstate.model.operator``.
+    - **Other (functional)**: Uses the functional approach with :func:`~netket.nn.apply_operator.make_logpsi_op_afun`.
+      Operator accessible as ``op_vstate.variables['operator']``.
 
     .. note::
 
@@ -38,7 +40,7 @@ def apply_operator(operator, vstate, *, seed=None):
 
         When applying an operator to a vstate that already has an operator applied (nested application),
         the operators are automatically combined into a ProductOperator to avoid double wrapping.
-        For example, B@[A@psi] will be computed as (B*A)@psi instead of B@(A@psi).
+        For example, ``B@[A@psi]`` will be computed as ``(B*A)@psi`` instead of ``B@(A@psi)``.
 
     Args:
         operator: The operator to apply in front of the variational state ket
