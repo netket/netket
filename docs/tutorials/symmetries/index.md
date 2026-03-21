@@ -7,4 +7,5 @@ Tutorials on using symmetries in NetKet.
 
 ../gs-gcnn-honeycomb
 ../symmetry_tutorial
+iterative_symmetrization
 ```

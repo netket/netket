@@ -28,6 +28,12 @@
 #### Graphs
 * Added {meth}`netket.graph.Lattice.distances_euclidean`, which returns the pairwise Euclidean distances between lattice sites and optionally applies the minimum-image convention along periodic directions.
 
+#### Symmetries
+* Added `LabeledRepresentationCosetFilter` and `TranslationCosetFilter`, two coset refinement operators for iterative symmetrization.
+  Given a group G with subgroup H, the coset filter F_C(ρ) promotes a state already projected onto the H-symmetric sector to the full G-symmetric sector using only `|G|/|H|` operator terms instead of `|G|`, enabling the iterative symmetrization workflow `P_G(ρ) = F_C(ρ) @ P_H(ρ|_H)`.
+  Obtained via {meth}`~netket._src.symmetry.labeled_representation.LabeledRepresentation.coset_filter` and {meth}`~netket._src.symmetry.translation_representation.TranslationRepresentation.coset_filter`.
+* Added `FiniteGroup.is_subgroup()` and `TranslationGroup.is_subgroup()` methods to check whether a group is a (proper) subgroup of another.
+
 #### Optimizer
 * Added {func}`netket.optimizer.solver.cholesky_distributed` and {func}`netket.optimizer.solver.pinv_smooth_distributed`, two optional `jaxmg`-backed multi-GPU dense solvers for SR/NTK matrices kept sharded across devices [PR #2200](https://github.com/netket/netket/pull/2200).
 * Added {func}`netket.optimizer.solver.nan_fallback`, a solver combinator that retries a solve with a fallback solver whenever the primary solver returns `NaN` or `Inf`.

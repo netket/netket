@@ -215,6 +215,30 @@ class FiniteGroup(FiniteSemiGroup):
 
         return classes, representatives, inverse
 
+    def is_subgroup(self, other: "FiniteGroup", *, proper: bool = False) -> bool:
+        r"""
+        Return True if ``other`` is a subgroup of ``self``.
+
+        Checks Lagrange's theorem (``|self|`` divisible by ``|other|``) and
+        that every element of ``other`` is present in ``self``.
+
+        Arguments:
+            other: the candidate subgroup.
+            proper: if True, also require ``|other| < |self|`` (i.e. ``other != self``).
+
+        Returns:
+            True if every element of ``other`` belongs to ``self``
+            (and ``other`` is strictly smaller if ``proper=True``).
+        """
+        if len(other) > len(self) or len(self) % len(other) != 0:
+            return False
+        if proper and len(other) == len(self):
+            return False
+        self_lookup = self._canonical_lookup()
+        return all(
+            HashableArray(self._canonical(e)) in self_lookup for e in other.elems
+        )
+
     def check_multiplier(self, multiplier: Array, rtol=1e-8, atol=0) -> bool:
         r"""
         Checks the associativity constraint of Schur multipliers.

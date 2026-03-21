@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 
 from netket._src.symmetry.representation import Representation
+
+if TYPE_CHECKING:
+    from netket._src.symmetry.labeled_representation_coset_filter import (
+        LabeledRepresentationCosetFilter,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -194,8 +202,34 @@ class LabeledRepresentation(Representation):
             n_part = f", {n} irreps"
         except Exception:
             n_part = ""
-        group_str = f"{type(self.group).__name__}({len(self.group.elems)} elements)"
+        n_elems = len(self.group.elems)
+        group_str = f"{type(self.group).__name__}({n_elems} elements)"
         return f"{type(self).__name__}(hilbert={self.hilbert!r}, group={group_str}{n_part})"
+
+    def coset_filter(
+        self,
+        subgroup: LabeledRepresentation,
+    ) -> LabeledRepresentationCosetFilter:
+        """
+        Build the coset Fourier filter for this group G modulo subgroup H.
+
+        Args:
+            subgroup: :class:`LabeledRepresentation` for a subgroup H ≤ G.
+
+        Returns:
+            :class:`~netket.symmetry.LabeledRepresentationCosetFilter` for G/H.
+
+        Example::
+
+            rep_d4 = nk.symmetry.canonical_representation(hi, lattice.point_group())
+            rep_c4 = nk.symmetry.canonical_representation(hi, c4_subgroup)
+            C = rep_d4.coset_filter(rep_c4)
+        """
+        from netket._src.symmetry.labeled_representation_coset_filter import (
+            LabeledRepresentationCosetFilter,
+        )
+
+        return LabeledRepresentationCosetFilter(self, subgroup)
 
     def __repr__(self) -> str:
         try:
@@ -203,9 +237,10 @@ class LabeledRepresentation(Representation):
             lbl_part = f"\n  irreps=[{_fmt_labels(labels)}] ({len(labels)} total)"
         except Exception:
             lbl_part = ""
+        n_elems = len(self.group.elems)
         return (
             f"{type(self).__name__}(\n"
             f"  hilbert={self.hilbert!r},\n"
-            f"  group={self.group!s}"
+            f"  group={type(self.group).__name__}({n_elems} elements)"
             f"{lbl_part}\n)"
         )

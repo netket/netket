@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -23,6 +26,9 @@ from netket._src.symmetry.labeled_representation import (
     _label_to_character_index,
     _fmt_labels,
 )
+
+if TYPE_CHECKING:
+    from netket._src.symmetry.translation_coset_filter import TranslationCosetFilter
 
 
 def _fmt_k(v: float) -> str:
@@ -93,20 +99,47 @@ class TranslationRepresentation(LabeledRepresentation):
             )
         super().__init__(group, representation_dict)
 
+    @cached_property
+    def active_axes(self) -> tuple[int, ...]:
+        """Indices of lattice axes with more than one translation step."""
+        shape = np.asarray(self.group.group_shape)
+        return tuple(int(i) for i in np.where(shape > 1)[0])
+
     @property
     def k_points(self) -> np.ndarray:
         """Bloch momenta for all irreps.
 
         Returns an array of shape ``(n_irreps, n_active_axes)``.
-        Values are in the half-open interval ``(-π, π]``.
+
+        Values are consistent with :meth:`~netket.graph.space_group.TranslationGroup.momentum_irrep`:
+        the m-th irrep corresponds to k such that ``to_reciprocal_lattice(k) == m`` (integer).
+
+        For a strided group (``strides > 1``), the BZ boundary is at ``π / stride``,
+        not at ``π``; this method accounts for that via the actual lattice dimensions.
         """
         shape = np.asarray(self.group.group_shape)
-        active_shape = shape[shape > 1]
+        active_idx = np.where(shape > 1)[0]
+        active_shape = shape[active_idx]
+
         ranges = [np.arange(s) for s in active_shape]
         grids = np.meshgrid(*ranges, indexing="ij")
         m_all = np.stack([g.ravel() for g in grids], axis=1)  # (n_irreps, n_active)
-        k_frac = 2.0 * m_all / active_shape  # k/π, used to center the BZ
-        return (((k_frac + 1.0) % 2.0) - 1.0) * np.pi  # shift to (-π, π]
+
+        # Center the BZ: map m → m_centered ∈ (-ni/2, ni/2]
+        m_centered = ((m_all + active_shape // 2) % active_shape) - active_shape // 2
+
+        # Convert integer mode indices to Cartesian k using the actual lattice geometry.
+        # to_reciprocal_lattice(k) = k @ _lattice_dims.T / (2π) must equal m (integer).
+        # Inverting: k = 2π * m @ inv(_lattice_dims.T)
+        ldims = np.asarray(self.group.lattice._lattice_dims, dtype=float)
+        inv_ldims_T = np.linalg.inv(ldims.T)
+
+        ndim = self.group.lattice.ndim
+        m_full = np.zeros((len(m_all), ndim))
+        m_full[:, active_idx] = m_centered.astype(float)
+
+        k_cart = (2.0 * np.pi * m_full) @ inv_ldims_T  # (n_irreps, ndim)
+        return k_cart[:, active_idx]
 
     @cached_property
     def irrep_labels(self) -> list[str]:
@@ -185,9 +218,51 @@ class TranslationRepresentation(LabeledRepresentation):
         # default fallback through character table indexing
         return LabeledRepresentation.projector(self, character_index, atol=atol)
 
+    def coset_filter(
+        self,
+        subgroup: TranslationRepresentation,
+    ) -> TranslationCosetFilter:
+        """
+        Build the coset Fourier filter for this group ``G`` modulo a subgroup ``H``.
+
+        Returns a :class:`TranslationCosetFilter` storing the ``len(G)/len(H)``
+        coset-representative operators.
+
+        The filter satisfies::
+
+            F_C(k) @ sub_rep.projector(k)  ==  full_rep.projector(k)
+
+        for any full-lattice momentum k.
+
+        Args:
+            subgroup: :class:`TranslationRepresentation` for H <= G.
+                Must have strides that are component-wise multiples of
+                self's strides.
+
+        Returns:
+            :class:`TranslationCosetFilter` with ``len(G)/len(H)`` coset operators.
+
+        Example — single level::
+
+            lattice = nk.graph.Chain(8, pbc=True)
+            hi      = nk.hilbert.Spin(0.5, 8)
+            T_full  = nk.symmetry.canonical_representation(hi, lattice.translation_group())
+            T_half  = nk.symmetry.canonical_representation(hi, lattice.translation_group(strides=2))
+
+            C = T_full.coset_filter(T_half)
+            # C has 2 coset representatives: {T^0, T^1}
+
+            # 2-term refinement filter (apply on top of a T_half-symmetrised state):
+            F = C.projector_refinement(k=np.pi/2)
+            # F_C @ T_half.projector(k=np.pi/2) == T_full.projector(k=np.pi/2)
+        """
+        from netket._src.symmetry.translation_coset_filter import TranslationCosetFilter
+
+        return TranslationCosetFilter(self, subgroup)
+
     def __str__(self) -> str:
         n = len(self.group.elems)
-        return f"TranslationRepresentation(hilbert={self.hilbert!r}, lattice={self.group.lattice!s}, {n} k-points)"
+        return f"TranslationRepresentation(hilbert={self.hilbert!r}, lattice={self.group.lattice!s}, {n} elements, {n} k-points)"
 
     def __repr__(self) -> str:
         try:
@@ -196,6 +271,7 @@ class TranslationRepresentation(LabeledRepresentation):
         except Exception:
             lbl_str = f"k_points=({len(self.group.elems)} total)"
         g = self.group
+        n_elems = len(g.elems)
         group_str = f"axes={list(g.axes)}"
         if any(s > 1 for s in g.strides):
             group_str += f", strides={list(g.strides)}"
@@ -203,6 +279,6 @@ class TranslationRepresentation(LabeledRepresentation):
             f"TranslationRepresentation(\n"
             f"  hilbert={self.hilbert!r},\n"
             f"  lattice={g.lattice!s},\n"
-            f"  translations: {group_str},\n"
+            f"  translations: {group_str}, {n_elems} elements,\n"
             f"  {lbl_str}\n)"
         )

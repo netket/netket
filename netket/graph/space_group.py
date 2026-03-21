@@ -202,9 +202,10 @@ class TranslationGroup(PermutationGroup):
             if any(s > 1 for s in self.strides)
             else ""
         )
+        n_elems = len(self.elems)
         return (
             type(self).__name__
-            + f"(lattice:\n  {self.lattice}\n  axes:{self.axes}{strides_str}  \n  {formula}\n)"
+            + f"(lattice:\n  {self.lattice}\n  axes:{self.axes}{strides_str}  \n  {formula}\n  {n_elems} elements\n)"
         )
 
     def __pre_init__(
@@ -266,6 +267,36 @@ class TranslationGroup(PermutationGroup):
 
     def __hash__(self):
         return super().__hash__()
+
+    def is_subgroup(self, other, *, proper: bool = False) -> bool:
+        """
+        Return True if ``other`` is a subgroup of ``self``.
+
+        For two :class:`TranslationGroup` objects on the same lattice, uses a
+        cheap stride-divisibility check: ``other`` is a subgroup of ``self`` iff
+        every axis active in ``other`` is also active in ``self`` with a stride
+        that divides ``other``'s stride (i.e. ``ss % fs == 0``).
+
+        Falls back to the generic element-containment check for non-TranslationGroup
+        arguments.
+
+        Arguments:
+            proper: if True, also require ``|other| < |self|``.
+        """
+        if not isinstance(other, TranslationGroup):
+            return super().is_subgroup(other, proper=proper)
+        if self.lattice is not other.lattice and self.lattice != other.lattice:
+            return False
+        if len(other.elems) > len(self.elems):
+            return False
+        if proper and len(other.elems) == len(self.elems):
+            return False
+        self_strides = dict(zip(self.axes, self.strides))
+        for ax, ss in zip(other.axes, other.strides):
+            fs = self_strides.get(ax)
+            if fs is None or ss % fs != 0:
+                return False
+        return True
 
     @struct.property_cached
     def group_shape(self) -> Array:

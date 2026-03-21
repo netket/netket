@@ -68,3 +68,22 @@ The theory needed to understand those tools is discussed in {doc}`../advanced/sy
    group.cubic
    group.icosa
 ```
+
+## Internal Objects
+
+These classes are returned by methods such as
+{meth}`~netket._src.symmetry.labeled_representation.LabeledRepresentation.coset_filter`
+but are not part of the public ``netket.symmetry`` namespace.
+They are documented here for reference.
+
+```{eval-rst}
+.. autoclass:: netket._src.symmetry.labeled_representation_coset_filter.LabeledRepresentationCosetFilter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: netket._src.symmetry.translation_coset_filter.TranslationCosetFilter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
