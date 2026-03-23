@@ -18,7 +18,7 @@ from functools import cached_property
 
 import numpy as np
 
-from netket.operator import SumOperator
+from netket.operator import SumOperator, DiscreteJaxOperator
 from netket._src.symmetry.translation_representation import TranslationRepresentation
 from netket._src.symmetry.labeled_representation_coset_filter import (
     LabeledRepresentationCosetFilter,
@@ -208,7 +208,7 @@ class TranslationCosetFilter(LabeledRepresentationCosetFilter):
         *,
         label: str | None = None,
         atol: float = 1e-15,
-    ) -> SumOperator:
+    ) -> DiscreteJaxOperator:
         """
         Build the coset Fourier filter F_C(k).
 

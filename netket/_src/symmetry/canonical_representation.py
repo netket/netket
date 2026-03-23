@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import warnings
+from typing import overload
 
 from netket.hilbert import DiscreteHilbert, Qubit, Spin, Fock, SpinOrbitalFermions
 from netket.symmetry.group import PermutationGroup, PointGroup
@@ -30,9 +31,21 @@ from netket._src.operator.permutation.construct import (
 )
 
 
+@overload
+def canonical_representation(
+    hilbert: DiscreteHilbert, group: TranslationGroup, warn: bool = True
+) -> TranslationRepresentation: ...
+
+
+@overload
 def canonical_representation(
     hilbert: DiscreteHilbert, group: PermutationGroup, warn: bool = True
-) -> Representation:
+) -> LabeledRepresentation: ...
+
+
+def canonical_representation(
+    hilbert: DiscreteHilbert, group: PermutationGroup, warn: bool = True
+) -> LabeledRepresentation:
     r"""
     Construct the representation of a permutation group on a many-body
     Hilbert space where each permutation is mapped to the permutation operator

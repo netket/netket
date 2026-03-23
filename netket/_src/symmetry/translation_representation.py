@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from netket.operator import SumOperator
+from netket.operator import SumOperator, DiscreteJaxOperator
 
 from netket._src.symmetry.labeled_representation import (
     LabeledRepresentation,
@@ -156,7 +156,7 @@ class TranslationRepresentation(LabeledRepresentation):
             for i in range(len(kpts))
         ]
 
-    def projector(self, character_index=None, *, k=None, label=None, atol=1e-15):
+    def projector(self, character_index=None, *, k=None, label=None, atol=1e-15) -> DiscreteJaxOperator:
         """Build the projection operator onto a momentum sector.
 
         Exactly one of ``character_index``, ``k``, or ``label`` must be provided.

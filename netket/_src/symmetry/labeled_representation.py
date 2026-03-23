@@ -23,6 +23,7 @@ import numpy as np
 from netket._src.symmetry.representation import Representation
 
 if TYPE_CHECKING:
+    from netket.operator import DiscreteJaxOperator
     from netket._src.symmetry.labeled_representation_coset_filter import (
         LabeledRepresentationCosetFilter,
     )
@@ -164,7 +165,7 @@ class LabeledRepresentation(Representation):
             for m in range(len(chars))
         ]
 
-    def projector(self, character_index=None, *, label=None, atol=1e-15):
+    def projector(self, character_index=None, *, label=None, atol=1e-15) -> DiscreteJaxOperator:
         """Build the projection operator for an irrep.
 
         Accepts either:

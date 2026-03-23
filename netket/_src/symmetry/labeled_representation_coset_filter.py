@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from netket.operator import SumOperator
+from netket.operator import SumOperator, DiscreteJaxOperator
 
 
 class LabeledRepresentationCosetFilter:
@@ -137,7 +137,7 @@ class LabeledRepresentationCosetFilter:
         *,
         label: str,
         atol: float = 1e-15,
-    ) -> SumOperator:
+    ) -> DiscreteJaxOperator:
         """
         Build the coset refinement operator F_C(ρ).
 
