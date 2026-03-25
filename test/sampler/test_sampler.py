@@ -91,6 +91,9 @@ samplers["MetropolisPT(Local): Fock"] = nk.sampler.ParallelTemperingLocal(
 samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange(
     hib, graph=g
 )
+samplers["Metropolis(Exchange, Prob): Fock-1particle"] = nk.sampler.MetropolisExchange(
+    hib, graph=g, d_max=2, probabilities=[1.0, 0.5]
+)
 
 if not config.netket_experimental_sharding:
     samplers["Metropolis(Hamiltonian,numba operator): Spin"] = (
