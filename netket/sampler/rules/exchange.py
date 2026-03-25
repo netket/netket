@@ -83,6 +83,11 @@ class ExchangeRule(MetropolisRule):
     The Exchange rule will swap the two sites of a random row of this
     matrix at every Metropolis step.
     """
+    probabilities: jax.Array
+    r"""1-Dimensional array :math:`p_{i}` of length :math:`N_\text{clusters}`
+    containing the relative probability of choosing each particular cluster
+    for the exchange update.
+    """
 
     def __init__(
         self,
@@ -90,6 +95,7 @@ class ExchangeRule(MetropolisRule):
         clusters: list[tuple[int, int]] | None = None,
         graph: AbstractGraph | None = None,
         d_max: int = 1,
+        probabilities: list[float] | None = None,
     ):
         r"""
         Constructs the Exchange Rule.
@@ -101,13 +107,20 @@ class ExchangeRule(MetropolisRule):
             clusters: The list of clusters that can be exchanged. This should be
                 a list of 2-tuples containing two integers. Every tuple is an edge,
                 or cluster of sites to be exchanged.
-            graph: A graph, from which the edges determine the clusters
-                that can be exchanged.
-            d_max: Only valid if a graph is passed in. The maximum distance
-                between two sites
+            graph: The graph for determining the clusters that can be exchanged.
+                Do not specify together with `clusters`.
+            d_max: The maximum graph distance allowed for exchanges.
+                Only used if `graph` is specified.
+            probabilities: Relative probability of trying each cluster
+                (if `clusters` is given) or clusters with each graph distance
+                (if `graph` is given). Defaults to equal probability for all clusters.
         """
+        if probabilities is not None:
+            probabilities = np.atleast_1d(probabilities)
+            if not np.all(probabilities > 0):
+                raise ValueError("Probabilities must be positive")
         if clusters is None and graph is not None:
-            clusters = compute_clusters(graph, d_max)
+            clusters, probabilities = compute_clusters(graph, d_max, probabilities)
         elif not (clusters is not None and graph is None):
             raise ValueError(
                 """You must either provide the list of exchange-clusters or a netket graph, from
@@ -115,6 +128,17 @@ class ExchangeRule(MetropolisRule):
             )
 
         self.clusters = jnp.array(clusters)
+
+        if probabilities is None:
+            self.probabilities = jnp.ones(len(clusters))
+        else:
+            if len(probabilities) != len(clusters):
+                # shouldn't get here if both are computed from graphs
+                raise TypeError(
+                    "Number of clusters and probabilities don't match: "
+                    f"{len(clusters)} != {len(probabilities)}"
+                )
+            self.probabilities = jnp.asarray(probabilities)
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
         n_chains = σ.shape[0]
@@ -131,7 +155,7 @@ class ExchangeRule(MetropolisRule):
             cluster = jax.random.choice(
                 key,
                 a=jnp.arange(rule.clusters.shape[0]),
-                p=hoppable_clusters,
+                p=hoppable_clusters * rule.probabilities,
                 replace=True,
             )
 
@@ -156,26 +180,22 @@ class ExchangeRule(MetropolisRule):
         return f"ExchangeRule(# of clusters: {len(self.clusters)})"
 
 
-def compute_clusters(graph: AbstractGraph, d_max: int):
+def compute_clusters(graph: AbstractGraph, d_max: int, prob: np.ndarray):
     """
     Given a netket graph and a maximum distance, computes all clusters.
     If `d_max = 1` this is equivalent to taking the edges of the graph.
     Then adds next-nearest neighbors and so on.
     """
-    clusters = []
     distances = np.asarray(graph.distances())
-    size = distances.shape[0]
-    for i in range(size):
-        for j in range(i + 1, size):
-            if distances[i][j] <= d_max:
-                clusters.append((i, j))
+    clusters = np.argwhere(distances <= d_max)
+    # keep one copy of i != j clusters
+    clusters = clusters[clusters[:, 0] < clusters[:, 1]]
 
-    res_clusters = np.empty((len(clusters), 2), dtype=np.int64)
+    if prob is not None:
+        assert prob.shape == (d_max,), f"Expected {d_max = } probabilities, got {prob}"
+        prob = prob[distances[clusters[:, 0], clusters[:, 1]] - 1]
 
-    for i, cluster in enumerate(clusters):
-        res_clusters[i] = np.asarray(cluster)
-
-    return res_clusters
+    return clusters, prob
 
 
 @jax.jit
