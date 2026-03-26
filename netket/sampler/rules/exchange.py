@@ -151,7 +151,7 @@ class ExchangeRule(MetropolisRule):
         @jax.vmap
         def _update_samples(key, σ, hoppable_clusters):
             # pick a random cluster, taking into account the mask
-            n_conn = hoppable_clusters.sum(axis=-1)
+            n_conn = hoppable_clusters @ rule.probabilities
             cluster = jax.random.choice(
                 key,
                 a=jnp.arange(rule.clusters.shape[0]),
@@ -170,7 +170,7 @@ class ExchangeRule(MetropolisRule):
             hoppable_clusters_proposed = _compute_different_clusters_mask(
                 rule.clusters, σp
             )
-            n_conn_proposed = hoppable_clusters_proposed.sum(axis=-1)
+            n_conn_proposed = hoppable_clusters_proposed @ rule.probabilities
             log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
             return σp, log_prob_corr
 
