@@ -467,3 +467,60 @@ def test_srt_onthefly_applyop():
     )
     driver.run(n_iter=5)
     print("Done — no crash.")
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+def test_apply_operator_chunked_pnc_mwe():
+    """
+    Minimal working example for the chunked sharding crash in apply_operator
+    with particle-number-and-spin-conserving fermionic operators.
+
+    TODO: Re-check on future JAX releases whether this regression test is still
+    needed, once the `jnp.full_like` sharded chunking issue is fixed upstream.
+    """
+    L = 2
+    D = 2
+    t = 1.0
+    U = 0.01
+
+    graph = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
+    hilbert = nk.hilbert.SpinOrbitalFermions(
+        graph.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
+    )
+
+    def c(site, sz):
+        return nk.operator.fermion.destroy(hilbert, site, sz=sz)
+
+    def cdag(site, sz):
+        return nk.operator.fermion.create(hilbert, site, sz=sz)
+
+    def nc(site, sz):
+        return nk.operator.fermion.number(hilbert, site, sz=sz)
+
+    ham = 0.0
+    for sz in (+1, -1):
+        for u, v in graph.edges():
+            ham += -t * cdag(u, sz) @ c(v, sz) - t * cdag(v, sz) @ c(u, sz)
+    for u in graph.nodes():
+        ham += U * nc(u, +1) @ nc(u, -1)
+
+    ham = nkx.operator.ParticleNumberAndSpinConservingFermioperator2nd.from_fermionoperator2nd(
+        ham
+    )
+
+    sampler = nk.sampler.MetropolisFermionHop(
+        hilbert, graph=graph, n_chains=16, sweep_size=64, spin_symmetric=True
+    )
+    model = nk.models.Slater2nd(hilbert)
+    vstate = nk.vqs.MCState(
+        sampler, model, n_samples=64, n_discard_per_chain=1, chunk_size=64
+    )
+
+    op = nk.operator.fermion.identity(hilbert) + 0.1 * ham
+    transformed_vstate = nk.vqs.apply_operator(op, vstate, seed=1)
+    stats = transformed_vstate.expect(ham)
+
+    assert transformed_vstate.chunk_size == max(vstate.chunk_size // op.max_conn_size, 1)
+    assert np.isfinite(stats.mean.real)

@@ -48,7 +48,12 @@ class COOArray:
         k = searchsorted(self._coords, idx)
         mask = (self._coords[k] == idx).all(axis=-1)
         res = self.data[k]
-        return jax.lax.select(mask, res, jnp.full_like(res, self.fill_value))
+        # TODO: Re-check on future JAX releases whether `jnp.full_like` still
+        # triggers the sharded chunking bug below, and restore it if/when safe.
+        # Under NetKet sharded chunking, `jnp.full_like(res, ...)` can incorrectly
+        # trigger an invariant->variant `pvary` on `res` when it is already varying.
+        fill = jnp.full(res.shape, self.fill_value, dtype=res.dtype)
+        return jax.lax.select(mask, res, fill)
 
     @property
     def coords(self) -> Array:
