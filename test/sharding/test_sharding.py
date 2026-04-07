@@ -546,5 +546,7 @@ def test_apply_operator_chunked_pnc_mwe():
     transformed_vstate = nk.vqs.apply_operator(op, vstate, seed=1)
     stats = transformed_vstate.expect(ham)
 
-    assert transformed_vstate.chunk_size == max(vstate.chunk_size // op.max_conn_size, 1)
+    assert transformed_vstate.chunk_size == max(
+        vstate.chunk_size // op.max_conn_size, 1
+    )
     assert np.isfinite(stats.mean.real)

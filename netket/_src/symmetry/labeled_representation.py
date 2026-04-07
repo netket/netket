@@ -165,7 +165,9 @@ class LabeledRepresentation(Representation):
             for m in range(len(chars))
         ]
 
-    def projector(self, character_index=None, *, label=None, atol=1e-15) -> DiscreteJaxOperator:
+    def projector(
+        self, character_index=None, *, label=None, atol=1e-15
+    ) -> DiscreteJaxOperator:
         """Build the projection operator for an irrep.
 
         Accepts either:
