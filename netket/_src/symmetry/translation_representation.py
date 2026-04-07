@@ -156,7 +156,9 @@ class TranslationRepresentation(LabeledRepresentation):
             for i in range(len(kpts))
         ]
 
-    def projector(self, character_index=None, *, k=None, label=None, atol=1e-15) -> DiscreteJaxOperator:
+    def projector(
+        self, character_index=None, *, k=None, label=None, atol=1e-15
+    ) -> DiscreteJaxOperator:
         """Build the projection operator onto a momentum sector.
 
         Exactly one of ``character_index``, ``k``, or ``label`` must be provided.

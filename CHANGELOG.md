@@ -77,6 +77,7 @@
 * `netket.stats.mean`, `netket.stats.var`, `netket.stats.sum`, `netket.stats.subtract_mean`, and `netket.stats.total_size` are deprecated and will be removed in a future release. Use `jnp.mean`, `jnp.var`, `jnp.sum`, and array `.size` directly instead.
 
 ### Bug Fixes
+* Fixed a bug where {meth}`~netket._src.symmetry.representation.Representation.project` (and {func}`netket.vqs.apply_operator`) silently dropped the `P('S',)` sharding of the sampler state's σ, causing the projected MCState's samples to be replicated across devices instead of sharded [Issue #2218](https://github.com/netket/netket/issues/2218).
 * Fixed a bug where constructing a {class}`netket.operator.PauliStringsJax` with zero terms would crash. Empty operators now correctly return zero-sized connected elements.
 * Fixed a bug in chunked expectations for {class}`netket.operator.ContinuousOperator`. Apparently nobody had been using that code path, or this would have been found much sooner.
 * Fixed a bug in sharded, chunked expectation computations for fermionic operators.
