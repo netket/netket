@@ -85,6 +85,30 @@ def test_pt():
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
+def test_project_preserves_sharding():
+    """Regression test: Representation.project() must preserve sample sharding.
+
+    Previously, apply_operator dropped the P('S',) sharding of σ when
+    initialising the projected MCState's sampler state, causing
+    vstate2.samples.sharding to be P() (replicated) instead of P('S',).
+    """
+    vs, g, _ = _setup(8)
+    graph = g
+
+    rep = nk.symmetry.canonical_representation(vs.hilbert, graph.translation_group())
+    vs2 = rep.project(state=vs, character_index=0)
+
+    # sampler_state.σ must be sharded along the chain axis
+    _check_correct_sharding(vs2.sampler_state.σ)
+
+    # samples produced by the projected state must also be sharded
+    samples = vs2.samples
+    _check_correct_sharding(samples)
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
 def test_expect():
     vs, _, ha = _setup(16)
     E = vs.expect(ha)

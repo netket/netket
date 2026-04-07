@@ -6,6 +6,7 @@ from flax import linen
 
 from netket.sampler import MetropolisSamplerState
 from netket.jax import PRNGKey
+from netket.jax.sharding import shard_along_axis
 from netket.vqs import MCState, FullSumState, VariationalState
 from netket.operator import AbstractOperator, ContinuousOperator, DiscreteOperator
 from netket.operator._prod.base import ProductOperator
@@ -136,6 +137,7 @@ def apply_operator(
                 xp, mels = operator.get_conn_padded(x)
                 ids = jax.random.randint(seed, (x.shape[0],), 0, operator.max_conn_size)
                 new_x = xp[jnp.arange(x.shape[0]), ids, :]
+                new_x = shard_along_axis(new_x, axis=0)
                 transformed_vstate.sampler_state = (
                     transformed_vstate.sampler_state.replace(σ=new_x)
                 )
