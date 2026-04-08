@@ -261,10 +261,19 @@ def _is_complex_leaf(subtree):
     ) or _is_number_list(subtree)
 
 
+def _replace_none_with_nan(x):
+    if isinstance(x, list):
+        return [_replace_none_with_nan(v) for v in x]
+    return np.nan if x is None else x
+
+
 def _convert_complex(subtree):
     if isinstance(subtree, dict) and "real" in subtree and "imag" in subtree:
-        return np.array(subtree["real"]) + 1j * np.array(subtree["imag"])
-    return np.array(subtree)
+        real = _replace_none_with_nan(subtree["real"])
+        imag = _replace_none_with_nan(subtree["imag"])
+        return np.array(real) + 1j * np.array(imag)
+    else:
+        return np.array(_replace_none_with_nan(subtree))
 
 
 def histdict_to_nparray(hist_dict):
