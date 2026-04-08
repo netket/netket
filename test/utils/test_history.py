@@ -188,3 +188,19 @@ def test_historydict_push():
             assert set(v1.keys()) == set(
                 v2.keys()
             ), f"HistoryDict keys differ for '{key}'"
+
+
+def test_historydict_from_file_complex_nan(tmp_path):
+    # See #2220 - can't reload log file with complex NaNs.
+    log = nk.logging.RuntimeLog()
+    log(0, {"Energy": 1.0 + 1j})
+    log(1, {"Energy": 2.0 + 1j * np.nan})
+    log.serialize(tmp_path / "history.json")
+
+    hist = nk.utils.history.HistoryDict.from_file(tmp_path / "history.json")
+    np.testing.assert_array_equal(hist["Energy"].iters, np.array([0, 1]))
+
+    value = hist["Energy"]["value"]
+    np.testing.assert_allclose(value[0], 1.0 + 1j)
+    assert np.isnan(np.real(value[1]))
+    assert np.isnan(np.imag(value[1]))
