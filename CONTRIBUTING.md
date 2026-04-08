@@ -2,4 +2,4 @@
 
 Those have been moved to our website. Please visit
 
-https://netket.readthedocs.io/en/latest/docs/contributing.html
+https://netket.readthedocs.io/en/latest/developer-guides/contributing.html
