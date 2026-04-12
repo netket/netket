@@ -1184,6 +1184,108 @@ class ParameterMismatchError(NetketError):
         )
 
 
+class MCMixedStateExpectAndGradOnPhysicalOperatorError(NetketError):
+    """
+    Error raised when calling :meth:`netket.vqs.MCMixedState.expect_and_grad`
+    with a physical operator instead of a superoperator.
+
+    NetKet only provides built-in mixed-state gradient estimators for
+    superoperators. Calling :meth:`netket.vqs.MCMixedState.expect_and_grad`
+    with a standard operator such as a Hamiltonian therefore raises this error.
+
+    A good estimator for this gradient is, to our knowledeg, not discussed in the
+    literature.
+    Deriving a good one would be an interesting endeavour.
+
+    For mixed states and physical operators there is no single obviously
+    canonical Monte Carlo estimator to use. Several estimators may share the
+    same infinite-sample expectation value while exhibiting very different
+    finite-sample variance, signal-to-noise ratio, normalization, bias, and
+    optimization-stability properties.
+
+    Implementing a custom estimator
+    -------------------------------
+
+    If you want to support this use case, define a custom dispatch rule for
+    :func:`netket.vqs.expect_and_grad` matching your variational state and the
+    operator family you care about. In most cases you should dispatch on a
+    suitable operator supertype rather than on one exact concrete operator
+    class.
+
+    A minimal registration looks like:
+
+    .. code-block:: python
+
+        import netket as nk
+
+        @nk.vqs.expect_and_grad.dispatch
+        def expect_and_grad(
+            vstate: MyMixedStateType,
+            operator: MyOperatorSuperType,
+            chunk_size: int | None,
+            *args,
+            mutable = False,
+            **kwargs,
+        ):
+            ...
+            return expect_value, gradient
+
+    Usually ``MyOperatorSuperType`` should be a suitable supertype spanning the
+    operator family you want to support, not a single exact concrete operator
+    class.
+
+    Choosing among multiple candidate estimators
+    --------------------------------------------
+
+    When several estimators are mathematically possible, selecting the "best"
+    one should not be based only on asymptotic correctness. A useful criterion
+    is to compare their finite-sample behavior, especially the variance and
+    signal-to-noise ratio of the *gradient* estimator, and the empirical
+    stability they induce during optimization.
+
+    A concrete worked example is given in Section 3.2 of
+    `Gravina, Savona, and Vicentini, "Neural Projected Quantum Dynamics: a
+    systematic study" <https://quantum-journal.org/papers/q-2025-07-22-1803/>`_.
+    There the authors explicitly separate the analysis of fidelity estimators
+    from the analysis of gradient estimators, note that a good fidelity
+    estimator need not induce a good gradient estimator, and compare candidate
+    estimators by finite-sample signal-to-noise and optimization stability
+    (see in particular Section 3.2.2 and Table 3). Their discussion also gives
+    an example of using Rao-Blackwellization to obtain a lower-variance
+    gradient estimator.
+
+    References
+    ----------
+    `Luca Gravina, Vincenzo Savona, and Filippo Vicentini, "Neural Projected
+    Quantum Dynamics: a systematic study", Quantum 9, 1803 (2025)
+    <https://quantum-journal.org/papers/q-2025-07-22-1803/>`_, especially
+    Section 3.2.
+    """
+
+    def __init__(self, vstate, operator):
+        vstate_t = type(vstate)
+        operator_t = type(operator)
+
+        super().__init__(
+            f"""
+            `expect_and_grad` is not implemented for `MCMixedState` with physical
+            (non-super) operators.
+
+            Encountered signature:
+                ({vstate_t}, {operator_t})
+
+            NetKet only provides built-in `MCMixedState.expect_and_grad` support for
+            superoperators.
+
+            To implement this behaviour yourself, define a custom
+            `netket.vqs.expect_and_grad` dispatch rule.
+
+            For the exact function to define and additional guidance, check the
+            link below.
+            """
+        )
+
+
 class OperatorMultiplicationDeprecationWarning(NetketWarning):
     """
     Warning issued when using deprecated ``A*B`` syntax for operator multiplication.

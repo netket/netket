@@ -324,6 +324,21 @@ def test_expect_grad_chunking(vstate, n_chunks):
 
 
 @common.skipif_mpi
+def test_expect_and_grad_physical_operator_has_informative_error(vstate):
+    with pytest.raises(
+        nk.errors.MCMixedStateExpectAndGradOnPhysicalOperatorError
+    ) as exc_info:
+        vstate.expect_and_grad(ha)
+
+    msg = str(exc_info.value)
+    assert "netket.vqs.expect_and_grad" in msg
+    assert "For the exact function to define" in msg
+    assert "link below" in msg
+    assert type(vstate).__qualname__ in msg
+    assert type(ha).__qualname__ in msg
+
+
+@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")

@@ -29,6 +29,7 @@ Netket has the following classes of errors.
   UnoptimalSRtWarning
   SymmModuleInvalidInputShape
   ParameterMismatchError
+  MCMixedStateExpectAndGradOnPhysicalOperatorError
   InitializePeriodicLatticeOnSmallLatticeWarning
   NNXModuleToSamplerInput
 ```
@@ -68,4 +69,3 @@ Errors arising when working with Hilbert spaces and their constraints:
   DriverResetDeprecationWarning
   ForwardAndBackwardDeprecationWarning
 ```
-
