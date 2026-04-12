@@ -154,7 +154,7 @@ def test_sampler_statistics():
 @pytest.fixture
 def model_and_weights(request):
     def build_model(hilb, sampler=None):
-        if isinstance(sampler, nk.sampler.ARDirectSampler):
+        if isinstance(sampler, nk.sampler.UnconstrainedARDirectSampler):
             ma = nk.models.ARNNDense(
                 hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
             )
