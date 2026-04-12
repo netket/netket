@@ -35,6 +35,7 @@ This module defines the variational states, the heart of NetKet itself.
   :nosignatures:
 
   FullSumState
+  FullSumMixedState
   MCState
   MCMixedState
 ```
