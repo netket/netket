@@ -17,11 +17,9 @@ from netket._src.ngd.kwargs import ensure_accepts_kwargs
 from netket._src.ngd.sr_srt_common import _prepare_weights
 
 
-def _broadcast_weights(weights: Array, x: jax.Array) -> jax.Array:
-    return jax.lax.broadcast_in_dim(weights, x.shape, (0,))
-
-
 def _match_structure(x, target):
+    # JAX transforms (vjp, linear_transpose, ...) may return a flat pytree even when
+    # the target has nested structure.  Re-wrap with the correct treedef.
     if jax.tree_util.tree_structure(x) == jax.tree_util.tree_structure(target):
         return x
 
@@ -39,7 +37,7 @@ def _center_and_scale_output(
     if pdf is None:
         return (x - jnp.mean(x, axis=0, keepdims=True)) / x.shape[0]
 
-    weights = _broadcast_weights(pdf, x)
+    weights = pdf.reshape(pdf.shape + (1,) * (x.ndim - 1))
     mean = jnp.sum(weights * x, axis=0, keepdims=True)
     return weights * (x - mean)
 
@@ -72,8 +70,9 @@ def _force_cotangents(
         rhs_force = rhs / local_energies.size
         dv = rhs / jnp.sqrt(local_energies.size)
     else:
-        rhs_force = _broadcast_weights(pdf, rhs) * rhs
-        dv = _broadcast_weights(jnp.sqrt(pdf), rhs) * rhs
+        w = pdf.reshape(pdf.shape + (1,) * (rhs.ndim - 1))
+        rhs_force = w * rhs
+        dv = jnp.sqrt(w) * rhs
 
     if mode == "complex":
         dv = jax.lax.collapse(dv, 0, 2)
@@ -102,7 +101,7 @@ def mat_vec_factory(forward_fn, params, model_state, samples, pdf=None):
 
 
 def _mat_vec_chunked(
-    forward_fn, params, model_state, samples, v, diag_shift, chunk_size, pdf=None
+    forward_fn, params, model_state, samples, v, diag_shift, *, chunk_size, pdf=None
 ):
     assert samples.ndim == 2
 
@@ -135,6 +134,9 @@ def _mat_vec_chunked(
 def mat_vec_chunked_factory(
     forward_fn, params, model_state, samples, pdf=None, chunk_size=None
 ):
+    # Use functools.partial to pre-bind the non-JAX-traceable arguments (forward_fn,
+    # chunk_size) before wrapping with jax.tree_util.Partial, which can only hold JAX
+    # arrays/pytrees as leaves.
     return Partial(
         partial(_mat_vec_chunked, forward_fn, chunk_size=chunk_size),
         params,
@@ -334,25 +336,17 @@ def sr_onthefly(
 
     rhs_cotangent, dv = _force_cotangents(local_energies, mode=mode, pdf=pdf)
 
-    if not S._chunking:
-        _, vjp_fun = jax.vjp(
-            lambda pars: _apply_fn(pars, samples, model_state),
-            parameters_real,
-        )
-        (forces,) = vjp_fun(rhs_cotangent)
-        forces = _match_structure(forces, parameters_real)
-    else:
-        vjp_fun = nkjax.vjp_chunked(
-            _apply_fn,
-            parameters_real,
-            samples,
-            model_state,
-            chunk_size=chunk_size,
-            chunk_argnums=1,
-            nondiff_argnums=(1, 2),
-        )
-        (forces,) = vjp_fun(rhs_cotangent)
-        forces = _match_structure(forces, parameters_real)
+    vjp_fun = nkjax.vjp_chunked(
+        _apply_fn,
+        parameters_real,
+        samples,
+        model_state,
+        chunk_size=chunk_size,
+        chunk_argnums=1,
+        nondiff_argnums=(1, 2),
+    )
+    (forces,) = vjp_fun(rhs_cotangent)
+    forces = _match_structure(forces, parameters_real)
 
     if momentum is not None:
         if old_updates is None:
