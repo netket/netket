@@ -10,6 +10,22 @@ from netket.utils import config
 from netket.jax.sharding import sharding_decorator
 
 
+def _parse_pvary_argnums(pvary_argnums, argnums, n_args):
+    if pvary_argnums is None:
+        return tuple(i for i in range(n_args) if i not in argnums)
+
+    if isinstance(pvary_argnums, int):
+        pvary_argnums = (pvary_argnums,)
+
+    if not all(map(lambda x: (0 <= x) and (x < n_args), pvary_argnums)):
+        raise ValueError(
+            "pvary_argnums must index positional arguments. "
+            f"Got pvary_argnums={pvary_argnums} but len(args)={n_args}"
+        )
+
+    return pvary_argnums
+
+
 def _eval_fun_in_chunks(vmapped_fun, chunk_size, argnums, *args, **kwargs):
     # split inputs
     args_chunks, args_rest = zip(
@@ -47,8 +63,7 @@ def _eval_fun_in_chunks_sharding(
 
     # if the vmapped_fun e.g. does a vjp we need to make the params pvary here
     # to avoid it emitting an unwanted psum
-    if pvary_argnums is None:
-        pvary_argnums = tuple(set(range(len(args))).difference(argnums))
+    pvary_argnums = _parse_pvary_argnums(pvary_argnums, argnums, len(args))
     pvary_args_tree = tuple(i in pvary_argnums for i in range(len(args)))
 
     return sharding_decorator(f, sharded_args_tree, pvary_args_tree=pvary_args_tree)(

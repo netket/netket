@@ -136,10 +136,34 @@ def test_apply_chunked_with_coo_array_nonchunked_arg(mesh):
         pvary_argnums=(0,),
     )
 
+    expected = np.array([[6], [14], [6], [14]], dtype=np.int32)
+
+    # `pvary_argnums` is still needed by callers that want to avoid marking
+    # metadata-like arguments as varying. However, this sparse indexing path no
+    # longer raises by default after the `COOArray.__getitem__` sharding fix, so
+    # both configurations should now produce the same result.
     y_default = chunked_default(pars, x, meta)
-    np.testing.assert_array_equal(
-        y_default, np.array([[6], [14], [6], [14]], dtype=np.int32)
+    y_selective = chunked_selective(pars, x, meta)
+
+    np.testing.assert_array_equal(y_default, expected)
+    np.testing.assert_array_equal(y_selective, expected)
+
+
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+@with_meshes(auto=[((2,), ("S",))])
+def test_apply_chunked_invalid_pvary_argnums(mesh):
+    x = jnp.linspace(0.0, 1.0, 40).reshape((4, 10))
+    c = jnp.array(2.0)
+
+    chunked_f = nk.jax.apply_chunked(
+        lambda c, x: c * jnp.sin(x).sum(axis=-1),
+        in_axes=(None, 0),
+        chunk_size=2,
+        axis_0_is_sharded=True,
+        pvary_argnums=(2,),
     )
 
-    y = chunked_selective(pars, x, meta)
-    np.testing.assert_array_equal(y, np.array([[6], [14], [6], [14]], dtype=np.int32))
+    with pytest.raises(ValueError, match="pvary_argnums"):
+        chunked_f(c, x)
