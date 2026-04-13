@@ -41,7 +41,7 @@ machines = [
 ]
 onthefly_vals = [pytest.param(True, id="OnTheFly"), pytest.param(False, id="Jacobian")]
 ntk_onthefly_vals = [
-    # pytest.param(False, True, id="SR+OnTheFly", marks=pytest.mark.skip(reason="Not Implemented")),
+    pytest.param(False, True, id="SR+OnTheFly"),
     pytest.param(False, False, id="SR+Jacobian"),
     pytest.param(True, True, id="NTK+OnTheFly"),
     pytest.param(True, False, id="NTK+Jacobian"),
@@ -230,6 +230,55 @@ def test_SRt_vs_SR(model, onthefly, momentum):
         np.testing.assert_allclose(energy_kernelSR, energy_SR, atol=1e-10)
 
 
+@pytest.mark.parametrize("model", machines)
+@pytest.mark.parametrize(
+    "momentum", [pytest.param(None, id=""), pytest.param(0.5, id="momentum")]
+)
+def test_SR_onthefly_vs_SR(model, momentum):
+    """
+    The on-the-fly SR branch must match the Jacobian SR branch exactly.
+    """
+    n_iters = 5
+
+    H, opt, vstate_onthefly = _setup(machine=model)
+    gs_onthefly = nk.driver.VMC_SR(
+        H,
+        opt,
+        variational_state=vstate_onthefly,
+        diag_shift=0.1,
+        momentum=momentum,
+        use_ntk=False,
+        on_the_fly=True,
+        linear_solver=nk.optimizer.solver.cholesky,
+    )
+    logger_onthefly = nk.logging.RuntimeLog()
+    gs_onthefly.run(n_iter=n_iters, out=logger_onthefly)
+
+    H, opt, vstate_sr = _setup(machine=model)
+    gs_sr = nk.driver.VMC_SR(
+        H,
+        opt,
+        variational_state=vstate_sr,
+        diag_shift=0.1,
+        momentum=momentum,
+        use_ntk=False,
+        on_the_fly=False,
+        linear_solver=nk.optimizer.solver.cholesky,
+    )
+    logger_sr = nk.logging.RuntimeLog()
+    gs_sr.run(n_iter=n_iters, out=logger_sr)
+
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose, vstate_onthefly.parameters, vstate_sr.parameters
+    )
+
+    if jax.process_index() == 0:
+        energy_onthefly = logger_onthefly.data["Energy"]["Mean"]
+        energy_sr = logger_sr.data["Energy"]["Mean"]
+
+        np.testing.assert_allclose(energy_onthefly, energy_sr, atol=1e-10)
+
+
 @skipif_distributed
 @pytest.mark.parametrize("onthefly", onthefly_vals)
 def test_SRt_real_vs_complex(onthefly):
@@ -405,9 +454,8 @@ def test_SRt_chunked(use_ntk, onthefly, model, momentum, proj_reg):
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics with and without chunking
     """
-    if not use_ntk:
-        if momentum is not None or proj_reg is not None:
-            pytest.skip("not implemented")
+    if not use_ntk and proj_reg is not None:
+        pytest.skip("not implemented")
 
     n_iters = 5
     diag_shift = 0.01
@@ -501,3 +549,48 @@ def test_fullsum_vmc_vs_vmcsr(model, momentum):
         energy_SR = logger_sr.data["Energy"]["Mean"]
 
         np.testing.assert_allclose(energy_vmc, energy_SR, atol=1e-10)
+
+
+@pytest.mark.parametrize("model", machines)
+def test_fullsum_sr_onthefly_vs_sr(model):
+    """
+    The on-the-fly SR branch must support weighted/full-summation states.
+    """
+    n_iters = 5
+    solver = nk.optimizer.solver.cholesky
+
+    H, opt, vstate_onthefly = _setup(machine=model, fullsum=True)
+    gs_onthefly = nk.driver.VMC_SR(
+        H,
+        opt,
+        variational_state=vstate_onthefly,
+        diag_shift=0.1,
+        linear_solver=solver,
+        use_ntk=False,
+        on_the_fly=True,
+    )
+    logger_onthefly = nk.logging.RuntimeLog()
+    gs_onthefly.run(n_iter=n_iters, out=logger_onthefly)
+
+    _, _, vstate_sr = _setup(machine=model, fullsum=True)
+    gs_sr = nk.driver.VMC_SR(
+        H,
+        opt,
+        variational_state=vstate_sr,
+        diag_shift=0.1,
+        linear_solver=solver,
+        use_ntk=False,
+        on_the_fly=False,
+    )
+    logger_sr = nk.logging.RuntimeLog()
+    gs_sr.run(n_iter=n_iters, out=logger_sr)
+
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose, vstate_onthefly.parameters, vstate_sr.parameters
+    )
+
+    if jax.process_index() == 0:
+        energy_onthefly = logger_onthefly.data["Energy"]["Mean"]
+        energy_sr = logger_sr.data["Energy"]["Mean"]
+
+        np.testing.assert_allclose(energy_onthefly, energy_sr, atol=1e-10)

@@ -24,6 +24,7 @@ from netket._src.driver.abstract_optimization_driver import (
 from netket._src.stats.online_stats import OnlineStats
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
+from netket._src.ngd.sr_onthefly import sr_onthefly
 from netket._src.ngd.srt_onthefly import srt_onthefly
 
 
@@ -365,16 +366,6 @@ class VMC_SR(AbstractOptimizationDriver):
                 on_the_fly = True
             else:
                 on_the_fly = False
-        elif on_the_fly and not use_ntk:
-            raise ValueError(
-                """
-                `on_the_fly=True` is only supported when `use_ntk=True`.
-
-                We plan to support this mode for the standard NGD in the future.
-                In the meantime, use a standard VMC+SR with QGTOnTheFly if you
-                really want to use `on_the_fly=True`
-                """
-            )
 
         # for most fermionic calculations you want to use real mode, but the auto
         # detect will pick complex
@@ -485,7 +476,7 @@ class VMC_SR(AbstractOptimizationDriver):
                 compute_sr_update_fun = srt
         else:
             if self.on_the_fly:
-                raise NotImplementedError
+                compute_sr_update_fun = sr_onthefly
             else:
                 compute_sr_update_fun = sr
 

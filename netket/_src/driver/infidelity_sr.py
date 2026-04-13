@@ -21,6 +21,7 @@ from netket._src.driver.abstract_optimization_driver import (
     AbstractOptimizationDriver,
 )
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
+from netket._src.ngd.sr_onthefly import sr_onthefly
 from netket._src.ngd.srt_onthefly import srt_onthefly
 from netket._src.nn.apply_operator.functional import make_logpsi_op_afun
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
@@ -233,15 +234,6 @@ class Infidelity_SR(AbstractOptimizationDriver):
                 on_the_fly = True
             else:
                 on_the_fly = False
-        elif on_the_fly and not use_ntk:
-            raise ValueError(
-                """
-                `onthefly` is only supported when `use_ntk=True`.
-
-                We plan to support this mode for the standard NGD in the future.
-                In the meantime, use a standard VMC+SR QGTOnTheFly.
-                """
-            )
 
         self.diag_shift = diag_shift
         self.proj_reg = proj_reg
@@ -317,7 +309,7 @@ class Infidelity_SR(AbstractOptimizationDriver):
                 compute_sr_update_fun = srt
         else:
             if self.on_the_fly:
-                raise NotImplementedError
+                compute_sr_update_fun = sr_onthefly
             else:
                 compute_sr_update_fun = sr
 

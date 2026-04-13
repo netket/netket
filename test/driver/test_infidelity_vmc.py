@@ -1,5 +1,7 @@
 import netket as nk
 import jax.numpy as jnp
+import jax
+import numpy as np
 
 import pytest
 
@@ -170,3 +172,101 @@ def test_FullSumState(fullsumTarget, useOperator):
         I_exact = I_exact_fun(vs.parameters, vs, vs_target, U=H)
 
     assert I_exact < 1e-12
+
+
+@pytest.mark.parametrize(
+    "useOperator",
+    [
+        pytest.param(True, id="useOperator"),
+        pytest.param(False, id="useOperator"),
+    ],
+)
+def test_infidelity_sr_onthefly_vs_sr(useOperator):
+    vs, vs_target, _, _, H = _setup(useExactSampler=True)
+    n_iters = 5
+
+    kwargs = {}
+    if not useOperator:
+        kwargs["operator"] = H
+
+    driver_onthefly = nk.driver.Infidelity_SR(
+        target_state=vs_target,
+        optimizer=nk.optimizer.Sgd(learning_rate=0.1),
+        diag_shift=0.001,
+        variational_state=vs,
+        use_ntk=False,
+        on_the_fly=True,
+        linear_solver=nk.optimizer.solver.cholesky,
+        **kwargs,
+    )
+    driver_onthefly.run(n_iter=n_iters)
+
+    vs_ref, vs_target_ref, _, _, H_ref = _setup(useExactSampler=True)
+    if not useOperator:
+        kwargs_ref = {"operator": H_ref}
+    else:
+        kwargs_ref = {}
+
+    driver_ref = nk.driver.Infidelity_SR(
+        target_state=vs_target_ref,
+        optimizer=nk.optimizer.Sgd(learning_rate=0.1),
+        diag_shift=0.001,
+        variational_state=vs_ref,
+        use_ntk=False,
+        on_the_fly=False,
+        linear_solver=nk.optimizer.solver.cholesky,
+        **kwargs_ref,
+    )
+    driver_ref.run(n_iter=n_iters)
+
+    jax.tree_util.tree_map(np.testing.assert_allclose, vs.parameters, vs_ref.parameters)
+
+
+@pytest.mark.parametrize(
+    "useOperator",
+    [
+        pytest.param(True, id="useOperator"),
+        pytest.param(False, id="useOperator"),
+    ],
+)
+def test_infidelity_fullsum_sr_onthefly_vs_sr(useOperator):
+    _, _, vs_exact, vs_exact_target, H = _setup(useExactSampler=True)
+    n_iters = 5
+
+    kwargs = {}
+    if not useOperator:
+        kwargs["operator"] = H
+
+    driver_onthefly = nk.driver.Infidelity_SR(
+        target_state=vs_exact_target,
+        optimizer=nk.optimizer.Sgd(learning_rate=0.1),
+        diag_shift=0.001,
+        variational_state=vs_exact,
+        use_ntk=False,
+        on_the_fly=True,
+        linear_solver=nk.optimizer.solver.cholesky,
+        **kwargs,
+    )
+    driver_onthefly.run(n_iter=n_iters)
+
+    _, _, vs_exact_ref, vs_exact_target_ref, H_ref = _setup(useExactSampler=True)
+    if not useOperator:
+        kwargs_ref = {"operator": H_ref}
+    else:
+        kwargs_ref = {}
+
+    driver_ref = nk.driver.Infidelity_SR(
+        target_state=vs_exact_target_ref,
+        optimizer=nk.optimizer.Sgd(learning_rate=0.1),
+        diag_shift=0.001,
+        variational_state=vs_exact_ref,
+        use_ntk=False,
+        on_the_fly=False,
+        linear_solver=nk.optimizer.solver.cholesky,
+        **kwargs_ref,
+    )
+    driver_ref.run(n_iter=n_iters)
+
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose, vs_exact.parameters, vs_exact_ref.parameters
+    )
