@@ -214,8 +214,6 @@ class Pytree(metaclass=PytreeMeta):
 
         # If no annotations in this class, skip, otherwise we'd process
         # parent's annotations twice.
-        # Note: in Python 3.14+, __annotations__ is no longer stored in __dict__,
-        # so we use the get_own_class_annotations() helper which handles both cases.
         _own_annotations = get_own_class_annotations(cls)
         if _own_annotations:
             # fields that are only type annotations, but do not explicitly declare
