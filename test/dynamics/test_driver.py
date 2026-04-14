@@ -268,6 +268,71 @@ def test_run_twice():
     np.testing.assert_allclose(driver.t, 0.06)
 
 
+@pytest.mark.parametrize("t0", [-0.05, 0.0, 0.05])
+def test_pbar_starts_zero_ends_hundred(t0):
+    """Regression test: progress bar should display 0%→100% for any starting time t0.
+
+    With the old code, `total` was set to `t0 + T` (absolute end time) and `pbar.n`
+    tracked absolute integrator time, so the bar would start mid-way or with a
+    negative total when t0 != 0.
+
+    The regression is visible in the rendered output:
+    - t0 < 0: negative percentages appear in the middle of the run.
+    - t0 > 0: the bar jumps immediately from 0% to >20%, skipping the first steps.
+    """
+    import io
+    import re
+    from unittest.mock import patch
+    from tqdm.auto import tqdm as real_tqdm
+
+    dt = 0.01
+    T = 0.1
+    # One step advances the bar by dt/T * 100 = 10%; allow 2x tolerance.
+    max_first_step_pct = 2 * dt / T * 100
+
+    ha, vstate, _ = _setup_system(L=2)
+    buf = io.StringIO()
+
+    class BufferedTqdm(real_tqdm):
+        def __init__(self, *args, **kwargs):
+            kwargs["file"] = buf
+            kwargs["dynamic_ncols"] = False
+            kwargs["ncols"] = 80
+            super().__init__(*args, **kwargs)
+
+    driver = nkx.TDVP(
+        ha,
+        vstate,
+        nkx.dynamics.Euler(dt=dt),
+        propagation_type="imag",
+        t0=t0,
+    )
+
+    with patch("netket.experimental.driver.tdvp_common.tqdm", BufferedTqdm):
+        driver.run(T=T, show_progress=True)
+
+    lines = [
+        l.strip() for l in buf.getvalue().replace("\r", "\n").split("\n") if l.strip()
+    ]
+    assert lines, "No progress bar output was captured"
+
+    percentages = [int(m.group(1)) for l in lines if (m := re.match(r"(-?\d+)%", l))]
+    assert percentages, "Could not parse any percentages from progress bar output"
+
+    # Deduplicate while preserving order to get the sequence of distinct states.
+    unique_pcts = list(dict.fromkeys(percentages))
+
+    assert unique_pcts[0] == 0, f"Bar should start at 0%, got {unique_pcts[0]}%"
+    assert unique_pcts[-1] == 100, f"Bar should end at 100%, got {unique_pcts[-1]}%"
+    assert all(
+        p >= 0 for p in unique_pcts
+    ), f"Negative percentages in progress bar: {unique_pcts}"
+    assert unique_pcts[1] <= max_first_step_pct, (
+        f"Bar jumped from 0% to {unique_pcts[1]}% on first update "
+        f"(expected ≤ {max_first_step_pct:.0f}% for one step)"
+    )
+
+
 def test_change_solver():
     ha, vstate, _ = _setup_system(L=2)
     driver = nkx.TDVP(
