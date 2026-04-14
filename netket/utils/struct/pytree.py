@@ -18,6 +18,7 @@ from netket.utils.struct.fields import (
     _raw_cache_name,
     Uninitialized,
 )
+from netket.utils.struct.utils import get_own_class_annotations
 from netket.utils import config
 from netket.errors import NetKetPyTreeUndeclaredAttributeAssignmentError
 
@@ -212,11 +213,14 @@ class Pytree(metaclass=PytreeMeta):
         )
 
         # If no annotations in this class, skip, otherwise we'd process
-        # parent's annotations twice
-        if "__annotations__" in cls.__dict__:
+        # parent's annotations twice.
+        # Note: in Python 3.14+, __annotations__ is no longer stored in __dict__,
+        # so we use the get_own_class_annotations() helper which handles both cases.
+        _own_annotations = get_own_class_annotations(cls)
+        if _own_annotations:
             # fields that are only type annotations, but do not explicitly declare
             # a struct.field(), feed them forward and treat as standard fields.
-            for field, _ in cls.__annotations__.items():
+            for field, _ in _own_annotations.items():
                 if field not in all_fields:
                     _value = dataclasses.field()
                     _value.name = field

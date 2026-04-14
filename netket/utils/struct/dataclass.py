@@ -87,8 +87,22 @@ def _compute_cache_name(property_name):
 
 
 def _set_annotation(clz, attr, typ):
+    # In Python < 3.14, __annotations__ is stored in __dict__ and can be inherited
+    # from parent classes. We need to ensure the class has its own dict before
+    # modifying it, to avoid accidentally polluting parent class annotations.
+    # In Python 3.14+ (PEP 649), __annotations__ is always per-class and is NOT
+    # stored in __dict__. Calling setattr(clz, '__annotations__', {}) would reset
+    # all previously set annotations, so we must avoid it.
     if "__annotations__" not in clz.__dict__:
-        setattr(clz, "__annotations__", {})
+        # Check if we are sharing a parent's annotations dict (Python < 3.14 case).
+        # In Python 3.14+, no base stores annotations in __dict__, so this loop
+        # will never find a match and we skip the reset.
+        own_anns = clz.__annotations__
+        for base in clz.__mro__[1:]:
+            if base.__dict__.get("__annotations__") is own_anns:
+                # Truly inherited from this parent — create a fresh dict
+                clz.__annotations__ = {}
+                break
 
     if not hasattr(clz, attr):
         raise ValueError(f"Setting annotation for nonexistent attribute {attr}")

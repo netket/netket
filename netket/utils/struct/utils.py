@@ -5,6 +5,27 @@ import inspect
 from dataclasses import MISSING
 
 
+def get_own_class_annotations(cls):
+    """Return annotations defined directly on cls (not inherited from parents).
+
+    In Python < 3.14, class annotations are stored in ``cls.__dict__`` and can
+    be inherited if the class defines none itself.  We read directly from
+    ``__dict__`` so that we see only the annotations belonging to *this* class.
+
+    In Python 3.14+ (PEP 649 / annotationlib), ``__annotations__`` is no longer
+    stored inside ``__dict__``; instead it is always a *per-class* attribute that
+    is never shared with parent classes.  Accessing ``cls.__annotations__``
+    therefore already gives us the right (non-inherited) dict.
+    """
+    if "__annotations__" in cls.__dict__:
+        # Python < 3.14: annotations live in __dict__ and are always own annotations
+        return cls.__dict__["__annotations__"]
+    elif sys.version_info >= (3, 14):
+        # Python 3.14+: __annotations__ is per-class and not in __dict__
+        return cls.__annotations__
+    return {}
+
+
 ## STUFF FROM python/lib/dataclasses.py
 def _set_new_attribute(cls, name, value):
     # Never overwrites an existing attribute.  Returns True if the
