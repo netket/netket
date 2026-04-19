@@ -26,6 +26,7 @@ import jax.numpy as jnp
 
 from netket.utils.types import Array
 import netket.jax as nkjax
+from netket.jax._compat import aval_varying_axes
 
 
 def _sort_lexicographic(x):
@@ -89,7 +90,7 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     n = len(sorted_arr)
     n_levels = int(np.ceil(np.log2(n + 1)))
     shape = query.shape[:-1]
-    pvary_axes = tuple(jax.typeof(query).vma)
+    pvary_axes = aval_varying_axes(query)
     init = (
         nkjax.lax.pcast(jnp.full(shape, dtype(0)), pvary_axes, to="varying"),
         nkjax.lax.pcast(jnp.full(shape, dtype(n)), pvary_axes, to="varying"),

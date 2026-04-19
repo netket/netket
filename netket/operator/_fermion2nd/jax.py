@@ -24,6 +24,7 @@ from jax.tree_util import register_pytree_node_class
 
 from netket.hilbert import SpinOrbitalFermions
 import netket.jax as nkjax
+from netket.jax._compat import aval_varying_axes
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.types import DType
@@ -190,7 +191,7 @@ def _apply_term_scan_bits(
 
     sgn = jnp.zeros(x.shape[:-1], dtype=jnp.uint8)
     zero = jnp.zeros(x.shape[:-1], dtype=jnp.uint8)
-    pvary_axes = tuple(jax.typeof(xb).vma)
+    pvary_axes = aval_varying_axes(xb)
     sgn = nkjax.lax.pcast(sgn, pvary_axes, to="varying")
     zero = nkjax.lax.pcast(zero, pvary_axes, to="varying")
 

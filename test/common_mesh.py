@@ -59,6 +59,22 @@ def mesh_name(sizes=(), names=(), mode="Auto"):
     return f"Mesh[{mode}:{_str}]"
 
 
+def mesh_has_axes(mesh):
+    axis_names = getattr(mesh, "axis_names", None)
+    if axis_names is not None:
+        return len(axis_names) > 0
+
+    shape = getattr(mesh, "shape", None)
+    if shape is not None:
+        return len(shape) > 0
+
+    empty = getattr(mesh, "empty", None)
+    if empty is not None:
+        return not empty
+
+    return False
+
+
 def with_meshes(
     sizes_and_names: list[tuple[tuple[int, ...], tuple[str, ...]] | None] = [],
     *,

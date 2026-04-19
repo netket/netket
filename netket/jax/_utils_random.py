@@ -17,6 +17,7 @@ import jax
 import jax.numpy as jnp
 from jax.sharding import NamedSharding, PartitionSpec as P
 
+from ._compat import mesh_has_axes
 from netket.utils import random_seed, config
 from netket.utils.types import PRNGKeyT, SeedT
 
@@ -67,7 +68,7 @@ def PRNGKey(seed: SeedT | None = None, *, root: int = 0) -> PRNGKeyT:
         raise TypeError(f"unsupported type {type(seed)}")
 
     mesh = jax.sharding.get_abstract_mesh()
-    if not mesh.empty:
+    if mesh_has_axes(mesh):
         if len(mesh.explicit_axes) >= 0:
             key = jax.sharding.reshard(key, P())
         else:
