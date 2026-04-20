@@ -44,7 +44,7 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
 def test_DenseSymm_matrixInput(mode):
     g, hi, perms = _setup_symm("trans", N=8)
     shape = tuple(g.extent)
-    perms_matrix = np.array(perms)
+    perms_matrix = np.asarray(perms)
     ma = nk.nn.DenseSymm(
         symmetries=perms,
         mode=mode,

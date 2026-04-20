@@ -47,7 +47,7 @@ class RBMNNX(nnx.Module):
     def __call__(self, x_in):
         y = nk.nn.activation.log_cosh(self.linear(x_in))
         y = jnp.sum(y, axis=-1)
-        y = y + jnp.dot(x_in, self.visible_bias.value)
+        y = y + jnp.dot(x_in, self.visible_bias[...])
         return y
 
 

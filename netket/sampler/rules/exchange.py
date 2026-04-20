@@ -182,7 +182,7 @@ def compute_clusters(graph: AbstractGraph, d_max: int):
 def _compute_different_clusters_mask(clusters, σ):
     # mask the clusters to include only moves
     # where the dof changes
-    if jnp.issubdtype(σ, jnp.bool) or jnp.issubdtype(σ, jnp.integer):
+    if jnp.issubdtype(σ.dtype, jnp.bool) or jnp.issubdtype(σ.dtype, jnp.integer):
         hoppable_clusters_mask = σ[..., clusters[:, 0]] != σ[..., clusters[:, 1]]
     else:
         hoppable_clusters_mask = ~jnp.isclose(

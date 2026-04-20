@@ -153,6 +153,8 @@ filterwarnings = [
     "ignore:`np.long`",
     "ignore:`np.int` is a deprecated alias for the builtin `int`",
     "ignore::DeprecationWarning:tensorboardX",
+    "ignore:jax.core.Effect is deprecated. Use jax.extend.core.Effect.:DeprecationWarning:flax.nnx.variablelib",
+    "ignore:jax.core.get_opaque_trace_state is deprecated. Use jax.extend.core.get_opaque_trace_state.:DeprecationWarning:flax.core.tracers",
     "ignore:jax.random.KeyArray is deprecated.",
     "ignore:Raw arrays as random keys to",
     "ignore:Defaulting to `holomorphic=False`,",
@@ -171,7 +173,7 @@ exclude = ["Examples", "docs/conf.py", "*.ipynb"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "D410", "UP", "TID252"]
 fixable = ["E", "F", "W", "D", "UP"]
-ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035", "UP038"]
+ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035"]
 #ignore = ["E266"]
 
 [tool.ruff.lint.per-file-ignores]

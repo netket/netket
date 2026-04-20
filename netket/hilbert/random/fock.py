@@ -90,7 +90,10 @@ def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dty
     # if constrained and uniformly n_max == 2, use a trick to sample quickly
     if set(hilb_shape) == {2}:
         return jax.random.permutation(
-            key, init.at[..., :n_particles].set(1), axis=-1, independent=True
+            key,
+            init.at[..., :n_particles].set(jnp.asarray(1, dtype=dtype)),
+            axis=-1,
+            independent=True,
         )
 
     # shape is per site n_max

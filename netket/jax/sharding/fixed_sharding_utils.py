@@ -29,7 +29,7 @@ _identity = lambda x: x
 
 @partial(jax.jit, static_argnums=(0, 1))
 def _prepare_mask(n, n_pad):
-    return jnp.ones(n + n_pad, dtype=bool).at[-n_pad:].set(0)
+    return jnp.ones(n + n_pad, dtype=bool).at[-n_pad:].set(False)
 
 
 def distribute_to_devices_along_axis(

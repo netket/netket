@@ -49,9 +49,9 @@ def _jw_kernel(
         create_was_empty: if the matrix element is zero
     """
     # destroy
-    xd = jax.vmap(lambda i: x.at[i].set(0))(k_destroy.T)
+    xd = jax.vmap(lambda i: x.at[i].set(False))(k_destroy.T)
     # create
-    xp = jax.vmap(jax.vmap(lambda x, i: x.at[i].set(1), in_axes=(None, 0)))(
+    xp = jax.vmap(jax.vmap(lambda x, i: x.at[i].set(True), in_axes=(None, 0)))(
         xd, l_create
     )
 

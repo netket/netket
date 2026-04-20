@@ -190,7 +190,7 @@ class Slater2nd(nn.Module):
                 f"Dimension mismatch. Expected samples with {self.hilbert.size} "
                 f"degrees of freedom, but got a sample of shape {n.shape} ({n.shape[-1]} dof)."
             )
-        if not jnp.issubdtype(n, int):
+        if not jnp.issubdtype(n.dtype, int):
             n = jnp.isclose(n, 1)
 
         @partial(jnp.vectorize, signature="(n)->()")

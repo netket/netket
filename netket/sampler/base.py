@@ -135,7 +135,7 @@ class Sampler(struct.Pytree):
 
         machine_pow = jnp.array(machine_pow)
 
-        if jnp.issubdtype(machine_pow, jnp.complexfloating):
+        if jnp.issubdtype(machine_pow.dtype, jnp.complexfloating):
             raise ValueError(f"machine_pow ({machine_pow}) must be real")
 
         # Below we want to check that machine_pow is positive, but in a way

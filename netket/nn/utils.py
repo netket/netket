@@ -18,21 +18,25 @@ from typing import cast
 
 import jax
 from jax import numpy as jnp
-from jax.core import concrete_or_error
 from jax.sharding import NamedSharding, PartitionSpec as P
 import numpy as np
 from math import prod
 
 from netket import jax as nkjax
-from netket.utils import get_afun_if_module
-from netket.utils.types import Array, PyTree
-from netket.hilbert import DiscreteHilbert, DoubledHilbert
-
-from netket.utils import config
 from netket.jax.sharding import (
     extract_replicated,
     distribute_to_devices_along_axis,
 )
+from netket.utils import config, get_afun_if_module, module_version
+from netket.utils.types import Array, PyTree
+from netket.hilbert import DiscreteHilbert, DoubledHilbert
+
+
+# TODO: (April 2026) keep only a branch when we drop jax 0.9
+if module_version(jax) >= (0, 10):
+    from jax.extend.core import concrete_or_error
+else:  # pragma: no cover
+    from jax.core import concrete_or_error
 
 
 def to_array(
