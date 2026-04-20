@@ -200,7 +200,7 @@ def test_invalid_loss_stopping(driver):
     if isinstance(driver, nkx.driver.TDVP):
         driver._integrator._state = driver._integrator._state.replace(y=params)
     driver.state.parameters = params
-    driver.reset()
+    driver.reset_step()
 
     driver.run(nsteps, callback=ils)
     # The driver should stop early after approximately patience invalid steps.
