@@ -562,7 +562,9 @@ def test_numpy_matrix():
     # np.matrix dont respect the API of ndarray. They
     # must be specially handled
     hi = nk.hilbert.Spin(0.5, 1)
-    mat = np.matrix([[1, 0], [0, 1]])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", PendingDeprecationWarning)
+        mat = np.matrix([[1, 0], [0, 1]])
     op = nk.operator.LocalOperatorNumba(hi, mat, 0)
     assert_same_matrices(mat, op)
 

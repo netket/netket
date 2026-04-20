@@ -355,6 +355,7 @@ def test_exactsampler(chunk_size):
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
+@pytest.mark.filterwarnings("ignore::netket.errors.InsufficientSamplesForSRWarning")
 def test_autoreg():
     L = 32
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
