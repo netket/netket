@@ -231,6 +231,79 @@ def test_qgt_onthefly():
         _check_correct_sharding(l, replicated=True)
 
 
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+def test_qgt_onthefly_chunked_matches_unchunked():
+    """Regression test: QGTOnTheFly with ``chunk_size < samples_per_shard``
+    must give the same result as the unchunked path.
+
+    Previously a missing ``pvary_args_tree`` on the internal ``_O_vjp``
+    caused jax.vjp inside shard_map to implicitly psum the gradient wrt
+    the replicated ``params``/``model_state`` inputs, compounding with
+    the explicit ``reduction_op_tree=jax.lax.psum`` and producing a
+    result ``n_devices``-times too large (silently — no error).
+    """
+    vs, *_ = _setup(16)
+    samples_per_shard = vs.samples.shape[0] * vs.samples.shape[1] // jax.device_count()
+
+    S_ref = vs.quantum_geometric_tensor(nk.optimizer.qgt.QGTOnTheFly(holomorphic=True))
+    v = vs.parameters
+    res_ref = S_ref @ v
+
+    # With chunk_size strictly smaller than samples_per_shard, we go
+    # through `mat_vec_chunked_factory`, which used to return
+    # n_devices × the correct value.
+    for cs in [samples_per_shard // 2, max(samples_per_shard // 8, 1)]:
+        if cs < 1:
+            continue
+        S = vs.quantum_geometric_tensor(
+            nk.optimizer.qgt.QGTOnTheFly(chunk_size=cs, holomorphic=True)
+        )
+        res = S @ v
+        for r_ref, r in zip(
+            jax.tree_util.tree_leaves(res_ref), jax.tree_util.tree_leaves(res)
+        ):
+            np.testing.assert_allclose(r, r_ref, rtol=1e-10, atol=1e-10)
+
+    # Same test with a non-trivial pdf (exercises the _Odagger_DeltaO_v
+    # `pdf` branch, where the bug originally surfaced most clearly).
+    from netket.optimizer.qgt.qgt_onthefly import QGTOnTheFly_DefaultConstructor
+    from jax.flatten_util import ravel_pytree
+
+    params_flat, unravel = ravel_pytree(vs.parameters)
+    rhs = unravel(
+        jax.random.normal(jax.random.PRNGKey(0), (params_flat.size,))
+        + 1j * jax.random.normal(jax.random.PRNGKey(1), (params_flat.size,))
+    )
+    pdf_vec = jax.nn.softmax(
+        jax.random.uniform(
+            jax.random.PRNGKey(2), (vs.samples.shape[0] * vs.samples.shape[1],)
+        )
+    )
+
+    def _build(cs):
+        return QGTOnTheFly_DefaultConstructor(
+            vs._apply_fun,
+            vs.parameters,
+            vs.model_state,
+            vs.samples.reshape(-1, vs.hilbert.size),
+            pdf=pdf_vec,
+            chunk_size=cs,
+            holomorphic=True,
+        )
+
+    r_ref = _build(None) @ rhs
+    for cs in [samples_per_shard // 2, max(samples_per_shard // 8, 1)]:
+        if cs < 1:
+            continue
+        r = _build(cs) @ rhs
+        for rr, rp in zip(
+            jax.tree_util.tree_leaves(r_ref), jax.tree_util.tree_leaves(r)
+        ):
+            np.testing.assert_allclose(rp, rr, rtol=1e-10, atol=1e-10)
+
+
 @pytest.mark.parametrize(
     "Op",
     [pytest.param(nk.operator.IsingJax, id="IsingJax")],

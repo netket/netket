@@ -97,6 +97,7 @@
   Those bugs had apparently been sitting there unnoticed for quite a while.
 * The `Midpoint` and `Heun` tableaus now expose consistent embedded lower-order formulas [PR #2210](https://github.com/netket/netket/pull/2210).
 * Calling {meth}`netket.vqs.MCMixedState.expect_and_grad` with a physical operator now raises a dedicated error with guidance on defining a custom dispatch rule [commit e4fc4a965](https://github.com/netket/netket/commit/e4fc4a96575b6bd61a723e76f677148def50e9b8).
+* Fixed a silent correctness bug in {class}`netket.optimizer.qgt.QGTOnTheFly` under `NETKET_EXPERIMENTAL_SHARDING=1`: when the ``chunk_size`` argument was strictly smaller than the number of samples per shard, the chunked S-matrix-vector product returned a result scaled by a factor of `jax.device_count()`. The internal `_O_vjp` lacked `pvary_args_tree` for the replicated `params`/`model_state` arguments, so `jax.vjp`'s implicit backward-pass `psum` compounded with the explicit `reduction_op_tree=jax.lax.psum` (see the same pattern already used in {func}`netket.jax._vjp_chunked`). The fix only affects multi-device sharded runs; single-device results were already correct.
 
 ## NetKet 3.21
 

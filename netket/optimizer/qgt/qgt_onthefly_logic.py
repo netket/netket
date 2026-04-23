@@ -112,6 +112,15 @@ def _O_jvp(forward_fn, params, model_state, samples, v, chunk_size):
     sharding_decorator,
     sharded_args_tree=(False, False, False, True, True, False),
     reduction_op_tree=jax.lax.psum,
+    # jax.vjp inside a shard_map implicitly psum's the gradient wrt any
+    # replicated input (see https://github.com/jax-ml/jax/discussions/29608).
+    # Without pvary on (params, model_state), the implicit psum inside vjp
+    # compounds with the explicit psum from reduction_op_tree above, giving
+    # a result scaled by jax.device_count() (silently wrong).  Marking
+    # params and model_state as varying tells JAX the backward pass should
+    # not psum them; the outer reduction_op_tree then does the one psum we
+    # actually want.  Same pattern as netket.jax._vjp_chunked.
+    pvary_args_tree=(False, True, True, False, False, False),
 )
 def _O_vjp(forward_fn, params, model_state, samples, w, chunk_size):
     @partial(scanmap, scan_fun=scan_reduce, argnums=(3, 4))
