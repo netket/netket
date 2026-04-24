@@ -89,7 +89,7 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     n = len(sorted_arr)
     n_levels = int(np.ceil(np.log2(n + 1)))
     shape = query.shape[:-1]
-    pvary_axes = tuple(jax.typeof(query).vma)
+    pvary_axes = tuple(jax.typeof(query).manual_axis_type.varying)
     init = (
         nkjax.lax.pcast(jnp.full(shape, dtype(0)), pvary_axes, to="varying"),
         nkjax.lax.pcast(jnp.full(shape, dtype(n)), pvary_axes, to="varying"),
