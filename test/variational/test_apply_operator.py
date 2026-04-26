@@ -33,6 +33,17 @@ fs_vstate_linen = nk.vqs.FullSumState(hilbert_space, model_linen)
 
 vstate_list_linen = [mc_vstate_linen, fs_vstate_linen]
 
+bound_variables_linen = model_linen.init(
+    jax.random.key(123), hilbert_space.all_states()
+)
+bound_model_linen = model_linen.bind(bound_variables_linen)
+mc_vstate_bound_linen = nk.vqs.MCState(
+    sampler, bound_model_linen, n_samples=2**12, n_discard_per_chain=15
+)
+fs_vstate_bound_linen = nk.vqs.FullSumState(hilbert_space, bound_model_linen)
+
+vstate_list_linen += [mc_vstate_bound_linen, fs_vstate_bound_linen]
+
 
 # NNX model class
 class RBMNNX(nnx.Module):
