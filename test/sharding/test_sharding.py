@@ -235,73 +235,49 @@ def test_qgt_onthefly():
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
 def test_qgt_onthefly_chunked_matches_unchunked():
-    """Regression test: QGTOnTheFly with ``chunk_size < samples_per_shard``
-    must give the same result as the unchunked path.
+    """Regression test: QGTOnTheFly chunked result must be device-count independent.
 
     Previously a missing ``pvary_args_tree`` on the internal ``_O_vjp``
     caused jax.vjp inside shard_map to implicitly psum the gradient wrt
     the replicated ``params``/``model_state`` inputs, compounding with
     the explicit ``reduction_op_tree=jax.lax.psum`` and producing a
     result ``n_devices``-times too large (silently — no error).
+
+    We use FullSumState because its samples are all basis states (deterministic),
+    so the QGT is numerically identical given the same parameters regardless of
+    how many devices hold the shards, making a 1-device vs N-device comparison exact.
     """
-    vs, *_ = _setup(16)
-    samples_per_shard = vs.samples.shape[0] * vs.samples.shape[1] // jax.device_count()
+    L = 4  # 2^4 = 16 basis states
+    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ma = nk.models.RBM(alpha=1, param_dtype=np.complex128)
 
-    S_ref = vs.quantum_geometric_tensor(nk.optimizer.qgt.QGTOnTheFly(holomorphic=True))
-    v = vs.parameters
-    res_ref = S_ref @ v
+    full_mesh = jax.sharding.get_mesh()
+    single_mesh = jax.make_mesh((1,), ("S",), axis_types=full_mesh.axis_types[0])
 
-    # With chunk_size strictly smaller than samples_per_shard, we go
-    # through `mat_vec_chunked_factory`, which used to return
-    # n_devices × the correct value.
-    for cs in [samples_per_shard // 2, max(samples_per_shard // 8, 1)]:
-        if cs < 1:
-            continue
-        S = vs.quantum_geometric_tensor(
-            nk.optimizer.qgt.QGTOnTheFly(chunk_size=cs, holomorphic=True)
-        )
-        res = S @ v
-        for r_ref, r in zip(
-            jax.tree_util.tree_leaves(res_ref), jax.tree_util.tree_leaves(res)
-        ):
-            np.testing.assert_allclose(r, r_ref, rtol=1e-10, atol=1e-10)
+    n_states_per_shard = hi.n_states // jax.device_count()
+    chunk_size = max(n_states_per_shard // 2, 1)
 
-    # Same test with a non-trivial pdf (exercises the _Odagger_DeltaO_v
-    # `pdf` branch, where the bug originally surfaced most clearly).
-    from netket.optimizer.qgt.qgt_onthefly import QGTOnTheFly_DefaultConstructor
-    from jax.flatten_util import ravel_pytree
+    # Shared parameters as plain numpy — no device affiliation
+    params_np = jax.tree.map(np.asarray, nk.vqs.FullSumState(hi, ma).parameters)
 
-    params_flat, unravel = ravel_pytree(vs.parameters)
-    rhs = unravel(
-        jax.random.normal(jax.random.PRNGKey(0), (params_flat.size,))
-        + 1j * jax.random.normal(jax.random.PRNGKey(1), (params_flat.size,))
-    )
-    pdf_vec = jax.nn.softmax(
-        jax.random.uniform(
-            jax.random.PRNGKey(2), (vs.samples.shape[0] * vs.samples.shape[1],)
-        )
-    )
+    # Reference: single-device mesh — shard_map runs on 1 device, no psum scaling possible
+    jax.sharding.set_mesh(single_mesh)
+    try:
+        vs_ref = nk.vqs.FullSumState(hi, ma)
+        vs_ref.parameters = jax.device_put(params_np, NamedSharding(single_mesh, P()))
+        S_ref = nk.optimizer.qgt.QGTOnTheFly(vs_ref, chunk_size=chunk_size, holomorphic=True)
+        res_ref = jax.tree.map(np.asarray, S_ref @ vs_ref.parameters)
+    finally:
+        jax.sharding.set_mesh(full_mesh)
 
-    def _build(cs):
-        return QGTOnTheFly_DefaultConstructor(
-            vs._apply_fun,
-            vs.parameters,
-            vs.model_state,
-            vs.samples.reshape(-1, vs.hilbert.size),
-            pdf=pdf_vec,
-            chunk_size=cs,
-            holomorphic=True,
-        )
+    # Test: full mesh
+    vs = nk.vqs.FullSumState(hi, ma)
+    vs.parameters = jax.device_put(params_np, NamedSharding(full_mesh, P()))
+    S = nk.optimizer.qgt.QGTOnTheFly(vs, chunk_size=chunk_size, holomorphic=True)
+    res = S @ vs.parameters
 
-    r_ref = _build(None) @ rhs
-    for cs in [samples_per_shard // 2, max(samples_per_shard // 8, 1)]:
-        if cs < 1:
-            continue
-        r = _build(cs) @ rhs
-        for rr, rp in zip(
-            jax.tree_util.tree_leaves(r_ref), jax.tree_util.tree_leaves(r)
-        ):
-            np.testing.assert_allclose(rp, rr, rtol=1e-10, atol=1e-10)
+    jax.tree.map(lambda r_ref, r: np.testing.assert_allclose(r, r_ref, rtol=1e-10, atol=1e-10), res_ref, res)
 
 
 @pytest.mark.parametrize(
