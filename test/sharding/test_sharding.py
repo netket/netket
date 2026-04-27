@@ -231,6 +231,55 @@ def test_qgt_onthefly():
         _check_correct_sharding(l, replicated=True)
 
 
+@pytest.mark.skipif(
+    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+)
+def test_qgt_onthefly_chunked_matches_unchunked():
+    """Regression test: QGTOnTheFly chunked result must be device-count independent.
+
+    Previously a missing ``pvary_args_tree`` on the internal ``_O_vjp``
+    caused jax.vjp inside shard_map to implicitly psum the gradient wrt
+    the replicated ``params``/``model_state`` inputs, compounding with
+    the explicit ``reduction_op_tree=jax.lax.psum`` and producing a
+    result ``n_devices``-times too large (silently — no error).
+
+    We use FullSumState because its samples are all basis states (deterministic),
+    so the QGT is numerically identical given the same parameters regardless of
+    how many devices hold the shards, making a 1-device vs N-device comparison exact.
+    """
+    L = 4  # 2^4 = 16 basis states
+    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ma = nk.models.RBM(alpha=1, param_dtype=np.complex128)
+
+    full_mesh = jax.sharding.get_mesh()
+    single_mesh = jax.make_mesh((1,), ("S",), axis_types=full_mesh.axis_types[0])
+
+    n_states_per_shard = hi.n_states // jax.device_count()
+    chunk_size = max(n_states_per_shard // 2, 1)
+
+    # Shared parameters as plain numpy — no device affiliation
+    params_np = jax.tree.map(np.asarray, nk.vqs.FullSumState(hi, ma).parameters)
+
+    # Reference: single-device mesh — shard_map runs on 1 device, no psum scaling possible
+    jax.sharding.set_mesh(single_mesh)
+    try:
+        vs_ref = nk.vqs.FullSumState(hi, ma)
+        vs_ref.parameters = jax.device_put(params_np, NamedSharding(single_mesh, P()))
+        S_ref = nk.optimizer.qgt.QGTOnTheFly(vs_ref, chunk_size=chunk_size, holomorphic=True)
+        res_ref = jax.tree.map(np.asarray, S_ref @ vs_ref.parameters)
+    finally:
+        jax.sharding.set_mesh(full_mesh)
+
+    # Test: full mesh
+    vs = nk.vqs.FullSumState(hi, ma)
+    vs.parameters = jax.device_put(params_np, NamedSharding(full_mesh, P()))
+    S = nk.optimizer.qgt.QGTOnTheFly(vs, chunk_size=chunk_size, holomorphic=True)
+    res = S @ vs.parameters
+
+    jax.tree.map(lambda r_ref, r: np.testing.assert_allclose(r, r_ref, rtol=1e-10, atol=1e-10), res_ref, res)
+
+
 @pytest.mark.parametrize(
     "Op",
     [pytest.param(nk.operator.IsingJax, id="IsingJax")],
