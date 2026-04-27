@@ -340,7 +340,7 @@ class MCState(VariationalState):
         """Returns the model definition of this variational state.
 
         When using model frameworks that encode the parameters directly into the
-        model, such as equinox, bound ``flax.linen`` modules, or ``flax.nnx``, this will return the model
+        model, such as equinox or ``flax.nnx``, this will return the model
         including the parameters.
 
         If you want access to the *raw model* without the parameters that is used

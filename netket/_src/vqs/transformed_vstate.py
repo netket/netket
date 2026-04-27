@@ -57,18 +57,12 @@ def apply_operator(
     # sometimes we apply a joint operator...
     applied_operator = operator
 
-    if isinstance(vstate._model, linen.Module):
-        # NetKet keeps Linen models internally in unbound form. If `vstate.model`
-        # is a user-facing bound module, we still route operator wrapping through
-        # `vstate._model`, which is always the unbound/static Linen module.
-        linen_module = vstate._model
-        base_module = linen_module
-
-        if isinstance(linen_module, ApplyOperatorModuleLinen):
+    if isinstance(base_module, linen.Module):
+        if isinstance(vstate.model, ApplyOperatorModuleLinen):
             existing_operator = jax.tree.unflatten(
-                linen_module.operator_treedef, vstate.variables["operator"]["leaves"]
+                vstate.model.operator_treedef, vstate.variables["operator"]["leaves"]
             )
-            base_module = linen_module.base_module
+            base_module = vstate.model.base_module
             base_variables = {
                 collection: params.get("base_module", params)
                 for collection, params in vstate.variables.items()

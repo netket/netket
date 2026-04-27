@@ -37,6 +37,6 @@ from netket.utils.model_frameworks.base import (
     identify_framework as identify_framework,
 )
 
-from netket.utils.model_frameworks import flax_bound, flax, jax, haiku, equinox, nnx
+from netket.utils.model_frameworks import flax, jax, haiku, equinox, nnx
 
 from netket.utils.model_frameworks import nnx_wrapped
