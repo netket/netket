@@ -20,6 +20,14 @@ from jax import numpy as jnp
 from netket.utils.numbers import dtype as _dtype
 
 
+def _normalize_dtype(typ):
+    if isinstance(typ, jax.Array):
+        return np.dtype(typ.dtype)
+    if hasattr(typ, "dtype") and not isinstance(typ, type):
+        return np.dtype(typ.dtype)
+    return np.dtype(typ)
+
+
 def is_complex_dtype(typ):
     """
     Returns True if typ is a complex dtype.
@@ -27,7 +35,7 @@ def is_complex_dtype(typ):
     This is almost equivalent to `jnp.iscomplexobj` but also handles types such as
     `float`, `complex` and `int`, which are used throughout netket.
     """
-    return jnp.issubdtype(typ, jnp.complexfloating)
+    return jnp.issubdtype(_normalize_dtype(typ), jnp.complexfloating)
 
 
 def is_real_dtype(typ):
@@ -37,7 +45,7 @@ def is_real_dtype(typ):
     This is almost equivalent to `jnp.isrealobj` but also handles types such as
     `float`, `complex` and `int`, which are used throughout netket.
     """
-    return jnp.issubdtype(typ, jnp.floating)
+    return jnp.issubdtype(_normalize_dtype(typ), jnp.floating)
 
 
 # Return the type holding the real part of the input type
@@ -47,6 +55,8 @@ def dtype_real(typ):
     (eg complex64 -> float32, complex128 ->float64).
     Returns typ otherwise.
     """
+    typ = _normalize_dtype(typ)
+
     if np.issubdtype(typ, np.complexfloating):
         if typ == np.dtype("complex64"):
             return np.dtype("float32")
@@ -63,6 +73,8 @@ def dtype_complex(typ):
     Return the complex dtype corresponding to the type passed in.
     If it is already complex, do nothing
     """
+    typ = _normalize_dtype(typ)
+
     if is_complex_dtype(typ):
         return typ
     elif typ == np.dtype("float32"):

@@ -5,7 +5,7 @@ import jax
 
 import netket as nk
 
-from test.common_mesh import with_meshes
+from test.common_mesh import mesh_has_axes, with_meshes
 
 
 @with_meshes(auto=[None, ((2,), ("A",))])
@@ -20,7 +20,7 @@ def test_sort(mesh):
     # 2d
     hi = nk.hilbert.Fock(10, 4)
     x = hi.random_state(jax.random.key(123), (12,))
-    if not mesh.empty:
+    if mesh_has_axes(mesh):
         x = jax.device_put(x, jax.sharding.NamedSharding(mesh, jax.P("A")))
     x_sort = nk.jax.sort(x)
     x_i_sort = hi.states_to_numbers(x_sort)
@@ -51,7 +51,7 @@ def test_searchsorted_with_meshes(mesh):
     x = hi.random_state(jax.random.key(123), (12,))
     x_sorted = nk.jax.sort(x)
 
-    if not mesh.empty:
+    if mesh_has_axes(mesh):
         x_sorted = jax.device_put(
             x_sorted, jax.sharding.NamedSharding(mesh, jax.P("A"))
         )
@@ -67,7 +67,7 @@ def test_searchsorted_with_meshes(mesh):
         np.testing.assert_array_equal(x_sorted[k[i]], x[i])
 
     # Test under shard_map: sorted array sharded, values replicated
-    if not mesh.empty:
+    if mesh_has_axes(mesh):
 
         def searchsorted_shard_map(x_sorted, values):
             return jax.shard_map(

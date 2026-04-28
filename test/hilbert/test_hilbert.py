@@ -31,6 +31,7 @@ from netket.experimental.hilbert import Particle
 
 import jax
 import jax.numpy as jnp
+from jax.sharding import PartitionSpec as P
 from jax.errors import JaxRuntimeError
 
 
@@ -198,7 +199,7 @@ def test_random_states_discrete_sharding(hi: DiscreteHilbert):
 
     # check that the sharding is correct
     s = hi.random_state(jax.random.key(13), 4)
-    assert s.sharding.spec == ()
+    assert s.sharding.spec == P()
 
     # Check that no communication happens
     @jax.jit

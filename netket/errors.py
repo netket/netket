@@ -13,9 +13,16 @@
 # limitations under the License.
 
 # Use an empty top-level docstring so Sphinx won't output the one below.
-""""""
 
 from textwrap import dedent as _dedent
+
+from netket.utils import module_version as _module_version
+
+# TODO: (April 2026) keep only a branch when we drop jax 0.9
+if _module_version("jax") >= (0, 10):
+    from jax.extend.core import concrete_or_error as _jax_concrete_or_error
+else:  # pragma: no cover
+    from jax.core import concrete_or_error as _jax_concrete_or_error
 
 """NetKet error classes.
 (Inspired by NetKet error classes)
@@ -1491,12 +1498,11 @@ def concrete_or_error(force, value, error_class, *args, **kwargs):
       *args: any additional argument and keyword argument to pass to the custom
         error type constructor.
     """
-    from jax.core import concrete_or_error
 
     from jax.errors import ConcretizationTypeError
 
     try:
-        return concrete_or_error(
+        return _jax_concrete_or_error(
             force,
             value,
             """

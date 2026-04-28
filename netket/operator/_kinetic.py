@@ -22,6 +22,7 @@ import jax.numpy as jnp
 from netket.utils import struct
 from netket.utils.types import DType, PyTree, Array
 import netket.jax as nkjax
+from netket.jax._compat import aval_varying_axes
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
 from netket.utils import HashableArray
@@ -32,11 +33,11 @@ def jacrev(f):
         y, vjp_fun = nkjax.vjp(f, x)
         if y.size == 1:
             eye = jnp.eye(y.size, dtype=x.dtype)[0]
-            eye = nkjax.lax.pcast(eye, tuple(jax.typeof(y).vma), to="varying")
+            eye = nkjax.lax.pcast(eye, aval_varying_axes(y), to="varying")
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         else:
             eye = jnp.eye(y.size, dtype=x.dtype)
-            eye = nkjax.lax.pcast(eye, tuple(jax.typeof(y).vma), to="varying")
+            eye = nkjax.lax.pcast(eye, aval_varying_axes(y), to="varying")
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         return J
 

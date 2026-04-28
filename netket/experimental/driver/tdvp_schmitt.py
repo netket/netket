@@ -207,7 +207,7 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_a
     ev, V = jnp.linalg.eigh(Sd)
 
     OEdata = O.conj() * ΔE_loc
-    F = stats.sum(OEdata, axis=0)
+    F = jnp.sum(OEdata, axis=0)
 
     # Note: this implementation differs from Eq. 20 in Markus's paper, which I would
     # implement as `rho = np.mean(QEdata, axis=0)`. However, this is different from
@@ -218,7 +218,7 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_a
     rho = V.conj().T @ F
 
     # Compute the SNR according to Eq. 21 but taking care of where sigma_k is zero
-    sigma_k = jnp.maximum(jnp.sqrt(stats.var(QEdata, axis=0)), rcond)
+    sigma_k = jnp.maximum(jnp.sqrt(jnp.var(QEdata, axis=0)), rcond)
     # Here we are hardcoding the case where rho==0 and sigma_k==0 to have infinite snr.
     # This is an arbitrary choice, but avoids generating NaNs in the snr calculation.
     # See netket#1959 and #1960 for more details.

@@ -250,7 +250,7 @@ class DenseSymmFFT(Module):
         if bias is not None:
             x += jnp.expand_dims(bias, 1)
 
-        if jnp.can_cast(x, dtype):
+        if jnp.can_cast(x.dtype, dtype):
             return x
         else:
             return x.real
@@ -373,7 +373,7 @@ class DenseEquivariantFFT(Module):
         if bias is not None:
             x += jnp.expand_dims(bias, 1)
 
-        if jnp.can_cast(x, dtype):
+        if jnp.can_cast(x.dtype, dtype):
             return x
         else:
             return x.real
@@ -562,7 +562,7 @@ class DenseEquivariantIrrep(Module):
         if bias is not None:
             x += jnp.expand_dims(bias, 1)
 
-        if jnp.can_cast(x, dtype):
+        if jnp.can_cast(x.dtype, dtype):
             return x
         else:
             return x.real
