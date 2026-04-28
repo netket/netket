@@ -266,7 +266,9 @@ def test_qgt_onthefly_chunked_matches_unchunked():
     try:
         vs_ref = nk.vqs.FullSumState(hi, ma)
         vs_ref.parameters = jax.device_put(params_np, NamedSharding(single_mesh, P()))
-        S_ref = nk.optimizer.qgt.QGTOnTheFly(vs_ref, chunk_size=chunk_size, holomorphic=True)
+        S_ref = nk.optimizer.qgt.QGTOnTheFly(
+            vs_ref, chunk_size=chunk_size, holomorphic=True
+        )
         res_ref = jax.tree.map(np.asarray, S_ref @ vs_ref.parameters)
     finally:
         jax.sharding.set_mesh(full_mesh)
@@ -277,7 +279,11 @@ def test_qgt_onthefly_chunked_matches_unchunked():
     S = nk.optimizer.qgt.QGTOnTheFly(vs, chunk_size=chunk_size, holomorphic=True)
     res = S @ vs.parameters
 
-    jax.tree.map(lambda r_ref, r: np.testing.assert_allclose(r, r_ref, rtol=1e-10, atol=1e-10), res_ref, res)
+    jax.tree.map(
+        lambda r_ref, r: np.testing.assert_allclose(r, r_ref, rtol=1e-10, atol=1e-10),
+        res_ref,
+        res,
+    )
 
 
 @pytest.mark.parametrize(
