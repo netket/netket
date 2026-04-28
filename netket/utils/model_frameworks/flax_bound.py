@@ -38,8 +38,7 @@ class BoundFlaxFramework(ModuleFramework):
         from flax import linen as nn
 
         return (
-            isinstance(module, nn.Module)
-            and getattr(module, "scope", None) is not None
+            isinstance(module, nn.Module) and getattr(module, "scope", None) is not None
         )
 
     @staticmethod
