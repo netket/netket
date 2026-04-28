@@ -571,7 +571,7 @@ def MetropolisLocal(hilbert, **kwargs) -> MetropolisSampler:
 
 
 def MetropolisExchange(
-    hilbert, *, clusters=None, graph=None, d_max=1, **kwargs
+    hilbert, *, clusters=None, graph=None, d_max=1, probabilities=None, **kwargs
 ) -> MetropolisSampler:
     r"""
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
@@ -623,7 +623,16 @@ def MetropolisExchange(
 
     Args:
         hilbert: The Hilbert space to sample.
+        clusters: The list of clusters that can be exchanged. This should be
+            a list of 2-tuples containing two integers. Every tuple is an edge,
+            or cluster of sites to be exchanged.
+        graph: The graph for determining the clusters that can be exchanged.
+            Do not specify together with `clusters`.
         d_max: The maximum graph distance allowed for exchanges.
+            Only used if `graph` is specified.
+        probabilities: Relative probability of trying each cluster
+            (if `clusters` is given) or clusters with each graph distance
+            (if `graph` is given). Defaults to equal probability for all clusters.
         n_chains: The total number of independent Markov chains across all devices.
             Either specify this or `n_chains_per_rank`.
         n_chains_per_rank: Number of independent chains on every device (default = 16).
@@ -668,7 +677,9 @@ def MetropolisExchange(
                 stacklevel=2,
             )
 
-    rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
+    rule = ExchangeRule(
+        clusters=clusters, graph=graph, d_max=d_max, probabilities=probabilities
+    )
     return MetropolisSampler(hilbert, rule, **kwargs)
 
 
