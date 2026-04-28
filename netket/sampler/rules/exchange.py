@@ -83,10 +83,10 @@ class ExchangeRule(MetropolisRule):
     The Exchange rule will swap the two sites of a random row of this
     matrix at every Metropolis step.
     """
-    probabilities: jax.Array
+    probabilities: jax.Array | None
     r"""1-Dimensional array :math:`p_{i}` of length :math:`N_\text{clusters}`
     containing the relative probability of choosing each particular cluster
-    for the exchange update.
+    for the exchange update. If None, all clusters are chosen with equal probability.
     """
 
     def __init__(
@@ -130,7 +130,7 @@ class ExchangeRule(MetropolisRule):
         self.clusters = jnp.array(clusters)
 
         if probabilities is None:
-            self.probabilities = jnp.ones(len(clusters))
+            self.probabilities = None
         else:
             if len(probabilities) != len(clusters):
                 # shouldn't get here if both are computed from graphs
@@ -148,14 +148,16 @@ class ExchangeRule(MetropolisRule):
 
         keys = jnp.asarray(jax.random.split(key, n_chains))
 
+        probs = jnp.ones(rule.clusters.shape[0]) if rule.probabilities is None else rule.probabilities
+
         @jax.vmap
         def _update_samples(key, σ, hoppable_clusters):
             # pick a random cluster, taking into account the mask
-            n_conn = hoppable_clusters @ rule.probabilities
+            n_conn = hoppable_clusters @ probs
             cluster = jax.random.choice(
                 key,
                 a=jnp.arange(rule.clusters.shape[0]),
-                p=hoppable_clusters * rule.probabilities,
+                p=hoppable_clusters * probs,
                 replace=True,
             )
 
@@ -170,7 +172,7 @@ class ExchangeRule(MetropolisRule):
             hoppable_clusters_proposed = _compute_different_clusters_mask(
                 rule.clusters, σp
             )
-            n_conn_proposed = hoppable_clusters_proposed @ rule.probabilities
+            n_conn_proposed = hoppable_clusters_proposed @ probs
             log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
             return σp, log_prob_corr
 
