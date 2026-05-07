@@ -49,18 +49,12 @@ Utility functions and classes.
 
 ## Symmetry Group Manipulation
 
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/utils
-   :nosignatures:
-
-   group.Permutation 
-   group.PermutationGroup 
-
-   group.FiniteGroup
-   group.PointGroup
-
-```
+The group-manipulation API is documented under {ref}`netket_symmetry_api`.
+The legacy `netket.utils.group` namespace re-exports the same public objects,
+including {class}`~netket.symmetry.group.Permutation`,
+{class}`~netket.symmetry.group.PermutationGroup`,
+{class}`~netket.symmetry.group.FiniteGroup`, and
+{class}`~netket.symmetry.group.PointGroup`.
 
 ## History and time-series data
 
@@ -91,4 +85,3 @@ can be nested and can be used in low-level library functions.
    timing.timed_scope 
    timing.timed 
 ```
-

@@ -187,13 +187,11 @@ class FiniteGroup(FiniteSemiGroup):
         The conjugacy classes of the group.
 
         Returns:
-
-            The three arrays
-
-            - classes: a boolean array, each row indicating the elements that
-              belong to one conjugacy class
-            - representatives: the lowest-indexed member of each conjugacy class
-            - inverse: the conjugacy class index of every group element
+            A tuple ``(classes, representatives, inverse)`` where ``classes`` is
+            a boolean array whose rows indicate the elements belonging to each
+            conjugacy class, ``representatives`` contains the lowest-indexed
+            member of each conjugacy class, and ``inverse`` stores the
+            conjugacy-class index of every group element.
 
         """
         row_index = np.arange(len(self))[:, np.newaxis]
@@ -342,16 +340,13 @@ class FiniteGroup(FiniteSemiGroup):
                 If unspecified, computes linear representation characters.
 
         Returns:
-            - :code:`characters_by_class`
-                a 2D array, each row containing the characters of a
-                representative element of each conjugacy class in one
-                projective irrep with the given multiplier.
-            - :code:`class_factors`
-                a 1D array listing the "class factors" of each element of
-                the group. The character of each element is the product
-                of the character of the class representative with this
-                class factor.
-                (Only returned if :code:`multiplier` is not :code:`None`.)
+            If ``multiplier`` is ``None``, returns ``characters_by_class``, a
+            2D array whose rows contain the characters of one linear irrep
+            evaluated on a representative of each conjugacy class. Otherwise it
+            returns a tuple ``(characters_by_class, class_factors)``, where
+            ``class_factors`` is a 1D array listing the per-element factors
+            needed to recover the character of each element from the character
+            of its class representative.
 
         Note: the algorithm and the definitions above are explained in more
         detail in https://arxiv.org/abs/2505.14790.
@@ -523,13 +518,10 @@ class FiniteGroup(FiniteSemiGroup):
                 or one representative per conjugacy class (False, default)
 
         Returns:
-
-            A tuple containing a list of strings and an array
-
-            - :code:`classes`: a text description of a representative of
-              each conjugacy class (or each group element) as a list
-            - :code:`characters`: a matrix, each row of which lists the
-              characters of one irrep
+            A tuple ``(classes, characters)`` where ``classes`` is a list of
+            string labels for each conjugacy-class representative (or for each
+            group element when ``full=True``), and ``characters`` is a matrix
+            whose rows list the characters of one irrep.
         """
         if full:
             names = [str(g) for g in self]

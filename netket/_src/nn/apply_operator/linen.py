@@ -20,11 +20,12 @@ from netket import jax as nkjax
 
 
 class ApplyOperatorModuleLinen(nn.Module):
-    """
+    r"""
     A Flax Linen module that wraps another module and applies an operator transformation.
 
     This module wraps a base neural network module and applies an operator in front of it,
-    computing log(O|ψ⟩) where O is the operator and |ψ⟩ is represented by the base module.
+    computing :math:`\log(O\lvert\psi\rangle)` where :math:`O` is the operator and
+    :math:`\lvert\psi\rangle` is represented by the base module.
 
     The operator is stored in flattened form. The static structure (treedef) is stored as a
     module attribute, while the dynamic data (leaves) is stored in the 'operator' variable

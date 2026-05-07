@@ -19,11 +19,12 @@ from netket import jax as nkjax
 
 
 class ApplyOperatorModuleNNX(nnx.Module):
-    """
+    r"""
     A Flax NNX module that wraps another NNX module and applies an operator transformation.
 
     This module wraps a base neural network module and applies an operator in front of it,
-    computing log(O|ψ⟩) where O is the operator and |ψ⟩ is represented by the base module.
+    computing :math:`\log(O\lvert\psi\rangle)` where :math:`O` is the operator and
+    :math:`\lvert\psi\rangle` is represented by the base module.
 
     The operator is stored as a regular NNX Variable with collection='operator', which makes
     it non-trainable by default (since optimizers typically only update 'params' collection).

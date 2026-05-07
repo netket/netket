@@ -4,8 +4,9 @@
 (Work in progress)
 
 ```{note}
-To construct a symmetrized ansatz of the form log(O|ψ⟩) where O is a symmetry
-projector, see {ref}`netket_nn_apply_operator_api` in {func}`netket.vqs.apply_operator`.
+To construct a symmetrized ansatz of the form $\log(O\lvert\psi\rangle)$ where
+$O$ is a symmetry projector, see {ref}`netket_nn_apply_operator_api` in
+{func}`netket.vqs.apply_operator`.
 ```
 
 Module with classes and utilities needed to operate on symmetry groups and their representations.

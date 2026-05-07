@@ -77,8 +77,8 @@ The following modules can be used in autoregressive neural networks, see {class}
 ## Apply Operator
 
 The {mod}`netket.nn.apply_operator` submodule provides modules and utilities to
-construct a new neural-network state log(O|ψ⟩) wrapping an existing model and an
-operator O.  This is used internally by NetKet when computing expectation values,
+construct a new neural-network state $\log(O\lvert\psi\rangle)$ wrapping an
+existing model and an operator $O$. This is used internally by NetKet when computing expectation values,
 but can also be used directly to build custom models.
 
 ```{eval-rst}
@@ -160,5 +160,4 @@ The following are utility functions to build up custom autoregressive orderings.
    rnn.ensure_prev_neighbors
    rnn.get_snake_inv_reorder_idx
 ```
-
 
