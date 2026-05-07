@@ -35,6 +35,7 @@ TIPS = [
     "To build H|ψ⟩ use nk.vqs.apply_operator(H, vstate_ψ).",
     "log(ψ) ∈ ℜ → ψ = exp(logψ) ∈ ℜ₊ (real NN gives only positive wave-function).",
     "You can use flax.linen, flax.nnx and equinox to define neural networks.",
+    "Save/load MCStates with `nqxpack.save({'state': vstate}, 'myfile')` and `.load('myfile.nk')`."
     # symmetries
     "nk.symmetry.spin_flip_representation(hi).project(vstate, 0) to make it spin-flip symmetric.",
     # utils

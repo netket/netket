@@ -84,3 +84,27 @@ run(n_iter, out=None, obs=None, callback=None, step_size=None)
   NetKet comes with a few built-in callbacks, listed [in the API docs](netket_callbacks_api)`, but you can also implement your own.
 
 - {code}`step_size`: Data will be logged and callbacks will be called every {code}`step_size` optimisation steps. Useful if your callbacks have a high computational cost. If unspecified, logs at every step.
+
+## Saving the variational state during optimization
+
+To automatically checkpoint the variational state to disk at regular intervals during a run,
+you can use the {class}`~netket.logging.SaveVariationalState` callback together with
+[`nqxpack`](https://github.com/NeuralQXLab/nqxpack) (install with `uv add nqxpack` or
+`pip install nqxpack`):
+
+```python
+from netket.logging import SaveVariationalState
+
+gs.run(
+    n_iter=300,
+    out="output",
+    callback=SaveVariationalState("checkpoints/state", save_every=50),
+)
+```
+
+This saves files named `checkpoints/state_00050.nk`, `checkpoints/state_00100.nk`, etc.,
+which can be reloaded with `nqxpack.load("checkpoints/state_00050.nk")`.
+
+For manual saving outside of a training loop, see the
+[Saving and Loading](varstate.md#saving-and-loading-a-variational-state) section of the
+variational state guide.

@@ -227,7 +227,38 @@ The parameter dict will be automatically frozen upon assignment.
 
 ## Saving and Loading a Variational State
 
-Variational States conform to the [Flax serialization interface](https://flax.readthedocs.io/en/latest/flax.serialization.html) and can be serialized and deserialized with it.
+### Recommended approach: nqxpack
+
+The recommended way to save and load a complete variational state is with the
+[`nqxpack`](https://github.com/NeuralQXLab/nqxpack) package (optional dependency,
+install with `uv add nqxpack` or `pip install nqxpack`).
+
+`nqxpack` saves the full state — parameters, model structure, sampler state, and
+Hilbert space — into a single `.nk` file that can be reloaded without having to
+reconstruct the variational state first:
+
+```python
+import nqxpack
+
+# save
+nqxpack.save(vstate, "state.nk")
+
+# load — no need to pre-construct anything
+vstate = nqxpack.load("state.nk")
+```
+
+:::{note}
+`nqxpack` requires that the model class be importable at load time (i.e. defined
+inside a package, not in a plain script). For models defined in scripts or notebooks,
+fall back to the `flax.serialization` approach below.
+:::
+
+The {class}`~netket.logging.SaveVariationalState` callback uses `nqxpack` under the
+hood to checkpoint the variational state automatically during an optimization run.
+
+### Lower-level alternative: flax.serialization
+
+Variational States also conform to the [Flax serialization interface](https://flax.readthedocs.io/en/latest/flax.serialization.html) and can be serialized and deserialized with it.
 
 Moreover, the Json Logger {class}`~netket.logging.JsonLog` serializes the variational state
 through that interface.
@@ -245,7 +276,7 @@ with open("test.mpack", 'wb') as file:
   file.write(flax.serialization.to_bytes(vstate))
 ```
 
-And here we de-serialize it:
+And here we de-serialize it (note: you must pre-construct a matching variational state first):
 
 ```python
 # construct a new RBM model on 10 spins
