@@ -306,6 +306,72 @@ def test_pauli_dense(Op):
 
 
 @pytest.mark.parametrize("Op", operators)
+def test_pauli_ladder_operators(Op):
+    hi = nk.hilbert.Qubit(2)
+
+    plus = Op(hi, "+I")
+    minus = Op(hi, "I-")
+    expected_plus = 0.5 * (
+        nk.operator.spin.sigmax(hi, 0, dtype=complex)
+        + 1j * nk.operator.spin.sigmay(hi, 0)
+    )
+    expected_minus = 0.5 * (
+        nk.operator.spin.sigmax(hi, 1, dtype=complex)
+        - 1j * nk.operator.spin.sigmay(hi, 1)
+    )
+
+    np.testing.assert_allclose(plus.to_dense(), expected_plus.to_dense())
+    np.testing.assert_allclose(minus.to_dense(), expected_minus.to_dense())
+
+    states = hi.all_states()
+    xp, mels = plus.get_conn_padded(states)
+    np.testing.assert_allclose(
+        xp[:, 0, :],
+        np.array(
+            [
+                [1, 0],
+                [1, 1],
+                [1, 0],
+                [1, 1],
+            ]
+        ),
+    )
+    np.testing.assert_allclose(mels[:, 0], np.array([1, 1, 0, 0]))
+
+
+@pytest.mark.parametrize("Op", operators)
+def test_pauli_ladder_strings_can_combine_with_z_phases(Op):
+    hi = nk.hilbert.Qubit(2)
+    op = Op(hi, "+Z")
+    expected = (
+        0.5
+        * (
+            nk.operator.spin.sigmax(hi, 0, dtype=complex)
+            + 1j * nk.operator.spin.sigmay(hi, 0)
+        )
+        @ nk.operator.spin.sigmaz(hi, 1)
+    )
+
+    np.testing.assert_allclose(op.to_dense(), expected.to_dense())
+
+
+@pytest.mark.parametrize("Op", operators)
+def test_pauli_ladder_matmul(Op):
+    hi = nk.hilbert.Qubit(1)
+    plus = Op(hi, "+")
+    minus = Op(hi, "-")
+    plus_expanded = 0.5 * (Op(hi, "X") + 1j * Op(hi, "Y"))
+    minus_expanded = 0.5 * (Op(hi, "X") - 1j * Op(hi, "Y"))
+
+    np.testing.assert_allclose(
+        (plus @ minus).to_dense(), (plus_expanded @ minus_expanded).to_dense()
+    )
+    np.testing.assert_allclose(
+        (minus @ plus).to_dense(), (minus_expanded @ plus_expanded).to_dense()
+    )
+
+
+@pytest.mark.parametrize("Op", operators)
 def test_pauli_zero(Op):
     op1 = Op(["IZ"], [1])
     op2 = Op(["IZ"], [-1])

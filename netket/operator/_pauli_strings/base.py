@@ -31,7 +31,7 @@ from netket.utils.numbers import dtype as _dtype, is_scalar
 from .._abstract_operator import AbstractOperator
 from .._discrete_operator import DiscreteOperator
 
-valid_pauli_regex = re.compile(r"^[XYZI]+$")
+valid_pauli_regex = re.compile(r"^[XYZI+-]+$")
 
 
 def _standardize_matrix_input_type(op):
@@ -97,7 +97,7 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
     if not consistent:
         raise ValueError(
             """Operators in string must be one of
-            the Pauli operators X,Y,Z, or the identity I"""
+            the Pauli operators X,Y,Z, ladder operators +,-, or the identity I"""
         )
 
     weights = _standardize_matrix_input_type(weights)
@@ -538,7 +538,6 @@ def _split_string(s):
     return [x for x in str(s)]
 
 
-@jit(nopython=True)
 def _make_new_pauli_string(op1, w1, op2, w2):
     """Compute the (symbolic) tensor product of two pauli strings with weights
     Args:
@@ -546,19 +545,39 @@ def _make_new_pauli_string(op1, w1, op2, w2):
         w1, w2 (complex): The corresponding weights
 
     Returns:
-        new_op (str): the new pauli string (result of the tensor product)
-        new_weight (complex): the weight of the pauli string
+        new_ops (list(str)): the new pauli strings (result of the tensor product)
+        new_weights (list(complex)): the weights of the pauli strings
 
     """
     assert len(op1) == len(op2)
     op1 = _split_string(op1)
     op2 = _split_string(op2)
-    o_w = [_apply_pauli_op_reduction(a, b) for a, b in zip(op1, op2)]
-    new_op = [o[0] for o in o_w]
-    new_weights = np.array([o[1] for o in o_w])
-    new_op = "".join(new_op)
-    new_weight = w1 * w2 * np.prod(new_weights)
-    return new_op, new_weight
+    local_terms = [_apply_op_reduction(a, b) for a, b in zip(op1, op2)]
+    new_ops = []
+    new_weights = []
+    for term_product in product(*local_terms):
+        new_op = "".join(o[0] for o in term_product)
+        new_weight = w1 * w2 * np.prod(np.array([o[1] for o in term_product]))
+        new_ops.append(new_op)
+        new_weights.append(new_weight)
+    return new_ops, new_weights
+
+
+def _pauli_expansion(op):
+    if op == "+":
+        return (("X", 0.5), ("Y", 0.5j))
+    if op == "-":
+        return (("X", 0.5), ("Y", -0.5j))
+    return ((op, 1),)
+
+
+def _apply_op_reduction(op1, op2):
+    terms = []
+    for pauli1, weight1 in _pauli_expansion(op1):
+        for pauli2, weight2 in _pauli_expansion(op2):
+            pauli, weight = _apply_pauli_op_reduction(pauli1, pauli2)
+            terms.append((pauli, weight1 * weight2 * weight))
+    return terms
 
 
 def _remove_zero_weights(op_arr, w_arr):
@@ -598,7 +617,6 @@ def _reduce_pauli_string(op_arr, w_arr):
     return operators, weights
 
 
-@jit(nopython=True)
 def _will_matmul_produce_complex_coefficients(op_arr1, op_arr2):
     """Check if multiplication will produce complex coefficients.
 
@@ -606,6 +624,8 @@ def _will_matmul_produce_complex_coefficients(op_arr1, op_arr2):
     """
     for op1 in op_arr1:
         for op2 in op_arr2:
+            if "+" in op1 or "-" in op1 or "+" in op2 or "-" in op2:
+                return True
             y_count = 0
             for i in range(len(op1)):
                 p1, p2 = op1[i], op2[i]
@@ -640,9 +660,9 @@ def _matmul(op_arr1, w_arr1, op_arr2, w_arr2, *, dtype):
     weights = []
     for (op1, w1), (op2, w2) in product(zip(op_arr1, w_arr1), zip(op_arr2, w_arr2)):
         # warning: numba always returns complex values, even if we are expecting float.
-        op, w = _make_new_pauli_string(op1, w1, op2, w2)
-        operators.append(op)
-        weights.append(w)
+        new_ops, new_weights = _make_new_pauli_string(op1, w1, op2, w2)
+        operators.extend(new_ops)
+        weights.extend(new_weights)
     # so here we recast to the desired dtype
     operators, weights = np.array(operators), np.array(weights)
     # explicit real part to avoid warning

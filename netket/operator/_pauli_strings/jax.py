@@ -75,7 +75,7 @@ def pack_internals(operators, weights, cutoff=0):
 
     def append(key, k):
         # convert list to tuple
-        key = tuple(sorted(key))  # order of X and Y does not matter
+        key = tuple(sorted(key))  # order of X, Y, + and - does not matter
         if key in acting:
             acting[key].append(k)
         else:
@@ -99,6 +99,14 @@ def pack_internals(operators, weights, cutoff=0):
             b_weight *= (-1.0j) ** (len(y_ops))  # absorb the -i into weights
             b_z_check += y_ops
 
+        plus_ops = find_char(op, "+")  # ladder operator: flips 0 -> 1
+        if len(plus_ops):
+            b_to_change += plus_ops
+
+        minus_ops = find_char(op, "-")  # ladder operator: flips 1 -> 0
+        if len(minus_ops):
+            b_to_change += minus_ops
+
         z_ops = find_char(op, "Z")  # find sites we act on with Z w/ op
         if len(z_ops):
             b_z_check += z_ops
@@ -113,7 +121,7 @@ def pack_internals(operators, weights, cutoff=0):
         if np.isreal(b_weight):
             b_weight = b_weight.real
 
-        append(b_to_change, (b_weight, b_z_check))
+        append(b_to_change, (b_weight, b_z_check, plus_ops, minus_ops))
     return acting
 
 
@@ -175,25 +183,43 @@ def pack_internals_jax(
     z_sign_masks = {}
     z_sign_indices = {}
     z_sign_indices_masks = {}
+    plus_masks = {}
+    plus_indices = {}
+    plus_indices_masks = {}
+    minus_masks = {}
+    minus_indices = {}
+    minus_indices_masks = {}
 
     for l, ops in acting_by_num_ops.items():
         x_flip_masks_l = []
         weights_l = []
         z_sign_masks_l = []  # if we decide to use masks
         z_sign_indices_l = []  # if we decide to use indexing
+        plus_masks_l = []
+        plus_indices_l = []
+        minus_masks_l = []
+        minus_indices_l = []
 
         for sites_to_flip, rest in ops:
             w = [r[0] for r in rest]
             sites_for_sgn = [r[1] for r in rest]
+            plus_sites = [r[2] for r in rest]
+            minus_sites = [r[3] for r in rest]
             x_flip_mask = sites_to_mask(sites_to_flip, n_sites)
             z_sign_mask = list(
                 map(partial(sites_to_mask, n_sites=n_sites), sites_for_sgn)
             )
+            plus_mask = list(map(partial(sites_to_mask, n_sites=n_sites), plus_sites))
+            minus_mask = list(map(partial(sites_to_mask, n_sites=n_sites), minus_sites))
 
             x_flip_masks_l.append(x_flip_mask)
             weights_l.append(w)
             z_sign_masks_l.append(z_sign_mask)
             z_sign_indices_l.append(sites_for_sgn)
+            plus_masks_l.append(plus_mask)
+            plus_indices_l.append(plus_sites)
+            minus_masks_l.append(minus_mask)
+            minus_indices_l.append(minus_sites)
 
         # turn into arrays
         x_flip_masks[l] = jnp.array(x_flip_masks_l, dtype=mask_dtype)
@@ -203,24 +229,29 @@ def pack_internals_jax(
             weights[l] = jnp.array(weights_l)
 
         z_sign_masks[l] = jnp.array(z_sign_masks_l, dtype=mask_dtype)
+        plus_masks[l] = jnp.array(plus_masks_l, dtype=mask_dtype)
+        minus_masks[l] = jnp.array(minus_masks_l, dtype=mask_dtype)
 
         # prepare index arrays if we are indexing
-        num_z = [len(y) for x in z_sign_indices_l for y in x]
-        maxlen = max(num_z, default=0)
-        pad = maxlen != min(num_z, default=0)
-        if pad:
-            # arbitrarily fill with -1
-            tmp1 = np.full((len(z_sign_indices_l), l, maxlen), -1, dtype=index_dtype)
-            tmp2 = np.full((len(z_sign_indices_l), l, maxlen), False, dtype=mask_dtype)
-            for i, inds in enumerate(z_sign_indices_l):
-                for j, ind in enumerate(inds):
-                    tmp1[i, j, : len(ind)] = ind
-                    tmp2[i, j, : len(ind)] = True
-            z_sign_indices[l] = jnp.array(tmp1)
-            z_sign_indices_masks[l] = jnp.array(tmp2)
-        else:  # no padding needed, all have the same length
-            z_sign_indices[l] = jnp.array(z_sign_indices_l, dtype=index_dtype)
-            z_sign_indices_masks[l] = None
+        def pack_indices(indices_l):
+            num_indices = [len(y) for x in indices_l for y in x]
+            maxlen = max(num_indices, default=0)
+            pad = maxlen != min(num_indices, default=0)
+            if pad:
+                # arbitrarily fill with -1
+                tmp1 = np.full((len(indices_l), l, maxlen), -1, dtype=index_dtype)
+                tmp2 = np.full((len(indices_l), l, maxlen), False, dtype=mask_dtype)
+                for i, inds in enumerate(indices_l):
+                    for j, ind in enumerate(inds):
+                        tmp1[i, j, : len(ind)] = ind
+                        tmp2[i, j, : len(ind)] = True
+                return jnp.array(tmp1), jnp.array(tmp2)
+            else:  # no padding needed, all have the same length
+                return jnp.array(indices_l, dtype=index_dtype), None
+
+        z_sign_indices[l], z_sign_indices_masks[l] = pack_indices(z_sign_indices_l)
+        plus_indices[l], plus_indices_masks[l] = pack_indices(plus_indices_l)
+        minus_indices[l], minus_indices_masks[l] = pack_indices(minus_indices_l)
 
     # transform the arrays into lists so that we have consistent ordering
     # as we will concatenate the results in the operator
@@ -235,12 +266,33 @@ def pack_internals_jax(
     z_sign_indices_masks = [
         z_sign_indices_masks[k] if (mode == "index") else None for k in keys
     ]
+    plus_masks = [plus_masks[k] if (mode == "mask") else None for k in keys]
+    plus_indices = [plus_indices[k] if (mode == "index") else None for k in keys]
+    plus_indices_masks = [
+        plus_indices_masks[k] if (mode == "index") else None for k in keys
+    ]
+    minus_masks = [minus_masks[k] if (mode == "mask") else None for k in keys]
+    minus_indices = [minus_indices[k] if (mode == "index") else None for k in keys]
+    minus_indices_masks = [
+        minus_indices_masks[k] if (mode == "index") else None for k in keys
+    ]
 
     if len(x_flip_masks) > 0:
         x_flip_masks_stacked = jnp.concatenate(x_flip_masks, axis=0)
     else:  # empty / zero operator
         x_flip_masks_stacked = jnp.zeros((0, n_sites), dtype=mask_dtype)
-    z_data = (weights, z_sign_masks, z_sign_indices, z_sign_indices_masks)
+    z_data = (
+        weights,
+        z_sign_masks,
+        z_sign_indices,
+        z_sign_indices_masks,
+        plus_masks,
+        plus_indices,
+        plus_indices_masks,
+        minus_masks,
+        minus_indices,
+        minus_indices_masks,
+    )
     return x_flip_masks_stacked, z_data
 
 
@@ -252,7 +304,18 @@ def _pauli_strings_mels_jax(z_data, x):
     state1 = 1
     was_state_1 = x == state1
     mels = []
-    for w, z_sign_mask, z_sign_indices, z_sign_indexmask in zip(*z_data):
+    for (
+        w,
+        z_sign_mask,
+        z_sign_indices,
+        z_sign_indexmask,
+        plus_mask,
+        plus_indices,
+        plus_indexmask,
+        minus_mask,
+        minus_indices,
+        minus_indexmask,
+    ) in zip(*z_data):
         if z_sign_mask is not None:  # use masks
             was_state = was_state_1[..., None, None, :]
             mask = z_sign_mask
@@ -267,7 +330,26 @@ def _pauli_strings_mels_jax(z_data, x):
         sgn = (1 - 2 * (was_state * mask).astype(np.int8)).prod(
             axis=-1, promote_integers=False
         )
-        mels.append(jnp.einsum("...ab,ab->...a", sgn, w))
+
+        if plus_mask is not None:
+            plus_allowed = ~(was_state_1[..., None, None, :] & plus_mask).any(axis=-1)
+            minus_allowed = (was_state_1[..., None, None, :] | ~minus_mask).all(axis=-1)
+        else:
+            assert plus_indices is not None
+            plus_states = x[..., plus_indices] == state1
+            if plus_indexmask is not None:
+                plus_states = plus_states & plus_indexmask
+            plus_allowed = ~plus_states.any(axis=-1)
+
+            assert minus_indices is not None
+            minus_states = x[..., minus_indices] == state1
+            if minus_indexmask is None:
+                minus_allowed = minus_states.all(axis=-1)
+            else:
+                minus_allowed = (minus_states | ~minus_indexmask).all(axis=-1)
+
+        allowed = plus_allowed & minus_allowed
+        mels.append(jnp.einsum("...ab,ab->...a", sgn * allowed, w))
     if len(mels) > 0:
         return jnp.concatenate(mels, axis=-1)
     else:
@@ -400,7 +482,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
                 self._x_flip_masks_stacked = jnp.zeros(
                     (0, self.hilbert.size), dtype=jnp.bool_
                 )
-                self._z_data = ([], [], [], [])
+                self._z_data = ([], [], [], [], [], [], [], [], [], [])
             else:
                 x_flip_masks_stacked, z_data = pack_internals_jax(
                     self.operators, weights, weight_dtype=self.dtype, mode=self._mode

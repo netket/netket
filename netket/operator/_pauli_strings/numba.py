@@ -39,11 +39,15 @@ def pack_internals_numba(
 ):
     acting = pack_internals(operators, weights)
 
-    # the most Z we need to do anywhere
+    # the most Z / ladder constraints we need to check anywhere
     _n_z_check_max = 0
+    _n_plus_check_max = 0
+    _n_minus_check_max = 0
     for v in acting.values():
-        for _, b_z_check in v:
+        for _, b_z_check, b_plus_check, b_minus_check in v:
             _n_z_check_max = max(_n_z_check_max, len(b_z_check))
+            _n_plus_check_max = max(_n_plus_check_max, len(b_plus_check))
+            _n_minus_check_max = max(_n_minus_check_max, len(b_minus_check))
 
     n_operators = len(acting)
     # maximum number of strings which have the same sites to act on with X, but have different sites for Z
@@ -65,6 +69,12 @@ def pack_internals_numba(
     _nz_check = np.empty((n_operators, _n_op_max), dtype=np.intp)
     # sites to act on with Z for each operators of the X strings, padded
     _z_check = np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=np.intp)
+    # sites with + ladder operators, which require the current state to be 0
+    _n_plus_check = np.empty((n_operators, _n_op_max), dtype=np.intp)
+    _plus_check = np.empty((n_operators, _n_op_max, _n_plus_check_max), dtype=np.intp)
+    # sites with - ladder operators, which require the current state to be 1
+    _n_minus_check = np.empty((n_operators, _n_op_max), dtype=np.intp)
+    _minus_check = np.empty((n_operators, _n_op_max, _n_minus_check_max), dtype=np.intp)
 
     for i, act in enumerate(acting.items()):
         sites = act[0]
@@ -77,6 +87,10 @@ def pack_internals_numba(
             _weights[i, j] = values[j][0]
             _nz_check[i, j] = len(values[j][1])
             _z_check[i, j, : _nz_check[i, j]] = values[j][1]
+            _n_plus_check[i, j] = len(values[j][2])
+            _plus_check[i, j, : _n_plus_check[i, j]] = values[j][2]
+            _n_minus_check[i, j] = len(values[j][3])
+            _minus_check[i, j, : _n_minus_check[i, j]] = values[j][3]
 
     return {
         "sites": _sites,
@@ -85,6 +99,10 @@ def pack_internals_numba(
         "weights_numba": _weights,
         "nz_check": _nz_check,
         "z_check": _z_check,
+        "n_plus_check": _n_plus_check,
+        "plus_check": _plus_check,
+        "n_minus_check": _n_minus_check,
+        "minus_check": _minus_check,
         "n_operators": n_operators,
         "mel_dtype": dtype,
     }
@@ -154,6 +172,10 @@ class PauliStringsNumba(PauliStringsBase):
             self._weights_numba = data["weights_numba"]
             self._nz_check = data["nz_check"]
             self._z_check = data["z_check"]
+            self._n_plus_check = data["n_plus_check"]
+            self._plus_check = data["plus_check"]
+            self._n_minus_check = data["n_minus_check"]
+            self._minus_check = data["minus_check"]
             self._n_operators = data["n_operators"]
 
             # caches for execution
@@ -179,6 +201,10 @@ class PauliStringsNumba(PauliStringsBase):
         weights,
         nz_check,
         z_check,
+        n_plus_check,
+        plus_check,
+        n_minus_check,
+        minus_check,
         cutoff,
         max_conn,
         pad=False,
@@ -197,6 +223,19 @@ class PauliStringsNumba(PauliStringsBase):
                 mel = 0.0
                 # iterate over the Z substrings
                 for j in range(n_op[i]):
+                    allowed = True
+                    for site in plus_check[i, j, : n_plus_check[i, j]]:
+                        if xb[site] == state_1:
+                            allowed = False
+                            break
+                    if allowed:
+                        for site in minus_check[i, j, : n_minus_check[i, j]]:
+                            if xb[site] != state_1:
+                                allowed = False
+                                break
+                    if not allowed:
+                        continue
+
                     # apply all the Z (check the qubits at all affected sites)
                     if nz_check[i, j] > 0:
                         to_check = z_check[i, j, : nz_check[i, j]]
@@ -266,6 +305,10 @@ class PauliStringsNumba(PauliStringsBase):
             self._weights_numba,
             self._nz_check,
             self._z_check,
+            self._n_plus_check,
+            self._plus_check,
+            self._n_minus_check,
+            self._minus_check,
             self._cutoff,
             self._n_operators,
             pad,
