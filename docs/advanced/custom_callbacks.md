@@ -2,7 +2,7 @@
 # The Run Loop and Callback Hooks
 
 This page describes the internal structure of the optimization loop executed by
-{class}`~netket.driver.AbstractVariationalDriver` and the hooks available to
+{class}`~netket.driver.AbstractDriver` and the hooks available to
 {class}`~netket.callbacks.AbstractCallback` implementations.
 
 If you only need simple per-step logic, see the legacy callback interface described in the
@@ -13,7 +13,7 @@ gradient computation, before the parameter update, and at the very start or end 
 ## The run loop
 
 The pseudocode below shows every point at which a callback can be invoked during
-{meth}`AbstractVariationalDriver.run() <netket.driver.AbstractVariationalDriver.run>`.
+{meth}`AbstractDriver.run() <netket.driver.AbstractDriver.run>`.
 The labels in angle brackets (`<hook_name>`) correspond directly to the methods of
 {class}`~netket.callbacks.AbstractCallback`.
 
@@ -123,7 +123,7 @@ class MyCallback(nk.callbacks.AbstractCallback):
         print(f"Finished at step {step}")
 ```
 
-Pass the callback to {meth}`~netket.driver.AbstractVariationalDriver.run`:
+Pass the callback to {meth}`~netket.driver.AbstractDriver.run`:
 
 ```python
 gs.run(n_iter=300, out="output", callback=MyCallback())

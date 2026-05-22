@@ -43,7 +43,7 @@ clear which object is being optimized.
 
 ## Running the optimisation
 
-The simplest way to use optimization drivers to perform the optimisation is to use their {attr}`~netket.driver.AbstractVariationalDriver.run` method.
+The simplest way to use optimization drivers to perform the optimisation is to use their {attr}`~netket.driver.AbstractDriver.run` method.
 
 This method will run the optimisation for the desired number of steps, while logging data to the
 desired output.
@@ -67,7 +67,7 @@ run(n_iter, out=None, obs=None, callback=None, step_size=None)
   - The {code}`callbacks` can be used to pass callbacks to the optimisation driver. Callbacks must be callables with the signature
     .. code:: python
 
-    > (step:int, logdata:dict, driver:AbstractVariationalDriver) -> bool
+    > (step:int, logdata:dict, driver:AbstractDriver) -> bool
 
   The first argument is the step number, the second argument is the dictionary holding data that will be logged, and it can be modified by the callback, and the third is the driver itself, which can be used to access the current state or any other quantity.
   The output of the callback must be a boolean, which signals whether to continue the optimisation or not. When any one of the callbacks return {code}`False`, the optimisation will be stopped.

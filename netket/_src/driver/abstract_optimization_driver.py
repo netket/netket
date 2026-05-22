@@ -31,8 +31,9 @@ class AbstractOptimizationDriver(AbstractDriver):
     Adds an `optax <https://optax.readthedocs.io/en/latest/>`_ optimizer and
     implements :meth:`update_parameters` via :func:`apply_gradient`.
 
-    Subclass this (not :class:`AbstractVariationalDriver` directly) when
-    implementing a new optimization driver.
+    Subclass this when implementing a new optimization driver. The public
+    name :class:`AbstractVariationalDriver` is currently kept as a compatibility
+    alias for this class.
     """
 
     _optimizer: Optimizer = struct.field(pytree_node=False, serialize=False)

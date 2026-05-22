@@ -16,7 +16,7 @@ def get_forward_operator(driver):
     ``@get_forward_operator.dispatch`` for custom driver types.
 
     Example:
-       class VMC(AbstractVariationalDriver):
+       class VMC(AbstractOptimizationDriver):
             ...
 
         @get_forward_operator.dispatch
@@ -59,7 +59,7 @@ class AutoChunkSize(AbstractCallback):
 
         from netket._src.callbacks.auto_chunk_size import get_forward_operator
 
-        class MyDriver(AbstractVariationalDriver):
+        class MyDriver(AbstractOptimizationDriver):
             def __init__(self, hamiltonian, ...):
                 self._ham = hamiltonian
                 ...

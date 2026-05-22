@@ -30,7 +30,8 @@ from netket._src.driver.vmc_sr import VMC_SR as VMC_SR
 from netket.utils import _hide_submodules
 
 
-# TODO: At some point deprecate the old AbstractVariationalDriver name.
+# Keep the old name as a silent alias for now. Leave the deprecation wiring
+# commented out until we are ready to warn users.
 from netket._src.driver.abstract_optimization_driver import (
     AbstractOptimizationDriver as AbstractVariationalDriver,
 )

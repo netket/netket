@@ -313,7 +313,7 @@ class AbstractDriver(struct.Pytree, mutable=True):
         Example of subclassing:
 
         .. code:: python
-            class MyDriver(AbstractVariationalDriver):
+            class MyDriver(AbstractDriver):
                 ...
                 def _default_callbacks(self, *args, **kwargs):
                     callbacks = super()._default_callbacks(*args, **kwargs)

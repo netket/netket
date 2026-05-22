@@ -18,8 +18,14 @@ Those are the abstract classes you can inherit from to implement your own driver
    :toctree: _generated/driver
    :nosignatures:
 
-   AbstractVariationalDriver
+   AbstractDriver
+   AbstractOptimizationDriver
+   AbstractDynamicsDriver
 ```
+
+For backward compatibility, {class}`~netket.driver.AbstractVariationalDriver`
+remains an alias of {class}`~netket.driver.AbstractOptimizationDriver`, but new
+code should use the canonical class names above.
 
 (drivers_concrete)=
 ## Concrete drivers

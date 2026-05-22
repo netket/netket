@@ -6,7 +6,7 @@ class StopRun(Exception):
     Exception to be raised by callbacks to gracefully stop the optimisation loop.
 
     Raise this exception (or a subclass of it) from any callback hook to stop
-    the :meth:`~netket.driver.AbstractVariationalDriver.run` loop early.
+    the :meth:`~netket.driver.AbstractDriver.run` loop early.
     The driver will catch it, call
     :meth:`~netket.callbacks.AbstractCallback.on_run_end` on all callbacks, and
     then return normally — no traceback is printed and no exception propagates to
@@ -104,7 +104,7 @@ class AbstractCallback(struct.Pytree, mutable=True):
 
         At this point:
 
-        - The loss and its gradient have been computed by :meth:`~netket.driver.AbstractVariationalDriver.compute_loss_and_update`.
+        - The loss and its gradient have been computed by :meth:`~netket.driver.AbstractDriver.compute_loss_and_update`.
         - The step has been accepted (not rejected by :meth:`on_compute_update_end`).
         - ``driver.step_count`` still refers to the *current* step — it has not yet been incremented.
         - The variational state parameters have **not** yet changed.

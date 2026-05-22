@@ -6,8 +6,8 @@
 
 ```
 
-This module contains the loggers that can be used with the optimization drivers by passing them to the `out=` keyword argument of 
-{meth}`~netket.driver.AbstractVariationalDriver.run`.
+This module contains the loggers that can be used with drivers by passing them to
+the `out=` keyword argument of {meth}`~netket.driver.AbstractDriver.run`.
 
 
 ```{eval-rst}

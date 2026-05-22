@@ -512,14 +512,13 @@ class VMC_SR(AbstractOptimizationDriver):
     @timing.timed
     def _log_additional_data(self, log_dict: dict):
         """
-        Method to be implemented in sub-classes of AbstractVariationalDriver to
+        Method to be implemented in sub-classes of AbstractDriver to
         log additional data at every step.
         This method is called at every iteration when executing with `run`.
 
         Args:
             log_dict: The dictionary containing all logged data. It must be
                 **modified in-place** adding new keys.
-            step: the current step number.
         """
         super()._log_additional_data(log_dict)
 

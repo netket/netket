@@ -1351,7 +1351,7 @@ class LogAdditionalDataSignatureDeprecationWarning(NetketWarning):
 
         .. code-block:: python
 
-            class MyDriver(nk.driver.AbstractVariationalDriver):
+            class MyDriver(nk.driver.AbstractOptimizationDriver):
                 def _log_additional_data(self, log_dict: dict, step: int):
                     log_dict["my_value"] = self.compute_something(step)
 
@@ -1359,7 +1359,7 @@ class LogAdditionalDataSignatureDeprecationWarning(NetketWarning):
 
         .. code-block:: python
 
-            class MyDriver(nk.driver.AbstractVariationalDriver):
+            class MyDriver(nk.driver.AbstractOptimizationDriver):
                 def _log_additional_data(self, log_dict: dict):
                     super()._log_additional_data(log_dict)
                     log_dict["my_value"] = self.compute_something(self.step_count)
@@ -1374,13 +1374,13 @@ class LogAdditionalDataSignatureDeprecationWarning(NetketWarning):
 
             Instead of:
 
-                class {cls_name}(AbstractVariationalDriver):
+                class {cls_name}(AbstractOptimizationDriver):
                     def _log_additional_data(self, log_dict: dict, step: int):
                         ...
 
             Use:
 
-                class {cls_name}(AbstractVariationalDriver):
+                class {cls_name}(AbstractOptimizationDriver):
                     def _log_additional_data(self, log_dict: dict):
                         # use self.step_count instead of step
                         ...
@@ -1409,7 +1409,7 @@ class ForwardAndBackwardDeprecationWarning(NetketWarning):
 
         .. code-block:: python
 
-            class MyDriver(nk.driver.AbstractVariationalDriver):
+            class MyDriver(nk.driver.AbstractOptimizationDriver):
                 def _forward_and_backward(self):
                     # ... compute loss and gradient ...
                     self._loss_stats = loss
@@ -1419,7 +1419,7 @@ class ForwardAndBackwardDeprecationWarning(NetketWarning):
 
         .. code-block:: python
 
-            class MyDriver(nk.driver.AbstractVariationalDriver):
+            class MyDriver(nk.driver.AbstractOptimizationDriver):
                 def compute_loss_and_update(self):
                     # ... compute loss and gradient ...
                     return loss, gradient
@@ -1434,14 +1434,14 @@ class ForwardAndBackwardDeprecationWarning(NetketWarning):
 
             Instead of:
 
-                class {cls_name}(AbstractVariationalDriver):
+                class {cls_name}(AbstractOptimizationDriver):
                     def _forward_and_backward(self):
                         self._loss_stats = loss  # side-effect
                         return gradient
 
             Use:
 
-                class {cls_name}(AbstractVariationalDriver):
+                class {cls_name}(AbstractOptimizationDriver):
                     def compute_loss_and_update(self):
                         return loss, gradient    # explicit tuple
             """
