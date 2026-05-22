@@ -37,19 +37,9 @@ vstate = nk.vqs.MCState(sampler, model, n_samples=1000)
 gs = nk.driver.VMC(hamiltonian, optimizer, variational_state=vstate)
 ```
 
-There also exist an alternative syntax, where instead of passing the variational state you pass the arguments needed to construct the variational state to the driver itself.
-
-```python
-hamiltonian = nk.operator.Ising(hilbert, ...)
-
-optimizer = nk.optimizer.SGD(learning_rate=0.1)
-
-gs = nk.driver.VMC(hamiltonian, optimizer, sampler, model, n_samples=1000)
-```
-
-And you can then access the variational state constructed like that through the attribute `gs.state`.
-The latter is there to guarantee better compatibility with legacy codebases, therefore we suggest to
-use the more first API, where the variational state is built explicitly.
+Construct the variational state explicitly before instantiating the driver. This keeps
+sampling parameters such as `n_samples` attached to the variational state, and makes it
+clear which object is being optimized.
 
 ## Running the optimisation
 
