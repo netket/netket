@@ -147,7 +147,12 @@ class Config:
                 f"value {value} is a {type(value)}."
             )
 
-        self._values[name] = self._types[name](value)
+        value = self._types[name](value)
+
+        if self._callbacks[name] is not None:
+            self._callbacks[name](value)
+
+        self._values[name] = value
 
     def __repr__(self):
         txt = "\nGlobal configurations for NetKet\n"
@@ -170,11 +175,7 @@ class Config:
     def __setattr__(self, name: str, value: Any) -> None:
         """Handle setting dynamically created attributes."""
         if name == name.lower() and name.upper() in self._values:
-            # Handle config flag setting
-            upper_name = name.upper()
-            if self._callbacks[upper_name] is not None:
-                self._callbacks[upper_name](value)
-            self.update(upper_name, value)
+            self.update(name.upper(), value)
             return
         # Use default behavior for everything else
         super().__setattr__(name, value)
