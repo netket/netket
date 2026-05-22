@@ -5,6 +5,7 @@ import jax.numpy as jnp
 from flax import nnx
 
 import netket as nk
+import netket.experimental as nkx
 
 
 # Common setup
@@ -164,3 +165,27 @@ def test_apply_operator_twice(vstate):
     )
 
     assert jnp.linalg.norm(result_1 - result_2) < 1e-12
+
+
+def test_apply_operator_continuous_mcstate_raises():
+    hilbert = nkx.hilbert.Particle(
+        N=1, geometry=nkx.geometry.Cell(d=1, L=5.0, pbc=True)
+    )
+    sampler = nk.sampler.MetropolisGaussian(
+        hilbert, sigma=1.0, n_chains=4, sweep_size=1
+    )
+    operator = nk.operator.PotentialEnergy(
+        hilbert, lambda x: jnp.sum(x**2, axis=-1)
+    )
+    vstate = nk.vqs.MCState(
+        sampler,
+        nk.models.Gaussian(),
+        n_samples=16,
+        n_discard_per_chain=0,
+        sampler_seed=123,
+    )
+
+    assert isinstance(vstate.sampler_state, nk.sampler.MetropolisSamplerState)
+
+    with pytest.raises(NotImplementedError, match="continuous operator"):
+        nk.vqs.apply_operator(operator, vstate, seed=123)

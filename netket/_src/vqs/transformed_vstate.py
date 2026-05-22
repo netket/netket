@@ -148,7 +148,9 @@ def apply_operator(
                     transformed_vstate.sampler_state.replace(σ=new_x)
                 )
             elif isinstance(operator, ContinuousOperator):
-                # TODO: Implement
-                pass
+                raise NotImplementedError(
+                    "Applying a continuous operator to an MCState with a Metropolis "
+                    "sampler state is not implemented."
+                )
 
         return transformed_vstate
