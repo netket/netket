@@ -38,6 +38,7 @@ While the loggers available for simulations are the following:
    StateLog
    TensorBoardLog
    HDF5Log
+   MLFlowLog
    SaveVariationalState
 ```
 

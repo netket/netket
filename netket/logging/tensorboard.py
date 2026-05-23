@@ -40,26 +40,6 @@ def _expand_tensorboard_node(_root, tree, **_kwargs):
     return None
 
 
-def tree_log(tree, root, data):
-    """
-    Maps all elements in tree, recursively calling tree_log with a new root string,
-    and when it reaches leaves pushes (string, leaf) tuples to data.
-
-    Args:
-        tree: a pytree where the leaf nodes contain data
-        root: the root of the tags used to log to tensorboard
-        data: a container modified in place
-
-    """
-    walk_tree_with_path(
-        tree,
-        root,
-        visit_leaf=_collect_tensorboard_leaf,
-        expand_node=_expand_tensorboard_node,
-        data=data,
-    )
-
-
 class TensorBoardLog(AbstractLog):
     """
     Creates a tensorboard logger using tensorboardX's summarywriter.

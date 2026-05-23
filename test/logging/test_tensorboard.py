@@ -8,7 +8,11 @@ from jax.nn.initializers import normal
 from jax import numpy as jnp
 
 import netket as nk
-from netket.logging.tensorboard import tree_log
+from netket.utils.tree_walk import walk_tree_with_path
+from netket.logging.tensorboard import (
+    _collect_tensorboard_leaf,
+    _expand_tensorboard_node,
+)
 
 from .. import common
 
@@ -55,7 +59,7 @@ def test_tblog_tree_log_paths():
     Pair = namedtuple("Pair", ["x", "y"])
 
     data = []
-    tree_log(
+    walk_tree_with_path(
         {
             "scalar": 1.0,
             "complex": 2.0 + 3.0j,
@@ -69,7 +73,9 @@ def test_tblog_tree_log_paths():
             ),
         },
         "",
-        data,
+        visit_leaf=_collect_tensorboard_leaf,
+        expand_node=_expand_tensorboard_node,
+        data=data,
     )
 
     assert data == [

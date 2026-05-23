@@ -52,7 +52,7 @@ dependencies = [
 [project.optional-dependencies]
 cuda = ["jax[cuda12]; sys_platform == 'linux'"]
 pyscf = ["pyscf>=2.0"]
-extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4"]
+extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4", "mlflow>=2.0.0"]
 dev = [
     "networkx>=2.4",
     "matplotlib>=3",

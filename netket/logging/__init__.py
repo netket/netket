@@ -17,8 +17,8 @@ from netket.logging.runtime_log import RuntimeLog
 from netket.logging.json_log import JsonLog
 from netket.logging.state_log import StateLog
 from netket.logging.tensorboard import TensorBoardLog
-
 from netket._src.logging.hdf5_log import HDF5Log
+from netket._src.logging.mlflow_log import MLFlowLog
 
 from netket._src.callbacks.save_state import (
     SaveVariationalState as SaveVariationalState,
