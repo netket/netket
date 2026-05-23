@@ -20,6 +20,7 @@ from flax.serialization import to_bytes
 
 from netket.jax.sharding import extract_replicated
 from netket.logging.base import AbstractLog
+from netket.utils.tree_walk import walk_tree_with_path
 
 _MODE_SHORTHANDS = {"write": "w", "append": "a", "fail": "x"}
 _DEFAULT_CHUNK_BYTES = 256 * 1024
@@ -37,6 +38,38 @@ def _compute_chunk_shape(value: np.ndarray, chunk_size: int | None) -> tuple[int
     return (rows, *value.shape)
 
 
+def _append_dataset(root, value, data, *, chunk_size: int | None = None):
+    value = np.asarray(value)
+    if root in data:
+        f_value = data[root]
+        f_value.resize(f_value.shape[0] + 1, axis=0)
+        f_value[-1] = value
+    else:
+        maxshape = (None, *value.shape)
+        chunks = _compute_chunk_shape(value, chunk_size)
+        data.create_dataset(root, data=[value], maxshape=maxshape, chunks=chunks)
+
+
+def _tree_log_leaf(root, tree, data, *, iter=None, chunk_size: int | None = None):
+    if iter is not None:
+        _append_dataset(f"{root}/iter", iter, data, chunk_size=chunk_size)
+        root = f"{root}/value"
+
+    _append_dataset(root, tree, data, chunk_size=chunk_size)
+    return root
+
+
+def _enter_hdf5_group(root, tree, data, *, iter=None, chunk_size=None):
+    if iter is None:
+        return None
+
+    if isinstance(tree, tuple) or hasattr(tree, "to_compound") or hasattr(tree, "to_dict"):
+        _append_dataset(f"{root}/iter", iter, data, chunk_size=chunk_size)
+        return {"iter": None}
+
+    return None
+
+
 def tree_log(tree, root, data, *, iter=None, chunk_size: int | None = None):
     """
     Maps all elements in tree, recursively calling tree_log with a new root string,
@@ -48,56 +81,15 @@ def tree_log(tree, root, data, *, iter=None, chunk_size: int | None = None):
         data: an HDF5 file modified in place
         iter: an integer number specifying at which iteration the data was generated
     """
-
-    if tree is None:
-        return
-
-    elif isinstance(tree, list):
-        for i, val in enumerate(tree):
-            tree_log(val, f"{root}/{i}", data, iter=iter, chunk_size=chunk_size)
-
-    # handle namedtuples
-    elif isinstance(tree, tuple) and hasattr(tree, "_fields"):
-        tree_log(iter, f"{root}/iter", data, chunk_size=chunk_size)
-        for key in tree._fields:
-            tree_log(getattr(tree, key), f"{root}/{key}", data, chunk_size=chunk_size)
-
-    elif isinstance(tree, tuple):
-        tree_log(iter, f"{root}/iter", data, chunk_size=chunk_size)
-        for i, val in enumerate(tree):
-            tree_log(val, f"{root}/{i}", data, chunk_size=chunk_size)
-
-    elif isinstance(tree, dict):
-        for key, value in tree.items():
-            tree_log(
-                value,
-                f"{root}/{key}",
-                data,
-                iter=iter,
-                chunk_size=chunk_size,
-            )  # noqa: F722
-
-    elif hasattr(tree, "to_compound"):
-        tree_log(iter, f"{root}/iter", data, chunk_size=chunk_size)
-        tree_log(tree.to_compound()[1], root, data, chunk_size=chunk_size)  # noqa: F722
-
-    elif hasattr(tree, "to_dict"):
-        tree_log(iter, f"{root}/iter", data, chunk_size=chunk_size)
-        tree_log(tree.to_dict(), root, data, chunk_size=chunk_size)  # noqa: F722
-
-    else:
-        if iter is not None:
-            tree_log(iter, f"{root}/iter", data, chunk_size=chunk_size)
-            root = f"{root}/value"
-        value = np.asarray(tree)
-        if root in data:
-            f_value = data[root]
-            f_value.resize(f_value.shape[0] + 1, axis=0)
-            f_value[-1] = value
-        else:
-            maxshape = (None, *value.shape)
-            chunks = _compute_chunk_shape(value, chunk_size)
-            data.create_dataset(root, data=[value], maxshape=maxshape, chunks=chunks)
+    walk_tree_with_path(
+        tree,
+        root,
+        visit_leaf=_tree_log_leaf,
+        enter_node=_enter_hdf5_group,
+        data=data,
+        iter=iter,
+        chunk_size=chunk_size,
+    )
 
 
 class HDF5Log(AbstractLog):

@@ -16,6 +16,7 @@ from typing import Any, TYPE_CHECKING
 from numbers import Number
 
 from netket.utils.optional_deps import import_optional_dependency
+from netket.utils.tree_walk import walk_tree_with_path
 from netket.vqs import VariationalState
 
 from .base import AbstractLog
@@ -24,10 +25,25 @@ if TYPE_CHECKING:
     import tensorboardX
 
 
+def _collect_tensorboard_leaf(root, tree, data):
+    data.append((root, tree))
+
+
+def _write_tensorboard_leaf(root, tree, *, writer, step):
+    if isinstance(tree, Number):
+        writer.add_scalar(root.removeprefix("/"), tree, step)
+
+
+def _expand_tensorboard_node(_root, tree, **_kwargs):
+    if isinstance(tree, complex):
+        return (("re", tree.real), ("im", tree.imag))
+    return None
+
+
 def tree_log(tree, root, data):
     """
     Maps all elements in tree, recursively calling tree_log with a new root string,
-    and when it reaches leaves pushes (string, leave) tuples to data.
+    and when it reaches leaves pushes (string, leaf) tuples to data.
 
     Args:
         tree: a pytree where the leaf nodes contain data
@@ -35,36 +51,13 @@ def tree_log(tree, root, data):
         data: a container modified in place
 
     """
-    if tree is None:
-        return
-    elif isinstance(tree, list):
-        for i, val in enumerate(tree):
-            tree_log(val, root + f"/{i}", data)
-
-    elif isinstance(tree, list) and hasattr(tree, "_fields"):
-        for key in tree._fields:  # type: ignore
-            tree_log(getattr(tree, key), root + f"/{key}", data)
-
-    elif isinstance(tree, tuple):
-        for i, val in enumerate(tree):
-            tree_log(val, root + f"/{i}", data)
-
-    elif isinstance(tree, dict):
-        for key, value in tree.items():
-            tree_log(value, root + f"/{key}", data)  # noqa: F722
-
-    elif hasattr(tree, "to_compound"):
-        tree_log(tree.to_compound()[1], root, data)  # noqa: F722  # type: ignore
-
-    elif hasattr(tree, "to_dict"):
-        tree_log(tree.to_dict(), root, data)  # noqa: F722  # type: ignore
-
-    elif isinstance(tree, complex):
-        tree_log(tree.real, root + "/re", data)  # noqa: F722
-        tree_log(tree.imag, root + "/im", data)  # noqa: F722
-
-    else:
-        data.append((root, tree))
+    walk_tree_with_path(
+        tree,
+        root,
+        visit_leaf=_collect_tensorboard_leaf,
+        expand_node=_expand_tensorboard_node,
+        data=data,
+    )
 
 
 class TensorBoardLog(AbstractLog):
@@ -152,12 +145,14 @@ class TensorBoardLog(AbstractLog):
             self._init_tensorboard()
         assert self._writer is not None
 
-        data = []
-        tree_log(item, "", data)
-
-        for key, val in data:
-            if isinstance(val, Number):
-                self._writer.add_scalar(key[1:], val, step)
+        walk_tree_with_path(
+            item,
+            "",
+            visit_leaf=_write_tensorboard_leaf,
+            expand_node=_expand_tensorboard_node,
+            writer=self._writer,
+            step=step,
+        )
 
         self._writer.flush()
         self._old_step = step

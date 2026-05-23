@@ -1,12 +1,14 @@
 import pytest
 
 import glob
+from collections import namedtuple
 
 import jax
 from jax.nn.initializers import normal
 from jax import numpy as jnp
 
 import netket as nk
+from netket.logging.tensorboard import tree_log
 
 from .. import common
 
@@ -46,6 +48,42 @@ def test_tblog(vstate, tmp_path):
 
     files = glob.glob(path + "/*")
     assert len(files) >= 1
+
+
+@common.skipif_distributed
+def test_tblog_tree_log_paths():
+    Pair = namedtuple("Pair", ["x", "y"])
+
+    data = []
+    tree_log(
+        {
+            "scalar": 1.0,
+            "complex": 2.0 + 3.0j,
+            "pair": Pair(4.0, 5.0),
+            "stats": nk.stats.Stats(
+                mean=6.0,
+                error_of_mean=0.1,
+                variance=0.2,
+                tau_corr=0.3,
+                R_hat=1.0,
+            ),
+        },
+        "",
+        data,
+    )
+
+    assert data == [
+        ("/scalar", 1.0),
+        ("/complex/re", 2.0),
+        ("/complex/im", 3.0),
+        ("/pair/x", 4.0),
+        ("/pair/y", 5.0),
+        ("/stats/Mean", 6.0),
+        ("/stats/Variance", 0.2),
+        ("/stats/Sigma", 0.1),
+        ("/stats/R_hat", 1.0),
+        ("/stats/TauCorr", 0.3),
+    ]
 
 
 @common.skipif_distributed

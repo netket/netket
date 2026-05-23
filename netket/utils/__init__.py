@@ -40,6 +40,7 @@ from netket.utils.seed import random_seed
 from netket.utils.summation import KahanSum
 
 from netket.utils.holomorphic import is_probably_holomorphic
+from netket.utils.tree_walk import walk_tree_with_path
 
 from netket.utils.deprecation import (
     warn_deprecation,

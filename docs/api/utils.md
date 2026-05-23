@@ -46,6 +46,27 @@ Utility functions and classes.
    
 ```
 
+## Tree traversal helpers
+
+NetKet logging backends share a path-aware tree walker implemented in
+`netket.utils.tree_walk.walk_tree_with_path`.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/utils
+   :nosignatures:
+
+   walk_tree_with_path
+```
+
+It traverses nested `dict`, `list`, `tuple`, namedtuple, `to_dict()`, and
+`to_compound()` structures while threading a path accumulator down to each leaf.
+This helper is used internally by the HDF5 and TensorBoard loggers to keep their
+tree traversal logic consistent without duplicating the walk itself.
+
+The function docstring includes a minimal example showing how to define
+`visit_leaf`, `enter_node`, and `expand_node` callbacks.
+
 
 ## Symmetry Group Manipulation
 

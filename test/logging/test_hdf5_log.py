@@ -1,6 +1,7 @@
 import pytest
 
 import glob
+from collections import namedtuple
 
 import numpy as np
 import jax
@@ -59,6 +60,55 @@ def test_hdf5log(vstate, tmp_path):
     assert params.shape[0] == 30
     assert iters.shape[0] == 30
     assert f["data/Energy/value"].chunks[0] > 1
+
+
+@common.skipif_distributed
+def test_hdf5log_preserves_structured_layout(tmp_path):
+    h5py = pytest.importorskip("h5py")
+
+    Pair = namedtuple("Pair", ["x", "y"])
+    path = tmp_path / "output.h5"
+
+    log = nk.logging.HDF5Log(str(path), save_params=False)
+    log(
+        7,
+        {
+            "scalar": jnp.array(1.0),
+            "alist": [jnp.array(2.0), jnp.array(3.0)],
+            "atuple": (jnp.array(4.0), jnp.array(5.0)),
+            "pair": Pair(jnp.array(6.0), jnp.array(7.0)),
+            "stats": nk.stats.Stats(
+                mean=8.0,
+                error_of_mean=0.1,
+                variance=0.2,
+                tau_corr=0.3,
+                R_hat=1.0,
+            ),
+        },
+        None,
+    )
+    log.close()
+
+    with h5py.File(path, "r") as f:
+        assert np.array_equal(np.array(f["data/scalar/iter"]), np.array([7]))
+        assert np.array_equal(np.array(f["data/scalar/value"]), np.array([1.0]))
+
+        assert np.array_equal(np.array(f["data/alist/0/iter"]), np.array([7]))
+        assert np.array_equal(np.array(f["data/alist/0/value"]), np.array([2.0]))
+        assert np.array_equal(np.array(f["data/alist/1/iter"]), np.array([7]))
+        assert np.array_equal(np.array(f["data/alist/1/value"]), np.array([3.0]))
+
+        assert np.array_equal(np.array(f["data/atuple/iter"]), np.array([7]))
+        assert np.array_equal(np.array(f["data/atuple/0"]), np.array([4.0]))
+        assert np.array_equal(np.array(f["data/atuple/1"]), np.array([5.0]))
+
+        assert np.array_equal(np.array(f["data/pair/iter"]), np.array([7]))
+        assert np.array_equal(np.array(f["data/pair/x"]), np.array([6.0]))
+        assert np.array_equal(np.array(f["data/pair/y"]), np.array([7.0]))
+
+        assert np.array_equal(np.array(f["data/stats/iter"]), np.array([7]))
+        assert np.array_equal(np.array(f["data/stats/Mean"]), np.array([8.0]))
+        assert np.array_equal(np.array(f["data/stats/Sigma"]), np.array([0.1]))
 
 
 @common.skipif_distributed

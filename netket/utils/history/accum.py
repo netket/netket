@@ -98,7 +98,6 @@ def accum_in_tree(
         fun: the function to apply to all leafs
         tree1: the structure containing leafs. This can also be just a leaf
         tree2: the structure containing leafs. This can also be just a leaf
-        *args: additional positional arguments passed to fun
         **kwargs: additional kw arguments passed to fun
 
     Returns:
@@ -116,6 +115,7 @@ def accum_in_tree(
         return accum_in_tree(fun, tree_accum, tree.to_dict(), **kwargs)
     else:
         return fun(tree_accum, tree, **kwargs)
+
 
 
 @dispatch
