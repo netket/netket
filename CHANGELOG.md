@@ -66,6 +66,11 @@
 * {class}`netket.logging.JsonLog` now supports `mode="append"`, which loads existing log data and continues logging from the last recorded step, making it easier to resume a run from an existing log file.
 * {meth}`netket.utils.history.HistoryDict.from_file` now correctly loads JSON logs containing `NaN` values serialized as `null` [PR #2220](https://github.com/netket/netket/pull/2220), [commit 66fa14c0f](https://github.com/netket/netket/commit/66fa14c0f7860d38fe7a363c543c81ac97f9bcc4).
 * Drivers now log a `wallclock` timestamp at every step.
+* Added {class}`netket.logging.MLFlowLog`, a new logger that streams metrics and optional model checkpoints to an [MLflow](https://mlflow.org) tracking server.
+* {class}`~netket.logging.HDF5Log`, {class}`~netket.logging.MLFlowLog`, and {class}`~netket.logging.TensorBoardLog` are now full {class}`~netket.callbacks.AbstractCallback` instances.
+  They can be passed either as `out=logger` **or** inside the `callbacks=[..., logger]` list, and implement the complete callback lifecycle (`on_run_start`, `before_parameter_update`, `on_step_end`, `on_run_end`, `on_run_error`).
+* {class}`~netket.logging.HDF5Log`, {class}`~netket.logging.MLFlowLog`, and {class}`~netket.logging.TensorBoardLog` now accept a ``metadata`` keyword argument — a flat dict of key/value pairs (e.g. hyper-parameters, system size, model type) stored once at run start alongside the time-series data.
+  This is the recommended way to keep run configuration attached to its output without relying on external bookkeeping.
 
 ### Breaking Changes
 * Finalized removal of deprecated fermionic bindings from `netket.experimental` (deprecated since NetKet 3.12–3.13):

@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import os
 import tempfile
 from numbers import Number
 from typing import Any, TYPE_CHECKING
 
+import jax
+
 from netket.utils.optional_deps import import_optional_dependency
 from netket.utils.tree_walk import walk_tree_with_path
 from netket.jax.sharding import extract_replicated
-
-from netket.logging.base import AbstractLog
+from netket._src.callbacks.base import AbstractCallback
+from netket.utils import struct
 
 if TYPE_CHECKING:
     import mlflow
@@ -48,7 +51,7 @@ def _visit_leaf(root, tree, *, data):
         data.append((root, tree))
 
 
-class MLFlowLog(AbstractLog):
+class MLFlowLog(AbstractCallback):
     """
     Logger that streams metrics and optional model checkpoints to an
     `MLflow <https://mlflow.org>`_ tracking server.
@@ -63,6 +66,11 @@ class MLFlowLog(AbstractLog):
     renders in a collapsible tree.  Complex-valued scalars are split into
     separate ``<key>/re`` and ``<key>/im`` entries.
 
+    This class is a full :class:`~netket.callbacks.AbstractCallback` and can be passed
+    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.  When
+    used as a callback the logger automatically captures the variational state snapshot
+    taken just before the parameter update.
+
     Args:
         experiment_name: Name of the MLflow experiment.  If ``None`` the
             currently active experiment (or the MLflow default) is used.
@@ -75,6 +83,14 @@ class MLFlowLog(AbstractLog):
             :class:`~netket.logging.JsonLog`).
         save_params_every: Save parameters every this many optimisation
             steps.  Only relevant when ``save_params=True``.
+        metadata: Optional flat dict of key/value pairs logged as MLflow
+            params at the start of the run.
+
+    .. tip::
+        Use ``metadata`` to attach a flat dict of hyper-parameters (learning rate,
+        system size, model type, …) to the run.  They are logged as MLflow *params*
+        and appear next to the metrics in the MLflow UI, making it easy to filter and
+        compare runs without external bookkeeping.
 
     Examples:
         Log an optimisation run to the local MLflow store.
@@ -89,6 +105,19 @@ class MLFlowLog(AbstractLog):
         ... )
         >>> gs.run(n_iter=500, out=logger)
 
+        Attaching metadata to record hyper-parameters.
+
+        >>> import pytest; pytest.skip("skip automated test of this docstring")
+        >>>
+        >>> import netket as nk
+        >>> logger = nk.logging.MLFlowLog(
+        ...     experiment_name="Ising1d",
+        ...     run_name="RBM_lr0.01",
+        ...     metadata={"learning_rate": 0.01, "alpha": 1, "L": 20},
+        ... )
+        >>> gs.run(n_iter=500, out=logger)
+        >>> # 'learning_rate', 'alpha', 'L' appear as params in the MLflow UI
+
         Resume a previous run.
 
         >>> import pytest; pytest.skip("skip automated test of this docstring")
@@ -96,7 +125,28 @@ class MLFlowLog(AbstractLog):
         >>> import netket as nk
         >>> logger = nk.logging.MLFlowLog(run_id="<existing-run-id>")
         >>> gs.run(n_iter=500, out=logger)
+
+        Using the logger as a callback.
+
+        >>> import pytest; pytest.skip("skip automated test of this docstring")
+        >>>
+        >>> import netket as nk
+        >>> logger = nk.logging.MLFlowLog(experiment_name="Ising1d")
+        >>> gs.run(n_iter=500, callbacks=[logger])
     """
+
+    _metadata: Any = struct.field(pytree_node=False, serialize=False)
+    _callback_pending_vstate: Any = struct.field(pytree_node=False, serialize=False)
+    _mlflow: Any = struct.field(pytree_node=False, serialize=False)
+    _experiment_name: Any = struct.field(pytree_node=False, serialize=False)
+    _run_name: Any = struct.field(pytree_node=False, serialize=False)
+    _run_id: Any = struct.field(pytree_node=False, serialize=False)
+    _tags: Any = struct.field(pytree_node=False, serialize=False)
+    _save_params: Any = struct.field(pytree_node=False, serialize=False)
+    _save_params_every: Any = struct.field(pytree_node=False, serialize=False)
+    _run: Any = struct.field(pytree_node=False, serialize=False)
+    _old_step: Any = struct.field(pytree_node=False, serialize=False)
+    _steps_since_last_params: Any = struct.field(pytree_node=False, serialize=False)
 
     def __init__(
         self,
@@ -106,7 +156,12 @@ class MLFlowLog(AbstractLog):
         tags: dict[str, str] | None = None,
         save_params: bool = True,
         save_params_every: int = 50,
+        metadata: dict | None = None,
     ):
+        super().__init__()
+        self._metadata = metadata or {}
+        self._callback_pending_vstate = None
+
         mlflow = import_optional_dependency("mlflow", descr="MLFlowLog")
         self._mlflow: mlflow = mlflow
 
@@ -123,14 +178,13 @@ class MLFlowLog(AbstractLog):
 
     def _init_mlflow(self):
         if self._experiment_name is not None:
-            mlflow.set_experiment(self._experiment_name)
+            self._mlflow.set_experiment(self._experiment_name)
 
-        self._run = mlflow.start_run(
+        self._run = self._mlflow.start_run(
             run_id=self._run_id,
             run_name=self._run_name,
             tags=self._tags,
         )
-        self._mlflow = mlflow
 
     def __call__(
         self,
@@ -207,3 +261,38 @@ class MLFlowLog(AbstractLog):
             f"MLFlowLog(experiment={self._experiment_name!r}, "
             f"run_name={self._run_name!r}, run_id={run_id!r})"
         )
+
+    # --- AbstractLog compatibility ---
+
+    @property
+    def _is_master_process(self) -> bool:
+        return jax.process_index() == 0
+
+    # --- AbstractCallback interface ---
+
+    @property
+    def callback_order(self) -> int:
+        return 10
+
+    def on_run_start(self, step, driver):
+        if not self._is_master_process:
+            return
+        if self._run is None:
+            self._init_mlflow()
+        if self._metadata:
+            self._mlflow.log_params({str(k): str(v) for k, v in self._metadata.items()})
+
+    def before_parameter_update(self, step, log_data, driver):
+        self._callback_pending_vstate = copy.copy(driver.state)
+
+    def on_step_end(self, step, log_data, driver):
+        self(step, log_data, self._callback_pending_vstate)
+        self._callback_pending_vstate = None
+
+    def on_run_end(self, step, driver):
+        self.flush(driver.state)
+        self._callback_pending_vstate = None
+
+    def on_run_error(self, step, error, driver):
+        self.flush(driver.state)
+        self._callback_pending_vstate = None

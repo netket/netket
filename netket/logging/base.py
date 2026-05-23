@@ -18,8 +18,6 @@ from typing import Any, TYPE_CHECKING
 
 import jax
 
-from netket.vqs import VariationalState
-
 if TYPE_CHECKING:
     from netket.vqs import VariationalState
 

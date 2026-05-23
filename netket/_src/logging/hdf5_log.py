@@ -18,8 +18,14 @@ import numpy as np
 from flax.core import FrozenDict, pop as fpop
 from flax.serialization import to_bytes
 
+import copy
+from typing import Any
+
+import jax
+
 from netket.jax.sharding import extract_replicated
-from netket.logging.base import AbstractLog
+from netket._src.callbacks.base import AbstractCallback
+from netket.utils import struct
 from netket.utils.tree_walk import walk_tree_with_path
 
 _MODE_SHORTHANDS = {"write": "w", "append": "a", "fail": "x"}
@@ -96,7 +102,7 @@ def tree_log(tree, root, data, *, iter=None, chunk_size: int | None = None):
     )
 
 
-class HDF5Log(AbstractLog):
+class HDF5Log(AbstractCallback):
     r"""
     HDF5 Logger, that can be passed with keyword argument `logger` to Monte
     Carlo drivers in order to serialize the output data of the simulation.
@@ -119,12 +125,67 @@ class HDF5Log(AbstractLog):
     Data can be deserialized by calling :code:`f = h5py.File(filename, 'r')` and
     inspecting the datasets as a dictionary, i.e. :code:`f['data/energy/Mean']`
 
+    This class is a full :class:`~netket.callbacks.AbstractCallback` and can be passed
+    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.  When
+    used as a callback the logger automatically captures the variational state snapshot
+    taken just before the parameter update.
+
+    .. tip::
+        Use the ``metadata`` argument to attach a flat dict of hyper-parameters
+        (learning rate, system size, model type, …) to the output file.  They are
+        stored as HDF5 attributes on the ``metadata/`` group and travel with the file,
+        making it easy to correlate results without relying on external bookkeeping.
+
+    Examples:
+        Basic usage as an output logger.
+
+        >>> import pytest; pytest.skip("skip automated test of this docstring")
+        >>>
+        >>> import netket as nk
+        >>> logger = nk.logging.HDF5Log("output")
+        >>> gs.run(n_iter=300, out=logger)
+        >>> # data lives in output.h5
+
+        Attaching metadata to record hyper-parameters.
+
+        >>> import pytest; pytest.skip("skip automated test of this docstring")
+        >>>
+        >>> import netket as nk
+        >>> logger = nk.logging.HDF5Log(
+        ...     "output",
+        ...     metadata={"learning_rate": 0.01, "alpha": 1, "L": 20},
+        ... )
+        >>> gs.run(n_iter=300, out=logger)
+        >>> # f['metadata'].attrs['learning_rate'] == '0.01'
+
+        Using the logger as a callback.
+
+        >>> import pytest; pytest.skip("skip automated test of this docstring")
+        >>>
+        >>> import netket as nk
+        >>> logger = nk.logging.HDF5Log("output")
+        >>> gs.run(n_iter=300, callbacks=[logger])
+
     .. note::
         The API of this logger is covered by our Semantic Versioning API guarantees. However, the structure of the
         logged files is not, and might change in the future. If you think that we could improve the output format of
         this logger, please open an issue on the NetKet repository and let us know.
 
     """
+
+    _metadata: Any = struct.field(pytree_node=False, serialize=False)
+    _callback_pending_vstate: Any = struct.field(pytree_node=False, serialize=False)
+    _file_mode: Any = struct.field(pytree_node=False, serialize=False)
+    _file_name: Any = struct.field(pytree_node=False, serialize=False)
+    _writer: Any = struct.field(pytree_node=False, serialize=False)
+    _closed: Any = struct.field(pytree_node=False, serialize=False)
+    _save_params: Any = struct.field(pytree_node=False, serialize=False)
+    _save_params_every: Any = struct.field(pytree_node=False, serialize=False)
+    _steps_notsaved_params: Any = struct.field(pytree_node=False, serialize=False)
+    _write_every: Any = struct.field(pytree_node=False, serialize=False)
+    _steps_notflushed_write: Any = struct.field(pytree_node=False, serialize=False)
+    _chunk_size: Any = struct.field(pytree_node=False, serialize=False)
+    _last_step: Any = struct.field(pytree_node=False, serialize=False)
 
     def __init__(
         self,
@@ -134,6 +195,7 @@ class HDF5Log(AbstractLog):
         save_params_every: int = 1,
         write_every: int = 50,
         chunk_size: int | None = None,
+        metadata: dict | None = None,
     ):
         """
         Construct a HDF5 Logger.
@@ -153,10 +215,14 @@ class HDF5Log(AbstractLog):
                 to disk
             chunk_size: number of log entries per HDF5 chunk. If omitted, chunking
                 is chosen adaptively to target a moderate chunk size in bytes.
+            metadata: optional flat dict of key/value pairs stored once at run
+                start as HDF5 attributes on the ``metadata/`` group.
         """
         import h5py  # noqa: F401
 
         super().__init__()
+        self._metadata = metadata or {}
+        self._callback_pending_vstate = None
 
         if mode == "w":
             mode = "write"
@@ -317,3 +383,38 @@ class HDF5Log(AbstractLog):
         _str = f"HDF5Log('{self._file_name}', mode={self._file_mode}"
         _str += f", write_every={self._write_every}, chunk_size={self._chunk_size})"
         return _str
+
+    # --- AbstractLog compatibility ---
+
+    @property
+    def _is_master_process(self) -> bool:
+        return jax.process_index() == 0
+
+    # --- AbstractCallback interface ---
+
+    @property
+    def callback_order(self) -> int:
+        return 10
+
+    def on_run_start(self, step, driver):
+        if self._writer is None:
+            self._init_output_file()
+        if self._metadata and self._is_master_process:
+            grp = self._writer.require_group("metadata")
+            for key, val in self._metadata.items():
+                grp.attrs[key] = val
+
+    def before_parameter_update(self, step, log_data, driver):
+        self._callback_pending_vstate = copy.copy(driver.state)
+
+    def on_step_end(self, step, log_data, driver):
+        self(step, log_data, self._callback_pending_vstate)
+        self._callback_pending_vstate = None
+
+    def on_run_end(self, step, driver):
+        self.flush(driver.state)
+        self._callback_pending_vstate = None
+
+    def on_run_error(self, step, error, driver):
+        self.flush(driver.state)
+        self._callback_pending_vstate = None
