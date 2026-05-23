@@ -113,7 +113,7 @@ def pytest_configure(config):
     global _clear_cache_every
     _clear_cache_every = config.getoption("--clear-cache-every")
 
-    djaxrun_mode = os.environ.get("DJAXRUN_MODE", "0") == "1"
+    djaxrun_mode = os.environ.get("DJAXRUN", "0") == "1"
 
     if _clear_cache_every is not None:
         print(f"Clearing jax cache every {_clear_cache_every} tests")
