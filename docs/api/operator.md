@@ -75,20 +75,22 @@ Operators and functions to work with fermions are the following:
 
    FermionOperator2ndJax
    FermionOperator2ndNumba
+   FermiHubbardJax
 ```
 
-In the experimental submodule there is also an implementation of a particle-number conserving operator which can be more efficient than the generic  {class}`~netket.experimental.operator.FermionOperator2ndJax`.
+Particle-number-conserving conversion helpers remain experimental and can be more
+efficient than the generic {class}`~netket.operator.FermionOperator2ndJax` when you
+need to work with a pre-existing fermionic operator.
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.experimental
 
 .. autosummary::
    :toctree: _generated/operator
    :nosignatures:
 
-   experimental.operator.ParticleNumberConservingFermioperator2nd
-   experimental.operator.ParticleNumberAndSpinConservingFermioperator2nd
-   experimental.operator.FermiHubbardJax
+   operator.ParticleNumberConservingFermioperator2nd
+   operator.ParticleNumberAndSpinConservingFermioperator2nd
 ```
 
 

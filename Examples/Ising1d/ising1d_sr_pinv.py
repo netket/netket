@@ -44,7 +44,7 @@ gs = nk.driver.VMC_SR(
     op,
     variational_state=vs,
     diag_shift=0.01,
-    linear_solver_fn=partial(nk.optimizer.solver.pinv, rtol=1.0e-6),
+    linear_solver=partial(nk.optimizer.solver.pinv, rtol=1.0e-6),
 )
 
 # Run the optimization for 500 iterations

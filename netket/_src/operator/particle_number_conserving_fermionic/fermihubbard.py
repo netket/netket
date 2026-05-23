@@ -52,7 +52,7 @@ class FermiHubbardJax(ParticleNumberAndSpinConservingFermioperator2nd):
            >>> import netket as nk
            >>> g = nk.graph.Hypercube(length=4, n_dim=2, pbc=True)
            >>> hi = nk.hilbert.SpinOrbitalFermions(n_orbitals=g.n_nodes, s=1/2, n_fermions_per_spin=(4,4))
-           >>> op = nk.experimental.operator.FermiHubbardJax(hi, t=1.0, U=1.0, graph=g)
+           >>> op = nk.operator.FermiHubbardJax(hi, t=1.0, U=1.0, graph=g)
         """
 
         if isinstance(t, Sequence):

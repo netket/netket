@@ -49,7 +49,7 @@ They are experimental, meaning that we could change them at some point, and we a
 
 This modules contains operators for particle-number conserving fermionic operators as well as utility functions that are used to create hamiltonians directly from PyScf molecules.
 
-Previously we also had the remaining Fermionic functionality in the experimental namespace, but in May 2024 it was stabilised and moved to the main netket namespace.
+Previously we also had the remaining Fermionic functionality in the experimental namespace, but in May 2024 it was stabilised and moved to the main netket namespace. In particular, use {class}`netket.operator.FermiHubbardJax` from {mod}`netket.operator`.
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
@@ -63,7 +63,6 @@ Previously we also had the remaining Fermionic functionality in the experimental
 
     operator.ParticleNumberConservingFermioperator2nd
     operator.ParticleNumberAndSpinConservingFermioperator2nd
-    operator.FermiHubbardJax
 
     operator.from_pyscf_molecule
     operator.pyscf.TV_from_pyscf_molecule
