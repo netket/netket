@@ -117,7 +117,6 @@ def accum_in_tree(
         return fun(tree_accum, tree, **kwargs)
 
 
-
 @dispatch
 def init_history_from_data(val: Any, step: Any):
     return History(val, step)

@@ -174,9 +174,7 @@ def test_apply_operator_continuous_mcstate_raises():
     sampler = nk.sampler.MetropolisGaussian(
         hilbert, sigma=1.0, n_chains=4, sweep_size=1
     )
-    operator = nk.operator.PotentialEnergy(
-        hilbert, lambda x: jnp.sum(x**2, axis=-1)
-    )
+    operator = nk.operator.PotentialEnergy(hilbert, lambda x: jnp.sum(x**2, axis=-1))
     vstate = nk.vqs.MCState(
         sampler,
         nk.models.Gaussian(),

@@ -63,7 +63,11 @@ def _enter_hdf5_group(root, tree, data, *, iter=None, chunk_size=None):
     if iter is None:
         return None
 
-    if isinstance(tree, tuple) or hasattr(tree, "to_compound") or hasattr(tree, "to_dict"):
+    if (
+        isinstance(tree, tuple)
+        or hasattr(tree, "to_compound")
+        or hasattr(tree, "to_dict")
+    ):
         _append_dataset(f"{root}/iter", iter, data, chunk_size=chunk_size)
         return {"iter": None}
 
