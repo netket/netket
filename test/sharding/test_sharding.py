@@ -406,7 +406,7 @@ def test_autoreg():
         ),
         pytest.param(
             (
-                lambda path: nkx.logging.HDF5Log(
+                lambda path: nk.logging.HDF5Log(
                     path, save_params=True, save_params_every=1
                 ),
                 lambda logger: None,

@@ -12,10 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .hdf5_log import HDF5Log
+from netket._src.logging.hdf5_log import HDF5Log as _HDF5Log_deprecated
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
+from netket.utils import _hide_submodules
 
+_deprecations = {
+    # May 2026, NetKet 3.22
+    "HDF5Log": (
+        "netket.experimental.logging.HDF5Log is now stable: use it from "
+        "netket.logging.HDF5Log (netket >= 3.22)",
+        _HDF5Log_deprecated,
+    ),
+}
 
-from netket.utils import _hide_submodules, _auto_export
-
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
-_auto_export(__name__)
+
+del _deprecation_getattr

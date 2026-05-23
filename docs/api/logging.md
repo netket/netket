@@ -37,6 +37,7 @@ While the loggers available for simulations are the following:
    JsonLog
    StateLog
    TensorBoardLog
+   HDF5Log
    SaveVariationalState
 ```
 

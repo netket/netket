@@ -71,22 +71,7 @@ Previously we also had the remaining Fermionic functionality in the experimental
 (experimental-logging-api)=
 ## Logging
 
-```{eval-rst}
-.. currentmodule:: netket.experimental
-
-```
-
-This module contains experimental loggers that can be used with the optimization drivers.
-
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/experimental/logging
-   :nosignatures:
-
-   logging.HDF5Log
-
-```
+There are currently no experimental loggers documented in `netket.experimental.logging`.
 
 (netket_geometry_api)=
 ## Geometry
