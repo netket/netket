@@ -97,6 +97,7 @@
 * The deprecated `constraint_fn` keyword argument of {class}`netket.hilbert.HomogeneousHilbert` (and all subclasses such as {class}`netket.hilbert.Spin`, {class}`netket.hilbert.Fock`, etc.) has been removed. Use `constraint` instead.
 
 ### Deprecations
+* The environment variable `NETKET_EXPERIMENTAL_SHARDING` has been renamed to `NETKET_SHARDING`.
 * {class}`netket.experimental.driver.Infidelity_SR` has been stabilized and moved to {class}`netket.driver.Infidelity_SR`. The old path raises a deprecation warning.
 * `netket.stats.mean`, `netket.stats.var`, `netket.stats.sum`, `netket.stats.subtract_mean`, and `netket.stats.total_size` are deprecated and will be removed in a future release. Use `jnp.mean`, `jnp.var`, `jnp.sum`, and array `.size` directly instead.
 

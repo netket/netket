@@ -39,7 +39,7 @@ def distribute_to_devices_along_axis(
     Distribute a local array equally along an axis to multiple jax devices devices
 
      .. note:
-        Does nothing if netket.config.netket_experimental_sharding=False.
+        Does nothing if netket.config.netket_sharding=False.
 
      .. note:
         Each jax process needs to have the whole array (parts not belonging to it can be filled with garbage).
@@ -60,7 +60,7 @@ def distribute_to_devices_along_axis(
     if devices is None:
         devices = jax.devices()
 
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         if pad:
             n = inp_data.shape[0]
             # pad to the next multiple of device_count
@@ -102,7 +102,7 @@ def shard_along_axis(x, axis: int):
         x: An array
         axis: the axis to be sharded
     """
-    if config.netket_experimental_sharding and jax.device_count() > 1:
+    if config.netket_sharding and jax.device_count() > 1:
         # Shard shape is (1, 1, 1, -1, 1, 1) where -1 is the axis
         shard_shape = [None for _ in range(x.ndim)]
         shard_shape[axis] = "S"

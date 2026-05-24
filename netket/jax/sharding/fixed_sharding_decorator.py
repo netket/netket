@@ -83,7 +83,7 @@ def sharding_decorator(
         Intended for netket internal use only, the interface might change in the future based on our requirements.
 
     .. note:
-        if `netket.config.netket_experimental_sharding=False` it returns the unchanged original function
+        if `netket.config.netket_sharding=False` it returns the unchanged original function
 
     .. note:
         If nested functions are decorated with this decorator, only the outermost one is sharded and the internal
@@ -111,7 +111,7 @@ def sharding_decorator(
     Example:
 
 
-        %env NETKET_EXPERIMENTAL_SHARDING=1
+        %env NETKET_SHARDING=1
 
         import jax
         import jax.numpy as jnp
@@ -123,7 +123,7 @@ def sharding_decorator(
 
         mesh = Mesh(jax.devices(), 'S')
 
-        assert config.netket_experimental_sharding is True
+        assert config.netket_sharding is True
         assert jax.device_count() > 1
 
         def expensive_elementwise_function(x, c):
@@ -233,7 +233,7 @@ def sharding_decorator(
         obj_wrapped = Partial(partial(lambda x: x, obj))
         y4 = jax.jit(sharding_decorator(looped_computation4, sharded_args_tree=(True, False)))(x, obj_wrapped)
     """
-    if config.netket_experimental_sharding:  # type: ignore
+    if config.netket_sharding:  # type: ignore
         if not isinstance(sharded_args_tree, tuple):
             sharded_args_tree = (sharded_args_tree,)
         sharded_args, args_treedef = jax.tree_util.tree_flatten(sharded_args_tree)

@@ -117,7 +117,7 @@ class FullSumState(VariationalState):
         super().__init__(hilbert)
         self._model_framework = None
 
-        if variables is not None and config.netket_experimental_sharding:
+        if variables is not None and config.netket_sharding:
             par_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         else:
             par_sharding = None
@@ -130,7 +130,7 @@ class FullSumState(VariationalState):
                 partial(jnp.asarray, device=par_sharding), variables
             )
 
-        if variables is not None and config.netket_experimental_sharding:
+        if variables is not None and config.netket_sharding:
             # TODO: Move this somewhere else below?
             # If variables is specified manually, we will enforce that it's leaves are
             # jax arrays and that it has the good 'replicated sharding'
@@ -405,7 +405,7 @@ def deserialize_FullSumState(vstate, state_dict):
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
     vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         vars = jax.tree_util.tree_map(
             lambda x, y: jax.lax.with_sharding_constraint(jnp.asarray(y), x.sharding),
             vstate.variables,

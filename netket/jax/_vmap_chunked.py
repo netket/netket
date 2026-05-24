@@ -125,7 +125,7 @@ def apply_chunked(
         f = jax.vmap(f_orig)
 
     .. note::
-        If netket_experimental_sharding is enabled, this function assumes that chunked in_axes are sharded by default.
+        If netket_sharding is enabled, this function assumes that chunked in_axes are sharded by default.
         This can be overridden by specifying axis_0_is_sharded=False.
 
     Args:
@@ -135,7 +135,7 @@ def apply_chunked(
             is disabled
         axis_0_is_sharded: specifies if axis 0 of the arrays scanned is sharded among multiple devices,
             The function is then computed in chunks of size chunk_size on every device.
-            Defaults True if config.netket_experimental_sharding, oterhwise defaults to False.
+            Defaults True if config.netket_sharding, oterhwise defaults to False.
         pvary_argnums: Explicit tuple of argument indices that should receive a pvary
             annotation inside the sharded chunking path. If None, all non-chunked
             arguments are marked as pvary, matching the historical behaviour.
@@ -146,7 +146,7 @@ def apply_chunked(
 
     """
     if axis_0_is_sharded is None:
-        axis_0_is_sharded = config.netket_experimental_sharding
+        axis_0_is_sharded = config.netket_sharding
 
     _, argnums = _parse_in_axes(in_axes)
     return _chunk_vmapped_function(
@@ -174,7 +174,7 @@ def vmap_chunked(
     Some limitations to `in_axes` apply.
 
     .. note::
-        If netket_experimental_sharding is enabled, this function assumes that chunked in_axes are sharded by default.
+        If netket_sharding is enabled, this function assumes that chunked in_axes are sharded by default.
         This can be overridden by specifying axis_0_is_sharded=False.
 
     Args:
@@ -184,7 +184,7 @@ def vmap_chunked(
             is disabled
         axis_0_is_sharded: specifies if axis 0 of the arrays scanned is sharded among multiple devices,
             The function is then computed in chunks of size chunk_size on every device.
-            Defaults True if config.netket_experimental_sharding, oterhwise defaults to False.
+            Defaults True if config.netket_sharding, oterhwise defaults to False.
         pvary_argnums: Explicit tuple of argument indices that should receive a pvary
             annotation inside the sharded chunking path. If None, all non-chunked
             arguments are marked as pvary, matching the historical behaviour.
@@ -197,7 +197,7 @@ def vmap_chunked(
         A vectorised and chunked function
     """
     if axis_0_is_sharded is None:
-        axis_0_is_sharded = config.netket_experimental_sharding
+        axis_0_is_sharded = config.netket_sharding
 
     in_axes, argnums = _parse_in_axes(in_axes)
     vmapped_fun = jax.vmap(f, in_axes=in_axes)

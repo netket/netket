@@ -72,7 +72,7 @@ def _compute_sr_update(
         num_p = updates.shape[-1] // 2
         updates = updates[:num_p] + 1j * updates[num_p:]
 
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         updates = jax.lax.with_sharding_constraint(
             updates, NamedSharding(jax.sharding.get_abstract_mesh(), P())
         )

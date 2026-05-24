@@ -278,7 +278,7 @@ def deserialize_MCMixedState(vstate, state_dict):
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
     vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         vars = jax.tree_util.tree_map(
             lambda t, val: jax.device_put(val, t.sharding),
             vstate.variables,

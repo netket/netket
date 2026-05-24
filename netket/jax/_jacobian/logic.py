@@ -306,7 +306,7 @@ def jacobian(
 
     """
     if _axis_0_is_sharded is None:
-        _axis_0_is_sharded = config.netket_experimental_sharding
+        _axis_0_is_sharded = config.netket_sharding
     if samples.ndim != 2:
         raise ValueError("samples must be a 2D array")
 

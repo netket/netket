@@ -130,7 +130,7 @@ class ExactSampler(Sampler):
         samples = self.hilbert.numbers_to_states(numbers).astype(self.dtype)
 
         # TODO run the part above in parallel
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             samples = jax.lax.with_sharding_constraint(
                 samples,
                 NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
@@ -138,7 +138,7 @@ class ExactSampler(Sampler):
 
         if return_log_probabilities:
             log_probabilities = jnp.log(state.pdf[numbers]) + jnp.log(state.pdf_norm)
-            if config.netket_experimental_sharding:
+            if config.netket_sharding:
                 log_probabilities = jax.lax.with_sharding_constraint(
                     log_probabilities,
                     NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),

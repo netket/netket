@@ -288,7 +288,7 @@ class MetropolisSampler(Sampler):
             # TODO set it to a few hundred if on GPU?
             n_chains_per_rank = 16
 
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             device_count = jax.device_count()
         else:
             device_count = 1

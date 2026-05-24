@@ -70,7 +70,7 @@ def to_array(
 
     apply_fun = get_afun_if_module(apply_fun)
 
-    if config.netket_experimental_sharding:  # type: ignore
+    if config.netket_sharding:  # type: ignore
         x = hilbert.all_states()
         xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
         n_states = hilbert.n_states
@@ -90,7 +90,7 @@ def to_array(
         mask,
     )
 
-    if allgather and config.netket_experimental_sharding:  # type: ignore
+    if allgather and config.netket_sharding:  # type: ignore
         psi = np.asarray(extract_replicated(psi))
 
     return psi
@@ -136,7 +136,7 @@ def _to_array_rank(
     psi_local = jnp.exp(log_psi_local)
 
     if mask is not None:
-        # when running under netket_experimental_sharding,
+        # when running under netket_sharding,
         # we pad the Hilbert space with extra fake entries,
         # which in here we mask out to 0
         psi_local = psi_local * mask
@@ -152,7 +152,7 @@ def _to_array_rank(
         psi = psi_local
 
     # gather/replicate
-    if allgather and config.netket_experimental_sharding:  # type: ignore
+    if allgather and config.netket_sharding:  # type: ignore
         sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         psi = jax.lax.with_sharding_constraint(psi, sharding)
 

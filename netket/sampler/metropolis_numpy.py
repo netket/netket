@@ -218,7 +218,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             # σp, log_prob_correction =
             self.rule.transition(self, machine, parameters, state, state.rng, σ)
 
-            if config.netket_experimental_sharding:
+            if config.netket_sharding:
                 from jax.experimental.multihost_utils import (
                     host_local_array_to_global_array,
                     global_array_to_host_local_array,

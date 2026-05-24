@@ -72,10 +72,10 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
                 "Argument to HamiltonianRule must be a valid operator, "
                 f"but operator is a {type(operator)}."
             )
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             raise TypeError(
                 "Numba-based hamiltonian sampling rule is not"
-                "supported with NETKET_EXPERIMENTAL_SHARDING. To keep using"
+                "supported with NETKET_SHARDING. To keep using"
                 "sharding, use a jax based operator."
             )
         # call _setup on the operator if it exists, to warmup the cache and

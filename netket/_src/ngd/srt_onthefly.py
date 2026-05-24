@@ -106,7 +106,7 @@ def srt_onthefly(
 
     # Collect all samples on all MPI ranks, those label the columns of the T matrix
     all_samples = samples
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         samples = jax.lax.with_sharding_constraint(
             samples, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
         )
@@ -121,7 +121,7 @@ def srt_onthefly(
     )
 
     def jacobian_contraction(samples, all_samples, parameters_real, model_state):
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             parameters_real = nkjax.lax.pcast(parameters_real, "S", to="varying")
         if chunk_size is None:
             # STRUCTURED_DERIVATIVES returns a complex array, but the imaginary part is zero
@@ -143,7 +143,7 @@ def srt_onthefly(
                 return rearrange(ntk_local, "nbatches i j -> i (nbatches j)")
 
     # If we are sharding, use shard_map manually
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         mesh = jax.sharding.get_abstract_mesh()
         # SAMPLES, ALL_SAMPLES PARAMETERS_REAL
         in_specs = (P("S", None), P(), P(), P())
@@ -168,7 +168,7 @@ def srt_onthefly(
         ).real
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         # this sharding constraint should be useless, but let's keep it for safety.
         ntk = jax.lax.with_sharding_constraint(
             ntk_local, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
@@ -198,7 +198,7 @@ def srt_onthefly(
     ntk = ntk / N_mc
 
     # Create identity matrix with same sharding as ntk: P("S", None)
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         local_size = ntk.shape[0]
         identity = jnp.eye(local_size)
         identity = jax.lax.with_sharding_constraint(
@@ -224,7 +224,7 @@ def srt_onthefly(
     else:
         info = {}
 
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         aus_vector = jax.lax.with_sharding_constraint(
             aus_vector,
             NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
@@ -240,7 +240,7 @@ def srt_onthefly(
         N_mc
     )
     # shape [N_mc // p.size,2]
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         aus_vector = jax.lax.with_sharding_constraint(
             aus_vector,
             NamedSharding(

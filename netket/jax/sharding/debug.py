@@ -28,7 +28,7 @@ def inspect(name: str, tree: jax.Array):
     """
 
     def _inspect(name: str, x: jax.Array):
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
 
             def _cb(y):
                 if jax.process_index() == 0:

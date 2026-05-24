@@ -14,6 +14,7 @@
 from typing import Any
 
 import os
+import warnings
 from textwrap import dedent
 
 
@@ -69,6 +70,7 @@ class Config:
 
         object.__setattr__(self, "_readonly", ReadOnlyDict(self._values))
         object.__setattr__(self, "_callbacks", {})
+        object.__setattr__(self, "_aliases", {})  # OLD_NAME -> CANONICAL_NAME
 
     def define(
         self,
@@ -119,6 +121,29 @@ class Config:
         """
         return self._readonly
 
+    def deprecate(
+        self, old_name, new_name, *, message=None, category=DeprecationWarning
+    ):
+        """
+        Register old_name as a deprecated alias for new_name.
+
+        Checks the old environment variable at call time (once, at import)
+        and forwards its value to the canonical flag if set.
+        """
+        self._aliases[old_name] = new_name
+
+        if os.getenv(old_name) is not None:
+            canonical_type = self._types[new_name]
+            default_value = self._values[new_name]
+            new_value = get_env(old_name, canonical_type, default_value)
+            self._values[new_name] = new_value
+            if message is None:
+                if new_value == default_value:
+                    message = f"Environment variable {old_name} is deprecated and no longer necessary, simply remove it."
+                else:
+                    message = f"Environment variable {old_name} is deprecated, use {new_name}={os.getenv(old_name)} instead."
+            warnings.warn(message, category, stacklevel=2)
+
     def update(self, name, value):
         """
         Updates a configuration variable in netket.
@@ -128,6 +153,16 @@ class Config:
             value: the new value
         """
         name = name.upper()
+
+        if name in self._aliases:
+            canonical = self._aliases[name]
+            warnings.warn(
+                f"{name} is deprecated, use {canonical} instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.update(canonical, value)
+            return
 
         if not self._editable_at_runtime[name]:
             raise RuntimeError(
@@ -162,21 +197,33 @@ class Config:
         return txt
 
     def __dir__(self):
-        return list(k.lower() for k in self._values.keys())
+        return list(k.lower() for k in self._values.keys()) + list(
+            k.lower() for k in self._aliases.keys()
+        )
 
     def __getattr__(self, name: str) -> Any:
         """Handle dynamically created attributes."""
         if name == name.lower():
             upper_name = name.upper()
+            if upper_name in self._aliases:
+                canonical = self._aliases[upper_name]
+                warnings.warn(
+                    f"{upper_name} is deprecated, use {canonical} instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                return self.FLAGS[canonical]
             if upper_name in self._values:
                 return self.FLAGS[upper_name]
         raise AttributeError(f"'Config' object has no attribute '{name}'")
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Handle setting dynamically created attributes."""
-        if name == name.lower() and name.upper() in self._values:
-            self.update(name.upper(), value)
-            return
+        if name == name.lower():
+            upper_name = name.upper()
+            if upper_name in self._values or upper_name in self._aliases:
+                self.update(upper_name, value)
+                return
         # Use default behavior for everything else
         super().__setattr__(name, value)
 
@@ -344,12 +391,12 @@ def _setup_experimental_sharding(val, explicit=False):
 
 
 config.define(
-    "NETKET_EXPERIMENTAL_SHARDING",
+    "NETKET_SHARDING",
     bool,
     default=True,
     help=dedent(
         """
-        Enables highly expermiental support of netket for running on multiple jax devices.
+        Enables support of netket for running on multiple jax devices.
 
         Supports both multiple local devices, as well as global ones in a multi-process environment.
         See https://jax.readthedocs.io/en/latest/multi_process.html#initializing-the-cluster for
@@ -359,6 +406,11 @@ config.define(
     ),
     runtime=True,
     callback=_setup_experimental_sharding,
+)
+
+
+config.deprecate(
+    "NETKET_EXPERIMENTAL_SHARDING", "NETKET_SHARDING", category=FutureWarning
 )
 
 

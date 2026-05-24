@@ -44,7 +44,7 @@ def _warn_if_samples_are_not_sharded(samples, *, what: str, stacklevel: int = 3)
     state or sample batches without reapplying samples sharding, including cases
     where a numpy array is assigned directly to sampler state.
     """
-    if not config.netket_experimental_sharding or jax.device_count() <= 1:
+    if not config.netket_sharding or jax.device_count() <= 1:
         return
 
     # Only skip if it's a properly sharded JAX array.
@@ -59,7 +59,7 @@ def _warn_if_samples_are_not_sharded(samples, *, what: str, stacklevel: int = 3)
     shape = getattr(samples, "shape", None)
     warnings.warn(
         f"{what} has shape={shape}, but it is not sharded across devices even though "
-        "`netket_experimental_sharding=True`. This usually means that some "
+        "`netket_sharding=True`. This usually means that some "
         "transformation rebuilt the samples without reapplying "
         "`netket.jax.sharding.shard_along_axis(x, axis=0)`. In practice, if you "
         "are using multiple GPUs/devices, you will not benefit from distributing "
@@ -170,7 +170,7 @@ class Sampler(struct.Pytree):
             sampler.n_chains // jax.device_count()
 
         """
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             n_devices = jax.device_count()
         else:
             n_devices = 1
@@ -194,7 +194,7 @@ class Sampler(struct.Pytree):
         # samplers which don't have a concept of chains.
         # We assume there is 1 dummy chain per jax device.
         # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             return jax.device_count()
         else:
             return 1
@@ -214,7 +214,7 @@ class Sampler(struct.Pytree):
         Samplers may override this to have a larger batch size, for example to
         propagate multiple replicas (in the case of parallel tempering).
         """
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             return self.n_chains
         else:
             return self.n_chains_per_rank

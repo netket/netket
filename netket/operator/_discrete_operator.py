@@ -72,7 +72,7 @@ class DiscreteOperator(AbstractOperator[DiscreteHilbertType]):
             N-tensor containing the matrix elements :math:`O(x,x')`
             associated to each x' for every batch.
         """
-        if config.netket_experimental_sharding and jax.device_count() > 1:
+        if config.netket_sharding and jax.device_count() > 1:
             raise RuntimeError(
                 "When using Sharding mode, only jax operators are supported."
             )

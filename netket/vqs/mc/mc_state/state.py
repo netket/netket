@@ -226,7 +226,7 @@ class MCState(VariationalState):
         """
         super().__init__(sampler.hilbert)
 
-        if variables is not None and config.netket_experimental_sharding:
+        if variables is not None and config.netket_sharding:
             par_sharding = NamedSharding(jax.sharding.get_abstract_mesh(), P())
         else:
             par_sharding = None
@@ -239,7 +239,7 @@ class MCState(VariationalState):
                 partial(jnp.asarray, device=par_sharding), variables
             )
 
-        if variables is not None and config.netket_experimental_sharding:
+        if variables is not None and config.netket_sharding:
             # TODO: Move this somewhere else below?
             # If variables is specified manually, we will enforce that it's leaves are
             # jax arrays and that it has the good 'replicated sharding'
@@ -421,7 +421,7 @@ class MCState(VariationalState):
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int):
-        n_devices = jax.device_count() if config.netket_experimental_sharding else 1
+        n_devices = jax.device_count() if config.netket_sharding else 1
         self.n_samples = n_samples_per_rank * n_devices
 
     @property
@@ -991,7 +991,7 @@ def deserialize_MCState(vstate, state_dict):
         serialization.from_state_dict(vstate.variables, state_dict["variables"]),
     )
     vars = serialization_utils.restore_prngkeys(vstate.variables, vars)
-    if config.netket_experimental_sharding:
+    if config.netket_sharding:
         vars = jax.tree_util.tree_map(
             lambda t, val: jax.device_put(val, t.sharding),
             vstate.variables,

@@ -160,7 +160,7 @@ class ARDirectSampler(Sampler):
             dtype=self.dtype,
         )
 
-        if config.netket_experimental_sharding:
+        if config.netket_sharding:
             σ = jax.lax.with_sharding_constraint(
                 σ,
                 NamedSharding(jax.sharding.get_abstract_mesh(), P("S")),
