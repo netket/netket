@@ -16,27 +16,27 @@ import time
 
 from netket.utils import struct
 
+from netket._src.callbacks.base import AbstractCallback, StopRun
 
-class Timeout(struct.Pytree, mutable=True):
+
+class Timeout(AbstractCallback, mutable=True):
     """A simple callback to stop NetKet after some time has passed.
 
     This callback monitors whether a driver has been training for more
     than a given timeout in order to hard stop training.
     """
 
-    timeout: float
+    timeout: float = struct.field(pytree_node=False)
     """Number of seconds to wait before the training will be stopped."""
 
-    # caches
-    _init_time: float | None = struct.field(serialize=False)
-    """
-    Internal field storing the time at which the first iteration has been
-    performed.
-    """
+    _init_time: float | None = struct.field(
+        pytree_node=False, serialize=False, default=None
+    )
+    """Internal field storing the time at which the run started."""
 
     def __init__(self, timeout: float):
         """
-        Stops the optimisation after a certain time itnerval.
+        Stops the optimisation after a certain time interval.
 
         Args:
             timeout: number of seconds after which the optimisation will
@@ -45,28 +45,13 @@ class Timeout(struct.Pytree, mutable=True):
         if not timeout > 0:
             raise ValueError("`timeout` must be larger than 0.")
         self.timeout = timeout
-
         self._init_time = None
 
-    def __call__(self, step, log_data, driver):
-        """
-        A boolean function that determines whether or not to stop training.
+    def on_run_start(self, step, driver):
+        self._init_time = time.time()
 
-        Args:
-            step: An integer corresponding to the step (iteration or epoch) in training.
-            log_data: A dictionary containing log data for training.
-            driver: A NetKet variational driver.
-
-        Returns:
-            A boolean. If True, training continues, else, it does not.
-
-        Note:
-            This callback does not make use of `step`, `log_data` nor `driver`.
-        """
-        if self._init_time is None:
-            self._init_time = time.time()
-
+    def on_step_end(self, step, log_data, driver):
         if time.time() - self._init_time >= self.timeout:
-            return False
-        else:
-            return True
+            raise StopRun(
+                f"Timeout: training stopped after {self.timeout:.1f} seconds."
+            )

@@ -18,26 +18,29 @@ import numpy as np
 
 from netket.utils import struct
 
+from netket._src.callbacks.base import AbstractCallback, StopRun
 
-class ConvergenceStopping(struct.Pytree, mutable=True):
+
+class ConvergenceStopping(AbstractCallback, mutable=True):
     """A simple callback to stop the optimisation when the monitored quantity gets
     below a certain threshold for at least `patience` steps.
     """
 
-    target: float = struct.field(serialize=False)
+    target: float = struct.field(pytree_node=False)
     """Target value for the monitored quantity. Training will stop if the driver drops below this value."""
-    monitor: str = struct.field(serialize=False)
+    monitor: str = struct.field(pytree_node=False)
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
-    smoothing_window: int = struct.field(serialize=False)
+    smoothing_window: int = struct.field(pytree_node=False)
     """The loss is smoothed over the last `smoothing_window` iterations to
-    reduce statistical fluctuations"""
-    patience: int = struct.field(serialize=False)
+    reduce statistical fluctuations."""
+    patience: int = struct.field(pytree_node=False)
     """The loss must be consistently below this value for this number of
     iterations in order to stop the optimisation."""
 
-    # caches
-    _loss_window: deque
-    _patience_counter: int
+    _loss_window: deque = struct.field(pytree_node=False, serialize=False)
+    _patience_counter: int = struct.field(
+        pytree_node=False, serialize=False, default=0
+    )
 
     def __init__(
         self,
@@ -68,21 +71,10 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
         self.smoothing_window = smoothing_window
         self.patience = patience
 
-        self._loss_window: deque = deque([], maxlen=self.smoothing_window)
-        self._patience_counter: int = 0
+        self._loss_window = deque([], maxlen=smoothing_window)
+        self._patience_counter = 0
 
-    def __call__(self, step, log_data, driver):
-        """
-        A boolean function that determines whether or not to stop training.
-
-        Args:
-            step: An integer corresponding to the step (iteration or epoch) in training.
-            log_data: A dictionary containing log data for training.
-            driver: A NetKet variational driver.
-
-        Returns:
-            A boolean. If True, training continues, else, it does not.
-        """
+    def on_step_end(self, step, log_data, driver):
         loss = np.asarray(np.real(getattr(log_data[driver._loss_name], self.monitor)))
 
         self._loss_window.append(loss)
@@ -94,6 +86,7 @@ class ConvergenceStopping(struct.Pytree, mutable=True):
             self._patience_counter = 0
 
         if self._patience_counter > self.patience:
-            return False
-
-        return True
+            raise StopRun(
+                f"ConvergenceStopping: smoothed loss {loss_smooth:.6g} has been below "
+                f"target {self.target} for {self._patience_counter} steps."
+            )

@@ -12,43 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import numpy as np
 
 from netket.utils import struct
 
+from netket._src.callbacks.base import AbstractCallback, StopRun
 
-class EarlyStopping(struct.Pytree, mutable=True):
+
+class EarlyStopping(AbstractCallback, mutable=True):
     """A simple callback to stop NetKet if there are no more improvements in the training.
     based on `driver._loss_name`.
     """
 
-    min_delta: float
+    min_delta: float = struct.field(pytree_node=False)
     """Minimum change in the monitored quantity to qualify as an improvement."""
-    min_reldelta: float
+    min_reldelta: float = struct.field(pytree_node=False)
     """Minimum relative change in the monitored quantity to qualify as an improvement.
 
     This behaves similarly to `min_delta` but is more useful for intensive quantities that
     converge to 0, where absolute tolerances might not be effective.
     """
-    patience: int | float
+    patience: int | float = struct.field(pytree_node=False)
     """Number of epochs with no improvement after which training will be stopped."""
-    baseline: float | None
+    baseline: float | None = struct.field(pytree_node=False)
     """Baseline value for the monitored quantity. Training will stop if the driver is above the baseline."""
-    monitor: str
+    monitor: str = struct.field(pytree_node=False)
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
-    start_from_step: int
+    start_from_step: int = struct.field(pytree_node=False)
     """Number of steps to wait before the callback has any effect."""
 
-    # The quantities below are internal and should not be edited directly
-    # by the user
-
-    _best_val: float = np.inf
-    """Best value of the loss observed up to this iteration. """
-    _best_iter: int
+    _best_val: float = struct.field(pytree_node=False, serialize=False, default=np.inf)
+    """Best value of the loss observed up to this iteration."""
+    _best_iter: int = struct.field(pytree_node=False, serialize=False, default=0)
     """Iteration at which the `_best_val` was observed."""
-    _best_patience_counter: int
-    """Stores the iteration at which we've seen the best loss so far"""
+    _best_patience_counter: int = struct.field(
+        pytree_node=False, serialize=False, default=0
+    )
+    """Stores how many steps have elapsed without an improvement."""
 
     def __init__(
         self,
@@ -87,21 +87,9 @@ class EarlyStopping(struct.Pytree, mutable=True):
         self._best_iter = 0
         self._best_patience_counter = 0
 
-    def __call__(self, step, log_data, driver):
-        """
-        A boolean function that determines whether or not to stop training.
-
-        Args:
-            step: An integer corresponding to the step (iteration or epoch) in training.
-            log_data: A dictionary containing log data for training.
-            driver: A NetKet variational driver.
-
-        Returns:
-            A boolean. If True, training continues, else, it does not.
-        """
-
+    def on_step_end(self, step, log_data, driver):
         if step < self.start_from_step:
-            return True
+            return
 
         loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
 
@@ -113,19 +101,16 @@ class EarlyStopping(struct.Pytree, mutable=True):
             if self.baseline is None:
                 self._best_patience_counter = 0
             elif self._is_improvement(loss, self.baseline):
-                # If using baseline, update patience only if we are better than baseline
                 self._best_patience_counter = 0
 
         if self._best_patience_counter > self.patience:
-            return False
-
-        return True
+            raise StopRun(
+                f"EarlyStopping: no improvement detected after {self._best_patience_counter} steps "
+                f"(best value {self._best_val} at step {self._best_iter})."
+            )
 
     def _is_improvement(self, loss, target):
-        # minimal value for absolute and relative improvement
         abs_minval = target - self.min_delta
         rel_minval = target * (1 - self.min_reldelta)
-        # minimval value that qualify as an improvement
         minval = min(abs_minval, rel_minval)
-
         return loss < minval

@@ -16,21 +16,21 @@ import numpy as np
 
 from netket.utils import struct
 
+from netket._src.callbacks.base import AbstractCallback, StopRun
 
-# Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
-class InvalidLossStopping(struct.Pytree, mutable=True):
+
+class InvalidLossStopping(AbstractCallback, mutable=True):
     """A simple callback to stop the optimisation when the monitored quantity becomes
     invalid for at least `patience` steps.
     """
 
-    monitor: str
+    monitor: str = struct.field(pytree_node=False)
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'error_of_mean'."""
-    patience: int | float
+    patience: int | float = struct.field(pytree_node=False)
     """Number of epochs with invalid loss after which training will be stopped."""
 
-    # caches
-    _last_valid_iter: int
-    """Last valid iteration, to check against patience"""
+    _last_valid_iter: int = struct.field(pytree_node=False, serialize=False, default=0)
+    """Last valid iteration, to check against patience."""
 
     def __init__(self, monitor: str = "mean", patience: int | float = 0):
         """
@@ -48,23 +48,10 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
         """
         self.monitor = monitor
         self.patience = patience
-
-        # caches
         self._last_valid_iter = 0
 
-    def __call__(self, step, log_data, driver):
-        """
-        A boolean function that determines whether or not to stop training.
-
-        Args:
-            step: An integer corresponding to the step (iteration or epoch) in training.
-            log_data: A dictionary containing log data for training.
-            driver: A NetKet variational driver.
-
-        Returns:
-            A boolean. If True, training continues, else, it does not.
-        """
-        # clears the _last_valid_iter in case the driver was reset
+    def on_step_end(self, step, log_data, driver):
+        # reset if the driver was restarted
         if driver.step_count < self._last_valid_iter:
             self._last_valid_iter = 0
 
@@ -73,7 +60,9 @@ class InvalidLossStopping(struct.Pytree, mutable=True):
 
             if not np.isfinite(loss):
                 if driver.step_count - self._last_valid_iter >= self.patience:
-                    return False
+                    raise StopRun(
+                        f"InvalidLossStopping: loss is not finite ({loss}) "
+                        f"for {driver.step_count - self._last_valid_iter} steps."
+                    )
             else:
                 self._last_valid_iter = driver.step_count
-        return True

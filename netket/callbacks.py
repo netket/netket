@@ -17,22 +17,19 @@ from netket._src.callbacks.base import (
     StopRun as StopRun,
 )
 
-from netket._src.callbacks.auto_chunk_size import (
-    AutoChunkSize as AutoChunkSize,
-)
-from netket._src.callbacks.auto_slurm_requeue import (
-    AutoSlurmRequeue as AutoSlurmRequeue,
-)
-
-from netket._src.callbacks.early_stopping import EarlyStopping as EarlyStopping
-from netket._src.callbacks.timeout import Timeout as Timeout
-from netket._src.callbacks.invalid_loss_stopping import (
-    InvalidLossStopping as InvalidLossStopping,
-)
+from netket._src.callbacks.auto_chunk_size import AutoChunkSize as AutoChunkSize
+from netket._src.callbacks.auto_slurm_requeue import AutoSlurmRequeue as AutoSlurmRequeue
 from netket._src.callbacks.convergence_stopping import (
     ConvergenceStopping as ConvergenceStopping,
 )
+from netket._src.callbacks.early_stopping import EarlyStopping as EarlyStopping
+from netket._src.callbacks.invalid_loss_stopping import (
+    InvalidLossStopping as InvalidLossStopping,
+)
+from netket._src.callbacks.timeout import Timeout as Timeout
 
-from netket.utils import _hide_submodules
+from netket.utils.moduletools import auto_export as _auto_export
 
-_hide_submodules(__name__)
+_auto_export(__name__)
+
+del _auto_export
