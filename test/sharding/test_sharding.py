@@ -8,6 +8,8 @@ import numpy as np
 import netket as nk
 import netket.experimental as nkx
 
+from .. common import onlyif_sharding_single_process
+
 
 def _setup(L, alpha=1, reset_chains=False):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
@@ -106,10 +108,7 @@ def test_project_preserves_sharding():
     _check_correct_sharding(samples)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding or jax.device_count() <= 1,
-    reason="Only run with sharding on multiple devices",
-)
+@onlyif_sharding_single_process
 def test_sampling_warns_if_sampler_state_sigma_is_replicated():
     vs, *_ = _setup(8)
 
@@ -231,9 +230,7 @@ def test_qgt_onthefly():
         _check_correct_sharding(l, replicated=True)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
+@onlyif_sharding_single_process
 def test_qgt_onthefly_chunked_matches_unchunked():
     """Regression test: QGTOnTheFly chunked result must be device-count independent.
 

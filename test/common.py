@@ -69,6 +69,19 @@ onlyif_distributed = pytest.mark.skipif(
     reason="Only if distributed",
 )
 
+onlyif_sharding_single_process = pytest.mark.skipif(
+    not (
+        nk.config.netket_experimental_sharding
+        and jax.local_device_count() > 1
+        and jax.process_count() == 1
+    ),
+    reason="Only run with sharding on multiple local devices in a single process",
+)
+"""Use as a decorator to mark a test that requires multi-device sharding but is
+incompatible with multi-process distributed execution (e.g. because it uses
+process-local warnings or single-device reference meshes).
+"""
+
 
 class set_config:
     """
