@@ -18,7 +18,9 @@ from netket._src.callbacks.base import (
 )
 
 from netket._src.callbacks.auto_chunk_size import AutoChunkSize as AutoChunkSize
-from netket._src.callbacks.auto_slurm_requeue import AutoSlurmRequeue as AutoSlurmRequeue
+from netket._src.callbacks.auto_slurm_requeue import (
+    AutoSlurmRequeue as AutoSlurmRequeue,
+)
 from netket._src.callbacks.convergence_stopping import (
     ConvergenceStopping as ConvergenceStopping,
 )

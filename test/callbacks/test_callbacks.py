@@ -87,7 +87,9 @@ def test_earlystopping_baseline_with_patience():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
 
     assert step == 10
@@ -105,7 +107,9 @@ def test_earlystopping_with_delayed_start():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
     assert step == 31
     assert es._best_iter == 20
@@ -118,7 +122,9 @@ def test_earlystopping_doesnt_get_stuck_with_patience():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
 
     assert step == 12
@@ -132,7 +138,9 @@ def test_earlystopping_doesnt_get_stuck_with_patience_reltol():
     es = nk.callbacks.EarlyStopping(patience=10, min_reldelta=1.5e-3)
     driver = DummyDriver()
     for step in range(len(loss_values)):
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
 
     assert step == 12
@@ -142,7 +150,9 @@ def test_earlystopping_doesnt_get_stuck_with_patience_reltol():
     es = nk.callbacks.EarlyStopping(patience=10, min_reldelta=1e-4)
     driver = DummyDriver()
     for step in range(len(loss_values)):
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
 
     assert step == 16
@@ -164,7 +174,9 @@ def test_earlystopping_baseline_with_patience_abstol_delayed_start():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
     assert step == patience + start_from_step
     assert es._best_iter == 7
@@ -178,7 +190,9 @@ def test_earlystopping_baseline_with_patience_abstol_delayed_start():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
     assert step == 22
     assert es._best_iter == 18
@@ -226,28 +240,29 @@ def test_invalid_loss_stopping_correct_interval():
     )
 
     log_data = {}
-    cb(0, log_data, driver)
+    cb.on_step_end(0, log_data, driver)
     assert cb._last_valid_iter == 0
 
     driver._loss_stats = nk.stats.Stats(mean=np.array(1.0))
-    assert cb(2, log_data, driver)
+    cb.on_step_end(2, log_data, driver)
     assert cb._last_valid_iter == 0
 
     driver._step_count = 2
-    assert cb(None, log_data, driver)
+    cb.on_step_end(None, log_data, driver)
     assert cb._last_valid_iter == 2
 
     driver._step_count = 3
     driver._loss_stats = nk.stats.Stats(mean=np.nan)
-    assert cb(None, log_data, driver)
+    cb.on_step_end(None, log_data, driver)
     assert cb._last_valid_iter == 2
 
     driver._step_count = 4
-    assert cb(None, log_data, driver)
+    cb.on_step_end(None, log_data, driver)
     assert cb._last_valid_iter == 2
 
     driver._step_count = 8
-    assert not cb(None, log_data, driver)
+    with pytest.raises(nk.callbacks.StopRun):
+        cb.on_step_end(None, log_data, driver)
     assert cb._last_valid_iter == 2
 
 
@@ -257,7 +272,9 @@ def test_convergence_stopping():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
 
     assert step == 11
@@ -266,7 +283,9 @@ def test_convergence_stopping():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+        try:
+            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
+        except nk.callbacks.StopRun:
             break
 
     assert step == 13

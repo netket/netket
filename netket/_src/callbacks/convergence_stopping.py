@@ -38,9 +38,7 @@ class ConvergenceStopping(AbstractCallback, mutable=True):
     iterations in order to stop the optimisation."""
 
     _loss_window: deque = struct.field(pytree_node=False, serialize=False)
-    _patience_counter: int = struct.field(
-        pytree_node=False, serialize=False, default=0
-    )
+    _patience_counter: int = struct.field(pytree_node=False, serialize=False, default=0)
 
     def __init__(
         self,

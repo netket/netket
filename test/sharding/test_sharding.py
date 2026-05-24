@@ -8,7 +8,7 @@ import numpy as np
 import netket as nk
 import netket.experimental as nkx
 
-from .. common import onlyif_sharding_single_process
+from ..common import onlyif_sharding_single_process
 
 
 def _setup(L, alpha=1, reset_chains=False):
@@ -487,9 +487,7 @@ def test_sr():
     gs.run(2)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
+@onlyif_sharding_single_process
 def test_jacobian_chunked():
     vs, _, ha = _setup(12, alpha=2)
     vs.n_samples = 64
