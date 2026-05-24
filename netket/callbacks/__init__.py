@@ -24,10 +24,14 @@ from netket._src.callbacks.auto_slurm_requeue import (
     AutoSlurmRequeue as AutoSlurmRequeue,
 )
 
-from netket.callbacks.early_stopping import EarlyStopping
-from netket.callbacks.timeout import Timeout
-from netket.callbacks.invalid_loss_stopping import InvalidLossStopping
-from netket.callbacks.convergence_stopping import ConvergenceStopping
+from netket._src.callbacks.early_stopping import EarlyStopping as EarlyStopping
+from netket._src.callbacks.timeout import Timeout as Timeout
+from netket._src.callbacks.invalid_loss_stopping import (
+    InvalidLossStopping as InvalidLossStopping,
+)
+from netket._src.callbacks.convergence_stopping import (
+    ConvergenceStopping as ConvergenceStopping,
+)
 
 from netket.utils import _hide_submodules
 
