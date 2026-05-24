@@ -27,7 +27,6 @@ from netket._src.callbacks.base import AbstractCallback
 from netket.utils import struct
 
 if TYPE_CHECKING:
-    import mlflow
     from netket.vqs import VariationalState
 
 

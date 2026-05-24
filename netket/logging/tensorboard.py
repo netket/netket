@@ -209,7 +209,9 @@ class TensorBoardLog(AbstractCallback):
         if self._writer is None:
             self._init_tensorboard()
         if self._metadata:
-            text = json.dumps({str(k): str(v) for k, v in self._metadata.items()}, indent=2)
+            text = json.dumps(
+                {str(k): str(v) for k, v in self._metadata.items()}, indent=2
+            )
             self._writer.add_text("metadata", f"```json\n{text}\n```", global_step=0)
 
     def before_parameter_update(self, step, log_data, driver):
