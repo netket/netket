@@ -24,7 +24,7 @@ from netket.utils.history import accum_histories_in_tree, HistoryDict
 if TYPE_CHECKING:
     from netket.vqs import VariationalState
 
-from .base import AbstractLog
+from netket._src.logging.base import AbstractLog
 
 
 class RuntimeLog(AbstractLog):

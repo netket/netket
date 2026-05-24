@@ -22,7 +22,7 @@ from flax import serialization
 
 from netket.jax.sharding import extract_replicated
 
-from .runtime_log import RuntimeLog
+from netket._src.logging.runtime_log import RuntimeLog
 
 
 class JsonLog(RuntimeLog):

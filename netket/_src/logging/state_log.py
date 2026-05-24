@@ -29,7 +29,7 @@ from netket.jax.sharding import extract_replicated
 if TYPE_CHECKING:
     from netket.vqs import VariationalState
 
-from .base import AbstractLog
+from netket._src.logging.base import AbstractLog
 
 FileModeT = Union[
     Literal["write"],

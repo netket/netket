@@ -22,7 +22,7 @@ from tqdm.auto import tqdm
 
 import netket as nk
 from netket._src.driver.abstract_variational_driver_old import AbstractVariationalDriver
-from netket.logging.json_log import JsonLog
+from netket._src.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.utils import timing
 from netket.utils.dispatch import dispatch

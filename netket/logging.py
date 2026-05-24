@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.logging.base import AbstractLog
-from netket.logging.runtime_log import RuntimeLog
-from netket.logging.json_log import JsonLog
-from netket.logging.state_log import StateLog
-from netket.logging.tensorboard import TensorBoardLog
+from netket._src.logging.base import AbstractLog
+from netket._src.logging.runtime_log import RuntimeLog
+from netket._src.logging.json_log import JsonLog
+from netket._src.logging.state_log import StateLog
+from netket._src.logging.tensorboard import TensorBoardLog
 from netket._src.logging.hdf5_log import HDF5Log
 from netket._src.logging.mlflow_log import MLFlowLog
 
@@ -25,7 +25,7 @@ from netket._src.callbacks.save_state import (
 )
 
 
-from netket.utils import _hide_submodules, _auto_export
+from netket.utils.moduletools import auto_export as _auto_export
 
 _auto_export(__name__)
-_hide_submodules(__name__)
+del _auto_export

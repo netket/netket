@@ -9,7 +9,7 @@ from jax import numpy as jnp
 
 import netket as nk
 from netket.utils.tree_walk import walk_tree_with_path
-from netket.logging.tensorboard import (
+from netket._src.logging.tensorboard import (
     _collect_tensorboard_leaf,
     _expand_tensorboard_node,
 )
