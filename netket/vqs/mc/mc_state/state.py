@@ -832,6 +832,77 @@ class MCState(VariationalState):
             plot=plot,
         )
 
+    def thermalise(
+        self,
+        op: AbstractOperator,
+        *,
+        min_chain_length: int = 50,
+        max_chain_length: int = 1000,
+        rhat_tol: float = 1.05,
+        decay: float = 0.9,
+        patience: int = 10,
+        verbose: bool = True,
+        raise_on_failure: bool = False,
+    ):
+        r"""Advance the Markov chains until they are thermalized (R̂ converged).
+
+        .. warning::
+            **Experimental functionality.** This method is subject to change
+            without notice in future NetKet releases.
+            If you find it useful (or not!), please let us know with a
+            👍 / 👎 on `GitHub <https://github.com/netket/netket>`_
+            or on `Slack <https://netket.readthedocs.io/en/latest/community.html>`_.
+
+        Runs the sampler at the current ``sweep_size`` and monitors the
+        Gelman-Rubin R̂ diagnostic via a sliding EMA window (controlled by
+        ``decay``).  Converges when R̂ < ``rhat_tol`` for ``patience``
+        consecutive iterations and at least ``min_chain_length`` samples/chain
+        have been drawn.
+
+        Unlike :meth:`check_mc_convergence`, this method **mutates** the state
+        in-place: ``sampler_state`` is updated to reflect the position of the
+        chains after thermalisation.
+
+        Args:
+            op: The operator whose local estimators probe mixing (typically
+                the Hamiltonian).
+            min_chain_length: Minimum samples/chain before the convergence
+                check is applied (default 50).
+            max_chain_length: Hard upper limit on samples/chain.  If R̂ has
+                not converged a :class:`UserWarning` is emitted (or a
+                :class:`RuntimeError` if ``raise_on_failure=True``).
+            rhat_tol: R̂ threshold for declaring convergence (default 1.05).
+            decay: EMA decay for the sliding-window R̂ (default 0.9,
+                effective window ≈ 10 batches).
+            patience: Consecutive iterations with R̂ < ``rhat_tol`` required
+                before declaring convergence (default 10).
+            verbose: Display a progress bar (default ``True``).
+            raise_on_failure: Raise :class:`RuntimeError` instead of warning
+                when ``max_chain_length`` is reached without convergence.
+
+        Returns:
+            A tuple ``(stats, hist_data)`` where ``stats`` is the final
+            :class:`~netket._src.stats.online_stats.OnlineStats` accumulator
+            and ``hist_data`` is a :class:`~netket.utils.history.HistoryDict`
+            recording mean, variance, and R̂ across iterations.
+
+        See Also:
+            :meth:`check_mc_convergence`
+        """
+        from netket._src.vqs.check_mc_convergence import thermalise_mcmc
+
+        return thermalise_mcmc(
+            self,
+            op,
+            min_chain_length=min_chain_length,
+            max_chain_length=max_chain_length,
+            rhat_tol=rhat_tol,
+            decay=decay,
+            patience=patience,
+            verbose=verbose,
+            raise_on_failure=raise_on_failure,
+        )
+
     def expect_to_precision(
         self,
         op: AbstractOperator,

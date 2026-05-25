@@ -3,6 +3,7 @@
 from typing import cast
 import copy
 import math
+import warnings
 
 import jax
 import jax.numpy as jnp
@@ -263,3 +264,146 @@ def tau_corr_reliable(estimator) -> bool:
         return False
     n_per_chain = estimator._n_samples_total / estimator.n_chains
     return (n_per_chain / tau) >= 50
+
+
+def thermalise_mcmc(
+    state: MCState,
+    op: AbstractOperator,
+    *,
+    min_chain_length: int = 50,
+    max_chain_length: int = 1000,
+    rhat_tol: float = 1.05,
+    decay: float = 0.9,
+    patience: int = 10,
+    verbose: bool = True,
+    raise_on_failure: bool = False,
+):
+    """
+    Advance the Markov chains until they are thermalized (R̂ converged).
+
+    Unlike :func:`check_mc_convergence`, this function **mutates** ``state``
+    in-place: on return, ``state.sampler_state`` reflects the position of the
+    chains after thermalisation.  The sampler's ``sweep_size`` is not changed.
+
+    The function monitors the Gelman-Rubin R̂ diagnostic computed from a
+    sliding EMA window of recent batches (controlled by ``decay``).
+    Thermalisation is declared when R̂ < ``rhat_tol`` for ``patience``
+    consecutive iterations *and* at least ``min_chain_length`` samples/chain
+    have been drawn.
+
+    .. warning::
+        **Experimental functionality.** This method is subject to change
+        without notice in future NetKet releases.
+
+    Args:
+        state: The :class:`~netket.vqs.MCState` to thermalise. **Mutated in-place.**
+        op: The operator whose local estimators are used to probe mixing
+            (typically the Hamiltonian).
+        min_chain_length: Minimum samples/chain before the convergence check
+            is applied (default 50).
+        max_chain_length: Hard upper limit on samples/chain.  If R̂ has not
+            converged by this limit a :class:`UserWarning` is emitted (or a
+            :class:`RuntimeError` is raised when ``raise_on_failure=True``).
+        rhat_tol: R̂ threshold below which chains are considered mixed
+            (default 1.05).
+        decay: EMA decay factor for the sliding-window R̂ (default 0.9,
+            effective window ≈ 10 batches).  Lower values react faster to
+            recent mixing but are noisier.
+        patience: Number of consecutive iterations with R̂ < ``rhat_tol``
+            required before declaring convergence (default 10).
+        verbose: If ``True``, display a :mod:`tqdm` progress bar.
+        raise_on_failure: If ``True``, raise :class:`RuntimeError` on failure
+            instead of emitting a :class:`UserWarning`.
+
+    Returns:
+        A tuple ``(stats, hist_data)`` where ``stats`` is the final
+        :class:`~netket._src.stats.online_stats.OnlineStats` accumulator and
+        ``hist_data`` is a :class:`~netket.utils.history.HistoryDict` recording
+        the evolution of mean, variance, and R̂ across iterations.
+
+    See Also:
+        :func:`check_mc_convergence` — diagnose autocorrelation without mutating state.
+    """
+    if not isinstance(state.sampler, MetropolisSampler):
+        raise ValueError("thermalise_mcmc only works for MetropolisSampler.")
+
+    _is_rank0 = jax.process_index() == 0
+
+    _chain_length = state.chain_length
+    min_iters = math.ceil(min_chain_length / _chain_length)
+    max_iters = max_chain_length // _chain_length
+
+    state.sample(n_discard_per_chain=0)
+    O_loc = state.local_estimators(op)
+    if isinstance(O_loc, LocalEstimatorsBatch):
+        raise TypeError(
+            f"thermalise_mcmc requires a scalar local estimator, but "
+            f"{type(op).__name__} returns a LocalEstimatorsBatch (K={O_loc.n_channels} "
+            f"channels). thermalise_mcmc only supports scalar operators."
+        )
+
+    if state.sampler.n_chains < 2:
+        raise ValueError(
+            "thermalise_mcmc requires at least 2 chains to compute R̂. "
+            f"Current n_chains={state.sampler.n_chains}."
+        )
+
+    stats = online_statistics(O_loc, max_lag=0, decay=decay)
+    iter_count = 0
+    consecutive_good = 0
+    hist_data = HistoryDict()
+
+    with tqdm(
+        desc="MC thermalisation",
+        total=max_chain_length,
+        initial=_chain_length,
+        unit=" spl/chain",
+        leave=True,
+        disable=not (_is_rank0 and verbose),
+    ) as pbar:
+        while iter_count < min_iters or consecutive_good < patience:
+            state.sample(n_discard_per_chain=0)
+            O_loc = state.local_estimators(op)
+            stats = online_statistics(O_loc, old_estimator=stats)
+
+            rhat = stats.R_hat
+            rhat_val = float(rhat)
+            _s = stats.get_stats()
+            hist_data = hist_data.push(
+                {
+                    "mean": stats.mean,
+                    "error_of_mean": _s.error_of_mean,
+                    "variance": stats.variance,
+                    "R_hat": rhat_val,
+                },
+                step=stats._n_samples_total,
+            )
+
+            good = not math.isnan(rhat_val) and rhat_val < rhat_tol
+            consecutive_good = consecutive_good + 1 if good else 0
+
+            pbar.set_postfix(
+                {
+                    "mean": f"{stats.mean:.4g}",
+                    "R_hat": f"{rhat_val:.4f}",
+                    "patience": f"{consecutive_good}/{patience}",
+                }
+            )
+            pbar.update(_chain_length)
+            iter_count += 1
+
+            if iter_count >= max_iters:
+                msg = (
+                    f"thermalise_mcmc reached the maximum chain length "
+                    f"({max_chain_length} samples/chain) without converging "
+                    f"(R̂={rhat_val:.4f} >= {rhat_tol}). "
+                    f"Consider increasing max_chain_length or sweep_size."
+                )
+                if _is_rank0:
+                    pbar.write(msg)
+                if raise_on_failure:
+                    raise RuntimeError(msg)
+                warnings.warn(msg, UserWarning, stacklevel=2)
+                break
+
+    return stats, hist_data
