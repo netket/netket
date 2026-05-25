@@ -21,7 +21,7 @@ Unlike ``check_mc_convergence`` it mutates the state in-place, so the chains
 are left at a well-mixed position ready for measurements.
 """
 
-import numpy as np
+import jax.numpy as jnp
 import netket as nk
 import matplotlib.pyplot as plt
 
@@ -50,7 +50,9 @@ print(f"Energy (unthermalized): {e}")
 # Force all chains to the all-spins-up configuration to create a
 # deliberately poor starting point.  In practice this can happen after
 # loading a checkpoint or after a large parameter update.
-all_up = np.ones((vs.sampler.n_chains, hi.size), dtype=np.int8)
+all_up = nk.jax.sharding.shard_along_axis(
+    jnp.ones((vs.sampler.n_chains, hi.size), dtype=jnp.int8), axis=0
+)
 vs.sampler_state = vs.sampler_state.replace(σ=all_up)
 print("\nChains forcibly reset to all-up — R_hat will be large initially.")
 
