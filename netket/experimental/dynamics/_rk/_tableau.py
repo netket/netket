@@ -95,7 +95,7 @@ class TableauRKExplicit:
 
 
 # fmt: off
-# flake8: noqa: E123, E126, E201, E202, E221, E226, E231, E241, E251
+# flake8: noqa: E201, E202, E221, E226, E231, E241, E251
 
 # Fixed Step methods
 bt_feuler = TableauRKExplicit(

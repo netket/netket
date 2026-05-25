@@ -154,6 +154,21 @@ class AbstractOperator(AbstractObservable[HilbertType]):
     def __matmul__(self, other):
         return NotImplemented
 
+    def __pow__(self, power):
+        if not isinstance(power, int) or power < 0:
+            return NotImplemented
+        if power == 0:
+            raise NotImplementedError(
+                f"__pow__(0) (identity) is not implemented for {type(self).__name__}. "
+                "Use the identity constructor of your operator type directly."
+            )
+        result = self
+        for _ in range(power - 1):
+            result = result @ self
+            if result is NotImplemented:
+                return NotImplemented
+        return result
+
     def __rmatmul__(self, other):
         if isinstance(other, AbstractOperator):
             if self.hilbert == other.hilbert:
