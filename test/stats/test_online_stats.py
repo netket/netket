@@ -16,10 +16,15 @@ import math
 
 import numpy as np
 import pytest
+import jax.numpy as jnp
 
 import netket as nk
 from netket.stats import statistics, online_statistics
 from netket._src.stats.online_stats import OnlineStats, expand_max_lag
+from netket._src.stats.online_stats.accumulator_batch import (
+    OnlineStatsBatch,
+    online_statistics_batch,
+)
 
 from .. import common
 
@@ -62,6 +67,81 @@ def test_incremental_consistency():
 
     np.testing.assert_allclose(est_full.mean, est_chunked.mean, rtol=1e-10)
     np.testing.assert_allclose(est_full.variance, est_chunked.variance, rtol=1e-10)
+
+
+def test_incremental_consistency_with_local_estimators():
+    data = make_data(n_chains=6, n_samples=300)
+    le_chunks = [
+        nk.stats.LocalEstimators(jnp.asarray(chunk))
+        for chunk in np.split(data, 10, axis=1)
+    ]
+
+    est_full = online_statistics(data)
+
+    est_chunked = None
+    for chunk in le_chunks:
+        est_chunked = online_statistics(chunk, est_chunked)
+
+    np.testing.assert_allclose(est_full.mean, est_chunked.mean, rtol=1e-10)
+    np.testing.assert_allclose(est_full.variance, est_chunked.variance, rtol=1e-10)
+
+
+def test_incremental_consistency_with_local_estimators_batch():
+    data = np.stack(
+        [
+            make_data(n_chains=6, n_samples=300, seed=43),
+            make_data(n_chains=6, n_samples=300, seed=44),
+        ],
+        axis=-1,
+    )
+
+    def combinator(mu):
+        return mu[1] - mu[0] ** 2
+
+    le_chunks = [
+        nk.stats.LocalEstimatorsBatch(jnp.asarray(chunk), combinator)
+        for chunk in np.split(data, 10, axis=1)
+    ]
+
+    est_full = online_statistics_batch(jnp.asarray(data), combinator, max_lag=64)
+
+    est_chunked = None
+    for chunk in le_chunks:
+        est_chunked = online_statistics(chunk, est_chunked, max_lag=64)
+
+    np.testing.assert_allclose(est_full.mean, est_chunked.mean, rtol=1e-10)
+    np.testing.assert_allclose(
+        est_full.get_stats().error_of_mean,
+        est_chunked.get_stats().error_of_mean,
+        rtol=1e-10,
+    )
+
+
+def test_online_stats_batch_from_data_matches_functional_api():
+    data = np.stack(
+        [
+            make_data(n_chains=6, n_samples=300, seed=43),
+            make_data(n_chains=6, n_samples=300, seed=44),
+        ],
+        axis=-1,
+    )
+
+    def combinator(mu):
+        return mu[1] - mu[0] ** 2
+
+    est_from_data = OnlineStatsBatch.from_data(
+        jnp.asarray(data),
+        combinator,
+        max_lag=64,
+    )
+    est_functional = online_statistics_batch(jnp.asarray(data), combinator, max_lag=64)
+
+    np.testing.assert_allclose(est_from_data.mean, est_functional.mean, rtol=1e-10)
+    np.testing.assert_allclose(
+        est_from_data.get_stats().error_of_mean,
+        est_functional.get_stats().error_of_mean,
+        rtol=1e-10,
+    )
 
 
 # --- Test: error_of_mean consistency with batch statistics() ---

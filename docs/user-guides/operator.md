@@ -37,4 +37,4 @@ Contrary to more standard Pythonic code, those methods are not defined as class-
 This is needed because the way you compute expectation values and/or gradients might not only change depending on the exact operator, but depends also on the type of variational state that you are working with.
 To learn more about multiple dispatch, check {ref}`this section <multiple-dispatch>`
 
-An explanation of how to define the `expect` method for custom operators is given in the [Custom Operator documentation](../advanced/custom_operators).
+An explanation of how to extend operators and observables is given in the [Custom operator tutorials](../advanced/custom-operators/index).

@@ -68,6 +68,37 @@ def get_local_kernel(vstate: Any, Ô: Any, chunk_size: None):  # noqa: F811
     return get_local_kernel(vstate, Ô)
 
 
+@dispatch.abstract
+def local_estimators(vstate: Any, op: Any, chunk_size: int | None):
+    """
+    Compute per-sample local estimator data for operator op on vstate.
+
+    Returns a LocalEstimators (scalar, data shape (n_chains, chain_len)) or a
+    LocalEstimatorsBatch (K-channel, data shape (n_chains, chain_len, K)).
+
+    The default dispatch uses get_local_kernel_arguments + get_local_kernel and
+    returns a scalar LocalEstimators. Override this for operators that do not fit
+    the kernel pattern (e.g. variance, infidelity).
+    """
+
+
+@dispatch(precedence=-100)
+def local_estimators(vstate: Any, op: Any, chunk_size: Any):  # noqa: F811
+    raise NotImplementedError(
+        f"local_estimators is not implemented for the combination of vstate type "
+        f"{type(vstate).__name__} and operator type {type(op).__name__}.\n"
+        f"To add support, register a dispatch. For MCState + custom "
+        f"AbstractOperator, define separate chunk_size=None and chunk_size=int "
+        f"overloads to avoid ambiguity:\n"
+        f"    @nk.vqs.mc.local_estimators.dispatch\n"
+        f"    def _(vstate: YourState, op: YourOp, chunk_size: None):\n"
+        f"        ...\n"
+        f"    @nk.vqs.mc.local_estimators.dispatch\n"
+        f"    def _(vstate: YourState, op: YourOp, chunk_size: int):\n"
+        f"        ..."
+    )
+
+
 @jax.jit
 def force_to_grad(Ō_grad, parameters):
     """

@@ -1,0 +1,7 @@
+expect: -3.967 ± 0.074 [σ²=4.3e+00, R̂=1.021]
+scalar le shape: (64, 8)
+variance le shape: (64, 8, 2)   stats: 4.44 ± 0.58 [σ²=nan]
+infidelity le shape: (64, 8)   stats:  8.31 ±  0.42 e-05 [σ²=9.2e-09, R̂=1.060]
+  [done] error = 0.080096
+expect_to_precision: -4.187 ± 0.080 [σ²=3.8e+00, R̂=0.997]
+ALL PASSED

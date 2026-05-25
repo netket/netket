@@ -25,7 +25,12 @@ In `kernels.py` the local-expect kernels are defined that are then passed to the
 expect/expect_and_grad methods.
 """
 
-from .common import check_hilbert, get_local_kernel_arguments, get_local_kernel
+from .common import (
+    check_hilbert,
+    get_local_kernel_arguments,
+    get_local_kernel,
+    local_estimators,
+)
 
 from .mc_state import MCState
 from .mc_mixed_state import MCMixedState

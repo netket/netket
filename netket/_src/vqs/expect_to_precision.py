@@ -1,23 +1,28 @@
 """ """
 
 import jax
+import jax.numpy as jnp
 from tqdm.auto import tqdm
 
 from netket.vqs.mc import MCState
 from netket.sampler import MetropolisSampler
 from netket.operator import AbstractOperator
-
 from netket._src.stats.online_stats import online_statistics
+from netket._src.stats.online_stats.accumulator_batch import OnlineStatsBatch
 
 
 def _check_not_converged(stats, atol: float | None, rtol: float | None) -> bool:
     """Return True if the stats have not yet met the requested tolerances."""
     s = stats.get_stats()
-    err = s.error_of_mean
-    mean = s.mean
+    if isinstance(stats, OnlineStatsBatch):
+        err = float(jnp.max(jnp.abs(s.error_of_mean)))
+        scale = float(jnp.max(jnp.abs(s.mean)))
+    else:
+        err = abs(float(s.error_of_mean))
+        scale = abs(float(s.mean))
     if atol is not None and err > atol:
         return True
-    if rtol is not None and err / abs(mean) > rtol:
+    if rtol is not None and err / scale > rtol:
         return True
     return False
 
@@ -38,18 +43,15 @@ def _format_postfix(stats, atol: float | None, rtol: float | None) -> dict:
 
 def _accumulate_stats(state, op_leaves, active, old_stats, *, max_lag):
     active = set(active)
-    return [
-        (
-            online_statistics(
-                state.local_estimators(op).block_until_ready(),
-                old_estimator=old,
-                max_lag=max_lag,
-            )
-            if i in active
-            else old
-        )
-        for i, (op, old) in enumerate(zip(op_leaves, old_stats))
-    ]
+    result = []
+    for i, (op, old) in enumerate(zip(op_leaves, old_stats)):
+        if i not in active:
+            result.append(old)
+            continue
+        le = state.local_estimators(op)
+        jax.block_until_ready(le)
+        result.append(online_statistics(le, old_estimator=old, max_lag=max_lag))
+    return result
 
 
 def expect_to_precision(

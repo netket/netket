@@ -60,6 +60,7 @@ and the experimental Variational state for a single slater determinant state (wh
   :nosignatures:
 
   apply_operator
+  local_estimators
   get_local_kernel
   get_local_kernel_arguments
 ```

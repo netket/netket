@@ -248,3 +248,61 @@ def test_R_hat():
     # stuck -> bad  R_hat:
     x[1, 100:] = 1.0
     assert statistics(x).R_hat > 1.01
+
+
+# ---------------------------------------------------------------------------
+# Stats.shape and Stats.is_converged
+# ---------------------------------------------------------------------------
+
+
+def test_stats_shape():
+    s = statistics(jnp.ones((4, 16)))
+    assert s.shape == ()
+
+
+# ---------------------------------------------------------------------------
+# StatsBatch
+# ---------------------------------------------------------------------------
+
+
+def test_stats_batch_shape():
+    from netket.stats import StatsBatch
+
+    mean = jnp.ones((3, 3))
+    err = jnp.full((3, 3), 0.01)
+    sb = StatsBatch(mean=mean, error_of_mean=err)
+    assert sb.shape == (3, 3)
+
+
+def test_stats_batch_repr():
+    from netket.stats import StatsBatch
+
+    sb = StatsBatch(mean=jnp.ones((2, 2)), error_of_mean=jnp.full((2, 2), 0.05))
+    r = repr(sb)
+    assert "StatsBatch" in r
+    assert "(2, 2)" in r
+
+
+# ---------------------------------------------------------------------------
+# LocalEstimatorsBatch.to_stats() and OnlineStatsBatch.get_stats() dispatch
+# ---------------------------------------------------------------------------
+
+
+def test_batch_scalar_combinator_dispatch():
+    from netket.stats import LocalEstimatorsBatch, Stats
+
+    data = jnp.stack([jnp.ones((4, 8)), jnp.ones((4, 8))], axis=-1)
+    le = LocalEstimatorsBatch(data=data, combinator=lambda mu: mu[1] - mu[0] ** 2)
+    assert isinstance(le.to_stats(), Stats)
+    assert le.to_stats().shape == ()
+    assert isinstance(le.accumulate().get_stats(), Stats)
+
+
+def test_batch_array_combinator_dispatch():
+    from netket.stats import LocalEstimatorsBatch, StatsBatch
+
+    data = jnp.ones((4, 8, 2))
+    le = LocalEstimatorsBatch(data=data, combinator=lambda mu: jnp.outer(mu, mu))
+    assert isinstance(le.to_stats(), StatsBatch)
+    assert le.to_stats().shape == (2, 2)
+    assert isinstance(le.accumulate().get_stats(), StatsBatch)

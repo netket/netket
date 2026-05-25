@@ -167,11 +167,44 @@ class Stats:
         else:
             raise AttributeError(f"'Stats' object object has no attribute '{name}'")
 
+    @property
+    def shape(self) -> tuple:
+        """Shape of the estimated quantity — always ``()`` for scalar Stats."""
+        return ()
+
     def real(self):
         return self.replace(mean=np.real(self.mean))
 
     def imag(self):
         return self.replace(mean=np.imag(self.mean))
+
+
+@struct.dataclass
+class StatsBatch:
+    """Statistics for an array-valued estimator (e.g. a susceptibility matrix).
+
+    Returned by :meth:`~netket.stats.LocalEstimatorsBatch.to_stats` and
+    :meth:`~netket.stats.OnlineStatsBatch.get_stats` when the combinator
+    returns an array rather than a scalar.
+
+    ``mean`` and ``error_of_mean`` have the same shape as the combinator output.
+    Scalar diagnostics (``tau_corr``, ``R_hat``, ``variance``) are not
+    available and are not stored; use :class:`Stats` for scalar quantities.
+    """
+
+    mean: jax.Array
+    """Estimated mean, shape matches the combinator output."""
+    error_of_mean: jax.Array
+    """Delta-method standard error, same shape as ``mean``."""
+
+    @property
+    def shape(self) -> tuple:
+        """Shape of the estimated quantity."""
+        return self.mean.shape
+
+    def __repr__(self):
+        err_max = float(jnp.max(jnp.abs(self.error_of_mean)))
+        return f"StatsBatch(shape={self.shape}, max_err={err_max:.4g})"
 
 
 def _get_blocks(data, block_size):

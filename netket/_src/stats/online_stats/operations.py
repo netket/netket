@@ -15,17 +15,49 @@
 """Functional API and ACF-window operations for :class:`OnlineStats`."""
 
 from functools import partial
+from typing import TYPE_CHECKING, overload
 
 import jax
 import jax.numpy as jnp
 
 from netket._src.stats.online_stats.accumulator import OnlineStats
 
+if TYPE_CHECKING:
+    from netket._src.stats.local_estimators import (
+        LocalEstimators,
+        LocalEstimatorsBatch,
+    )
+    from netket._src.stats.online_stats.accumulator_batch import OnlineStatsBatch
+
+
+@overload
+def online_statistics(
+    data: "LocalEstimatorsBatch",
+    old_estimator: "OnlineStatsBatch | None" = None,
+    *,
+    decay: float | None = None,
+    max_lag: int = 64,
+) -> "OnlineStatsBatch": ...
+
+
+@overload
+def online_statistics(
+    data: "LocalEstimators" | jax.typing.ArrayLike,
+    old_estimator: OnlineStats | None = None,
+    *,
+    decay: float | None = None,
+    max_lag: int = 64,
+) -> OnlineStats: ...
+
 
 @partial(jax.jit, static_argnames=("max_lag"))
 def online_statistics(
-    data, old_estimator=None, *, decay: float | None = None, max_lag: int = 64
-) -> OnlineStats:
+    data: "LocalEstimatorsBatch | LocalEstimators | jax.typing.ArrayLike",
+    old_estimator: "OnlineStats | OnlineStatsBatch | None" = None,
+    *,
+    decay: float | None = None,
+    max_lag: int = 64,
+) -> "OnlineStats | OnlineStatsBatch":
     """Accumulate streaming MCMC statistics across batches.
 
     This is the functional API for :class:`OnlineStats`.  Each call merges
@@ -33,8 +65,9 @@ def online_statistics(
     algorithm.
 
     Args:
-        data: Array of shape ``(n_samples,)`` or ``(n_chains, n_samples_per_chain)``.
-        old_estimator: Previous :class:`OnlineStats` instance, or ``None`` to start fresh.
+        data: Array of shape ``(n_samples,)`` or ``(n_chains, n_samples_per_chain)``,
+            or a :class:`LocalEstimators` / :class:`LocalEstimatorsBatch` wrapper.
+        old_estimator: Previous accumulator instance, or ``None`` to start fresh.
         decay: EMA decay factor applied per call (default 1.0 = no decay).
             When ``decay < 1.0``, old data is down-weighted exponentially and
             ``tau_corr`` is set to ``NaN``.
@@ -42,7 +75,8 @@ def online_statistics(
             Set to 0 to disable ACF tracking.
 
     Returns:
-        Updated :class:`OnlineStats` instance.
+        Updated :class:`OnlineStats` or :class:`OnlineStatsBatch` instance,
+        depending on the input type.
 
     Example::
 
@@ -51,6 +85,34 @@ def online_statistics(
             estimator = nk.stats.online_statistics(batch, estimator)
         stats = estimator.get_stats()
     """
+    # Backward compatibility: allow LocalEstimators wrappers to be passed
+    # directly so the same entrypoint can create and update the accumulator.
+    from netket._src.stats.local_estimators import (
+        LocalEstimators,
+        LocalEstimatorsBatch,
+    )
+    from netket._src.stats.online_stats.accumulator_batch import (
+        OnlineStatsBatch,
+        online_statistics_batch,
+    )
+
+    if isinstance(data, LocalEstimators):
+        if isinstance(old_estimator, OnlineStatsBatch):
+            raise TypeError()
+        data = data.data
+    elif isinstance(data, LocalEstimatorsBatch):
+        if old_estimator is not None and not isinstance(
+            old_estimator, OnlineStatsBatch
+        ):
+            raise TypeError()
+        return online_statistics_batch(
+            data.data,
+            data.combinator,
+            old_estimator=old_estimator,
+            max_lag=max_lag,
+        )
+
+    # single data, no batch branch
     if old_estimator is None:
         # Determine n_chains after the same reshape that update() will apply.
         n_chains = 1 if data.ndim == 1 else data.shape[0]

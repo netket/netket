@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
 from functools import partial
 
 from netket.vqs import (
@@ -25,13 +25,16 @@ from netket.vqs import (
 )
 import netket.jax as nkjax
 
+from netket.vqs.mc.common import local_estimators
+from netket._src.stats.local_estimators import LocalEstimatorsBatch
+
 from .variance_operator import VarianceObservable
 
 
-@expect.dispatch
-def expect(
+@local_estimators.dispatch
+def variance_local_estimators(
     vstate: MCState, variance_operator: VarianceObservable, chunk_size: int | None
-):
+) -> LocalEstimatorsBatch:  # noqa: F811
     if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
@@ -45,18 +48,32 @@ def expect(
         vstate, variance_operator.operator_squared
     )
 
-    return expect_and_grad_inner_mc(
-        vstate._apply_fun,
-        vstate.parameters,
-        vstate.model_state,
-        local_kernel,
-        local_kernel2,
-        sigma,
-        args,
-        args2,
-        return_grad=False,
-        chunk_size=chunk_size,
+    n_chains = sigma.shape[0]
+    W = vstate.variables
+    if jnp.ndim(sigma) != 2:
+        sigma = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(
+            sigma, 0, sigma.ndim - 1
+        )
+
+    if chunk_size is not None:
+        local_kernel = partial(local_kernel, chunk_size=chunk_size)
+        local_kernel2 = partial(local_kernel2, chunk_size=chunk_size)
+
+    O_loc = local_kernel(vstate._apply_fun, W, sigma, args).real
+    O2_loc = local_kernel2(vstate._apply_fun, W, sigma, args2).real
+
+    data = jnp.stack([O_loc, O2_loc], axis=-1).reshape(n_chains, -1, 2)
+    return LocalEstimatorsBatch(
+        data=data,
+        combinator=lambda mu: mu[1] - mu[0] ** 2,
     )
+
+
+@expect.dispatch
+def expect(
+    vstate: MCState, variance_operator: VarianceObservable, chunk_size: int | None
+):  # noqa: F811
+    return local_estimators(vstate, variance_operator, chunk_size).to_stats()
 
 
 @expect_and_grad.dispatch
@@ -66,7 +83,7 @@ def expect_and_grad(
     chunk_size: None,
     *,
     mutable,
-):
+):  # noqa: F811
     if variance_operator.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
