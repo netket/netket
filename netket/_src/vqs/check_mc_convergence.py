@@ -378,8 +378,20 @@ def thermalise_mcmc(
 
     stats = online_statistics(O_loc, max_lag=0, decay=decay)
     iter_count = 0
-    consecutive_good = 0
-    hist_data = HistoryDict()
+    rhat = stats.R_hat
+    rhat_val = float(rhat)
+    _s = stats.get_stats()
+    hist_data = HistoryDict().push(
+        {
+            "mean": stats.mean,
+            "error_of_mean": _s.error_of_mean,
+            "variance": stats.variance,
+            "R_hat": rhat_val,
+        },
+        step=stats._n_samples_total // stats.n_chains,
+    )
+    good = not math.isnan(rhat_val) and rhat_val < rhat_tol
+    consecutive_good = 1 if good else 0
 
     with tqdm(
         desc="MC thermalisation",
@@ -390,6 +402,20 @@ def thermalise_mcmc(
         disable=not (_is_rank0 and verbose),
     ) as pbar:
         while iter_count < min_iters or consecutive_good < patience:
+            if iter_count >= max_iters:
+                msg = (
+                    f"thermalise_mcmc reached the maximum chain length "
+                    f"({max_chain_length} samples/chain) without converging "
+                    f"(R̂={rhat_val:.4f} >= {rhat_tol}). "
+                    f"Consider increasing max_chain_length or sweep_size."
+                )
+                if _is_rank0:
+                    pbar.write(msg)
+                if raise_on_failure:
+                    raise RuntimeError(msg)
+                warnings.warn(msg, UserWarning, stacklevel=2)
+                break
+
             state.sample(n_discard_per_chain=0)
             O_loc = state.local_estimators(op)
             stats = online_statistics(O_loc, old_estimator=stats)
@@ -419,19 +445,5 @@ def thermalise_mcmc(
             )
             pbar.update(_chain_length)
             iter_count += 1
-
-            if iter_count >= max_iters:
-                msg = (
-                    f"thermalise_mcmc reached the maximum chain length "
-                    f"({max_chain_length} samples/chain) without converging "
-                    f"(R̂={rhat_val:.4f} >= {rhat_tol}). "
-                    f"Consider increasing max_chain_length or sweep_size."
-                )
-                if _is_rank0:
-                    pbar.write(msg)
-                if raise_on_failure:
-                    raise RuntimeError(msg)
-                warnings.warn(msg, UserWarning, stacklevel=2)
-                break
 
     return stats, hist_data
