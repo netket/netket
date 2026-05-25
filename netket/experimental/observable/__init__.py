@@ -24,7 +24,6 @@ from netket._src.observable.variance import (
 from netket._src.observable.infidelity import (
     InfidelityOperator as _InfidelityOperator,
 )
-
 _deprecations = {
     # May 2026, NetKet 3.22
     "Renyi2EntanglementEntropy": (
