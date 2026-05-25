@@ -11,8 +11,8 @@ from netket._src.stats.online_stats import online_statistics
 from netket._src.stats.online_stats.accumulator_batch import OnlineStatsBatch
 
 
-def _check_not_converged(stats, atol: float | None, rtol: float | None) -> bool:
-    """Return True if the stats have not yet met the requested tolerances."""
+def _summary_error_and_scale(stats) -> tuple[float, float]:
+    """Return scalar error and scale summaries for scalar or batched observables."""
     s = stats.get_stats()
     if isinstance(stats, OnlineStatsBatch):
         err = float(jnp.max(jnp.abs(s.error_of_mean)))
@@ -20,6 +20,12 @@ def _check_not_converged(stats, atol: float | None, rtol: float | None) -> bool:
     else:
         err = abs(float(s.error_of_mean))
         scale = abs(float(s.mean))
+    return err, scale
+
+
+def _check_not_converged(stats, atol: float | None, rtol: float | None) -> bool:
+    """Return True if the stats have not yet met the requested tolerances."""
+    err, scale = _summary_error_and_scale(stats)
     if atol is not None and err > atol:
         return True
     if rtol is not None and err / scale > rtol:
@@ -29,14 +35,12 @@ def _check_not_converged(stats, atol: float | None, rtol: float | None) -> bool:
 
 def _format_postfix(stats, atol: float | None, rtol: float | None) -> dict:
     """Build the tqdm postfix dict from current stats and tolerances."""
-    s = stats.get_stats()
-    err = s.error_of_mean
-    mean = s.mean
+    err, scale = _summary_error_and_scale(stats)
     d = {"err": f"{err:.4g}"}
     if atol is not None:
         d["atol"] = f"{atol:.4g}"
     if rtol is not None:
-        d["rel_err"] = f"{err / abs(mean):.4g}"
+        d["rel_err"] = f"{err / scale:.4g}"
         d["rtol"] = f"{rtol:.4g}"
     return d
 
@@ -149,7 +153,8 @@ def expect_to_precision(
             msg = "  Reached max_iter before target precision."
             if _is_rank0:
                 pbar.write(msg)
-        msg = f"  [done] error = {stats_list[0].get_stats().error_of_mean:g}"
+        err, _ = _summary_error_and_scale(stats_list[0])
+        msg = f"  [done] error = {err:g}"
         if _is_rank0:
             pbar.write(msg)
 
