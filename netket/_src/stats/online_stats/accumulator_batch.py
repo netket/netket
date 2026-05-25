@@ -183,6 +183,11 @@ class OnlineStatsBatch(struct.Pytree):
         X = jnp.array([e.mean for e in self.estimators])
         return self.combinator(X)
 
+    @property
+    def error_of_mean(self):
+        """Standard error of the mean, computed via the delta method."""
+        return self.get_stats().error_of_mean
+
     def get_stats(self):
         """Delta-method statistics for the combined functional.
 

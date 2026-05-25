@@ -18,8 +18,8 @@ def _summary_error_and_scale(stats) -> tuple[float, float]:
         err = float(jnp.max(jnp.abs(s.error_of_mean)))
         scale = float(jnp.max(jnp.abs(s.mean)))
     else:
-        err = abs(float(s.error_of_mean))
-        scale = abs(float(s.mean))
+        err = abs(float(jnp.real(s.error_of_mean)))
+        scale = abs(float(jnp.real(s.mean)))
     return err, scale
 
 
@@ -155,14 +155,10 @@ def expect_to_precision(
             if _is_rank0:
                 pbar.write("  Early termination requested by user.")
 
-        # Compose messages on all ranks; only rank 0 writes.
-        if it >= max_iter:
-            msg = "  Reached max_iter before target precision."
-            if _is_rank0:
-                pbar.write(msg)
-        err, _ = _summary_error_and_scale(stats_list[0])
-        msg = f"  [done] error = {err:g}"
-        if _is_rank0:
-            pbar.write(msg)
+        if verbose and _is_rank0:
+            if it >= max_iter:
+                pbar.write("  Reached max_iter before target precision.")
+            err, _ = _summary_error_and_scale(stats_list[0])
+            pbar.write(f"  [done] error = {err:g}")
 
     return treedef.unflatten(stats_list)
