@@ -52,6 +52,37 @@ def _hide_submodules(
     auto_export(module)
 
 
+def copy_doc(source):
+    """
+    Decorator that copies the docstring from ``source`` to the decorated
+    function or method.
+
+    Use this to share a single authoritative docstring between a standalone
+    function and a thin method wrapper, so that documentation only needs to
+    be maintained in one place.
+
+    Example::
+
+        def _my_func(state, op, *, kwarg=1):
+            '''Full docstring lives here.'''
+            ...
+
+        class MyClass:
+            @copy_doc(_my_func)
+            def my_method(self, op, *, kwarg=1):
+                return _my_func(self, op, kwarg=kwarg)
+
+    Args:
+        source: The callable whose ``__doc__`` should be copied.
+    """
+
+    def decorator(func):
+        func.__doc__ = source.__doc__
+        return func
+
+    return decorator
+
+
 def rename_class(new_name):
     """
     Decorator to renames a class

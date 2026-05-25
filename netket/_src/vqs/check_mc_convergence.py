@@ -1,6 +1,8 @@
 """ """
 
-from typing import cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
 import copy
 import math
 import warnings
@@ -9,9 +11,11 @@ import jax
 import jax.numpy as jnp
 from tqdm.auto import tqdm
 
-from netket.vqs.mc import MCState
 from netket.sampler import MetropolisSampler
 from netket.operator import AbstractOperator
+
+if TYPE_CHECKING:
+    from netket.vqs.mc import MCState
 
 from netket._src.stats.online_stats import (
     online_statistics,
@@ -77,8 +81,6 @@ def check_mc_convergence(
     recommended minimum sweep size is ``2 τ_mc`` raw steps.
 
     Args:
-        state_: The :class:`~netket.vqs.MCState` to diagnose.  A shallow copy
-            is used internally; the original state is never mutated.
         op: The operator whose local estimators are used to probe correlations.
         min_chain_length: Minimum number of samples per chain to accumulate
             before the convergence check is applied.
@@ -310,7 +312,6 @@ def thermalise_mcmc(
         ``max_chain_length`` or reduce ``min_chain_length``.
 
     Args:
-        state: The :class:`~netket.vqs.MCState` to thermalise. **Mutated in-place.**
         op: The operator whose local estimators are used to monitor convergence.
             An operator is required because computing R̂ needs per-chain scalar
             values, and local estimators are the only quantity that provides

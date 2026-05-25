@@ -39,6 +39,7 @@ from netket.utils import (
     timing,
     _serialization as serialization_utils,
 )
+from netket.utils.moduletools import copy_doc
 from netket.utils.deprecation import deprecated
 from netket.utils.types import Array, PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
@@ -53,6 +54,8 @@ from netket.vqs.base import (
     expect_and_forces,
 )
 from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
+
+from netket._src.vqs.check_mc_convergence import check_mc_convergence, thermalise_mcmc
 
 
 def compute_chain_length(n_chains, n_samples):
@@ -767,6 +770,7 @@ class MCState(VariationalState):
             chunk_size=self.chunk_size,
         )
 
+    @copy_doc(check_mc_convergence)
     def check_mc_convergence(
         self,
         op: AbstractOperator,
@@ -775,56 +779,6 @@ class MCState(VariationalState):
         max_chain_length: int = 500,
         plot: bool = False,
     ):
-        r"""Diagnose whether the sampler's sweep size produces decorrelated samples and whether the chains are stationary (thermalized).
-
-        .. warning::
-            **Experimental functionality.** This method is subject to change
-            without notice in future NetKet releases.
-            If you find it useful (or not!), please let us know with a
-            👍 / 👎 on `GitHub <https://github.com/netket/netket>`_
-            or on `Slack <https://netket.readthedocs.io/en/latest/community.html>`_.
-
-        This routine temporarily runs the sampler at unit sweep size (one raw
-        MC step per exposed sample) and estimates the integrated autocorrelation
-        time :math:`\tau_\text{corr}` of the local estimators of ``op`` via an
-        online Geyer IPS estimator.  It reports whether the current
-        :attr:`~netket.vqs.MCState.sweep_size` is sufficient to make consecutive
-        samples effectively independent (i.e. :math:`\tau_\text{corr}` expressed
-        in sweep units is less than 1).
-
-        When the autocorrelation window saturates — meaning the chains are still
-        too short to see the full ACF tail — the internal sweep size is doubled
-        adaptively, until convergence or until ``max_chain_length`` samples per
-        chain are reached.
-
-        The original state is **never mutated**: all sampling is done on a
-        shallow copy.
-
-        Args:
-            op: The operator whose local estimators are used to probe
-                correlations (typically the Hamiltonian).
-            min_chain_length: Minimum number of samples per chain to accumulate
-                before the convergence criterion is evaluated.
-            max_chain_length: Hard upper limit on samples per chain.  The
-                procedure stops unconditionally once this many samples have been
-                drawn, even if convergence has not been reached.
-            plot: If ``True``, display a diagnostic figure showing the
-                evolution of the mean, autocorrelation time, and :math:`\hat R`
-                across iterations.
-
-        Returns:
-            A tuple ``(stats, hist_data)`` where ``stats`` is the final
-            :class:`~netket.stats.OnlineStatistics` accumulator and
-            ``hist_data`` is a :class:`~netket.utils.history.HistoryDict`
-            recording the evolution of key diagnostics as the number of samples
-            is increased.
-
-        See Also:
-            :func:`netket._src.vqs.check_mc_convergence.check_mc_convergence`
-            :meth:`thermalise` — advance chains to stationarity before measuring.
-        """
-        from netket._src.vqs.check_mc_convergence import check_mc_convergence
-
         return check_mc_convergence(
             self,
             op,
@@ -833,6 +787,7 @@ class MCState(VariationalState):
             plot=plot,
         )
 
+    @copy_doc(thermalise_mcmc)
     def thermalise(
         self,
         op: AbstractOperator,
@@ -845,74 +800,6 @@ class MCState(VariationalState):
         verbose: bool = True,
         raise_on_failure: bool = False,
     ):
-        r"""Advance the Markov chains until they are thermalized (R̂ converged).
-
-        .. warning::
-            **Experimental functionality.** This method is subject to change
-            without notice in future NetKet releases.
-            If you find it useful (or not!), please let us know
-            on `GitHub <https://github.com/netket/netket>`_
-            or on `Slack <https://netket.readthedocs.io/en/latest/community.html>`_.
-
-        Runs the sampler at the current ``sweep_size`` and monitors the
-        Gelman-Rubin R̂ diagnostic via a sliding EMA window (controlled by
-        ``decay``).  Converges when R̂ < ``rhat_tol`` for ``patience``
-        consecutive iterations and at least ``min_chain_length`` samples/chain
-        have been drawn.
-
-        Unlike :meth:`check_mc_convergence`, this method **mutates** the state
-        in-place: ``sampler_state`` is updated to reflect the position of the
-        chains after thermalisation.
-
-        .. note::
-            R̂ is unreliable when the total samples/chain accumulated so far is
-            small (roughly < 50).  With very short chains the between-chain
-            variance is noisy and R̂ tends to be **overestimated**, so the
-            method may not declare convergence until ``min_chain_length`` is
-            satisfied even when the chains are already well-mixed.  If
-            ``max_chain_length`` is set too low you may receive a failure
-            warning even though the sampler is actually thermalized — in that
-            case increase ``max_chain_length`` or reduce ``min_chain_length``.
-
-        Args:
-            op: The operator whose local estimators are used to monitor
-                convergence.  An operator is required because computing R̂
-                needs per-chain scalar values, and local estimators are the
-                only quantity that provides this.  The operator does **not**
-                need to be the one you ultimately care about — prefer a
-                **cheap** observable (e.g. a single-site magnetisation
-                :math:`\hat{\sigma}^z_0`, or the total magnetisation) over the
-                full Hamiltonian, which may have many terms and be slow to
-                evaluate.
-            min_chain_length: Minimum samples/chain before the convergence
-                check is applied (default: ``10``).
-            max_chain_length: Hard upper limit on samples/chain
-                (default: ``100``).  If R̂ has not converged a
-                :class:`UserWarning` is emitted (or a :class:`RuntimeError`
-                if ``raise_on_failure=True``).  Make sure this is comfortably
-                above ``min_chain_length`` to avoid false failure warnings.
-            rhat_tol: R̂ threshold for declaring convergence
-                (default: ``1.05``).
-            decay: EMA decay for the sliding-window R̂ (default: ``0.9``,
-                effective window ≈ 10 batches).
-            patience: Consecutive iterations with R̂ < ``rhat_tol`` required
-                before declaring convergence (default: ``1``).
-            verbose: Display a progress bar (default: ``True``).
-            raise_on_failure: Raise :class:`RuntimeError` instead of warning
-                when ``max_chain_length`` is reached without convergence
-                (default: ``False``).
-
-        Returns:
-            A tuple ``(stats, hist_data)`` where ``stats`` is the final
-            :class:`~netket._src.stats.online_stats.OnlineStats` accumulator
-            and ``hist_data`` is a :class:`~netket.utils.history.HistoryDict`
-            recording mean, variance, and R̂ across iterations.
-
-        See Also:
-            :meth:`check_mc_convergence`
-        """
-        from netket._src.vqs.check_mc_convergence import thermalise_mcmc
-
         return thermalise_mcmc(
             self,
             op,
