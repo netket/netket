@@ -153,7 +153,7 @@ def check_mc_convergence(
                     "tau_corr_batch": stats.tau_corr_batch,
                     "sweep_size": state.sampler.sweep_size,
                 },
-                step=stats._n_samples_total,
+                step=stats._n_samples_total // stats.n_chains,
             )
 
             # Always compose postfix dict (touches JAX arrays on all ranks).
@@ -353,11 +353,15 @@ def thermalise_mcmc(
     if not isinstance(state.sampler, MetropolisSampler):
         raise ValueError("thermalise_mcmc only works for MetropolisSampler.")
 
+    if state.sampler.n_chains < 2:
+        raise ValueError(
+            "thermalise_mcmc requires at least 2 chains to compute R̂. "
+            f"Current n_chains={state.sampler.n_chains}."
+        )
+
     _is_rank0 = jax.process_index() == 0
 
     _chain_length = state.chain_length
-    min_iters = math.ceil(min_chain_length / _chain_length)
-    max_iters = max_chain_length // _chain_length
 
     state.sample(n_discard_per_chain=0)
     O_loc = state.local_estimators(op)
@@ -368,11 +372,9 @@ def thermalise_mcmc(
     #         f"channels). thermalise_mcmc only supports scalar operators."
     #     )
 
-    if state.sampler.n_chains < 2:
-        raise ValueError(
-            "thermalise_mcmc requires at least 2 chains to compute R̂. "
-            f"Current n_chains={state.sampler.n_chains}."
-        )
+    # Subtract 1 from both limits: one batch was already drawn before the loop.
+    min_iters = max(0, math.ceil(min_chain_length / _chain_length) - 1)
+    max_iters = max(0, max_chain_length // _chain_length - 1)
 
     stats = online_statistics(O_loc, max_lag=0, decay=decay)
     iter_count = 0
@@ -402,7 +404,7 @@ def thermalise_mcmc(
                     "variance": stats.variance,
                     "R_hat": rhat_val,
                 },
-                step=stats._n_samples_total,
+                step=stats._n_samples_total // stats.n_chains,
             )
 
             good = not math.isnan(rhat_val) and rhat_val < rhat_tol
