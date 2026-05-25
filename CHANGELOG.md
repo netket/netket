@@ -55,6 +55,8 @@
   This is especially useful after optimization has converged, when the short chains used during training (typically 2–8 steps) are too short for reliable convergence diagnostics.
 * Added {meth}`netket.vqs.MCState.expect_to_precision` (experimental), which draws samples iteratively until the estimated standard error of $\langle O \rangle$ satisfies a user-specified absolute (`atol`) and/or relative (`rtol`) tolerance [PR #2202](https://github.com/netket/netket/pull/2202).
   A progress bar shows the current error in real time.
+* Added {meth}`netket.vqs.MCState.thermalise` (experimental), which advances the Markov chains until they are well-mixed by monitoring the Gelman-Rubin $\hat{R}$ statistic. 
+  Useful after loading a checkpoint, initialising with a biased configuration, or after a large parameter update. 
 
 #### Experimental Observables
 * {class}`netket.experimental.observable.VarianceObservable` now supports chunked `expect` and `expect_and_grad` computations.
@@ -102,9 +104,8 @@
   Those bugs had apparently been sitting there unnoticed for quite a while.
 * The `Midpoint` and `Heun` tableaus now expose consistent embedded lower-order formulas [PR #2210](https://github.com/netket/netket/pull/2210).
 * Calling {meth}`netket.vqs.MCMixedState.expect_and_grad` with a physical operator now raises a dedicated error with guidance on defining a custom dispatch rule [commit e4fc4a965](https://github.com/netket/netket/commit/e4fc4a96575b6bd61a723e76f677148def50e9b8).
-  * Fixed a silent correctness bug in {class}`netket.optimizer.qgt.QGTOnTheFly` with sharding: when chunking was active, the S-matrix-vector product was
-  silently scaled by `jax.device_count()`. The fix adds `pvary_args_tree` on `params` so that `jax.vjp`'s implicit backward-pass `psum` does not compound with
-  the explicit `reduction_op_tree` psum [#2229](https://github.com/netket/netket/pull/2229).
+* Fixed a silent correctness bug in {class}`netket.optimizer.qgt.QGTOnTheFly` with sharding: when chunking was active, the S-matrix-vector product was silently scaled by `jax.device_count()`. The fix adds `pvary_args_tree` on `params` so that `jax.vjp`'s implicit backward-pass `psum` does not compound with the explicit `reduction_op_tree` psum [#2229](https://github.com/netket/netket/pull/2229).
+* Also fixes a sharding bug in `MetropolisSampler._reset`: when `reset_chains=False` the existing σ was not passed through `shard_along_axis`, causing silently non-sharded chains when σ was set from a plain NumPy array.
 
 ## NetKet 3.21
 

@@ -92,6 +92,9 @@ def check_mc_convergence(
         is a :class:`~netket.utils.history.HistoryDict` recording the
         evolution of key diagnostics (mean, error, R̂, τ) as the number of samples
         is increased.
+
+    See Also:
+        :func:`thermalise_mcmc` — advance chains to stationarity before measuring.
     """
     if not isinstance(state_.sampler, MetropolisSampler):
         raise ValueError("check_mc_convergence only works for MetropolisSampler.")
@@ -270,15 +273,15 @@ def thermalise_mcmc(
     state: MCState,
     op: AbstractOperator,
     *,
-    min_chain_length: int = 50,
-    max_chain_length: int = 1000,
+    min_chain_length: int = 10,
+    max_chain_length: int = 100,
     rhat_tol: float = 1.05,
     decay: float = 0.9,
-    patience: int = 10,
+    patience: int = 1,
     verbose: bool = True,
     raise_on_failure: bool = False,
 ):
-    """
+    r"""
     Advance the Markov chains until they are thermalized (R̂ converged).
 
     Unlike :func:`check_mc_convergence`, this function **mutates** ``state``
@@ -295,25 +298,47 @@ def thermalise_mcmc(
         **Experimental functionality.** This method is subject to change
         without notice in future NetKet releases.
 
+    .. note::
+        R̂ is unreliable when the total samples/chain accumulated so far is
+        small (roughly < 50).  With very short chains the between-chain
+        variance is noisy and R̂ tends to be **overestimated**, so the
+        function may not declare convergence until ``min_chain_length`` is
+        satisfied even when the chains are already well-mixed.  If
+        ``max_chain_length`` is set too low (e.g. below 50 × ``chain_length``)
+        you may receive a failure warning even though the sampler is
+        actually thermalized.  In that case either increase
+        ``max_chain_length`` or reduce ``min_chain_length``.
+
     Args:
         state: The :class:`~netket.vqs.MCState` to thermalise. **Mutated in-place.**
-        op: The operator whose local estimators are used to probe mixing
-            (typically the Hamiltonian).
+        op: The operator whose local estimators are used to monitor convergence.
+            An operator is required because computing R̂ needs per-chain scalar
+            values, and local estimators are the only quantity that provides
+            this.  The operator does **not** need to be the one you ultimately
+            care about — prefer a **cheap** observable (e.g. a single-site
+            magnetisation :math:`\hat{\sigma}^z_0`, or the total magnetisation)
+            over the full Hamiltonian, which may have many terms and be slow to
+            evaluate.  The convergence criterion is the same regardless of
+            which operator you choose.
         min_chain_length: Minimum samples/chain before the convergence check
-            is applied (default 50).
-        max_chain_length: Hard upper limit on samples/chain.  If R̂ has not
-            converged by this limit a :class:`UserWarning` is emitted (or a
-            :class:`RuntimeError` is raised when ``raise_on_failure=True``).
+            is applied (default: ``10``).
+        max_chain_length: Hard upper limit on samples/chain (default: ``100``).
+            If R̂ has not converged by this limit a :class:`UserWarning` is
+            emitted (or a :class:`RuntimeError` is raised when
+            ``raise_on_failure=True``).  Make sure this is comfortably above
+            ``min_chain_length``; otherwise a false failure warning may be
+            triggered before R̂ has had enough data to be meaningful.
         rhat_tol: R̂ threshold below which chains are considered mixed
-            (default 1.05).
-        decay: EMA decay factor for the sliding-window R̂ (default 0.9,
+            (default: ``1.05``).
+        decay: EMA decay factor for the sliding-window R̂ (default: ``0.9``,
             effective window ≈ 10 batches).  Lower values react faster to
             recent mixing but are noisier.
         patience: Number of consecutive iterations with R̂ < ``rhat_tol``
-            required before declaring convergence (default 10).
-        verbose: If ``True``, display a :mod:`tqdm` progress bar.
+            required before declaring convergence (default: ``1``).
+        verbose: If ``True``, display a :mod:`tqdm` progress bar
+            (default: ``True``).
         raise_on_failure: If ``True``, raise :class:`RuntimeError` on failure
-            instead of emitting a :class:`UserWarning`.
+            instead of emitting a :class:`UserWarning` (default: ``False``).
 
     Returns:
         A tuple ``(stats, hist_data)`` where ``stats`` is the final
@@ -335,12 +360,12 @@ def thermalise_mcmc(
 
     state.sample(n_discard_per_chain=0)
     O_loc = state.local_estimators(op)
-    if isinstance(O_loc, LocalEstimatorsBatch):
-        raise TypeError(
-            f"thermalise_mcmc requires a scalar local estimator, but "
-            f"{type(op).__name__} returns a LocalEstimatorsBatch (K={O_loc.n_channels} "
-            f"channels). thermalise_mcmc only supports scalar operators."
-        )
+    # if isinstance(O_loc, LocalEstimatorsBatch):
+    #     raise TypeError(
+    #         f"thermalise_mcmc requires a scalar local estimator, but "
+    #         f"{type(op).__name__} returns a LocalEstimatorsBatch (K={O_loc.n_channels} "
+    #         f"channels). thermalise_mcmc only supports scalar operators."
+    #     )
 
     if state.sampler.n_chains < 2:
         raise ValueError(

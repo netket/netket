@@ -821,6 +821,7 @@ class MCState(VariationalState):
 
         See Also:
             :func:`netket._src.vqs.check_mc_convergence.check_mc_convergence`
+            :meth:`thermalise` — advance chains to stationarity before measuring.
         """
         from netket._src.vqs.check_mc_convergence import check_mc_convergence
 
@@ -836,11 +837,11 @@ class MCState(VariationalState):
         self,
         op: AbstractOperator,
         *,
-        min_chain_length: int = 50,
-        max_chain_length: int = 1000,
+        min_chain_length: int = 10,
+        max_chain_length: int = 100,
         rhat_tol: float = 1.05,
         decay: float = 0.9,
-        patience: int = 10,
+        patience: int = 1,
         verbose: bool = True,
         raise_on_failure: bool = False,
     ):
@@ -849,8 +850,8 @@ class MCState(VariationalState):
         .. warning::
             **Experimental functionality.** This method is subject to change
             without notice in future NetKet releases.
-            If you find it useful (or not!), please let us know with a
-            👍 / 👎 on `GitHub <https://github.com/netket/netket>`_
+            If you find it useful (or not!), please let us know
+            on `GitHub <https://github.com/netket/netket>`_
             or on `Slack <https://netket.readthedocs.io/en/latest/community.html>`_.
 
         Runs the sampler at the current ``sweep_size`` and monitors the
@@ -863,22 +864,43 @@ class MCState(VariationalState):
         in-place: ``sampler_state`` is updated to reflect the position of the
         chains after thermalisation.
 
+        .. note::
+            R̂ is unreliable when the total samples/chain accumulated so far is
+            small (roughly < 50).  With very short chains the between-chain
+            variance is noisy and R̂ tends to be **overestimated**, so the
+            method may not declare convergence until ``min_chain_length`` is
+            satisfied even when the chains are already well-mixed.  If
+            ``max_chain_length`` is set too low you may receive a failure
+            warning even though the sampler is actually thermalized — in that
+            case increase ``max_chain_length`` or reduce ``min_chain_length``.
+
         Args:
-            op: The operator whose local estimators probe mixing (typically
-                the Hamiltonian).
+            op: The operator whose local estimators are used to monitor
+                convergence.  An operator is required because computing R̂
+                needs per-chain scalar values, and local estimators are the
+                only quantity that provides this.  The operator does **not**
+                need to be the one you ultimately care about — prefer a
+                **cheap** observable (e.g. a single-site magnetisation
+                :math:`\hat{\sigma}^z_0`, or the total magnetisation) over the
+                full Hamiltonian, which may have many terms and be slow to
+                evaluate.
             min_chain_length: Minimum samples/chain before the convergence
-                check is applied (default 50).
-            max_chain_length: Hard upper limit on samples/chain.  If R̂ has
-                not converged a :class:`UserWarning` is emitted (or a
-                :class:`RuntimeError` if ``raise_on_failure=True``).
-            rhat_tol: R̂ threshold for declaring convergence (default 1.05).
-            decay: EMA decay for the sliding-window R̂ (default 0.9,
+                check is applied (default: ``10``).
+            max_chain_length: Hard upper limit on samples/chain
+                (default: ``100``).  If R̂ has not converged a
+                :class:`UserWarning` is emitted (or a :class:`RuntimeError`
+                if ``raise_on_failure=True``).  Make sure this is comfortably
+                above ``min_chain_length`` to avoid false failure warnings.
+            rhat_tol: R̂ threshold for declaring convergence
+                (default: ``1.05``).
+            decay: EMA decay for the sliding-window R̂ (default: ``0.9``,
                 effective window ≈ 10 batches).
             patience: Consecutive iterations with R̂ < ``rhat_tol`` required
-                before declaring convergence (default 10).
-            verbose: Display a progress bar (default ``True``).
+                before declaring convergence (default: ``1``).
+            verbose: Display a progress bar (default: ``True``).
             raise_on_failure: Raise :class:`RuntimeError` instead of warning
-                when ``max_chain_length`` is reached without convergence.
+                when ``max_chain_length`` is reached without convergence
+                (default: ``False``).
 
         Returns:
             A tuple ``(stats, hist_data)`` where ``stats`` is the final
