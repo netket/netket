@@ -20,7 +20,9 @@ import netket as nk
 
 from .. import common
 
-pytestmark = common.skipif_distributed
+# Tests that force chain positions via plain numpy arrays are skipped under
+# distributed execution (sharded sampler_state can't accept a host array).
+# Everything else runs in both single-process and distributed modes.
 
 
 # ---------------------------------------------------------------------------
@@ -81,8 +83,13 @@ def test_raises_non_metropolis(hi, hamiltonian):
         vs.thermalise(hamiltonian, verbose=False)
 
 
+@common.skipif_distributed
 def test_raises_single_chain(hi, hamiltonian):
-    """Raises ValueError when n_chains < 2 (R̂ is undefined)."""
+    """Raises ValueError when n_chains < 2 (R̂ is undefined).
+
+    Skipped in distributed mode: n_chains=1 per process × N processes ≥ 2
+    total chains, so the guard never fires and the test would be meaningless.
+    """
     vs = nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi, n_chains=1),
         nk.models.RBM(alpha=1),
@@ -115,6 +122,7 @@ def test_return_types_and_hist_keys(vstate_uniform, hamiltonian):
 # ---------------------------------------------------------------------------
 
 
+@common.skipif_distributed
 def test_mutates_sampler_state(vstate_uniform, hamiltonian):
     """thermalise mutates state.sampler_state in-place (unlike check_mc_convergence)."""
     _force_all_chains_to_same_state(vstate_uniform)
@@ -132,6 +140,7 @@ def test_mutates_sampler_state(vstate_uniform, hamiltonian):
 # ---------------------------------------------------------------------------
 
 
+@common.skipif_distributed
 def test_converges_from_biased_start(vstate_uniform, hamiltonian):
     """With a uniform wavefunction and all chains starting at the same state,
     thermalise should converge to R̂ < rhat_tol well before max_chain_length."""
@@ -157,6 +166,7 @@ def test_converges_from_biased_start(vstate_uniform, hamiltonian):
     ), f"Used {n_samples_per_chain} samples/chain — should have converged much earlier"
 
 
+@common.skipif_distributed
 def test_r_hat_improves_from_biased_start(vstate_uniform, hamiltonian):
     """R̂ after thermalisation is lower than R̂ computed right after forcing chains
     to the same state (before any mixing has occurred)."""
@@ -205,3 +215,32 @@ def test_raise_on_failure(vstate_uniform, hamiltonian):
             verbose=False,
             raise_on_failure=True,
         )
+
+
+# ---------------------------------------------------------------------------
+# Distributed-safe convergence (no forced chain positions)
+# ---------------------------------------------------------------------------
+
+
+def test_converges_uniform_default_init(vstate_uniform, hamiltonian):
+    """Uniform wavefunction converges from default initialisation.
+
+    This test runs under both single-process and distributed execution:
+    it verifies that R̂ aggregation across sharded chains produces a finite,
+    converged result without writing plain host arrays to sampler_state.
+    """
+    stats, hist = vstate_uniform.thermalise(
+        hamiltonian,
+        max_chain_length=500,
+        rhat_tol=1.05,
+        patience=3,
+        verbose=False,
+    )
+
+    rhat = stats.R_hat
+    assert not math.isnan(rhat), "R̂ is NaN — likely an aggregation bug under sharding"
+    assert rhat < 1.05, f"R̂={rhat:.4f} did not converge below 1.05"
+
+    rhats = hist["R_hat"].values
+    finite = rhats[np.isfinite(rhats)]
+    assert len(finite) >= 1, "No finite R̂ values recorded in history"
