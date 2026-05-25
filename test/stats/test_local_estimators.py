@@ -14,7 +14,6 @@
 
 """Tests for LocalEstimators and LocalEstimatorsBatch."""
 
-import warnings
 
 import numpy as np
 import numpy.testing as npt
@@ -25,8 +24,6 @@ import netket as nk
 from netket.stats import LocalEstimators, LocalEstimatorsBatch, statistics
 from netket._src.stats.online_stats import OnlineStats
 from netket._src.stats.online_stats.accumulator_batch import OnlineStatsBatch
-
-from .. import common
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
@@ -60,9 +57,7 @@ def test_to_stats_matches_statistics(scalar_data):
     stats = le.to_stats()
     ref = statistics(scalar_data)
     npt.assert_allclose(float(stats.mean), float(ref.mean), rtol=1e-6)
-    npt.assert_allclose(
-        float(stats.error_of_mean), float(ref.error_of_mean), rtol=1e-6
-    )
+    npt.assert_allclose(float(stats.error_of_mean), float(ref.error_of_mean), rtol=1e-6)
 
 
 def test_accumulate(scalar_data):
@@ -147,4 +142,6 @@ def test_batch_accumulate(batch_data):
     assert acc2.n_samples > acc.n_samples
 
     # mean is consistent with one-shot to_stats()
-    npt.assert_allclose(float(acc2.get_stats().mean), float(le.to_stats().mean), rtol=1e-5)
+    npt.assert_allclose(
+        float(acc2.get_stats().mean), float(le.to_stats().mean), rtol=1e-5
+    )

@@ -20,7 +20,7 @@ import pytest
 import jax
 
 import netket as nk
-from netket.stats import LocalEstimators, LocalEstimatorsBatch
+from netket.stats import LocalEstimators
 
 from .. import common
 
@@ -68,7 +68,9 @@ def test_local_estimators(vstate, ising):
     stats_le = le.to_stats()
     stats_ex = vstate.expect(ising)
     npt.assert_allclose(float(stats_le.mean.real), float(stats_ex.mean.real), rtol=1e-6)
-    npt.assert_allclose(float(stats_le.error_of_mean), float(stats_ex.error_of_mean), rtol=1e-6)
+    npt.assert_allclose(
+        float(stats_le.error_of_mean), float(stats_ex.error_of_mean), rtol=1e-6
+    )
 
     # chunked evaluation gives identical data
     le_chunked = vstate.local_estimators(ising, chunk_size=16)
