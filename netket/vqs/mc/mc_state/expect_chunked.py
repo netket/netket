@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
-from collections.abc import Callable
 import warnings
 
-import jax
-from jax import numpy as jnp
 
 from netket import jax as nkjax
 from netket.stats import Stats
-from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
 from netket.operator import (
@@ -40,10 +35,10 @@ from netket.vqs import expect
 from netket.vqs.mc import (
     kernels,
     get_local_kernel,
-    get_local_kernel_arguments,
 )
 
 from .state import MCState
+from netket.vqs.mc import local_estimators
 
 
 # Dispatches to select what expect-kernel to use
@@ -103,52 +98,6 @@ def expect_fallback(
 
 @expect.dispatch
 def expect_mcstate_operator_chunked(
-    vstate: MCState, Ô: AbstractOperator, chunk_size: int
+    vstate: MCState, Ô: AbstractOperator, chunk_size: int
 ) -> Stats:  # noqa: F811
-    σ, args = get_local_kernel_arguments(vstate, Ô)
-
-    local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
-
-    return _expect_chunking(
-        chunk_size,
-        local_estimator_fun,
-        vstate._apply_fun,
-        vstate.sampler.machine_pow,
-        vstate.parameters,
-        vstate.model_state,
-        σ,
-        args,
-    )
-
-
-@partial(jax.jit, static_argnums=(0, 1, 2))
-def _expect_chunking(
-    chunk_size: int,
-    local_value_kernel: Callable,
-    model_apply_fun: Callable,
-    machine_pow: int,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    args: PyTree,
-) -> Stats:
-    σ_shape = σ.shape
-
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
-    variables = {"params": parameters, **model_state}
-
-    def log_pdf(w, σ):
-        return machine_pow * model_apply_fun(w, σ).real
-
-    _, Ō_stats = nkjax.expect(
-        log_pdf,
-        partial(local_value_kernel, model_apply_fun, chunk_size=chunk_size),
-        variables,
-        σ,
-        args,
-        n_chains=σ_shape[0],
-    )
-
-    return Ō_stats
+    return local_estimators(vstate, Ô, chunk_size).to_stats()

@@ -459,10 +459,11 @@ def test_local_estimators(vstate, operator):
         assert st1.error_of_mean == pytest.approx(st2.error_of_mean)
 
     def inner_test():
-        oloc = vstate.local_estimators(operator)
-        assert oloc.shape == (vstate.sampler.n_chains, vstate.chain_length)
+        le = vstate.local_estimators(operator)
+        # le is a LocalEstimators; .data holds the per-sample values
+        assert le.data.shape == (vstate.sampler.n_chains, vstate.chain_length)
 
-        stats1 = nk.stats.statistics(oloc)
+        stats1 = nk.stats.statistics(le.data)
         stats2 = vstate.expect(operator)
         assert_stats_equal(stats1, stats2)
 

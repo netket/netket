@@ -12,14 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable
 from functools import partial
 
-import jax
-from jax import numpy as jnp
 
-from netket.stats import Stats, statistics
-from netket.utils.types import PyTree
+from netket.stats import Stats
 from netket.utils.dispatch import dispatch
 from netket.utils import HashablePartial
 from netket.operator import (
@@ -35,6 +31,7 @@ from netket.vqs.mc import (
     check_hilbert,
     get_local_kernel_arguments,
     get_local_kernel,
+    local_estimators,
 )
 
 from .state import MCState
@@ -126,39 +123,6 @@ def get_local_kernel_sum(vs: MCState, O: SumGenericOperator):
 # a completely arbitrary novel type of operator, this makes it much easier.
 @dispatch
 def expect(
-    vstate: MCState, Ô: AbstractOperator, chunk_size: None
+    vstate: MCState, Ô: AbstractOperator, chunk_size: None
 ) -> Stats:  # noqa: F811
-    σ, args = get_local_kernel_arguments(vstate, Ô)
-    local_estimator_fun = get_local_kernel(vstate, Ô)
-
-    return _expect(
-        local_estimator_fun,
-        vstate._apply_fun,
-        vstate.sampler.machine_pow,
-        vstate.parameters,
-        vstate.model_state,
-        σ,
-        args,
-    )
-
-
-@partial(jax.jit, static_argnums=(0, 1))
-def _expect(
-    local_value_kernel: Callable,
-    model_apply_fun: Callable,
-    machine_pow: int,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    local_value_args: PyTree,
-) -> Stats:
-    n_chains = σ.shape[0]
-    if σ.ndim >= 3:
-        σ = jax.lax.collapse(σ, 0, 2)
-
-    variables = {"params": parameters, **model_state}
-
-    L_σ = local_value_kernel(model_apply_fun, variables, σ, local_value_args)
-    Ō_stats = statistics(L_σ.reshape((n_chains, -1)))
-
-    return Ō_stats
+    return local_estimators(vstate, Ô, chunk_size).to_stats()

@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.stats.mc_stats import statistics, Stats
+from netket.stats.mc_stats import statistics, Stats, StatsBatch
 from netket._src.stats.online_stats import (
     online_statistics,
+    OnlineStats,
+)
+from netket._src.stats.local_estimators import LocalEstimators, LocalEstimatorsBatch
+from netket._src.stats.online_stats.accumulator_batch import (
+    OnlineStatsBatch,
+    online_statistics_batch,
 )
 
 from netket.stats.mpi_stats import (

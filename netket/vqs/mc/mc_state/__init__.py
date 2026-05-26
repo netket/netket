@@ -14,6 +14,8 @@
 
 from .state import MCState
 
+from . import local_estimators
+
 from . import expect
 from . import expect_grad
 from . import expect_forces

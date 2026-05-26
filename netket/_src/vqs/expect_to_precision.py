@@ -1,55 +1,68 @@
 """ """
 
 import jax
+import jax.numpy as jnp
 from tqdm.auto import tqdm
 
 from netket.vqs.mc import MCState
 from netket.sampler import MetropolisSampler
 from netket.operator import AbstractOperator
-
 from netket._src.stats.online_stats import online_statistics
+from netket._src.stats.online_stats.accumulator_batch import OnlineStatsBatch
+
+
+def _summary_error_and_scale(stats) -> tuple[float, float]:
+    """Return scalar error and scale summaries for scalar or batched observables."""
+    s = stats.get_stats()
+    if isinstance(stats, OnlineStatsBatch):
+        err = float(jnp.max(jnp.abs(s.error_of_mean)))
+        scale = float(jnp.max(jnp.abs(s.mean)))
+    else:
+        err = abs(float(s.error_of_mean))
+        scale = abs(float(s.mean))
+    return err, scale
+
+
+def _rel_err(err: float, scale: float) -> float:
+    """Relative error, safe against zero mean: returns inf when scale==0 and err>0."""
+    if scale == 0.0:
+        return 0.0 if err == 0.0 else float("inf")
+    return err / scale
 
 
 def _check_not_converged(stats, atol: float | None, rtol: float | None) -> bool:
     """Return True if the stats have not yet met the requested tolerances."""
-    s = stats.get_stats()
-    err = s.error_of_mean
-    mean = s.mean
+    err, scale = _summary_error_and_scale(stats)
     if atol is not None and err > atol:
         return True
-    if rtol is not None and err / abs(mean) > rtol:
+    if rtol is not None and _rel_err(err, scale) > rtol:
         return True
     return False
 
 
 def _format_postfix(stats, atol: float | None, rtol: float | None) -> dict:
     """Build the tqdm postfix dict from current stats and tolerances."""
-    s = stats.get_stats()
-    err = s.error_of_mean
-    mean = s.mean
+    err, scale = _summary_error_and_scale(stats)
     d = {"err": f"{err:.4g}"}
     if atol is not None:
         d["atol"] = f"{atol:.4g}"
     if rtol is not None:
-        d["rel_err"] = f"{err / abs(mean):.4g}"
+        d["rel_err"] = f"{_rel_err(err, scale):.4g}"
         d["rtol"] = f"{rtol:.4g}"
     return d
 
 
 def _accumulate_stats(state, op_leaves, active, old_stats, *, max_lag):
     active = set(active)
-    return [
-        (
-            online_statistics(
-                state.local_estimators(op).block_until_ready(),
-                old_estimator=old,
-                max_lag=max_lag,
-            )
-            if i in active
-            else old
-        )
-        for i, (op, old) in enumerate(zip(op_leaves, old_stats))
-    ]
+    result = []
+    for i, (op, old) in enumerate(zip(op_leaves, old_stats)):
+        if i not in active:
+            result.append(old)
+            continue
+        le = state.local_estimators(op)
+        jax.block_until_ready(le)
+        result.append(online_statistics(le, old_estimator=old, max_lag=max_lag))
+    return result
 
 
 def expect_to_precision(
@@ -147,7 +160,8 @@ def expect_to_precision(
             msg = "  Reached max_iter before target precision."
             if _is_rank0:
                 pbar.write(msg)
-        msg = f"  [done] error = {stats_list[0].get_stats().error_of_mean:g}"
+        err, _ = _summary_error_and_scale(stats_list[0])
+        msg = f"  [done] error = {err:g}"
         if _is_rank0:
             pbar.write(msg)
 

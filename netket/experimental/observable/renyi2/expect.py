@@ -18,14 +18,45 @@ import jax.numpy as jnp
 import jax
 
 from netket.vqs import MCState, expect
-from netket.stats import statistics
+from netket.vqs.mc.common import local_estimators
+from netket._src.stats.local_estimators import LocalEstimatorsBatch
 from netket import jax as nkjax
 
 from .S2_operator import Renyi2EntanglementEntropy
 
 
-@expect.dispatch
-def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | None):
+@partial(jax.jit, static_argnames=("afun", "chunk_size"))
+def _renyi2_kernel_values(
+    afun, params, model_state, σ_η, σp_ηp, partition, *, chunk_size
+):
+    N = σ_η.shape[-1]
+    σ_η = σ_η.reshape(-1, N)
+    σp_ηp = σp_ηp.reshape(-1, N)
+
+    σ = σ_η[:, partition]
+    σp = σp_ηp[:, partition]
+
+    σ_ηp = jnp.copy(σp_ηp).at[:, partition].set(σ)
+    σp_η = jnp.copy(σ_η).at[:, partition].set(σp)
+
+    @partial(
+        nkjax.apply_chunked, in_axes=(None, None, 0, 0, 0, 0), chunk_size=chunk_size
+    )
+    def kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp):
+        W = {"params": params, **model_state}
+        return jnp.exp(afun(W, σ_ηp) + afun(W, σp_η) - afun(W, σ_η) - afun(W, σp_ηp))
+
+    return kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp)
+
+
+def _renyi2_combinator(mu):
+    return -jnp.log2(mu[0]).real
+
+
+@local_estimators.dispatch
+def _(
+    vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | None
+) -> LocalEstimatorsBatch:  # noqa: F811
     if op.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
@@ -41,12 +72,13 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | Non
             samples = samples[:, :-1]
         σ_η = samples[:, : (n_samples // 2)]
         σp_ηp = samples[:, (n_samples // 2) :]
-
     else:
         σ_η = samples[: (n_chains // 2)]
         σp_ηp = samples[(n_chains // 2) :]
 
-    return Renyi2_sampling_MCState(
+    n_chains_eff = σ_η.shape[0]
+
+    kernel_values = _renyi2_kernel_values(
         vstate._apply_fun,
         vstate.parameters,
         vstate.model_state,
@@ -56,50 +88,12 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | Non
         chunk_size=chunk_size,
     )
 
+    data = kernel_values.reshape(n_chains_eff, -1, 1)
+    return LocalEstimatorsBatch(data=data, combinator=_renyi2_combinator)
 
-@partial(jax.jit, static_argnames=("afun", "chunk_size"))
-def Renyi2_sampling_MCState(
-    afun, params, model_state, σ_η, σp_ηp, partition, *, chunk_size
-):
-    n_chains = σ_η.shape[0]
 
-    N = σ_η.shape[-1]
-
-    σ_η = σ_η.reshape(-1, N)
-    σp_ηp = σp_ηp.reshape(-1, N)
-
-    n_samples = σ_η.shape[0]
-
-    σ = σ_η[:, partition]
-    σp = σp_ηp[:, partition]
-
-    σ_ηp = jnp.copy(σp_ηp)
-    σp_η = jnp.copy(σ_η)
-
-    σ_ηp = σ_ηp.at[:, partition].set(σ)
-    σp_η = σp_η.at[:, partition].set(σp)
-
-    @partial(
-        nkjax.apply_chunked, in_axes=(None, None, 0, 0, 0, 0), chunk_size=chunk_size
-    )
-    def kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp):
-        W = {"params": params, **model_state}
-
-        return jnp.exp(afun(W, σ_ηp) + afun(W, σp_η) - afun(W, σ_η) - afun(W, σp_ηp))
-
-    kernel_values = kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp)
-
-    Renyi2_stats = statistics(kernel_values.reshape((n_chains, -1)))
-
-    # Propagation of errors from S_2 to -log_2(S_2)
-    Renyi2_stats = Renyi2_stats.replace(
-        variance=Renyi2_stats.variance / (Renyi2_stats.mean.real * jnp.log(2)) ** 2
-    )
-
-    Renyi2_stats = Renyi2_stats.replace(
-        error_of_mean=jnp.sqrt(Renyi2_stats.variance / n_samples)
-    )
-
-    Renyi2_stats = Renyi2_stats.replace(mean=-jnp.log2(Renyi2_stats.mean).real)
-
-    return Renyi2_stats
+@expect.dispatch
+def Renyi2(
+    vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | None
+):  # noqa: F811
+    return local_estimators(vstate, op, chunk_size).to_stats()

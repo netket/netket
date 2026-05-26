@@ -17,6 +17,7 @@ from netket._src.stats.online_stats import (
     expand_max_lag,
     thin_acf_by_2,
 )
+from netket._src.stats.local_estimators import LocalEstimatorsBatch
 from netket.utils.history import HistoryDict
 
 
@@ -116,6 +117,13 @@ def check_mc_convergence(
 
     state.sample()
     O_loc = state.local_estimators(op)
+    if isinstance(O_loc, LocalEstimatorsBatch):
+        raise TypeError(
+            f"check_mc_convergence requires a scalar local estimator, but "
+            f"{type(op).__name__} returns a LocalEstimatorsBatch (K={O_loc.n_channels} "
+            f"channels). check_mc_convergence only supports operators with a single "
+            f"scalar local estimator per sample."
+        )
     stats = online_statistics(O_loc, max_lag=max_lag)
     iter = 0
     hist_data = HistoryDict()
