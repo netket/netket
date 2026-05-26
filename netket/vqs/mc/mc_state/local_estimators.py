@@ -76,6 +76,7 @@ def local_estimators_fallback(  # noqa: F811
     warnings.warn(
         f"Ignoring chunk_size={chunk_size} for local_estimators with signature "
         f"({type(vstate)}, {type(op)}) because no implementation supporting "
-        f"chunking for this signature exists."
+        f"chunking for this signature exists.",
+        stacklevel=2,
     )
     return local_estimators(vstate, op, None)

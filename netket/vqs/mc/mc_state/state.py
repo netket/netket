@@ -675,7 +675,8 @@ class MCState(VariationalState):
 
             Samples differ between JAX processes, so the local estimators will take
             different values on each process.  Use :meth:`expect` (or
-            :func:`~netket.stats.statistics`) to obtain process-independent averages.
+            :meth:`~netket.stats.LocalEstimatorsBatch.to_stats` for multi-channel
+            estimators) to obtain process-independent averages.
 
         Args:
             op: The operator or observable.

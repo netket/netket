@@ -23,12 +23,19 @@ def _summary_error_and_scale(stats) -> tuple[float, float]:
     return err, scale
 
 
+def _rel_err(err: float, scale: float) -> float:
+    """Relative error, safe against zero mean: returns inf when scale==0 and err>0."""
+    if scale == 0.0:
+        return 0.0 if err == 0.0 else float("inf")
+    return err / scale
+
+
 def _check_not_converged(stats, atol: float | None, rtol: float | None) -> bool:
     """Return True if the stats have not yet met the requested tolerances."""
     err, scale = _summary_error_and_scale(stats)
     if atol is not None and err > atol:
         return True
-    if rtol is not None and err / scale > rtol:
+    if rtol is not None and _rel_err(err, scale) > rtol:
         return True
     return False
 
@@ -40,7 +47,7 @@ def _format_postfix(stats, atol: float | None, rtol: float | None) -> dict:
     if atol is not None:
         d["atol"] = f"{atol:.4g}"
     if rtol is not None:
-        d["rel_err"] = f"{err / scale:.4g}"
+        d["rel_err"] = f"{_rel_err(err, scale):.4g}"
         d["rtol"] = f"{rtol:.4g}"
     return d
 

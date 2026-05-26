@@ -144,8 +144,8 @@ class LocalEstimatorsBatch(struct.Pytree):
     output shape and returns:
 
     - a :class:`~netket.stats.Stats` for scalar combinators;
-    - a ``(mean, error_of_mean)`` tuple of JAX arrays for array-valued
-      combinators, both with the same shape as ``combinator(X)``.
+    - a :class:`~netket.stats.StatsBatch` for array-valued combinators,
+      with ``.mean`` and ``.error_of_mean`` having the same shape as ``combinator(X)``.
 
     :meth:`to_online_stats` returns an :class:`~netket.stats.OnlineStatsBatch`.
 
@@ -164,8 +164,9 @@ class LocalEstimatorsBatch(struct.Pytree):
             data=channels,        # (n_chains, chain_len, p + p²)
             combinator=chi_matrix,  # (K,) -> (p, p)
         )
-        mean, err = le.to_stats()       # both shape (p, p)
-        mean, err = le.accumulate().get_stats()  # online version, same shapes
+        sb = le.to_stats()                    # StatsBatch, shape (p, p)
+        sb.mean, sb.error_of_mean             # both shape (p, p)
+        sb = le.accumulate().get_stats()      # online version, same shapes
     """
 
     data: jax.Array = struct.field(pytree_node=True)

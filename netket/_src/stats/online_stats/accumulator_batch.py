@@ -80,8 +80,8 @@ class OnlineStatsBatch(struct.Pytree):
     :func:`jax.eval_shape` to inspect the combinator output shape and returns:
 
     - a :class:`~netket.stats.Stats` object when ``f`` returns a scalar;
-    - a ``(mean, error_of_mean)`` tuple of JAX arrays when ``f`` returns an
-      array of any shape.
+    - a :class:`~netket.stats.StatsBatch` object when ``f`` returns an array
+      of any shape (access results via ``.mean`` and ``.error_of_mean``).
 
     Use :func:`online_statistics_batch` as the functional API, or
     :meth:`from_data` to construct directly from a first batch::
@@ -97,7 +97,8 @@ class OnlineStatsBatch(struct.Pytree):
             return X[p:].reshape(p, p) - X[:p, None] * X[None, :p]
 
         acc = online_statistics_batch(data, chi_matrix, acc)
-        mean, err = acc.get_stats()                 # both shape (p, p)
+        sb = acc.get_stats()                        # StatsBatch, shape (p, p)
+        sb.mean, sb.error_of_mean                   # both shape (p, p)
 
     This class is used internally by :meth:`~netket.vqs.MCState.expect_to_precision`
     whenever the operator has a :class:`LocalEstimatorsBatch` dispatch.
@@ -147,8 +148,9 @@ class OnlineStatsBatch(struct.Pytree):
 
         K = data.shape[-1]
         n_chains = data.shape[0]
+        dtype = jnp.result_type(data.dtype, jnp.float64)
         estimators = tuple(
-            OnlineStats(n_chains, dtype=jnp.float64, max_lag=max_lag) for _ in range(K)
+            OnlineStats(n_chains, dtype=dtype, max_lag=max_lag) for _ in range(K)
         )
         estimator = cls(estimators=estimators, combinator=combinator)
         return estimator.update(data)
@@ -188,8 +190,8 @@ class OnlineStatsBatch(struct.Pytree):
         returns:
 
         - a :class:`~netket.stats.Stats` for scalar combinators;
-        - a ``(mean, error_of_mean)`` tuple of JAX arrays for array-valued
-          combinators, both with the same shape as ``combinator(X)``.
+        - a :class:`~netket.stats.StatsBatch` for array-valued combinators,
+          with ``.mean`` and ``.error_of_mean`` having the same shape as ``combinator(X)``.
         """
         X = jnp.array([e.mean for e in self.estimators])  # (K,)
 

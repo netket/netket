@@ -98,13 +98,17 @@ def online_statistics(
 
     if isinstance(data, LocalEstimators):
         if isinstance(old_estimator, OnlineStatsBatch):
-            raise TypeError()
+            raise TypeError(
+                "Mismatch between non-batched data and batched accumulator."
+                )
         data = data.data
     elif isinstance(data, LocalEstimatorsBatch):
         if old_estimator is not None and not isinstance(
             old_estimator, OnlineStatsBatch
         ):
-            raise TypeError()
+            raise TypeError(
+                "Mismatch between batched data and non-batched accumulator."
+                )
         return online_statistics_batch(
             data.data,
             data.combinator,

@@ -16,6 +16,7 @@ Monte Carlo statistics functions.
 
    statistics
    Stats
+   StatsBatch
 ```
 
 ## Online accumulation
