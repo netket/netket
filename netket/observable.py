@@ -27,6 +27,9 @@ from netket._src.observable.infidelity import (
 from netket._src.observable.correlator import (
     ConnectedCorrelator as ConnectedCorrelator,
 )
+from netket._src.observable.vscore import (
+    VScore as VScore,
+)
 
 from netket.utils.moduletools import auto_export as _auto_export
 

@@ -196,6 +196,31 @@ def test_repr(isolated_mlflow):
     del log
 
 
+@common.skipif_distributed
+def test_save_params_every_zero_raises(isolated_mlflow):
+    with pytest.raises(ValueError, match="save_params_every"):
+        nk.logging.MLFlowLog(save_params=True, save_params_every=0)
+
+
+@common.skipif_distributed
+def test_metadata_not_relogged_on_resume(isolated_mlflow):
+    mlflow = isolated_mlflow
+
+    # Simulate a first run where metadata was logged via on_run_start
+    mlflow.set_experiment("test_meta_resume")
+    with mlflow.start_run(run_name="run_meta") as run:
+        mlflow.log_params({"lr": "0.01"})
+        run_id = run.info.run_id
+
+    # Resuming with run_id should not raise due to re-logging the same param
+    log2 = nk.logging.MLFlowLog(
+        run_id=run_id,
+        metadata={"lr": 0.01},
+    )
+    log2(1, {"loss": 0.9})  # would raise MlflowException if params re-logged
+    del log2
+
+
 @common.onlyif_distributed
 def test_write_only_on_master(vstate, isolated_mlflow):
     rank = jax.process_index()
