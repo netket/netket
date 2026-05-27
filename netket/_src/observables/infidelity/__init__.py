@@ -14,9 +14,9 @@
 
 __all__ = ["InfidelityOperator"]
 
-from netket.experimental.observable.infidelity.infidelity_operator import (
+from netket._src.observables.infidelity.infidelity_operator import (
     InfidelityOperator,
 )
 
-from netket.experimental.observable.infidelity import expect
-from netket.experimental.observable.infidelity import exact
+from netket._src.observables.infidelity import expect
+from netket._src.observables.infidelity import exact

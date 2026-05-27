@@ -24,8 +24,8 @@ from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
 from netket._src.nn.apply_operator.functional import make_logpsi_op_afun
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
-from netket.experimental.observable.infidelity.expect import get_local_estimator
-from netket.experimental.observable.infidelity import InfidelityOperator
+from netket._src.observables.infidelity.expect import get_local_estimator
+from netket._src.observables.infidelity import InfidelityOperator
 
 
 ApplyFun = Callable[[PyTree, Array], Array]

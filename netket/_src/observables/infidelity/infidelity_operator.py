@@ -2,7 +2,7 @@ import jax.numpy as jnp
 import flax
 import jax
 
-from netket.experimental.observable import AbstractObservable
+from netket.operator._abstract_observable import AbstractObservable
 
 from netket.utils.types import DType
 from netket.utils.numbers import is_scalar
