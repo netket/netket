@@ -171,15 +171,4 @@ Those are the abstract classes you can inherit from to implement your own solver
 
 ## Observables
 
-```{deprecated}
-The observables in `netket.experimental.observable` have been moved to {mod}`netket.observable`.
-Please update your imports accordingly. The old names will be removed in a future release.
-```
-
-```{eval-rst}
-.. autosummary::
-   :toctree: _generated/experimental/observable
-   :template: class
-   :nosignatures:
-
-```
+The observables previously in `netket.experimental.observable` have been moved to {mod}`netket.observable`.
