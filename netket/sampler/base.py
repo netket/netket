@@ -38,15 +38,17 @@ class SamplerState(struct.Pytree):
 
 def _warn_if_samples_are_not_sharded(samples, *, what: str, stacklevel: int = 3):
     """
-    Warn if a JAX samples array is fully replicated in sharding mode.
+    Warn if a samples array is not sharded across devices in sharding mode.
 
     This is meant to catch bugs where a transformation silently rebuilds sampler
-    state or sample batches without reapplying samples sharding.
+    state or sample batches without reapplying samples sharding, including cases
+    where a numpy array is assigned directly to sampler state.
     """
     if not config.netket_experimental_sharding or jax.device_count() <= 1:
         return
 
-    if not isinstance(samples, jax.Array) or not samples.is_fully_replicated:
+    # Only skip if it's a properly sharded JAX array.
+    if isinstance(samples, jax.Array) and not samples.is_fully_replicated:
         return
 
     if jax.process_index() != 0:
@@ -54,8 +56,9 @@ def _warn_if_samples_are_not_sharded(samples, *, what: str, stacklevel: int = 3)
 
     import warnings
 
+    shape = getattr(samples, "shape", None)
     warnings.warn(
-        f"{what} has shape={samples.shape}, but it is fully replicated even though "
+        f"{what} has shape={shape}, but it is not sharded across devices even though "
         "`netket_experimental_sharding=True`. This usually means that some "
         "transformation rebuilt the samples without reapplying "
         "`netket.jax.sharding.shard_along_axis(x, axis=0)`. In practice, if you "
@@ -305,8 +308,11 @@ class Sampler(struct.Pytree):
         if state is None:
             state = self.init_state(machine, parameters)
 
+        _warn_if_samples_are_not_sharded(
+            getattr(state, "σ", None),
+            what=f"`{type(self).__name__}.reset()` received `state.σ`",
+        )
         state = self._reset(wrap_afun(machine), parameters, state)
-        # Catch transformations that preserve sample shape but silently drop chain sharding.
         _warn_if_samples_are_not_sharded(
             getattr(state, "σ", None),
             what=f"`{type(self).__name__}.reset()` returned `state.σ`",

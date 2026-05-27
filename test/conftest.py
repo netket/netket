@@ -107,6 +107,27 @@ def clear_jax_cache(request):
             _n_test_since_reset = 0
 
 
+def pytest_load_initial_conftests(early_config, parser, args):
+    """Initialize JAX distributed BEFORE any plugin processes filterwarnings.
+
+    pytest_configure runs too late: the _pytest.warnings plugin resolves
+    fully-qualified warning class names (e.g. netket.errors.*) during
+    pytest_configure, which imports netket, which calls jax.devices() and
+    initialises the XLA backend.  jax.distributed.initialize() must be called
+    before that happens, so we use this earlier hook.
+    """
+    djaxrun_mode = os.environ.get("DJAXRUN", "0") == "1"
+    jax_distributed_flag = "--jax-distributed" in args
+
+    if djaxrun_mode or jax_distributed_flag:
+        import jax
+
+        print("\n---------------------------------------------")
+        print("Initializing JAX distributed...")
+        jax.distributed.initialize()
+        os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
+
+
 def pytest_configure(config):
     import os
 
@@ -124,20 +145,18 @@ def pytest_configure(config):
 
         jax.config.update("jax_cpu_enable_async_dispatch", False)
 
-    if config.getoption("--jax-distributed") or djaxrun_mode:
-        print("\n---------------------------------------------")
-        print("Initializing JAX distributed using GLOO...")
-        import jax
+    if djaxrun_mode or config.getoption("--jax-distributed"):
+        # Multiprocess test workers can't share a JAX distributed session
+        if hasattr(config.option, "numprocesses"):
+            config.option.numprocesses = 0
 
-        jax.config.update("jax_cpu_collectives_implementation", "gloo")
-        jax.distributed.initialize()
+    if config.getoption("--jax-distributed") or djaxrun_mode:
+        import jax
 
         default_string = f"r{jax.process_index()}/{jax.process_count()} - "
         print(default_string, jax.devices())
         print(default_string, jax.local_devices())
         print("---------------------------------------------\n", flush=True)
-
-        os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
 
         import netket as nk
 

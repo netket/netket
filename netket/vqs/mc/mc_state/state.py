@@ -39,6 +39,7 @@ from netket.utils import (
     timing,
     _serialization as serialization_utils,
 )
+from netket.utils.moduletools import copy_doc
 from netket.utils.deprecation import deprecated
 from netket.utils.types import Array, PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
@@ -52,6 +53,8 @@ from netket.vqs.base import (
     expect_and_grad,
     expect_and_forces,
 )
+
+from netket._src.vqs.check_mc_convergence import check_mc_convergence, thermalise_mcmc
 
 
 def compute_chain_length(n_chains, n_samples):
@@ -823,6 +826,7 @@ class MCState(VariationalState):
             chunk_size=self.chunk_size,
         )
 
+    @copy_doc(check_mc_convergence)
     def check_mc_convergence(
         self,
         op: AbstractOperator,
@@ -831,61 +835,37 @@ class MCState(VariationalState):
         max_chain_length: int = 500,
         plot: bool = False,
     ):
-        r"""Diagnose whether the sampler's sweep size produces decorrelated samples and whether the chains are stationary (thermalized).
-
-        .. warning::
-            **Experimental functionality.** This method is subject to change
-            without notice in future NetKet releases.
-            If you find it useful (or not!), please let us know with a
-            👍 / 👎 on `GitHub <https://github.com/netket/netket>`_
-            or on `Slack <https://netket.readthedocs.io/en/latest/community.html>`_.
-
-        This routine temporarily runs the sampler at unit sweep size (one raw
-        MC step per exposed sample) and estimates the integrated autocorrelation
-        time :math:`\tau_\text{corr}` of the local estimators of ``op`` via an
-        online Geyer IPS estimator.  It reports whether the current
-        :attr:`~netket.vqs.MCState.sweep_size` is sufficient to make consecutive
-        samples effectively independent (i.e. :math:`\tau_\text{corr}` expressed
-        in sweep units is less than 1).
-
-        When the autocorrelation window saturates — meaning the chains are still
-        too short to see the full ACF tail — the internal sweep size is doubled
-        adaptively, until convergence or until ``max_chain_length`` samples per
-        chain are reached.
-
-        The original state is **never mutated**: all sampling is done on a
-        shallow copy.
-
-        Args:
-            op: The operator whose local estimators are used to probe
-                correlations (typically the Hamiltonian).
-            min_chain_length: Minimum number of samples per chain to accumulate
-                before the convergence criterion is evaluated.
-            max_chain_length: Hard upper limit on samples per chain.  The
-                procedure stops unconditionally once this many samples have been
-                drawn, even if convergence has not been reached.
-            plot: If ``True``, display a diagnostic figure showing the
-                evolution of the mean, autocorrelation time, and :math:`\hat R`
-                across iterations.
-
-        Returns:
-            A tuple ``(stats, hist_data)`` where ``stats`` is the final
-            :class:`~netket.stats.OnlineStatistics` accumulator and
-            ``hist_data`` is a :class:`~netket.utils.history.HistoryDict`
-            recording the evolution of key diagnostics as the number of samples
-            is increased.
-
-        See Also:
-            :func:`netket._src.vqs.check_mc_convergence.check_mc_convergence`
-        """
-        from netket._src.vqs.check_mc_convergence import check_mc_convergence
-
         return check_mc_convergence(
             self,
             op,
             min_chain_length=min_chain_length,
             max_chain_length=max_chain_length,
             plot=plot,
+        )
+
+    @copy_doc(thermalise_mcmc)
+    def thermalise(
+        self,
+        op: AbstractOperator,
+        *,
+        min_chain_length: int = 10,
+        max_chain_length: int = 100,
+        rhat_tol: float = 1.05,
+        decay: float = 0.9,
+        patience: int = 1,
+        verbose: bool = True,
+        raise_on_failure: bool = False,
+    ):
+        return thermalise_mcmc(
+            self,
+            op,
+            min_chain_length=min_chain_length,
+            max_chain_length=max_chain_length,
+            rhat_tol=rhat_tol,
+            decay=decay,
+            patience=patience,
+            verbose=verbose,
+            raise_on_failure=raise_on_failure,
         )
 
     def expect_to_precision(

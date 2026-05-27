@@ -394,7 +394,7 @@ class MetropolisSampler(Sampler):
             )
             σ = shard_along_axis(σ, axis=0)
         else:
-            σ = state.σ
+            σ = shard_along_axis(state.σ, axis=0)
 
         # Recompute the log_probability of the current samples
         apply_machine = apply_chunked(
