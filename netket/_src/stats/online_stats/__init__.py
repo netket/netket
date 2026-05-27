@@ -20,10 +20,17 @@ from netket._src.stats.online_stats.operations import (
     expand_max_lag,
     thin_acf_by_2,
 )
+from netket._src.stats.online_stats.accumulator_batch import (
+    OnlineStatsBatch,
+    online_statistics_batch,
+    _delta_method_stats,
+)
 
 __all__ = [
     "OnlineStats",
     "online_statistics",
     "expand_max_lag",
     "thin_acf_by_2",
+    "OnlineStatsBatch",
+    "online_statistics_batch",
 ]

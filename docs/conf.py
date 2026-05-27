@@ -3,6 +3,7 @@ import os
 import sys
 import pathlib
 import warnings
+import inspect
 
 # myst_nb 1.3.0 uses a deprecated Sphinx Parser.env API that will be removed in
 # Sphinx 10. Suppress these warnings until myst_nb releases a fix.
@@ -259,6 +260,9 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 
 
 def setup(app):
+    # bug: jax is fork unsafe
+    if app.parallel > 1 and "jax" in sys.modules:
+        app.parallel = 1
     app.connect("autodoc-skip-member", autodoc_skip_member)
     # app.connect('autodoc-process-docstring', warn_undocumented_members);
 
@@ -269,7 +273,6 @@ def setup(app):
 
 import netket
 import netket.experimental
-import inspect
 
 
 def process_module_names(module, modname="", inner=0):

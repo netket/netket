@@ -53,7 +53,6 @@ from netket.vqs.base import (
     expect_and_grad,
     expect_and_forces,
 )
-from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
 
 from netket._src.vqs.check_mc_convergence import check_mc_convergence, thermalise_mcmc
 
@@ -616,24 +615,81 @@ class MCState(VariationalState):
         Compute the local estimators for the operator :code:`op` (also known as local energies
         when :code:`op` is the Hamiltonian) at the current configuration samples :code:`self.samples`.
 
+        For standard operators the local estimator is the ratio
+
         .. math::
 
-            O_\mathrm{loc}(s) = \frac{\langle s | \mathtt{op} | \psi \rangle}{\langle s | \psi \rangle}
+            O_\mathrm{loc}(s) = \frac{\langle s | \hat{O} | \psi \rangle}{\langle s | \psi \rangle}
+
+        **Return type and shape**
+
+        The return type depends on the operator:
+
+        * :class:`~netket.stats.LocalEstimators` — for operators that produce one scalar
+          estimate per sample.  ``result.data`` has shape
+          ``(n_chains, chain_length)``.
+
+        * :class:`~netket.stats.LocalEstimatorsBatch` — for nonlinear observables (e.g.
+          :class:`~netket.experimental.observable.VarianceObservable`) that require K > 1
+          channels to form the final quantity.  ``result.data`` has shape
+          ``(n_chains, chain_length, K)``.
+
+        In both cases the underlying array is at ``.data``; never treat the returned object
+        as a plain JAX array.
+
+        **Typical usage**
+
+        One-shot statistics::
+
+            le    = vstate.local_estimators(H)
+            stats = le.to_stats()          # Stats with mean, error_of_mean, …
+
+        Online accumulation over multiple sampling steps::
+
+            acc = None
+            for _ in range(n_steps):
+                vstate.sample(n_discard_per_chain=0)
+                le  = vstate.local_estimators(H)
+                acc = le.accumulate(acc)   # OnlineStats or OnlineStatsBatch
+            print(acc.get_stats())
+
+        Nonlinear observables return multiple channels plus a combining rule.
+        For example, a variance observable returns a
+        :class:`~netket.stats.LocalEstimatorsBatch` whose last axis stores
+        ``[O_loc, (O^2)_loc]`` for each sample::
+
+            import jax.numpy as jnp
+            import netket as nk
+
+            var_op = nk.experimental.observable.VarianceObservable(H)
+            le = vstate.local_estimators(var_op)
+
+            O_loc = le.data[..., 0]
+            O2_loc = le.data[..., 1]
+
+            channel_means = jnp.mean(le.data, axis=(0, 1))
+            variance_mean = le.combinator(channel_means)
+
+        Here ``variance_mean`` matches ``le.to_stats().mean``. Prefer
+        :meth:`netket.stats.LocalEstimatorsBatch.to_stats` if you also want the
+        error bar, since it applies delta-method error propagation.
 
         .. warning::
 
-            The samples differ between JAX processes, so returned the local estimators will
-            also take different values on each process. To compute sample averages and similar
-            quantities, you will need to perform explicit operations over all JAX devices.
-            (Use functions like :code:`self.expect` to get process-independent quantities without
-            manual reductions.)
+            Samples differ between JAX processes, so the local estimators will take
+            different values on each process.  Use :meth:`expect` (or
+            :meth:`~netket.stats.LocalEstimatorsBatch.to_stats` for multi-channel
+            estimators) to obtain process-independent averages.
 
         Args:
-            op: The operator.
-            chunk_size: Suggested maximum size of the chunks used in forward and backward evaluations
-                of the model. (Default: :code:`self.chunk_size`)
+            op: The operator or observable.
+            chunk_size: Maximum forward-pass chunk size.  (Default: :code:`self.chunk_size`)
         """
-        return local_estimators(self, op, chunk_size=chunk_size)
+        from netket.vqs.mc.common import local_estimators as _local_estimators_dispatch
+
+        if chunk_size is None:
+            chunk_size = self.chunk_size
+        return _local_estimators_dispatch(self, op, chunk_size)
 
     # override to use chunks
     @timing.timed
@@ -901,39 +957,6 @@ class MCState(VariationalState):
             + f"sampler = {self.sampler}, "
             + f"n_samples = {self.n_samples})"
         )
-
-
-@partial(jax.jit, static_argnames=("kernel", "apply_fun", "shape"))
-def _local_estimators_kernel(kernel, apply_fun, shape, variables, samples, extra_args):
-    O_loc = kernel(apply_fun, variables, samples, extra_args)
-
-    def _reshape_to_target(x):
-        return x.reshape(shape + x.shape[1:])
-
-    return jax.tree_util.tree_map(_reshape_to_target, O_loc)
-
-
-def local_estimators(state: MCState, op: AbstractOperator, *, chunk_size: int | None):
-    s, extra_args = get_local_kernel_arguments(state, op)
-
-    shape = s.shape
-    if jnp.ndim(s) != 2:
-        # jit for gda
-        s = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(s, 0, s.ndim - 1)
-
-    if chunk_size is None:
-        chunk_size = state.chunk_size  # state.chunk_size can still be None
-
-    if chunk_size is None:
-        kernel = get_local_kernel(state, op)
-    else:
-        kernel = nkjax.HashablePartial(
-            get_local_kernel(state, op, chunk_size), chunk_size=chunk_size
-        )
-
-    return _local_estimators_kernel(
-        kernel, state._apply_fun, shape[:-1], state.variables, s, extra_args
-    )
 
 
 # serialization

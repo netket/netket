@@ -23,7 +23,13 @@ from .base import (
 # Import types needed for documentation
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
-from .mc import MCState, MCMixedState, get_local_kernel_arguments, get_local_kernel
+from .mc import (
+    MCState,
+    MCMixedState,
+    get_local_kernel_arguments,
+    get_local_kernel,
+    local_estimators,
+)
 from .full_summ import FullSumState
 
 from netket.utils import _hide_submodules

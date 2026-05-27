@@ -15,9 +15,10 @@
 import math
 import numpy as np
 import pytest
+import jax.numpy as jnp
 
 import netket as nk
-from netket.stats import online_statistics
+from netket.stats import LocalEstimatorsBatch, online_statistics
 from netket._src.vqs.check_mc_convergence import acf_window_saturated, tau_corr_reliable
 
 from .. import common
@@ -160,3 +161,31 @@ def test_expect_to_precision_max_iter(vstate):
     stats = vstate.expect_to_precision(H, atol=1e-10, max_iter=3, verbose=False)
     s = stats.get_stats()
     assert math.isfinite(s.mean)
+
+
+class BatchObservable:
+    def __init__(self, hilbert):
+        self.hilbert = hilbert
+
+
+@nk.vqs.local_estimators.dispatch
+def _(
+    vstate: nk.vqs.MCState, op: BatchObservable, chunk_size: int | None
+) -> LocalEstimatorsBatch:
+    samples = vstate.samples.reshape(vstate.sampler.n_chains, -1, vstate.hilbert.size)
+    x = samples[..., 0]
+    y = samples[..., 1]
+    data = jnp.stack([x, y], axis=-1)
+    return LocalEstimatorsBatch(
+        data=data,
+        combinator=lambda mu: jnp.outer(mu, mu),
+    )
+
+
+def test_expect_to_precision_verbose_batch(vstate):
+    """Array-valued observables should work with verbose progress formatting."""
+    obs = BatchObservable(vstate.hilbert)
+    stats = vstate.expect_to_precision(obs, atol=10.0, max_iter=2, verbose=True)
+    s = stats.get_stats()
+    assert s.mean.shape == (2, 2)
+    assert s.error_of_mean.shape == (2, 2)

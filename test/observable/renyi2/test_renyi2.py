@@ -112,6 +112,26 @@ def test_invalid_partition():
         nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
 
 
+@pytest.mark.parametrize(
+    "useExactSampler",
+    [
+        pytest.param(True, id="ExactSampler"),
+        pytest.param(False, id="MetropolisSampler"),
+    ],
+)
+def test_local_estimators(useExactSampler):
+    pytest.importorskip("qutip")
+
+    vs, vs_exact, S2, subsys = _setup(useExactSampler)
+    le = vs.local_estimators(S2)
+    S2_stats = le.to_stats()
+    S2_exact = _renyi2_exact(vs, subsys)
+
+    np.testing.assert_allclose(
+        S2_exact, S2_stats.mean.real, atol=3 * S2_stats.error_of_mean
+    )
+
+
 @pytest.mark.skipif(
     nk.config.netket_experimental_sharding, reason="Only run without sharding"
 )

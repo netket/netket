@@ -54,12 +54,17 @@
   It reports the Gelman-Rubin $\hat{R}$ statistic and the integrated autocorrelation time $\tau_\text{corr}$, recommends a minimum `sweep_size`, and optionally produces a diagnostic figure.
   This is especially useful after optimization has converged, when the short chains used during training (typically 2–8 steps) are too short for reliable convergence diagnostics.
 * Added {meth}`netket.vqs.MCState.expect_to_precision` (experimental), which draws samples iteratively until the estimated standard error of $\langle O \rangle$ satisfies a user-specified absolute (`atol`) and/or relative (`rtol`) tolerance [PR #2202](https://github.com/netket/netket/pull/2202).
-  A progress bar shows the current error in real time.
 * Added {meth}`netket.vqs.MCState.thermalise` (experimental), which advances the Markov chains until they are well-mixed by monitoring the Gelman-Rubin $\hat{R}$ statistic. 
   Useful after loading a checkpoint, initialising with a biased configuration, or after a large parameter update. 
+* {meth}`netket.vqs.MCState.local_estimators` is now extensible via dispatch, allowing custom operators and observables to return structured estimator objects instead of raw arrays [PR #2238](https://github.com/netket/netket/pull/2238).
+  It returns a {class}`netket.stats.LocalEstimators` (scalar, shape `(n_chains, chain_len)`) or a {class}`netket.stats.LocalEstimatorsBatch` (multi-channel, shape `(n_chains, chain_len, K)`) for nonlinear observables that require multiple estimator channels.
+  The new {class}`netket.stats.LocalEstimators` and {class}`netket.stats.LocalEstimatorsBatch` objects expose `.to_stats()` for one-shot statistics and `.accumulate()` / `.accumulate_batch()` to feed into the online accumulators.
+* Added {func}`netket.stats.online_statistics_batch` and {class}`netket.stats.OnlineStatsBatch`, the multi-channel counterparts of {func}`netket.stats.online_statistics` / {class}`netket.stats.OnlineStats`, for streaming statistics of nonlinear observables computed via the delta method [PR #2238](https://github.com/netket/netket/pull/2238).
+  Given $K$ per-sample channels $f_1(\sigma), \ldots, f_K(\sigma)$ and a combining function $g(f_1, \ldots, f_K)$, the delta method propagates the Monte Carlo error through $g$ using first-order error propagation, yielding a correct variance estimate without extra samples.
+  This is used internally by {class}`netket.experimental.observable.VarianceObservable`, {class}`netket.experimental.observable.Renyi2Entropy`, and {class}`netket.experimental.observable.InfidelityOperator`, and automatically extends {meth}`~netket.vqs.MCState.expect_to_precision` to these nonlinear observables.
 
 #### Experimental Observables
-* {class}`netket.experimental.observable.VarianceObservable` now supports chunked `expect` and `expect_and_grad` computations.
+* {class}`netket.experimental.observable.VarianceObservable`, {class}`netket.experimental.observable.Renyi2Entropy`, and {class}`netket.experimental.observable.InfidelityOperator` now implement the `local_estimators` dispatch, providing correct delta-method error estimates and full support for {meth}`netket.vqs.MCState.expect_to_precision` [PR #2238](https://github.com/netket/netket/pull/2238).
 
 #### Logging
 * Added {class}`netket.logging.SaveVariationalState`, a callback that saves the variational state to disk at fixed intervals using the [`nqxpack`](https://github.com/NeuralQXLab/nqxpack) package (optional dependency).
@@ -75,6 +80,9 @@
   This is the recommended way to keep run configuration attached to its output without relying on external bookkeeping.
 
 ### Breaking Changes
+* {meth}`netket.vqs.MCState.local_estimators` now returns a {class}`netket.stats.LocalEstimators` object instead of a raw JAX array [PR #2238](https://github.com/netket/netket/pull/2238).
+  The underlying array is accessible via `.data` (shape `(n_chains, chain_len)`).
+  Most array-like attribute accesses (e.g. `.shape`, `.dtype`, `.real`) and implicit conversions via `__jax_array__` still work for now, but will raise a deprecation warning in a future release.
 * Finalized removal of deprecated fermionic bindings from `netket.experimental` (deprecated since NetKet 3.12–3.13):
   - `netket.experimental.hilbert.SpinOrbitalFermions` → use {class}`netket.hilbert.SpinOrbitalFermions`
   - `netket.experimental.models.Slater2nd` / `MultiSlater2nd` → use {class}`netket.models.Slater2nd` / {class}`netket.models.MultiSlater2nd`

@@ -231,6 +231,16 @@ class OnlineStats(struct.Pytree):
         return self._chain_mean.shape[0]
 
     @property
+    def chain_means(self) -> jax.Array:
+        """Per-chain mean estimates, shape ``(n_chains,)``.
+
+        Useful for computing cross-chain covariance matrices when combining
+        multiple :class:`OnlineStats` accumulators (e.g. in
+        :class:`~netket.stats.OnlineStatsBatch`).
+        """
+        return self._chain_mean
+
+    @property
     def mean(self):
         """The current mean estimate (dtype matches the input data)."""
         total = jnp.sum(self._chain_count)
@@ -405,9 +415,11 @@ class OnlineStats(struct.Pytree):
     # ------------------------------------------------------------------
 
     def to_dict(self):
+        """Call :meth:`get_stats` and return its dictionary representation."""
         return self.get_stats().to_dict()
 
     def to_compound(self):
+        """Call :meth:`get_stats` and return its compound representation."""
         return self.get_stats().to_compound()
 
     def __repr__(self):
