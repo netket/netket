@@ -16,16 +16,38 @@ from netket.operator._abstract_observable import (
     AbstractObservable as AbstractObservable,
 )
 from netket._src.observables.renyi2 import (
-    Renyi2EntanglementEntropy as Renyi2EntanglementEntropy,
+    Renyi2EntanglementEntropy as _Renyi2EntanglementEntropy,
 )
 from netket._src.observables.variance import (
-    VarianceObservable as VarianceObservable,
+    VarianceObservable as _VarianceObservable,
 )
 from netket._src.observables.infidelity import (
-    InfidelityOperator as InfidelityOperator,
+    InfidelityOperator as _InfidelityOperator,
 )
 
+_deprecations = {
+    # May 2026, NetKet 3.22
+    "Renyi2EntanglementEntropy": (
+        "netket.experimental.observable.Renyi2EntanglementEntropy is now stable: "
+        "use it from netket.observable.Renyi2EntanglementEntropy (netket >= 3.22)",
+        _Renyi2EntanglementEntropy,
+    ),
+    "VarianceObservable": (
+        "netket.experimental.observable.VarianceObservable is now stable: "
+        "use it from netket.observable.VarianceObservable (netket >= 3.22)",
+        _VarianceObservable,
+    ),
+    "InfidelityOperator": (
+        "netket.experimental.observable.InfidelityOperator is now stable: "
+        "use it from netket.observable.InfidelityOperator (netket >= 3.22)",
+        _InfidelityOperator,
+    ),
+}
 
+from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
 from netket.utils import _hide_submodules
 
+__getattr__ = _deprecation_getattr(__name__, _deprecations)
 _hide_submodules(__name__)
+
+del _deprecation_getattr

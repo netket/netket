@@ -170,7 +170,11 @@ Those are the abstract classes you can inherit from to implement your own solver
 
 
 ## Observables
-This module contains various observables that can be computed starting from various variational states.
+
+```{deprecated}
+The observables in `netket.experimental.observable` have been moved to {mod}`netket.observable`.
+Please update your imports accordingly. The old names will be removed in a future release.
+```
 
 ```{eval-rst}
 .. autosummary::
@@ -178,7 +182,4 @@ This module contains various observables that can be computed starting from vari
    :template: class
    :nosignatures:
 
-   observable.Renyi2EntanglementEntropy
-   observable.VarianceObservable
-   observable.InfidelityOperator
 ```

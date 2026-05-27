@@ -630,7 +630,7 @@ class MCState(VariationalState):
           ``(n_chains, chain_length)``.
 
         * :class:`~netket.stats.LocalEstimatorsBatch` — for nonlinear observables (e.g.
-          :class:`~netket.experimental.observable.VarianceObservable`) that require K > 1
+          :class:`~netket.observable.VarianceObservable`) that require K > 1
           channels to form the final quantity.  ``result.data`` has shape
           ``(n_chains, chain_length, K)``.
 
@@ -661,7 +661,7 @@ class MCState(VariationalState):
             import jax.numpy as jnp
             import netket as nk
 
-            var_op = nk.experimental.observable.VarianceObservable(H)
+            var_op = nk.observable.VarianceObservable(H)
             le = vstate.local_estimators(var_op)
 
             O_loc = le.data[..., 0]

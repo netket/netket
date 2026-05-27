@@ -26,6 +26,7 @@ jax
 logging
 models
 nn
+observable
 operator
 optimizer
 sampler

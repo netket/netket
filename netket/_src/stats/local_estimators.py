@@ -137,7 +137,7 @@ class LocalEstimatorsBatch(struct.Pytree):
     result of any shape using the **delta method** (first-order error propagation).
 
     This class is returned by :meth:`~netket.vqs.MCState.local_estimators` for
-    operators such as :class:`~netket.experimental.observable.VarianceObservable`
+    operators such as :class:`~netket.observable.VarianceObservable`
     that require more than one local estimator channel to form the final quantity.
 
     :meth:`to_stats` uses :func:`jax.eval_shape` to inspect the combinator

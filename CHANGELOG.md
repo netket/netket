@@ -61,10 +61,13 @@
   The new {class}`netket.stats.LocalEstimators` and {class}`netket.stats.LocalEstimatorsBatch` objects expose `.to_stats()` for one-shot statistics and `.accumulate()` / `.accumulate_batch()` to feed into the online accumulators.
 * Added {func}`netket.stats.online_statistics_batch` and {class}`netket.stats.OnlineStatsBatch`, the multi-channel counterparts of {func}`netket.stats.online_statistics` / {class}`netket.stats.OnlineStats`, for streaming statistics of nonlinear observables computed via the delta method [PR #2238](https://github.com/netket/netket/pull/2238).
   Given $K$ per-sample channels $f_1(\sigma), \ldots, f_K(\sigma)$ and a combining function $g(f_1, \ldots, f_K)$, the delta method propagates the Monte Carlo error through $g$ using first-order error propagation, yielding a correct variance estimate without extra samples.
-  This is used internally by {class}`netket.experimental.observable.VarianceObservable`, {class}`netket.experimental.observable.Renyi2Entropy`, and {class}`netket.experimental.observable.InfidelityOperator`, and automatically extends {meth}`~netket.vqs.MCState.expect_to_precision` to these nonlinear observables.
+  This is used internally by {class}`netket.observable.VarianceObservable`, {class}`netket.observable.Renyi2EntanglementEntropy`, and {class}`netket.observable.InfidelityOperator`, and automatically extends {meth}`~netket.vqs.MCState.expect_to_precision` to these nonlinear observables.
 
-#### Experimental Observables
-* {class}`netket.experimental.observable.VarianceObservable`, {class}`netket.experimental.observable.Renyi2Entropy`, and {class}`netket.experimental.observable.InfidelityOperator` now implement the `local_estimators` dispatch, providing correct delta-method error estimates and full support for {meth}`netket.vqs.MCState.expect_to_precision` [PR #2238](https://github.com/netket/netket/pull/2238).
+#### Observables
+* Added {mod}`netket.observable`, a new stable module for observables previously found in {mod}`netket.experimental.observable`.
+  {class}`netket.observable.Renyi2EntanglementEntropy`, {class}`netket.observable.VarianceObservable`, and {class}`netket.observable.InfidelityOperator` are now available at their stable locations.
+  The old {mod}`netket.experimental.observable` names are deprecated and will be removed in a future release.
+* {class}`netket.observable.VarianceObservable`, {class}`netket.observable.Renyi2EntanglementEntropy`, and {class}`netket.observable.InfidelityOperator` now implement the `local_estimators` dispatch, providing correct delta-method error estimates and full support for {meth}`netket.vqs.MCState.expect_to_precision` [PR #2238](https://github.com/netket/netket/pull/2238).
 
 #### Logging
 * Added {class}`netket.logging.SaveVariationalState`, a callback that saves the variational state to disk at fixed intervals using the [`nqxpack`](https://github.com/NeuralQXLab/nqxpack) package (optional dependency).
