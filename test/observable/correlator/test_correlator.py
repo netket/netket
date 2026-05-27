@@ -5,6 +5,7 @@ import numpy as np
 
 import netket as nk
 
+
 def _make_vstate(N=4, n_samples=512, exact=True):
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
     ma = nk.models.RBM(alpha=1, param_dtype=float)

@@ -53,7 +53,9 @@ gs.run(n_iter=500, out="test", timeit=True)
 
 # Staggered connected σz-σz correlators C(r) = (-1)^r (<σz_0 σz_r> - <σz_0><σz_r>)
 sz = [nk.operator.spin.sigmaz(hi, i) for i in range(L)]
-correlator_ops = [nk.observable.ConnectedCorrelator(sz[0], (-1)**r * sz[r]) for r in range(L)]
+correlator_ops = [
+    nk.observable.ConnectedCorrelator(sz[0], (-1) ** r * sz[r]) for r in range(L)
+]
 
 ## Compute observables in different symmetry subsectors
 

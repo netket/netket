@@ -28,16 +28,28 @@ TIPS = [
     # Operators
     "Avoid LocalOperator with have N-body operators (N>4). PauliStrings is ok.",
     "ParticleNumberConservingFermioperator2nd.from_fermionoperator2nd(op) is FASTER!",
+    "FermionOperator2nd.collect() auto-upgrades to a particle-number-conserving implementation if possible.",
     # Loggers
     "You can load logged data with nk.utils.history.HistoryDict.from_file(data.log).",
     "You can plot data with JsonLog.data['Energy'][:-30].plot().",
+    "HDF5Log/MLFlowLog/TensorBoardLog accept metadata={'L': 20, 'model': 'RBM'} to store hyperparameters with the run.",
     # Variational states
     "To build H|ψ⟩ use nk.vqs.apply_operator(H, vstate_ψ).",
     "log(ψ) ∈ ℜ → ψ = exp(logψ) ∈ ℜ₊ (real NN gives only positive wave-function).",
     "You can use flax.linen, flax.nnx and equinox to define neural networks.",
-    "Save/load MCStates with `nqxpack.save({'state': vstate}, 'myfile')` and `.load('myfile.nk')`."
+    "Save/load MCStates with `nqxpack.save({'state': vstate}, 'myfile')` and `.load('myfile.nk')`.",
+    # MCMC diagnostics
+    "vstate.check_mc_convergence(H) diagnoses whether your sampler is well-mixed and recommends a sweep_size.",
+    "vstate.expect_to_precision(O, rtol=0.01) keeps drawing samples until the error on ⟨O⟩ drops below 1%.",
+    "To make sure your Markov chains are well-mixed, call vstate.thermalise(H) after loading a checkpoint.",
     # symmetries
     "nk.symmetry.spin_flip_representation(hi).project(vstate, 0) to make it spin-flip symmetric.",
+    # Callbacks
+    "nk.callbacks.AutoChunkSize() auto-tunes chunk_size during optimization to avoid GPU OOM errors.",
+    # Observables
+    "nk.observable.VScore(H): V-score ≤ 1e-4 means your ansatz is very good; 0 is exact.",
+    # Solvers
+    "nk.optimizer.solver.nan_fallback(cheap, robust) retries a solve with the robust solver whenever NaN appears.",
     # utils
     "You must cite NetKet according to our policy. Use nk.cite() to find out how.",
     "Debug multi-node HPC? `djaxrun -np 2 python Examples/Sharding/multi_process.py`",
