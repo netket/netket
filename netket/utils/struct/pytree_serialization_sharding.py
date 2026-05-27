@@ -100,7 +100,7 @@ def to_flax_state_dict_sharding(sharded_data):
     from netket.jax.sharding import gather
     from netket import config as nkconfig
 
-    if nkconfig.netket_sharding and not nkconfig.netket_sharding_fast_serialization:
+    if nkconfig.netket_sharding and not nkconfig.netket_experimental_sharding_fast_serialization:
         # 'old' behaviour (compatibility for now... disabled with the)
         # flag above
         result = gather(sharded_data)
