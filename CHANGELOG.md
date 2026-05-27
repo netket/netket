@@ -67,7 +67,7 @@
 * Added {mod}`netket.observable`, a new stable module for observables previously found in {mod}`netket.experimental.observable`.
   {class}`netket.observable.Renyi2EntanglementEntropy`, {class}`netket.observable.VarianceObservable`, and {class}`netket.observable.InfidelityOperator` are now available at their stable locations.
   The old {mod}`netket.experimental.observable` names are deprecated and will be removed in a future release.
-* Added {class}`netket.observable.VScore`, moved from {mod}`netket.experimental.observable`.
+* Added {class}`netket.observable.VScore`.
 * {class}`netket.observable.VarianceObservable`, {class}`netket.observable.Renyi2EntanglementEntropy`, and {class}`netket.observable.InfidelityOperator` now implement the `local_estimators` dispatch, providing correct delta-method error estimates and full support for {meth}`netket.vqs.MCState.expect_to_precision` [PR #2238](https://github.com/netket/netket/pull/2238).
 
 #### Logging
