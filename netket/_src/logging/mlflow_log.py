@@ -171,6 +171,9 @@ class MLFlowLog(AbstractCallback):
         self._save_params = save_params
         self._save_params_every = save_params_every
 
+        if save_params and save_params_every < 1:
+            raise ValueError("`save_params_every` must be >= 1")
+
         self._run = None
         self._old_step = 0
         self._steps_since_last_params = 0
@@ -278,7 +281,7 @@ class MLFlowLog(AbstractCallback):
             return
         if self._run is None:
             self._init_mlflow()
-        if self._metadata:
+        if self._metadata and self._run_id is None:
             self._mlflow.log_params({str(k): str(v) for k, v in self._metadata.items()})
 
     def before_parameter_update(self, step, log_data, driver):
