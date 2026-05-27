@@ -7,7 +7,7 @@ from netket.vqs import FullSumState, expect, expect_and_grad
 import netket.jax as nkjax
 from netket.stats import Stats
 
-from netket._src.observables.infidelity.infidelity_operator import (
+from netket._src.observable.infidelity.infidelity_operator import (
     InfidelityOperator,
 )
 

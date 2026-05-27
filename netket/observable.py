@@ -15,17 +15,17 @@
 from netket.operator._abstract_observable import (
     AbstractObservable as AbstractObservable,
 )
-from netket._src.observables.renyi2 import (
+from netket._src.observable.renyi2 import (
     Renyi2EntanglementEntropy as Renyi2EntanglementEntropy,
 )
-from netket._src.observables.variance import (
+from netket._src.observable.variance import (
     VarianceObservable as VarianceObservable,
 )
-from netket._src.observables.infidelity import (
+from netket._src.observable.infidelity import (
     InfidelityOperator as InfidelityOperator,
 )
 
+from netket.utils.moduletools import auto_export as _auto_export
 
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+_auto_export(__name__)
+del _auto_export

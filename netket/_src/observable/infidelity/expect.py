@@ -8,7 +8,7 @@ from netket.vqs import MCState, expect
 from netket.vqs.mc.common import local_estimators
 from netket._src.stats.local_estimators import LocalEstimators
 
-from netket._src.observables.infidelity.infidelity_operator import (
+from netket._src.observable.infidelity.infidelity_operator import (
     InfidelityOperator,
 )
 

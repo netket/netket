@@ -15,13 +15,13 @@
 from netket.operator._abstract_observable import (
     AbstractObservable as AbstractObservable,
 )
-from netket._src.observables.renyi2 import (
+from netket._src.observable.renyi2 import (
     Renyi2EntanglementEntropy as _Renyi2EntanglementEntropy,
 )
-from netket._src.observables.variance import (
+from netket._src.observable.variance import (
     VarianceObservable as _VarianceObservable,
 )
-from netket._src.observables.infidelity import (
+from netket._src.observable.infidelity import (
     InfidelityOperator as _InfidelityOperator,
 )
 
