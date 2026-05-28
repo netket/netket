@@ -45,7 +45,13 @@ from .metropolis_numpy import (
     MetropolisCustomNumpy,
 )
 
-from .autoreg import ARDirectSampler
+from .autoreg import (
+    ARDirectSampler,
+    UnconstrainedARDirectSampler,
+    SumConstrainedARDirectSampler,
+    PartitionConstrainedARDirectSampler,
+    GenericConstrainedARDirectSampler,
+)
 
 from . import rules
 

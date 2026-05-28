@@ -450,3 +450,407 @@ def test_construct_rnn():
             inv_reorder_idx=inv_reorder_idx,
             prev_neighbors=HashableArray(np.array([[1, -1], [0, -1], [0, 3], [1, -1]])),
         )
+
+
+#
+# Constrained autoregressive model tests
+
+
+def _get_constrained_arnn_cls_or_skip(name: str):
+    if not hasattr(nk.models, name):
+        pytest.skip(f"nk.models.{name} is required by constrained ARNN tests.")
+    return getattr(nk.models, name)
+
+
+def _build_supported_constrained_hilbert(kind: str):
+    if kind == "sum":
+        return nk.hilbert.Spin(
+            s=0.5,
+            N=6,
+            constraint=nk.hilbert.constraint.SumConstraint(0),
+        )
+    if kind == "partition":
+        return nk.hilbert.Spin(
+            s=0.5,
+            N=8,
+            constraint=nk.hilbert.constraint.SumOnPartitionConstraint(
+                sum_values=(0, 0),
+                sizes=(4, 4),
+            ),
+        )
+    raise ValueError(f"Unknown constrained Hilbert kind: {kind}")
+
+
+@pytest.mark.parametrize(
+    "model_name", ["ConstrainedARNNDense", "ConstrainedFastARNNDense"]
+)
+@pytest.mark.parametrize("constraint_kind", ["sum", "partition"])
+@pytest.mark.parametrize("machine_pow", [1, 2])
+def test_constrained_arnn_logpsi_matches_conditionals(
+    model_name, constraint_kind, machine_pow
+):
+    model_cls = _get_constrained_arnn_cls_or_skip(model_name)
+    hilbert = _build_supported_constrained_hilbert(constraint_kind)
+
+    model = model_cls(
+        hilbert=hilbert,
+        layers=2,
+        features=6,
+        machine_pow=machine_pow,
+        param_dtype=jnp.float64,
+    )
+
+    states = jnp.asarray(hilbert.all_states())
+    variables = model.init(jax.random.PRNGKey(0), states[:1])
+
+    conds = model.apply(variables, states, method=model.conditionals)
+    np.testing.assert_allclose(
+        np.asarray(jnp.sum(conds, axis=-1)),
+        1.0,
+        atol=1e-12,
+        rtol=1e-12,
+    )
+
+    idx = hilbert.states_to_local_indices(states)
+    p_selected = jnp.take_along_axis(conds, idx[..., None], axis=-1)[..., 0]
+    log_prob_from_conditionals = jnp.sum(jnp.log(p_selected), axis=-1)
+
+    log_psi = model.apply(variables, states)
+    log_prob_from_model = machine_pow * jnp.real(log_psi)
+
+    np.testing.assert_allclose(
+        np.asarray(log_prob_from_model),
+        np.asarray(log_prob_from_conditionals),
+        atol=1e-10,
+        rtol=1e-10,
+    )
+
+
+@pytest.mark.parametrize("constraint_kind", ["sum", "partition"])
+@pytest.mark.parametrize("machine_pow", [1, 2])
+def test_constrained_dense_and_fast_match(constraint_kind, machine_pow):
+    dense_cls = _get_constrained_arnn_cls_or_skip("ConstrainedARNNDense")
+    fast_cls = _get_constrained_arnn_cls_or_skip("ConstrainedFastARNNDense")
+    hilbert = _build_supported_constrained_hilbert(constraint_kind)
+
+    dense = dense_cls(
+        hilbert=hilbert,
+        layers=3,
+        features=5,
+        machine_pow=machine_pow,
+        param_dtype=jnp.float64,
+    )
+    fast = fast_cls(
+        hilbert=hilbert,
+        layers=3,
+        features=5,
+        machine_pow=machine_pow,
+        param_dtype=jnp.float64,
+    )
+
+    key_spins, key_model = jax.random.split(jax.random.PRNGKey(11))
+    spins = hilbert.random_state(key_spins, size=5)
+
+    variables = fast.init(key_model, spins, 0, method=fast.conditional)
+
+    p_dense = dense.apply(variables, spins, method=dense.conditionals)
+    p_fast = fast.apply(variables, spins, method=fast.conditionals)
+    np.testing.assert_allclose(
+        np.asarray(p_fast), np.asarray(p_dense), atol=1e-10, rtol=1e-10
+    )
+
+    logpsi_dense = dense.apply(variables, spins)
+    logpsi_fast = fast.apply(variables, spins)
+    np.testing.assert_allclose(
+        np.asarray(logpsi_fast),
+        np.asarray(logpsi_dense),
+        atol=1e-10,
+        rtol=1e-10,
+    )
+
+
+@pytest.mark.parametrize(
+    "model_name", ["ConstrainedARNNDense", "ConstrainedFastARNNDense"]
+)
+@pytest.mark.parametrize("constraint_kind", ["sum", "partition"])
+def test_constrained_arnn_slave_sites_are_deterministic(model_name, constraint_kind):
+    model_cls = _get_constrained_arnn_cls_or_skip(model_name)
+    hilbert = _build_supported_constrained_hilbert(constraint_kind)
+
+    model = model_cls(
+        hilbert=hilbert,
+        layers=2,
+        features=6,
+        machine_pow=2,
+        param_dtype=jnp.float64,
+    )
+    states = jnp.asarray(hilbert.all_states())
+    variables = model.init(jax.random.PRNGKey(7), states[:1])
+    conds = model.apply(variables, states, method=model.conditionals)
+
+    if constraint_kind == "sum":
+        slave_sites = [hilbert.size - 1]
+    else:
+        sizes = tuple(int(v) for v in hilbert.constraint.sizes)
+        slave_sites = list(np.cumsum(sizes) - 1)
+
+    for slave_site in slave_sites:
+        p_site = conds[:, slave_site, :]
+        np.testing.assert_allclose(
+            np.asarray(jnp.sum(p_site, axis=-1)),
+            1.0,
+            atol=1e-12,
+            rtol=1e-12,
+        )
+
+        # Dependent-site closure must produce one exact local value per prefix.
+        n_nonzero = np.sum(np.asarray(p_site) > 1.0e-12, axis=-1)
+        assert np.all(n_nonzero == 1)
+
+
+@pytest.mark.parametrize(
+    "model_name", ["ConstrainedARNNDense", "ConstrainedFastARNNDense"]
+)
+def test_constrained_arnn_raises_on_unsupported_constraint(model_name):
+    model_cls = _get_constrained_arnn_cls_or_skip(model_name)
+
+    class PairBalanceConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
+        @jax.jit
+        def __call__(self, x):
+            return jnp.sum(x[..., ::2], axis=-1) == jnp.sum(x[..., 1::2], axis=-1)
+
+        def __hash__(self):
+            return hash("PairBalanceConstraint")
+
+        def __eq__(self, other):
+            return isinstance(other, PairBalanceConstraint)
+
+    hilbert = nk.hilbert.Spin(s=0.5, N=6, constraint=PairBalanceConstraint())
+
+    with pytest.raises(ValueError, match="support only"):
+        model_cls(hilbert=hilbert, layers=2, features=6, machine_pow=2)
+
+
+#
+# Constrained convolutional autoregressive model tests
+
+
+def _is_conv2d_model_name(model_name: str) -> bool:
+    return "Conv2D" in model_name
+
+
+def _build_supported_constrained_hilbert_for_conv(
+    constraint_kind: str, model_name: str
+):
+    # 2D convolutions require a square number of sites.
+    if _is_conv2d_model_name(model_name):
+        if constraint_kind == "sum":
+            return nk.hilbert.Spin(
+                s=0.5,
+                N=4,
+                constraint=nk.hilbert.constraint.SumConstraint(0),
+            )
+        if constraint_kind == "partition":
+            return nk.hilbert.Spin(
+                s=0.5,
+                N=4,
+                constraint=nk.hilbert.constraint.SumOnPartitionConstraint(
+                    sum_values=(0, 0),
+                    sizes=(2, 2),
+                ),
+            )
+        raise ValueError(f"Unknown constrained Hilbert kind: {constraint_kind}")
+
+    if constraint_kind == "sum":
+        return nk.hilbert.Spin(
+            s=0.5,
+            N=8,
+            constraint=nk.hilbert.constraint.SumConstraint(0),
+        )
+    if constraint_kind == "partition":
+        return nk.hilbert.Spin(
+            s=0.5,
+            N=8,
+            constraint=nk.hilbert.constraint.SumOnPartitionConstraint(
+                sum_values=(0, 0),
+                sizes=(4, 4),
+            ),
+        )
+    raise ValueError(f"Unknown constrained Hilbert kind: {constraint_kind}")
+
+
+def _build_constrained_conv_model(model_name: str, hilbert, machine_pow: int):
+    model_cls = _get_constrained_arnn_cls_or_skip(model_name)
+    kwargs = dict(
+        hilbert=hilbert,
+        layers=2,
+        features=6,
+        machine_pow=machine_pow,
+        param_dtype=jnp.float64,
+    )
+    if _is_conv2d_model_name(model_name):
+        kwargs["kernel_size"] = (2, 2)
+    else:
+        kwargs["kernel_size"] = 2
+    return model_cls(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "ConstrainedARNNConv1D",
+        "ConstrainedFastARNNConv1D",
+        "ConstrainedARNNConv2D",
+        "ConstrainedFastARNNConv2D",
+    ],
+)
+@pytest.mark.parametrize("constraint_kind", ["sum", "partition"])
+@pytest.mark.parametrize("machine_pow", [1, 2])
+def test_constrained_conv_logpsi_matches_conditionals(
+    model_name, constraint_kind, machine_pow
+):
+    hilbert = _build_supported_constrained_hilbert_for_conv(constraint_kind, model_name)
+    model = _build_constrained_conv_model(model_name, hilbert, machine_pow)
+
+    states = jnp.asarray(hilbert.all_states())
+    variables = model.init(jax.random.PRNGKey(101), states[:1])
+
+    conds = model.apply(variables, states, method=model.conditionals)
+    np.testing.assert_allclose(
+        np.asarray(jnp.sum(conds, axis=-1)),
+        1.0,
+        atol=1e-12,
+        rtol=1e-12,
+    )
+
+    idx = hilbert.states_to_local_indices(states)
+    p_selected = jnp.take_along_axis(conds, idx[..., None], axis=-1)[..., 0]
+    log_prob_from_conditionals = jnp.sum(jnp.log(p_selected), axis=-1)
+
+    log_psi = model.apply(variables, states)
+    log_prob_from_model = machine_pow * jnp.real(log_psi)
+
+    np.testing.assert_allclose(
+        np.asarray(log_prob_from_model),
+        np.asarray(log_prob_from_conditionals),
+        atol=1e-10,
+        rtol=1e-10,
+    )
+
+
+@pytest.mark.parametrize("constraint_kind", ["sum", "partition"])
+@pytest.mark.parametrize("machine_pow", [1, 2])
+@pytest.mark.parametrize(
+    "dense_name, fast_name",
+    [
+        ("ConstrainedARNNConv1D", "ConstrainedFastARNNConv1D"),
+        ("ConstrainedARNNConv2D", "ConstrainedFastARNNConv2D"),
+    ],
+)
+def test_constrained_conv_dense_fast_match(
+    constraint_kind, machine_pow, dense_name, fast_name
+):
+    hilbert = _build_supported_constrained_hilbert_for_conv(constraint_kind, dense_name)
+    dense = _build_constrained_conv_model(dense_name, hilbert, machine_pow)
+    fast = _build_constrained_conv_model(fast_name, hilbert, machine_pow)
+
+    key_spins, key_model = jax.random.split(jax.random.PRNGKey(137))
+    spins = hilbert.random_state(key_spins, size=4)
+
+    variables = fast.init(key_model, spins, 0, method=fast.conditional)
+
+    p_dense = dense.apply(variables, spins, method=dense.conditionals)
+    p_fast = fast.apply(variables, spins, method=fast.conditionals)
+    np.testing.assert_allclose(
+        np.asarray(p_fast),
+        np.asarray(p_dense),
+        atol=1e-10,
+        rtol=1e-10,
+    )
+
+    logpsi_dense = dense.apply(variables, spins)
+    logpsi_fast = fast.apply(variables, spins)
+    np.testing.assert_allclose(
+        np.asarray(logpsi_fast),
+        np.asarray(logpsi_dense),
+        atol=1e-10,
+        rtol=1e-10,
+    )
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "ConstrainedARNNConv1D",
+        "ConstrainedFastARNNConv1D",
+        "ConstrainedARNNConv2D",
+        "ConstrainedFastARNNConv2D",
+    ],
+)
+@pytest.mark.parametrize("constraint_kind", ["sum", "partition"])
+def test_constrained_conv_slave_sites_are_deterministic(model_name, constraint_kind):
+    hilbert = _build_supported_constrained_hilbert_for_conv(constraint_kind, model_name)
+    model = _build_constrained_conv_model(model_name, hilbert, machine_pow=2)
+
+    states = jnp.asarray(hilbert.all_states())
+    variables = model.init(jax.random.PRNGKey(149), states[:1])
+    conds = model.apply(variables, states, method=model.conditionals)
+
+    if constraint_kind == "sum":
+        slave_sites = [hilbert.size - 1]
+    else:
+        sizes = tuple(int(v) for v in hilbert.constraint.sizes)
+        slave_sites = list(np.cumsum(sizes) - 1)
+
+    for slave_site in slave_sites:
+        p_site = conds[:, slave_site, :]
+        np.testing.assert_allclose(
+            np.asarray(jnp.sum(p_site, axis=-1)),
+            1.0,
+            atol=1e-12,
+            rtol=1e-12,
+        )
+
+        n_nonzero = np.sum(np.asarray(p_site) > 1.0e-12, axis=-1)
+        assert np.all(n_nonzero == 1)
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "ConstrainedARNNConv1D",
+        "ConstrainedFastARNNConv1D",
+        "ConstrainedARNNConv2D",
+        "ConstrainedFastARNNConv2D",
+    ],
+)
+def test_constrained_conv_raises_on_unsupported_constraint(model_name):
+    model_cls = _get_constrained_arnn_cls_or_skip(model_name)
+
+    class PairBalanceConstraint(nk.hilbert.constraint.DiscreteHilbertConstraint):
+        @jax.jit
+        def __call__(self, x):
+            return jnp.sum(x[..., ::2], axis=-1) == jnp.sum(x[..., 1::2], axis=-1)
+
+        def __hash__(self):
+            return hash("PairBalanceConstraint")
+
+        def __eq__(self, other):
+            return isinstance(other, PairBalanceConstraint)
+
+    hilbert = nk.hilbert.Spin(s=0.5, N=8, constraint=PairBalanceConstraint())
+
+    kwargs = dict(
+        hilbert=hilbert,
+        layers=2,
+        features=6,
+        machine_pow=2,
+        param_dtype=jnp.float64,
+    )
+    if _is_conv2d_model_name(model_name):
+        kwargs["kernel_size"] = (2, 2)
+    else:
+        kwargs["kernel_size"] = 2
+
+    with pytest.raises(ValueError, match="support only"):
+        model_cls(**kwargs)

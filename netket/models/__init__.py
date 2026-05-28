@@ -40,6 +40,14 @@ from .slater import Slater2nd, MultiSlater2nd
 
 from .utils import update_GCNN_parity
 
+from .constrained_autoreg import (
+    ConstrainedARNNDense,
+    ConstrainedFastARNNDense,
+    ConstrainedARNNConv1D,
+    ConstrainedFastARNNConv1D,
+    ConstrainedARNNConv2D,
+    ConstrainedFastARNNConv2D,
+)
 
 from netket.utils import _hide_submodules
 
