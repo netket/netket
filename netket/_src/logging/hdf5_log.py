@@ -15,20 +15,16 @@
 import os
 
 import numpy as np
-from flax.core import FrozenDict, pop as fpop
-from flax.serialization import to_bytes
-
-import copy
 from typing import Any
 
 import jax
 
-from netket.jax.sharding import extract_replicated
 from netket._src.callbacks.base import AbstractCallback
 from netket.utils import struct
 from netket.utils.tree_walk import walk_tree_with_path
 
 _MODE_SHORTHANDS = {"write": "w", "append": "a", "fail": "x"}
+_UNSET = object()
 _DEFAULT_CHUNK_BYTES = 256 * 1024
 _DEFAULT_CHUNK_ROWS_MAX = 1024
 
@@ -117,18 +113,11 @@ class HDF5Log(AbstractCallback):
     Importantly, each group has a dataset :code:`iters`, which tracks the
     iteration number of the logged quantity.
 
-    If the model state is serialized, then it is serialized as a dataset in the group `variational_state/`.
-    The target of the serialization is the parameters PyTree of the variational state (stored in the group
-    `variational_state/parameters`), and the rest of the variational state variables (stored in the group
-    `variational_state/model_state`)
-
     Data can be deserialized by calling :code:`f = h5py.File(filename, 'r')` and
     inspecting the datasets as a dictionary, i.e. :code:`f['data/energy/Mean']`
 
     This class is a full :class:`~netket.callbacks.AbstractCallback` and can be passed
-    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.  When
-    used as a callback the logger automatically captures the variational state snapshot
-    taken just before the parameter update.
+    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.
 
     .. tip::
         Use the ``metadata`` argument to attach a flat dict of hyper-parameters
@@ -174,25 +163,19 @@ class HDF5Log(AbstractCallback):
     """
 
     _metadata: Any = struct.field(pytree_node=False, serialize=False)
-    _callback_pending_vstate: Any = struct.field(pytree_node=False, serialize=False)
     _file_mode: Any = struct.field(pytree_node=False, serialize=False)
     _file_name: Any = struct.field(pytree_node=False, serialize=False)
     _writer: Any = struct.field(pytree_node=False, serialize=False)
-    _closed: Any = struct.field(pytree_node=False, serialize=False)
-    _save_params: Any = struct.field(pytree_node=False, serialize=False)
-    _save_params_every: Any = struct.field(pytree_node=False, serialize=False)
-    _steps_notsaved_params: Any = struct.field(pytree_node=False, serialize=False)
     _write_every: Any = struct.field(pytree_node=False, serialize=False)
     _steps_notflushed_write: Any = struct.field(pytree_node=False, serialize=False)
     _chunk_size: Any = struct.field(pytree_node=False, serialize=False)
-    _last_step: Any = struct.field(pytree_node=False, serialize=False)
 
     def __init__(
         self,
         path: str,
         mode: str = "write",
-        save_params: bool = True,
-        save_params_every: int = 1,
+        save_params=_UNSET,
+        save_params_every=_UNSET,
         write_every: int = 50,
         chunk_size: int | None = None,
         metadata: dict | None = None,
@@ -207,10 +190,8 @@ class HDF5Log(AbstractCallback):
                 - `[w]rite`: (default) overwrites file if it already exists;
                 - `[a]ppend`: appends to an existing file, otherwise creates one;
                 - `[x]` or `fail`: fails if file already exists;
-            save_params: bool flag indicating whether variables of the variational state
-                should be serialized at some interval
-            save_params_every: every how many iterations should machine parameters be
-                flushed to file
+            save_params: deprecated, has no effect.
+            save_params_every: deprecated, has no effect.
             write_every: every how many iterations the HDF5 file should be flushed
                 to disk
             chunk_size: number of log entries per HDF5 chunk. If omitted, chunking
@@ -218,11 +199,18 @@ class HDF5Log(AbstractCallback):
             metadata: optional flat dict of key/value pairs stored once at run
                 start as HDF5 attributes on the ``metadata/`` group.
         """
+        import warnings
         import h5py  # noqa: F401
 
         super().__init__()
+        if save_params is not _UNSET or save_params_every is not _UNSET:
+            warnings.warn(
+                "save_params and save_params_every are deprecated and have no effect. "
+                "HDF5Log no longer serializes variational state parameters.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._metadata = metadata or {}
-        self._callback_pending_vstate = None
 
         if mode == "w":
             mode = "write"
@@ -236,8 +224,6 @@ class HDF5Log(AbstractCallback):
                 "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or"
                 "`[x]`(fail)."
             )
-        if save_params_every <= 0:
-            raise ValueError("save_params_every must be a positive integer.")
         if write_every <= 0:
             raise ValueError("write_every must be a positive integer.")
         if chunk_size is not None and chunk_size <= 0:
@@ -261,61 +247,19 @@ class HDF5Log(AbstractCallback):
         self._file_mode = mode
         self._file_name = path
         self._writer = None
-        self._closed = False
 
-        self._save_params = save_params
-        self._save_params_every = save_params_every
-        self._steps_notsaved_params = 0
         self._write_every = write_every
         self._steps_notflushed_write = 0
         self._chunk_size = chunk_size
-        self._last_step = None
 
     def _init_output_file(self):
-        if self._closed:
-            raise RuntimeError("Cannot use HDF5Log after it has been closed.")
         if self._is_master_process:
             import h5py
 
             self._writer = h5py.File(self._file_name, self._file_mode)
+            self._file_mode = "a"  # subsequent opens always append
 
-    def _flush_writer(self):
-        if self._writer is not None:
-            self._writer.flush()
-        self._steps_notflushed_write = 0
-
-    def _extract_variables(self, variational_state):
-        variables = variational_state.variables
-
-        # TODO: remove - FrozenDict are deprecated
-        if isinstance(variables, FrozenDict):
-            variables = variables.unfreeze()
-        return extract_replicated(variables)
-
-    def _write_variational_state(self, variational_state, *, step: int):
-        if not self._save_params or variational_state is None:
-            return
-        if self._writer is None:
-            self._init_output_file()
-        if not self._is_master_process:
-            self._steps_notsaved_params = 0
-            return
-
-        variables = self._extract_variables(variational_state)
-        _, params = fpop(variables, "params")
-        binary_data = to_bytes(variables)
-        tree = {"model_state": binary_data, "parameters": params, "iter": step}
-        tree_log(
-            tree,
-            "variational_state",
-            self._writer,
-            chunk_size=self._chunk_size,
-        )
-        self._steps_notsaved_params = 0
-
-    def __call__(self, step, log_data, variational_state):
-        if self._closed:
-            raise RuntimeError("Cannot use HDF5Log after it has been closed.")
+    def __call__(self, step, log_data, variational_state=None):
         if self._writer is None:
             self._init_output_file()
 
@@ -328,56 +272,27 @@ class HDF5Log(AbstractCallback):
                 chunk_size=self._chunk_size,
             )
 
-        should_save_params = (
-            self._save_params
-            and variational_state is not None
-            and self._steps_notsaved_params % self._save_params_every == 0
-        )
-        if should_save_params:
-            self._write_variational_state(variational_state, step=step)
-
-        self._last_step = step
         self._steps_notflushed_write += 1
         if self._steps_notflushed_write >= self._write_every:
-            self._flush_writer()
-        self._steps_notsaved_params += 1
+            self.flush()
 
-    def flush(self, variational_state=None):
-        """
-        Writes to file the content of this logger.
+    def flush(self):
+        """Writes buffered data to disk."""
+        if self._writer is not None:
+            self._writer.flush()
+        self._steps_notflushed_write = 0
 
-        Args:
-            variational_state: optionally also writes the parameters of the machine.
-        """
-        if self._closed:
-            return
-
-        if self._save_params and variational_state is not None:
-            step = 0 if self._last_step is None else self._last_step + 1
-            self._write_variational_state(variational_state, step=step)
-
-        self._flush_writer()
-
-    def close(self, variational_state=None):
-        self.flush(variational_state)
+    def _close(self):
+        self.flush()
         if self._writer is not None:
             self._writer.close()
             self._writer = None
-        self._closed = True
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        self.close()
-        return False
 
     def __del__(self):
-        if hasattr(self, "_closed") and not self._closed:
-            try:
-                self.close()
-            except Exception:
-                pass
+        try:
+            self._close()
+        except Exception:
+            pass
 
     def __repr__(self):
         _str = f"HDF5Log('{self._file_name}', mode={self._file_mode}"
@@ -404,17 +319,11 @@ class HDF5Log(AbstractCallback):
             for key, val in self._metadata.items():
                 grp.attrs[key] = val
 
-    def before_parameter_update(self, step, log_data, driver):
-        self._callback_pending_vstate = copy.copy(driver.state)
-
     def on_step_end(self, step, log_data, driver):
-        self(step, log_data, self._callback_pending_vstate)
-        self._callback_pending_vstate = None
+        self(step, log_data)
 
     def on_run_end(self, step, driver):
-        self.flush(driver.state)
-        self._callback_pending_vstate = None
+        self._close()
 
     def on_run_error(self, step, error, driver):
-        self.flush(driver.state)
-        self._callback_pending_vstate = None
+        self._close()
