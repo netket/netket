@@ -47,15 +47,12 @@
 * {func}`netket.optimizer.solver.pinv_smooth` now returns a dictionary with solver diagnostics (`eval_min`, `eval_max`, `rank`, `cond_number`) instead of `None` as the second return value. An optional `return_eigvals=True` flag also returns the full eigenvalue array. The `pinv` and `svd` solvers have similarly been updated to return structured info dictionaries.
 
 #### Neural Networks
-* Added {func}`netket.vqs.freeze_parameters` and {func}`netket.vqs.unfreeze_parameters` (also accessible as {func}`netket.nn.freeze_parameters` / {func}`netket.nn.unfreeze_parameters`), a framework-agnostic way to prevent optimization of a subset of model parameters.
-  Frozen parameters are moved from `vstate.parameters` into `vstate.model_state`, so they are automatically excluded from gradient computation and optimizer updates — no changes to the optimizer or the training loop are needed.
-  The selection of which parameters to freeze is controlled by a predicate `(path, leaf) -> bool` evaluated on every leaf of the parameter tree.
-  The implementation detects the model framework (NNX, Flax Linen — bound or unbound — or a plain `apply_fun`) and routes to the appropriate backend, mirroring the design of {func}`netket.nn.apply_operator`.
+* Added {func}`netket.nn.freeze_parameters` / {func}`netket.nn.unfreeze_parameters`), a framework-agnostic way to tag parameters as 'frozen' so that netket would not compute gradients/QGT along their directions [PR #2241](https://github.com/netket/netket/pull/2241).
+* Added {func}`netket.vqs.freeze_parameters` and {func}`netket.vqs.unfreeze_parameters` to complement the two functions above, that directly operate on variational states. Frozen parameters are moved from `vstate.parameters` into `vstate.model_state`  [PR #2241](https://github.com/netket/netket/pull/2241).
+
 
 #### Statistics and Variational States
-* Added {func}`netket.stats.online_statistics`, an incremental statistics accumulator for streaming MCMC data [PR #2202](https://github.com/netket/netket/pull/2202).
-  It computes the mean, variance, standard error, $\hat{R}$ (Gelman-Rubin), and integrated autocorrelation time $\tau_\text{corr}$ via Geyer's initial positive sequence estimator, all in a single pass without storing the raw samples.
-  Batches of local estimators can be fed one at a time via the `old_estimator` argument, making it suitable for both post-hoc analysis and online monitoring during an optimization run.
+* Added {func}`netket.stats.online_statistics`, an incremental statistics accumulator for streaming MCMC data [PR #2202](https://github.com/netket/netket/pull/2202). It computes the mean, variance, standard error, $\hat{R}$ (Gelman-Rubin), and integrated autocorrelation time $\tau_\text{corr}$ via Geyer's initial positive sequence estimator.
 * Added {meth}`netket.vqs.MCState.check_mc_convergence` (experimental), a diagnostic tool that runs dedicated long Markov chains to assess whether the sampler is well-mixed at the current variational parameters [PR #2202](https://github.com/netket/netket/pull/2202).
   It reports the Gelman-Rubin $\hat{R}$ statistic and the integrated autocorrelation time $\tau_\text{corr}$, recommends a minimum `sweep_size`, and optionally produces a diagnostic figure.
   This is especially useful after optimization has converged, when the short chains used during training (typically 2–8 steps) are too short for reliable convergence diagnostics.
