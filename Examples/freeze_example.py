@@ -4,27 +4,6 @@ Example: layer-wise training by freezing parameters
 
 This script shows how to use ``nk.vqs.freeze_parameters`` to optimise only a
 subset of a model's parameters, keeping the rest fixed.
-
-The scenario
-------------
-A common training trick for deep networks is *layer-wise* fine-tuning: first
-train the whole network, then freeze the early layers and continue optimising
-only the last one(s).  ``nk.vqs.freeze_parameters`` returns a **new** variational
-state in which the selected parameters have been moved out of
-``vstate.parameters`` (trainable) and into ``vstate.model_state`` (non-trainable).
-Because the frozen parameters no longer live in the ``"params"`` collection they
-are automatically excluded from gradient computation and optimizer updates — no
-changes to the optimizer or the training loop are needed.
-
-Which parameters get frozen is decided by a predicate ``(path, leaf) -> bool``,
-where ``path`` is the tuple of dictionary keys leading to a leaf of the parameter
-tree.  Leaves for which the predicate returns ``True`` are frozen.
-
-Why bother?  Freezing the early layers and leaving only the last one trainable
-makes each optimisation step cheaper: the backward pass stops short of the frozen
-layers, so backpropagation is cheaper.  This is especially impactful with
-Stochastic Reconfiguration (``VMC_SR``), whose cost scales with the number of
-*trainable* parameters (the QGT is N_params x N_params).
 """
 
 import netket as nk
