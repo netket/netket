@@ -40,7 +40,7 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=3.14)
 # (Dense_1).  The parameter tree looks like:
 #   {'MLP_0': {'Dense_0': {'kernel', 'bias'},   # first / hidden layer
 #              'Dense_1': {'kernel'}}}           # output layer
-ma = nk.models.MLP(hidden_dims=(32,32,16), param_dtype=float)
+ma = nk.models.MLP(hidden_dims=(32, 32, 16), param_dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 vs = nk.vqs.MCState(sa, ma, n_samples=1024, n_discard_per_chain=10)
 
@@ -60,8 +60,10 @@ frozen_vs = nk.vqs.freeze_parameters(vs, lambda path, leaf: "Dense_2" not in pat
 
 print("\n=== Frozen the first (hidden) layer ===")
 print(f"Trainable parameters: {nk.jax.tree_size(frozen_vs.parameters)}")
-print(f"Frozen parameters:    "
-      f"{nk.jax.tree_size(frozen_vs.model_state['frozen_params'])}")
+print(
+    f"Frozen parameters:    "
+    f"{nk.jax.tree_size(frozen_vs.model_state['frozen_params'])}"
+)
 
 # ── 5. Continue training only the output layer ─────────────────────────────
 print("\n=== Phase 2: training only the output layer ===")

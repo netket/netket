@@ -57,7 +57,7 @@ def freeze_parameters(
         ``new_variables`` is ``None`` for NNX modules (parameters live inside
         the module).
 
-    For variational states, prefer calling :func:`netket.vqs.freeze_parameters`, 
+    For variational states, prefer calling :func:`netket.vqs.freeze_parameters`,
     which operates on the variational state itself.
 
     Example (NNX)::
@@ -88,9 +88,7 @@ def freeze_parameters(
             # Already wrapped — only split params, accumulating with any
             # previously frozen subset.
             return model, freeze_variables(variables, is_frozen)
-        return FreezeLinenWrapper.from_module_and_variables(
-            model, variables, is_frozen
-        )
+        return FreezeLinenWrapper.from_module_and_variables(model, variables, is_frozen)
 
     if callable(model):
         new_apply_fun, new_variables = make_frozen_afun(model, variables, is_frozen)
@@ -128,6 +126,4 @@ def unfreeze_parameters(model: Any, variables: dict) -> tuple[Any, dict]:
         new_apply_fun, new_variables = make_unfrozen_afun(model, variables)
         return new_apply_fun, new_variables
 
-    raise TypeError(
-        f"unfreeze_parameters: unsupported model type {type(model)!r}."
-    )
+    raise TypeError(f"unfreeze_parameters: unsupported model type {type(model)!r}.")
