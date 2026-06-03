@@ -183,3 +183,32 @@ It is possible to show that this equation is mathematically equivalent to
 where the difference is that instead of having to invert an $ N_{\textrm{parameters}} \times  N_{\textrm{parameters}} $ matrix, the QGT, one only has to invert a $N_{\textrm{samples}}\times N_{\textrm{samples}}$ object, the neural tangent kernel.
 
 This allows SR to be used for millions of parameters. To use it, have a look at {class}`netket.driver.VMC_SR`.
+
+(SR_freezing)=
+## Reducing the cost by freezing parameters
+
+As the equations above make explicit, the cost of Stochastic Reconfiguration is
+governed by the number of *trainable* parameters $N_{\textrm{parameters}}$.
+
+This makes parameter [freezing](https://github.com/netket/netket/blob/master/Examples/freeze_example.py) particularly attractive together
+with SR. By freezing the early layers of a deep network and leaving only the last
+layer(s) trainable, you shrink $N_{\textrm{parameters}}$, which directly reduces the
+size of the QGT (or the cost of forming $J$) and makes the backward pass cheaper
+because backpropagation stops at the first frozen layer. 
+
+```python
+import netket as nk
+
+# ... assume `vstate` holds a trained, multi-layer model ...
+
+# Keep only the output layer trainable
+frozen_vstate = nk.vqs.freeze_parameters(
+    vstate, lambda path, leaf: "Dense_0" in path
+)
+
+# SR now acts on a much smaller parameter space
+gs = nk.driver.VMC_SR(H, optimizer, variational_state=frozen_vstate)
+gs.run(n_iter=100)
+```
+
+See the [freezing parameters example](https://github.com/netket/netket/blob/master/Examples/freeze_example.py) for the full example.

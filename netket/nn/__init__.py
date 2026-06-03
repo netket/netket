@@ -63,6 +63,11 @@ from netket.nn import blocks as blocks
 from netket.nn import activation as activation
 from netket.nn import apply_operator as apply_operator
 
+from netket._src.nn.freeze.api import (
+    freeze_parameters as freeze_parameters,
+    unfreeze_parameters as unfreeze_parameters,
+)
+
 # Import for deprecation machinery
 from netket._src.nn.apply_operator.functional import (
     make_logpsi_op_afun as _deprecated_make_logpsi_op_afun,

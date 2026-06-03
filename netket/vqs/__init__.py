@@ -37,3 +37,4 @@ from netket.utils import _hide_submodules
 _hide_submodules(__name__, ignore=["experimental"], hide_folder=["mc"])
 
 from netket._src.vqs.transformed_vstate import apply_operator
+from netket._src.vqs.freeze_vstate import freeze_parameters, unfreeze_parameters

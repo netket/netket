@@ -78,8 +78,7 @@ The following modules can be used in autoregressive neural networks, see {class}
 
 The {mod}`netket.nn.apply_operator` submodule provides modules and utilities to
 construct a new neural-network state $\log(O\lvert\psi\rangle)$ wrapping an
-existing model and an operator $O$. This is used internally by NetKet when computing expectation values,
-but can also be used directly to build custom models.
+existing model and an operator $O$. This is used internally by NetKet when computing expectation values, but can also be used directly to build custom models.
 
 ```{eval-rst}
 .. currentmodule:: netket.nn.apply_operator
@@ -92,6 +91,29 @@ but can also be used directly to build custom models.
    ApplyOperatorModuleLinen
    ApplyOperatorModuleNNX
    make_logpsi_op_afun
+
+```
+
+
+(netket_nn_freeze_api)=
+## Freezing parameters
+
+The {func}`~netket.nn.freeze_parameters` function provides a framework-agnostic way to *freeze* (prevent optimization of) a subset of a model's parameters. It moves 
+the selected parameters out of the trainable `"params"` collection. The 
+choice of which parameters to freeze is controlled by a 
+filter function `(path, leaf) -> bool`.
+
+See also the [freezing parameters example](https://github.com/netket/netket/blob/master/Examples/freeze_example.py) for a worked example.
+
+```{eval-rst}
+.. currentmodule:: netket.nn
+
+.. autosummary::
+   :toctree: _generated/nn
+   :nosignatures:
+
+   freeze_parameters
+   unfreeze_parameters
 
 ```
 

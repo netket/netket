@@ -65,3 +65,20 @@ and the experimental Variational state for a single slater determinant state (wh
   get_local_kernel_arguments
 ```
 
+### Freezing parameters
+
+The following functions return a *new* variational state in which a subset of the
+parameters has been frozen (moved from {attr}`~netket.vqs.VariationalState.parameters`
+into {attr}`~netket.vqs.VariationalState.model_state`), so they are automatically
+excluded from gradient computation and optimizer updates. See the
+[freezing parameters example](https://github.com/netket/netket/blob/master/Examples/freeze_example.py) for a worked example.
+
+```{eval-rst}
+.. autosummary::
+  :toctree: _generated/vqs
+  :nosignatures:
+
+  freeze_parameters
+  unfreeze_parameters
+```
+
