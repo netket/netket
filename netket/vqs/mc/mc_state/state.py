@@ -518,6 +518,22 @@ class MCState(VariationalState):
         """
         self._samples = None
 
+    def _replace_model(self, model=None, *, apply_fun=None, variables=None):
+        new = type(self)(
+            sampler=self.sampler,
+            model=model,
+            apply_fun=apply_fun,
+            variables=variables,
+            n_samples=self.n_samples,
+            n_discard_per_chain=self.n_discard_per_chain,
+            chunk_size=self.chunk_size,
+            mutable=self.mutable,
+            training_kwargs=dict(self.training_kwargs),
+        )
+        new.sampler_state = self.sampler_state
+        new._sampler_state_previous = self._sampler_state_previous
+        return new
+
     @timing.timed
     def sample(
         self,

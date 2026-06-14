@@ -136,6 +136,20 @@ class VariationalState(abc.ABC):
             )
         self.model_state, self.parameters = fcore.pop(var, "params")
 
+    def _replace_model(
+        self, model=None, *, apply_fun=None, variables=None
+    ) -> "VariationalState":
+        """Return a copy of this state with the model (and variables) replaced.
+
+        This must be implemented by subclasses to work with several utilities.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement `_replace_model`. "
+            "Implement it (call the constructor, then restore runtime state) to "
+            "support freeze_parameters / unfreeze_parameters and any other "
+            "model-swapping operation."
+        )
+
     def init_parameters(
         self, init_fun: NNInitFunc | None = None, *, seed: PRNGKeyT | None = None
     ):

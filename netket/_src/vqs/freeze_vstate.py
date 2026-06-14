@@ -21,7 +21,7 @@ Thin shim over :func:`netket.nn.freeze_parameters` that constructs a new
 
 from typing import Any, Callable
 
-from netket.vqs import FullSumState, MCState, VariationalState
+from netket.vqs import VariationalState
 
 from netket._src.nn.freeze.api import (
     freeze_parameters as _freeze_model,
@@ -45,52 +45,17 @@ def _rebuild_vstate(
     new_model_or_fun: Any,
     new_variables: dict | None,
 ) -> VariationalState:
-    """Build a new vstate of the same type as *vstate*, swapping model+variables.
+    """Return a copy of *vstate* with its model+variables swapped.
 
-    For NNX models the freeze dispatcher returns ``new_variables=None`` (the
-    parameters live inside the module); MCState/FullSumState then re-wrap the
-    module and extract the params themselves.
+    Delegates to :meth:`~netket.vqs.VariationalState._replace_model`, which each
+    concrete state implements via its own constructor — so the *concrete* type
+    (and its runtime state) is preserved and there is a single source of truth
+    for how a model is wired into a state. A module is passed as ``model=``, a
+    plain apply function as ``apply_fun=``.
     """
     if _is_module_model(new_model_or_fun):
-        new_model = new_model_or_fun
-        new_apply_fun = None
-    else:
-        new_model = None
-        new_apply_fun = new_model_or_fun
-
-    if isinstance(vstate, FullSumState):
-        return FullSumState(
-            hilbert=vstate.hilbert,
-            model=new_model,
-            apply_fun=new_apply_fun,
-            variables=new_variables,
-            chunk_size=vstate.chunk_size,
-            mutable=vstate.mutable,
-            training_kwargs=dict(vstate.training_kwargs),
-        )
-
-    if isinstance(vstate, MCState):
-        new_vstate = MCState(
-            sampler=vstate.sampler,
-            model=new_model,
-            apply_fun=new_apply_fun,
-            variables=new_variables,
-            n_samples=vstate.n_samples,
-            n_discard_per_chain=vstate.n_discard_per_chain,
-            chunk_size=vstate.chunk_size,
-            mutable=vstate.mutable,
-            training_kwargs=dict(vstate.training_kwargs),
-        )
-        new_vstate.sampler_state = vstate.sampler_state
-        new_vstate._sampler_state_previous = vstate._sampler_state_previous
-        if vstate._samples is not None:
-            new_vstate._samples = vstate._samples
-        return new_vstate
-
-    raise TypeError(
-        f"Unsupported variational state type {type(vstate)!r}. "
-        "Expected MCState or FullSumState."
-    )
+        return vstate._replace_model(model=new_model_or_fun, variables=new_variables)
+    return vstate._replace_model(apply_fun=new_model_or_fun, variables=new_variables)
 
 
 def _extract_model_or_fun(vstate: VariationalState) -> Any:
@@ -124,13 +89,14 @@ def freeze_parameters(
     is_frozen: Callable[[tuple[str, ...], Any], bool],
 ) -> VariationalState:
     """
-    Freeze a subset of model parameters in a variational state.
+    Freeze a subset of model parameters in a variational state, removing
+    them from gradient/QGT calculations.
 
-    Thin shim around :func:`netket.nn.freeze_parameters`: extracts the
-    model and variables from *vstate*, freezes the matching parameters, and
-    returns a new variational state of the same type.  Frozen parameters are
-    moved from ``vstate.parameters`` into ``vstate.model_state`` so they are
-    automatically excluded from gradient computation and optimizer updates.
+    Frozen parameters are moved from ``vstate.parameters`` into 
+    ``vstate.model_state['frozen_params']``.
+
+    This is a thin shim around :func:`netket.nn.freeze_parameters`, which
+    reconstructs a new variational state.
 
     Args:
         vstate: A :class:`~netket.vqs.MCState` or

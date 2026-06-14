@@ -307,6 +307,51 @@ def _make_functional_vstate():
     return nk.vqs.MCState(_SAMPLER, apply_fun=apply, variables=variables, n_samples=100)
 
 
+class _MCStateSubclass(nk.vqs.MCState):
+    """MCState subclass carrying extra state.
+
+    Used to check that freeze/unfreeze preserve the *concrete* type via
+    ``_replace_model``. A subclass with extra state overrides ``_replace_model``
+    to carry it across the rebuild (here by delegating to ``super()`` and
+    restoring the attribute).
+    """
+
+    def __init__(self, *args, tag=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tag = tag
+
+    def _replace_model(self, model=None, *, apply_fun=None, variables=None):
+        new = super()._replace_model(
+            model=model, apply_fun=apply_fun, variables=variables
+        )
+        new.tag = self.tag
+        return new
+
+
+def test_freeze_parameters_preserves_vstate_subclass():
+    vstate = _MCStateSubclass(_SAMPLER, _RBMNNX(), n_samples=100, tag="foundation")
+    x = _HI.all_states()[:4]
+    out_before = vstate.log_value(x)
+
+    frozen = freeze_parameters(vstate, lambda path, _: "kernel" in path)
+
+    # Concrete subclass and its extra attribute are preserved ...
+    assert type(frozen) is _MCStateSubclass
+    assert frozen.tag == "foundation"
+    # ... the frozen parameter moved out of the trainable set ...
+    assert "kernel" not in frozen.parameters.get("dense", {})
+    assert "kernel" in frozen.model_state.get("model_state", {}).get("dense", {})
+    # ... and the wavefunction value is unchanged.
+    assert jnp.allclose(frozen.log_value(x), out_before)
+
+    # unfreeze restores the subclass and the full trainable parameter set.
+    restored = unfreeze_parameters(frozen)
+    assert type(restored) is _MCStateSubclass
+    assert restored.tag == "foundation"
+    assert "kernel" in restored.parameters.get("dense", {})
+    assert jnp.allclose(restored.log_value(x), out_before)
+
+
 # ---- NNX via freeze_parameters --------------------------------------------
 
 
