@@ -1,9 +1,11 @@
 import jax
+from flax import serialization
 from jax.errors import JaxRuntimeError
 
 from netket.utils import struct, timing, dispatch
 
 from netket._src.callbacks.base import AbstractCallback
+from netket._src.driver.checkpointer import load_state_inplace
 
 
 @dispatch.dispatch
@@ -109,6 +111,17 @@ class AutoChunkSize(AbstractCallback):
         self.minimum_chunk_size = minimum_chunk_size
 
     def on_run_start(self, step, driver):
+        # The tuning samples and computes an update: give the driver back the
+        # state it had, with the new chunk sizes, so that it does not change what
+        # the run computes (a run resumed from a checkpoint tunes again).
+        state = serialization.to_state_dict(driver)
+        self._tune(driver)
+        chunk_size = getattr(driver.state, "chunk_size", None)
+        load_state_inplace(driver, state)
+        if hasattr(driver.state, "chunk_size"):
+            driver.state.chunk_size = chunk_size
+
+    def _tune(self, driver):
         if jax.process_index() == 0:
             print("Automatically tuning chunk size....")
 

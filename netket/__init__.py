@@ -14,6 +14,7 @@
 
 __all__ = [
     "callbacks",
+    "checkpoint",
     "errors",
     "exact",
     "experimental",
@@ -64,6 +65,7 @@ from . import (
 )
 
 from . import experimental
+from . import checkpoint
 
 
 # Main applications

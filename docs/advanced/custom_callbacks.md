@@ -18,11 +18,18 @@ The labels in angle brackets (`<hook_name>`) correspond directly to the methods 
 {class}`~netket.callbacks.AbstractCallback`.
 
 ```python
-# driver.run(n_iter, ...)
+# driver.run(n_iter, ..., checkpointer=None)
 
-callbacks.on_run_start(step, driver)                          # <on_run_start>
+callbacks.on_run_prep_allocate(driver)                        # <on_run_prep_allocate>
+if checkpointer is not None:
+    state = checkpointer.restore(driver, ...)
+    if state is not None:
+        load_checkpoint_state(driver, state)  # in place
+        callbacks.on_checkpoint_restore(step_count, driver)    # <on_checkpoint_restore>
+callbacks.on_run_start(step_count, driver)                    # <on_run_start>
 
-for step in range(step_count, step_count + n_iter):
+while stop is None and step_count < target_step:
+    step = step_count
     step_log_data = {}
     step_attempt = 0
 
@@ -50,14 +57,23 @@ for step in range(step_count, step_count + n_iter):
     callbacks.before_parameter_update(step, step_log_data, driver)  # <before_parameter_update>
     driver.update_parameters(dp)
 
-    callbacks.on_step_end(step, step_log_data, driver)        # <on_step_end>
+    stop = callbacks.on_step_end(step, step_log_data, driver) # <on_step_end>
     step_count += 1
 
+    # The save point of the step, only with a checkpointer
+    stop = stop or checkpointer.should_stop(step_count)
+    stop = stop or (a StopRun if another process stopped)
+    if checkpointer.should_save(step_count, last=...):
+        callbacks.on_checkpoint_save(step_count, driver)       # <on_checkpoint_save>
+        checkpointer.save(step_count, checkpoint_state(driver))
+
+checkpointer.wait()
 callbacks.on_run_end(step_count, driver)                      # <on_run_end>
 
-# If StopRun is raised anywhere, on_run_end is still called.
-# If any other exception is raised, on_run_error is called instead.
+# If any exception is raised, on_run_error is called instead of on_run_end.
 # callbacks.on_run_error(step_count, error, driver)           # <on_run_error>
+# A StopRun raised from any hook but on_step_end is an error.
+# checkpointer.close(...) is called however the run ends.
 ```
 
 ## Hook reference
@@ -66,18 +82,25 @@ The table below summarises all hooks in calling order, their signature, and thei
 
 | Hook | Called when | Return value |
 |------|-------------|--------------|
+| {meth}`~netket.callbacks.AbstractCallback.on_run_prep_allocate` | Once, first, before a checkpoint is restored | — |
+| {meth}`~netket.callbacks.AbstractCallback.on_checkpoint_restore` | Once, if a checkpoint was restored, before `on_run_start` | — |
 | {meth}`~netket.callbacks.AbstractCallback.on_run_start` | Once, before the iteration loop | — |
 | {meth}`~netket.callbacks.AbstractCallback.on_step_start` | At the start of every step (and every retry) | — |
 | {meth}`~netket.callbacks.AbstractCallback.on_compute_update_start` | After `reset_step()`, before `compute_loss_and_update()` | — |
 | {meth}`~netket.callbacks.AbstractCallback.on_compute_update_end` | After `compute_loss_and_update()`, before accepting the step | `bool` — if `True`, the step is retried |
 | {meth}`~netket.callbacks.AbstractCallback.before_parameter_update` | After the step is accepted; `step_count` and parameters are still at their current values | — |
-| {meth}`~netket.callbacks.AbstractCallback.on_step_end` | After parameters have been updated | — |
-| {meth}`~netket.callbacks.AbstractCallback.on_run_end` | Once, after the loop finishes (also called on `StopRun`) | — |
-| {meth}`~netket.callbacks.AbstractCallback.on_run_error` | When an exception (other than `StopRun`) terminates the loop | — |
+| {meth}`~netket.callbacks.AbstractCallback.on_step_end` | After parameters have been updated | `None`, or a {class}`~netket.callbacks.StopRun` to stop the run after this step |
+| {meth}`~netket.callbacks.AbstractCallback.on_checkpoint_save` | Before the checkpointer saves the run | — |
+| {meth}`~netket.callbacks.AbstractCallback.on_run_end` | Once, after the loop finishes (also when stopped) | — |
+| {meth}`~netket.callbacks.AbstractCallback.on_run_error` | When an exception terminates the loop | — |
 
 ### Hook signatures
 
 ```python
+def on_run_prep_allocate(self, driver) -> None: ...
+
+def on_checkpoint_restore(self, step: int, driver) -> None: ...
+
 def on_run_start(self, step: int, driver) -> None: ...
 
 def on_step_start(self, step: int, log_data: dict, driver) -> None: ...
@@ -88,7 +111,9 @@ def on_compute_update_end(self, step: int, log_data: dict, driver) -> bool: ...
 
 def before_parameter_update(self, step: int, log_data: dict, driver) -> None: ...
 
-def on_step_end(self, step: int, log_data: dict, driver) -> None: ...
+def on_step_end(self, step: int, log_data: dict, driver) -> StopRun | None: ...
+
+def on_checkpoint_save(self, step: int, driver) -> None: ...
 
 def on_run_end(self, step: int, driver) -> None: ...
 
@@ -137,14 +162,16 @@ gs.run(n_iter=300, callback=[MyCallback(), nk.callbacks.EarlyStopping(...)])
 
 ## Stopping the optimisation
 
-To gracefully stop the run from inside a callback, raise {class}`~netket.callbacks.StopRun`
-(or a subclass of it).  The driver will call `on_run_end` before exiting.
+To gracefully stop the run from inside a callback, return a
+{class}`~netket.callbacks.StopRun` from `on_step_end` (raising it there also works).
+The run stops after that step, which is counted, on every process; the driver calls
+`on_run_end` before exiting.
 
 ```python
 class StopAfterConvergence(nk.callbacks.AbstractCallback):
     def on_step_end(self, step, log_data, driver):
         if is_converged(log_data):
-            raise nk.callbacks.StopRun("Energy converged.")
+            return nk.callbacks.StopRun("Energy converged.")
 ```
 
 ## Injecting custom samples
