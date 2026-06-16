@@ -118,6 +118,10 @@ class AbstractDriver(struct.Pytree, mutable=True):
     # so that a callback restoring `_step_count` in `on_run_start` does not change
     # the loop bound. Transient (not serialized). `None` outside of a `run()`.
     _target_step: int = struct.field(pytree_node=False, serialize=False, default=None)
+    # The callbacks active during the current `run()` (persistent + per-run +
+    # observables + loggers + progress bar), exposed so a callback can reach its
+    # siblings — e.g. a checkpointer flushing/reconciling the loggers. Transient.
+    _run_callbacks: Any = struct.field(pytree_node=False, serialize=False, default=None)
     _step_attempt: int = struct.field(pytree_node=False, serialize=False, default=0)
     _timer: timing.Timer = struct.field(pytree_node=False, serialize=False)
 
@@ -483,6 +487,11 @@ class AbstractDriver(struct.Pytree, mutable=True):
         # more steps". Exposed to callbacks via `driver._target_step`.
         target_step = self.step_count + n_iter
         self._target_step = target_step
+
+        # Expose the active callback list so callbacks can reach their siblings
+        # (e.g. a checkpointer flushing/reconciling loggers). Set before
+        # `on_run_start` so it is available during restore.
+        self._run_callbacks = callbacks
 
         with timing.timed_scope(force=timeit) as timer:
             try:

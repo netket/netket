@@ -132,6 +132,7 @@ class Infidelity_SR(AbstractOptimizationDriver):
         mode: JacobianMode | None = None,
         use_ntk: bool | None = None,
         on_the_fly: bool | None = None,
+        callbacks=(),
     ):
         r"""
         Initialize the driver with the given arguments.
@@ -215,7 +216,10 @@ class Infidelity_SR(AbstractOptimizationDriver):
             self.target_state = target_state
 
         super().__init__(
-            variational_state, optimizer, minimized_quantity_name="Infidelity"
+            variational_state,
+            optimizer,
+            minimized_quantity_name="Infidelity",
+            callbacks=callbacks,
         )
 
         if isinstance(variational_state, FullSumState):

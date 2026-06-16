@@ -232,8 +232,14 @@ class VMC_SR(AbstractOptimizationDriver):
     _on_the_fly: bool = struct.field(serialize=False)
     _linear_solver: Any = struct.field(serialize=False)
 
-    # Internal, experimental mcmc diagnostics for sampling convergence
-    _loss_stats_online: OnlineStats | None
+    # Internal, experimental mcmc diagnostics for sampling convergence.
+    # Recomputed every step (an exponential moving average), so it must NOT be
+    # serialized into a checkpoint: on restore the fresh driver's value is None,
+    # which flax cannot rebuild the OnlineStats object into (it would leave a raw
+    # state dict, breaking the next .update()). Reset-on-resume is fine here.
+    _loss_stats_online: OnlineStats | None = struct.field(
+        serialize=False, default=None
+    )
     _mcmc_convergence_diagnostics_ema_window: int = struct.field(
         serialize=False, default=50
     )
