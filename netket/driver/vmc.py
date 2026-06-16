@@ -58,6 +58,7 @@ class VMC(AbstractOptimizationDriver):
         *,
         variational_state: VariationalState,
         preconditioner: PreconditionerT = identity_preconditioner,
+        callbacks=(),
     ):
         """
         Initializes the driver class.
@@ -85,7 +86,12 @@ class VMC(AbstractOptimizationDriver):
                 )
             )
 
-        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
+        super().__init__(
+            variational_state,
+            optimizer,
+            minimized_quantity_name="Energy",
+            callbacks=callbacks,
+        )
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
 

@@ -69,6 +69,7 @@ class AbstractDynamicsDriver(AbstractDriver):
         *,
         t0: float = 0.0,
         minimized_quantity_name: str = "loss",
+        callbacks=(),
     ):
         """
         Initializes a dynamics driver.
@@ -77,9 +78,13 @@ class AbstractDynamicsDriver(AbstractDriver):
             variational_state: The variational state.
             t0: Initial simulation time (default 0.0).
             minimized_quantity_name: Name of the monitored quantity in logged data.
+            callbacks: Persistent callbacks attached to the driver (see
+                :class:`~netket.driver.AbstractDriver`).
         """
         super().__init__(
-            variational_state, minimized_quantity_name=minimized_quantity_name
+            variational_state,
+            minimized_quantity_name=minimized_quantity_name,
+            callbacks=callbacks,
         )
         self._t = KahanSum(t0)
 

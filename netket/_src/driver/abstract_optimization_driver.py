@@ -44,6 +44,8 @@ class AbstractOptimizationDriver(AbstractDriver):
         variational_state: VariationalState,
         optimizer: Optimizer,
         minimized_quantity_name: str = "loss",
+        *,
+        callbacks=(),
     ):
         """
         Initializes a variational optimization driver.
@@ -53,9 +55,13 @@ class AbstractOptimizationDriver(AbstractDriver):
             optimizer: an `optax <https://optax.readthedocs.io/en/latest/>`_ optimizer.
             minimized_quantity_name: the name of the loss function in
                 the logged data set.
+            callbacks: Persistent callbacks attached to the driver (see
+                :class:`~netket.driver.AbstractDriver`).
         """
         super().__init__(
-            variational_state, minimized_quantity_name=minimized_quantity_name
+            variational_state,
+            minimized_quantity_name=minimized_quantity_name,
+            callbacks=callbacks,
         )
         self.optimizer = optimizer
 

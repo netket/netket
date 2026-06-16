@@ -101,13 +101,23 @@ class AbstractDriver(struct.Pytree, mutable=True):
         serialize_name="state",
     )
 
+    # Persistent (behavioural) callbacks declared at construction. Stored the same
+    # way as `_variational_state` (static aux data, but serialized) so that their
+    # state round-trips inside the driver's serialized form. See `callbacks`.
+    _callbacks: tuple = struct.field(
+        pytree_node=False, serialize=True, default=()
+    )
+
     # Internal caches (those could be removed in the future?)
     _dp: PyTree = struct.field(pytree_node=True, serialize=False)
 
     # Iterator caches
     # _step_start: int = struct.field(pytree_node=False, serialize=False, default=None)
     # _step_size: int = struct.field(pytree_node=False, serialize=False, default=1)
-    # _step_end: int = struct.field(pytree_node=False, serialize=False, default=None)
+    # Absolute target step of the current `run()`, frozen *before* `on_run_start`
+    # so that a callback restoring `_step_count` in `on_run_start` does not change
+    # the loop bound. Transient (not serialized). `None` outside of a `run()`.
+    _target_step: int = struct.field(pytree_node=False, serialize=False, default=None)
     _step_attempt: int = struct.field(pytree_node=False, serialize=False, default=0)
     _timer: timing.Timer = struct.field(pytree_node=False, serialize=False)
 
@@ -115,6 +125,8 @@ class AbstractDriver(struct.Pytree, mutable=True):
         self,
         variational_state: VariationalState,
         minimized_quantity_name: str = "loss",
+        *,
+        callbacks: Iterable[AbstractCallback] = (),
     ):
         """
         Initializes a variational driver.
@@ -123,12 +135,20 @@ class AbstractDriver(struct.Pytree, mutable=True):
             variational_state: The variational state.
             minimized_quantity_name: the name of the loss function in
                 the logged data set.
+            callbacks: An iterable of persistent (behavioural) callbacks attached
+                to the driver itself, as opposed to the per-run callbacks passed
+                to :meth:`run`. These are merged with the per-run callbacks every
+                time :meth:`run` is called, and — being part of the driver's
+                serialized state — their internal state survives a
+                checkpoint/restore round-trip. Can also be set after construction
+                via the :attr:`callbacks` property.
         """
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
         self._step_count = 0
 
         self._variational_state = variational_state
+        self.callbacks = callbacks
 
         self._dp = jax.tree.map(jax.numpy.zeros_like, self.state.parameters)
 
@@ -293,6 +313,21 @@ class AbstractDriver(struct.Pytree, mutable=True):
         """
         return self._step_count
 
+    @property
+    def callbacks(self) -> tuple[AbstractCallback, ...]:
+        """
+        The tuple of persistent (behavioural) callbacks attached to this driver.
+
+        These callbacks are part of the driver's (serialized) state and are merged
+        with the per-run callbacks every time :meth:`run` is called. A sibling
+        callback can reach the others through this attribute.
+        """
+        return self._callbacks
+
+    @callbacks.setter
+    def callbacks(self, callbacks: Iterable[AbstractCallback]):
+        self._callbacks = tuple(to_iterable(callbacks, none_is_empty=True))
+
     def _default_callbacks(
         self,
         callbacks,
@@ -425,8 +460,16 @@ class AbstractDriver(struct.Pytree, mutable=True):
             out = ()
         loggers = to_iterable(out)
 
+        # Merge the persistent (behavioural) callbacks declared on the driver with
+        # the per-run ones. Persistent callbacks run first so that a per-run
+        # `callback=` keeps appending semantics; ordering between callbacks is
+        # ultimately decided by `callback_order` inside the CallbackList.
+        run_callbacks = (
+            *self._callbacks,
+            *to_iterable(callback, none_is_empty=True),
+        )
         callbacks = self._default_callbacks(
-            to_iterable(callback, none_is_empty=True),
+            run_callbacks,
             n_iter=n_iter,
             obs=obs,
             step_size=step_size,
@@ -434,14 +477,17 @@ class AbstractDriver(struct.Pytree, mutable=True):
             show_progress=show_progress,
         )
 
-        # self._step_size = step_size
-        # self._step_start = self.step_count
-        # self._step_end = self.step_count + n_iter
+        # Freeze the absolute target step *before* `on_run_start` so that a callback
+        # restoring `_step_count` in `on_run_start` (e.g. a checkpointer resuming a
+        # run) does not change the loop bound: `n_iter` keeps meaning "this many
+        # more steps". Exposed to callbacks via `driver._target_step`.
+        target_step = self.step_count + n_iter
+        self._target_step = target_step
 
         with timing.timed_scope(force=timeit) as timer:
             try:
                 callbacks.on_run_start(self.step_count, self)
-                for step in range(self.step_count, self.step_count + n_iter):
+                for step in range(self.step_count, target_step):
                     self._step_attempt = 0
                     step_log_data = {}
 

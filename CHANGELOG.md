@@ -5,6 +5,28 @@
 
 ## NetKet 3.23 (In development)
 
+### New Features
+
+#### Checkpointing
+* Added {mod}`netket.checkpoint`, a self-contained, fault-tolerant checkpointing
+  facility for drivers. {class}`netket.checkpoint.CheckpointCallback` saves the
+  driver pytree (parameters, optimizer state, step counter, sampler RNG, and any
+  serialized callback state) at committed step boundaries and auto-restores it
+  in place at the start of the next `run()`, so a run resumes exactly after a
+  crash, preemption, or SLURM requeue. It supports a positional resume gate,
+  atomic writes with retention and corrupt-checkpoint fallback, multi-host
+  master-only writes, and a SIGTERM (configurable) save-and-stop handler.
+
+#### Drivers and Callbacks
+* {class}`netket.driver.AbstractDriver` now accepts a `callbacks=` argument (also
+  settable via the `driver.callbacks` property) for *persistent* behavioural
+  callbacks that are part of the driver's serialized state and are merged with
+  the per-run callbacks on every `run()`.
+* The absolute target step of a `run()` is now frozen before `on_run_start`, so a
+  callback that restores `step_count` in `on_run_start` (e.g. the checkpointer)
+  no longer overshoots the loop bound: `n_iter` keeps meaning "this many more
+  steps". Exposed to callbacks as `driver._target_step`.
+
 ...
 
 ## NetKet 3.22 (4 June 2026)
