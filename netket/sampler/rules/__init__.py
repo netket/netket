@@ -16,6 +16,7 @@ from .base import MetropolisRule
 
 from .fixed import FixedRule
 from .local import LocalRule
+from .adaptive_local import AdaptiveLocalRule
 from .exchange import ExchangeRule
 from .hamiltonian import HamiltonianRule
 from .continuous_gaussian import GaussianRule

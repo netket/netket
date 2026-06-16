@@ -119,6 +119,48 @@ class MetropolisRule(struct.Pytree):
            log corrections to the transition probability.
         """
 
+    def update_rule_state(
+        self,
+        sampler: "sampler.MetropolisSampler",  # noqa: F821
+        machine: nn.Module,
+        params: PyTree,
+        sampler_state: "sampler.SamplerState",  # noqa: F821
+        accepted: jnp.ndarray,
+    ) -> Any | None:
+        """
+        Updates the internal ``rule_state`` given the accept/reject outcome of the
+        Metropolis sub-step that just completed.
+
+        This is the post-acceptance dual of :meth:`transition`: ``transition``
+        proposes a new configuration *before* the accept/reject decision, while
+        this hook is invoked *after* it, with the per-chain acceptance mask. It
+        lets a rule tune itself toward a target acceptance (e.g. adapting a
+        proposal width or flip count) without subclassing the sampler.
+
+        The default implementation is a no-op that returns the current
+        ``rule_state`` unchanged. Rules that do not adapt need not override it
+        and pay no runtime cost: the sampler skips the call entirely unless the
+        rule overrides this method.
+
+        This is called once per Metropolis sub-step, inside the sampler's
+        ``fori_loop``, so the returned value must keep the same PyTree structure
+        (and leaf dtypes/shapes) as ``sampler_state.rule_state``.
+
+        Arguments:
+            sampler: The Metropolis sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            params: The PyTree of parameters of the model.
+            sampler_state: The state of the sampler *before* this update. Read
+                its ``rule_state`` to compute the new one; do not mutate it.
+            accepted: Boolean array of shape ``(n_chains,)`` flagging which
+                chains accepted their proposal in the current sub-step.
+
+        Returns:
+            The new ``rule_state``, with the same PyTree structure as
+            ``sampler_state.rule_state``.
+        """
+        return sampler_state.rule_state
+
     def random_state(
         self,
         sampler: "sampler.MetropolisSampler",  # noqa: F821

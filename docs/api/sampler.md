@@ -69,6 +69,7 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
    :toctree: _generated/samplers
 
    MetropolisLocal
+   MetropolisAdaptiveLocal
    MetropolisExchange
    MetropolisHamiltonian
    MetropolisGaussian
@@ -118,6 +119,7 @@ Sampler. Rules with `Numpy` in their name can only be used with
 
   rules.MetropolisRule
   rules.LocalRule
+  rules.AdaptiveLocalRule
   rules.GlobalSpinFlipRule
   rules.CustomRuleNumpy
   rules.ExchangeRule

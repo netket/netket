@@ -424,6 +424,13 @@ class MetropolisSampler(Sampler):
             machine.apply, in_axes=(None, 0), chunk_size=self.chunk_size
         )
 
+        # Whether the rule wants per-step accept/reject feedback. Resolved at
+        # trace time (the rule type is static), so this is a Python branch with
+        # no runtime cost: non-adaptive rules never emit the extra call.
+        adaptive = (
+            type(self.rule).update_rule_state is not MetropolisRule.update_rule_state
+        )
+
         def loop_body(i, state):
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
             new_rng, key1, key2 = jax.random.split(state.rng, 3)
@@ -449,12 +456,21 @@ class MetropolisSampler(Sampler):
             else:
                 do_accept = uniform < jnp.exp(proposal_log_prob - state.log_prob)
 
+            # Feed the accept/reject outcome back to a self-tuning rule. Skipped
+            # entirely (no-op branch resolved at trace time) for ordinary rules.
+            rule_state = (
+                self.rule.update_rule_state(self, machine, parameters, state, do_accept)
+                if adaptive
+                else state.rule_state
+            )
+
             return state.replace(
                 σ=jnp.where(do_accept.reshape(-1, 1), σp, state.σ),
                 log_prob=jax.numpy.where(
                     do_accept.reshape(-1), proposal_log_prob, state.log_prob
                 ),
                 rng=new_rng,
+                rule_state=rule_state,
                 n_accepted_proc=state.n_accepted_proc + do_accept,
                 n_steps_proc=state.n_steps_proc + self.n_batches,
             )
@@ -568,6 +584,57 @@ def MetropolisLocal(hilbert, **kwargs) -> MetropolisSampler:
     from .rules import LocalRule
 
     return MetropolisSampler(hilbert, LocalRule(), **kwargs)
+
+
+def MetropolisAdaptiveLocal(
+    hilbert,
+    *,
+    n_flips: float = 1.0,
+    target_acceptance: float = 0.5,
+    acceptance_floor: float = 0.05,
+    **kwargs,
+) -> MetropolisSampler:
+    r"""
+    Sampler that resamples an adaptive number of local degrees of freedom.
+
+    This is the multi-site, self-tuning counterpart of :func:`MetropolisLocal`.
+    Each Metropolis sub-step visits every site independently with probability
+    :math:`p = \lambda / N` and resamples each visited site to a different local
+    value. The expected number of resampled sites :math:`\lambda` is rescaled
+    after every sub-step toward ``target_acceptance``, growing when acceptance is
+    high (bolder moves) and shrinking back toward single-site flips when it is
+    low. The learned :math:`\lambda` is preserved across :meth:`reset`, so it
+    converges over successive sampling calls.
+
+    Only unconstrained :class:`~netket.hilbert.HomogeneousHilbert` spaces are
+    supported. See :class:`~netket.sampler.rules.AdaptiveLocalRule` for details.
+
+    Args:
+        hilbert: The Hilbert space to sample.
+        n_flips: Initial expected number of resampled sites per sub-step
+            (default = 1.0, equivalent in expectation to :func:`MetropolisLocal`).
+        target_acceptance: Acceptance rate the flip count is driven towards
+            (default = 0.5).
+        acceptance_floor: Lower clamp on the measured acceptance entering the
+            rescaling factor (default = 0.05).
+        n_chains: The total number of independent Markov chains across all devices.
+        n_chains_per_rank: Number of independent chains on every device (default = 16).
+        sweep_size: Number of sweeps for each step along the chain. Defaults to the
+            number of sites in the Hilbert space.
+        reset_chains: If True, resets the chain state when `reset` is called on every
+            new sampling (default = False).
+        machine_pow: The power to which the machine should be exponentiated to
+            generate the pdf (default = 2).
+        dtype: The dtype of the states sampled (default = np.float64).
+    """
+    from .rules import AdaptiveLocalRule
+
+    rule = AdaptiveLocalRule(
+        n_flips=n_flips,
+        target_acceptance=target_acceptance,
+        acceptance_floor=acceptance_floor,
+    )
+    return MetropolisSampler(hilbert, rule, **kwargs)
 
 
 def MetropolisExchange(

@@ -16,6 +16,13 @@
   crash, preemption, or SLURM requeue. It supports a positional resume gate,
   atomic writes with retention and corrupt-checkpoint fallback, multi-host
   master-only writes, and a SIGTERM (configurable) save-and-stop handler.
+* Loggers participate in checkpointing: on resume the checkpointer reconciles each
+  logger's durable store (reloading and dropping any steps past the restored
+  point) so the output stays continuous with no gaps or duplicates.
+  {class}`netket.logging.JsonLog` and {class}`netket.logging.HDF5Log` support this
+  via the new ``on_checkpoint_save``/``on_checkpoint_restore`` participation hooks
+  on {class}`netket.callbacks.AbstractCallback`. Pass participating loggers with
+  ``mode="append"``.
 
 #### Drivers and Callbacks
 * {class}`netket.driver.AbstractDriver` now accepts a `callbacks=` argument (also
@@ -26,6 +33,16 @@
   callback that restores `step_count` in `on_run_start` (e.g. the checkpointer)
   no longer overshoots the loop bound: `n_iter` keeps meaning "this many more
   steps". Exposed to callbacks as `driver._target_step`.
+
+#### Samplers
+* {class}`netket.sampler.rules.MetropolisRule` gained an
+  {meth}`~netket.sampler.rules.MetropolisRule.update_rule_state` hook (default
+  no-op), the post-acceptance dual of `transition`: the sampler now feeds the
+  per-step accept/reject outcome back to the rule, enabling self-tuning rules
+  without subclassing the sampler. Ordinary rules pay no runtime cost.
+* Added {class}`netket.sampler.rules.AdaptiveLocalRule` and the
+  {func}`netket.sampler.MetropolisAdaptiveLocal` shorthand: a multi-site local
+  rule that adapts the number of resampled sites toward a target acceptance.
 
 ...
 

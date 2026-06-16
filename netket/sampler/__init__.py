@@ -22,6 +22,7 @@ from .exact import ExactSampler
 from .metropolis import (
     MetropolisSampler,
     MetropolisLocal,
+    MetropolisAdaptiveLocal,
     MetropolisExchange,
     MetropolisRule,
     MetropolisSamplerState,
