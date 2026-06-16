@@ -71,3 +71,14 @@ class LegacyLoggerWrapper(AbstractCallback):
     def on_run_error(self, step, error, driver):
         self.logger.flush(driver.state)
         self._vstate = None
+
+    def on_checkpoint_save(self, step, driver):
+        # Forward to the wrapped logger if it participates in checkpointing.
+        fn = getattr(self.logger, "on_checkpoint_save", None)
+        if fn is not None:
+            fn(step, driver)
+
+    def on_checkpoint_restore(self, step, driver):
+        fn = getattr(self.logger, "on_checkpoint_restore", None)
+        if fn is not None:
+            fn(step, driver)

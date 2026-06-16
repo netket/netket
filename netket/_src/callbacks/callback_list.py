@@ -50,3 +50,11 @@ class CallbackList(AbstractCallback):
     def on_run_error(self, step, error, driver):
         for callback in self.callbacks:
             callback.on_run_error(step, error, driver)
+
+    def on_checkpoint_save(self, step, driver):
+        for callback in self.callbacks:
+            callback.on_checkpoint_save(step, driver)
+
+    def on_checkpoint_restore(self, step, driver):
+        for callback in self.callbacks:
+            callback.on_checkpoint_restore(step, driver)

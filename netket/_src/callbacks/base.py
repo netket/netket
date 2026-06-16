@@ -133,3 +133,26 @@ class AbstractCallback(struct.Pytree, mutable=True):
 
     def on_run_error(self, step, error, driver):
         pass
+
+    def on_checkpoint_save(self, step, driver):
+        """Called by a checkpointer just before a checkpoint is committed at ``step``.
+
+        Override to force this callback's **external durable state** (e.g. a
+        logger's output file) up to ``step`` *before* the checkpoint commits, so
+        that store never lags the checkpoint. Default: no-op.
+
+        This is part of the checkpointing participation protocol; it is *not*
+        called by the normal run loop, only by a checkpointing callback (see
+        :mod:`netket.checkpoint`).
+        """
+        pass
+
+    def on_checkpoint_restore(self, step, driver):
+        """Called by a checkpointer after the driver has been restored to ``step``.
+
+        Override to reconcile this callback's **external durable state** to a run
+        resuming at ``step``, *after* the serialized fields have been restored —
+        e.g. a logger reloading its file and dropping every entry at iteration
+        ``>= step`` so it does not run ahead of the checkpoint. Default: no-op.
+        """
+        pass
