@@ -12,6 +12,7 @@ from netket.utils.tree_walk import walk_tree_with_path
 from netket._src.logging.tensorboard import (
     _collect_tensorboard_leaf,
     _expand_tensorboard_node,
+    _write_tensorboard_leaf,
 )
 
 from .. import common
@@ -90,6 +91,49 @@ def test_tblog_tree_log_paths():
         ("/stats/R_hat", 1.0),
         ("/stats/TauCorr", 0.3),
     ]
+
+
+class _FakeWriter:
+    """Minimal writer capturing add_scalar calls for testing."""
+
+    def __init__(self):
+        self.scalars = []
+
+    def add_scalar(self, tag, value, step):
+        self.scalars.append((tag, value, step))
+
+
+@common.skipif_distributed
+def test_tblog_writes_jax_scalars():
+    # Regression test for gh #2244: jax/numpy 0-dim array scalars (e.g.
+    # `acceptance`, which arrives as a jaxlib ArrayImpl) were silently dropped
+    # because they are not `numbers.Number` instances.
+    import numpy as np
+
+    writer = _FakeWriter()
+    item = {
+        "acceptance": jnp.array(0.7),  # jax real scalar
+        "energy_complex": jnp.array(1.0 + 2.0j),  # jax complex scalar
+        "np_scalar": np.array(3.0),  # numpy 0-dim scalar
+        "vector": jnp.array([1.0, 2.0, 3.0]),  # non-scalar -> skipped
+    }
+
+    walk_tree_with_path(
+        item,
+        "",
+        visit_leaf=_write_tensorboard_leaf,
+        expand_node=_expand_tensorboard_node,
+        writer=writer,
+        step=0,
+    )
+
+    tags = {tag: value for tag, value, _ in writer.scalars}
+    assert tags["acceptance"] == 0.7
+    assert tags["np_scalar"] == 3.0
+    assert tags["energy_complex/re"] == 1.0
+    assert tags["energy_complex/im"] == 2.0
+    # multi-element arrays are not scalars and must not be written
+    assert "vector" not in tags
 
 
 @common.skipif_distributed

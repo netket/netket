@@ -5,6 +5,9 @@
 
 ## NetKet 3.23 (In development)
 
+### Bug Fixes
+* {class}`netket.logging.TensorBoardLog` no longer silently drops metrics that arrive as `jax`/`numpy` scalar arrays (such as `acceptance`); scalar (0-dim or single-element) arrays are now logged, with complex scalars split into `/re` and `/im` tags [issue #2244](https://github.com/netket/netket/issues/2244).
+
 ...
 
 ## NetKet 3.22 (4 June 2026)

@@ -34,8 +34,20 @@ def _collect_tensorboard_leaf(root, tree, data):
 
 
 def _write_tensorboard_leaf(root, tree, *, writer, step):
+    key = root.removeprefix("/")
     if isinstance(tree, Number):
-        writer.add_scalar(root.removeprefix("/"), tree, step)
+        writer.add_scalar(key, tree, step)
+    elif hasattr(tree, "ndim"):
+        # numpy/jax scalar arrays (e.g. jaxlib ArrayImpl) are not `Number`
+        # instances and would otherwise be silently dropped. Only scalars
+        # (0-dim or single element) map to a tensorboard scalar.
+        if tree.ndim > 0 and tree.size != 1:
+            return
+        if jax.numpy.iscomplexobj(tree):
+            writer.add_scalar(key + "/re", float(tree.real), step)
+            writer.add_scalar(key + "/im", float(tree.imag), step)
+        else:
+            writer.add_scalar(key, float(tree), step)
 
 
 def _expand_tensorboard_node(_root, tree, **_kwargs):
