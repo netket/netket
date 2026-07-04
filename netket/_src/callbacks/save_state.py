@@ -100,7 +100,11 @@ class SaveVariationalState(AbstractCallback, mutable=True):
             if jax.process_index() == 0:
                 pattern = re.compile(rf"^{re.escape(self._file_name_root)}_(\d+)\.nk$")
                 saved = sorted(
-                    (p for p in self._path.glob(f"{self._file_name_root}_*.nk") if pattern.match(p.name)),
+                    (
+                        p
+                        for p in self._path.glob(f"{self._file_name_root}_*.nk")
+                        if pattern.match(p.name)
+                    ),
                     key=lambda p: int(pattern.match(p.name).group(1)),
                 )
                 for old in saved[: -self._max_to_keep]:

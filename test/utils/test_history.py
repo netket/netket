@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -118,6 +119,31 @@ def test_append():
     # test that repr does not fail
     repr(a1)
     repr(a2)
+
+
+def test_append_complex_into_real_truncates_and_warns():
+    # A history initialised with a real value must not crash with a cryptic
+    # TypeError when a later complex value is appended (e.g. a complex NaN
+    # produced by a diverging run). Instead the value is truncated to the
+    # stored dtype and a warning is emitted, keeping the history dtype stable.
+    h = nk.utils.History(1.18, iters=0)
+    assert np.issubdtype(h["value"].dtype, np.floating)
+
+    with pytest.warns(UserWarning, match="truncated"):
+        h.append(complex(np.nan, np.nan), it=1)
+
+    # dtype is preserved (not promoted to complex)
+    assert np.issubdtype(h["value"].dtype, np.floating)
+    np.testing.assert_allclose(h["value"][0], 1.18)
+    # complex(nan, nan) truncated to real -> nan
+    assert np.isnan(h["value"][1])
+    np.testing.assert_array_equal(h.iters, np.array([0, 1]))
+
+    # a finite complex value keeps only its real part, and previously-stored
+    # data is preserved
+    with pytest.warns(UserWarning, match="truncated"):
+        h.append(2.0 + 3.0j, it=2)
+    np.testing.assert_allclose(h["value"][2], 2.0)
 
 
 def test_construct_from_dict():

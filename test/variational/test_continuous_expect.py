@@ -123,9 +123,7 @@ def test_continuous_kinetic_param_gather_chunked():
     kin = nk.operator.KineticEnergy(hilb, mass=1.0)
     sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, sweep_size=1)
 
-    vs = nk.vqs.MCState(
-        sab, GatherModel(), n_samples=512, sampler_seed=1234, seed=1234
-    )
+    vs = nk.vqs.MCState(sab, GatherModel(), n_samples=512, sampler_seed=1234, seed=1234)
 
     assert vs.chunk_size is None
     sol_nc = vs.expect(kin)

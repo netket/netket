@@ -195,7 +195,9 @@ def expect_to_precision(
                 active = [
                     i
                     for i in active
-                    if _check_not_converged(stats_list[i], atol_leaves[i], rtol_leaves[i])
+                    if _check_not_converged(
+                        stats_list[i], atol_leaves[i], rtol_leaves[i]
+                    )
                 ]
 
                 pbar.set_postfix(

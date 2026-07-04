@@ -15,6 +15,7 @@
 from typing import Any, Union, TYPE_CHECKING
 from collections.abc import Iterable
 from numbers import Number
+import warnings
 
 import numpy as np
 
@@ -427,12 +428,34 @@ def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
         elif isinstance(_vals, np.ndarray):
             new_shape = (len(_vals) + 1,) + _vals.shape[1:]
             # try to resize in place the buffer so that we don't reallocate
-            # and if we fail, resize tby reallocating to a new buffer.
+            # and if we fail, resize by reallocating to a new buffer.
             try:
                 _vals.resize(new_shape)
             except ValueError:
                 _vals = np.resize(_vals, new_shape)
                 self._value_dict[key] = _vals
+
+            # If the incoming value does not fit the stored dtype (for example
+            # a complex value -- such as a complex NaN/inf produced by a
+            # diverging run -- logged into a real-valued history) truncate it
+            # to the stored dtype and warn, rather than raising a cryptic
+            # "float() argument must not be 'complex'" TypeError or silently
+            # promoting the whole history to a wider dtype.
+            if np.result_type(_vals.dtype, np.asarray(val).dtype) != _vals.dtype:
+                warnings.warn(
+                    f"Logging a value of dtype {np.asarray(val).dtype} into the "
+                    f"history key '{key}' which stores dtype {_vals.dtype}. The "
+                    f"value will be truncated to {_vals.dtype}. This usually "
+                    f"indicates a diverging run producing complex NaN/inf "
+                    f"values.",
+                    category=UserWarning,
+                    stacklevel=2,
+                )
+                # numpy emits its own ComplexWarning when discarding the
+                # imaginary part; we already warned above, so silence it.
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    val = np.asarray(val).astype(_vals.dtype)
 
             _vals[-1] = val
         else:
