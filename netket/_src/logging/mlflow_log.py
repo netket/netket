@@ -217,7 +217,9 @@ class MLFlowLog(AbstractCallback):
         data: list[tuple[str, Any]] = []
         if self._ignore:
             item = {k: v for k, v in item.items() if k not in self._ignore}
-        walk_tree_with_path(item, "", visit_leaf=_visit_leaf, expand_node=_expand_node, data=data)
+        walk_tree_with_path(
+            item, "", visit_leaf=_visit_leaf, expand_node=_expand_node, data=data
+        )
 
         metrics = {}
         for key, val in data:

@@ -91,7 +91,6 @@ QGT_objects["OnTheFly"] = nk.optimizer.qgt.QGTOnTheFly
 QGT_objects["JacobianPyTree"] = nk.optimizer.qgt.QGTJacobianPyTree
 
 
-@common.skipif_mpi
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
     ma = request.param
