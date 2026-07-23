@@ -7,6 +7,7 @@
 
 ### Bug Fixes
 * {class}`netket.logging.TensorBoardLog` no longer silently drops metrics that arrive as `jax`/`numpy` scalar arrays (such as `acceptance`); scalar (0-dim or single-element) arrays are now logged, with complex scalars split into `/re` and `/im` tags [issue #2244](https://github.com/netket/netket/issues/2244).
+* {class}`netket.sampler.ParallelTemperingSampler` no longer tempers the proposal correction term of asymmetric transition rules (such as {class}`~netket.sampler.rules.HamiltonianRule` and {class}`~netket.sampler.rules.ExchangeRule`). The inverse temperature now multiplies only the log-probability difference, so the `beta=1` replica correctly samples the target distribution [issue #2250](https://github.com/netket/netket/issues/2250).
 
 ...
 
