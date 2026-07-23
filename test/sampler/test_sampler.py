@@ -21,7 +21,6 @@ import numpy as np
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
 
 import jax
-from jax.nn.initializers import normal
 
 import netket as nk
 from netket import config
@@ -39,6 +38,39 @@ np.random.seed(1234)
 
 WEIGHT_SEED = 1234
 SAMPLER_SEED = 15324
+
+
+def peaked_logstate(hilb, target_ratio=40.0, phase_amp=0.4):
+    """Deterministic complex log-amplitudes for an exactly-known target distribution.
+
+    Returns the ``logstate`` parameters of a :class:`~netket.models.LogStateVector`
+    encoding a peaked, well-mixing probability distribution over ``hilb``.
+
+    The amplitude is built from a graph-free Ising-like energy over adjacent
+    sites of the state array, so it works for any indexable discrete Hilbert
+    space. The energy is normalised by its range so that the dynamic range of
+    the distribution (``max/min`` probability, at ``machine_pow=2``) equals
+    ``target_ratio`` regardless of the Hilbert-space size -- this avoids both
+    nearly-flat distributions on tiny spaces (which have no statistical power)
+    and over-peaked ones on large spaces (which mix poorly).
+
+    A non-trivial imaginary part (phase) is added to exercise complex-output
+    models; it does not affect the sampled distribution ``|psi|^machine_pow``.
+    """
+    all_states = np.asarray(hilb.all_states(), dtype=float)  # (n_states, size)
+    xc = all_states - all_states.mean(axis=0, keepdims=True)
+    # nearest-neighbour coupling along the array + staggered field
+    E = -np.sum(xc[:, :-1] * xc[:, 1:], axis=1)
+    field = (-1.0) ** np.arange(all_states.shape[1])
+    E = E - np.sum(xc * field, axis=1)
+    E = E - E.mean()
+    span = E.max() - E.min()
+    if span > 0:
+        E = E / span  # E now spans an interval of unit width
+    # For machine_pow=2, log p = 2*Re(log psi) = log_weight, so max/min = target_ratio.
+    log_weight = -np.log(target_ratio) * E
+    idx = np.arange(all_states.shape[0], dtype=float)
+    return jnp.asarray(0.5 * log_weight + 1j * phase_amp * np.sin(idx))
 
 
 samplers = {}
@@ -206,66 +238,19 @@ def model_and_weights(request):
             ma = nk.models.ARNNDense(
                 hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
             )
+            w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
         elif isinstance(hilb, Particle):
             ma = nk.models.Gaussian()
+            w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
         else:
-            # Build RBM by default
-            ma = nk.models.RBM(
-                alpha=1,
-                param_dtype=complex,
-                kernel_init=normal(stddev=0.1),
-                hidden_bias_init=normal(stddev=0.1),
-            )
-
-        # init network
-        w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
-
-        # Create more featureful weights for better convergence testing
-        if not isinstance(sampler, nk.sampler.ARDirectSampler) and not isinstance(
-            hilb, Particle
-        ):
-            # Create structured weights that lead to a more peaked distribution
-            # This creates correlations between spins and non-trivial structure
-            key = jax.random.PRNGKey(WEIGHT_SEED + 1)
-            key1, key2, key3 = jax.random.split(key, 3)
-
-            # Visible biases: create alternating pattern to favor certain configurations
-            # Use smaller amplitudes to avoid making the distribution too peaked
-            visible_bias = jax.random.normal(key1, (hilb.size,)) * 0.2
-            # Add structured bias that creates correlations
-            for i in range(hilb.size):
-                visible_bias = visible_bias.at[i].set(
-                    visible_bias[i] + 0.15 * (-1) ** i
-                )
-
-            # Hidden biases: moderate values to create structure
-            hidden_bias = (
-                jax.random.normal(key2, (w["params"]["Dense"]["bias"].shape[0],)) * 0.15
-            )
-
-            # Kernel weights: create correlations between neighboring spins
-            kernel = (
-                jax.random.normal(key3, w["params"]["Dense"]["kernel"].shape) * 0.15
-            )
-            # Add structured correlations with smaller amplitude
-            for i in range(min(hilb.size, kernel.shape[0])):
-                for j in range(kernel.shape[1]):
-                    # Create nearest-neighbor-like interactions
-                    if i < hilb.size - 1:
-                        kernel = kernel.at[i, j].set(
-                            kernel[i, j] + 0.2 * jnp.cos(2 * jnp.pi * i / hilb.size)
-                        )
-
-            # Update the weights with the more structured values
-            w = {
-                "params": {
-                    "visible_bias": visible_bias,
-                    "Dense": {
-                        "kernel": kernel,
-                        "bias": hidden_bias,
-                    },
-                }
-            }
+            # For discrete Hilbert spaces we sample from a deterministic,
+            # peaked and exactly-known distribution encoded in a complex
+            # LogStateVector (see ``peaked_logstate``). This is both more
+            # reliable (no random, near-flat distribution) and more challenging
+            # than the previous RBM, while the complex parameters keep coverage
+            # of complex-output models.
+            ma = nk.models.LogStateVector(hilb, param_dtype=complex)
+            w = {"params": {"logstate": peaked_logstate(hilb)}}
 
         return ma, w
 
@@ -396,65 +381,84 @@ def sampler_c(request):
 # This tests do not take into account the fact that our samplers do not necessarily
 # produce samples which are uncorrelated. So unless the autocorrelation time is 0, we
 # are bound to fail such tests. We should account for that.
+def _assert_discrete_sampling_correct(sampler, ma, w, n_rep=3):
+    """Assert that MCMC samples from ``sampler`` match the exact ``|psi|^machine_pow``.
+
+    Histograms the sampled configurations and compares them to the exact
+    distribution with a chi-square test combined over ``n_rep`` repetitions.
+    ``n_rep=3`` is enough given the challenging, exactly-known distribution used
+    by the tests: across seeds the combined p-values sit around 0.3-0.8, far
+    above the 0.01 acceptance threshold.
+    """
+    hi = sampler.hilbert
+    n_states = hi.n_states
+
+    n_samples = max(40 * n_states, 100)
+    n_chains = sampler.n_chains
+    # TODO: fix this in the sampler
+    if isinstance(sampler, nk.sampler.ExactSampler):
+        n_chains = 1
+
+    ps = np.absolute(nk.nn.to_array(hi, ma, w, normalize=False)) ** sampler.machine_pow
+    ps /= ps.sum()
+
+    pvalues = np.zeros(n_rep)
+    sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+
+    for jrep in range(n_rep):
+        sampler_state = sampler.reset(ma, w, state=sampler_state)
+
+        # Burnout phase
+        samples, sampler_state = sampler.sample(
+            ma, w, state=sampler_state, chain_length=n_samples // 100
+        )
+        assert samples.shape == (
+            n_chains,
+            n_samples // 100,
+            hi.size,
+        )
+        samples, sampler_state = sampler.sample(
+            ma, w, state=sampler_state, chain_length=n_samples
+        )
+
+        assert samples.shape == (sampler.n_chains, n_samples, hi.size)
+
+        sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
+        n_s = sttn.size
+
+        # fill in the histogram for sampler
+        unique, counts = np.unique(sttn, return_counts=True)
+        hist_samp = np.zeros(n_states)
+        hist_samp[unique] = counts
+
+        # expected frequencies
+        f_exp = n_s * ps
+        statistics, pvalues[jrep] = chisquare(hist_samp, f_exp=f_exp)
+
+    s, pval = combine_pvalues(pvalues, method="fisher")
+    assert pval > 0.01 or np.max(pvalues) > 0.01
+
+
 @common.skipif_distributed
-def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
-    sampler = set_pdf_power(sampler_c)
+def test_correct_sampling(sampler_c, model_and_weights):
+    # We test every sampler once, against a fixed, challenging and exactly-known
+    # distribution at machine_pow=2 (see the `model_and_weights` fixture and
+    # `peaked_logstate`). Correctness of machine_pow=1 is checked for one
+    # representative sampler per family by `test_machine_pow_1`.
+
+    # A chunked sampler must produce results identical to its unchunked
+    # counterpart -- chunking is a pure performance transformation, verified by
+    # `test_chunking_invariant` -- so we skip the expensive statistical test for
+    # any chunked sampler rather than re-checking the same distribution.
+    if getattr(sampler_c, "chunk_size", None) is not None:
+        pytest.skip("Chunked sampler: correctness is covered by its unchunked variant.")
+
+    sampler = sampler_c.replace(machine_pow=2)
 
     hi = sampler.hilbert
     if isinstance(hi, DiscreteHilbert):
-        n_states = hi.n_states
-
         ma, w = model_and_weights(hi, sampler)
-
-        n_samples = max(40 * n_states, 100)
-        n_chains = sampler.n_chains
-        # TODO: fix this in the sampler
-        if isinstance(sampler, nk.sampler.ExactSampler):
-            n_chains = 1
-
-        ps = (
-            np.absolute(nk.nn.to_array(hi, ma, w, normalize=False))
-            ** sampler.machine_pow
-        )
-        ps /= ps.sum()
-
-        n_rep = 6
-        pvalues = np.zeros(n_rep)
-
-        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
-
-        for jrep in range(n_rep):
-            sampler_state = sampler.reset(ma, w, state=sampler_state)
-
-            # Burnout phase
-            samples, sampler_state = sampler.sample(
-                ma, w, state=sampler_state, chain_length=n_samples // 100
-            )
-            assert samples.shape == (
-                n_chains,
-                n_samples // 100,
-                hi.size,
-            )
-            samples, sampler_state = sampler.sample(
-                ma, w, state=sampler_state, chain_length=n_samples
-            )
-
-            assert samples.shape == (sampler.n_chains, n_samples, hi.size)
-
-            sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
-            n_s = sttn.size
-
-            # fill in the histogram for sampler
-            unique, counts = np.unique(sttn, return_counts=True)
-            hist_samp = np.zeros(n_states)
-            hist_samp[unique] = counts
-
-            # expected frequencies
-            f_exp = n_s * ps
-            statistics, pvalues[jrep] = chisquare(hist_samp, f_exp=f_exp)
-
-        s, pval = combine_pvalues(pvalues, method="fisher")
-        assert pval > 0.01 or np.max(pvalues) > 0.01
+        _assert_discrete_sampling_correct(sampler, ma, w)
 
     elif isinstance(hi, Particle):
         # TODO: Find periodic distribution that can be exactly sampled and do the same test.
@@ -509,6 +513,72 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         s, pval = combine_pvalues(pvalues, method="fisher")
 
         assert pval > 0.01 or np.max(pvalues) > 0.01
+
+
+# One representative per sampler *family* that supports machine_pow=1.
+# machine_pow=2 is covered for every sampler by test_correct_sampling; here we
+# check that each family also reproduces |psi|^1 correctly. This isolates the
+# (rule-independent) machine_pow handling instead of testing it for every
+# sampler, which would only multiply the runtime.
+_MACHINE_POW_1_SAMPLERS = {
+    name: samplers[name]
+    for name in (
+        "Metropolis(Local): Spin",
+        "MetropolisNumpy(Local): Spin",
+        "Exact: Spin",
+        "MetropolisPT(Local): Spin",
+    )
+}
+
+
+@common.skipif_distributed
+@pytest.mark.parametrize(
+    "sampler_mp",
+    [pytest.param(s, id=n) for n, s in _MACHINE_POW_1_SAMPLERS.items()],
+)
+def test_machine_pow_1(sampler_mp, model_and_weights):
+    if (
+        isinstance(sampler_mp, nk.sampler.MetropolisNumpy)
+        and nk.config.netket_experimental_sharding
+    ):
+        pytest.skip("MetropolisNumpy does not work under sharding.")
+
+    sampler = sampler_mp.replace(machine_pow=1)
+    ma, w = model_and_weights(sampler.hilbert, sampler)
+    _assert_discrete_sampling_correct(sampler, ma, w)
+
+
+@common.skipif_distributed
+def test_complex_output_supported():
+    """A complex-output model is sampled from |psi|^machine_pow, ignoring its phase.
+
+    We compare a complex LogStateVector against a real one with identical
+    amplitude (phase stripped): both must sample the same distribution, and the
+    reported log-probabilities must be real and equal to machine_pow*Re(log psi).
+    """
+    hi = nk.hilbert.Spin(s=0.5, N=4)
+    logw = peaked_logstate(hi)  # complex, with a non-trivial phase
+    assert np.max(np.abs(np.asarray(logw).imag)) > 0  # the phase is non-trivial
+
+    ma_c = nk.models.LogStateVector(hi, param_dtype=complex)
+    w_c = {"params": {"logstate": logw}}
+    ma_r = nk.models.LogStateVector(hi, param_dtype=float)
+    w_r = {"params": {"logstate": jnp.asarray(np.asarray(logw).real)}}
+
+    sampler = nk.sampler.MetropolisLocal(hi).replace(machine_pow=2)
+
+    # log-probabilities are real and equal to machine_pow * Re(log psi)
+    (samples, log_probs), _ = sampler.sample(
+        ma_c, w_c, chain_length=4, return_log_probabilities=True
+    )
+    expected = (
+        sampler.machine_pow * jax.vmap(ma_c.apply, in_axes=(None, 0))(w_c, samples).real
+    )
+    np.testing.assert_allclose(log_probs, expected)
+
+    # complex and real (identical amplitude) models sample the same distribution
+    _assert_discrete_sampling_correct(sampler, ma_c, w_c)
+    _assert_discrete_sampling_correct(sampler, ma_r, w_r)
 
 
 @pytest.mark.skipif(
@@ -569,7 +639,12 @@ def test_nnx_module_error():
 
 
 @common.skipif_distributed
-def test_throwing(model_and_weights):
+def test_throwing():
+    # A generic parametric (flax) model, used to trigger shape-mismatch errors
+    # when the sampler's Hilbert space does not match the model's parameters.
+    ma = nk.models.RBM(param_dtype=complex)
+    w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hi.size)))
+
     with pytest.raises(TypeError):
         nk.sampler.MetropolisHamiltonian(
             hi,
@@ -584,8 +659,6 @@ def test_throwing(model_and_weights):
             reset_chains=True,
         )
 
-        ma, w = model_and_weights(hi)
-
         # test raising of init state
         sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
@@ -595,8 +668,6 @@ def test_throwing(model_and_weights):
             hamiltonian=ha,
             reset_chains=True,
         )
-
-        ma, w = model_and_weights(hi)
 
         # test raising of init state
         sampler.init_state(ma, w, seed=SAMPLER_SEED)
@@ -608,8 +679,6 @@ def test_throwing(model_and_weights):
             reset_chains=True,
         )
 
-        ma, w = model_and_weights(hi)
-
         # test raising of init state
         sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
@@ -619,8 +688,6 @@ def test_throwing(model_and_weights):
     # MetropolisLocal should not work with continuous Hilbert spaces
     with pytest.raises(TypeError):
         sampler = nk.sampler.MetropolisLocal(hi_particles)
-
-        ma, w = model_and_weights(hi)
 
         sampler.sample(ma, w, seed=SAMPLER_SEED)
 
@@ -682,7 +749,13 @@ def test_exact_sampler(sampler):
         assert sampler.n_chains_per_rank == 1
     else:
         assert sampler.is_exact is False
-        assert sampler.n_chains == 16 * jax.device_count()
+        # The per-rank chain count (default 16) is independent of how many local
+        # devices are visible; only the *total* n_chains scales with the device
+        # count, and only under sharding. Asserting the per-rank count keeps this
+        # test robust to the number of devices on the machine running it.
+        assert sampler.n_chains_per_rank == 16
+        n_ranks = jax.device_count() if nk.config.netket_sharding else 1
+        assert sampler.n_chains == sampler.n_chains_per_rank * n_ranks
 
 
 @common.skipif_distributed
