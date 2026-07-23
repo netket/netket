@@ -225,7 +225,7 @@ def TV_from_pyscf_molecule(
         >>>
         >>> # compute the boys orbitals
         >>> mf = scf.RHF(mol).run(verbose=0)  # doctest:+ELLIPSIS
-        >>> mo_coeff = lo.Boys(mol).kernel(mf.mo_coeff)
+        >>> mo_coeff = lo.Boys(mol, mf.mo_coeff).kernel()
         >>> ha = nkx.operator.pyscf.TV_from_pyscf_molecule(mol, mo_coeff)
 
     Args:
