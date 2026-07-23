@@ -470,7 +470,7 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
         b,
         T_A=local_tile_size,
         mesh=jax.sharding.get_abstract_mesh(),
-        in_specs=(P("S", None), P(None, None)),
+        in_specs=P("S", None),
     )
 
     if squeeze_output:
