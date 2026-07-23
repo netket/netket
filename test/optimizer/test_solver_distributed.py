@@ -23,6 +23,15 @@ import netket as nk
 
 from test import common  # noqa: F401
 
+# jaxmg's FFI handlers (potrs_mg, syevd_mg) are only registered for the CUDA
+# platform. Even when jaxmg is installed (e.g. on Linux CI), the kernels cannot
+# run on a CPU/Host backend, so these tests must be skipped unless a GPU is
+# available.
+pytestmark = pytest.mark.skipif(
+    jax.default_backend() != "gpu",
+    reason="jaxmg distributed solvers require a GPU backend",
+)
+
 
 def test_cholesky_distributed_basic():
     """Test cholesky_distributed solver on a small system."""
