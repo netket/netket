@@ -206,3 +206,69 @@ def test_multiplerules_pt(model_and_weights):
         chain_length=10,
     )
     assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
+
+
+@common.skipif_distributed
+def test_asymmetric_rule_correct_marginal():
+    """Regression test for issue #2250.
+
+    With an asymmetric transition rule (here ``HamiltonianRule``) the proposal
+    correction ``log_prob_correction`` must NOT be scaled by the inverse
+    temperature beta. If it is (the old, buggy behaviour), the beta < 1 replicas
+    sample the wrong tempered distribution and, through replica exchange, bias
+    the beta=1 marginal away from the target ``|psi|^machine_pow``.
+
+    We build a small, exactly-enumerable and genuinely *peaked* target
+    distribution by hand (via ``LogStateVector``) and check that the empirical
+    distribution of the beta=1 replica matches it in total-variation distance.
+    A nearly-flat target (as produced by an RBM with tiny weights) would hide
+    the bug, so we deliberately use a peaked, structured one.
+
+    With the fix TV ~0.003 (stable across seeds); with the bug TV ~0.032.
+    """
+    g = nk.graph.Chain(length=6, pbc=True)
+    hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes, total_sz=0.0)
+    ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
+
+    # Manually construct a deterministic, peaked target distribution from a
+    # classical Ising energy E(sigma) = - sum_<ij> sigma_i sigma_j on the ring.
+    # This gives a structured distribution (TV from uniform ~0.54, max/min
+    # prob ~120) whose shape is fully reproducible, independent of any random
+    # network initialisation.
+    all_states = hi.all_states()  # (n_states, N), values +/-1
+    edges = np.asarray(g.edges())
+    E = -np.sum(all_states[:, edges[:, 0]] * all_states[:, edges[:, 1]], axis=1)
+    K = 0.6  # inverse-temperature-like knob controlling the peakedness
+    log_weight = -K * E  # unnormalised log p(sigma)
+
+    # LogStateVector stores log psi(sigma); with machine_pow=2 the sampler
+    # targets |psi|^2 = exp(2 Re log psi), so set log psi = 0.5 * log_weight.
+    ma = nk.models.LogStateVector(hi, param_dtype=float)
+    w = {"params": {"logstate": jnp.asarray(0.5 * log_weight)}}
+
+    # exact target distribution p(sigma) = |psi(sigma)|^2 / Z
+    ps = np.exp(log_weight)
+    ps /= ps.sum()
+
+    sa = nk.sampler.ParallelTemperingSampler(
+        hi,
+        rule=nk.sampler.rules.HamiltonianRule(ha),
+        n_replicas=8,
+        n_chains=32,
+        sweep_size=hi.size,
+    )
+
+    sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
+    sampler_state = sa.reset(ma, w, state=sampler_state)
+    # burn-in
+    _, sampler_state = sa.sample(ma, w, state=sampler_state, chain_length=500)
+    samples, sampler_state = sa.sample(ma, w, state=sampler_state, chain_length=8000)
+
+    sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
+    unique, counts = np.unique(sttn, return_counts=True)
+    hist = np.zeros(hi.n_states)
+    hist[unique] = counts
+    emp = hist / hist.sum()
+
+    tv = 0.5 * np.sum(np.abs(emp - ps))
+    assert tv < 0.01, f"beta=1 marginal is biased (total-variation distance {tv:.4f})"

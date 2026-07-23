@@ -362,9 +362,15 @@ class ParallelTemperingSampler(MetropolisSampler):
 
             uniform = jax.random.uniform(key2, shape=(self.n_batches,))
             if log_prob_correction is not None:
+                # The inverse temperature beta only rescales the (untempered)
+                # log-probability difference of the target distribution. The
+                # proposal correction arising from asymmetric transition rules
+                # (e.g. HamiltonianRule, ExchangeRule) must NOT be tempered,
+                # otherwise the beta=1 replica no longer samples the target
+                # distribution. See issue #2250.
                 do_accept = uniform < jnp.exp(
-                    beta.reshape((-1,))
-                    * (proposal_log_prob - state.log_prob + log_prob_correction)
+                    beta.reshape((-1,)) * (proposal_log_prob - state.log_prob)
+                    + log_prob_correction
                 )
             else:
                 do_accept = uniform < jnp.exp(
