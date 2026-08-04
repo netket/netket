@@ -196,7 +196,7 @@ class Representation:
         group_order = len(self.group.elems)
 
         irrep_count = character_table @ self.character / group_order
-        irrep_dims = np.round(irrep_count * character_table[:, 0]).astype(int)
+        irrep_dims = np.round(np.real(irrep_count * character_table[:, 0])).astype(int)
         return irrep_dims
 
     def symmetry_adapted_basis(self) -> tuple[np.ndarray, np.ndarray]:
