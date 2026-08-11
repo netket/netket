@@ -6,6 +6,7 @@
 ## NetKet 3.23 (In development)
 
 ### Bug Fixes
+* Importing NetKet no longer crashes on multi-node (multi-slice) allocations: the default sharding mesh is now built directly with {class}`jax.sharding.Mesh` instead of `jax.make_mesh`, which refuses to build meshes spanning several slices [issue #2260](https://github.com/netket/netket/issues/2260).
 * {class}`netket.logging.TensorBoardLog` no longer silently drops metrics that arrive as `jax`/`numpy` scalar arrays (such as `acceptance`); scalar (0-dim or single-element) arrays are now logged, with complex scalars split into `/re` and `/im` tags [issue #2244](https://github.com/netket/netket/issues/2244).
 
 ...
