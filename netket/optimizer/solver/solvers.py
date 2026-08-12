@@ -474,8 +474,13 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
 
     # jaxmg reshapes a 1D `b` to a (N, 1) matrix, redistributes it over the
     # process grid, and gives the solution back with the sharding of `b`.
+    # The `_shardmap_ctx` entry point is used instead of `jaxmg.potrs` because
+    # the latter donates its input buffers, so it destroys `A` and `b` when
+    # called outside of `jax.jit`. NetKet's solvers must not consume the linear
+    # problem, or combinators reusing it, such as
+    # :func:`~netket.optimizer.solver.nan_fallback`, would crash.
     with jaxmg_mesh_context(mesh):
-        x = jaxmg.potrs(
+        _A_work, x, _status = jaxmg.potrs_shardmap_ctx(
             A,
             b,
             T_A=local_tile_size,
@@ -604,8 +609,9 @@ def pinv_smooth_distributed(
     # The eigenvectors are sharded over the process grid, so the reconstruction
     # of the solution must happen inside of the process grid mesh as well.
     with jaxmg_mesh_context(mesh):
-        # Compute eigendecomposition using distributed solver
-        Σ, U = jaxmg.syevd(
+        # Compute eigendecomposition using distributed solver. As above, the
+        # `_shardmap_ctx` entry point is the one that does not consume `A`.
+        _A_work, Σ, U, _status = jaxmg.syevd_shardmap_ctx(
             A,
             T_A=local_tile_size,
             mesh=mesh,

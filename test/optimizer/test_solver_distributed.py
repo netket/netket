@@ -294,18 +294,20 @@ def _install_fake_jaxmg(monkeypatch, version="1.0.0"):
     """Install a fake `jaxmg` recording its calls and solving with plain jax."""
     calls = []
 
-    def potrs(a, b, T_A, mesh=None, matrix_specs=None, **kwargs):
+    def potrs_shardmap_ctx(a, b, T_A, mesh=None, matrix_specs=None, **kwargs):
         calls.append({"n": a.shape[0], "T_A": T_A, "mesh": mesh, "specs": matrix_specs})
-        return jnp.linalg.solve(a, b)
+        # (a_work, x, status), like jaxmg's non-donating entry point
+        return a, jnp.linalg.solve(a, b), jnp.zeros((1,), jnp.int32)
 
-    def syevd(a, T_A, mesh=None, matrix_specs=None, **kwargs):
+    def syevd_shardmap_ctx(a, T_A, mesh=None, matrix_specs=None, **kwargs):
         calls.append({"n": a.shape[0], "T_A": T_A, "mesh": mesh, "specs": matrix_specs})
-        return jnp.linalg.eigh(a)
+        w, v = jnp.linalg.eigh(a)
+        return a, w, v, jnp.zeros((1,), jnp.int32)
 
     module = ModuleType("jaxmg")
     module.__version__ = version
-    module.potrs = potrs
-    module.syevd = syevd
+    module.potrs_shardmap_ctx = potrs_shardmap_ctx
+    module.syevd_shardmap_ctx = syevd_shardmap_ctx
     monkeypatch.setitem(sys.modules, "jaxmg", module)
     return calls
 
@@ -451,3 +453,26 @@ def test_unsupported_jaxmg_version(monkeypatch, solver):
 
     with pytest.raises(ImportError, match=r"jaxmg.*0\.0\.9"):
         solver(A, b)
+
+
+@pytest.mark.parametrize(
+    "solver",
+    [
+        pytest.param(nk.optimizer.solver.cholesky_distributed, id="cholesky"),
+        pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
+    ],
+)
+def test_distributed_solvers_do_not_consume_the_problem(monkeypatch, solver):
+    """`nan_fallback` reuses A and b, so the solvers must not donate them."""
+    _install_fake_jaxmg(monkeypatch)
+
+    n = 16 * N_DEVICES
+    A = jnp.eye(n) * 2.0
+    b = jnp.ones((n,))
+
+    combined = nk.optimizer.solver.nan_fallback(solver, nk.optimizer.solver.cholesky)
+    x, _ = combined(A, b)
+
+    np.testing.assert_allclose(x, jnp.full((n,), 0.5), rtol=1e-5)
+    assert not A.is_deleted()
+    assert not b.is_deleted()
