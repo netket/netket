@@ -62,11 +62,12 @@ jobs:
             sharding_script: "run_test_sharding_distributed.sh"
 
     env:
-      # Reuse XLA compiled executables across xdist workers and across CI runs.
-      # The test suite is dominated by compilation, not execution, so this is
-      # worth roughly a 2x reduction in CPU time. The cache key is derived from
-      # the HLO, so a cache hit is only ever an identical computation and this
-      # cannot mask a change in netket.
+      # Reuse XLA compiled executables. The test suite is dominated by
+      # compilation, not execution, so this pays off twice: the xdist workers of
+      # a single run stop compiling the same kernels independently, and on macOS
+      # the cache is also carried between runs (see the restore/save steps).
+      # A cache key is derived from the HLO, so a hit is only ever an identical
+      # computation and this cannot mask a change in netket.
       JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
       # Default is 1s, which skips the many small compilations that make up most
       # of the suite's time.
@@ -87,13 +88,26 @@ jobs:
         run: |
           uv sync --extra dev --extra extra ${{ matrix.test_type != 'sharding' && '--extra pyscf' || '' }}
 
-      # Restored on every run, but only written on pushes to main (see below), so
-      # that PRs share one stable cache instead of each writing their own entry.
-      # Note uv.lock is gitignored, so pyproject.toml is the dependency-pinning
-      # file actually present in the checkout. Rotating on it is a convenience
-      # only: jax embeds its own version and the backend in its cache keys, so a
-      # stale entry from another jax version can never be hit.
+      # macOS only. Measured on #2264: carrying the cache between runs takes the
+      # macOS job from ~46 min to ~21 min, and its stored cache stays at a steady
+      # 169MB, i.e. entries are genuinely being reused. On ubuntu-latest the very
+      # same setup got no cross-run benefit at all and the stored cache doubled
+      # every run (184MB -> 367MB), which means nothing was hit and everything was
+      # recompiled and appended. Root cause not yet understood -- it is NOT CPU
+      # heterogeneity across the runner fleet, since jax reports platform_version
+      # 'cpu' and does not put host CPU features in the key. Until that is
+      # explained, persisting the linux caches only buys unbounded growth, so the
+      # linux jobs keep the cache directory (which is where their within-run
+      # cross-worker win comes from) without pushing it to the Actions cache.
+      #
+      # Restored on every run, written only on pushes to main (see below), so PRs
+      # share one stable cache instead of each writing their own entry. Note
+      # uv.lock is gitignored, so pyproject.toml is the dependency-pinning file
+      # actually present in the checkout. Rotating on it is a convenience only:
+      # jax embeds its own version and the backend in its cache keys, so a stale
+      # entry from another jax version can never be hit.
       - name: Restore JAX compilation cache
+        if: ${{ runner.os == 'macOS' }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
@@ -107,12 +121,13 @@ jobs:
           export NETKET_EXPERIMENTAL=1
           # Deliberately left on `-n auto` from pyproject.toml, i.e. 2 workers on
           # the 4-vCPU ubuntu runner (2 physical cores + SMT). `-n logical` does
-          # give 4 workers and cuts this job to ~13 min, but two runs in a row
-          # died with "the runner has received a shutdown signal" at 81% and 93%
-          # with no failing test and no crashed worker, which is how an
-          # OOM-killed runner presents. It also buys nothing: the macOS job runs
-          # on a 3-core runner that is already saturated, so it sets the critical
-          # path at ~22 min either way. See #2264.
+          # give 4 workers and had this job pacing for ~31 min, but two runs in a
+          # row died with "the runner has received a shutdown signal" at 81% and
+          # 93% with no failing test and no crashed worker, which is how an
+          # OOM-killed runner presents. If someone wants to retry it, the angle is
+          # `--clear-cache-every`: it exists to bound memory on Actions and 200 was
+          # tuned for 2 workers, and clearing is now cheap because a recompile is a
+          # cache hit rather than a full XLA compile. See #2264.
           uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
 
       - name: Docstring tests
@@ -126,10 +141,15 @@ jobs:
           uv run ./test_sharding/"${{ matrix.sharding_script }}" -m 'not slow'
 
       # Written only on pushes to main, so PRs restore a stable cache rather than
-      # each pushing a ~250MB entry of their own. run_id in the key makes every
+      # each pushing a ~170MB entry of their own. run_id in the key makes every
       # push store a new entry, which the restore-keys prefix above then picks up.
+      #
+      # always(), because a compiled executable is valid whether or not the test
+      # asserting on it passed. Without it a single failing test anywhere in the
+      # suite skips the save and the cache never advances -- on #2264 one flaky
+      # test did exactly that to two jobs at once.
       - name: Prune JAX compilation cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ always() && runner.os == 'macOS' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
           # jax never evicts from its own cache, so drop entries that no run has
           # written for a week to stop the archive growing without bound.
@@ -137,7 +157,7 @@ jobs:
           du -sh "$JAX_COMPILATION_CACHE_DIR" || true
 
       - name: Save JAX compilation cache
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ always() && runner.os == 'macOS' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
