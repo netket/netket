@@ -345,6 +345,7 @@ config.define(
 
 def _setup_experimental_sharding(val, explicit=False):
     if val:
+        import numpy as np
         import jax
         from jax.sharding import AxisType
 
@@ -353,10 +354,10 @@ def _setup_experimental_sharding(val, explicit=False):
         else:
             axis_types = AxisType.Auto
 
-        mesh = jax.make_mesh(
-            (len(jax.devices()),),
-            ("S"),
-            axis_types=axis_types,
+        mesh = jax.sharding.Mesh(
+            np.asarray(jax.devices()),
+            ("S",),
+            axis_types=(axis_types,),
         )
         jax.sharding.set_mesh(mesh)
 

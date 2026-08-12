@@ -26,6 +26,32 @@ def find_free_port():
         return s.getsockname()[1]
 
 
+def check_hostname_resolvable():
+    """
+    Warns if the hostname of this machine cannot be resolved to an address.
+
+    jax binds gloo's TCP device (used for cpu collectives in multi-process runs)
+    to the address of the local hostname, so if the hostname is not resolvable
+    every process crashes at jax startup with `Unable to find address for:
+    <hostname>`. This happens on macOS, where the hostname is often only
+    resolvable through mDNS, as `<hostname>.local`.
+    """
+    hostname = socket.gethostname()
+    try:
+        socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        print(
+            f"[djaxrun] WARNING: the hostname of this machine, '{hostname}', cannot be "
+            "resolved to an ip address.\n"
+            "  jax will most likely fail to initialize its cpu collectives with\n"
+            f"  `Unable to find address for: {hostname}`.\n"
+            "  To fix this, make the hostname resolvable, for example by running\n"
+            f"    sudo scutil --set HostName {hostname}.local     # macOS\n"
+            f"    echo '127.0.0.1 {hostname}' | sudo tee -a /etc/hosts   # anywhere",
+            file=sys.stderr,
+        )
+
+
 def render_panels(buffers):
     panels = []
     for rank, content in enumerate(buffers):
@@ -80,6 +106,8 @@ def main():
     procs = []
     log_files = []
     ansi_escape = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
+
+    check_hostname_resolvable()
 
     def start_proc(rank):
         env = os.environ.copy()
