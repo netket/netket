@@ -224,8 +224,19 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                     global_array_to_host_local_array,
                 )
 
-                global_mesh = jax.sharding.Mesh(jax.devices(), "x")
-                pspecs = jax.sharding.PartitionSpec("x")
+                # The samples must be put on the same mesh used by the rest of
+                # netket (the one set by `jax.sharding.set_mesh`, see
+                # `netket.jax.sharding`). If we build our own mesh here, jax
+                # errors out as soon as arrays living on two different meshes
+                # meet inside the same jit, which happens for example for
+                # models calling `hilbert.states_to_numbers`.
+                abstract_mesh = jax.sharding.get_abstract_mesh()
+                global_mesh = jax.sharding.Mesh(
+                    np.asarray(jax.devices()).reshape(abstract_mesh.axis_sizes),
+                    abstract_mesh.axis_names,
+                    axis_types=abstract_mesh.axis_types,
+                )
+                pspecs = jax.sharding.PartitionSpec(abstract_mesh.axis_names[0])
 
                 all_samples = host_local_array_to_global_array(σ1, global_mesh, pspecs)
                 _log_prob = (
