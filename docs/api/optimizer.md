@@ -108,6 +108,12 @@ At the time of writing, those only work if you have a single node with many GPUs
 in a multi-node context.
 :::
 
+:::{warning}
+Those solvers require `jaxmg < 1.0.0` (`pip install 'jaxmg<1.0.0'`). JAXMg 1.0 rewrote the
+API on top of NVIDIA's cuSOLVERMp and requires one python process per GPU; NetKet does not
+support it yet (see [issue #2258](https://github.com/netket/netket/issues/2258)).
+:::
+
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/optim

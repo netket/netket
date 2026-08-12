@@ -14,6 +14,9 @@
 
 """Tests for distributed solvers (cholesky_distributed, pinv_smooth_distributed)."""
 
+import sys
+from types import ModuleType
+
 import pytest
 import jax
 import jax.numpy as jnp
@@ -27,12 +30,13 @@ from test import common  # noqa: F401
 # platform. Even when jaxmg is installed (e.g. on Linux CI), the kernels cannot
 # run on a CPU/Host backend, so these tests must be skipped unless a GPU is
 # available.
-pytestmark = pytest.mark.skipif(
+requires_gpu = pytest.mark.skipif(
     jax.default_backend() != "gpu",
     reason="jaxmg distributed solvers require a GPU backend",
 )
 
 
+@requires_gpu
 def test_cholesky_distributed_basic():
     """Test cholesky_distributed solver on a small system."""
     # Create a simple positive definite matrix and vector
@@ -56,6 +60,7 @@ def test_cholesky_distributed_basic():
     assert info is None or isinstance(info, dict)
 
 
+@requires_gpu
 def test_cholesky_distributed_vs_cholesky():
     """Test that cholesky_distributed gives same result as standard cholesky."""
     pytest.importorskip("jaxmg")
@@ -81,6 +86,7 @@ def test_cholesky_distributed_vs_cholesky():
     ), "Distributed and standard cholesky give different results"
 
 
+@requires_gpu
 def test_cholesky_distributed_with_sharding():
     """Test cholesky_distributed with sharded arrays."""
     pytest.importorskip("jaxmg")
@@ -120,6 +126,7 @@ def test_cholesky_distributed_with_sharding():
     assert jnp.linalg.norm(residual) < 1e-5, "Sharded solution is not accurate"
 
 
+@requires_gpu
 def test_cholesky_distributed_tiling():
     """Test different tiling sizes."""
     pytest.importorskip("jaxmg")
@@ -141,6 +148,7 @@ def test_cholesky_distributed_tiling():
         ), f"Solution not accurate with local_tile_size={tile_size}"
 
 
+@requires_gpu
 def test_pinv_smooth_distributed_basic():
     """Test pinv_smooth_distributed solver on a small system."""
     pytest.importorskip("jaxmg")
@@ -165,6 +173,7 @@ def test_pinv_smooth_distributed_basic():
     assert info is None or isinstance(info, dict)
 
 
+@requires_gpu
 def test_pinv_smooth_distributed_vs_pinv_smooth():
     """Test that pinv_smooth_distributed gives same result as standard pinv_smooth."""
     pytest.importorskip("jaxmg")
@@ -190,6 +199,7 @@ def test_pinv_smooth_distributed_vs_pinv_smooth():
     ), "Distributed and standard pinv_smooth give different results"
 
 
+@requires_gpu
 def test_pinv_smooth_distributed_with_sharding():
     """Test pinv_smooth_distributed with sharded arrays."""
     pytest.importorskip("jaxmg")
@@ -233,6 +243,7 @@ def test_pinv_smooth_distributed_with_sharding():
     assert jnp.linalg.norm(residual) < 1e-5, "Sharded solution is not accurate"
 
 
+@requires_gpu
 def test_pinv_smooth_distributed_tiling():
     """Test different tiling sizes for pinv_smooth_distributed."""
     pytest.importorskip("jaxmg")
@@ -256,6 +267,7 @@ def test_pinv_smooth_distributed_tiling():
         ), f"Solution not accurate with local_tile_size={tile_size}"
 
 
+@requires_gpu
 def test_pinv_smooth_distributed_regularization():
     """Test that regularization parameters work correctly."""
     pytest.importorskip("jaxmg")
@@ -284,3 +296,26 @@ def test_pinv_smooth_distributed_regularization():
     assert not jnp.allclose(
         x_low, x_high, rtol=1e-3
     ), "Different regularization should give different solutions"
+
+
+@pytest.mark.parametrize(
+    "solver",
+    [
+        pytest.param(nk.optimizer.solver.cholesky_distributed, id="cholesky"),
+        pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
+    ],
+)
+def test_unsupported_jaxmg_version(solver, monkeypatch):
+    """jaxmg >= 1.0 has an incompatible API, so it must be rejected upfront.
+
+    See https://github.com/netket/netket/issues/2258 .
+    """
+    fake_jaxmg = ModuleType("jaxmg")
+    fake_jaxmg.__version__ = "1.0.0"
+    monkeypatch.setitem(sys.modules, "jaxmg", fake_jaxmg)
+
+    A = jnp.eye(4)
+    b = jnp.ones((4,))
+
+    with pytest.raises(ImportError, match=r"jaxmg.*1\.0\.0"):
+        solver(A, b)
