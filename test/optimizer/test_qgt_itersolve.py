@@ -117,7 +117,10 @@ def model(request):
 
 @pytest.fixture
 def vstate(request, model, chunk_size):
-    N = 5
+    # The tests below invert S, so S must be invertible: rank(QGT) is at most
+    # `n_states - 1`, so keep n_states well above n_parameters, and initialise at
+    # a finite scale, as at ~0 parameters the RBM log-derivatives get collinear.
+    N = 8
     hi = nk.hilbert.Spin(1 / 2, N)
 
     k = jax.random.PRNGKey(123)
@@ -131,7 +134,7 @@ def vstate(request, model, chunk_size):
     )
 
     # initialize the same parameters on every rank
-    vstate.init_parameters(normal(stddev=0.001), seed=k2)
+    vstate.init_parameters(normal(stddev=0.1), seed=k2)
 
     vstate.sample()
 
