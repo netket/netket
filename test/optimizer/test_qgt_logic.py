@@ -515,7 +515,10 @@ def test_qgt_jacobian_imaginary(dense):
     ma = nk.models.RBM(alpha=1, param_dtype=complex)
 
     sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
-    vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
+    vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10, seed=123)
+    # At the default, tiny initialisation the QGT is numerically singular (cond
+    # ~1e13) and `pinv` truncates it differently in the two modes compared below.
+    vs.init_parameters(jax.nn.initializers.normal(stddev=0.1), seed=123)
 
     E, F = vs.expect_and_grad(ha)
 
