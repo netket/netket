@@ -8,6 +8,17 @@ import pytest
 from .renyi2_exact import _renyi2_exact
 
 
+# The tests below compare a Monte Carlo estimate against the exact value with a
+# 3 sigma tolerance. The exact Renyi2 entropy of this ansatz is ~0, so that band
+# is narrow and an unseeded state failed roughly 4% of the time (measured over
+# 200 repetitions). Seed both the parameters and the sampler so the comparison is
+# reproducible. Of the seeds tried all passed; this pair was picked because it
+# leaves the most headroom, using only ~10% of the 3 sigma band, so small
+# numerical drift will not start failing the test.
+SEED = 123
+SAMPLER_SEED = 1234
+
+
 def _setup(useExactSampler=True):
     N = 3
     hi = nk.hilbert.Spin(0.5, N)
@@ -21,6 +32,8 @@ def _setup(useExactSampler=True):
             sampler=sa,
             model=ma,
             n_samples=n_samples,
+            seed=SEED,
+            sampler_seed=SAMPLER_SEED,
         )
 
     else:
@@ -32,11 +45,14 @@ def _setup(useExactSampler=True):
             model=ma,
             n_samples=n_samples,
             n_discard_per_chain=n_discard_per_chain,
+            seed=SEED,
+            sampler_seed=SAMPLER_SEED,
         )
 
     vs_exact = nk.vqs.FullSumState(
         hilbert=hi,
         model=ma,
+        seed=SEED,
     )
 
     subsys = [0, 1]
