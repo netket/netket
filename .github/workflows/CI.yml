@@ -105,10 +105,15 @@ jobs:
         if: ${{ matrix.test_type == 'main' }}
         run: |
           export NETKET_EXPERIMENTAL=1
-          # -n logical, not the `-n auto` from pyproject.toml: `auto` counts
-          # physical cores, so the 4-vCPU ubuntu runner (2 cores + SMT) only got
-          # 2 workers. No-op on the macOS runners, which have no SMT.
-          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -n logical -m "not slow" test
+          # Deliberately left on `-n auto` from pyproject.toml, i.e. 2 workers on
+          # the 4-vCPU ubuntu runner (2 physical cores + SMT). `-n logical` does
+          # give 4 workers and cuts this job to ~13 min, but two runs in a row
+          # died with "the runner has received a shutdown signal" at 81% and 93%
+          # with no failing test and no crashed worker, which is how an
+          # OOM-killed runner presents. It also buys nothing: the macOS job runs
+          # on a 3-core runner that is already saturated, so it sets the critical
+          # path at ~22 min either way. See #2264.
+          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
 
       - name: Docstring tests
         if: ${{ matrix.test_type == 'doctest' }}
