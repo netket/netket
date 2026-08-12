@@ -64,10 +64,10 @@ jobs:
     env:
       # Reuse XLA compiled executables. The test suite is dominated by
       # compilation, not execution, so this pays off twice: the xdist workers of
-      # a single run stop compiling the same kernels independently, and on macOS
-      # the cache is also carried between runs (see the restore/save steps).
-      # A cache key is derived from the HLO, so a hit is only ever an identical
-      # computation and this cannot mask a change in netket.
+      # a single run stop compiling the same kernels independently, and the cache
+      # is carried between runs (see the restore/save steps below).
+      # A cache key covers the HLO and the compilation target, so a hit is only
+      # ever an identical computation and this cannot mask a change in netket.
       JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
       # Default is 1s, which skips the many small compilations that make up most
       # of the suite's time.
@@ -88,32 +88,46 @@ jobs:
         run: |
           uv sync --extra dev --extra extra ${{ matrix.test_type != 'sharding' && '--extra pyscf' || '' }}
 
-      # macOS only. Measured on #2264: carrying the cache between runs takes the
-      # macOS job from ~46 min to ~21 min, and its stored cache stays at a steady
-      # 169MB, i.e. entries are genuinely being reused. On ubuntu-latest the very
-      # same setup got no cross-run benefit at all and the stored cache doubled
-      # every run (184MB -> 367MB), which means nothing was hit and everything was
-      # recompiled and appended. Root cause not yet understood -- it is NOT CPU
-      # heterogeneity across the runner fleet, since jax reports platform_version
-      # 'cpu' and does not put host CPU features in the key. Until that is
-      # explained, persisting the linux caches only buys unbounded growth, so the
-      # linux jobs keep the cache directory (which is where their within-run
-      # cross-worker win comes from) without pushing it to the Actions cache.
+      # A jax cache key depends on the host CPU target, not just on the HLO, and
+      # the ubuntu-latest fleet is not homogeneous -- a single workflow run has
+      # been served by both an EPYC 7763 (zen3) and an EPYC 9V74 at the same time.
+      # So a cache built on one runner is worthless on a differently-specced one:
+      # the linux caches used to hit nothing and simply double in size every run
+      # (184MB -> 367MB) as the whole key set got recompiled and appended. Capping
+      # the ISA with --xla_cpu_max_isa does not help, the key tracks the full
+      # target. Keys are however perfectly stable *per* CPU model, so the fix is
+      # to give each distinct compilation environment its own cache.
       #
+      # Rather than guess which properties matter, fingerprint them: compile one
+      # trivial jit into a throwaway cache and hash the filenames it produces.
+      # Those filenames *are* jax's cache keys, so the hash captures everything
+      # that affects them -- jax version, CPU target, XLA flags -- and rotates
+      # automatically when any of it changes. This also subsumes the pyproject
+      # hash that used to be in the key. See #2264.
+      - name: Fingerprint the compilation environment
+        id: jaxfp
+        run: |
+          probe=$(mktemp -d)
+          JAX_COMPILATION_CACHE_DIR="$probe" \
+          JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS=0 \
+            uv run python -c "
+          import jax, jax.numpy as jnp
+          jax.block_until_ready(jax.jit(lambda x: (x * 2.0 + 1.0).sum())(jnp.ones((8, 8))))
+          "
+          fp=$(ls "$probe" | sort | { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } | cut -c1-16)
+          echo "Compilation environment fingerprint: $fp"
+          echo "fp=$fp" >> "$GITHUB_OUTPUT"
+          rm -rf "$probe"
+
       # Restored on every run, written only on pushes to main (see below), so PRs
-      # share one stable cache instead of each writing their own entry. Note
-      # uv.lock is gitignored, so pyproject.toml is the dependency-pinning file
-      # actually present in the checkout. Rotating on it is a convenience only:
-      # jax embeds its own version and the backend in its cache keys, so a stale
-      # entry from another jax version can never be hit.
+      # share one stable cache instead of each writing their own entry.
       - name: Restore JAX compilation cache
-        if: ${{ runner.os == 'macOS' }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
-          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ hashFiles('pyproject.toml') }}-
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-
           restore-keys: |
-            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-
+            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-
 
       - name: Main tests
         if: ${{ matrix.test_type == 'main' }}
@@ -149,7 +163,7 @@ jobs:
       # suite skips the save and the cache never advances -- on #2264 one flaky
       # test did exactly that to two jobs at once.
       - name: Prune JAX compilation cache
-        if: ${{ always() && runner.os == 'macOS' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
           # jax never evicts from its own cache, so drop entries that no run has
           # written for a week to stop the archive growing without bound.
@@ -157,11 +171,11 @@ jobs:
           du -sh "$JAX_COMPILATION_CACHE_DIR" || true
 
       - name: Save JAX compilation cache
-        if: ${{ always() && runner.os == 'macOS' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
-          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ hashFiles('pyproject.toml') }}-${{ github.run_id }}
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-${{ github.run_id }}
 
       - name: Generate coverage report
         if: always()
