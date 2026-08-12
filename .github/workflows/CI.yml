@@ -61,6 +61,17 @@ jobs:
             test_type: "sharding"
             sharding_script: "run_test_sharding_distributed.sh"
 
+    env:
+      # Reuse XLA compiled executables across xdist workers and across CI runs.
+      # The test suite is dominated by compilation, not execution, so this is
+      # worth roughly a 2x reduction in CPU time. The cache key is derived from
+      # the HLO, so a cache hit is only ever an identical computation and this
+      # cannot mask a change in netket.
+      JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
+      # Default is 1s, which skips the many small compilations that make up most
+      # of the suite's time.
+      JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS: "0"
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,11 +87,28 @@ jobs:
         run: |
           uv sync --extra dev --extra extra ${{ matrix.test_type != 'sharding' && '--extra pyscf' || '' }}
 
+      # Restored on every run, but only written on pushes to main (see below), so
+      # that PRs share one stable cache instead of each writing their own entry.
+      # Note uv.lock is gitignored, so pyproject.toml is the dependency-pinning
+      # file actually present in the checkout. Rotating on it is a convenience
+      # only: jax embeds its own version and the backend in its cache keys, so a
+      # stale entry from another jax version can never be hit.
+      - name: Restore JAX compilation cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.jax-cache
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ hashFiles('pyproject.toml') }}-
+          restore-keys: |
+            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-
+
       - name: Main tests
         if: ${{ matrix.test_type == 'main' }}
         run: |
           export NETKET_EXPERIMENTAL=1
-          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
+          # -n logical, not the `-n auto` from pyproject.toml: `auto` counts
+          # physical cores, so the 4-vCPU ubuntu runner (2 cores + SMT) only got
+          # 2 workers. No-op on the macOS runners, which have no SMT.
+          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -n logical -m "not slow" test
 
       - name: Docstring tests
         if: ${{ matrix.test_type == 'doctest' }}
@@ -91,6 +119,24 @@ jobs:
         if: ${{ matrix.test_type == 'sharding' }}
         run: |
           uv run ./test_sharding/"${{ matrix.sharding_script }}" -m 'not slow'
+
+      # Written only on pushes to main, so PRs restore a stable cache rather than
+      # each pushing a ~250MB entry of their own. run_id in the key makes every
+      # push store a new entry, which the restore-keys prefix above then picks up.
+      - name: Prune JAX compilation cache
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          # jax never evicts from its own cache, so drop entries that no run has
+          # written for a week to stop the archive growing without bound.
+          find "$JAX_COMPILATION_CACHE_DIR" -type f -mtime +7 -delete 2>/dev/null || true
+          du -sh "$JAX_COMPILATION_CACHE_DIR" || true
+
+      - name: Save JAX compilation cache
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.jax-cache
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ hashFiles('pyproject.toml') }}-${{ github.run_id }}
 
       - name: Generate coverage report
         if: always()

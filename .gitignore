@@ -21,6 +21,7 @@ pip-wheel-metadata
 .ipynb_checkpoints
 .pytest_cache
 .benchmarks
+.jax-cache
 .mypy_cache
 .virtual_documents
 .ruff_cache
