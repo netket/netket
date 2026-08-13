@@ -5,6 +5,12 @@
 
 ## NetKet 3.23 (In development)
 
+### Breaking Changes
+* The multi-GPU solvers {func}`netket.optimizer.solver.cholesky_distributed` and {func}`netket.optimizer.solver.pinv_smooth_distributed` now target [JAXMg](https://flatironinstitute.github.io/jaxmg/) 1.0 or later (`pip install 'netket[jaxmg]'`), which is built on NVIDIA's cuSOLVERMp instead of the deprecated cuSOLVERMg. This means they now also work **across multiple nodes**, but they require **one python process per GPU** (run your script with `djaxrun`, or call {func}`jax.distributed.initialize` yourself). Older `jaxmg` releases (0.0.x) are no longer supported, and raise an informative error [issue #2258](https://github.com/netket/netket/issues/2258), [PR #2265](https://github.com/netket/netket/pull/2265).
+  Both solvers gained a `process_grid=(process_rows, process_cols)` argument to choose the shape of the 2D cuSOLVERMp process grid; it defaults to `(n_devices, 1)`, which matches the sharding NetKet uses for QGT/NTK matrices and needs no redistribution.
+  `jaxmg` is no longer part of the `extra` extra, because it pins an exact `jax` version.
+  Both solvers keep `A` and `b` intact, so they can still be composed with {func}`netket.optimizer.solver.nan_fallback`, even though JAXMg's default entry points donate their input buffers.
+
 ### Bug Fixes
 * Importing NetKet no longer crashes on multi-node (multi-slice) allocations: the default sharding mesh is now built directly with {class}`jax.sharding.Mesh` instead of `jax.make_mesh`, which refuses to build meshes spanning several slices [issue #2260](https://github.com/netket/netket/issues/2260).
 * {class}`netket.logging.TensorBoardLog` no longer silently drops metrics that arrive as `jax`/`numpy` scalar arrays (such as `acceptance`); scalar (0-dim or single-element) arrays are now logged, with complex scalars split into `/re` and `/im` tags [issue #2244](https://github.com/netket/netket/issues/2244).

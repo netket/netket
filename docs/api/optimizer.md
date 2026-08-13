@@ -100,12 +100,17 @@ And the following dense solvers for Stochastic Reconfiguration:
 (multi-gpu-solvers)=
 ### Multi-GPU solvers
 
-And the following dense solvers parallelize among multiple GPUs by making use of [jax_mg](https://flatironinstitute.github.io/jaxmg/).
+And the following dense solvers parallelize among multiple GPUs by making use of [JAXMg](https://flatironinstitute.github.io/jaxmg/).
 They are not really much faster than the ones above, but allow you to use ~100k samples because they keep the NTK sharded across the multiple GPUs.
 
 :::{warning}
-At the time of writing, those only work if you have a single node with many GPUs, and do not work
-in a multi-node context.
+Those solvers require `jaxmg >= 1.0.0`, installed with `pip install 'netket[jaxmg]'`
+(or `pip install 'jaxmg[cuda13]'` on CUDA 13). It is not part of the `extra` extra
+because it pins an exact jax version.
+
+As JAXMg builds upon NVIDIA's cuSOLVERMp, it requires **one python process per GPU**: run
+your script with `djaxrun` (or call {func}`jax.distributed.initialize` yourself) such that
+every process sees a single GPU. Both single-node and multi-node setups are supported.
 :::
 
 ```{eval-rst}
