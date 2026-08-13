@@ -62,15 +62,10 @@ jobs:
             sharding_script: "run_test_sharding_distributed.sh"
 
     env:
-      # Reuse XLA compiled executables. The test suite is dominated by
-      # compilation, not execution, so this pays off twice: the xdist workers of
-      # a single run stop compiling the same kernels independently, and the cache
-      # is carried between runs (see the restore/save steps below).
-      # A cache key covers the HLO and the compilation target, so a hit is only
-      # ever an identical computation and this cannot mask a change in netket.
+      # The suite is compilation-bound; reuse XLA executables across xdist workers
+      # and across runs. Keys cover HLO + target, so a hit is identical work.
       JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
-      # Default is 1s, which skips the many small compilations that make up most
-      # of the suite's time.
+      # Default 1s would skip most of this suite's many small compilations.
       JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS: "0"
 
     steps:
@@ -88,22 +83,10 @@ jobs:
         run: |
           uv sync --extra dev --extra extra ${{ matrix.test_type != 'sharding' && '--extra pyscf' || '' }}
 
-      # A jax cache key depends on the host CPU target, not just on the HLO, and
-      # the ubuntu-latest fleet is not homogeneous -- a single workflow run has
-      # been served by both an EPYC 7763 (zen3) and an EPYC 9V74 at the same time.
-      # So a cache built on one runner is worthless on a differently-specced one:
-      # the linux caches used to hit nothing and simply double in size every run
-      # (184MB -> 367MB) as the whole key set got recompiled and appended. Capping
-      # the ISA with --xla_cpu_max_isa does not help, the key tracks the full
-      # target. Keys are however perfectly stable *per* CPU model, so the fix is
-      # to give each distinct compilation environment its own cache.
-      #
-      # Rather than guess which properties matter, fingerprint them: compile one
-      # trivial jit into a throwaway cache and hash the filenames it produces.
-      # Those filenames *are* jax's cache keys, so the hash captures everything
-      # that affects them -- jax version, CPU target, XLA flags -- and rotates
-      # automatically when any of it changes. This also subsumes the pyproject
-      # hash that used to be in the key. See #2264.
+      # Keys track the host CPU target and ubuntu-latest is a mixed fleet, so one
+      # shared cache hit nothing and doubled each run (--xla_cpu_max_isa does not
+      # help). Keys are stable per CPU, so cache per environment, fingerprinted by
+      # hashing the filenames one trivial jit emits -- those are jax's keys. See #2264.
       - name: Fingerprint the compilation environment
         id: jaxfp
         run: |
@@ -119,8 +102,7 @@ jobs:
           echo "fp=$fp" >> "$GITHUB_OUTPUT"
           rm -rf "$probe"
 
-      # Restored on every run, written only on pushes to main (see below), so PRs
-      # share one stable cache instead of each writing their own entry.
+      # Restored always, written only on main, so PRs share one stable cache.
       - name: Restore JAX compilation cache
         uses: actions/cache/restore@v4
         with:
@@ -133,15 +115,9 @@ jobs:
         if: ${{ matrix.test_type == 'main' }}
         run: |
           export NETKET_EXPERIMENTAL=1
-          # Deliberately left on `-n auto` from pyproject.toml, i.e. 2 workers on
-          # the 4-vCPU ubuntu runner (2 physical cores + SMT). `-n logical` does
-          # give 4 workers and had this job pacing for ~31 min, but two runs in a
-          # row died with "the runner has received a shutdown signal" at 81% and
-          # 93% with no failing test and no crashed worker, which is how an
-          # OOM-killed runner presents. If someone wants to retry it, the angle is
-          # `--clear-cache-every`: it exists to bound memory on Actions and 200 was
-          # tuned for 2 workers, and clearing is now cheap because a recompile is a
-          # cache hit rather than a full XLA compile. See #2264.
+          # Left on `-n auto` (2 workers here) on purpose: `-n logical` gives 4 and
+          # is faster, but killed the runner twice with a shutdown signal and no
+          # failing test, i.e. OOM. To retry, lower --clear-cache-every. See #2264.
           uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
 
       - name: Docstring tests
@@ -154,19 +130,12 @@ jobs:
         run: |
           uv run ./test_sharding/"${{ matrix.sharding_script }}" -m 'not slow'
 
-      # Written only on pushes to main, so PRs restore a stable cache rather than
-      # each pushing a ~170MB entry of their own. run_id in the key makes every
-      # push store a new entry, which the restore-keys prefix above then picks up.
-      #
-      # always(), because a compiled executable is valid whether or not the test
-      # asserting on it passed. Without it a single failing test anywhere in the
-      # suite skips the save and the cache never advances -- on #2264 one flaky
-      # test did exactly that to two jobs at once.
+      # run_id stores a fresh entry per push, found by the prefix above. always():
+      # an executable is valid even if the test asserting on it failed.
       - name: Prune JAX compilation cache
         if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
-          # jax never evicts from its own cache, so drop entries that no run has
-          # written for a week to stop the archive growing without bound.
+          # jax never evicts, so drop entries unwritten for a week.
           find "$JAX_COMPILATION_CACHE_DIR" -type f -mtime +7 -delete 2>/dev/null || true
           du -sh "$JAX_COMPILATION_CACHE_DIR" || true
 
