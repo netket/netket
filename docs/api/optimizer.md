@@ -105,7 +105,8 @@ They are not really much faster than the ones above, but allow you to use ~100k 
 
 :::{warning}
 At the time of writing, those only work if you have a single node with many GPUs, and do not work
-in a multi-node context.
+in a multi-node context. They also require `jaxmg<1.0.0` (`pip install 'jaxmg<1.0.0'`), as NetKet does not
+support the rewritten jaxmg 1.0 API yet (see [issue #2258](https://github.com/netket/netket/issues/2258)).
 :::
 
 ```{eval-rst}

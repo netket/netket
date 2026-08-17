@@ -28,6 +28,10 @@ from netket._src.solvers.nan_fallback import (
 from netket.utils.optional_deps import import_optional_dependency
 from netket.utils.citations import reference
 
+# `jaxmg` 1.0 is a breaking release, not supported yet.
+_JAXMG_MIN_VERSION = "0.0.9"
+_JAXMG_MAX_VERSION = "1.0.0"
+
 
 @partial_from_kwargs
 def pinv_smooth(
@@ -388,7 +392,8 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
 
     .. note::
 
-        This solver requires `jaxmg` package to be installed.
+        This solver requires the `jaxmg` package to be installed, with a version
+        older than 1.0 (``pip install 'jaxmg<1.0.0'``).
 
     .. note::
 
@@ -442,7 +447,12 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
     """
     del x0
 
-    jaxmg = import_optional_dependency("jaxmg", descr="cholesky_distributed solver")
+    jaxmg = import_optional_dependency(
+        "jaxmg",
+        minimum_version=_JAXMG_MIN_VERSION,
+        maximum_version=_JAXMG_MAX_VERSION,
+        descr="cholesky_distributed solver",
+    )
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
@@ -517,7 +527,8 @@ def pinv_smooth_distributed(
 
     .. note::
 
-        This solver requires `jaxmg` package to be installed.
+        This solver requires the `jaxmg` package to be installed, with a version
+        older than 1.0 (``pip install 'jaxmg<1.0.0'``).
 
     Args:
         A: the matrix A in Ax=b (should be symmetric/Hermitian, sharded)
@@ -567,7 +578,12 @@ def pinv_smooth_distributed(
     """
     del x0
 
-    jaxmg = import_optional_dependency("jaxmg", descr="pinv_smooth_distributed solver")
+    jaxmg = import_optional_dependency(
+        "jaxmg",
+        minimum_version=_JAXMG_MIN_VERSION,
+        maximum_version=_JAXMG_MAX_VERSION,
+        descr="pinv_smooth_distributed solver",
+    )
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
