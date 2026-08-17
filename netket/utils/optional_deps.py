@@ -15,16 +15,32 @@
 from types import ModuleType
 import importlib
 
+from netket.utils.version_check import version_tuple
 
-def import_optional_dependency(name: str, minimum_version="", descr="") -> ModuleType:
-    """Try to import library `name`, and if it cannot be found, raise an
-    informative error.
+
+def import_optional_dependency(
+    name: str, minimum_version="", maximum_version="", descr=""
+) -> ModuleType:
+    """Try to import library `name`, and if it cannot be found or its version is
+    outside of the supported range, raise an informative error.
+
+    Args:
+        name: the name of the module to import.
+        minimum_version: if specified, the oldest supported version (inclusive).
+        maximum_version: if specified, the first unsupported version (exclusive).
+        descr: description of the NetKet functionality requiring this module,
+            used in the error messages.
     """
+    bounds = []
+    if minimum_version != "":
+        bounds.append(f">={minimum_version}")
+    if maximum_version != "":
+        bounds.append(f"<{maximum_version}")
+    requirement = name + ",".join(bounds)
+
     try:
-        return importlib.import_module(name)
+        module = importlib.import_module(name)
     except ModuleNotFoundError:
-        if minimum_version != "":
-            minimum_version = f">= {minimum_version}"
         raise ModuleNotFoundError(
             f"""
 
@@ -33,7 +49,29 @@ def import_optional_dependency(name: str, minimum_version="", descr="") -> Modul
 
             To install it, run
 
-                pip install {name} {minimum_version}
+                pip install '{requirement}'
 
             """
         )
+
+    # If the version cannot be determined, optimistically assume it is fine.
+    version = getattr(module, "__version__", None)
+    if bounds and version is not None:
+        installed = version_tuple(version)
+        if (minimum_version != "" and installed < version_tuple(minimum_version)) or (
+            maximum_version != "" and installed >= version_tuple(maximum_version)
+        ):
+            raise ImportError(
+                f"""
+
+                `{name}` version {version} is not supported by
+                `{descr}`, which requires `{requirement}`.
+
+                To install a supported version, run
+
+                    pip install '{requirement}'
+
+                """
+            )
+
+    return module

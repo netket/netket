@@ -26,25 +26,14 @@ from netket._src.solvers.nan_fallback import (
     nan_fallback as nan_fallback,
 )
 from netket.utils.optional_deps import import_optional_dependency
-from netket.utils.version_check import version_tuple
 from netket.utils.citations import reference
 
-
-def _import_jaxmg(descr: str):
-    # The distributed solvers are written against the `jaxmg` 0.0.x API, which drives
-    # several GPUs from a single python process through NVIDIA's cuSOLVERMg. `jaxmg`
-    # 1.0 rewrote everything on top of cuSOLVERMp, changing both the API and the
-    # execution model (one python process per GPU).
-    jaxmg = import_optional_dependency("jaxmg", minimum_version="0.0.9", descr=descr)
-    version = getattr(jaxmg, "__version__", "0.0.0")
-    if version_tuple(version) >= (1, 0, 0):
-        raise ImportError(
-            f"`jaxmg` version {version} is not supported by `{descr}`, "
-            "which requires `jaxmg<1.0.0` (`pip install 'jaxmg>=0.0.9,<1.0.0'`).\n\n"
-            "Support for the rewritten jaxmg 1.0 API is not implemented yet, see "
-            "https://github.com/netket/netket/issues/2258 ."
-        )
-    return jaxmg
+# The distributed solvers are written against the `jaxmg` 0.0.x API, which drives
+# several GPUs from a single python process through NVIDIA's cuSOLVERMg. `jaxmg` 1.0
+# rewrote everything on top of cuSOLVERMp, changing both the API and the execution
+# model (it requires one python process per GPU), so we do not support it yet.
+_JAXMG_MIN_VERSION = "0.0.9"
+_JAXMG_MAX_VERSION = "1.0.0"
 
 
 @partial_from_kwargs
@@ -461,7 +450,12 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
     """
     del x0
 
-    jaxmg = _import_jaxmg("cholesky_distributed solver")
+    jaxmg = import_optional_dependency(
+        "jaxmg",
+        minimum_version=_JAXMG_MIN_VERSION,
+        maximum_version=_JAXMG_MAX_VERSION,
+        descr="cholesky_distributed solver",
+    )
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
@@ -587,7 +581,12 @@ def pinv_smooth_distributed(
     """
     del x0
 
-    jaxmg = _import_jaxmg("pinv_smooth_distributed solver")
+    jaxmg = import_optional_dependency(
+        "jaxmg",
+        minimum_version=_JAXMG_MIN_VERSION,
+        maximum_version=_JAXMG_MAX_VERSION,
+        descr="pinv_smooth_distributed solver",
+    )
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
