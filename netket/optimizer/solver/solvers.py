@@ -28,10 +28,7 @@ from netket._src.solvers.nan_fallback import (
 from netket.utils.optional_deps import import_optional_dependency
 from netket.utils.citations import reference
 
-# The distributed solvers are written against the `jaxmg` 0.0.x API, which drives
-# several GPUs from a single python process through NVIDIA's cuSOLVERMg. `jaxmg` 1.0
-# rewrote everything on top of cuSOLVERMp, changing both the API and the execution
-# model (it requires one python process per GPU), so we do not support it yet.
+# `jaxmg` 1.0 is a breaking release, not supported yet.
 _JAXMG_MIN_VERSION = "0.0.9"
 _JAXMG_MAX_VERSION = "1.0.0"
 
