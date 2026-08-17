@@ -5,14 +5,31 @@
 
 ## NetKet 3.23 (In development)
 
+...
+
+## NetKet 3.22.4 (17 August 2026)
+
+### New Features
+* {class}`netket.logging.SaveVariationalState` accepts `max_to_keep=`, keeping only the most recent checkpoints on disk and deleting the older ones after every save [commit 930651c70](https://github.com/netket/netket/commit/930651c709d5fe69b3acc5656cef6f3bace27ddf).
+* {class}`netket.logging.MLFlowLog` can log quantities with more than one dimension (they are expanded into one metric per entry), and accepts `ignore=`, a collection of top-level keys that should not be logged [commit 63ea195c2](https://github.com/netket/netket/commit/63ea195c2734f3da50ef326881a0a7a17ee16f6d).
+* {meth}`netket.vqs.MCState.expect_to_precision` (experimental) accepts a pytree of operators, together with scalar or per-operator `atol`/`rtol` pytrees. Every operator stops being sampled as soon as its own criterion is met, so a tightly-converged observable does not keep paying for a loose one [commit 7f793f13d](https://github.com/netket/netket/commit/7f793f13dea202c0a57bbb7862ac240699e35593).
+* `djaxrun` warns upfront if the hostname of the machine cannot be resolved to an address, which otherwise makes every process crash inside jax with `Unable to find address for: <hostname>` (common on macOS) [PR #2261](https://github.com/netket/netket/pull/2261).
+
+### Behaviour Changes
+* {meth}`netket.vqs.MCState.expect_to_precision` (experimental) now checks the error of the mean against the single, NumPy-style combined tolerance `atol + rtol * |mean|`, so that sampling stops as soon as **one** of the two criteria is satisfied instead of requiring both, and `atol` acts as an absolute floor when the mean is close to zero [commit 21b682d0c](https://github.com/netket/netket/commit/21b682d0c1cc9b53b2eebb11c622600cd1fe6cb7), [commit 7f793f13d](https://github.com/netket/netket/commit/7f793f13dea202c0a57bbb7862ac240699e35593).
+* {class}`netket.logging.SaveVariationalState` always saves the state at the end of a run, instead of only doing so when the last step happens to be a multiple of `interval` [commit 1ea542a83](https://github.com/netket/netket/commit/1ea542a83e233a2f72313cac5b46941f9fd82bc6).
+* Callbacks that may raise `StopRun` ({class}`netket.callbacks.EarlyStopping`, {class}`~netket.callbacks.ConvergenceStopping`, {class}`~netket.callbacks.InvalidLossStopping`, {class}`~netket.callbacks.Timeout`, and the internal callback stopping dynamics drivers at the final time) now run after all other callbacks, so that stopping the run can no longer skip a later callback's collective operation and deadlock a distributed run [commit 49f400249](https://github.com/netket/netket/commit/49f400249f1bdf5da4d13cebe55e7ef11ead344a).
+
 ### Bug Fixes
 * The multi-GPU solvers {func}`netket.optimizer.solver.cholesky_distributed` and {func}`netket.optimizer.solver.pinv_smooth_distributed` now require `jaxmg>=0.0.9,<1.0.0`, and raise an informative error if a newer version is installed. `jaxmg` 1.0 rewrote its API on top of NVIDIA's cuSOLVERMp and requires one python process per GPU, which NetKet does not support yet [issue #2258](https://github.com/netket/netket/issues/2258), [PR #2263](https://github.com/netket/netket/pull/2263).
 * Importing NetKet no longer crashes on multi-node (multi-slice) allocations: the default sharding mesh is now built directly with {class}`jax.sharding.Mesh` instead of `jax.make_mesh`, which refuses to build meshes spanning several slices [issue #2260](https://github.com/netket/netket/issues/2260).
 * {class}`netket.logging.TensorBoardLog` no longer silently drops metrics that arrive as `jax`/`numpy` scalar arrays (such as `acceptance`); scalar (0-dim or single-element) arrays are now logged, with complex scalars split into `/re` and `/im` tags [issue #2244](https://github.com/netket/netket/issues/2244).
 * The numpy Metropolis samplers ({class}`netket.sampler.MetropolisSamplerNumpy`) no longer construct their own device mesh to evaluate the model, but reuse the mesh set by netket (or by the user). Previously they crashed with `ValueError: mesh should be the same across the entire program` for any model whose forward pass itself constrains the sharding of its arrays, such as {class}`netket.models.LogStateVector` (which calls `hilbert.states_to_numbers`) [PR #2255](https://github.com/netket/netket/pull/2255).
 * {class}`netket.sampler.ParallelTemperingSampler` no longer tempers the proposal correction term of asymmetric transition rules (such as {class}`~netket.sampler.rules.HamiltonianRule` and {class}`~netket.sampler.rules.ExchangeRule`). The inverse temperature now multiplies only the log-probability difference, so the `beta=1` replica correctly samples the target distribution [issue #2250](https://github.com/netket/netket/issues/2250).
-
-...
+* Fixed the chunked evaluation of the laplacian of continuous operators, which errored with `jax>=0.10` [commit 2943a8870](https://github.com/netket/netket/commit/2943a88705f5cc436098fb9da31c39a837a5e84c).
+* Logging a complex number to a {class}`netket.utils.history.History` that was initialised with real values no longer crashes [PR #2246](https://github.com/netket/netket/pull/2246).
+* Fixed the sharding specification of the `potrs` call in {func}`netket.optimizer.solver.cholesky_distributed` [PR #2252](https://github.com/netket/netket/pull/2252).
+* Fixed a spurious type warning in `Representation.irrep_subspace_dims` [PR #2257](https://github.com/netket/netket/pull/2257).
 
 ## NetKet 3.22 (4 June 2026)
 
