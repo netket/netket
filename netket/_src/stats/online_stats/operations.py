@@ -42,7 +42,7 @@ def online_statistics(
 
 @overload
 def online_statistics(
-    data: "LocalEstimators" | jax.typing.ArrayLike,
+    data: "LocalEstimators | jax.typing.ArrayLike",
     old_estimator: OnlineStats | None = None,
     *,
     decay: float | None = None,
