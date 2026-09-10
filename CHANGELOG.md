@@ -5,7 +5,8 @@
 
 ## NetKet 3.23 (In development)
 
-...
+### Bug Fixes
+* Importing NetKet no longer crashes with `TypeError: unsupported operand type(s) for |: 'str' and 'types.UnionType'` under `jax>=0.11`, where `jax.typing.ArrayLike` became a PEP 604 union: a partially-quoted forward reference in an `online_statistics` overload is now fully quoted [PR #2269](https://github.com/netket/netket/pull/2269), a second latent occurrence in {class}`netket.utils.HashableArray` was fixed the same way, and the `TC010` ruff lint is now enabled to prevent regressions [PR #2270](https://github.com/netket/netket/pull/2270).
 
 ## NetKet 3.22.4 (17 August 2026)
 
