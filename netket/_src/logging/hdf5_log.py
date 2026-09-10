@@ -276,7 +276,7 @@ class HDF5Log(AbstractCallback):
         if self._steps_notflushed_write >= self._write_every:
             self.flush()
 
-    def flush(self):
+    def flush(self, variational_state=None):
         """Writes buffered data to disk."""
         if self._writer is not None:
             self._writer.flush()
