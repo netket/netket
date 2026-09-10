@@ -171,7 +171,7 @@ line-length = 88
 exclude = ["Examples", "docs/conf.py", "*.ipynb"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "D410", "UP", "TID252"]
+select = ["E", "F", "W", "D410", "UP", "TID252", "TC010"]
 fixable = ["E", "F", "W", "D", "UP"]
 ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035"]
 #ignore = ["E266"]
