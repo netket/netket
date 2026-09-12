@@ -41,7 +41,13 @@ def _compute_chunk_shape(value: np.ndarray, chunk_size: int | None) -> tuple[int
 
 
 def _append_dataset(root, value, data, *, chunk_size: int | None = None):
+    # ``np.asarray`` materialises ``value`` to host -- a collective when it is a
+    # sharded array, so every rank must reach it. ``data`` is ``None`` on
+    # non-master ranks (they hold no writer): they still materialise (to join
+    # the collective) but do not write. See HDF5Log.__call__.
     value = np.asarray(value)
+    if data is None:
+        return
     if root in data:
         f_value = data[root]
         f_value.resize(f_value.shape[0] + 1, axis=0)
@@ -263,14 +269,13 @@ class HDF5Log(AbstractCallback):
         if self._writer is None:
             self._init_output_file()
 
-        if self._is_master_process:
-            tree_log(
-                log_data,
-                "data",
-                self._writer,
-                iter=step,
-                chunk_size=self._chunk_size,
-            )
+        tree_log(
+            log_data,
+            "data",
+            self._writer,
+            iter=step,
+            chunk_size=self._chunk_size,
+        )
 
         self._steps_notflushed_write += 1
         if self._steps_notflushed_write >= self._write_every:
