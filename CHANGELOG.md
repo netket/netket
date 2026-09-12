@@ -6,6 +6,7 @@
 ## NetKet 3.23 (In development)
 
 ### Bug Fixes
+* {class}`netket.logging.HDF5Log` no longer deadlocks multi-process (sharded) runs: it reduced the logged {class}`netket.stats.Stats` inside its master-only gate, so the host-side reduction collective ran on rank 0 alone and hung every other rank. The reduction now runs on all ranks and only the write is gated to the master [PR #2272](https://github.com/netket/netket/pull/2272).
 * Importing NetKet no longer crashes with `TypeError: unsupported operand type(s) for |: 'str' and 'types.UnionType'` under `jax>=0.11`, where `jax.typing.ArrayLike` became a PEP 604 union: a partially-quoted forward reference in an `online_statistics` overload is now fully quoted [PR #2269](https://github.com/netket/netket/pull/2269), a second latent occurrence in {class}`netket.utils.HashableArray` was fixed the same way, and the `TC010` ruff lint is now enabled to prevent regressions [PR #2270](https://github.com/netket/netket/pull/2270).
 
 ## NetKet 3.22.4 (17 August 2026)
