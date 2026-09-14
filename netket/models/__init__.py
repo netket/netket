@@ -16,6 +16,7 @@ from . import tensor_networks
 
 from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
 from .equivariant import GCNN
+from .gat import GAT, GATLayer
 from .full_space import LogStateVector
 from .jastrow import Jastrow
 from .gaussian import Gaussian
