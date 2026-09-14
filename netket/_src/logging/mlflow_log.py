@@ -208,18 +208,21 @@ class MLFlowLog(AbstractCallback):
         item: dict[str, Any],
         variational_state: "VariationalState | None" = None,
     ):
-        if not self._is_master_process:
-            return
-
-        if self._run is None:
-            self._init_mlflow()
-
+        # Materialise the log tree on all ranks before i/o to avoid deadlocks:
+        # walking the item can trigger a host-side collective (reducing a sharded
+        # Stats, materialising a sharded array), which must run on every rank.
         data: list[tuple[str, Any]] = []
         if self._ignore:
             item = {k: v for k, v in item.items() if k not in self._ignore}
         walk_tree_with_path(
             item, "", visit_leaf=_visit_leaf, expand_node=_expand_node, data=data
         )
+
+        if not self._is_master_process:
+            return
+
+        if self._run is None:
+            self._init_mlflow()
 
         metrics = {}
         for key, val in data:
