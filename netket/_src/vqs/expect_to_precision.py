@@ -209,10 +209,13 @@ def expect_to_precision(
             if _is_rank0:
                 pbar.write("  Early termination requested by user.")
 
+        # Reduce on all ranks: _summary_error_and_scale calls get_stats(), a
+        # cross-process collective. Gating it behind _is_rank0 would run one
+        # extra collective on rank 0 alone and deadlock the other ranks.
+        err = max(_summary_error_and_scale(s)[0] for s in stats_list)
         if verbose and _is_rank0:
             if it >= max_iter:
                 pbar.write("  Reached max_iter before target precision.")
-            err = max(_summary_error_and_scale(s)[0] for s in stats_list)
             pbar.write(f"  [done] max error = {err:g}")
 
     return treedef.unflatten(stats_list)
