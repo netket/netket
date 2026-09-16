@@ -108,11 +108,10 @@ def force_to_grad(Ō_grad, parameters):
     is 2 Re[F].
     """
     Ō_grad = jax.tree_util.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
             target.dtype
         ),
         Ō_grad,
         parameters,
     )
-    Ō_grad = jax.tree_util.tree_map(lambda x: 2 * x, Ō_grad)
     return Ō_grad
