@@ -24,6 +24,7 @@ from jax.tree_util import (
     tree_leaves,
 )
 from jax.flatten_util import ravel_pytree
+from flax import serialization
 
 from netket.utils.types import PyTree, Scalar
 from netket.utils.numbers import is_scalar
@@ -221,6 +222,21 @@ register_pytree_node(
     RealImagTuple,
     lambda xs: (xs, None),
     lambda _, xs: RealImagTuple(xs),
+)
+
+# Make it saveable with flax.serialization, e.g. as part of a driver checkpoint.
+serialization.register_serialization_state(
+    RealImagTuple,
+    lambda x: {
+        "real": serialization.to_state_dict(x.real),
+        "imag": serialization.to_state_dict(x.imag),
+    },
+    lambda target, state: RealImagTuple(
+        (
+            serialization.from_state_dict(target.real, state["real"], name="real"),
+            serialization.from_state_dict(target.imag, state["imag"], name="imag"),
+        )
+    ),
 )
 
 

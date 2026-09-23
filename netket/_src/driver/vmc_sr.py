@@ -73,6 +73,21 @@ def VMC_SRt(
     )
 
 
+# Number of lags used for the MCMC diagnostics accumulated across iterations.
+_MCMC_DIAGNOSTICS_MAX_LAG = 32
+
+
+def _init_momentum_buffer(parameters, momentum, on_the_fly):
+    """The zeros that the SPRING solvers would otherwise create at the first step."""
+    if momentum is None:
+        return None
+    params_real, _ = nkjax.tree_to_real(parameters)
+    buffer = jax.tree_util.tree_map(jnp.zeros_like, params_real)
+    if not on_the_fly:
+        buffer, _ = ravel_pytree(buffer)
+    return buffer
+
+
 @reference(
     "Goldshlager2023Spring",
     condition="If using VMC_SR with momentum != 0",
@@ -247,7 +262,7 @@ class VMC_SR(AbstractOptimizationDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    info: Any | None = None
+    info: Any | None = struct.field(serialize=False, default=None)
     """
     PyTree to pass on information from the solver,e.g, the quadratic model.
     """
@@ -410,7 +425,11 @@ class VMC_SR(AbstractOptimizationDriver):
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
 
-        self._old_updates: PyTree = None
+        # Built here rather than at the first step, so that a freshly built
+        # driver can load it back from a checkpoint.
+        self._old_updates = _init_momentum_buffer(
+            self.state.parameters, self.momentum, self._on_the_fly
+        )
 
         # PyTree to pass on information from the solver, e.g, the quadratic model
         self.info = None
@@ -429,6 +448,20 @@ class VMC_SR(AbstractOptimizationDriver):
         self._loss_stats_online = None
 
         decay = self._mcmc_convergence_diagnostics_ema_decay
+        if decay is not None:
+            # Built here so that a fresh driver can load it from a checkpoint.
+            # Must have the same dtype as the local energies.
+            log_psi = jax.eval_shape(
+                self.state._apply_fun,
+                self.state.variables,
+                self.state.hilbert.random_state(jax.random.key(0), 1),
+            )
+            self._loss_stats_online = OnlineStats(
+                self.state.sampler.n_chains,
+                dtype=jnp.result_type(self._ham.dtype, log_psi.dtype),
+                decay=decay,
+                max_lag=_MCMC_DIAGNOSTICS_MAX_LAG,
+            )
         if jax.process_index() == 0 and decay is not None:
             print(
                 f"online_statistics: "
@@ -462,11 +495,16 @@ class VMC_SR(AbstractOptimizationDriver):
             # across different MCMC iterations with an exponential moving average.
             decay = self._mcmc_convergence_diagnostics_ema_decay
             if decay is not None:
+                old_estimator = self._loss_stats_online
+                # If it is still empty, rebuild it in case the number of samples
+                # or chains changed since the driver was built.
+                if old_estimator is not None and old_estimator.n_samples == 0:
+                    old_estimator = None
                 self._loss_stats_online = nkstats.online_statistics(
                     local_energies,
-                    old_estimator=self._loss_stats_online,
+                    old_estimator=old_estimator,
                     decay=decay,
-                    max_lag=32,
+                    max_lag=_MCMC_DIAGNOSTICS_MAX_LAG,
                 )
 
         # Extract the hyperparameters which might be iteration dependent

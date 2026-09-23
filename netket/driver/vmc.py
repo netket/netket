@@ -48,8 +48,9 @@ class VMC(AbstractOptimizationDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    _loss_grad: PyTree = None
-    info: Any | None = None
+    # Recomputed at every step, so there is no need to save them.
+    _loss_grad: PyTree = struct.field(serialize=False, default=None)
+    info: Any | None = struct.field(serialize=False, default=None)
 
     def __init__(
         self,

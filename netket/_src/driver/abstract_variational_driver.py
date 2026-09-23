@@ -91,7 +91,8 @@ class AbstractDriver(struct.Pytree, mutable=True):
     _loss_name: str = struct.field(pytree_node=False, serialize=False)
 
     # Stuff to iterate the driver
-    _loss_stats: Any = struct.field(serialize=True)
+    # Recomputed at every step, so there is no need to save it.
+    _loss_stats: Any = struct.field(serialize=False, default=None)
     _step_count: int = struct.field(serialize=True)
 
     # state of the driver

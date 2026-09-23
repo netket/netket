@@ -466,6 +466,11 @@ class Pytree(metaclass=PytreeMeta):
 
         # end renaming
 
+        # Files written by older versions may contain fields that are no longer
+        # saved. Ignore them.
+        for name in noserialize_field_names:
+            state.pop(name, None)
+
         for name in pytree.__dict__:
             if name in noserialize_field_names:
                 continue
