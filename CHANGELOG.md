@@ -5,6 +5,9 @@
 
 ## NetKet 3.23 (In development)
 
+### New Features
+* Metropolis transition rules can override {meth}`~netket.sampler.rules.MetropolisRule.update_rule_state` to update their `rule_state` after every step, knowing which moves were accepted. This makes it possible to write rules that tune themselves, e.g. adjusting their proposal size to reach a target acceptance rate. The default does nothing, so existing rules sample exactly as before.
+
 ### Bug Fixes
 * {class}`netket.callbacks.InvalidLossStopping` no longer crashes when the monitored loss is vector-valued (e.g. one mean per anchor): it checked `not np.isfinite(loss)`, which is ambiguous for a non-scalar array (`ValueError: The truth value of an array with more than one element is ambiguous`). It now checks `not np.all(np.isfinite(loss))`, stopping the run if any component is non-finite [PR #2276](https://github.com/netket/netket/pull/2276).
 * {meth}`netket.vqs.MCState.expect_to_precision` (experimental) no longer deadlocks multi-process (sharded) runs: the end-of-loop summary computed `err = max(_summary_error_and_scale(...))` inside its `_is_rank0` gate, and `_summary_error_and_scale` calls {meth}`~netket.stats.Stats.get_stats`, a cross-process collective. Running it on rank 0 alone offset the ranks by one collective and hung every other rank at their next `get_stats`. The reduction now runs on all ranks and only the progress-bar writes are gated to the master [PR #2275](https://github.com/netket/netket/pull/2275).
