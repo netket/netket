@@ -352,6 +352,13 @@ class Pytree(metaclass=PytreeMeta):
     def __post_init__(self):
         pass
 
+    def __process_deserialization_state__(self, state):
+        """
+        Change the saved state, keyed by attribute name, before it is loaded.
+        For example, to fill in fields missing from files saved by older versions.
+        """
+        return state
+
     def __process_deserialization_updates__(self, updates):
         """
         Internal function used to modify a posteriori how a
@@ -465,6 +472,8 @@ class Pytree(metaclass=PytreeMeta):
                 del state[serialize_name]
 
         # end renaming
+
+        state = pytree.__process_deserialization_state__(state)
 
         # Files written by older versions may contain fields that are no longer
         # saved. Ignore them.
