@@ -39,7 +39,8 @@ dependencies = [
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.7.0",
+    # jax 0.11.2 breaks flax 0.12.9 (google/flax#5596). Remove once flax is fixed.
+    "jax>=0.7.0,<0.11.2",
     "equinox>=0.12.2",
     "flax>=0.10.6",
     "orjson>=3.10.7, <4",
