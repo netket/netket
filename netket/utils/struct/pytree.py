@@ -136,6 +136,13 @@ class Pytree(metaclass=PytreeMeta):
     and will be removed in the future. We suggest you to remove
     the `@nk.utils.struct.dataclass` decorator and simply define
     an `__init__` method.
+
+    When serialized (e.g. to save a checkpoint), a PyTree saves all of its
+    normal fields, including those declared with a bare annotation, but not
+    the static ones (`pytree_node=False`). Use `field(serialize=...)` to change
+    this for a single field. Note that adding or removing a saved field means
+    that older files will no longer load, as a missing or unexpected field
+    raises an error.
     """
 
     _pytree__initializing: bool
