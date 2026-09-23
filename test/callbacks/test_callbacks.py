@@ -351,3 +351,43 @@ def test_convergence_stopping():
             break
 
     assert step == 13
+
+
+@pytest.mark.parametrize("restore_before_bar", [True, False])
+def test_progress_bar_after_resume(restore_before_bar):
+    # run(8) called at step 0, with a checkpoint restoring step 5 either before or
+    # after the progress bar starts.
+    driver = DummyDriver()
+    driver.step_count = 0
+    driver._start_step = 0
+    driver._loss_stats = None
+
+    pb = nk._src.callbacks.progressbar.ProgressBarCallback(8)
+    if restore_before_bar:
+        driver.step_count = 5
+    pb.on_run_start(driver.step_count, driver)
+    driver.step_count = 5
+    assert pb._pbar.n == (5 if restore_before_bar else 0)
+
+    for step in range(5, 8):
+        driver.step_count = step + 1
+        pb.on_step_end(step, {}, driver)
+    assert pb._pbar.n == 8
+    pb.on_run_end(driver.step_count, driver)
+
+
+def test_progress_bar_with_its_own_size():
+    # A bar bigger than the run, created by the user: run(10) shows 10/20.
+    driver = DummyDriver()
+    driver.step_count = 0
+    driver._start_step = 0
+    driver._loss_stats = None
+
+    pb = nk._src.callbacks.progressbar.ProgressBarCallback(20)
+    pb.on_run_start(0, driver)
+    assert pb._pbar.n == 0
+    for step in range(10):
+        driver.step_count = step + 1
+        pb.on_step_end(step, {}, driver)
+    assert pb._pbar.n == 10
+    pb.on_run_end(driver.step_count, driver)
