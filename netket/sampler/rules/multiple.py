@@ -35,6 +35,10 @@ class MultipleRules(MetropolisRule):
     with a given probability.
 
     Each `rule[i]` will be selected with a probability `probabilities[i]`.
+
+    :meth:`~netket.sampler.rules.MetropolisRule.update_rule_state` is called
+    on every rule, and each one sees the acceptance of all chains, including
+    those that were moved by another rule.
     """
 
     rules: tuple[MetropolisRule, ...]
@@ -107,6 +111,17 @@ class MultipleRules(MetropolisRule):
             # sampler-state objects.
             _state = sampler_state.replace(rule_state=sampler_state.rule_state[i])
             rule_states.append(self.rules[i].reset(sampler, machine, params, _state))
+        return tuple(rule_states)
+
+    def update_rule_state(self, sampler, machine, params, sampler_state, accepted):
+        rule_states = []
+        for i in range(len(self.probabilities)):
+            _state = sampler_state.replace(rule_state=sampler_state.rule_state[i])
+            rule_states.append(
+                self.rules[i].update_rule_state(
+                    sampler, machine, params, _state, accepted
+                )
+            )
         return tuple(rule_states)
 
     def transition(self, sampler, machine, parameters, state, key, σ):

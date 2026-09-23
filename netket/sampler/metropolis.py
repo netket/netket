@@ -449,12 +449,18 @@ class MetropolisSampler(Sampler):
             else:
                 do_accept = uniform < jnp.exp(proposal_log_prob - state.log_prob)
 
+            # Tell the rule which moves were accepted (does nothing by default).
+            rule_state = self.rule.update_rule_state(
+                self, machine, parameters, state, do_accept
+            )
+
             return state.replace(
                 σ=jnp.where(do_accept.reshape(-1, 1), σp, state.σ),
                 log_prob=jax.numpy.where(
                     do_accept.reshape(-1), proposal_log_prob, state.log_prob
                 ),
                 rng=new_rng,
+                rule_state=rule_state,
                 n_accepted_proc=state.n_accepted_proc + do_accept,
                 n_steps_proc=state.n_steps_proc + self.n_batches,
             )

@@ -119,6 +119,19 @@ class TensorRule(MetropolisRule):
             rule_states.append(self.rules[i].reset(_sampler, machine, params, _state))
         return tuple(rule_states)
 
+    def update_rule_state(self, sampler, machine, params, sampler_state, accepted):
+        # A move changes all subspaces at once, so every rule sees the same mask.
+        rule_states = []
+        for i in range(self.hilbert._n_hilbert_spaces):
+            _sampler = sampler.replace(hilbert=self.hilbert.subspaces[i])
+            _state = sampler_state.replace(rule_state=sampler_state.rule_state[i])
+            rule_states.append(
+                self.rules[i].update_rule_state(
+                    _sampler, machine, params, _state, accepted
+                )
+            )
+        return tuple(rule_states)
+
     def transition(self, sampler, machine, parameters, state, key, σ):
         keys = jax.random.split(key, self.hilbert._n_hilbert_spaces)
 
