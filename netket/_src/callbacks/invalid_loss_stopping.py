@@ -33,7 +33,9 @@ class InvalidLossStopping(AbstractCallback, mutable=True):
     patience: int | float = struct.field(pytree_node=False)
     """Number of epochs with invalid loss after which training will be stopped."""
 
-    _last_valid_iter: int = struct.field(pytree_node=False, serialize=False, default=0)
+    # Saved, so that a run resumed from a checkpoint does not stop at the first
+    # invalid step, as if the loss had been invalid since step 0.
+    _last_valid_iter: int = struct.field(pytree_node=False, serialize=True, default=0)
     """Last valid iteration, to check against patience."""
 
     def __init__(self, monitor: str = "mean", patience: int | float = 0):
@@ -53,6 +55,10 @@ class InvalidLossStopping(AbstractCallback, mutable=True):
         self.monitor = monitor
         self.patience = patience
         self._last_valid_iter = 0
+
+    def __process_deserialization_state__(self, state):
+        # Files saved by older versions do not contain it.
+        return {"_last_valid_iter": self._last_valid_iter, **state}
 
     @property
     def callback_order(self) -> int:
