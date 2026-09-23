@@ -104,7 +104,10 @@ class AbstractDriver(struct.Pytree, mutable=True):
     # Internal caches (those could be removed in the future?)
     _dp: PyTree = struct.field(pytree_node=True, serialize=False)
 
-    # The step at which the current (or last) call to `run` stops.
+    # The steps at which the current (or last) call to `run` started and stops.
+    _start_step: int | None = struct.field(
+        pytree_node=False, serialize=False, default=None
+    )
     _target_step: int | None = struct.field(
         pytree_node=False, serialize=False, default=None
     )
@@ -438,6 +441,7 @@ class AbstractDriver(struct.Pytree, mutable=True):
         # Fixed before `on_run_start`, so that a callback restoring `step_count`
         # there (e.g. when resuming from a checkpoint) does not move the end of
         # the run.
+        self._start_step = self.step_count
         self._target_step = self.step_count + n_iter
 
         with timing.timed_scope(force=timeit) as timer:
