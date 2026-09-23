@@ -104,10 +104,10 @@ class AbstractDriver(struct.Pytree, mutable=True):
     # Internal caches (those could be removed in the future?)
     _dp: PyTree = struct.field(pytree_node=True, serialize=False)
 
-    # Iterator caches
-    # _step_start: int = struct.field(pytree_node=False, serialize=False, default=None)
-    # _step_size: int = struct.field(pytree_node=False, serialize=False, default=1)
-    # _step_end: int = struct.field(pytree_node=False, serialize=False, default=None)
+    # The step at which the current (or last) call to `run` stops.
+    _target_step: int | None = struct.field(
+        pytree_node=False, serialize=False, default=None
+    )
     _step_attempt: int = struct.field(pytree_node=False, serialize=False, default=0)
     _timer: timing.Timer = struct.field(pytree_node=False, serialize=False)
 
@@ -395,7 +395,8 @@ class AbstractDriver(struct.Pytree, mutable=True):
         without reading the json output.
 
         Args:
-            n_iter: the total number of iterations to be performed during this run.
+            n_iter: the number of steps to run, counted from the step count when
+                `run` is called.
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
                 If this argument is a string, it will be used as output prefix for the standard JSON logger.
             obs: An iterable containing all observables that should be computed
@@ -434,14 +435,15 @@ class AbstractDriver(struct.Pytree, mutable=True):
             show_progress=show_progress,
         )
 
-        # self._step_size = step_size
-        # self._step_start = self.step_count
-        # self._step_end = self.step_count + n_iter
+        # Fixed before `on_run_start`, so that a callback restoring `step_count`
+        # there (e.g. when resuming from a checkpoint) does not move the end of
+        # the run.
+        self._target_step = self.step_count + n_iter
 
         with timing.timed_scope(force=timeit) as timer:
             try:
                 callbacks.on_run_start(self.step_count, self)
-                for step in range(self.step_count, self.step_count + n_iter):
+                for step in range(self.step_count, self._target_step):
                     self._step_attempt = 0
                     step_log_data = {}
 
