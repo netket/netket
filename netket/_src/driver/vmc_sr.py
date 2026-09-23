@@ -88,6 +88,22 @@ def _init_momentum_buffer(parameters, momentum, on_the_fly):
     return buffer
 
 
+def _init_mcmc_diagnostics(state, hamiltonian, decay):
+    """The empty accumulator that online_statistics would create at the first step."""
+    # It must have the same dtype as the local energies.
+    log_psi = jax.eval_shape(
+        state._apply_fun,
+        state.variables,
+        state.hilbert.random_state(jax.random.key(0), 1),
+    )
+    return OnlineStats(
+        state.sampler.n_chains,
+        dtype=jnp.result_type(hamiltonian.dtype, log_psi.dtype),
+        decay=decay,
+        max_lag=_MCMC_DIAGNOSTICS_MAX_LAG,
+    )
+
+
 @reference(
     "Goldshlager2023Spring",
     condition="If using VMC_SR with momentum != 0",
@@ -450,17 +466,8 @@ class VMC_SR(AbstractOptimizationDriver):
         decay = self._mcmc_convergence_diagnostics_ema_decay
         if decay is not None:
             # Built here so that a fresh driver can load it from a checkpoint.
-            # Must have the same dtype as the local energies.
-            log_psi = jax.eval_shape(
-                self.state._apply_fun,
-                self.state.variables,
-                self.state.hilbert.random_state(jax.random.key(0), 1),
-            )
-            self._loss_stats_online = OnlineStats(
-                self.state.sampler.n_chains,
-                dtype=jnp.result_type(self._ham.dtype, log_psi.dtype),
-                decay=decay,
-                max_lag=_MCMC_DIAGNOSTICS_MAX_LAG,
+            self._loss_stats_online = _init_mcmc_diagnostics(
+                self.state, self._ham, decay
             )
         if jax.process_index() == 0 and decay is not None:
             print(
