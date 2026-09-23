@@ -72,8 +72,11 @@ def field(
             or similar pytree operations. This is useful for caches, temporary data, or other
             fields that should not be passed forward during pytree transformations.
             When True, pytree_node must be False.
-        serialize: If True the node is included in the serialization.
-            In general you should not specify this. (Defaults to value of pytree_node).
+        serialize: Whether this field is saved when the object is serialized
+            (e.g. in a checkpoint). Defaults to ``pytree_node``, so normal fields
+            are saved and static ones are not. Set ``serialize=False`` for values
+            recomputed at every step, or ``serialize=True`` for a static field
+            that must survive a restart.
         serialize_name: If specified, it's the name under which this attribute is serialized.
             This can be used to change the runtime attribute name, but maintain some
             other name in the serialisation format.
