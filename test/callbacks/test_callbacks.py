@@ -266,6 +266,37 @@ def test_invalid_loss_stopping_correct_interval():
     assert cb._last_valid_iter == 2
 
 
+def test_invalid_loss_stopping_vector_valued():
+    # A vector-valued loss (e.g. a foundation ReplicaStats has one mean per
+    # anchor) must not crash the finiteness check: `not np.isfinite(loss)` is
+    # ambiguous for a non-scalar array. The run stops iff any component is
+    # non-finite, and only after `patience` consecutive invalid steps.
+    patience = 4
+    cb = nk.callbacks.InvalidLossStopping(patience=patience)
+
+    driver = nk.driver.AbstractVariationalDriver(
+        FakeState(), nk.optimizer.Sgd(0.01), minimized_quantity_name="loss"
+    )
+    log_data = {}
+
+    # All-finite vector: valid, no crash.
+    driver._step_count = 0
+    driver._loss_stats = nk.stats.Stats(mean=np.array([1.0, 2.0, 3.0]))
+    cb.on_step_end(None, log_data, driver)
+    assert cb._last_valid_iter == 0
+
+    # One non-finite component: invalid, but within patience so no stop yet.
+    driver._step_count = 1
+    driver._loss_stats = nk.stats.Stats(mean=np.array([1.0, np.nan, 3.0]))
+    cb.on_step_end(None, log_data, driver)
+    assert cb._last_valid_iter == 0
+
+    # Still invalid after `patience` steps -> stop.
+    driver._step_count = patience + 1
+    with pytest.raises(nk.callbacks.StopRun):
+        cb.on_step_end(None, log_data, driver)
+
+
 def test_save_variational_state_max_to_keep(tmp_path):
     pytest.importorskip("nqxpack")
 

@@ -67,7 +67,9 @@ class InvalidLossStopping(AbstractCallback, mutable=True):
         if driver._loss_stats is not None:
             loss = np.real(getattr(driver._loss_stats, self.monitor))
 
-            if not np.isfinite(loss):
+            # `loss` may be vector-valued (e.g. a foundation ReplicaStats has one
+            # mean per anchor); stop if ANY component is non-finite.
+            if not np.all(np.isfinite(loss)):
                 if driver.step_count - self._last_valid_iter >= self.patience:
                     raise StopRun(
                         f"InvalidLossStopping: loss is not finite ({loss}) "
