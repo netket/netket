@@ -16,25 +16,26 @@
 
 import re
 import sys
+from functools import partial
 from types import ModuleType
 
 import numpy as np
 import pytest
 import jax
 import jax.numpy as jnp
-from jax.sharding import Mesh, PartitionSpec as P
+from jax.sharding import AxisType, Mesh, NamedSharding, PartitionSpec as P
 
 import netket as nk
+from netket._src.solvers.jaxmg_interface import default_tile_size, jaxmg_grid
 
 from test import common  # noqa: F401
 
-# jaxmg's FFI handlers (potrs_mg, syevd_mg) are only registered for the CUDA
-# platform. Even when jaxmg is installed (e.g. on Linux CI), the kernels cannot
-# run on a CPU/Host backend, so these tests must be skipped unless a GPU is
-# available.
+# jaxmg's cuSOLVERMp kernels only run on CUDA GPUs, and only with one process
+# per GPU (launch pytest with `djaxrun`, or `srun` with one task per GPU), so
+# these tests are skipped otherwise.
 requires_gpu = pytest.mark.skipif(
-    jax.default_backend() != "gpu",
-    reason="jaxmg distributed solvers require a GPU backend",
+    jax.default_backend() != "gpu" or jax.local_device_count() != 1,
+    reason="jaxmg distributed solvers require a GPU backend with one process per GPU",
 )
 
 N_DEVICES = jax.device_count()
@@ -259,9 +260,10 @@ def test_pinv_smooth_distributed_regularization():
 
     key = jax.random.PRNGKey(999)
     n = 32 * N_DEVICES
-    # Create a matrix with some small eigenvalues
-    A_base = jax.random.normal(key, (n, n))
-    A = A_base @ A_base.T + jnp.eye(n) * 1e-8  # Small regularization
+    # Create a matrix with eigenvalues spanning many orders of magnitude, so
+    # that some fall below the cutoff of the more regularized solver.
+    Q, _ = jnp.linalg.qr(jax.random.normal(key, (n, n)))
+    A = (Q * jnp.logspace(-12, 0, n)) @ Q.T
     b = jax.random.normal(key, (n,))
 
     # Test with different regularization parameters
@@ -291,22 +293,63 @@ def test_pinv_smooth_distributed_regularization():
 # satisfying cuSOLVERMp's requirements.
 
 
+def _fake_place(x, sharding):
+    if all(t == AxisType.Explicit for t in sharding.mesh.axis_types):
+        return jax.reshard(x, sharding)
+    return jax.lax.with_sharding_constraint(x, sharding)
+
+
 def _install_fake_jaxmg(monkeypatch, version="1.3.0"):
-    """Install a fake `jaxmg` recording its calls and solving with plain jax."""
+    """
+    Install a fake `jaxmg` recording its calls and solving with plain jax.
+
+    Like jaxmg >= 1.1, the fake enters the mesh it is given, and maps `A` over
+    it with :func:`jax.shard_map`, which checks that NetKet laid `A` out on
+    that mesh consistently with the context mesh. Its high-level entry points
+    donate their inputs, like jaxmg's, while the `_shardmap_ctx` ones do not.
+    """
     calls = []
 
+    def _layout(a, mesh, matrix_specs, T_A):
+        specs = P(*matrix_specs, *(None,) * (2 - len(matrix_specs)))
+        calls.append({"n": a.shape[0], "T_A": T_A, "mesh": mesh, "specs": specs})
+        with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
+            a = jax.shard_map(lambda x: x, mesh=mesh, in_specs=specs, out_specs=specs)(
+                a
+            )
+            return _fake_place(a, NamedSharding(mesh, P()))
+
     def potrs_shardmap_ctx(a, b, T_A, mesh=None, matrix_specs=None, **kwargs):
-        calls.append({"n": a.shape[0], "T_A": T_A, "mesh": mesh, "specs": matrix_specs})
+        if a.dtype != b.dtype:
+            raise TypeError("potrs requires A and b to have the same dtype.")
+        a = _layout(a, mesh, matrix_specs, T_A)
+        with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
+            b = _fake_place(b, NamedSharding(mesh, P()))
+            x = jnp.linalg.solve(a, b)
         # (a_work, x, status), like jaxmg's non-donating entry point
-        return a, jnp.linalg.solve(a, b), jnp.zeros((1,), jnp.int32)
+        return a, x, jnp.zeros((1,), jnp.int32)
 
     def syevd_shardmap_ctx(a, T_A, mesh=None, matrix_specs=None, **kwargs):
-        calls.append({"n": a.shape[0], "T_A": T_A, "mesh": mesh, "specs": matrix_specs})
-        w, v = jnp.linalg.eigh(a)
+        a = _layout(a, mesh, matrix_specs, T_A)
+        specs = calls[-1]["specs"]
+        with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
+            w, v = jnp.linalg.eigh(a)
+            # Like jaxmg, give the eigenvectors back sharded as the matrix.
+            v = _fake_place(v, NamedSharding(mesh, specs))
         return a, w, v, jnp.zeros((1,), jnp.int32)
+
+    @partial(jax.jit, static_argnums=2, donate_argnums=(0, 1))
+    def potrs(a, b, T_A, **kwargs):
+        return jnp.linalg.solve(a, b)
+
+    @partial(jax.jit, static_argnums=1, donate_argnums=0)
+    def syevd(a, T_A, **kwargs):
+        return jnp.linalg.eigh(a)
 
     module = ModuleType("jaxmg")
     module.__version__ = version
+    module.potrs = potrs
+    module.syevd = syevd
     module.potrs_shardmap_ctx = potrs_shardmap_ctx
     module.syevd_shardmap_ctx = syevd_shardmap_ctx
     monkeypatch.setitem(sys.modules, "jaxmg", module)
@@ -317,16 +360,20 @@ def _check_cusolvermp_contract(call, expected_grid):
     """Check a recorded call against cuSOLVERMp's layout requirements."""
     mesh, specs, n, T_A = call["mesh"], call["specs"], call["n"], call["T_A"]
 
-    # The process grid must be 2D, with one slot per device.
+    # One slot of the process grid per device.
     assert isinstance(mesh, Mesh)
-    assert mesh.devices.shape == expected_grid
     assert sorted(d.id for d in mesh.devices.flat) == sorted(
         d.id for d in jax.devices()
     )
 
-    # Both matrix dimensions must be mapped to a named mesh axis.
-    assert isinstance(specs, P)
-    assert tuple(specs) == tuple(mesh.axis_names)
+    # Each matrix dimension is either mapped onto one axis of the mesh, or not
+    # distributed (a degenerate grid), and the grid has the expected shape.
+    assert isinstance(specs, P) and len(specs) == 2
+    assert any(axis is not None for axis in specs)
+    assert all(axis is None or axis in mesh.axis_names for axis in specs)
+    grid = tuple(1 if axis is None else mesh.shape[axis] for axis in specs)
+    assert grid == expected_grid
+    assert mesh.devices.size == grid[0] * grid[1]
 
     process_rows, process_cols = expected_grid
     # The matrix must be evenly block-distributed over the grid...
@@ -335,50 +382,112 @@ def _check_cusolvermp_contract(call, expected_grid):
     # ... and every process row/column must own at least one tile.
     assert T_A > 0
     assert -(-n // T_A) >= max(process_rows, process_cols)
+    # The default tile size avoids padding the local shards.
+    assert (n // process_rows) % T_A == 0
+    assert (n // process_cols) % T_A == 0
 
 
+@pytest.fixture(params=[AxisType.Auto, AxisType.Explicit], ids=["auto", "explicit"])
+def context_mesh(request):
+    """Run the test with a NetKet-like 'S' mesh of the given axis type."""
+    mesh = Mesh(np.asarray(jax.devices()), ("S",), axis_types=(request.param,))
+    with jax.set_mesh(mesh):
+        yield mesh
+
+
+def _spd_problem(n, context_mesh, A_specs=P("S", None)):
+    key = jax.random.PRNGKey(42)
+    A_base = jax.random.normal(key, (n, n))
+    A = A_base @ A_base.T / n + jnp.eye(n)
+    b = jax.random.normal(key, (n,))
+    A_sharded = jax.device_put(A, NamedSharding(context_mesh, A_specs))
+    b_sharded = jax.device_put(b, NamedSharding(context_mesh, P()))
+    return A, b, A_sharded, b_sharded
+
+
+@pytest.mark.parametrize("jit", [False, True], ids=["eager", "jit"])
 @pytest.mark.parametrize("process_grid", [None, *PROCESS_GRIDS])
-def test_cholesky_distributed_interface(monkeypatch, process_grid):
+@pytest.mark.parametrize(
+    "A_specs",
+    [P("S", None), P(None, "S"), P()],
+    ids=["A_rows", "A_cols", "A_replicated"],
+)
+@pytest.mark.parametrize(
+    "solver, reference",
+    [
+        pytest.param(
+            nk.optimizer.solver.cholesky_distributed,
+            nk.optimizer.solver.cholesky,
+            id="cholesky",
+        ),
+        pytest.param(
+            nk.optimizer.solver.pinv_smooth_distributed,
+            nk.optimizer.solver.pinv_smooth,
+            id="pinv_smooth",
+        ),
+    ],
+)
+def test_distributed_solvers_interface(
+    monkeypatch, context_mesh, solver, reference, A_specs, process_grid, jit
+):
     calls = _install_fake_jaxmg(monkeypatch)
 
     n = 16 * N_DEVICES
-    key = jax.random.PRNGKey(42)
-    A_base = jax.random.normal(key, (n, n))
-    A = A_base @ A_base.T + jnp.eye(n) * 0.1
-    b = jax.random.normal(key, (n,))
+    A, b, A_sharded, b_sharded = _spd_problem(n, context_mesh, A_specs)
 
-    x, info = nk.optimizer.solver.cholesky_distributed(A, b, process_grid=process_grid)
+    def solve(A, b):
+        return solver(A, b, process_grid=process_grid)
+
+    if jit:
+        solve = jax.jit(solve)
+    x, info = solve(A_sharded, b_sharded)
 
     assert info is None
+    # The solution is replicated on the context mesh, where NetKet can use it.
+    assert x.sharding.mesh.axis_names == context_mesh.axis_names
+    assert x.sharding.is_fully_replicated
+    np.testing.assert_allclose(x, reference(A, b)[0], rtol=1e-5, atol=1e-8)
+
+    assert len(calls) == 1
+    expected_grid = (N_DEVICES, 1) if process_grid is None else process_grid
+    _check_cusolvermp_contract(calls[0], expected_grid)
+    if process_grid is None:
+        # The default grid lives on the context mesh, so `A` is not moved.
+        assert calls[0]["mesh"].axis_names == context_mesh.axis_names
+
+
+@pytest.mark.parametrize(
+    "n_local, max_tile_size, expected",
+    [
+        (2048, 4096, 2048),  # the whole local shard
+        (12500, 4096, 3125),  # the largest divisor below the cap
+        (12500, 512, 500),
+        # prime: padding beats tiny tiles, but is kept to a minimum
+        (4099, 512, 456),
+        (4099, 4096, 2050),
+        (40, 512, 40),  # small matrices use a single tile
+    ],
+)
+def test_default_tile_size(n_local, max_tile_size, expected):
+    grid = jaxmg_grid((N_DEVICES, 1))
+    n = n_local * N_DEVICES
+    assert default_tile_size(n, grid, max_tile_size=max_tile_size) == expected
+
+
+def test_cholesky_distributed_mixed_dtypes(monkeypatch, context_mesh):
+    """jaxmg requires A and b to have the same dtype, unlike jnp.linalg.solve."""
+    _install_fake_jaxmg(monkeypatch)
+
+    n = 16 * N_DEVICES
+    A, b, A_sharded, b_sharded = _spd_problem(n, context_mesh)
+    b_sharded = b_sharded.astype(jnp.float32)
+
+    x, _ = nk.optimizer.solver.cholesky_distributed(A_sharded, b_sharded)
+    assert x.dtype == A.dtype
     np.testing.assert_allclose(x, nk.optimizer.solver.cholesky(A, b)[0], rtol=1e-5)
 
-    assert len(calls) == 1
-    expected_grid = (N_DEVICES, 1) if process_grid is None else process_grid
-    _check_cusolvermp_contract(calls[0], expected_grid)
 
-
-@pytest.mark.parametrize("process_grid", [None, *PROCESS_GRIDS])
-def test_pinv_smooth_distributed_interface(monkeypatch, process_grid):
-    calls = _install_fake_jaxmg(monkeypatch)
-
-    n = 16 * N_DEVICES
-    key = jax.random.PRNGKey(42)
-    A_base = jax.random.normal(key, (n, n))
-    A = A_base @ A_base.T + jnp.eye(n) * 0.1
-    b = jax.random.normal(key, (n,))
-
-    x, info = nk.optimizer.solver.pinv_smooth_distributed(
-        A, b, process_grid=process_grid
-    )
-
-    assert info is None
-    np.testing.assert_allclose(x, nk.optimizer.solver.pinv_smooth(A, b)[0], rtol=1e-5)
-
-    assert len(calls) == 1
-    expected_grid = (N_DEVICES, 1) if process_grid is None else process_grid
-    _check_cusolvermp_contract(calls[0], expected_grid)
-
-
+@pytest.mark.skipif(N_DEVICES == 1, reason="requires more than one device")
 @pytest.mark.parametrize(
     "solver",
     [
@@ -386,16 +495,15 @@ def test_pinv_smooth_distributed_interface(monkeypatch, process_grid):
         pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
     ],
 )
-def test_distributed_solvers_inside_jit(monkeypatch, solver):
-    """The solvers are usually called from inside of `jax.jit`."""
+def test_distributed_solvers_reordered_mesh(monkeypatch, solver):
+    """A mesh whose devices are not in `jax.devices()` order is rejected clearly."""
     _install_fake_jaxmg(monkeypatch)
 
+    mesh = Mesh(np.asarray(jax.devices())[::-1], ("S",))
     n = 16 * N_DEVICES
-    A = jnp.eye(n) * 2.0
-    b = jnp.ones((n,))
-
-    x = jax.jit(lambda A, b: solver(A, b)[0])(A, b)
-    np.testing.assert_allclose(x, jnp.full((n,), 0.5), rtol=1e-5)
+    with jax.set_mesh(mesh):
+        with pytest.raises(ValueError, match=r"order of `jax.devices\(\)`"):
+            solver(jnp.eye(n), jnp.ones((n,)))
 
 
 @pytest.mark.parametrize(

@@ -7,8 +7,8 @@
 
 ### Breaking Changes
 * The multi-GPU solvers {func}`netket.optimizer.solver.cholesky_distributed` and {func}`netket.optimizer.solver.pinv_smooth_distributed` now target [JAXMg](https://flatironinstitute.github.io/jaxmg/) 1.1.1 or later (`pip install 'netket[jaxmg]'`), which is built on NVIDIA's cuSOLVERMp instead of the deprecated cuSOLVERMg. This means they now also work **across multiple nodes**, but they require **one python process per GPU** (run your script with `djaxrun`, or call {func}`jax.distributed.initialize` yourself). Older `jaxmg` releases are no longer supported, and raise an informative error [issue #2258](https://github.com/netket/netket/issues/2258), [PR #2265](https://github.com/netket/netket/pull/2265).
-  Both solvers gained a `process_grid=(process_rows, process_cols)` argument to choose the shape of the 2D cuSOLVERMp process grid; it defaults to `(n_devices, 1)`, which matches the sharding NetKet uses for QGT/NTK matrices and needs no redistribution.
-  `jaxmg` is no longer part of the `extra` extra, because it pins an exact `jax` version.
+  Both solvers gained a `process_grid=(process_rows, process_cols)` argument to choose the shape of the 2D cuSOLVERMp process grid; it defaults to `(n_devices, 1)`, which matches the sharding NetKet uses for the NTK and needs no redistribution. They work with both Auto and Explicit mesh axes, and their default tile size now divides the local shard of the matrix whenever possible, so that it does not need to be padded.
+  `jaxmg` is no longer part of the `extra` extra, because every `jaxmg` release pins an exact `jax` version (e.g. `jaxmg` 1.3.0 requires `jax==0.11.1`).
   Both solvers keep `A` and `b` intact, so they can still be composed with {func}`netket.optimizer.solver.nan_fallback`, even though JAXMg's default entry points donate their input buffers.
 
 ### New Features

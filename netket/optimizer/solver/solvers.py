@@ -27,10 +27,13 @@ from netket._src.solvers.nan_fallback import (
 from netket._src.solvers.jaxmg_interface import (
     check_matrix_shardable,
     default_tile_size,
+    from_grid,
+    grid_context,
     import_jaxmg,
-    jaxmg_mesh,
-    jaxmg_mesh_context,
-    replicate_solution,
+    jaxmg_grid,
+    replicate,
+    replicated_matmul,
+    to_grid,
 )
 from netket.utils.citations import reference
 
@@ -403,6 +406,19 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
 
     .. note::
 
+        JAXMg factorises (the local shard of) ``A`` in place. Inside of a
+        jitted function where ``A`` is not used after the solve, as in
+        NetKet's drivers, this needs no copy of ``A`` if the default process
+        grid and tile size are used (unless the local shard of ``A`` has an
+        awkward size, with no divisor of at least 64 below the tile-size cap). If ``A`` is still needed afterwards, for
+        example when calling the solver eagerly or combining it with
+        :func:`~netket.optimizer.solver.nan_fallback`, a copy of the local
+        shard of ``A`` is made first. A non-default ``process_grid``, or a
+        ``local_tile_size`` not dividing the local shard, also require a
+        (padded) copy.
+
+    .. note::
+
         This solver expects the input matrix A to be sharded
         with `P("S", None)`.
 
@@ -419,8 +435,9 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
         local_tile_size: Tile size for matrix A. Controls the tiling strategy for
              distributed computation (see `choosing a tile size
              <https://flatironinstitute.github.io/jaxmg/latest/examples/choose_tile_size/>`_).
-             Defaults to the largest tile such that every process of the grid
-             owns at least one tile, capped at 4096.
+             Defaults to the largest tile dividing the local shard of `A`
+             (so that `A` needs no padding), capped at 4096, if one of at
+             least 64 exists.
 
              The tile size determines the memory/communication tradeoff:
 
@@ -436,8 +453,9 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
              communication overhead (increase local_tile_size).
         process_grid: Shape ``(process_rows, process_cols)`` of the 2D cuSOLVERMp
              process grid, which must have one slot per device. Defaults to
-             ``(n_devices, 1)``, which matches the sharding of `A` and therefore
-             requires no redistribution. A genuinely 2D grid reduces the
+             ``(n_devices, 1)``, which matches the row sharding NetKet uses for
+             the NTK (``use_ntk=True``), and therefore requires no
+             redistribution of `A`. A genuinely 2D grid reduces the
              communication volume of the factorisation itself, at the cost of
              redistributing `A` first, and can be faster for large matrices.
         x0: unused (kept for API compatibility)
@@ -465,29 +483,36 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
         A = A.to_dense()
     b, unravel = ravel_pytree(b)
 
-    mesh, matrix_specs = jaxmg_mesh(process_grid)
-    check_matrix_shardable(A.shape[0], mesh, caller="cholesky_distributed")
+    # jaxmg requires A and b to have the same dtype.
+    dtype = jnp.result_type(A, b)
+    A, b = A.astype(dtype), b.astype(dtype)
+
+    grid = jaxmg_grid(process_grid)
+    check_matrix_shardable(A.shape[0], grid, caller="cholesky_distributed")
 
     if local_tile_size is None:
         # Max value is 8192, but it seems 4096 is ok
-        local_tile_size = default_tile_size(A.shape[0], mesh, max_tile_size=4096)
+        local_tile_size = default_tile_size(A.shape[0], grid, max_tile_size=4096)
 
     # jaxmg reshapes a 1D `b` to a (N, 1) matrix, redistributes it over the
     # process grid, and gives the solution back with the sharding of `b`.
-    # The `_shardmap_ctx` entry point is used instead of `jaxmg.potrs` because
-    # the latter donates its input buffers, so it destroys `A` and `b` when
-    # called outside of `jax.jit`. NetKet's solvers must not consume the linear
-    # problem, or combinators reusing it, such as
+    # The `_shardmap_ctx` entry point, meant to be called inside of an outer
+    # `jax.jit`, is used because by default `jaxmg.potrs` donates `A` and `b`,
+    # deleting them when called outside of `jax.jit`. NetKet's solvers must not
+    # consume the linear problem, or combinators reusing it, such as
     # :func:`~netket.optimizer.solver.nan_fallback`, would crash.
-    with jaxmg_mesh_context(mesh):
+    A, b = to_grid(grid, A, b)
+    with grid_context(grid):
         _A_work, x, _status = jaxmg.potrs_shardmap_ctx(
             A,
             b,
             T_A=local_tile_size,
-            mesh=mesh,
-            matrix_specs=matrix_specs,
+            mesh=grid.mesh,
+            matrix_specs=grid.matrix_specs,
         )
-        x = replicate_solution(x, mesh)
+        # Needed if `b` was not replicated, as x is given back sharded like b.
+        x = replicate(grid, x)
+    x = from_grid(grid, x)
 
     return unravel(x), None
 
@@ -538,6 +563,17 @@ def pinv_smooth_distributed(
         because that is how NVIDIA's cuSOLVERMp works. Both single-node and
         multi-node setups are supported.
 
+    .. note::
+
+        JAXMg overwrites (the local shard of) ``A`` with its work space, and
+        stores the eigenvectors in a new buffer as large as ``A``, so the solve
+        needs about twice the memory of ``A``. If ``A`` is still needed
+        afterwards, for example when calling the solver eagerly or combining
+        it with :func:`~netket.optimizer.solver.nan_fallback`, a further copy
+        of the local shard of ``A`` is made first. A non-default
+        ``process_grid``, or a ``local_tile_size`` not dividing the local
+        shard, also require a (padded) copy.
+
     Args:
         A: the matrix A in Ax=b (should be symmetric/Hermitian, sharded)
         b: the vector b in Ax=b
@@ -551,8 +587,9 @@ def pinv_smooth_distributed(
         local_tile_size: Tile size for matrix A. Controls the tiling strategy for
              distributed computation (see `choosing a tile size
              <https://flatironinstitute.github.io/jaxmg/latest/examples/choose_tile_size/>`_).
-             Defaults to the largest tile such that every process of the grid
-             owns at least one tile, capped at 512.
+             Defaults to the largest tile dividing the local shard of `A`
+             (so that `A` needs no padding), capped at 512, if one of at
+             least 64 exists.
 
              The tile size determines the memory/communication tradeoff:
 
@@ -568,8 +605,9 @@ def pinv_smooth_distributed(
              communication overhead (increase local_tile_size).
         process_grid: Shape ``(process_rows, process_cols)`` of the 2D cuSOLVERMp
              process grid, which must have one slot per device. Defaults to
-             ``(n_devices, 1)``, which matches the sharding of `A` and therefore
-             requires no redistribution. A genuinely 2D grid reduces the
+             ``(n_devices, 1)``, which matches the row sharding NetKet uses for
+             the NTK (``use_ntk=True``), and therefore requires no
+             redistribution of `A`. A genuinely 2D grid reduces the
              communication volume of the eigendecomposition itself, at the cost
              of redistributing `A` first, and can be faster for large matrices.
 
@@ -598,24 +636,25 @@ def pinv_smooth_distributed(
         A = A.to_dense()
     b, unravel = ravel_pytree(b)
 
-    mesh, matrix_specs = jaxmg_mesh(process_grid)
-    check_matrix_shardable(A.shape[0], mesh, caller="pinv_smooth_distributed")
+    grid = jaxmg_grid(process_grid)
+    check_matrix_shardable(A.shape[0], grid, caller="pinv_smooth_distributed")
 
     if local_tile_size is None:
         # Max value is 1024 (see https://docs.nvidia.com/cuda/pdf/CUSOLVER_Library.pdf#page=361)
         # but 512 consumes less memory and seems ok
-        local_tile_size = default_tile_size(A.shape[0], mesh, max_tile_size=512)
+        local_tile_size = default_tile_size(A.shape[0], grid, max_tile_size=512)
 
+    A, b = to_grid(grid, A, b)
     # The eigenvectors are sharded over the process grid, so the reconstruction
     # of the solution must happen inside of the process grid mesh as well.
-    with jaxmg_mesh_context(mesh):
+    with grid_context(grid):
         # Compute eigendecomposition using distributed solver. As above, the
         # `_shardmap_ctx` entry point is the one that does not consume `A`.
         _A_work, Σ, U, _status = jaxmg.syevd_shardmap_ctx(
             A,
             T_A=local_tile_size,
-            mesh=mesh,
-            matrix_specs=matrix_specs,
+            mesh=grid.mesh,
+            matrix_specs=grid.matrix_specs,
         )
 
         # Discard eigenvalues below numerical precision
@@ -626,6 +665,9 @@ def pinv_smooth_distributed(
 
         Σ_inv = Σ_inv * regularizer
 
-        x = replicate_solution(U @ (Σ_inv * (U.conj().T @ b)), mesh)
+        # U is sharded over the process grid.
+        y = replicated_matmul(grid, U.conj().T, b)
+        x = replicated_matmul(grid, U, Σ_inv * y)
+    x = from_grid(grid, x)
 
     return unravel(x), None

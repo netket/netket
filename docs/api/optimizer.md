@@ -106,7 +106,8 @@ They are not really much faster than the ones above, but allow you to use ~100k 
 :::{warning}
 Those solvers require `jaxmg >= 1.1.1`, installed with `pip install 'netket[jaxmg]'`
 (or `pip install 'jaxmg[cuda13]'` on CUDA 13). It is not part of the `extra` extra
-because it pins an exact jax version.
+because every jaxmg release pins an exact jax version (e.g. jaxmg 1.3.0 requires
+`jax==0.11.1`), so installing it may change the version of jax you use.
 
 As JAXMg builds upon NVIDIA's cuSOLVERMp, it requires **one python process per GPU**: run
 your script with `djaxrun` (or call {func}`jax.distributed.initialize` yourself) such that
