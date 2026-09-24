@@ -93,6 +93,8 @@ class EarlyStopping(AbstractCallback, mutable=True):
         self._best_iter = 0
         self._best_patience_counter = 0
 
+    # TODO: backward compatibility for checkpoints saved before September 2026.
+    # Remove in 2027.
     def __process_deserialization_state__(self, state):
         # Files saved by older versions do not contain the best-so-far state.
         names = ("_best_val", "_best_iter", "_best_patience_counter")
