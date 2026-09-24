@@ -44,6 +44,13 @@ def test_missing_module():
         import_optional_dependency("_netket_missing_dep", descr="something")
 
 
+def test_missing_module_extra_msg():
+    with pytest.raises(ModuleNotFoundError, match="extra hint"):
+        import_optional_dependency(
+            "_netket_missing_dep", descr="something", extra_msg="extra hint"
+        )
+
+
 def test_missing_module_version_spec():
     with pytest.raises(ModuleNotFoundError, match=r">=1\.2,<2\.0"):
         import_optional_dependency(

@@ -46,7 +46,11 @@ from netket.utils.optional_deps import import_optional_dependency
 # because 1.1 added support for single-axis meshes, which we rely on.
 JAXMG_MIN_VERSION = "1.1.1"
 
-_JAXMG_VERSION_MSG = """NetKet uses the cuSOLVERMp interface introduced in `jaxmg` 1.0,
+_JAXMG_VERSION_MSG = """Install jaxmg with the CUDA version of your jax, which also
+                    installs NVIDIA's cuSOLVERMp library:
+                    `pip install 'jaxmg[cuda12]'` or `pip install 'jaxmg[cuda13]'`.
+
+                    NetKet uses the cuSOLVERMp interface introduced in `jaxmg` 1.0,
                     and requires at least 1.1.1, whose cuSOLVERMp fixes wrong
                     eigendecompositions of large matrices. Older releases
                     (0.0.x) wrapped the now deprecated cuSOLVERMg backend with a

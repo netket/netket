@@ -30,8 +30,8 @@ def import_optional_dependency(
         maximum_version: if specified, the first unsupported version (exclusive).
         descr: description of the NetKet functionality requiring this module,
             used in the error messages.
-        extra_msg: additional explanation appended to the error raised when the
-            installed version is not supported.
+        extra_msg: additional explanation appended to the errors raised when the
+            module is missing or its version is not supported.
     """
     bounds = []
     if minimum_version != "":
@@ -53,6 +53,7 @@ def import_optional_dependency(
 
                 pip install '{requirement}'
 
+            {extra_msg}
             """
         )
 
