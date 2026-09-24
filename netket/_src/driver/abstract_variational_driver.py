@@ -85,6 +85,12 @@ class AbstractDriver(struct.Pytree, mutable=True):
         - :meth:`~netket.driver.AbstractDriver.reset_step` (optional):
           reset the sampler at the start of each step.
 
+        To support checkpointing, set every saved field in ``__init__``, with the
+        same structure, shapes and dtypes it will have after running, instead of
+        creating it at the first step. A checkpoint can then be restored into a
+        newly created driver. Values recomputed at every step should not be saved
+        (``serialize=False``, see :func:`netket.utils.struct.field`).
+
     """
 
     # Configuration fields, not very important
