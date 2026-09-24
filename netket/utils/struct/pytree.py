@@ -356,6 +356,9 @@ class Pytree(metaclass=PytreeMeta):
         """
         Change the saved state, keyed by attribute name, before it is loaded.
         For example, to fill in fields missing from files saved by older versions.
+
+        See the "Loading Files Saved by Older Versions" section of the PyTree user
+        guide (:doc:`/user-guides/pytree`) for an example.
         """
         return state
 
