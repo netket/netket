@@ -97,6 +97,36 @@ def test_earlystopping_baseline_with_patience():
     assert es._best_val == loss_values[10]
 
 
+def test_earlystopping_resumes_patience_from_checkpoint():
+    driver = DummyDriver()
+    es = nk.callbacks.EarlyStopping(patience=10)
+    for step in range(6):
+        es.on_step_end(step, {"loss": DummyLogEntry(1.0)}, driver)
+
+    # Resume from a checkpoint: the patience counter keeps going.
+    state = flax.serialization.to_state_dict(es)
+    es = flax.serialization.from_state_dict(
+        nk.callbacks.EarlyStopping(patience=10), state
+    )
+    with pytest.raises(nk.callbacks.StopRun):
+        for step in range(6, 20):
+            es.on_step_end(step, {"loss": DummyLogEntry(1.0)}, driver)
+    # The best value was at step 0, so it stops at step 11 (not 17, as it
+    # would if the patience counter started over when resuming).
+    assert step == 11
+
+
+def test_earlystopping_loads_file_from_older_version():
+    # Older versions did not save the best-so-far state.
+    state = flax.serialization.to_state_dict(nk.callbacks.EarlyStopping())
+    for key in ["_best_val", "_best_iter", "_best_patience_counter"]:
+        del state[key]
+
+    es = flax.serialization.from_state_dict(nk.callbacks.EarlyStopping(), state)
+    assert es._best_val == np.inf
+    assert es._best_patience_counter == 0
+
+
 def test_earlystopping_with_delayed_start():
     loss_values = np.array([11] * 20 + [10] * 12 + [9] * 6, dtype=float)
     es = nk.callbacks.EarlyStopping(patience=10, start_from_step=9)
