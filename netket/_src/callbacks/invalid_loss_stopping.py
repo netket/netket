@@ -56,6 +56,8 @@ class InvalidLossStopping(AbstractCallback, mutable=True):
         self.patience = patience
         self._last_valid_iter = 0
 
+    # TODO: backward compatibility for checkpoints saved before September 2026.
+    # Remove in 2027.
     def __process_deserialization_state__(self, state):
         # Files saved by older versions do not contain it.
         return {"_last_valid_iter": self._last_valid_iter, **state}
