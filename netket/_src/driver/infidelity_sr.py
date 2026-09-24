@@ -22,6 +22,7 @@ from netket._src.driver.abstract_optimization_driver import (
 )
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
+from netket._src.driver.vmc_sr import _init_momentum_buffer
 from netket._src.nn.apply_operator.functional import make_logpsi_op_afun
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
 from netket._src.observable.infidelity.expect import get_local_estimator
@@ -109,7 +110,7 @@ class Infidelity_SR(AbstractOptimizationDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    info: Any | None = None
+    info: Any | None = struct.field(serialize=False, default=None)
     """
     PyTree to pass on information from the solver,e.g, the quadratic model.
     """
@@ -257,7 +258,11 @@ class Infidelity_SR(AbstractOptimizationDriver):
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
 
-        self._old_updates: PyTree = None
+        # Built here rather than at the first step, so that a freshly built
+        # driver can load it back from a checkpoint.
+        self._old_updates = _init_momentum_buffer(
+            self.state.parameters, self.momentum, self._on_the_fly
+        )
 
         # PyTree to pass on information from the solver, e.g, the quadratic model
         self.info = None
