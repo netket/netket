@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import deque
-
 import numpy as np
+from flax import serialization
 
 from netket.utils import struct
 
@@ -41,8 +40,11 @@ class ConvergenceStopping(AbstractCallback, mutable=True):
     """The loss must be consistently below this value for this number of
     iterations in order to stop the optimisation."""
 
-    _loss_window: deque = struct.field(pytree_node=False, serialize=False)
-    _patience_counter: int = struct.field(pytree_node=False, serialize=False, default=0)
+    # Saved, so that a run resumed from a checkpoint keeps its history. The window
+    # has a fixed length: only its last `_n_losses` entries are filled.
+    _loss_window: tuple[float, ...] = struct.field(pytree_node=False, serialize=True)
+    _n_losses: int = struct.field(pytree_node=False, serialize=True, default=0)
+    _patience_counter: int = struct.field(pytree_node=False, serialize=True, default=0)
 
     def __init__(
         self,
@@ -73,8 +75,20 @@ class ConvergenceStopping(AbstractCallback, mutable=True):
         self.smoothing_window = smoothing_window
         self.patience = patience
 
-        self._loss_window = deque([], maxlen=smoothing_window)
+        self._loss_window = (0.0,) * smoothing_window
+        self._n_losses = 0
         self._patience_counter = 0
+
+    def __process_deserialization_state__(self, state):
+        # If the file has no window (older versions) or one of a different size,
+        # start the window over.
+        if len(state.get("_loss_window", ())) != self.smoothing_window:
+            state = {
+                k: v for k, v in state.items() if k not in ("_loss_window", "_n_losses")
+            }
+        names = ("_loss_window", "_n_losses", "_patience_counter")
+        defaults = {n: serialization.to_state_dict(getattr(self, n)) for n in names}
+        return {**defaults, **state}
 
     @property
     def callback_order(self) -> int:
@@ -82,10 +96,11 @@ class ConvergenceStopping(AbstractCallback, mutable=True):
         return STOPPING_CALLBACK_ORDER
 
     def on_step_end(self, step, log_data, driver):
-        loss = np.asarray(np.real(getattr(log_data[driver._loss_name], self.monitor)))
+        loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
 
-        self._loss_window.append(loss)
-        loss_smooth = np.mean(self._loss_window)
+        self._loss_window = (*self._loss_window[1:], float(np.mean(loss)))
+        self._n_losses = min(self._n_losses + 1, self.smoothing_window)
+        loss_smooth = np.mean(self._loss_window[-self._n_losses :])
 
         if loss_smooth <= self.target:
             self._patience_counter += 1

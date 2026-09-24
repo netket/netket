@@ -358,6 +358,80 @@ def test_save_variational_state_max_to_keep(tmp_path):
     assert checkpoints == [f"{root}_00015.nk", f"{root}_00020.nk"]
 
 
+def _stop_step(make_callback, losses, resume_at=None):
+    """Feeds `losses` to a stopping callback and returns the step at which it stops.
+
+    If `resume_at` is given, the callback is saved and loaded into a new one at
+    that step, as when a run is resumed from a checkpoint.
+    """
+    cb = make_callback()
+    driver = DummyDriver()
+    for step, loss in enumerate(losses):
+        if step == resume_at:
+            data = flax.serialization.to_bytes(cb)
+            cb = flax.serialization.from_bytes(make_callback(), data)
+        driver.step_count = step
+        driver._loss_stats = DummyLogEntry(loss)
+        try:
+            cb.on_step_end(step, {"loss": DummyLogEntry(loss)}, driver)
+        except nk.callbacks.StopRun:
+            return step
+    return None
+
+
+STOPPING_CASES = {
+    "EarlyStopping": (
+        lambda: nk.callbacks.EarlyStopping(patience=5),
+        [1.0] * 20,
+        3,
+    ),
+    "ConvergenceStopping": (
+        lambda: nk.callbacks.ConvergenceStopping(
+            target=1.0, patience=3, smoothing_window=3
+        ),
+        [5.0, 5.0] + [0.0] * 10,
+        3,
+    ),
+    "InvalidLossStopping": (
+        lambda: nk.callbacks.InvalidLossStopping(patience=3),
+        [1.0] * 8 + [np.inf] * 10,
+        9,
+    ),
+}
+
+
+@pytest.mark.parametrize("name", STOPPING_CASES)
+def test_stopping_callbacks_resume_from_checkpoint(name):
+    make_callback, losses, resume_at = STOPPING_CASES[name]
+    expected = _stop_step(make_callback, losses)
+    assert expected is not None
+    assert _stop_step(make_callback, losses, resume_at=resume_at) == expected
+
+
+@pytest.mark.parametrize("name", STOPPING_CASES)
+def test_stopping_callbacks_load_file_from_older_version(name):
+    make_callback, _, _ = STOPPING_CASES[name]
+    # Older versions did not save the private fields.
+    state = flax.serialization.to_state_dict(make_callback())
+    state = {k: v for k, v in state.items() if not k.startswith("_")}
+    cb = flax.serialization.from_state_dict(make_callback(), state)
+    assert flax.serialization.to_state_dict(cb) == flax.serialization.to_state_dict(
+        make_callback()
+    )
+
+
+def test_convergence_stopping_resume_with_other_window_size():
+    old = nk.callbacks.ConvergenceStopping(target=1.0, smoothing_window=5)
+    driver = DummyDriver()
+    for step in range(3):
+        old.on_step_end(step, {"loss": DummyLogEntry(2.0)}, driver)
+
+    new = nk.callbacks.ConvergenceStopping(target=1.0, smoothing_window=3)
+    new = flax.serialization.from_state_dict(new, flax.serialization.to_state_dict(old))
+    assert new._loss_window == (0.0,) * 3
+    assert new._n_losses == 0
+
+
 def test_convergence_stopping():
     loss_values = [10] + [9] * 12 + [1] * 4
     es = nk.callbacks.ConvergenceStopping(target=9.0, patience=10, smoothing_window=1)
