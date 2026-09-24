@@ -395,7 +395,7 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
     .. note::
 
         This solver requires the `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_
-        package (version 1.0 or later) to be installed, and it must run with
+        package (version 1.1.1 or later) to be installed, and it must run with
         **one python process per GPU** (launch your script with
         ``djaxrun``, or call :func:`jax.distributed.initialize` yourself),
         because that is how NVIDIA's cuSOLVERMp works. Both single-node and
@@ -532,7 +532,7 @@ def pinv_smooth_distributed(
     .. note::
 
         This solver requires the `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_
-        package (version 1.0 or later) to be installed, and it must run with
+        package (version 1.1.1 or later) to be installed, and it must run with
         **one python process per GPU** (launch your script with
         ``djaxrun``, or call :func:`jax.distributed.initialize` yourself),
         because that is how NVIDIA's cuSOLVERMp works. Both single-node and

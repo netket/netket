@@ -35,18 +35,20 @@ from netket.utils.optional_deps import import_optional_dependency
 
 # `jaxmg` 1.0 rewrote the whole interface on top of cuSOLVERMp. The 0.0.x series
 # wrapped the deprecated cuSOLVERMg backend, driving many GPUs from a single
-# process, and had a different API.
-JAXMG_MIN_VERSION = "1.0.0"
+# process, and had a different API. 1.1.1 is required because it ships the
+# cuSOLVERMp release fixing wrong results of `syevd` on large matrices.
+JAXMG_MIN_VERSION = "1.1.1"
 
-_JAXMG_VERSION_MSG = """NetKet uses the cuSOLVERMp interface introduced in `jaxmg` 1.0.
-                    Older releases (0.0.x) wrapped the now deprecated cuSOLVERMg
-                    backend with a different API, and are only supported by
-                    NetKet 3.22 and earlier."""
+_JAXMG_VERSION_MSG = """NetKet uses the cuSOLVERMp interface introduced in `jaxmg` 1.0,
+                    and requires at least 1.1.1, whose cuSOLVERMp fixes wrong
+                    eigendecompositions of large matrices. Older releases
+                    (0.0.x) wrapped the now deprecated cuSOLVERMg backend with a
+                    different API, and are only supported by NetKet 3.22 and
+                    earlier."""
 
-# Names of the two axes of the cuSOLVERMp process grid. cuSOLVERMp requires both
-# matrix dimensions to be mapped onto a named mesh axis, so we cannot reuse
-# NetKet's single-axis ('S') mesh and build a dedicated 2D mesh over the same
-# devices instead.
+# Names of the two axes of the cuSOLVERMp process grid. NetKet's own single-axis
+# ('S') mesh can only describe a (n_devices, 1) grid, so we build a dedicated 2D
+# mesh over the same devices, which handles every process grid the same way.
 JAXMG_AXIS_NAMES = ("jaxmg_rows", "jaxmg_cols")
 
 

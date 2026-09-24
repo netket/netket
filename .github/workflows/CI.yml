@@ -61,6 +61,13 @@ jobs:
             test_type: "sharding"
             sharding_script: "run_test_sharding_distributed.sh"
 
+    env:
+      # The suite is compilation-bound; reuse XLA executables across xdist workers
+      # and across runs. Keys cover HLO + target, so a hit is identical work.
+      JAX_COMPILATION_CACHE_DIR: ${{ github.workspace }}/.jax-cache
+      # Default 1s would skip most of this suite's many small compilations.
+      JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS: "0"
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,10 +83,41 @@ jobs:
         run: |
           uv sync --extra dev --extra extra ${{ matrix.test_type != 'sharding' && '--extra pyscf' || '' }}
 
+      # Keys track the host CPU target and ubuntu-latest is a mixed fleet, so one
+      # shared cache hit nothing and doubled each run (--xla_cpu_max_isa does not
+      # help). Keys are stable per CPU, so cache per environment, fingerprinted by
+      # hashing the filenames one trivial jit emits -- those are jax's keys. See #2264.
+      - name: Fingerprint the compilation environment
+        id: jaxfp
+        run: |
+          probe=$(mktemp -d)
+          JAX_COMPILATION_CACHE_DIR="$probe" \
+          JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS=0 \
+            uv run python -c "
+          import jax, jax.numpy as jnp
+          jax.block_until_ready(jax.jit(lambda x: (x * 2.0 + 1.0).sum())(jnp.ones((8, 8))))
+          "
+          fp=$(ls "$probe" | sort | { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } | cut -c1-16)
+          echo "Compilation environment fingerprint: $fp"
+          echo "fp=$fp" >> "$GITHUB_OUTPUT"
+          rm -rf "$probe"
+
+      # Restored always, written only on main, so PRs share one stable cache.
+      - name: Restore JAX compilation cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.jax-cache
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-
+          restore-keys: |
+            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-
+
       - name: Main tests
         if: ${{ matrix.test_type == 'main' }}
         run: |
           export NETKET_EXPERIMENTAL=1
+          # Left on `-n auto` (2 workers here) on purpose: `-n logical` gives 4 and
+          # is faster, but killed the runner twice with a shutdown signal and no
+          # failing test, i.e. OOM. To retry, lower --clear-cache-every. See #2264.
           uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
 
       - name: Docstring tests
@@ -91,6 +129,22 @@ jobs:
         if: ${{ matrix.test_type == 'sharding' }}
         run: |
           uv run ./test_sharding/"${{ matrix.sharding_script }}" -m 'not slow'
+
+      # run_id stores a fresh entry per push, found by the prefix above. always():
+      # an executable is valid even if the test asserting on it failed.
+      - name: Prune JAX compilation cache
+        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          # jax never evicts, so drop entries unwritten for a week.
+          find "$JAX_COMPILATION_CACHE_DIR" -type f -mtime +7 -delete 2>/dev/null || true
+          du -sh "$JAX_COMPILATION_CACHE_DIR" || true
+
+      - name: Save JAX compilation cache
+        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.jax-cache
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-${{ github.run_id }}
 
       - name: Generate coverage report
         if: always()

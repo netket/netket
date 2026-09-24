@@ -45,12 +45,14 @@ class EarlyStopping(AbstractCallback, mutable=True):
     start_from_step: int = struct.field(pytree_node=False)
     """Number of steps to wait before the callback has any effect."""
 
-    _best_val: float = struct.field(pytree_node=False, serialize=False, default=np.inf)
+    # Saved, so that a run resumed from a checkpoint keeps counting its patience
+    # instead of starting over.
+    _best_val: float = struct.field(pytree_node=False, serialize=True, default=np.inf)
     """Best value of the loss observed up to this iteration."""
-    _best_iter: int = struct.field(pytree_node=False, serialize=False, default=0)
+    _best_iter: int = struct.field(pytree_node=False, serialize=True, default=0)
     """Iteration at which the `_best_val` was observed."""
     _best_patience_counter: int = struct.field(
-        pytree_node=False, serialize=False, default=0
+        pytree_node=False, serialize=True, default=0
     )
     """Stores how many steps have elapsed without an improvement."""
 
@@ -91,6 +93,14 @@ class EarlyStopping(AbstractCallback, mutable=True):
         self._best_iter = 0
         self._best_patience_counter = 0
 
+    # TODO: backward compatibility for checkpoints saved before September 2026.
+    # Remove in 2027.
+    def __process_deserialization_state__(self, state):
+        # Files saved by older versions do not contain the best-so-far state.
+        names = ("_best_val", "_best_iter", "_best_patience_counter")
+        defaults = {name: self._pytree__fields[name].default for name in names}
+        return {**defaults, **state}
+
     @property
     def callback_order(self) -> int:
         # Run last, so raising StopRun never skips a later callback's collective.
@@ -104,7 +114,7 @@ class EarlyStopping(AbstractCallback, mutable=True):
 
         self._best_patience_counter += 1
         if self._is_improvement(loss, self._best_val):
-            self._best_val = loss
+            self._best_val = float(loss)
             self._best_iter = step
 
             if self.baseline is None:

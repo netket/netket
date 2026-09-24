@@ -97,6 +97,36 @@ def test_earlystopping_baseline_with_patience():
     assert es._best_val == loss_values[10]
 
 
+def test_earlystopping_resumes_patience_from_checkpoint():
+    driver = DummyDriver()
+    es = nk.callbacks.EarlyStopping(patience=10)
+    for step in range(6):
+        es.on_step_end(step, {"loss": DummyLogEntry(1.0)}, driver)
+
+    # Resume from a checkpoint: the patience counter keeps going.
+    state = flax.serialization.to_state_dict(es)
+    es = flax.serialization.from_state_dict(
+        nk.callbacks.EarlyStopping(patience=10), state
+    )
+    with pytest.raises(nk.callbacks.StopRun):
+        for step in range(6, 20):
+            es.on_step_end(step, {"loss": DummyLogEntry(1.0)}, driver)
+    # The best value was at step 0, so it stops at step 11 (not 17, as it
+    # would if the patience counter started over when resuming).
+    assert step == 11
+
+
+def test_earlystopping_loads_file_from_older_version():
+    # Older versions did not save the best-so-far state.
+    state = flax.serialization.to_state_dict(nk.callbacks.EarlyStopping())
+    for key in ["_best_val", "_best_iter", "_best_patience_counter"]:
+        del state[key]
+
+    es = flax.serialization.from_state_dict(nk.callbacks.EarlyStopping(), state)
+    assert es._best_val == np.inf
+    assert es._best_patience_counter == 0
+
+
 def test_earlystopping_with_delayed_start():
     loss_values = np.array([11] * 20 + [10] * 12 + [9] * 6, dtype=float)
     es = nk.callbacks.EarlyStopping(patience=10, start_from_step=9)
@@ -266,6 +296,37 @@ def test_invalid_loss_stopping_correct_interval():
     assert cb._last_valid_iter == 2
 
 
+def test_invalid_loss_stopping_vector_valued():
+    # A vector-valued loss (e.g. a foundation ReplicaStats has one mean per
+    # anchor) must not crash the finiteness check: `not np.isfinite(loss)` is
+    # ambiguous for a non-scalar array. The run stops iff any component is
+    # non-finite, and only after `patience` consecutive invalid steps.
+    patience = 4
+    cb = nk.callbacks.InvalidLossStopping(patience=patience)
+
+    driver = nk.driver.AbstractVariationalDriver(
+        FakeState(), nk.optimizer.Sgd(0.01), minimized_quantity_name="loss"
+    )
+    log_data = {}
+
+    # All-finite vector: valid, no crash.
+    driver._step_count = 0
+    driver._loss_stats = nk.stats.Stats(mean=np.array([1.0, 2.0, 3.0]))
+    cb.on_step_end(None, log_data, driver)
+    assert cb._last_valid_iter == 0
+
+    # One non-finite component: invalid, but within patience so no stop yet.
+    driver._step_count = 1
+    driver._loss_stats = nk.stats.Stats(mean=np.array([1.0, np.nan, 3.0]))
+    cb.on_step_end(None, log_data, driver)
+    assert cb._last_valid_iter == 0
+
+    # Still invalid after `patience` steps -> stop.
+    driver._step_count = patience + 1
+    with pytest.raises(nk.callbacks.StopRun):
+        cb.on_step_end(None, log_data, driver)
+
+
 def test_save_variational_state_max_to_keep(tmp_path):
     pytest.importorskip("nqxpack")
 
@@ -274,7 +335,7 @@ def test_save_variational_state_max_to_keep(tmp_path):
     max_to_keep = 2
     root = "state"
 
-    cb = nk.callbacks.SaveVariationalState(
+    cb = nk.logging.SaveVariationalState(
         path=tmp_path, interval=interval, max_to_keep=max_to_keep
     )
 
@@ -295,6 +356,80 @@ def test_save_variational_state_max_to_keep(tmp_path):
     assert len(checkpoints) == max_to_keep
     # The newest saves are the last interval step (15) and the final step (20).
     assert checkpoints == [f"{root}_00015.nk", f"{root}_00020.nk"]
+
+
+def _stop_step(make_callback, losses, resume_at=None):
+    """Feeds `losses` to a stopping callback and returns the step at which it stops.
+
+    If `resume_at` is given, the callback is saved and loaded into a new one at
+    that step, as when a run is resumed from a checkpoint.
+    """
+    cb = make_callback()
+    driver = DummyDriver()
+    for step, loss in enumerate(losses):
+        if step == resume_at:
+            data = flax.serialization.to_bytes(cb)
+            cb = flax.serialization.from_bytes(make_callback(), data)
+        driver.step_count = step
+        driver._loss_stats = DummyLogEntry(loss)
+        try:
+            cb.on_step_end(step, {"loss": DummyLogEntry(loss)}, driver)
+        except nk.callbacks.StopRun:
+            return step
+    return None
+
+
+STOPPING_CASES = {
+    "EarlyStopping": (
+        lambda: nk.callbacks.EarlyStopping(patience=5),
+        [1.0] * 20,
+        3,
+    ),
+    "ConvergenceStopping": (
+        lambda: nk.callbacks.ConvergenceStopping(
+            target=1.0, patience=3, smoothing_window=3
+        ),
+        [5.0, 5.0] + [0.0] * 10,
+        3,
+    ),
+    "InvalidLossStopping": (
+        lambda: nk.callbacks.InvalidLossStopping(patience=3),
+        [1.0] * 8 + [np.inf] * 10,
+        9,
+    ),
+}
+
+
+@pytest.mark.parametrize("name", STOPPING_CASES)
+def test_stopping_callbacks_resume_from_checkpoint(name):
+    make_callback, losses, resume_at = STOPPING_CASES[name]
+    expected = _stop_step(make_callback, losses)
+    assert expected is not None
+    assert _stop_step(make_callback, losses, resume_at=resume_at) == expected
+
+
+@pytest.mark.parametrize("name", STOPPING_CASES)
+def test_stopping_callbacks_load_file_from_older_version(name):
+    make_callback, _, _ = STOPPING_CASES[name]
+    # Older versions did not save the private fields.
+    state = flax.serialization.to_state_dict(make_callback())
+    state = {k: v for k, v in state.items() if not k.startswith("_")}
+    cb = flax.serialization.from_state_dict(make_callback(), state)
+    assert flax.serialization.to_state_dict(cb) == flax.serialization.to_state_dict(
+        make_callback()
+    )
+
+
+def test_convergence_stopping_resume_with_other_window_size():
+    old = nk.callbacks.ConvergenceStopping(target=1.0, smoothing_window=5)
+    driver = DummyDriver()
+    for step in range(3):
+        old.on_step_end(step, {"loss": DummyLogEntry(2.0)}, driver)
+
+    new = nk.callbacks.ConvergenceStopping(target=1.0, smoothing_window=3)
+    new = flax.serialization.from_state_dict(new, flax.serialization.to_state_dict(old))
+    assert new._loss_window == (0.0,) * 3
+    assert new._n_losses == 0
 
 
 def test_convergence_stopping():
@@ -320,3 +455,43 @@ def test_convergence_stopping():
             break
 
     assert step == 13
+
+
+@pytest.mark.parametrize("restore_before_bar", [True, False])
+def test_progress_bar_after_resume(restore_before_bar):
+    # run(8) called at step 0, with a checkpoint restoring step 5 either before or
+    # after the progress bar starts.
+    driver = DummyDriver()
+    driver.step_count = 0
+    driver._start_step = 0
+    driver._loss_stats = None
+
+    pb = nk._src.callbacks.progressbar.ProgressBarCallback(8)
+    if restore_before_bar:
+        driver.step_count = 5
+    pb.on_run_start(driver.step_count, driver)
+    driver.step_count = 5
+    assert pb._pbar.n == (5 if restore_before_bar else 0)
+
+    for step in range(5, 8):
+        driver.step_count = step + 1
+        pb.on_step_end(step, {}, driver)
+    assert pb._pbar.n == 8
+    pb.on_run_end(driver.step_count, driver)
+
+
+def test_progress_bar_with_its_own_size():
+    # A bar bigger than the run, created by the user: run(10) shows 10/20.
+    driver = DummyDriver()
+    driver.step_count = 0
+    driver._start_step = 0
+    driver._loss_stats = None
+
+    pb = nk._src.callbacks.progressbar.ProgressBarCallback(20)
+    pb.on_run_start(0, driver)
+    assert pb._pbar.n == 0
+    for step in range(10):
+        driver.step_count = step + 1
+        pb.on_step_end(step, {}, driver)
+    assert pb._pbar.n == 10
+    pb.on_run_end(driver.step_count, driver)

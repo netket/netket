@@ -104,7 +104,7 @@ And the following dense solvers parallelize among multiple GPUs by making use of
 They are not really much faster than the ones above, but allow you to use ~100k samples because they keep the NTK sharded across the multiple GPUs.
 
 :::{warning}
-Those solvers require `jaxmg >= 1.0.0`, installed with `pip install 'netket[jaxmg]'`
+Those solvers require `jaxmg >= 1.1.1`, installed with `pip install 'netket[jaxmg]'`
 (or `pip install 'jaxmg[cuda13]'` on CUDA 13). It is not part of the `extra` extra
 because it pins an exact jax version.
 

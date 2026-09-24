@@ -80,7 +80,7 @@ class ProgressBarCallback(AbstractCallback, mutable=True):
     _leave: bool = struct.field(pytree_node=False, serialize=False)
 
     _n_steps: int = struct.field(pytree_node=False, serialize=False)
-    _last_step: int = struct.field(pytree_node=False, serialize=False)
+    _start_step: int = struct.field(pytree_node=False, serialize=False)
 
     _pbar: Any = struct.field(pytree_node=False, serialize=False)
 
@@ -90,7 +90,11 @@ class ProgressBarCallback(AbstractCallback, mutable=True):
         self._leave = leave
 
     def on_run_start(self, step, driver):
-        self._last_step = driver.step_count
+        # Count from the step the run started at, even if another callback
+        # changes the step count (e.g. when resuming from a checkpoint).
+        self._start_step = getattr(driver, "_start_step", None)
+        if self._start_step is None:
+            self._start_step = driver.step_count
 
         self._pbar = tqdm(
             total=self._n_steps,
@@ -98,7 +102,7 @@ class ProgressBarCallback(AbstractCallback, mutable=True):
             dynamic_ncols=True,
             leave=self._leave,
         )
-        self._pbar.update(driver.step_count - self._last_step)
+        self._pbar.update(driver.step_count - self._start_step)
         self._pbar.unpause()
         self._pbar.refresh()
 
@@ -110,12 +114,12 @@ class ProgressBarCallback(AbstractCallback, mutable=True):
             )
 
     def on_step_end(self, step, log_data, driver):
-        step_value = driver.step_count - self._last_step
+        step_value = driver.step_count - self._start_step
         self._pbar.update(step_value - self._pbar.n)
         self._pbar.refresh()
 
     def on_run_end(self, step, driver):
-        step_value = driver.step_count - self._last_step
+        step_value = driver.step_count - self._start_step
         if self._pbar is not None:
             self._pbar.update(step_value - self._pbar.n)
             self._pbar.refresh()

@@ -14,6 +14,7 @@
 
 """Tests for distributed solvers (cholesky_distributed, pinv_smooth_distributed)."""
 
+import re
 import sys
 from types import ModuleType
 
@@ -290,7 +291,7 @@ def test_pinv_smooth_distributed_regularization():
 # satisfying cuSOLVERMp's requirements.
 
 
-def _install_fake_jaxmg(monkeypatch, version="1.0.0"):
+def _install_fake_jaxmg(monkeypatch, version="1.3.0"):
     """Install a fake `jaxmg` recording its calls and solving with plain jax."""
     calls = []
 
@@ -444,14 +445,16 @@ def test_matrix_size_not_divisible_by_grid(monkeypatch, solver):
         pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
     ],
 )
-def test_unsupported_jaxmg_version(monkeypatch, solver):
-    """jaxmg 0.0.x wrapped cuSOLVERMg through a different, unsupported API."""
-    _install_fake_jaxmg(monkeypatch, version="0.0.9")
+@pytest.mark.parametrize("version", ["0.0.9", "1.0.0", "1.1.0"])
+def test_unsupported_jaxmg_version(monkeypatch, solver, version):
+    """jaxmg 0.0.x wrapped cuSOLVERMg through a different, unsupported API, and
+    jaxmg < 1.1.1 ships a cuSOLVERMp giving wrong eigendecompositions."""
+    _install_fake_jaxmg(monkeypatch, version=version)
 
     A = jnp.eye(16)
     b = jnp.ones((16,))
 
-    with pytest.raises(ImportError, match=r"jaxmg.*0\.0\.9"):
+    with pytest.raises(ImportError, match=rf"jaxmg.*{re.escape(version)}"):
         solver(A, b)
 
 

@@ -58,6 +58,19 @@ def test_hdf5log(vstate, tmp_path):
     assert f["data/Energy/value"].chunks[0] > 1
 
 
+def test_hdf5log_flush_accepts_variational_state(vstate, tmp_path):
+    # Regression test: drivers (TDVP, legacy/old driver paths) call
+    # `logger.flush(self.state)`, so flush must accept the variational_state
+    # argument mandated by the AbstractLog contract.
+    pytest.importorskip("h5py")
+
+    log = nk.logging.HDF5Log(str(tmp_path) + "/output")
+    log(0, {"Energy": jnp.array(1.0)}, vstate)
+
+    # Must not raise: mirrors the driver call sites.
+    log.flush(vstate)
+
+
 @common.skipif_distributed
 def test_hdf5log_preserves_structured_layout(tmp_path):
     h5py = pytest.importorskip("h5py")
