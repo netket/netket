@@ -105,6 +105,15 @@ def test_restore_into_fresh_driver(kind, param_dtype):
 
     restored = serialization.from_bytes(fresh, serialization.to_bytes(driver))
     assert restored.step_count == driver.step_count
+    online = getattr(driver, "_loss_stats_online", None)
+    if online is not None:
+        # The MCMC diagnostics use the right decay, and survive the restore.
+        assert fresh._loss_stats_online._decay == (
+            fresh._mcmc_convergence_diagnostics_ema_decay
+        )
+        restored_online = restored._loss_stats_online
+        assert restored_online._decay == online._decay
+        np.testing.assert_allclose(restored_online.R_hat, online.R_hat)
     restored.run(1, out=None, show_progress=False)
 
 
