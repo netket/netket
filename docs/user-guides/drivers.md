@@ -88,7 +88,7 @@ from netket.logging import SaveVariationalState
 gs.run(
     n_iter=300,
     out="output",
-    callback=SaveVariationalState("checkpoints/state", save_every=50),
+    callback=SaveVariationalState("checkpoints", interval=50),
 )
 ```
 
