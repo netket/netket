@@ -19,10 +19,10 @@ from netket.utils.version_check import version_tuple
 
 
 def import_optional_dependency(
-    name: str, minimum_version="", maximum_version="", descr=""
+    name: str, *, minimum_version="", maximum_version="", descr="", extra_msg=""
 ) -> ModuleType:
     """Try to import library `name`, and if it cannot be found or its version is
-    outside of the supported range, raise an informative error.
+    not supported, raise an informative error.
 
     Args:
         name: the name of the module to import.
@@ -30,6 +30,8 @@ def import_optional_dependency(
         maximum_version: if specified, the first unsupported version (exclusive).
         descr: description of the NetKet functionality requiring this module,
             used in the error messages.
+        extra_msg: additional explanation appended to the errors raised when the
+            module is missing or its version is not supported.
     """
     bounds = []
     if minimum_version != "":
@@ -51,6 +53,7 @@ def import_optional_dependency(
 
                 pip install '{requirement}'
 
+            {extra_msg}
             """
         )
 
@@ -71,6 +74,7 @@ def import_optional_dependency(
 
                     pip install '{requirement}'
 
+                {extra_msg}
                 """
             )
 
