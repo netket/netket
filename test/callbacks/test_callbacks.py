@@ -305,7 +305,7 @@ def test_save_variational_state_max_to_keep(tmp_path):
     max_to_keep = 2
     root = "state"
 
-    cb = nk.callbacks.SaveVariationalState(
+    cb = nk.logging.SaveVariationalState(
         path=tmp_path, interval=interval, max_to_keep=max_to_keep
     )
 
