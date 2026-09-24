@@ -60,6 +60,24 @@ def test_raise_n_iter():
         driver.run("prova", 12)
 
 
+class _RestoreStepCount(nk.callbacks.AbstractCallback):
+    """Sets the step count on run start, like a checkpointer resuming a run."""
+
+    def on_run_start(self, step, driver):
+        driver._step_count = 5
+
+
+def test_run_end_ignores_step_count_restored_on_run_start():
+    ha, sx, ma, sampler, driver = _setup_vmc()
+    log = nk.logging.RuntimeLog()
+    driver.run(8, out=log, callback=_RestoreStepCount())
+
+    assert driver.step_count == 8
+    assert driver._start_step == 0
+    assert driver._target_step == 8
+    assert list(log.data["Energy"].iters) == [5, 6, 7]
+
+
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 
