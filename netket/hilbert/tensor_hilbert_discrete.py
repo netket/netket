@@ -50,7 +50,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         r"""Constructs a tensor Hilbert space
 
         Args:
-            *hilb: An iterable object containing at least 1 hilbert space.
+            *hilb_spaces: An iterable object containing at least 1 hilbert space.
         """
         if not all(isinstance(hi, DiscreteHilbert) for hi in hilb_spaces):
             raise TypeError(

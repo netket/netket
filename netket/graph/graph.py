@@ -218,7 +218,7 @@ def Edgeless(n_nodes: int) -> Graph:
     Construct a set graph (collection of unconnected vertices).
 
     Args:
-        nodes: An integer number of nodes or a list of ints that index nodes of a graph.
+        n_nodes: An integer number of nodes or a list of ints that index nodes of a graph.
 
     Example:
         >>> import netket

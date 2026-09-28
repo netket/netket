@@ -290,7 +290,6 @@ def LU(A, b, *, trans=0, x0=None):
     Args:
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
-        lower: if True uses the lower half of the A matrix
         x0: unused
     """
 
@@ -362,7 +361,6 @@ def solve(A, b, *, assume_a="pos", x0=None):
     Args:
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
-        lower: if True uses the lower half of the A matrix
         x0: unused
     """
     del x0
