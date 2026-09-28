@@ -25,6 +25,8 @@ to seek feedback on your planned contribution.
 
 The NetKet project follows the [Contributor Covenant Code of Conduct](http://contributor-covenant.org/version/1/4/).
 
+See also our [policy on AI-assisted contributions](https://github.com/netket/netket/blob/master/CONTRIBUTING.md#ai-assisted-contributions).
+
 ## Contributing code using pull requests
 
 We do all of our development using git, so basic knowledge is assumed.
