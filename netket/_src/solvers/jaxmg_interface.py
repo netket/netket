@@ -18,41 +18,34 @@ Glue code between NetKet's distributed dense solvers and `jaxmg
 cuSOLVERMp multi-GPU dense linear algebra routines to jax.
 
 cuSOLVERMp distributes a matrix over a two-dimensional grid of processes, with
-one process per GPU. This module takes care of
+one process per GPU. `jaxmg` reads that grid off the sharding of the matrix (or
+off the context mesh inside :func:`jax.jit`), so the default ``(n_devices, 1)``
+grid, which matches how NetKet shards QGT/NTK matrices, is simply NetKet's mesh.
+This module takes care of
 
-- choosing the mesh describing that grid: NetKet's own mesh for the default
-  ``(n_devices, 1)`` grid, which matches how NetKet shards QGT/NTK matrices, or
-  a dedicated 2D mesh over the same devices otherwise;
-- moving the linear problem onto that mesh, and the solution back;
+- moving the linear problem onto a dedicated 2D mesh for other grids, and the
+  solution back;
 - picking a valid tile size for the grid.
 """
 
 import math
-from contextlib import AbstractContextManager, nullcontext
-from dataclasses import dataclass
-
-import numpy as np
+from collections.abc import Callable
 
 import jax
-import jax.numpy as jnp
-from jax.sharding import AxisType, Mesh, NamedSharding, PartitionSpec as P
+from jax.sharding import AxisType, NamedSharding, PartitionSpec as P
 
 from netket.utils.optional_deps import import_optional_dependency
 
-# `jaxmg` 1.0 rewrote the whole interface on top of cuSOLVERMp. The 0.0.x series
-# wrapped the deprecated cuSOLVERMg backend, driving many GPUs from a single
-# process, and had a different API. 1.1.1 is required because it ships the
-# cuSOLVERMp release fixing wrong results of `syevd` on large matrices, and
-# because 1.1 added support for single-axis meshes, which we rely on.
-JAXMG_MIN_VERSION = "1.1.1"
+# 1.4 is the first release inferring the mesh and the sharding of the matrix by
+# itself, also inside of `jax.jit`.
+JAXMG_MIN_VERSION = "1.4.0"
 
 _JAXMG_VERSION_MSG = """Install jaxmg with the CUDA version of your jax, which also
                     installs NVIDIA's cuSOLVERMp library:
                     `pip install 'jaxmg[cuda12]'` or `pip install 'jaxmg[cuda13]'`.
 
-                    NetKet uses the cuSOLVERMp interface introduced in `jaxmg` 1.0,
-                    and requires at least 1.1.1, whose cuSOLVERMp fixes wrong
-                    eigendecompositions of large matrices. Older releases
+                    NetKet requires at least `jaxmg` 1.4, which infers the mesh and
+                    the sharding of the matrix inside of `jax.jit`. Older releases
                     (0.0.x) wrapped the now deprecated cuSOLVERMg backend with a
                     different API, and are only supported by NetKet 3.22 and
                     earlier."""
@@ -80,86 +73,14 @@ def import_jaxmg(descr: str):
     )
 
 
-@dataclass(frozen=True)
-class JaxmgGrid:
-    """The cuSOLVERMp process grid on which `jaxmg` runs."""
-
-    mesh: Mesh
-    """Mesh whose devices are laid out as the process grid."""
-    matrix_specs: P
-    """Sharding of the matrix over `mesh`, as expected by `jaxmg`."""
-    context_mesh: Mesh | None
-    """Concrete counterpart of jax's context mesh, or None if there is none."""
-
-    @property
-    def shape(self) -> tuple[int, int]:
-        """Shape ``(process_rows, process_cols)`` of the grid."""
-        return tuple(
-            1 if axis is None else self.mesh.shape[axis] for axis in self.matrix_specs
-        )
-
-    @property
-    def is_context_mesh(self) -> bool:
-        """Whether the grid lives on the context mesh, so nothing is moved."""
-        return self.mesh == self.context_mesh
-
-
-def _context_mesh() -> Mesh | None:
+def process_grid_shape(process_grid: tuple[int, int] | None) -> tuple[int, int]:
     """
-    Concrete mesh matching jax's (abstract) context mesh, usually the one set
-    by NetKet, or None if no mesh is set.
-
-    :func:`jax.sharding.get_mesh` cannot be called inside of :func:`jax.jit`,
-    so the mesh is rebuilt from :func:`jax.devices`, assuming the devices are
-    laid out in that order, as in the mesh set by NetKet. Outside of
-    :func:`jax.jit` that assumption is checked, as a mesh with its devices in
-    another order would make jax fail with an obscure error under jit.
-    """
-    abstract_mesh = jax.sharding.get_abstract_mesh()
-    if abstract_mesh.empty:
-        return None
-    devices = np.asarray(jax.devices())
-    if abstract_mesh.size != devices.size:
-        raise ValueError(
-            f"The distributed solvers require the jax mesh to span all the "
-            f"{devices.size} devices, but it spans {abstract_mesh.size}. Set a "
-            "mesh over all of `jax.devices()` with `jax.sharding.set_mesh`."
-        )
-    mesh = Mesh(
-        devices.reshape(abstract_mesh.axis_sizes),
-        abstract_mesh.axis_names,
-        axis_types=abstract_mesh.axis_types,
-    )
-
-    try:
-        actual_mesh = jax.sharding.get_mesh()
-    except ValueError:
-        # Inside of jax.jit, where it cannot be checked.
-        actual_mesh = None
-    if actual_mesh is not None and not actual_mesh.empty and actual_mesh != mesh:
-        raise ValueError(
-            "The distributed solvers require the devices of the jax mesh to be "
-            "laid out in the order of `jax.devices()`, as in the mesh set by "
-            f"NetKet, but the mesh is {actual_mesh}. Build it with "
-            "`jax.sharding.Mesh(np.asarray(jax.devices()).reshape(...), ...)`."
-        )
-    return mesh
-
-
-def jaxmg_grid(process_grid: tuple[int, int] | None = None) -> JaxmgGrid:
-    """
-    Choose the mesh and matrix sharding describing the cuSOLVERMp process grid.
-
-    Args:
-        process_grid: shape ``(process_rows, process_cols)`` of the process
-            grid. Defaults to ``(n_devices, 1)``, which matches the row-sharded
-            layout NetKet uses for QGT/NTK matrices. That grid is laid on
-            NetKet's own single-axis mesh, so the matrix is not moved at all.
-            Other grids use a dedicated 2D mesh over the same devices.
+    Validate the shape ``(process_rows, process_cols)`` of the cuSOLVERMp process
+    grid, defaulting to ``(n_devices, 1)``.
     """
     n_devices = jax.device_count()
     if process_grid is None:
-        process_grid = (n_devices, 1)
+        return (n_devices, 1)
 
     if len(process_grid) != 2:
         raise ValueError(
@@ -174,108 +95,66 @@ def jaxmg_grid(process_grid: tuple[int, int] | None = None) -> JaxmgGrid:
             "devices. cuSOLVERMp uses one process per GPU, so the grid must "
             "contain exactly one slot per device."
         )
-
-    context_mesh = _context_mesh()
-    if (
-        context_mesh is not None
-        and len(context_mesh.axis_names) == 1
-        and process_cols == 1
-    ):
-        # jaxmg (>= 1.1) accepts a single-axis mesh, which describes the
-        # (n_devices, 1) grid.
-        return JaxmgGrid(
-            context_mesh, P(context_mesh.axis_names[0], None), context_mesh
-        )
-
-    # Keep the axis types of the context mesh, as those of the arrays moved
-    # onto the grid mesh must be consistent with them.
-    if context_mesh is None:
-        axis_type = AxisType.Auto
-    else:
-        axis_type = context_mesh.axis_types[0]
-    mesh = Mesh(
-        np.asarray(jax.devices()).reshape(process_rows, process_cols),
-        JAXMG_AXIS_NAMES,
-        axis_types=(axis_type, axis_type),
-    )
-    return JaxmgGrid(mesh, P(*JAXMG_AXIS_NAMES), context_mesh)
+    return (process_rows, process_cols)
 
 
-def _is_explicit(mesh: Mesh) -> bool:
-    return all(t == AxisType.Explicit for t in mesh.axis_types)
-
-
-def _place(x: jax.Array, sharding: NamedSharding) -> jax.Array:
+def _constrain(x: jax.Array, specs: P, axis_type: AxisType) -> jax.Array:
     """
-    Constrain `x` to `sharding` on its own mesh, which requires
+    Constrain `x` to `specs` on the context mesh, which requires
     :func:`jax.reshard` for Explicit mesh axes and
     :func:`jax.lax.with_sharding_constraint` for Auto ones.
     """
-    if _is_explicit(sharding.mesh):
-        return jax.reshard(x, sharding)
-    return jax.lax.with_sharding_constraint(x, sharding)
+    if axis_type == AxisType.Explicit:
+        return jax.reshard(x, specs)
+    return jax.lax.with_sharding_constraint(x, specs)
 
 
-def to_grid(grid: JaxmgGrid, A: jax.Array, b: jax.Array):
+def on_process_grid(
+    fn: Callable, grid_shape: tuple[int, int], A: jax.Array, b: jax.Array
+) -> jax.Array:
     """
-    Lay out the linear problem as `jaxmg` expects: `A` sharded over the process
-    grid, and `b` on the grid mesh.
-    """
-    if grid.is_context_mesh:
-        return _place(A, NamedSharding(grid.mesh, grid.matrix_specs)), b
-    # Moving between meshes requires a device_put, both for Auto and Explicit
-    # mesh axes.
-    A = jax.device_put(A, NamedSharding(grid.mesh, grid.matrix_specs))
-    b = jax.device_put(b, NamedSharding(grid.mesh, P()))
-    return A, b
+    Compute ``fn(A, b)``, which calls `jaxmg`, on the process grid of the given
+    shape, and return its result on the context mesh.
 
-
-def grid_context(grid: JaxmgGrid) -> AbstractContextManager:
+    `jaxmg` lays `A` over the process grid described by its sharding, or by the
+    context mesh inside of :func:`jax.jit`. NetKet's single-axis mesh describes
+    the default ``(n_devices, 1)`` grid, so then `A` stays on it, with its rows
+    sharded over the mesh axis. Other grids live on a dedicated 2D mesh, with
+    the axis types of the context mesh: `A` and `b` are moved onto it, and
+    ``fn`` runs with it as the context mesh so that it can post-process the
+    arrays given by `jaxmg`. jax requires all the arrays of a computation to
+    have their devices in the same order, and that mesh lays out
+    :func:`jax.devices` in order, so the context mesh must do so too, as
+    NetKet's mesh does.
     """
-    Context in which to operate on arrays living on the grid mesh.
+    context_mesh = jax.sharding.get_abstract_mesh()
+    if len(context_mesh.axis_names) == 1 and grid_shape[1] == 1:
+        # jaxmg would shard the rows by itself, but it does not reshard an `A`
+        # replicated over Explicit mesh axes, and it would use the (1, n_devices)
+        # grid for an `A` sharded by columns.
+        A = _constrain(
+            A, P(context_mesh.axis_names[0], None), context_mesh.axis_types[0]
+        )
+        return fn(A, b)
 
-    `jaxmg` enters its mesh by itself, but the arrays it returns live on the
-    grid mesh, so post-processing them needs that mesh to be the context mesh
-    too. :func:`jax.sharding.use_abstract_mesh` is used because, unlike
-    :func:`jax.set_mesh`, it also works while tracing.
-    """
-    if grid.is_context_mesh:
-        return nullcontext()
-    return jax.sharding.use_abstract_mesh(grid.mesh.abstract_mesh)
-
-
-def replicated_matmul(grid: JaxmgGrid, a: jax.Array, b: jax.Array) -> jax.Array:
-    """
-    Compute ``a @ b`` replicated on the grid mesh, where `a` or `b` may be
-    sharded along the contracted axis, as the eigenvectors given by `jaxmg`.
-    With Explicit mesh axes jax requires the output sharding of such a
-    contraction to be given. Must be called inside of :func:`grid_context`.
-    """
-    sharding = NamedSharding(grid.mesh, P())
-    if _is_explicit(grid.mesh):
-        return jnp.matmul(a, b, out_sharding=sharding)
-    return _place(a @ b, sharding)
-
-
-def replicate(grid: JaxmgGrid, x: jax.Array) -> jax.Array:
-    """
-    Replicate a solution vector living on the grid mesh. Must be called inside
-    of :func:`grid_context`.
-    """
-    return _place(x, NamedSharding(grid.mesh, P()))
-
-
-def from_grid(grid: JaxmgGrid, x: jax.Array) -> jax.Array:
-    """
-    Bring a replicated solution back to the context mesh, where NetKet can use
-    it. Must be called outside of :func:`grid_context`.
-    """
-    if grid.is_context_mesh or grid.context_mesh is None:
+    axis_type = AxisType.Auto if context_mesh.empty else context_mesh.axis_types[0]
+    mesh = jax.make_mesh(
+        grid_shape, JAXMG_AXIS_NAMES, axis_types=(axis_type, axis_type)
+    )
+    A = jax.device_put(A, NamedSharding(mesh, P(*JAXMG_AXIS_NAMES)))
+    b = jax.device_put(b, NamedSharding(mesh, P()))
+    with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
+        # With Auto mesh axes, moving `x` back to the context mesh only gives
+        # it a sharding expressible there if it is replicated first.
+        x = _constrain(fn(A, b), P(), axis_type)
+    if context_mesh.empty:
         return x
-    return jax.device_put(x, NamedSharding(grid.context_mesh, P()))
+    return jax.device_put(x, P())
 
 
-def default_tile_size(n: int, grid: JaxmgGrid, *, max_tile_size: int) -> int:
+def default_tile_size(
+    n: int, grid_shape: tuple[int, int], *, max_tile_size: int
+) -> int:
     """
     Default cuSOLVERMp square tile size for an ``n x n`` matrix.
 
@@ -293,11 +172,11 @@ def default_tile_size(n: int, grid: JaxmgGrid, *, max_tile_size: int) -> int:
 
     Args:
         n: size of the (square) matrix.
-        grid: the process grid.
+        grid_shape: shape ``(process_rows, process_cols)`` of the process grid.
         max_tile_size: upper bound on the tile size, limiting the redistribution
             scratch space (which grows linearly in the tile size).
     """
-    process_rows, process_cols = grid.shape
+    process_rows, process_cols = grid_shape
     local_size = math.gcd(n // process_rows, n // process_cols)
     largest = max(1, min(local_size, max_tile_size))
     divisor = max(
@@ -313,7 +192,7 @@ def default_tile_size(n: int, grid: JaxmgGrid, *, max_tile_size: int) -> int:
     return divisor
 
 
-def check_matrix_shardable(n: int, grid: JaxmgGrid, *, caller: str):
+def check_matrix_shardable(n: int, grid_shape: tuple[int, int], *, caller: str):
     """
     Check that an ``n x n`` matrix can be block-distributed over the grid.
 
@@ -323,10 +202,10 @@ def check_matrix_shardable(n: int, grid: JaxmgGrid, *, caller: str):
 
     Args:
         n: size of the (square) matrix.
-        grid: the process grid.
+        grid_shape: shape ``(process_rows, process_cols)`` of the process grid.
         caller: name of the solver, used in the error message.
     """
-    process_rows, process_cols = grid.shape
+    process_rows, process_cols = grid_shape
     if n % process_rows != 0 or n % process_cols != 0:
         raise ValueError(
             f"`{caller}` cannot distribute a matrix of size {n} over a "

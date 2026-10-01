@@ -26,7 +26,7 @@ import jax.numpy as jnp
 from jax.sharding import AxisType, Mesh, NamedSharding, PartitionSpec as P
 
 import netket as nk
-from netket._src.solvers.jaxmg_interface import default_tile_size, jaxmg_grid
+from netket._src.solvers.jaxmg_interface import default_tile_size
 
 from test import common  # noqa: F401
 
@@ -299,30 +299,53 @@ def _fake_place(x, sharding):
     return jax.lax.with_sharding_constraint(x, sharding)
 
 
-def _install_fake_jaxmg(monkeypatch, version="1.3.0"):
+def _fake_infer_layout(a):
+    """
+    Infer the mesh and the matrix sharding of `a` like jaxmg >= 1.4: off its
+    sharding, or inside of jit off its type, falling back to the context mesh,
+    and to sharding the rows (and columns) over the axes of the mesh.
+    """
+    sharding = getattr(a, "sharding", None)
+    if not isinstance(sharding, NamedSharding):
+        sharding = getattr(jax.typeof(a), "sharding", None)
+    if not isinstance(sharding, NamedSharding) or sharding.mesh.empty:
+        sharding = None
+    mesh = jax.sharding.get_abstract_mesh() if sharding is None else sharding.mesh
+    if mesh.empty:
+        raise ValueError("jaxmg could not find a mesh for A.")
+    if sharding is not None and any(axis is not None for axis in sharding.spec):
+        specs = sharding.spec
+    else:
+        specs = P(*mesh.axis_names)
+    return mesh, P(*specs, *(None,) * (2 - len(specs)))
+
+
+def _install_fake_jaxmg(monkeypatch, version="1.4.0"):
     """
     Install a fake `jaxmg` recording its calls and solving with plain jax.
 
-    Like jaxmg >= 1.1, the fake enters the mesh it is given, and maps `A` over
-    it with :func:`jax.shard_map`, which checks that NetKet laid `A` out on
-    that mesh consistently with the context mesh. Its high-level entry points
-    donate their inputs, like jaxmg's, while the `_shardmap_ctx` ones do not.
+    Like jaxmg >= 1.4, the fake infers the mesh and the sharding of `A` by
+    itself, enters that mesh, and maps `A` over it with :func:`jax.shard_map`,
+    which checks that NetKet laid `A` out on that mesh consistently with the
+    context mesh. Its high-level entry points donate their inputs, like
+    jaxmg's, while the `_shardmap_ctx` ones do not.
     """
     calls = []
 
-    def _layout(a, mesh, matrix_specs, T_A):
-        specs = P(*matrix_specs, *(None,) * (2 - len(matrix_specs)))
+    def _layout(a, T_A):
+        mesh, specs = _fake_infer_layout(a)
         calls.append({"n": a.shape[0], "T_A": T_A, "mesh": mesh, "specs": specs})
         with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
             a = jax.shard_map(lambda x: x, mesh=mesh, in_specs=specs, out_specs=specs)(
                 a
             )
-            return _fake_place(a, NamedSharding(mesh, P()))
+            return mesh, specs, _fake_place(a, NamedSharding(mesh, P()))
 
     def potrs_shardmap_ctx(a, b, T_A, mesh=None, matrix_specs=None, **kwargs):
+        assert mesh is None and matrix_specs is None
         if a.dtype != b.dtype:
             raise TypeError("potrs requires A and b to have the same dtype.")
-        a = _layout(a, mesh, matrix_specs, T_A)
+        mesh, _, a = _layout(a, T_A)
         with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
             b = _fake_place(b, NamedSharding(mesh, P()))
             x = jnp.linalg.solve(a, b)
@@ -330,8 +353,8 @@ def _install_fake_jaxmg(monkeypatch, version="1.3.0"):
         return a, x, jnp.zeros((1,), jnp.int32)
 
     def syevd_shardmap_ctx(a, T_A, mesh=None, matrix_specs=None, **kwargs):
-        a = _layout(a, mesh, matrix_specs, T_A)
-        specs = calls[-1]["specs"]
+        assert mesh is None and matrix_specs is None
+        mesh, specs, a = _layout(a, T_A)
         with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
             w, v = jnp.linalg.eigh(a)
             # Like jaxmg, give the eigenvectors back sharded as the matrix.
@@ -361,10 +384,7 @@ def _check_cusolvermp_contract(call, expected_grid):
     mesh, specs, n, T_A = call["mesh"], call["specs"], call["n"], call["T_A"]
 
     # One slot of the process grid per device.
-    assert isinstance(mesh, Mesh)
-    assert sorted(d.id for d in mesh.devices.flat) == sorted(
-        d.id for d in jax.devices()
-    )
+    assert mesh.size == N_DEVICES
 
     # Each matrix dimension is either mapped onto one axis of the mesh, or not
     # distributed (a degenerate grid), and the grid has the expected shape.
@@ -373,7 +393,7 @@ def _check_cusolvermp_contract(call, expected_grid):
     assert all(axis is None or axis in mesh.axis_names for axis in specs)
     grid = tuple(1 if axis is None else mesh.shape[axis] for axis in specs)
     assert grid == expected_grid
-    assert mesh.devices.size == grid[0] * grid[1]
+    assert mesh.size == grid[0] * grid[1]
 
     process_rows, process_cols = expected_grid
     # The matrix must be evenly block-distributed over the grid...
@@ -443,9 +463,11 @@ def test_distributed_solvers_interface(
     x, info = solve(A_sharded, b_sharded)
 
     assert info is None
-    # The solution is replicated on the context mesh, where NetKet can use it.
+    # The solution is on the context mesh, where NetKet can use it, and with
+    # Explicit mesh axes it is replicated like `b`.
     assert x.sharding.mesh.axis_names == context_mesh.axis_names
-    assert x.sharding.is_fully_replicated
+    if context_mesh.axis_types[0] == AxisType.Explicit:
+        assert x.sharding.is_fully_replicated
     np.testing.assert_allclose(x, reference(A, b)[0], rtol=1e-5, atol=1e-8)
 
     assert len(calls) == 1
@@ -469,9 +491,8 @@ def test_distributed_solvers_interface(
     ],
 )
 def test_default_tile_size(n_local, max_tile_size, expected):
-    grid = jaxmg_grid((N_DEVICES, 1))
     n = n_local * N_DEVICES
-    assert default_tile_size(n, grid, max_tile_size=max_tile_size) == expected
+    assert default_tile_size(n, (N_DEVICES, 1), max_tile_size=max_tile_size) == expected
 
 
 def test_cholesky_distributed_mixed_dtypes(monkeypatch, context_mesh):
@@ -488,6 +509,7 @@ def test_cholesky_distributed_mixed_dtypes(monkeypatch, context_mesh):
 
 
 @pytest.mark.skipif(N_DEVICES == 1, reason="requires more than one device")
+@pytest.mark.parametrize("jit", [False, True], ids=["eager", "jit"])
 @pytest.mark.parametrize(
     "solver",
     [
@@ -495,15 +517,30 @@ def test_cholesky_distributed_mixed_dtypes(monkeypatch, context_mesh):
         pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
     ],
 )
-def test_distributed_solvers_reordered_mesh(monkeypatch, solver):
-    """A mesh whose devices are not in `jax.devices()` order is rejected clearly."""
+def test_distributed_solvers_reordered_mesh(monkeypatch, solver, jit):
+    """
+    jaxmg resolves the devices of the process grid at run time, so on the
+    default grid the devices of the mesh need not be in `jax.devices()` order.
+    The dedicated mesh of other grids uses that order, which jax requires the
+    context mesh to share.
+    """
     _install_fake_jaxmg(monkeypatch)
 
     mesh = Mesh(np.asarray(jax.devices())[::-1], ("S",))
     n = 16 * N_DEVICES
     with jax.set_mesh(mesh):
-        with pytest.raises(ValueError, match=r"order of `jax.devices\(\)`"):
-            solver(jnp.eye(n), jnp.ones((n,)))
+        A, b, A_sharded, b_sharded = _spd_problem(n, mesh)
+
+        def solve(A, b, process_grid=None):
+            fn = partial(solver, process_grid=process_grid)
+            return (jax.jit(fn) if jit else fn)(A, b)
+
+        x, _ = solve(A_sharded, b_sharded)
+        assert x.sharding.mesh == mesh
+        np.testing.assert_allclose(x, np.linalg.solve(A, b), rtol=1e-5, atol=1e-8)
+
+        with pytest.raises(ValueError, match="incompatible devices"):
+            solve(A_sharded, b_sharded, process_grid=PROCESS_GRIDS[-1])
 
 
 @pytest.mark.parametrize(
@@ -553,10 +590,10 @@ def test_matrix_size_not_divisible_by_grid(monkeypatch, solver):
         pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
     ],
 )
-@pytest.mark.parametrize("version", ["0.0.9", "1.0.0", "1.1.0"])
+@pytest.mark.parametrize("version", ["0.0.9", "1.0.0", "1.1.0", "1.3.0"])
 def test_unsupported_jaxmg_version(monkeypatch, solver, version):
     """jaxmg 0.0.x wrapped cuSOLVERMg through a different, unsupported API, and
-    jaxmg < 1.1.1 ships a cuSOLVERMp giving wrong eigendecompositions."""
+    jaxmg < 1.4 cannot infer the mesh and the sharding of `A` inside of jit."""
     _install_fake_jaxmg(monkeypatch, version=version)
 
     A = jnp.eye(16)

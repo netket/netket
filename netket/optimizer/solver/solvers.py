@@ -16,6 +16,7 @@
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
+from jax.sharding import PartitionSpec as P
 from jax.flatten_util import ravel_pytree
 
 from netket.utils.api_utils import partial_from_kwargs
@@ -27,13 +28,9 @@ from netket._src.solvers.nan_fallback import (
 from netket._src.solvers.jaxmg_interface import (
     check_matrix_shardable,
     default_tile_size,
-    from_grid,
-    grid_context,
     import_jaxmg,
-    jaxmg_grid,
-    replicate,
-    replicated_matmul,
-    to_grid,
+    on_process_grid,
+    process_grid_shape,
 )
 from netket.utils.citations import reference
 
@@ -398,7 +395,7 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
     .. note::
 
         This solver requires the `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_
-        package (version 1.1.1 or later) to be installed, and it must run with
+        package (version 1.4.0 or later) to be installed, and it must run with
         **one python process per GPU** (launch your script with
         ``djaxrun``, or call :func:`jax.distributed.initialize` yourself),
         because that is how NVIDIA's cuSOLVERMp works. Both single-node and
@@ -458,6 +455,8 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
              redistribution of `A`. A genuinely 2D grid reduces the
              communication volume of the factorisation itself, at the cost of
              redistributing `A` first, and can be faster for large matrices.
+             It requires the devices of the mesh to be in the order of
+             :func:`jax.devices`, as in the mesh set by NetKet.
         x0: unused (kept for API compatibility)
 
     Returns:
@@ -487,32 +486,25 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
     dtype = jnp.result_type(A, b)
     A, b = A.astype(dtype), b.astype(dtype)
 
-    grid = jaxmg_grid(process_grid)
-    check_matrix_shardable(A.shape[0], grid, caller="cholesky_distributed")
+    grid_shape = process_grid_shape(process_grid)
+    check_matrix_shardable(A.shape[0], grid_shape, caller="cholesky_distributed")
 
     if local_tile_size is None:
         # Max value is 8192, but it seems 4096 is ok
-        local_tile_size = default_tile_size(A.shape[0], grid, max_tile_size=4096)
+        local_tile_size = default_tile_size(A.shape[0], grid_shape, max_tile_size=4096)
 
-    # jaxmg reshapes a 1D `b` to a (N, 1) matrix, redistributes it over the
-    # process grid, and gives the solution back with the sharding of `b`.
+    # jaxmg reads the mesh and the sharding of `A` off `A` itself, reshapes a
+    # 1D `b` to a (N, 1) matrix, and gives the solution back sharded like `b`.
     # The `_shardmap_ctx` entry point, meant to be called inside of an outer
     # `jax.jit`, is used because by default `jaxmg.potrs` donates `A` and `b`,
     # deleting them when called outside of `jax.jit`. NetKet's solvers must not
     # consume the linear problem, or combinators reusing it, such as
     # :func:`~netket.optimizer.solver.nan_fallback`, would crash.
-    A, b = to_grid(grid, A, b)
-    with grid_context(grid):
-        _A_work, x, _status = jaxmg.potrs_shardmap_ctx(
-            A,
-            b,
-            T_A=local_tile_size,
-            mesh=grid.mesh,
-            matrix_specs=grid.matrix_specs,
-        )
-        # Needed if `b` was not replicated, as x is given back sharded like b.
-        x = replicate(grid, x)
-    x = from_grid(grid, x)
+    def solve(A, b):
+        _A_work, x, _status = jaxmg.potrs_shardmap_ctx(A, b, T_A=local_tile_size)
+        return x
+
+    x = on_process_grid(solve, grid_shape, A, b)
 
     return unravel(x), None
 
@@ -557,7 +549,7 @@ def pinv_smooth_distributed(
     .. note::
 
         This solver requires the `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_
-        package (version 1.1.1 or later) to be installed, and it must run with
+        package (version 1.4.0 or later) to be installed, and it must run with
         **one python process per GPU** (launch your script with
         ``djaxrun``, or call :func:`jax.distributed.initialize` yourself),
         because that is how NVIDIA's cuSOLVERMp works. Both single-node and
@@ -610,6 +602,8 @@ def pinv_smooth_distributed(
              redistribution of `A`. A genuinely 2D grid reduces the
              communication volume of the eigendecomposition itself, at the cost
              of redistributing `A` first, and can be faster for large matrices.
+             It requires the devices of the mesh to be in the order of
+             :func:`jax.devices`, as in the mesh set by NetKet.
 
     Returns:
         tuple: (solution, None) where solution is the unraveled result.
@@ -636,26 +630,18 @@ def pinv_smooth_distributed(
         A = A.to_dense()
     b, unravel = ravel_pytree(b)
 
-    grid = jaxmg_grid(process_grid)
-    check_matrix_shardable(A.shape[0], grid, caller="pinv_smooth_distributed")
+    grid_shape = process_grid_shape(process_grid)
+    check_matrix_shardable(A.shape[0], grid_shape, caller="pinv_smooth_distributed")
 
     if local_tile_size is None:
         # Max value is 1024 (see https://docs.nvidia.com/cuda/pdf/CUSOLVER_Library.pdf#page=361)
         # but 512 consumes less memory and seems ok
-        local_tile_size = default_tile_size(A.shape[0], grid, max_tile_size=512)
+        local_tile_size = default_tile_size(A.shape[0], grid_shape, max_tile_size=512)
 
-    A, b = to_grid(grid, A, b)
-    # The eigenvectors are sharded over the process grid, so the reconstruction
-    # of the solution must happen inside of the process grid mesh as well.
-    with grid_context(grid):
+    def solve(A, b):
         # Compute eigendecomposition using distributed solver. As above, the
         # `_shardmap_ctx` entry point is the one that does not consume `A`.
-        _A_work, Σ, U, _status = jaxmg.syevd_shardmap_ctx(
-            A,
-            T_A=local_tile_size,
-            mesh=grid.mesh,
-            matrix_specs=grid.matrix_specs,
-        )
+        _A_work, Σ, U, _status = jaxmg.syevd_shardmap_ctx(A, T_A=local_tile_size)
 
         # Discard eigenvalues below numerical precision
         Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
@@ -665,9 +651,11 @@ def pinv_smooth_distributed(
 
         Σ_inv = Σ_inv * regularizer
 
-        # U is sharded over the process grid.
-        y = replicated_matmul(grid, U.conj().T, b)
-        x = replicated_matmul(grid, U, Σ_inv * y)
-    x = from_grid(grid, x)
+        # U is sharded like `A`, so with Explicit mesh axes jax requires the
+        # sharding of these contractions to be given.
+        y = jnp.matmul(U.conj().T, b, out_sharding=P())
+        return jnp.matmul(U, Σ_inv * y, out_sharding=P())
+
+    x = on_process_grid(solve, grid_shape, A, b)
 
     return unravel(x), None
