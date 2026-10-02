@@ -452,7 +452,9 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
              process grid, which must have one slot per device. Defaults to
              ``(n_devices, 1)``, which matches the row sharding NetKet uses for
              the NTK (``use_ntk=True``), and therefore requires no
-             redistribution of `A`. A genuinely 2D grid reduces the
+             redistribution of `A` (by default, an `A` sharded by columns may
+             use the ``(1, n_devices)`` grid instead). A genuinely 2D grid
+             reduces the
              communication volume of the factorisation itself, at the cost of
              redistributing `A` first, and can be faster for large matrices.
              It requires the devices of the mesh to be in the order of
@@ -504,7 +506,7 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
         _A_work, x, _status = jaxmg.potrs_shardmap_ctx(A, b, T_A=local_tile_size)
         return x
 
-    x = on_process_grid(solve, grid_shape, A, b)
+    x = on_process_grid(solve, process_grid, A, b)
 
     return unravel(x), None
 
@@ -599,7 +601,9 @@ def pinv_smooth_distributed(
              process grid, which must have one slot per device. Defaults to
              ``(n_devices, 1)``, which matches the row sharding NetKet uses for
              the NTK (``use_ntk=True``), and therefore requires no
-             redistribution of `A`. A genuinely 2D grid reduces the
+             redistribution of `A` (by default, an `A` sharded by columns may
+             use the ``(1, n_devices)`` grid instead). A genuinely 2D grid
+             reduces the
              communication volume of the eigendecomposition itself, at the cost
              of redistributing `A` first, and can be faster for large matrices.
              It requires the devices of the mesh to be in the order of
@@ -656,6 +660,6 @@ def pinv_smooth_distributed(
         y = jnp.matmul(U.conj().T, b, out_sharding=P())
         return jnp.matmul(U, Σ_inv * y, out_sharding=P())
 
-    x = on_process_grid(solve, grid_shape, A, b)
+    x = on_process_grid(solve, process_grid, A, b)
 
     return unravel(x), None

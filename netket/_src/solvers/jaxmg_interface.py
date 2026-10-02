@@ -98,43 +98,38 @@ def process_grid_shape(process_grid: tuple[int, int] | None) -> tuple[int, int]:
     return (process_rows, process_cols)
 
 
-def _constrain(x: jax.Array, specs: P, axis_type: AxisType) -> jax.Array:
-    """
-    Constrain `x` to `specs` on the context mesh, which requires
-    :func:`jax.reshard` for Explicit mesh axes and
-    :func:`jax.lax.with_sharding_constraint` for Auto ones.
-    """
-    if axis_type == AxisType.Explicit:
-        return jax.reshard(x, specs)
-    return jax.lax.with_sharding_constraint(x, specs)
-
-
 def on_process_grid(
-    fn: Callable, grid_shape: tuple[int, int], A: jax.Array, b: jax.Array
+    fn: Callable,
+    process_grid: tuple[int, int] | None,
+    A: jax.Array,
+    b: jax.Array,
 ) -> jax.Array:
     """
-    Compute ``fn(A, b)``, which calls `jaxmg`, on the process grid of the given
-    shape, and return its result on the context mesh.
+    Compute ``fn(A, b)``, which calls `jaxmg`, on the given process grid, and
+    return its result on the context mesh.
 
     `jaxmg` lays `A` over the process grid described by its sharding, or by the
-    context mesh inside of :func:`jax.jit`. NetKet's single-axis mesh describes
-    the default ``(n_devices, 1)`` grid, so then `A` stays on it, with its rows
-    sharded over the mesh axis. Other grids live on a dedicated 2D mesh, with
-    the axis types of the context mesh: `A` and `b` are moved onto it, and
-    ``fn`` runs with it as the context mesh so that it can post-process the
-    arrays given by `jaxmg`. jax requires all the arrays of a computation to
-    have their devices in the same order, and that mesh lays out
-    :func:`jax.devices` in order, so the context mesh must do so too, as
-    NetKet's mesh does.
+    context mesh inside of :func:`jax.jit`. By default, `A` is handed to `jaxmg`
+    as it is on NetKet's single-axis mesh, which describes the
+    ``(n_devices, 1)`` grid (or ``(1, n_devices)`` if `A` is sharded by
+    columns, which needs no redistribution either). An explicit
+    ``(n_devices, 1)`` grid also lives on that mesh, with the rows of `A`
+    sharded over it. Other grids live on a dedicated 2D mesh, with the axis
+    types of the context mesh: `A` and `b` are moved onto it, and ``fn`` runs
+    with it as the context mesh so that it can post-process the arrays given
+    by `jaxmg`. jax requires all the arrays of a computation to have their
+    devices in the same order, and that mesh lays out :func:`jax.devices` in
+    order, so the context mesh must do so too, as NetKet's mesh does.
     """
+    grid_shape = process_grid_shape(process_grid)
     context_mesh = jax.sharding.get_abstract_mesh()
     if len(context_mesh.axis_names) == 1 and grid_shape[1] == 1:
-        # jaxmg would shard the rows by itself, but it does not reshard an `A`
-        # replicated over Explicit mesh axes, and it would use the (1, n_devices)
-        # grid for an `A` sharded by columns.
-        A = _constrain(
-            A, P(context_mesh.axis_names[0], None), context_mesh.axis_types[0]
-        )
+        if process_grid is not None:
+            row_specs = P(context_mesh.axis_names[0], None)
+            if context_mesh.axis_types[0] == AxisType.Explicit:
+                A = jax.reshard(A, row_specs)
+            else:
+                A = jax.lax.with_sharding_constraint(A, row_specs)
         return fn(A, b)
 
     axis_type = AxisType.Auto if context_mesh.empty else context_mesh.axis_types[0]
@@ -144,9 +139,12 @@ def on_process_grid(
     A = jax.device_put(A, NamedSharding(mesh, P(*JAXMG_AXIS_NAMES)))
     b = jax.device_put(b, NamedSharding(mesh, P()))
     with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
+        x = fn(A, b)
         # With Auto mesh axes, moving `x` back to the context mesh only gives
-        # it a sharding expressible there if it is replicated first.
-        x = _constrain(fn(A, b), P(), axis_type)
+        # it a sharding expressible there if it is replicated first. With
+        # Explicit ones, it is already replicated.
+        if axis_type == AxisType.Auto:
+            x = jax.lax.with_sharding_constraint(x, P())
     if context_mesh.empty:
         return x
     return jax.device_put(x, P())

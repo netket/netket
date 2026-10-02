@@ -325,9 +325,9 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0"):
     Install a fake `jaxmg` recording its calls and solving with plain jax.
 
     Like jaxmg >= 1.4, the fake infers the mesh and the sharding of `A` by
-    itself, enters that mesh, and maps `A` over it with :func:`jax.shard_map`,
-    which checks that NetKet laid `A` out on that mesh consistently with the
-    context mesh. Its high-level entry points donate their inputs, like
+    itself, enters that mesh, places `A` in that sharding, and maps it over the
+    mesh with :func:`jax.shard_map`, which checks that NetKet laid `A` out on
+    that mesh consistently with the context mesh. Its high-level entry points donate their inputs, like
     jaxmg's, while the `_shardmap_ctx` ones do not.
     """
     calls = []
@@ -336,6 +336,7 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0"):
         mesh, specs = _fake_infer_layout(a)
         calls.append({"n": a.shape[0], "T_A": T_A, "mesh": mesh, "specs": specs})
         with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
+            a = _fake_place(a, NamedSharding(mesh, specs))
             a = jax.shard_map(lambda x: x, mesh=mesh, in_specs=specs, out_specs=specs)(
                 a
             )
@@ -471,7 +472,15 @@ def test_distributed_solvers_interface(
     np.testing.assert_allclose(x, reference(A, b)[0], rtol=1e-5, atol=1e-8)
 
     assert len(calls) == 1
-    expected_grid = (N_DEVICES, 1) if process_grid is None else process_grid
+    if process_grid is not None:
+        expected_grid = process_grid
+    elif A_specs == P(None, "S") and (
+        context_mesh.axis_types[0] == AxisType.Explicit or not jit
+    ):
+        # By default, jaxmg follows the sharding of `A`, where it is known.
+        expected_grid = (1, N_DEVICES)
+    else:
+        expected_grid = (N_DEVICES, 1)
     _check_cusolvermp_contract(calls[0], expected_grid)
     if process_grid is None:
         # The default grid lives on the context mesh, so `A` is not moved.
