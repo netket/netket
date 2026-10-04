@@ -574,11 +574,11 @@ class MCState(VariationalState):
             self._sampler_model, self._sampler_variables, self.sampler_state
         )
 
-        if self.n_discard_per_chain > 0:
+        if n_discard_per_chain > 0:
             with timing.timed_scope("sampling n_discarded samples") as timer:
                 _, self.sampler_state = self.sampler.sample(
                     self._sampler_model,
-                    self.variables,
+                    self._sampler_variables,
                     state=self.sampler_state,
                     chain_length=n_discard_per_chain,
                 )

@@ -202,6 +202,33 @@ def test_n_samples_api(vstate, _device_count):
 
 
 @common.skipif_mpi
+def test_sample_n_discard_per_chain_argument():
+    # The `n_discard_per_chain` passed to `sample` must override the one of
+    # the state, both when it is larger and when it is smaller.
+    sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    model = nk.models.RBM(alpha=1)
+
+    def _samples(n_discard_state, **kwargs):
+        vs = nk.vqs.MCState(
+            sampler,
+            model,
+            n_samples=64,
+            n_discard_per_chain=n_discard_state,
+            seed=0,
+            sampler_seed=1,
+        )
+        return np.asarray(vs.sample(**kwargs))
+
+    no_discard = _samples(0)
+    with_discard = _samples(10)
+    # sanity check: discarding changes the samples
+    assert not np.array_equal(no_discard, with_discard)
+
+    np.testing.assert_array_equal(_samples(0, n_discard_per_chain=10), with_discard)
+    np.testing.assert_array_equal(_samples(10, n_discard_per_chain=0), no_discard)
+
+
+@common.skipif_mpi
 def test_chunk_size_api(vstate):
     assert vstate.chunk_size is None
 
