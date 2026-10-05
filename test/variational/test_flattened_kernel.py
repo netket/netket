@@ -303,13 +303,14 @@ def _bitwise(x):
     return x.dtype, x.shape, x.tobytes()
 
 
-@pytest.mark.parametrize("chunk_size", [None, 32])
+@pytest.mark.parametrize("chunk_size", [None, 1024])
 def test_flattened_kernel_bitwise_repeatable(chunk_size):
     # Repeated evaluations on the same inputs must give the same bits. A
     # scatter-add accumulating several terms per sample would not guarantee
-    # it on GPU, where the order of the overlapping updates is not fixed.
-    vs, H = _vstate("hubbard")
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    # it on GPU, where the order of the overlapping updates is not fixed: many
+    # samples, so that there are many of them.
+    vs, H = _vstate("heisenberg_triangular")
+    σ = vs.hilbert.random_state(jax.random.key(0), 4096 * jax.device_count())
     f = jax.jit(
         lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
             vs._apply_fun, v, σ, H, chunk_size=chunk_size
