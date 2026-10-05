@@ -185,3 +185,98 @@ def test_operator_declared_bound():
         rtol=1e-12,
         atol=1e-12,
     )
+
+
+@pytest.mark.parametrize("chunk_size", [None, 3])
+def test_compact_kernel_coefficient_gradient_at_zero(chunk_size):
+    # At h = 0 every off-diagonal matrix element of the Ising model is zero,
+    # but its derivative with respect to h is not: the off-diagonal elements
+    # must be selected from the configurations, not from their matrix elements.
+    _, _, K, sa = SYSTEMS["ising"]()
+    vs = _vstate(sa)
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    graph = nk.graph.Chain(vs.hilbert.size, pbc=True)
+
+    def compact(*args):
+        return kernels.local_value_kernel_jax_compact(*args, chunk_size=chunk_size)
+
+    def loss(kernel, h, wrap):
+        H = nk.operator.IsingJax(vs.hilbert, graph, h=h, J=1.0)
+        if wrap:
+            H = CompactConnOperator(H, K)
+        return jnp.sum(kernel(vs._apply_fun, vs.variables, σ, H)).real
+
+    h = jnp.array(0.0)
+    padded = kernels.local_value_kernel_jax
+    expected = jax.jit(jax.grad(lambda h: loss(padded, h, False)))(h)
+    eps = 1e-5
+    finite_diff = (loss(compact, h + eps, True) - loss(compact, h - eps, True)) / (
+        2 * eps
+    )
+    assert abs(expected) > 1
+    np.testing.assert_allclose(finite_diff, expected, rtol=1e-6)
+    # the compact kernel, and the padded kernel on the compact operator
+    for kernel in (compact, padded):
+        result = jax.jit(jax.grad(lambda h: loss(kernel, h, True)))(h)
+        np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+
+def _empty_operator(name):
+    if name == "local_operator":
+        hi = nk.hilbert.Spin(0.5, 4)
+        H = nk.operator.LocalOperatorJax(hi)
+        sa = nk.sampler.MetropolisLocal(hi)
+    else:
+        hi = nk.hilbert.SpinOrbitalFermions(4, n_fermions=2)
+        H = nk.operator.FermionOperator2ndJax(hi)
+        sa = nk.sampler.MetropolisFermionHop(hi, graph=nk.graph.Chain(4))
+    return H, sa
+
+
+@pytest.mark.parametrize("operator", ["local_operator", "fermion_operator"])
+@pytest.mark.parametrize("K", [0, 2])
+@pytest.mark.parametrize("chunk_size", [None, 4])
+def test_compact_kernel_empty_operator(operator, K, chunk_size):
+    # An operator without connected elements is a valid zero operator.
+    H, sa = _empty_operator(operator)
+    assert H.max_conn_size == 0
+    vs = _vstate(sa)
+    Hc = CompactConnOperator(H, K)
+    expected = np.asarray(vs.local_estimators(H).data)
+    result = np.asarray(vs.local_estimators(Hc, chunk_size=chunk_size).data)
+    assert result.shape == expected.shape
+    assert result.dtype == expected.dtype
+    np.testing.assert_array_equal(result, 0)
+    np.testing.assert_array_equal(expected, 0)
+
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    xp, mels = Hc.get_conn_padded(σ)
+    assert xp.shape == (σ.shape[0], K + 1, σ.shape[1])
+    np.testing.assert_array_equal(mels, 0)
+
+    def loss(params, H):
+        variables = {**vs.variables, "params": params}
+        out = kernels.local_value_kernel_jax_compact(
+            vs._apply_fun, variables, σ, H, chunk_size=chunk_size
+        )
+        return jnp.sum(jnp.abs(out) ** 2)
+
+    grad = jax.jit(jax.grad(loss))(vs.parameters, Hc)
+    jax.tree.map(lambda g: np.testing.assert_array_equal(g, 0), grad)
+
+
+@pytest.mark.parametrize("chunk_size", [None, 32])
+def test_compact_kernel_bitwise_repeatable(chunk_size):
+    # Repeated evaluations on the same inputs must give the same bits.
+    _, H, K, sa = SYSTEMS["hubbard"]()
+    vs = _vstate(sa)
+    Hc = CompactConnOperator(H, K)
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    f = jax.jit(
+        lambda v, σ, H: kernels.local_value_kernel_jax_compact(
+            vs._apply_fun, v, σ, H, chunk_size=chunk_size
+        )
+    )
+    expected = np.asarray(f(vs.variables, σ, Hc)).tobytes()
+    for _ in range(20):
+        assert np.asarray(f(vs.variables, σ, Hc)).tobytes() == expected

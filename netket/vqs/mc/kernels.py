@@ -239,16 +239,18 @@ def local_value_kernel_jax_compact(
     r"""
     local_value kernel for MCState and jax-compatible operators declaring a
     bound :attr:`~netket.operator.DiscreteJaxOperator.max_offdiag_conn_size`
-    on the number of nonzero off-diagonal connected elements of every sample.
+    on the number of off-diagonal connected elements of every sample.
 
-    The nonzero off-diagonal connected elements of every sample are packed in
-    ``max_offdiag_conn_size`` entries, and the network is evaluated only on
-    those: ``n_samples × max_offdiag_conn_size`` configurations instead of
-    ``n_samples × max_conn_size``. The diagonal elements are summed without
-    evaluating the network. Every operation acts on each sample independently,
-    so the kernel can be sharded along the samples without communication.
+    The off-diagonal connected elements (:math:`x' \neq x`) of every sample
+    are packed in ``max_offdiag_conn_size`` entries, and the network is
+    evaluated only on those: ``n_samples × max_offdiag_conn_size``
+    configurations instead of ``n_samples × max_conn_size``. The diagonal
+    elements are summed without evaluating the network. Every operation acts
+    on each sample independently, so the kernel can be sharded along the
+    samples without communication, and no step accumulates overlapping
+    updates, so the result is deterministic, also on GPU.
 
-    A sample with more nonzero off-diagonal elements than the bound gets a NaN
+    A sample with more off-diagonal elements than the bound gets a NaN
     local value, and a :class:`RuntimeWarning` is issued.
 
     Args:
@@ -278,11 +280,14 @@ def local_value_kernel_jax_compact(
 
     mels_diag, σp, mels, n_offdiag = get_conn_compact(O, σ, K)
     if K == 0:
-        return check_overflow(mels_diag, n_offdiag, K)
+        # Only the diagonal: the network is not evaluated, but the local
+        # values have the dtype of those of the other kernels.
+        dtype = jnp.result_type(mels.dtype, jax.eval_shape(logpsi, pars, σ).dtype)
+        return check_overflow(mels_diag.astype(dtype), n_offdiag, K, O.max_conn_size)
 
     logpsi_σ = logpsi(pars, σ)
     logpsi_σp = logpsi(pars, σp.reshape(-1, σp.shape[-1])).reshape(σp.shape[:-1])
     mels_offdiag = jnp.sum(
         mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1
     )
-    return check_overflow(mels_diag + mels_offdiag, n_offdiag, K)
+    return check_overflow(mels_diag + mels_offdiag, n_offdiag, K, O.max_conn_size)
