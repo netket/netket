@@ -216,7 +216,7 @@ def local_value_kernel_jax_chunked(
         local_value_chunked = nkjax.apply_chunked(
             _local_value_kernel,
             in_axes=(None, 0, None),
-            chunk_size=max(1, chunk_size // O.max_conn_size),
+            chunk_size=max(1, chunk_size // max(1, O.max_conn_size)),
             pvary_argnums=(0,),
         )
         return local_value_chunked(pars, σ, O)
@@ -303,6 +303,13 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
     σp, mels = O.get_conn_padded(σ)
     max_conn_size = mels.shape[-1]
     n_conns = n_samples * max_conn_size
+
+    if n_conns == 0:
+        # No connected elements (e.g. an empty operator): the local values are
+        # zero, and the loop below cannot be traced on an empty buffer. The
+        # zeros are built from σ so that they are varying inside shard_map.
+        dtype = jnp.result_type(mels.dtype, jax.eval_shape(logpsi, pars, σ).dtype)
+        return jnp.zeros_like(σ[:, 0], dtype=dtype)
 
     # The diagonal is found by comparison, so that we do not rely on the
     # operator placing it at a given position.

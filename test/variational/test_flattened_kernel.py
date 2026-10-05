@@ -210,3 +210,44 @@ def test_flattened_kernel_no_collectives():
     hlo = f.lower(vs.variables, σ, H).compile().as_text()
     for collective in ("all-gather", "all-reduce", "all-to-all", "collective-permute"):
         assert collective not in hlo
+
+
+def _empty_operator(name):
+    if name == "local_operator":
+        hi = nk.hilbert.Spin(0.5, 4)
+        H = nk.operator.LocalOperatorJax(hi)
+        sa = nk.sampler.MetropolisLocal(hi)
+    else:
+        hi = nk.hilbert.SpinOrbitalFermions(4, n_fermions=2)
+        H = nk.operator.FermionOperator2ndJax(hi)
+        sa = nk.sampler.MetropolisFermionHop(hi, graph=nk.graph.Chain(4))
+    sa = sa.replace(n_chains=8 * jax.device_count())
+    ma = nk.models.RBM(alpha=1, param_dtype=complex)
+    vs = nk.vqs.MCState(sa, ma, n_samples=8 * jax.device_count(), seed=1)
+    return vs, H
+
+
+@pytest.mark.parametrize("operator", ["local_operator", "fermion_operator"])
+@pytest.mark.parametrize("chunk_size", [None, 4])
+def test_flattened_kernel_empty_operator(operator, chunk_size):
+    # An operator without connected elements is a valid zero operator.
+    vs, H = _empty_operator(operator)
+    assert H.max_conn_size == 0
+    expected = _local_estimators(vs, H, chunk_size, flattened=False)
+    result = _local_estimators(vs, H, chunk_size, flattened=True)
+    assert result.shape == expected.shape
+    assert result.dtype == expected.dtype
+    np.testing.assert_array_equal(result, 0)
+    np.testing.assert_array_equal(expected, 0)
+
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+
+    def loss(params, H):
+        variables = {**vs.variables, "params": params}
+        out = kernels.local_value_kernel_jax_flattened(
+            vs._apply_fun, variables, σ, H, chunk_size=chunk_size
+        )
+        return jnp.sum(jnp.abs(out) ** 2)
+
+    grad = jax.jit(jax.grad(loss))(vs.parameters, H)
+    jax.tree.map(lambda g: np.testing.assert_array_equal(g, 0), grad)
