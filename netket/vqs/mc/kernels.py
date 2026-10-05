@@ -241,26 +241,36 @@ def local_value_kernel_jax_flattened(
 ):
     r"""
     local_value kernel for MCState and jax-compatible operators that evaluates
-    :math:`\log\psi` only on the nonzero off-diagonal connected configurations.
+    :math:`\log\psi` only on the connected configurations :math:`x' \neq x`.
 
     :func:`local_value_kernel_jax` evaluates the network on all
     ``n_samples × max_conn_size`` configurations returned by
     :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded`, including
-    the padding entries (with a zero matrix element) and the diagonal
-    :math:`x' = x`. This kernel instead, on every device:
+    the diagonal :math:`x' = x` and the padding entries, which NetKet's
+    operators fill with :math:`x` and a zero matrix element. This kernel
+    instead, on every device:
 
-    - sums the diagonal matrix elements without evaluating the network;
-    - compacts the flattened mask of the nonzero off-diagonal elements with
+    - uses :math:`\log\psi(x)` for the connected configurations equal to
+      :math:`x`, without evaluating the network;
+    - compacts the flattened mask of the other ones with
       :func:`jax.numpy.nonzero` into an index buffer of static size
       ``n_local_samples × max_conn_size``;
     - evaluates :math:`\log\psi` on the selected configurations in chunks of
       ``chunk_size`` configurations (``n_local_samples × max_conn_size / 16``
       if ``chunk_size`` is None). The number of chunks depends on the number
-      of nonzero elements, so it changes from batch to batch, but every
+      of selected configurations, so it changes from batch to batch, but every
       chunk has the same static shape: a varying number of connected
       elements never triggers a recompilation;
-    - scatters the contributions back to their sample with
-      :func:`jax.ops.segment_sum`.
+    - gathers the values back to the padded layout and computes the local
+      values with the same summation as :func:`local_value_kernel_jax`.
+
+    The selection only depends on the configurations, not on the values of
+    the matrix elements: a connected configuration whose matrix element is
+    zero for the current coefficients of the operator is still evaluated, so
+    that the derivatives with respect to those coefficients are correct.
+
+    No step accumulates several terms in an order that can change from call
+    to call (unlike a scatter-add on GPU), so the result is deterministic.
 
     The kernel runs per device (inside :func:`jax.shard_map` over the sample
     axis), because the compaction is a global operation that GSPMD would
@@ -274,8 +284,8 @@ def local_value_kernel_jax_flattened(
     ones with :func:`jax.lax.cond`, which gives the same gradient.
     Forward-mode differentiation (:func:`jax.jvp`) is not supported.
 
-    The result agrees with :func:`local_value_kernel_jax` up to the order of
-    the summation.
+    The result agrees with :func:`local_value_kernel_jax` up to the rounding
+    of :math:`\log\psi`, which can depend on the batch it is evaluated in.
 
     Args:
         logpsi: the log-amplitude function.
@@ -311,112 +321,102 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
         dtype = jnp.result_type(mels.dtype, jax.eval_shape(logpsi, pars, σ).dtype)
         return jnp.zeros_like(σ[:, 0], dtype=dtype)
 
-    # The diagonal is found by comparison, so that we do not rely on the
-    # operator placing it at a given position.
-    is_diag = jnp.all(σp == jnp.expand_dims(σ, -2), axis=-1)
-    mels_diag = jnp.sum(jnp.where(is_diag, mels, 0), axis=-1)
-    mask = (mels != 0) & ~is_diag
+    # The connected configurations equal to σ (the diagonal and the padding)
+    # are found by comparison, so that we do not rely on the operator placing
+    # them at a given position.
+    is_conn = jnp.any(σp != jnp.expand_dims(σ, -2), axis=-1).reshape(-1)
 
     if chunk_size is None:
         chunk_size = -(-n_conns // _FLATTENED_N_CHUNKS_UNCHUNKED)
     chunk_size = max(1, min(chunk_size, n_conns))
     n_chunks_max = -(-n_conns // chunk_size)
+    buffer_size = n_chunks_max * chunk_size
 
-    # Indices of the nonzero elements, sample-major. Filling with the last
-    # index keeps the sample indices sorted.
-    n_nonzero = mask.sum()
-    (idx,) = jnp.nonzero(
-        mask.reshape(-1), size=n_chunks_max * chunk_size, fill_value=n_conns - 1
-    )
+    # Indices of the selected configurations, sample-major. The filling only
+    # needs to be a valid configuration.
+    n_conn = is_conn.sum()
+    (idx,) = jnp.nonzero(is_conn, size=buffer_size, fill_value=n_conns - 1)
 
     logpsi_σ = nkjax.apply_chunked(
         logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
     )(pars, σ)
-
-    mels_offdiag = _flattened_offdiag_sum(
-        logpsi,
-        chunk_size,
-        pars,
-        logpsi_σ,
-        σp.reshape(-1, N),
-        mels.reshape(-1),
-        idx,
-        n_nonzero,
+    logpsi_conn = _flattened_logpsi(
+        logpsi, chunk_size, pars, σp.reshape(-1, N), idx, n_conn
     )
-    return mels_diag + mels_offdiag
+
+    # Gather the values back to the padded layout, from the position of every
+    # selected configuration in the compact buffer. No terms are accumulated in
+    # the forward pass, and in the backward pass (a scatter-add) every entry
+    # receives at most one nonzero term, so the result does not depend on the
+    # order of the updates. (A scatter of complex numbers is also very slow on
+    # GPU.)
+    position = jnp.maximum(jnp.cumsum(is_conn) - 1, 0)
+    logpsi_σp = jnp.where(
+        is_conn, logpsi_conn[position], jnp.repeat(logpsi_σ, max_conn_size)
+    ).reshape(n_samples, max_conn_size)
+    return jnp.sum(mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
 
 
-def _flattened_chunk(logpsi, chunk_size, pars, logpsi_σ, σp, mels, idx, n_nonzero, c):
-    # Contribution of the c-th chunk of nonzero elements, summed per sample.
-    max_conn_size = mels.shape[0] // logpsi_σ.shape[0]
+def _flattened_logpsi_chunk(logpsi, chunk_size, pars, σp, idx, c):
+    # log ψ of the c-th chunk of selected configurations.
     i = jax.lax.dynamic_slice_in_dim(idx, c * chunk_size, chunk_size)
-    sample = i // max_conn_size
-    terms = mels[i] * jnp.exp(logpsi(pars, σp[i]) - logpsi_σ[sample])
-    is_valid = c * chunk_size + jnp.arange(chunk_size) < n_nonzero
-    terms = jnp.where(is_valid, terms, 0)
-    return jax.ops.segment_sum(
-        terms, sample, num_segments=logpsi_σ.shape[0], indices_are_sorted=True
-    )
+    return logpsi(pars, σp[i])
 
 
-def _flattened_zeros(logpsi_σ, mels):
+def _flattened_zeros(logpsi, pars, σp, idx):
     # Built from the data so that, inside shard_map, it is varying over the
     # sample axis like the loop updates.
-    dtype = jnp.result_type(mels.dtype, logpsi_σ.dtype)
-    return jnp.zeros_like(logpsi_σ, dtype=dtype)
+    dtype = jax.eval_shape(logpsi, pars, σp[:1]).dtype
+    return jnp.zeros_like(idx, dtype=dtype)
 
 
-def _flattened_offdiag_sum_while(
-    logpsi, chunk_size, pars, logpsi_σ, σp, mels, idx, n_nonzero
-):
-    n_chunks = (n_nonzero + chunk_size - 1) // chunk_size
+def _flattened_logpsi_while(logpsi, chunk_size, pars, σp, idx, n_conn):
+    n_chunks = (n_conn + chunk_size - 1) // chunk_size
 
-    def body(c, acc):
-        return acc + _flattened_chunk(
-            logpsi, chunk_size, pars, logpsi_σ, σp, mels, idx, n_nonzero, c
+    def body(c, out):
+        return jax.lax.dynamic_update_slice_in_dim(
+            out,
+            _flattened_logpsi_chunk(logpsi, chunk_size, pars, σp, idx, c),
+            c * chunk_size,
+            axis=0,
         )
 
-    return jax.lax.fori_loop(0, n_chunks, body, _flattened_zeros(logpsi_σ, mels))
+    return jax.lax.fori_loop(0, n_chunks, body, _flattened_zeros(logpsi, pars, σp, idx))
 
 
-def _flattened_offdiag_sum_scan(
-    logpsi, chunk_size, pars, logpsi_σ, σp, mels, idx, n_nonzero
-):
+def _flattened_logpsi_scan(logpsi, chunk_size, pars, σp, idx, n_conn):
     n_chunks_max = idx.shape[0] // chunk_size
+    zeros = _flattened_zeros(logpsi, pars, σp, idx[:chunk_size])
 
-    def body(acc, c):
-        acc = acc + jax.lax.cond(
-            c * chunk_size < n_nonzero,
-            lambda c: _flattened_chunk(
-                logpsi, chunk_size, pars, logpsi_σ, σp, mels, idx, n_nonzero, c
-            ),
-            lambda c: jnp.zeros_like(acc),
+    def body(_, c):
+        out = jax.lax.cond(
+            c * chunk_size < n_conn,
+            lambda c: _flattened_logpsi_chunk(logpsi, chunk_size, pars, σp, idx, c),
+            lambda c: zeros,
             c,
         )
-        return acc, None
+        return None, out
 
-    acc, _ = jax.lax.scan(
-        body, _flattened_zeros(logpsi_σ, mels), jnp.arange(n_chunks_max)
-    )
-    return acc
+    _, out = jax.lax.scan(body, None, jnp.arange(n_chunks_max))
+    return out.reshape(-1)
 
 
-def _flattened_offdiag_sum(logpsi, chunk_size, *args):
+def _flattened_logpsi(logpsi, chunk_size, *args):
     # The while loop has a data-dependent number of iterations, so it does not
     # support reverse-mode differentiation: when differentiated we use the
     # scan, which does the same work but can be transposed.
     @jax.custom_vjp
-    def offdiag_sum(*args):
-        return _flattened_offdiag_sum_while(logpsi, chunk_size, *args)
+    def flattened_logpsi(*args):
+        return _flattened_logpsi_while(logpsi, chunk_size, *args)
 
-    def offdiag_sum_fwd(*args):
+    def flattened_logpsi_fwd(*args):
         return jax.vjp(
-            lambda *args: _flattened_offdiag_sum_scan(logpsi, chunk_size, *args),
+            lambda *args: _flattened_logpsi_scan(logpsi, chunk_size, *args),
             *args,
         )
 
-    def offdiag_sum_bwd(pullback, g):
+    def flattened_logpsi_bwd(pullback, g):
         return pullback(g)
 
-    offdiag_sum.defvjp(offdiag_sum_fwd, offdiag_sum_bwd)
-    return offdiag_sum(*args)
+    flattened_logpsi.defvjp(flattened_logpsi_fwd, flattened_logpsi_bwd)
+    return flattened_logpsi(*args)

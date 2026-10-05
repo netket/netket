@@ -6,7 +6,7 @@
 ## NetKet 3.23 (In development)
 
 ### New Features
-* The local estimators of jax operators ({class}`netket.operator.DiscreteJaxOperator`) on a {class}`netket.vqs.MCState` can be computed with {func}`netket.vqs.mc.kernels.local_value_kernel_jax_flattened` by setting `NETKET_EXPERIMENTAL_FLATTENED_KERNEL=1`. It evaluates the network only on the nonzero off-diagonal connected configurations, in a number of fixed-size chunks that depends on the number of nonzero elements, so it never recompiles. This is faster for operators with many zero matrix elements, such as the Heisenberg and Hubbard models [PR #2293](https://github.com/netket/netket/pull/2293).
+* The local estimators of jax operators ({class}`netket.operator.DiscreteJaxOperator`) on a {class}`netket.vqs.MCState` can be computed with {func}`netket.vqs.mc.kernels.local_value_kernel_jax_flattened` by setting `NETKET_EXPERIMENTAL_FLATTENED_KERNEL=1`. It evaluates the network only on the connected configurations that differ from the sample, skipping the diagonal and the padding of the zero matrix elements, in a number of fixed-size chunks that depends on the number of those configurations, so it never recompiles. Its result is deterministic, also on GPU. This is faster for operators with many zero matrix elements, such as the Heisenberg and Hubbard models [PR #2293](https://github.com/netket/netket/pull/2293).
 * {class}`netket.utils.struct.Pytree` subclasses can override `__process_deserialization_state__` to adjust the saved state before it is loaded, e.g. to read files saved by older versions [PR #2285](https://github.com/netket/netket/pull/2285).
 
 ### Bug Fixes

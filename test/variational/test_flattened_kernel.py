@@ -14,11 +14,17 @@
 
 """Tests for the flattened local-value kernel of jax operators."""
 
+import os
+import subprocess
+import sys
+import textwrap
+
 import numpy as np
 import pytest
 
 import jax
 import jax.numpy as jnp
+import flax
 
 import netket as nk
 from netket.vqs.mc import kernels
@@ -212,6 +218,45 @@ def test_flattened_kernel_no_collectives():
         assert collective not in hlo
 
 
+@pytest.mark.parametrize("system", list(SYSTEMS))
+def test_padding_is_the_sample(system):
+    # The kernel skips the connected configurations equal to the sample. Its
+    # speedup relies on the operators filling the zero matrix elements with
+    # the sample itself.
+    vs, H = _vstate(system)
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    σp, mels = H.get_conn_padded(σ)
+    is_conn = np.any(np.asarray(σp) != np.asarray(σ)[:, None, :], axis=-1)
+    assert np.all(np.asarray(mels)[is_conn] != 0)
+
+
+@pytest.mark.parametrize("chunk_size", [None, 3])
+def test_flattened_kernel_coefficient_gradient_at_zero(chunk_size):
+    # At h = 0 every off-diagonal matrix element of the Ising model is zero,
+    # but its derivative with respect to h is not: the kernel must not drop
+    # the connected configurations based on the value of their matrix element.
+    vs, _ = _vstate("ising")
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    graph = nk.graph.Chain(vs.hilbert.size, pbc=True)
+
+    def flattened(*args):
+        return kernels.local_value_kernel_jax_flattened(*args, chunk_size=chunk_size)
+
+    def loss(kernel, h):
+        H = nk.operator.IsingJax(vs.hilbert, graph, h=h, J=1.0)
+        return jnp.sum(kernel(vs._apply_fun, vs.variables, σ, H)).real
+
+    h = jnp.array(0.0)
+    expected = jax.jit(jax.grad(lambda h: loss(kernels.local_value_kernel_jax, h)))(h)
+    result = jax.jit(jax.grad(lambda h: loss(flattened, h)))(h)
+    eps = 1e-5
+    finite_diff = (loss(flattened, h + eps) - loss(flattened, h - eps)) / (2 * eps)
+
+    assert abs(expected) > 1
+    np.testing.assert_allclose(result, expected, rtol=1e-10)
+    np.testing.assert_allclose(result, finite_diff, rtol=1e-6)
+
+
 def _empty_operator(name):
     if name == "local_operator":
         hi = nk.hilbert.Spin(0.5, 4)
@@ -251,3 +296,109 @@ def test_flattened_kernel_empty_operator(operator, chunk_size):
 
     grad = jax.jit(jax.grad(loss))(vs.parameters, H)
     jax.tree.map(lambda g: np.testing.assert_array_equal(g, 0), grad)
+
+
+def _bitwise(x):
+    x = np.asarray(x)
+    return x.dtype, x.shape, x.tobytes()
+
+
+@pytest.mark.parametrize("chunk_size", [None, 32])
+def test_flattened_kernel_bitwise_repeatable(chunk_size):
+    # Repeated evaluations on the same inputs must give the same bits. A
+    # scatter-add accumulating several terms per sample would not guarantee
+    # it on GPU, where the order of the overlapping updates is not fixed.
+    vs, H = _vstate("hubbard")
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    f = jax.jit(
+        lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
+            vs._apply_fun, v, σ, H, chunk_size=chunk_size
+        )
+    )
+    expected = _bitwise(f(vs.variables, σ, H))
+    for _ in range(20):
+        assert _bitwise(f(vs.variables, σ, H)) == expected
+
+
+@pytest.mark.parametrize("chunk_size", [None, 32])
+def test_flattened_kernel_gradient_bitwise_repeatable(chunk_size):
+    vs, H = _vstate("hubbard")
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+
+    def loss(params, H):
+        variables = {**vs.variables, "params": params}
+        out = kernels.local_value_kernel_jax_flattened(
+            vs._apply_fun, variables, σ, H, chunk_size=chunk_size
+        )
+        return jnp.sum(jnp.abs(out) ** 2)
+
+    f = jax.jit(jax.grad(loss))
+    expected = jax.tree.map(_bitwise, f(vs.parameters, H))
+    for _ in range(10):
+        assert jax.tree.map(_bitwise, f(vs.parameters, H)) == expected
+
+
+_REPEATABILITY_SCRIPT = textwrap.dedent(
+    """
+    import sys
+    import numpy as np
+    import jax
+    import flax
+    import netket as nk
+    from netket.vqs.mc import kernels
+
+    inputs, output = sys.argv[1:]
+    data = np.load(inputs)
+    g = nk.graph.Triangular([3, 4], pbc=True)
+    hi = nk.hilbert.Spin(0.5, g.n_nodes, total_sz=0)
+    H = nk.operator.Heisenberg(hi, g)
+    model = nk.models.RBM(alpha=2, param_dtype=complex)
+    variables = flax.serialization.msgpack_restore(data["variables"].tobytes())
+
+    out = {}
+    for chunk_size in (None, 32):
+        f = jax.jit(
+            lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
+                model.apply, v, σ, H, chunk_size=chunk_size
+            )
+        )
+        out[str(chunk_size)] = np.asarray(f(variables, data["samples"], H))
+    np.savez(output, **out)
+    """
+)
+
+
+@pytest.mark.skipif(jax.process_count() > 1, reason="spawns single-process runs")
+def test_flattened_kernel_bitwise_repeatable_across_processes(tmp_path):
+    # Fresh processes on the same hardware and software, given the same saved
+    # inputs, must give the same bits.
+    vs, H = _vstate("heisenberg_triangular")
+    inputs = tmp_path / "inputs.npz"
+    np.savez(
+        inputs,
+        samples=np.asarray(vs.samples.reshape(-1, vs.hilbert.size)),
+        variables=np.frombuffer(
+            flax.serialization.msgpack_serialize(jax.device_get(vs.variables)),
+            dtype=np.uint8,
+        ),
+    )
+    # On GPU, XLA's autotuner can choose a different implementation of the
+    # network (e.g. of a matrix product) in every process, which changes the
+    # rounding of log psi with any kernel: it is disabled, to test the kernel.
+    env = {
+        **os.environ,
+        "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+        "XLA_FLAGS": os.environ.get("XLA_FLAGS", "") + " --xla_gpu_autotune_level=0",
+    }
+    outputs = []
+    for k in range(2):
+        output = tmp_path / f"output{k}.npz"
+        subprocess.run(
+            [sys.executable, "-c", _REPEATABILITY_SCRIPT, str(inputs), str(output)],
+            env=env,
+            check=True,
+        )
+        outputs.append(dict(np.load(output)))
+    assert set(outputs[0]) == {"None", "32"}
+    for key, value in outputs[0].items():
+        assert _bitwise(outputs[1][key]) == _bitwise(value)
