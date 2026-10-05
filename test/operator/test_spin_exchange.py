@@ -16,9 +16,11 @@ import numpy as np
 import pytest
 
 import jax
+import jax.numpy as jnp
 
 import netket as nk
 from netket.experimental.operator import SpinExchangeOperator
+from netket.vqs.mc import kernels
 
 
 def _j1j2(L):
@@ -139,3 +141,88 @@ def test_spin_exchange_local_estimators(graph, chunk_size):
     result = np.asarray(vs.local_estimators(H, chunk_size=chunk_size).data)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(vs.expect(H).mean, vs.expect(H_ref).mean, rtol=1e-12)
+
+
+def _vstate(hi, g):
+    sa = nk.sampler.MetropolisExchange(hi, graph=g, n_chains=8 * jax.device_count())
+    ma = nk.models.RBM(alpha=2, param_dtype=complex)
+    return nk.vqs.MCState(sa, ma, n_samples=64 * jax.device_count(), seed=0)
+
+
+def test_spin_exchange_coupling_gradient_at_zero():
+    # At J = 0 the exchange matrix elements are zero, but their derivative with
+    # respect to J is not: the bonds must not be dropped based on the value of J.
+    g = nk.graph.Triangular([3, 4], pbc=True)
+    hi = nk.hilbert.Spin(0.5, g.n_nodes, total_sz=0)
+    vs = _vstate(hi, g)
+    σ = vs.samples.reshape(-1, hi.size)
+
+    def loss(J):
+        H = SpinExchangeOperator(hi, g, J=J, Jz=1.0)
+        out = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
+        return jnp.sum(out).real
+
+    J = jnp.array(0.0)
+    result = jax.jit(jax.grad(loss))(J)
+    eps = 1e-5
+    finite_diff = (loss(J + eps) - loss(J - eps)) / (2 * eps)
+    assert abs(result) > 1
+    np.testing.assert_allclose(result, finite_diff, rtol=1e-6)
+
+    # the bonds of a coupling given as a jax array are kept also when zero
+    H = SpinExchangeOperator(hi, g, J=jnp.zeros(g.n_edges), Jz=1.0)
+    assert H.max_offdiag_conn_size == SpinExchangeOperator(hi, g).max_offdiag_conn_size
+    # those given as a Python or numpy zero are dropped
+    H = SpinExchangeOperator(hi, g, J=0.0, Jz=1.0)
+    assert H.max_offdiag_conn_size == 0
+    _assert_sparse_close(H, _reference(hi, np.asarray(g.edges()), 0.0, 1.0, 0.0, False))
+
+
+@pytest.mark.parametrize(
+    "case", ["no_bonds", "no_exchange", "polarized", "polarized_no_bonds"]
+)
+@pytest.mark.parametrize("chunk_size", [None, 16])
+def test_spin_exchange_diagonal_only(case, chunk_size):
+    # Without exchange (or anti-parallel bonds) the operator is diagonal.
+    g = nk.graph.Chain(8, pbc=True)
+    edges = np.asarray(g.edges())
+    total_sz = 4 if case.startswith("polarized") else 0
+    hi = nk.hilbert.Spin(0.5, g.n_nodes, total_sz=total_sz)
+    h = np.linspace(-1, 1, hi.size)
+    J = 1.0
+    if case.endswith("no_bonds"):
+        edges = np.zeros((0, 2), dtype=int)
+    if case == "no_exchange":
+        J = 0.0
+    H = SpinExchangeOperator(hi, edges, J=J, Jz=0.5, h=h)
+    assert H.max_offdiag_conn_size == 0
+    assert H.max_conn_size == 1
+    expected = _reference(hi, edges, J, 0.5, h, False)
+    _assert_sparse_close(H, expected)
+
+    x = hi.all_states()
+    xp, mels = jax.jit(lambda H, x: H.get_conn_padded(x))(H, x)
+    np.testing.assert_array_equal(xp[:, 0], x)
+    np.testing.assert_allclose(mels[:, 0], expected.to_sparse().diagonal(), atol=1e-13)
+
+    if hi.n_states > 1:
+        vs = _vstate(hi, nk.graph.Chain(8, pbc=True))
+        np.testing.assert_allclose(
+            np.asarray(vs.local_estimators(H, chunk_size=chunk_size).data),
+            np.asarray(vs.local_estimators(expected, chunk_size=chunk_size).data),
+            rtol=1e-12,
+            atol=1e-12,
+        )
+
+
+def test_spin_exchange_local_estimators_bitwise_repeatable():
+    # Repeated evaluations on the same inputs must give the same bits.
+    g = nk.graph.Triangular([3, 4], pbc=True)
+    hi = nk.hilbert.Spin(0.5, g.n_nodes, total_sz=0)
+    H = SpinExchangeOperator(hi, g)
+    vs = _vstate(hi, g)
+    σ = vs.samples.reshape(-1, hi.size)
+    f = jax.jit(lambda v, σ, H: kernels.local_value_kernel_jax(vs._apply_fun, v, σ, H))
+    expected = np.asarray(f(vs.variables, σ, H)).tobytes()
+    for _ in range(20):
+        assert np.asarray(f(vs.variables, σ, H)).tobytes() == expected

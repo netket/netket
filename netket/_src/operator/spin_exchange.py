@@ -130,7 +130,11 @@ class SpinExchangeOperator(DiscreteJaxOperator):
                 magnetisation.
             graph: the graph whose edges are the bonds, or an array of shape
                 `(n_bonds, 2)`.
-            J: the exchange coupling, a scalar or one value per bond.
+            J: the exchange coupling, a scalar or one value per bond. The
+                bonds whose coupling is a Python or numpy zero do not generate
+                connected elements. Couplings given as jax arrays are kept also
+                when zero, so that they can be differentiated (as the field
+                of :class:`netket.operator.IsingJax`).
             Jz: the :math:`\\hat\\sigma^z\\hat\\sigma^z` coupling, a scalar or one
                 value per bond. Defaults to `J` (Heisenberg model).
             h: the longitudinal field, a scalar or one value per site.
@@ -138,7 +142,7 @@ class SpinExchangeOperator(DiscreteJaxOperator):
                 for a bipartite graph is Marshall's sign rule. Defaults to True
                 if `graph` is a bipartite graph, as in
                 :func:`netket.operator.Heisenberg`, and to False otherwise.
-            max_offdiag_conn_size: the maximum number of nonzero off-diagonal
+            max_offdiag_conn_size: the maximum number of off-diagonal
                 connected elements. Defaults to a bound computed from the
                 graph and the Hilbert space, which holds for every configuration.
                 A configuration exceeding a smaller bound has a NaN diagonal
@@ -163,19 +167,23 @@ class SpinExchangeOperator(DiscreteJaxOperator):
         if Jz is None:
             Jz = J
         dtype = jnp.result_type(dtype or float, J, Jz, h)
-        J = np.broadcast_to(np.asarray(J, dtype=dtype), (len(edges),))
-        Jz = np.broadcast_to(np.asarray(Jz, dtype=dtype), (len(edges),))
-        h = np.broadcast_to(np.asarray(h, dtype=dtype), (hilbert.size,))
 
-        # Bonds without exchange do not generate connected elements.
-        is_exchange = J != 0
+        # The bonds generating connected elements are decided here, and not
+        # from the value of J when the connected elements are computed, so
+        # that a coupling that is zero keeps its derivative.
+        if isinstance(J, jax.Array):
+            is_exchange = np.ones(len(edges), dtype=bool)
+        else:
+            is_exchange = np.broadcast_to(np.asarray(J) != 0, (len(edges),))
         if max_offdiag_conn_size is None:
             max_offdiag_conn_size = _max_antiparallel_bonds(hilbert, edges[is_exchange])
 
+        J = jnp.broadcast_to(jnp.asarray(J, dtype=dtype), (len(edges),))
         self._edges = jnp.asarray(edges)
-        self._J = jnp.asarray(-J if sign_rule else J)
-        self._Jz = jnp.asarray(Jz)
-        self._h = jnp.asarray(h)
+        self._is_exchange = jnp.asarray(is_exchange)
+        self._J = -J if sign_rule else J
+        self._Jz = jnp.broadcast_to(jnp.asarray(Jz, dtype=dtype), (len(edges),))
+        self._h = jnp.broadcast_to(jnp.asarray(h, dtype=dtype), (hilbert.size,))
         self._max_offdiag_conn_size = int(max_offdiag_conn_size)
 
     @property
@@ -209,8 +217,9 @@ class SpinExchangeOperator(DiscreteJaxOperator):
     @property
     def max_offdiag_conn_size(self) -> int:
         """
-        An upper bound on the number of nonzero off-diagonal connected
-        elements of every configuration, the number of anti-parallel bonds.
+        An upper bound on the number of off-diagonal connected elements of
+        every configuration, the number of its anti-parallel bonds with
+        exchange.
 
         Unless specified, it is the minimum of the number of bonds, the number
         of bonds minus the number of edge-disjoint triangles (every triangle
@@ -235,7 +244,7 @@ class SpinExchangeOperator(DiscreteJaxOperator):
         zj = z[:, self._edges[:, 1]]
         mels_diag = (zi * zj) @ self._Jz + z @ self._h
 
-        is_antiparallel = (zi != zj) & (self._J != 0)
+        is_antiparallel = (zi != zj) & self._is_exchange
         n_offdiag = is_antiparallel.sum(axis=-1)
         mels_diag = jnp.where(n_offdiag > K, jnp.nan, mels_diag)
 
@@ -289,7 +298,7 @@ class SpinExchangeOperator(DiscreteJaxOperator):
         )
 
     def tree_flatten(self):
-        data = (self._edges, self._J, self._Jz, self._h)
+        data = (self._edges, self._is_exchange, self._J, self._Jz, self._h)
         metadata = {
             "hilbert": self.hilbert,
             "max_offdiag_conn_size": self._max_offdiag_conn_size,
@@ -300,6 +309,6 @@ class SpinExchangeOperator(DiscreteJaxOperator):
     def tree_unflatten(cls, metadata, data):
         res = cls.__new__(cls)
         DiscreteJaxOperator.__init__(res, metadata["hilbert"])
-        res._edges, res._J, res._Jz, res._h = data
+        res._edges, res._is_exchange, res._J, res._Jz, res._h = data
         res._max_offdiag_conn_size = metadata["max_offdiag_conn_size"]
         return res
