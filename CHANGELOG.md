@@ -6,6 +6,7 @@
 ## NetKet 3.23 (In development)
 
 ### New Features
+* Added {class}`netket.experimental.operator.SpinExchangeOperator`, a jax operator for spin-1/2 Heisenberg and XXZ models with longitudinal fields that, like the particle-number conserving fermionic operators, only generates the nonzero connected elements: the swaps of the anti-parallel bonds, within a bound computed from the lattice (e.g. 2N connected elements instead of 3N on the triangular lattice) [PR #2295](https://github.com/netket/netket/pull/2295).
 * {class}`netket.utils.struct.Pytree` subclasses can override `__process_deserialization_state__` to adjust the saved state before it is loaded, e.g. to read files saved by older versions [PR #2285](https://github.com/netket/netket/pull/2285).
 
 ### Bug Fixes
