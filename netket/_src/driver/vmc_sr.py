@@ -203,6 +203,36 @@ class VMC_SR(AbstractOptimizationDriver):
     some SPRING-like algorithms, albeit still in the linear least-squares setting, are presented in
     `Goldshlager et Al. (2025) <https://arxiv.org/pdf/2502.00882>`_ .
 
+    **Norm constraint.** Algorithm 1 of Goldshlager et Al. (2024) also bounds the size of
+    the applied step,
+
+    .. math::
+        \delta\theta = \zeta \cdot \min\left(\eta, \frac{\sqrt{C}}{\lVert\zeta\rVert}\right),
+
+    where :math:`\zeta` is the SPRING direction and :math:`\eta` the learning rate. The paper
+    uses this constraint to stabilise the optimisation and to allow larger learning rates.
+    This driver does not apply it. It can be added through the optimizer by clipping the
+    update *after* the learning rate has been applied:
+
+    .. code-block:: python
+
+        optimizer = optax.chain(
+            optax.sgd(learning_rate),
+            optax.clip_by_global_norm(max_norm),  # max_norm plays the role of sqrt(C)
+        )
+        driver = nk.driver.VMC_SR(
+            hamiltonian, optimizer, diag_shift=1e-4, momentum=0.8, variational_state=vstate
+        )
+
+    The momentum recursion keeps using the unclipped direction :math:`\zeta`, as in the paper.
+    Placing ``clip_by_global_norm`` *before* ``sgd`` instead clips :math:`\zeta` itself, which is
+    a different algorithm.
+
+    A good ``max_norm`` depends on the model and its parametrisation, so the value used in the
+    paper does not transfer between architectures. One practical choice is a value slightly above
+    the largest step norm of a stable run without momentum: the constraint is then inactive on
+    that run and only acts when momentum makes the steps grow.
+
 
     Implementation details
     ------------------------
@@ -325,6 +355,8 @@ class VMC_SR(AbstractOptimizationDriver):
                 :math:`A(\mu)=1/\sqrt{1-μ^2}`
                 Thus the  amplification is at most a factor of :math:`A(0.9)=2.3` or
                 :math:`A(0.99)=7.1`. Values around ``momentum = 0.8`` empirically work well.
+                The norm constraint of the SPRING paper is not applied by the driver; see
+                the class docstring for how to add it with ``optax.clip_by_global_norm``.
                 (Defaults to None)
             linear_solver: The linear solver function to use for the NGD solver. Defaults to
                 :func:`netket.optimizer.solver.cholesky_with_fallback`, which runs a Cholesky
