@@ -51,6 +51,8 @@ def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F
 def get_local_kernel(  # noqa: F811
     vstate: MCState, Ô: DiscreteJaxOperator, chunk_size: int
 ):  # noqa: F811
+    if Ô.max_offdiag_conn_size is not None:
+        return kernels.local_value_kernel_jax_compact
     return kernels.local_value_kernel_jax_chunked
 
 

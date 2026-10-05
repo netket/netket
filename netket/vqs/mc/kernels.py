@@ -24,6 +24,11 @@ import jax.numpy as jnp
 from netket.utils.types import PyTree, Array
 import netket.jax as nkjax
 from netket.operator import DiscreteJaxOperator
+from netket._src.operator.compact_conn import (
+    CompactConnOperator,
+    check_overflow,
+    get_conn_compact,
+)
 
 
 def batch_discrete_kernel(kernel):
@@ -221,3 +226,63 @@ def local_value_kernel_jax_chunked(
         return local_value_chunked(pars, σ, O)
     else:
         return local_value_kernel_jax_conn_chunked(logpsi, pars, σ, O, chunk_size)
+
+
+def local_value_kernel_jax_compact(
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    O: DiscreteJaxOperator,
+    *,
+    chunk_size: int | None = None,
+):
+    r"""
+    local_value kernel for MCState and jax-compatible operators declaring a
+    bound :attr:`~netket.operator.DiscreteJaxOperator.max_offdiag_conn_size`
+    on the number of nonzero off-diagonal connected elements of every sample.
+
+    The nonzero off-diagonal connected elements of every sample are packed in
+    ``max_offdiag_conn_size`` entries, and the network is evaluated only on
+    those: ``n_samples × max_offdiag_conn_size`` configurations instead of
+    ``n_samples × max_conn_size``. The diagonal elements are summed without
+    evaluating the network. Every operation acts on each sample independently,
+    so the kernel can be sharded along the samples without communication.
+
+    A sample with more nonzero off-diagonal elements than the bound gets a NaN
+    local value, and a :class:`RuntimeWarning` is issued.
+
+    Args:
+        logpsi: the log-amplitude function.
+        pars: the variables of the model.
+        σ: the samples, of shape ``(n_samples, hilbert.size)``.
+        O: the operator.
+        chunk_size: the number of connected configurations on which the
+            network is evaluated at once.
+    """
+    if chunk_size is not None:
+        # IMPORTANT: pars must be passed as explicit arg (not captured in lambda) so
+        # that shard_map's pvary/pcast mechanism can give it Manual sharding.
+        def _local_value_kernel(pars, s, O):
+            return local_value_kernel_jax_compact(logpsi, pars, s, O)
+
+        return nkjax.apply_chunked(
+            _local_value_kernel,
+            in_axes=(None, 0, None),
+            chunk_size=max(1, chunk_size // max(1, O.max_offdiag_conn_size)),
+            pvary_argnums=(0,),
+        )(pars, σ, O)
+
+    K = O.max_offdiag_conn_size
+    if isinstance(O, CompactConnOperator):
+        O = O.operator
+
+    mels_diag, σp, mels, n_offdiag = get_conn_compact(O, σ, K)
+    if K == 0:
+        return check_overflow(mels_diag, n_offdiag, K)
+
+    logpsi_σ = logpsi(pars, σ)
+    logpsi_σp = logpsi(pars, σp.reshape(-1, σp.shape[-1])).reshape(σp.shape[:-1])
+    mels_offdiag = jnp.sum(
+        mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1
+    )
+    return check_overflow(mels_diag + mels_offdiag, n_offdiag, K)
