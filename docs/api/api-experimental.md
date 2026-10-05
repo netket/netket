@@ -68,6 +68,24 @@ Previously we also had the remaining Fermionic functionality in the experimental
     operator.pyscf.TV_from_pyscf_molecule
 ```
 
+(experimental-operators-api)=
+## Operators
+
+Operators that change how local estimators are computed.
+
+```{eval-rst}
+.. currentmodule:: netket.experimental
+```
+
+```{eval-rst}
+.. autosummary::
+    :toctree: _generated/operator
+    :template: class
+    :nosignatures:
+
+    operator.CompactConnOperator
+```
+
 (experimental-logging-api)=
 ## Logging
 

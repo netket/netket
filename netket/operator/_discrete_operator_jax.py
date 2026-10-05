@@ -114,6 +114,32 @@ class DiscreteJaxOperator(DiscreteOperator[DiscreteHilbertType]):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         raise NotImplementedError  # pragma: no cover
 
+    @property
+    def max_offdiag_conn_size(self) -> int | None:
+        r"""A static upper bound on the number of off-diagonal connected
+        elements :math:`\langle x|O|x'\rangle` with :math:`x' \neq x` returned by
+        :meth:`get_conn_padded`, for every :math:`x`, or None if no such bound
+        is known (the default).
+
+        The elements whose matrix element is zero only for the current
+        coefficients of the operator count, but not the padding, which NetKet's
+        operators fill with :math:`x`: for them, this is a bound on the number
+        of nonzero off-diagonal matrix elements.
+
+        Unlike :attr:`max_conn_size`, which is the size of the padded output of
+        :meth:`get_conn_padded`, this must hold for every configuration of the
+        Hilbert space, so it should only be set by operators that can prove it
+        (for example from the structure of the Hamiltonian), or through
+        :class:`netket.experimental.operator.CompactConnOperator`.
+
+        When it is not None, the local estimators on a :class:`netket.vqs.MCState`
+        are computed with
+        :func:`netket.vqs.mc.kernels.local_value_kernel_jax_compact`, which
+        evaluates the network on only this many connected configurations per
+        sample.
+        """
+        return None
+
     @abc.abstractmethod
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator. This method

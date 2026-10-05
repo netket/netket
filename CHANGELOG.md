@@ -6,6 +6,7 @@
 ## NetKet 3.23 (In development)
 
 ### New Features
+* Jax operators can declare a static bound on the number of off-diagonal connected elements of every configuration with {attr}`netket.operator.DiscreteJaxOperator.max_offdiag_conn_size`, or be wrapped with a user-given bound in {class}`netket.experimental.operator.CompactConnOperator`, which can also check it with {meth}`~netket.experimental.operator.CompactConnOperator.validate`. The local estimators of such operators are then computed with {func}`netket.vqs.mc.kernels.local_value_kernel_jax_compact`, which evaluates the network only on that many connected configurations per sample, and returns NaN with a warning if a configuration exceeds the bound [PR #2294](https://github.com/netket/netket/pull/2294).
 * {class}`netket.utils.struct.Pytree` subclasses can override `__process_deserialization_state__` to adjust the saved state before it is loaded, e.g. to read files saved by older versions [PR #2285](https://github.com/netket/netket/pull/2285).
 
 ### Bug Fixes

@@ -75,6 +75,8 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteJaxOperator):  # no
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: DiscreteJaxOperator):  # noqa: F811
+    if Ô.max_offdiag_conn_size is not None:
+        return kernels.local_value_kernel_jax_compact
     return kernels.local_value_kernel_jax
 
 
