@@ -17,6 +17,7 @@ This module implements some common kernels used by MCState and MCMixedState.
 """
 
 from collections.abc import Callable
+from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -238,6 +239,7 @@ def local_value_kernel_jax_flattened(
     O: DiscreteJaxOperator,
     *,
     chunk_size: int | None = None,
+    min_chunk_size: int | None = None,
 ):
     r"""
     local_value kernel for MCState and jax-compatible operators that evaluates
@@ -257,12 +259,26 @@ def local_value_kernel_jax_flattened(
       ``n_local_samples × max_conn_size``;
     - evaluates :math:`\log\psi` on the selected configurations in chunks of
       ``chunk_size`` configurations (``n_local_samples × max_conn_size / 16``
-      if ``chunk_size`` is None). The number of chunks depends on the number
-      of selected configurations, so it changes from batch to batch, but every
-      chunk has the same static shape: a varying number of connected
-      elements never triggers a recompilation;
+      if ``chunk_size`` is None), and the remaining ones in chunks of
+      decreasing powers of two down to ``min_chunk_size``; the last chunk is
+      padded to ``min_chunk_size``. The number of chunks depends on the number
+      of selected configurations, so it changes from batch to batch, but their
+      shapes are static: a varying number of connected elements never triggers
+      a recompilation;
     - gathers the values back to the padded layout and computes the local
       values with the same summation as :func:`local_value_kernel_jax`.
+
+    The full chunks are evaluated in blocks of :math:`2^k` chunks, one for
+    every bit of their number, and every chunk smaller than ``chunk_size``
+    is evaluated at most once, each one selected with a :func:`jax.lax.cond`.
+    Every loop has a static number of iterations: on GPU, a loop whose number
+    of iterations depends on the data waits at every iteration for the device
+    to send the loop condition back to the host, which can cost more than a
+    small network. A :func:`jax.lax.cond` waits once, so there are only
+    logarithmically many waits. Every chunk size is a separate copy of the
+    network in the compiled program, so ``min_chunk_size`` trades the padding
+    of the last chunk for the compilation time and memory: ``min_chunk_size=1``
+    pads nothing, ``min_chunk_size=chunk_size`` compiles a single copy.
 
     The selection only depends on the configurations, not on the values of
     the matrix elements: a connected configuration whose matrix element is
@@ -276,14 +292,6 @@ def local_value_kernel_jax_flattened(
     axis), because the compaction is a global operation that GSPMD would
     otherwise replicate on every device.
 
-    The chunks are evaluated with a :func:`jax.lax.while_loop`, which cannot be
-    reverse-mode differentiated. When the kernel is differentiated (for
-    example by :func:`~netket.vqs.expect_and_grad` with
-    ``use_covariance=False``), its custom VJP evaluates instead a
-    :func:`jax.lax.scan` over the maximum number of chunks, skipping the empty
-    ones with :func:`jax.lax.cond`, which gives the same gradient.
-    Forward-mode differentiation (:func:`jax.jvp`) is not supported.
-
     The result agrees with :func:`local_value_kernel_jax` up to the rounding
     of :math:`\log\psi`, which can depend on the batch it is evaluated in.
 
@@ -294,9 +302,14 @@ def local_value_kernel_jax_flattened(
         O: the operator.
         chunk_size: the number of connected configurations on which the
             network is evaluated at once.
+        min_chunk_size: the size of the smallest chunk (``chunk_size // 8``
+            if None, rounded down to a power of two).
     """
     kernel = nkjax.HashablePartial(
-        _local_value_kernel_jax_flattened, logpsi, chunk_size=chunk_size
+        _local_value_kernel_jax_flattened,
+        logpsi,
+        chunk_size=chunk_size,
+        min_chunk_size=min_chunk_size,
     )
     # IMPORTANT: pars must be passed as explicit arg (not captured in the partial)
     # so that shard_map's pvary/pcast mechanism can give it Manual sharding.
@@ -307,7 +320,9 @@ def local_value_kernel_jax_flattened(
     )(pars, σ, O)
 
 
-def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
+def _local_value_kernel_jax_flattened(
+    logpsi, pars, σ, O, *, chunk_size, min_chunk_size
+):
     # Runs on the samples of a single device.
     n_samples, N = σ.shape
     σp, mels = O.get_conn_padded(σ)
@@ -316,7 +331,7 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
 
     if n_conns == 0:
         # No connected elements (e.g. an empty operator): the local values are
-        # zero, and the loop below cannot be traced on an empty buffer. The
+        # zero, and the chunks below cannot be traced on an empty buffer. The
         # zeros are built from σ so that they are varying inside shard_map.
         dtype = jnp.result_type(mels.dtype, jax.eval_shape(logpsi, pars, σ).dtype)
         return jnp.zeros_like(σ[:, 0], dtype=dtype)
@@ -329,8 +344,14 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
     if chunk_size is None:
         chunk_size = -(-n_conns // _FLATTENED_N_CHUNKS_UNCHUNKED)
     chunk_size = max(1, min(chunk_size, n_conns))
+    if min_chunk_size is None:
+        min_chunk_size = chunk_size // 8
+    min_chunk_size = max(1, min(min_chunk_size, chunk_size))
+    if min_chunk_size < chunk_size:
+        min_chunk_size = 1 << (min_chunk_size.bit_length() - 1)
     n_chunks_max = -(-n_conns // chunk_size)
-    buffer_size = n_chunks_max * chunk_size
+    # The padded last chunk can end after the last full chunk.
+    buffer_size = n_chunks_max * chunk_size + min_chunk_size
 
     # Indices of the selected configurations, sample-major. The filling only
     # needs to be a valid configuration.
@@ -341,7 +362,14 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
         logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
     )(pars, σ)
     logpsi_conn = _flattened_logpsi(
-        logpsi, chunk_size, pars, σp.reshape(-1, N), idx, n_conn
+        logpsi,
+        chunk_size,
+        min_chunk_size,
+        n_chunks_max,
+        pars,
+        σp.reshape(-1, N),
+        idx,
+        n_conn,
     )
 
     # Gather the values back to the padded layout, from the position of every
@@ -357,66 +385,56 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
     return jnp.sum(mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
 
 
-def _flattened_logpsi_chunk(logpsi, chunk_size, pars, σp, idx, c):
-    # log ψ of the c-th chunk of selected configurations.
-    i = jax.lax.dynamic_slice_in_dim(idx, c * chunk_size, chunk_size)
-    return logpsi(pars, σp[i])
-
-
-def _flattened_zeros(logpsi, pars, σp, idx):
-    # Built from the data so that, inside shard_map, it is varying over the
-    # sample axis like the loop updates.
+def _flattened_logpsi(
+    logpsi, chunk_size, min_chunk_size, n_chunks_max, pars, σp, idx, n_conn
+):
+    # log ψ of the first n_conn selected configurations σp[idx]. The entries
+    # after them are zero or hold the values of the padding of the last chunk.
     dtype = jax.eval_shape(logpsi, pars, σp[:1]).dtype
-    return jnp.zeros_like(idx, dtype=dtype)
+    # Built from the data so that, inside shard_map, it is varying over the
+    # sample axis like the updates.
+    out = jnp.zeros_like(idx, dtype=dtype)
 
+    def evaluate(size, n_chunks, out, start):
+        # n_chunks consecutive chunks of size configurations, from start.
+        def body(c, out):
+            offset = start + c * size
+            i = jax.lax.dynamic_slice_in_dim(idx, offset, size)
+            return jax.lax.dynamic_update_slice_in_dim(
+                out, logpsi(pars, σp[i]), offset, axis=0
+            )
 
-def _flattened_logpsi_while(logpsi, chunk_size, pars, σp, idx, n_conn):
-    n_chunks = (n_conn + chunk_size - 1) // chunk_size
+        if n_chunks == 1:
+            return body(0, out)
+        return jax.lax.fori_loop(0, n_chunks, body, out)
 
-    def body(c, out):
-        return jax.lax.dynamic_update_slice_in_dim(
+    def evaluate_if(pred, size, n_chunks, out, start):
+        return jax.lax.cond(
+            pred,
+            partial(evaluate, size, n_chunks),
+            lambda out, start: out,
             out,
-            _flattened_logpsi_chunk(logpsi, chunk_size, pars, σp, idx, c),
-            c * chunk_size,
-            axis=0,
+            start,
         )
 
-    return jax.lax.fori_loop(0, n_chunks, body, _flattened_zeros(logpsi, pars, σp, idx))
+    # The full chunks, in blocks of 2^k chunks for every bit k of their number.
+    n_full = n_conn // chunk_size
+    for k in reversed(range(n_chunks_max.bit_length())):
+        start = ((n_full >> (k + 1)) << (k + 1)) * chunk_size
+        out = evaluate_if(((n_full >> k) & 1) == 1, chunk_size, 1 << k, out, start)
 
+    # The rest, in chunks of the powers of two smaller than chunk_size, down to
+    # min_chunk_size, for every bit of their number.
+    rest = n_conn - n_full * chunk_size
+    for k in reversed(range((chunk_size - 1).bit_length())):
+        size = 1 << k
+        if size < min_chunk_size:
+            break
+        start = n_full * chunk_size + ((rest >> (k + 1)) << (k + 1))
+        out = evaluate_if(((rest >> k) & 1) == 1, size, 1, out, start)
 
-def _flattened_logpsi_scan(logpsi, chunk_size, pars, σp, idx, n_conn):
-    n_chunks_max = idx.shape[0] // chunk_size
-    zeros = _flattened_zeros(logpsi, pars, σp, idx[:chunk_size])
-
-    def body(_, c):
-        out = jax.lax.cond(
-            c * chunk_size < n_conn,
-            lambda c: _flattened_logpsi_chunk(logpsi, chunk_size, pars, σp, idx, c),
-            lambda c: zeros,
-            c,
-        )
-        return None, out
-
-    _, out = jax.lax.scan(body, None, jnp.arange(n_chunks_max))
-    return out.reshape(-1)
-
-
-def _flattened_logpsi(logpsi, chunk_size, *args):
-    # The while loop has a data-dependent number of iterations, so it does not
-    # support reverse-mode differentiation: when differentiated we use the
-    # scan, which does the same work but can be transposed.
-    @jax.custom_vjp
-    def flattened_logpsi(*args):
-        return _flattened_logpsi_while(logpsi, chunk_size, *args)
-
-    def flattened_logpsi_fwd(*args):
-        return jax.vjp(
-            lambda *args: _flattened_logpsi_scan(logpsi, chunk_size, *args),
-            *args,
-        )
-
-    def flattened_logpsi_bwd(pullback, g):
-        return pullback(g)
-
-    flattened_logpsi.defvjp(flattened_logpsi_fwd, flattened_logpsi_bwd)
-    return flattened_logpsi(*args)
+    # The last configurations, fewer than min_chunk_size, in a padded chunk.
+    if min_chunk_size > 1:
+        start = n_full * chunk_size + (rest // min_chunk_size) * min_chunk_size
+        out = evaluate_if(rest % min_chunk_size > 0, min_chunk_size, 1, out, start)
+    return out

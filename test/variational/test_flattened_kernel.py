@@ -103,6 +103,61 @@ def test_flattened_kernel_matches_padded(system, chunk_size):
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
+@pytest.mark.parametrize("chunk_size", [1, 7, 64, 100000])
+@pytest.mark.parametrize("min_chunk_size", [None, 1, 3, 64])
+def test_flattened_kernel_min_chunk_size(chunk_size, min_chunk_size):
+    vs, H = _vstate("heisenberg_triangular")
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
+    result = jax.jit(
+        lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
+            vs._apply_fun,
+            v,
+            σ,
+            H,
+            chunk_size=chunk_size,
+            min_chunk_size=min_chunk_size,
+        )
+    )(vs.variables, σ, H)
+    np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
+
+
+@pytest.mark.skipif(jax.process_count() > 1, reason="counts the rows of every device")
+@pytest.mark.parametrize(
+    "chunk_size, min_chunk_size, multiple",
+    [(32, None, 4), (32, 1, 1), (32, 32, 32), (48, None, 4), (48, 48, 48)],
+)
+def test_flattened_kernel_evaluated_rows(chunk_size, min_chunk_size, multiple):
+    # On every device, the network is evaluated on the samples and on the
+    # selected configurations, the last chunk being padded to min_chunk_size.
+    vs, H = _vstate("heisenberg_triangular")
+    rows = []
+
+    def logpsi(variables, x):
+        jax.debug.callback(lambda x: rows.append(x.shape[0]), x[:, 0])
+        return vs._apply_fun(variables, x)
+
+    f = jax.jit(
+        lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
+            logpsi, v, σ, H, chunk_size=chunk_size, min_chunk_size=min_chunk_size
+        )
+    )
+    remainders = set()
+    for seed in range(4):
+        σ = vs.hilbert.random_state(jax.random.key(seed), 61 * jax.device_count())
+        σp, _ = H.get_conn_padded(σ)
+        is_conn = np.any(np.asarray(σp) != np.asarray(σ)[:, None], axis=-1)
+        expected = 0
+        for n_conn in is_conn.reshape(jax.device_count(), -1).sum(axis=1):
+            remainders.add(int(n_conn) % chunk_size)
+            expected += 61 + -(-int(n_conn) // multiple) * multiple
+        rows.clear()
+        jax.block_until_ready(f(vs.variables, σ, H))
+        jax.effects_barrier()
+        assert sum(rows) == expected
+    assert len(remainders) > 1
+
+
 def test_flattened_kernel_dispatch():
     vs, H = _vstate("heisenberg_chain")
     old = nk.config.netket_experimental_flattened_kernel
@@ -159,8 +214,8 @@ def test_flattened_kernel_no_recompilation(chunk_size):
 
 @pytest.mark.parametrize("chunk_size", [None, 32])
 def test_flattened_kernel_gradient(chunk_size):
-    # The while loop is not reverse-differentiable: the custom vjp must give
-    # the gradient of the padded kernel.
+    # The chunks are selected by lax.cond and evaluated in loops with a static
+    # number of iterations, which reverse-mode differentiation must go through.
     vs, H = _vstate("hubbard")
     σ = vs.samples.reshape(-1, vs.hilbert.size)
 
@@ -182,6 +237,30 @@ def test_flattened_kernel_gradient(chunk_size):
         result,
         expected,
     )
+
+
+@pytest.mark.parametrize("chunk_size", [None, 32])
+def test_flattened_kernel_jvp(chunk_size):
+    vs, H = _vstate("hubbard")
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    tangent = jax.tree.map(lambda p: jnp.ones_like(p) * 0.1, vs.parameters)
+
+    def f(kernel, params, H):
+        return kernel(vs._apply_fun, {**vs.variables, "params": params}, σ, H)
+
+    def flattened(*args):
+        return kernels.local_value_kernel_jax_flattened(*args, chunk_size=chunk_size)
+
+    expected = jax.jit(
+        lambda p, t, H: jax.jvp(
+            lambda p: f(kernels.local_value_kernel_jax, p, H), (p,), (t,)
+        )
+    )(vs.parameters, tangent, H)
+    result = jax.jit(lambda p, t, H: jax.jvp(lambda p: f(flattened, p, H), (p,), (t,)))(
+        vs.parameters, tangent, H
+    )
+    for a, b in zip(result, expected):
+        np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12)
 
 
 def test_flattened_kernel_expect_and_grad_nonhermitian():
