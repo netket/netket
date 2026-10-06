@@ -6,6 +6,7 @@
 ## NetKet 3.23 (In development)
 
 ### New Features
+* JAX discrete local estimators can opt into generic compaction with `NETKET_EXPERIMENTAL_FLATTENED_KERNEL=1` and optional reuse of repeated configurations with `NETKET_EXPERIMENTAL_UNIQUE_KERNEL=1`. The kernels use existing operator connectivity, static-length chunk blocks and exact tail batches to avoid filler network evaluations without retracing. Reuse verifies full configuration equality and preserves all matrix elements and sample weights. Forward, reverse and higher-order differentiation are supported. Both options remain disabled by default; runtime gains depend on the workload. [PR #2296](https://github.com/netket/netket/pull/2296), incorporating the initial compaction work from [PR #2293](https://github.com/netket/netket/pull/2293).
 * {class}`netket.utils.struct.Pytree` subclasses can override `__process_deserialization_state__` to adjust the saved state before it is loaded, e.g. to read files saved by older versions [PR #2285](https://github.com/netket/netket/pull/2285).
 
 ### Bug Fixes
