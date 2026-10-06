@@ -320,7 +320,18 @@ def _fake_infer_layout(a):
     return mesh, P(*specs, *(None,) * (2 - len(specs)))
 
 
-def _install_fake_jaxmg(monkeypatch, version="1.4.0"):
+_FAKE_STATUS_SIZE = 40
+
+
+def _fake_status(status_code):
+    """Per-process status vectors, concatenated, failing on the last process."""
+    status = np.zeros((N_DEVICES, _FAKE_STATUS_SIZE), np.int32)
+    status[:, 1:] = 7  # other diagnostic fields are not all zero
+    status[-1, 0] = status_code
+    return jnp.asarray(status.reshape(-1))
+
+
+def _install_fake_jaxmg(monkeypatch, version="1.4.0", status_code=0):
     """
     Install a fake `jaxmg` recording its calls and solving with plain jax.
 
@@ -328,7 +339,9 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0"):
     itself, enters that mesh, places `A` in that sharding, and maps it over the
     mesh with :func:`jax.shard_map`, which checks that NetKet laid `A` out on
     that mesh consistently with the context mesh. Its high-level entry points donate their inputs, like
-    jaxmg's, while the `_shardmap_ctx` ones do not.
+    jaxmg's, while the `_shardmap_ctx` ones do not. With a nonzero
+    `status_code`, the fake reports a failure, like jaxmg, alongside finite
+    output.
     """
     calls = []
 
@@ -349,9 +362,9 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0"):
         mesh, _, a = _layout(a, T_A)
         with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
             b = _fake_place(b, NamedSharding(mesh, P()))
-            x = jnp.linalg.solve(a, b)
+            x = jnp.linalg.solve(a, b) if status_code == 0 else jnp.zeros_like(b)
         # (a_work, x, status), like jaxmg's non-donating entry point
-        return a, x, jnp.zeros((1,), jnp.int32)
+        return a, x, _fake_status(status_code)
 
     def syevd_shardmap_ctx(a, T_A, mesh=None, matrix_specs=None, **kwargs):
         assert mesh is None and matrix_specs is None
@@ -360,7 +373,7 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0"):
             w, v = jnp.linalg.eigh(a)
             # Like jaxmg, give the eigenvectors back sharded as the matrix.
             v = _fake_place(v, NamedSharding(mesh, specs))
-        return a, w, v, jnp.zeros((1,), jnp.int32)
+        return a, w, v, _fake_status(status_code)
 
     @partial(jax.jit, static_argnums=2, donate_argnums=(0, 1))
     def potrs(a, b, T_A, **kwargs):
@@ -633,3 +646,38 @@ def test_distributed_solvers_do_not_consume_the_problem(monkeypatch, solver):
     np.testing.assert_allclose(x, jnp.full((n,), 0.5), rtol=1e-5)
     assert not A.is_deleted()
     assert not b.is_deleted()
+
+
+@pytest.mark.parametrize(
+    "solver",
+    [
+        pytest.param(nk.optimizer.solver.cholesky_distributed, id="cholesky"),
+        pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
+    ],
+)
+@pytest.mark.parametrize("jit", [False, True], ids=["eager", "jit"])
+def test_distributed_solvers_report_backend_failures(
+    monkeypatch, context_mesh, solver, jit
+):
+    """
+    jaxmg can report a failure, such as for a singular matrix, alongside finite
+    but wrong output. The solvers turn it into NaNs, so that `nan_fallback`
+    falls back.
+    """
+    _install_fake_jaxmg(monkeypatch, status_code=26)
+
+    n = 16 * N_DEVICES
+    # Replicated, as the dense fallback does not accept a sharded `A` with
+    # Explicit mesh axes.
+    A = jax.device_put(
+        jnp.diag(jnp.full(n, 2.0).at[-1].set(0.0)), NamedSharding(context_mesh, P())
+    )
+    b = jax.device_put(jnp.ones(n).at[-1].set(0.0), NamedSharding(context_mesh, P()))
+
+    x, _ = (jax.jit(solver) if jit else solver)(A, b)
+    assert np.all(np.isnan(x))
+
+    combined = nk.optimizer.solver.nan_fallback(solver, nk.optimizer.solver.pinv_smooth)
+    x, info = (jax.jit(combined) if jit else combined)(A, b)
+    assert info["solver_fallback"]
+    np.testing.assert_allclose(x, np.where(np.arange(n) < n - 1, 0.5, 0.0), atol=1e-8)
