@@ -358,6 +358,27 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), rho)
 
 
+@common.skipif_mpi
+def test_qutip_conversion_constrained():
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    hi = nk.hilbert.Spin(0.5, 4, total_sz=0)
+    hi_full = nk.hilbert.Spin(0.5, 4)
+    sampler = nk.sampler.MetropolisLocal(nk.hilbert.DoubledHilbert(hi))
+    vstate = nk.vqs.MCMixedState(sampler, nk.models.NDM(), seed=0)
+
+    q_obj = vstate.to_qobj()
+
+    # QuTiP works in the full space, with zeros on the states outside the constraint
+    assert q_obj.dims == [[2, 2, 2, 2], [2, 2, 2, 2]]
+    assert q_obj.shape == (hi_full.n_states, hi_full.n_states)
+    numbers = np.asarray(hi_full.states_to_numbers(hi.all_states()))
+    rho_full = np.zeros(q_obj.shape, dtype=q_obj.full().dtype)
+    rho_full[np.ix_(numbers, numbers)] = vstate.to_matrix()
+    np.testing.assert_allclose(q_obj.full(), rho_full)
+
+
 ###
 
 

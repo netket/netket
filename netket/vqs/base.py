@@ -349,8 +349,16 @@ class VariationalState(abc.ABC):
 
         qutip = import_optional_dependency("qutip", descr="to_qobj")
 
+        psi = np.asarray(self.to_array())
+        if self.hilbert.constrained:
+            # QuTiP only knows the full space: put the amplitudes at the indices
+            # of the allowed states and zeros everywhere else.
+            psi_full = np.zeros(np.prod(self.hilbert.shape), dtype=psi.dtype)
+            psi_full[_unconstrained_numbers(self.hilbert)] = psi
+            psi = psi_full
+
         q_dims = [list(self.hilbert.shape), [1 for i in range(self.hilbert.size)]]
-        return qutip.Qobj(np.asarray(self.to_array()), dims=q_dims)
+        return qutip.Qobj(psi, dims=q_dims)
 
 
 class VariationalMixedState(VariationalState):
@@ -386,8 +394,23 @@ class VariationalMixedState(VariationalState):
         qutip = import_optional_dependency("qutip", descr="to_qobj")
 
         hilbert: DiscreteHilbert = self.hilbert_physical  # type: ignore
+        rho = np.asarray(self.to_matrix())
+        if hilbert.constrained:
+            # QuTiP only knows the full space, see VariationalState.to_qobj
+            n_full = np.prod(hilbert.shape)
+            rho_full = np.zeros((n_full, n_full), dtype=rho.dtype)
+            numbers = _unconstrained_numbers(hilbert)
+            rho_full[np.ix_(numbers, numbers)] = rho
+            rho = rho_full
+
         q_dims = [list(hilbert.shape), list(hilbert.shape)]
-        return qutip.Qobj(np.asarray(self.to_matrix()), dims=q_dims)
+        return qutip.Qobj(rho, dims=q_dims)
+
+
+def _unconstrained_numbers(hilbert: DiscreteHilbert) -> np.ndarray:
+    """Indices of the states of a constrained Hilbert space in the full space."""
+    local_indices = np.asarray(hilbert.states_to_local_indices(hilbert.all_states()))
+    return np.ravel_multi_index(tuple(local_indices.T), hilbert.shape)
 
 
 @dispatch.abstract

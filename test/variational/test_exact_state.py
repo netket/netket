@@ -147,6 +147,25 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
+@common.skipif_mpi
+def test_qutip_conversion_constrained():
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    hi = nk.hilbert.Spin(0.5, 4, total_sz=0)
+    hi_full = nk.hilbert.Spin(0.5, 4)
+    vstate = nk.vqs.FullSumState(hi, nk.models.RBM(alpha=1), seed=0)
+
+    q_obj = vstate.to_qobj()
+
+    # QuTiP works in the full space, with zeros on the states outside the constraint
+    assert q_obj.dims == [[2, 2, 2, 2], [1]]
+    assert q_obj.shape == (hi_full.n_states, 1)
+    ket_full = np.zeros(hi_full.n_states, dtype=q_obj.full().dtype)
+    ket_full[hi_full.states_to_numbers(hi.all_states())] = vstate.to_array()
+    np.testing.assert_allclose(q_obj.full().ravel(), ket_full)
+
+
 @pytest.mark.parametrize(
     "machine", [pytest.param(ma, id=name) for name, ma in machines.items()]
 )
