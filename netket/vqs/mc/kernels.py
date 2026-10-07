@@ -329,6 +329,11 @@ def _local_value_kernel_jax_flattened(
     max_conn_size = mels.shape[-1]
     n_conns = n_samples * max_conn_size
 
+    # The network is called in many places below, on a few shapes of chunks:
+    # as a jitted function, it is traced and lowered once per shape instead of
+    # once per call, which takes most of the compilation time of large models.
+    logpsi = jax.jit(logpsi)
+
     if n_conns == 0:
         # No connected elements (e.g. an empty operator): the local values are
         # zero, and the chunks below cannot be traced on an empty buffer. The
