@@ -411,6 +411,15 @@ def test_draw_lattices():
         )
 
 
+def test_draw_lattice_high_distance_order():
+    # edges of distance order 6 and higher used to get an alpha <= 0
+    lattice = nk.graph.Chain(20)
+    ax = lattice.draw(distance_order=8, show=False)
+    alphas = [line.get_alpha() for line in ax.get_lines()]
+    assert len(alphas) > 0
+    assert all(0 < a <= 1 for a in alphas)
+
+
 def test_size_is_positive():
     for graph in graphs:
         assert graph.n_nodes > 0

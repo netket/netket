@@ -255,7 +255,8 @@ def draw_lattice(
     # Plot edges
     colors = get_n_colors(len(naive_edges_by_order))
     for k, naive_edges in enumerate(naive_edges_by_order):
-        a = 1 - k * 0.2
+        # fade the edges of higher distance orders, but keep them visible
+        a = max(1 - k * 0.2, 0.2)
         color = colors[k]
         for node1, node2 in naive_edges:
             # switch to real node indices
