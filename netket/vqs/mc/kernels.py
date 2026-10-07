@@ -281,11 +281,12 @@ def local_value_kernel_jax_flattened(
 
     Full chunks are evaluated in blocks with static trip counts, avoiding a
     data-dependent GPU loop for every network batch. Runtime conditions select
-    the occupied blocks without evaluating empty chunks. When differentiated
-    (for example by :func:`~netket.vqs.expect_and_grad` with
-    ``use_covariance=False``), a custom JVP uses a :func:`jax.lax.scan` over the
-    maximum number of chunks, skipping empty ones with :func:`jax.lax.cond`.
-    This supports forward, reverse, and higher-order differentiation.
+    the occupied blocks without evaluating empty chunks. The static loops
+    support native forward, reverse, and higher-order differentiation. Their
+    total capacity equals the maximum number of full chunks, avoiding excess
+    storage for reverse-mode intermediates from unused block capacity.
+    Wrapping the network in :func:`jax.jit` shares its trace across call sites
+    with the same batch shape.
 
     The result agrees with :func:`local_value_kernel_jax` up to the rounding
     of :math:`\log\psi`, which can depend on the batch it is evaluated in.
@@ -311,6 +312,7 @@ def local_value_kernel_jax_flattened(
 
 
 def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
+    logpsi = jax.jit(logpsi)
     # Runs on the samples of a single device.
     n_samples, N = σ.shape
     σp, mels = O.get_conn_padded(σ)
@@ -399,21 +401,16 @@ def _flattened_logpsi_tail(logpsi, chunk_size, pars, σp, idx, n_conn, out):
 
 
 def _flattened_logpsi_blocks(logpsi, chunk_size, pars, σp, idx, n_conn):
-    # GPU execution of a dynamic-trip-count loop can cost more than the model.
-    # Decompose the occupied full chunks into powers of two: every active block
-    # has a static trip count, with only logarithmically many runtime decisions.
+    # Exact-capacity blocks, adapted from PR #2293 (Filippo Vicentini).
+    # Native reverse mode reserves residuals for every block, including skipped
+    # blocks, so their combined capacity must not exceed n_chunks_max.
     n_chunks = n_conn // chunk_size
     n_chunks_max = idx.shape[0] // chunk_size
     out = _flattened_zeros(logpsi, pars, σp, idx)
 
     def evaluate_blocks(out):
-        start = jnp.zeros_like(n_conn)
-        for bit in reversed(range(n_chunks_max.bit_length())):
-            length = 1 << bit
-
-            def evaluate(state):
-                out, start = state
-
+        def evaluate_if(pred, length, start, out):
+            def evaluate(out):
                 def body(c, out):
                     offset = (start + c) * chunk_size
                     values = _flattened_logpsi_chunk(
@@ -423,61 +420,34 @@ def _flattened_logpsi_blocks(logpsi, chunk_size, pars, σp, idx, n_conn):
                         out, values, offset, axis=0
                     )
 
-                out = jax.lax.fori_loop(0, length, body, out)
-                return out, start + length
+                if length == 1:
+                    return body(0, out)
+                return jax.lax.fori_loop(0, length, body, out)
 
-            out, start = jax.lax.cond(
-                n_chunks - start >= length,
-                evaluate,
-                lambda state: state,
-                (out, start),
-            )
+            return jax.lax.cond(pred, evaluate, lambda out: out, out)
+
+        # Binary blocks cover 2**bits - 1 chunks; one extra block accounts for
+        # the remaining capacity. Every occupied count is still representable.
+        bits = (n_chunks_max + 1).bit_length() - 1
+        extra = n_chunks_max - ((1 << bits) - 1)
+        if extra > 0:
+            has_first = n_chunks >= (1 << bits)
+            out = evaluate_if(has_first, extra, 0, out)
+            first = jnp.where(has_first, extra, 0)
+        else:
+            first = 0
+        remaining = n_chunks - first
+        for bit in reversed(range(bits)):
+            start = first + ((remaining >> (bit + 1)) << (bit + 1))
+            out = evaluate_if(((remaining >> bit) & 1) == 1, 1 << bit, start, out)
         return out
 
-    # No full chunks means no block-selection work is needed.
     out = jax.lax.cond(n_chunks > 0, evaluate_blocks, lambda out: out, out)
     return _flattened_logpsi_tail(logpsi, chunk_size, pars, σp, idx, n_conn, out)
 
 
-def _flattened_logpsi_scan(logpsi, chunk_size, pars, σp, idx, n_conn):
-    n_chunks_max = idx.shape[0] // chunk_size
-    zeros = _flattened_zeros(logpsi, pars, σp, idx[:chunk_size])
-
-    def body(_, c):
-        out = jax.lax.cond(
-            (c + 1) * chunk_size <= n_conn,
-            lambda c: _flattened_logpsi_chunk(
-                logpsi, chunk_size, pars, σp, idx, c * chunk_size
-            ),
-            lambda c: zeros,
-            c,
-        )
-        return None, out
-
-    _, out = jax.lax.scan(body, None, jnp.arange(n_chunks_max))
-    return _flattened_logpsi_tail(
-        logpsi, chunk_size, pars, σp, idx, n_conn, out.reshape(-1)
-    )
-
-
 def _flattened_logpsi(logpsi, chunk_size, pars, σp, idx, n_conn):
-    # The primal uses fixed-length blocks. For AD, a fixed-capacity scan keeps
-    # the derivative graph independent of the combination of active blocks.
-    @jax.custom_jvp
-    def flattened_logpsi(*args):
-        return _flattened_logpsi_blocks(logpsi, chunk_size, *args)
-
-    @flattened_logpsi.defjvp
-    def flattened_logpsi_jvp(primals, tangents):
-        return jax.jvp(
-            lambda *args: _flattened_logpsi_scan(logpsi, chunk_size, *args),
-            primals,
-            tangents,
-        )
-
-    # Packing fixed-capacity storage does not evaluate any padded model rows.
-    # Only the first n_conn entries reach the full chunks or exact tail.
-    return flattened_logpsi(pars, σp[idx], idx, n_conn)
+    return _flattened_logpsi_blocks(logpsi, chunk_size, pars, σp[idx], idx, n_conn)
 
 
 def local_value_kernel_jax_unique(logpsi, pars, σ, O, *, chunk_size=None):
@@ -659,6 +629,7 @@ def _expand_unique_rows(values, order, starts, positions):
 def _local_value_kernel_jax_unique(
     logpsi, pars, σ, O, *, chunk_size, row_plan=_unique_row_plan
 ):
+    logpsi = jax.jit(logpsi)
     n_samples, n_sites = σ.shape
     σp, mels = O.get_conn_padded(σ)
     if mels.size == 0:

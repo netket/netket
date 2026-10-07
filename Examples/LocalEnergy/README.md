@@ -77,7 +77,9 @@ These remain seeded initial-model benchmarks, not complete training steps.
 ## Comparing source revisions
 
 The compact method in the algorithm benchmarks above is the implementation in
-this branch. It is not unmodified PR #2293. The source comparisons use current
+this branch. It is not unmodified PR #2293. The historical source comparisons
+below measured the earlier implementation published in #2296 at `b9dc149`.
+They use
 upstream main at `5e4511b7883d89d83b0aba534b37c3c672a15a42`, original PR #2293 at
 `edeaf94d2768384e36f9db9480de54b5efbe8866`, and the earlier version of this PR at
 `d45f0e76c6898879cc7f278af701c03845c2a64e` as separate reference checkouts.
@@ -111,8 +113,8 @@ Then `benchmark_interleaved.py` times all five kernels in rotating order in a
 single process. It imports the three unmodified reference kernel modules from
 `--sources/main`, `--sources/pr2293`, and `--sources/candidate` (the previous PR
 snapshot). Their hashes and outputs must match the independently verified
-reference files. The two current implementations are also checked through the
-current MCState dispatcher and public API. All checkouts need generated
+reference files. The two candidate implementations are also checked through that revision's
+MCState dispatcher and public API. All checkouts need generated
 version metadata and common installed dependencies; an editable installation
 generates the metadata.
 
@@ -140,7 +142,8 @@ original fingerprint kernel.
 | vit4 | 90.999 | 18.938 | 4.458 | 17.830 | 4.754 |
 | vit8 | 159.730 | 88.880 | 89.774 | 82.711 | 82.915 |
 
-Both updated kernels beat both upstream baselines in every measured case.
+Both candidate kernels at that revision beat both pinned upstream baselines
+in every measured case.
 The fixed-block loop removes the Ising20, Hubbard4 and ViT8 regressions.
 Relative to the previous fingerprint implementation, the tiny Hubbard2 case
 is within 1%, while ViT4 is about 6.6% slower in this run; ViT4 remains about
@@ -154,9 +157,10 @@ not establish speedups for all optimized states or whole VMC steps.
 
 The old compact evaluator used a loop whose trip count depended on the input
 batch. A dense fixed-length scan could be faster despite doing more network
-work. Packing rows alone made only a small difference. Full chunks now run
-in statically sized blocks: 320 chunks, for example, use blocks of 256 and 64
-iterations. Runtime conditions select occupied blocks; no padded network rows
+work. Packing rows alone made only a small difference. The implementation
+measured in the table above ran full chunks in binary blocks: 320 chunks,
+for example, used blocks of 256 and 64 iterations. The native-AD update below
+bounds the sum of all block capacities as well as the work actually executed. Runtime conditions select occupied blocks; no padded network rows
 are evaluated. Selected rows are packed once and sliced contiguously. The
 block-selection phase is bypassed when only a partial chunk is occupied.
 This is shared by plain compaction and deduplication, without a timing tuner
@@ -175,3 +179,133 @@ against all three original sources. All seven cases pass
 1.51e-10. Model-gradient bitwise determinism is not claimed. The kernel tests
 also check exact network-row counts across block boundaries, no retracing,
 zero-coefficient derivatives, mixed second derivatives and sharding.
+
+## Native differentiation and compilation (7 October update)
+
+The updated evaluator incorporates the network JIT wrapper and exact-capacity
+block schedule from PR #2293 at `c87a3c77`. It uses native differentiation in
+place of the earlier custom-JVP scan. Exact tails, row packing and optional
+fingerprint reuse are retained. These changes require no new operator API.
+The sum of the full-block capacities equals the allocated full-chunk capacity,
+limiting reverse-mode residual storage for skipped blocks.
+
+The baselines are main `5e4511b`, our published PR `b9dc149`, and latest #2293
+`c87a3c77`. Both the default coarse tail and explicit `min_chunk_size=1` of
+#2293 are measured. The updated implementation always retains exact tails.
+
+One H100, JAX/jaxlib 0.10.1, FP64 parameters and model arithmetic. Each
+(case, source, mode, chunk size) runs in a fresh process, with persistent
+compilation caching disabled and in-memory JAX caches cleared after common
+model setup. The report separates tracing/lowering from XLA compilation.
+Execution timings use ten warmups and 21 synchronized calls; source order is
+rotated by case. Source, parameter, sample and connectivity hashes are checked.
+All sources use identical public models and saved inputs. Compilation excludes
+model setup, sampling and input validation. These are local-energy kernels,
+not entire VMC steps.
+
+Forward runs use 2,048 samples for spin/Hubbard and 512 for ViT. Gradients of
+mean(abs(E_loc)**2) use all 2,048 samples for spin/Hubbard and the first 16 saved
+samples for ViT. The derivative speedups apply when differentiating local
+energies; the usual covariance-based VMC gradient follows a different path.
+Memory numbers are XLA executable temporary-memory estimates, not measured
+peak resident GPU usage.
+
+Forward runtime, milliseconds (chunk 128):
+
+| Case | Main | Published compact | Published dedup | Latest #2293 coarse | Latest #2293 exact | Updated compact | Updated dedup |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ising20 | 5.176 | 3.374 | 3.327 | 3.307 | 3.433 | 3.402 | 3.377 |
+| heisenberg20 | 12.742 | 1.936 | 0.805 | 1.893 | 1.968 | 1.945 | 0.808 |
+| heisenberg64 | 86.759 | 4.132 | 1.375 | 4.145 | 4.256 | 4.107 | 1.383 |
+| hubbard2 | 13.779 | 1.851 | 0.612 | 1.808 | 1.871 | 1.841 | 0.613 |
+| hubbard4 | 437.428 | 23.277 | 23.044 | 23.590 | 23.780 | 22.931 | 23.271 |
+| vit4 | 91.141 | 17.317 | 4.110 | 17.281 | 17.417 | 17.307 | 4.076 |
+| vit8 | 159.473 | 83.507 | 83.578 | 82.858 | 83.591 | 84.504 | 83.792 |
+
+Cold forward trace + compile, seconds (chunk 128):
+
+| Case | Main | Published compact | Published dedup | Latest #2293 coarse | Latest #2293 exact | Updated compact | Updated dedup |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ising20 | 0.749 | 1.591 | 2.103 | 1.377 | 1.702 | 1.535 | 2.097 |
+| heisenberg20 | 0.903 | 1.968 | 2.293 | 1.451 | 1.973 | 1.825 | 2.346 |
+| heisenberg64 | 1.691 | 2.641 | 2.981 | 1.752 | 2.205 | 2.140 | 2.704 |
+| hubbard2 | 1.429 | 2.381 | 3.434 | 1.944 | 2.454 | 2.380 | 3.317 |
+| hubbard4 | 0.955 | 3.499 | 4.160 | 2.896 | 3.420 | 3.382 | 4.129 |
+| vit4 | 2.855 | 14.249 | 14.511 | 8.796 | 12.903 | 13.282 | 13.676 |
+| vit8 | 2.518 | 15.005 | 15.982 | 9.467 | 13.911 | 13.847 | 14.597 |
+
+Gradient runtime, milliseconds (chunk 128; ViT uses 16 samples):
+
+| Case | Main | Published compact | Published dedup | Latest #2293 coarse | Latest #2293 exact | Updated compact | Updated dedup |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ising20 | 19.308 | 30.883 | 32.335 | 11.746 | 11.828 | 12.284 | 12.189 |
+| heisenberg20 | 24.721 | 29.663 | 30.313 | 5.265 | 5.391 | 5.527 | 1.846 |
+| heisenberg64 | 156.076 | 91.148 | 89.766 | 12.927 | 13.038 | 13.351 | 4.331 |
+| hubbard2 | 21.246 | 16.773 | 18.037 | 5.145 | 5.320 | 5.295 | 1.095 |
+| hubbard4 | 737.602 | 147.536 | 149.009 | 78.568 | 77.018 | 77.730 | 76.043 |
+| vit4 | 18.581 | 18.579 | 18.916 | 8.810 | 10.139 | 10.645 | 7.898 |
+| vit8 | 52.882 | 81.103 | 80.454 | 34.528 | 36.914 | 36.918 | 38.413 |
+
+Cold gradient trace + compile, seconds:
+
+| Case | Main | Published compact | Published dedup | Latest #2293 coarse | Latest #2293 exact | Updated compact | Updated dedup |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ising20 | 1.536 | 2.878 | 3.542 | 3.228 | 3.905 | 4.000 | 4.889 |
+| heisenberg20 | 1.934 | 3.302 | 3.960 | 3.550 | 4.303 | 4.301 | 5.101 |
+| heisenberg64 | 1.535 | 3.437 | 4.864 | 3.990 | 4.940 | 4.834 | 6.465 |
+| hubbard2 | 1.882 | 2.695 | 4.438 | 3.514 | 4.071 | 4.286 | 6.304 |
+| hubbard4 | 1.476 | 3.590 | 5.939 | 5.442 | 6.192 | 6.590 | 8.673 |
+| vit4 | 9.249 | 37.053 | 35.368 | 27.060 | 41.141 | 43.570 | 42.300 |
+| vit8 | 13.919 | 40.201 | 39.328 | 35.338 | 49.486 | 53.682 | 53.092 |
+
+Gradient executable temporary memory, MiB:
+
+| Case | Main | Published compact | Published dedup | Latest #2293 coarse | Latest #2293 exact | Updated compact | Updated dedup |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ising20 | 49.716 | 50.706 | 51.967 | 51.044 | 51.070 | 50.937 | 51.860 |
+| heisenberg20 | 90.179 | 92.898 | 94.331 | 92.395 | 92.411 | 91.921 | 93.348 |
+| heisenberg64 | 860.364 | 896.104 | 906.725 | 873.062 | 873.157 | 864.064 | 875.257 |
+| hubbard2 | 2.510 | 3.123 | 3.955 | 3.017 | 3.032 | 3.175 | 3.977 |
+| hubbard4 | 152.736 | 163.916 | 168.852 | 156.592 | 156.603 | 157.622 | 160.744 |
+| vit4 | 280.209 | 364.554 | 392.071 | 341.593 | 344.213 | 344.306 | 342.831 |
+| vit8 | 4215.818 | 4515.700 | 4508.849 | 4411.080 | 4409.224 | 4416.989 | 4437.268 |
+
+Chunk-4096 ViT control, cold forward trace + compile in seconds:
+
+| Case | Main | Published compact | Published dedup | Latest #2293 coarse | Latest #2293 exact | Updated compact | Updated dedup |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| vit4 | 4.529 | 20.153 | 20.569 | 7.696 | 19.275 | 19.270 | 20.041 |
+| vit8 | 4.568 | 20.531 | 21.246 | 7.934 | 19.832 | 19.693 | 21.055 |
+
+Chunk-4096 ViT control, forward runtime in milliseconds:
+
+| Case | Main | Published compact | Published dedup | Latest #2293 coarse | Latest #2293 exact | Updated compact | Updated dedup |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| vit4 | 6.038 | 3.691 | 1.917 | 3.002 | 3.631 | 3.670 | 1.916 |
+| vit8 | 87.062 | 42.175 | 42.426 | 41.261 | 42.150 | 42.208 | 42.359 |
+
+The backward execution gains come with higher backward compilation costs in
+some cases. Exact tails continue to compile more shapes than the coarse-tail
+alternative. Forward performance, compile time and memory are separate metrics;
+none is claimed to improve universally. Dedup remains optional because its
+benefit depends on repetition, and the full padded connectivity tensor is
+still constructed. Both experimental flags remain disabled by default.
+
+Reproduce a single measurement using `benchmark_native_ad.py` from this branch,
+with `PYTHONPATH` selecting the requested source checkout. The source path and
+SHA256 of its `netket/vqs/mc/kernels.py` are required arguments. For example:
+
+```bash
+JAX_ENABLE_X64=1 JAX_DEFAULT_MATMUL_PRECISION=highest \
+PYTHONPATH=/path/to/this-branch python Examples/LocalEnergy/benchmark_native_ad.py \
+  --case heisenberg64 --inputs /tmp/eloc-inputs --source /path/to/this-branch \
+  --kernel-sha256 VERIFIED_KERNEL_SHA256 --variant candidate_dedup \
+  --revision YOUR_REVISION --mode gradient --output /tmp/eloc-native-results
+```
+
+Use the saved-input preparation instructions above. Each command measures one
+source/mode in its own process. The explicit exact-tail #2293 control calls its
+kernel with `min_chunk_size=1`; other forward variants are also checked against
+their revision's `MCState.local_estimators` API.
+
+All 336 pairwise comparisons pass the stated tolerances. The maximum absolute forward difference is 3.41e-12, and the maximum absolute gradient difference is 4.37e-10. All forward outputs are bitwise repeatable within each method. Most full-model gradients show small run-to-run rounding variation, also present on main and the published baseline; the hashes and maximum differences are recorded. Whole-model gradient bitwise determinism is not claimed. The updated tests pass on four CPUs (99) and one H100 (98, with one expected multi-device skip).

@@ -111,8 +111,11 @@ of occupied chunks. This reduces GPU loop-control overhead without changing
 the network batch size or evaluating filler rows. Selected configurations are
 packed once and sliced contiguously within the blocks; when no full chunk is
 occupied, the block-selection phase is skipped.
-Compaction and branching run independently on each device. Forward, reverse,
-and higher-order differentiation are supported.
+Compaction and branching run independently on each device. Static loops
+support native forward, reverse, and higher-order differentiation. Their total
+full-chunk capacity matches the allocated buffer, limiting storage reserved
+for intermediate values during differentiation. The network is JIT-compiled
+once per batch shape and shared across call sites to reduce tracing overhead.
 
 The smaller batches increase compilation cost and can add GPU launch overhead;
 fewer model evaluations do not always mean shorter execution time. Changing

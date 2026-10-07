@@ -69,9 +69,13 @@ def test_every_remainder_evaluates_exactly_valid_rows(chunk_size, mode):
         assert len(traces) == n_traces
 
 
-def test_full_chunk_blocks_cross_boundaries_without_extra_rows_or_retracing():
-    # Exercise block lengths 1, 2, 4, 8 and 16, including zero work and tails.
-    chunk_size, capacity = 5, 85
+@pytest.mark.parametrize("full_capacity", [7, 10, 17])
+@pytest.mark.parametrize("mode", ["forward", "jvp", "vjp"])
+def test_full_chunk_blocks_cross_boundaries_without_extra_rows_or_retracing(
+    full_capacity, mode
+):
+    # Cover capacities both on and between binary boundaries, including AD.
+    chunk_size, capacity = 5, full_capacity * 5
     rows = jnp.arange(capacity + 1, dtype=float).reshape(-1, 1)
     observed, traces = [], []
 
@@ -81,22 +85,34 @@ def test_full_chunk_blocks_cross_boundaries_without_extra_rows_or_retracing():
         jax.debug.callback(lambda x: observed.extend(np.asarray(x)[:, 0]), batch)
         return p * batch[:, 0]
 
-    @jax.jit
-    def run(p, count):
+    def values(p, count):
         indices = jnp.where(
             jnp.arange(capacity) < count, jnp.arange(capacity), capacity
         )
         return kernels._flattened_logpsi(counted, chunk_size, p, rows, indices, count)
 
-    counts = (85, 0, 41, 1, 4, 5, 9, 10, 20, 21, 39, 40, 64, 79, 80, 81, 84)
-    for iteration, count in enumerate(counts):
+    if mode == "jvp":
+        run = jax.jit(lambda p, n: jax.jvp(lambda p: values(p, n), (p,), (1.0,)))
+    elif mode == "vjp":
+        run = jax.jit(jax.value_and_grad(lambda p, n: jnp.sum(values(p, n))))
+    else:
+        run = jax.jit(values)
+    counts = (capacity, 0, 41, 1, 4, 5, 9, 10, 20, 21, 39, 40, 64, 79, 80, 81, 84)
+    for iteration, count in enumerate(n for n in counts if n <= capacity):
         observed.clear()
         actual = jax.block_until_ready(run(0.25, jnp.asarray(count)))
         jax.effects_barrier()
         assert sorted(observed) == list(range(count))
         expected = np.zeros(capacity)
         expected[:count] = 0.25 * np.arange(count)
-        np.testing.assert_array_equal(actual, expected)
+        if mode == "jvp":
+            np.testing.assert_array_equal(actual[0], expected)
+            np.testing.assert_array_equal(actual[1], expected * 4)
+        elif mode == "vjp":
+            np.testing.assert_array_equal(actual[0], expected.sum())
+            np.testing.assert_array_equal(actual[1], expected.sum() * 4)
+        else:
+            np.testing.assert_array_equal(actual, expected)
         if iteration == 0:
             n_traces = len(traces)
         assert len(traces) == n_traces
