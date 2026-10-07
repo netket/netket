@@ -270,15 +270,21 @@ def local_value_kernel_jax_flattened(
 
     The full chunks are evaluated in blocks of :math:`2^k` chunks, one for
     every bit of their number, and every chunk smaller than ``chunk_size``
-    is evaluated at most once, each one selected with a :func:`jax.lax.cond`.
+    at most once, each block or chunk selected with a :func:`jax.lax.cond`.
     Every loop has a static number of iterations: on GPU, a loop whose number
     of iterations depends on the data waits at every iteration for the device
     to send the loop condition back to the host, which can cost more than a
     small network. A :func:`jax.lax.cond` waits once, so there are only
-    logarithmically many waits. Every chunk size is a separate copy of the
-    network in the compiled program, so ``min_chunk_size`` trades the padding
-    of the last chunk for the compilation time and memory: ``min_chunk_size=1``
-    pads nothing, ``min_chunk_size=chunk_size`` compiles a single copy.
+    logarithmically many waits. Every chunk size is compiled separately, so
+    ``min_chunk_size`` trades the padding of the last chunk for the
+    compilation time: ``min_chunk_size=1`` pads nothing,
+    ``min_chunk_size=chunk_size`` compiles a single chunk size.
+
+    The kernel can be differentiated in forward and reverse mode. Like a
+    :func:`jax.lax.scan` over all the chunks, the reverse mode stores the
+    intermediate values of the network for all the
+    ``n_local_samples × max_conn_size`` connected configurations, also for
+    the chunks that are skipped.
 
     The selection only depends on the configurations, not on the values of
     the matrix elements: a connected configuration whose matrix element is
@@ -423,23 +429,37 @@ def _flattened_logpsi(
         )
 
     # The full chunks, in blocks of 2^k chunks for every bit k of their number.
+    # Blocks of 1, 2, ..., 2^(t-1) chunks cover up to 2^t - 1 chunks, and the
+    # first block covers the ones above, so that the blocks hold n_chunks_max
+    # chunks in total: the reverse-mode derivative stores the values of every
+    # block, also of those that are skipped.
     n_full = n_conn // chunk_size
-    for k in reversed(range(n_chunks_max.bit_length())):
-        start = ((n_full >> (k + 1)) << (k + 1)) * chunk_size
-        out = evaluate_if(((n_full >> k) & 1) == 1, chunk_size, 1 << k, out, start)
+    t = (n_chunks_max + 1).bit_length() - 1
+    n_first = n_chunks_max - (2**t - 1)
+    if n_first > 0:
+        has_first = n_full >= 2**t
+        out = evaluate_if(has_first, chunk_size, n_first, out, 0)
+        first = jnp.where(has_first, n_first, 0)
+    else:
+        first = 0
+    n_other = n_full - first
+    for k in reversed(range(t)):
+        start = (first + ((n_other >> (k + 1)) << (k + 1))) * chunk_size
+        out = evaluate_if(((n_other >> k) & 1) == 1, chunk_size, 1 << k, out, start)
 
-    # The rest, in chunks of the powers of two smaller than chunk_size, down to
-    # min_chunk_size, for every bit of their number.
-    rest = n_conn - n_full * chunk_size
+    # The configurations after the full chunks, in chunks of the powers of two
+    # smaller than chunk_size, down to min_chunk_size, for every bit of their
+    # number.
+    n_tail = n_conn - n_full * chunk_size
     for k in reversed(range((chunk_size - 1).bit_length())):
         size = 1 << k
         if size < min_chunk_size:
             break
-        start = n_full * chunk_size + ((rest >> (k + 1)) << (k + 1))
-        out = evaluate_if(((rest >> k) & 1) == 1, size, 1, out, start)
+        start = n_full * chunk_size + ((n_tail >> (k + 1)) << (k + 1))
+        out = evaluate_if(((n_tail >> k) & 1) == 1, size, 1, out, start)
 
     # The last configurations, fewer than min_chunk_size, in a padded chunk.
     if min_chunk_size > 1:
-        start = n_full * chunk_size + (rest // min_chunk_size) * min_chunk_size
-        out = evaluate_if(rest % min_chunk_size > 0, min_chunk_size, 1, out, start)
+        start = n_full * chunk_size + (n_tail // min_chunk_size) * min_chunk_size
+        out = evaluate_if(n_tail % min_chunk_size > 0, min_chunk_size, 1, out, start)
     return out

@@ -127,10 +127,12 @@ def test_flattened_kernel_min_chunk_size(chunk_size, min_chunk_size):
     "chunk_size, min_chunk_size, multiple",
     [(32, None, 4), (32, 1, 1), (32, 32, 32), (48, None, 4), (48, 48, 48)],
 )
-def test_flattened_kernel_evaluated_rows(chunk_size, min_chunk_size, multiple):
+@pytest.mark.parametrize("system", ["heisenberg_triangular", "ising"])
+def test_flattened_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multiple):
     # On every device, the network is evaluated on the samples and on the
     # selected configurations, the last chunk being padded to min_chunk_size.
-    vs, H = _vstate("heisenberg_triangular")
+    # With the Ising model, almost all the chunks are full.
+    vs, H = _vstate(system)
     rows = []
 
     def logpsi(variables, x):
@@ -155,7 +157,8 @@ def test_flattened_kernel_evaluated_rows(chunk_size, min_chunk_size, multiple):
         jax.block_until_ready(f(vs.variables, σ, H))
         jax.effects_barrier()
         assert sum(rows) == expected
-    assert len(remainders) > 1
+    if system == "heisenberg_triangular":
+        assert len(remainders) > 1
 
 
 def test_flattened_kernel_dispatch():
