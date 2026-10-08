@@ -6,6 +6,7 @@
 ## NetKet 3.23 (In development)
 
 ### New Features
+* JAX discrete local estimators can opt into generic compaction with `NETKET_EXPERIMENTAL_FLATTENED_KERNEL=1` and optional reuse of repeated configurations with `NETKET_EXPERIMENTAL_UNIQUE_KERNEL=1`. The kernels use existing operator connectivity and static-length chunk blocks without retracing as connection counts change. Coarse tail batches limit compilation cost, evaluating at most `min_chunk_size - 1` extra configurations; direct kernel calls can select exact tails with `min_chunk_size=1`. Reuse verifies full configuration equality and preserves all matrix elements and sample weights. Native forward, reverse and higher-order differentiation use blocks whose total full-chunk capacity matches the allocated full chunks; network traces are shared across call sites. Both options remain disabled by default; runtime gains depend on the workload. [PR #2296](https://github.com/netket/netket/pull/2296), incorporating compaction, native differentiation and coarse-tail work from [PR #2293](https://github.com/netket/netket/pull/2293).
 * {class}`netket.utils.struct.Pytree` subclasses can override `__process_deserialization_state__` to adjust the saved state before it is loaded, e.g. to read files saved by older versions [PR #2285](https://github.com/netket/netket/pull/2285).
 
 ### Bug Fixes

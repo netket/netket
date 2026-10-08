@@ -85,6 +85,90 @@ A value of at least 128 is suggested, but will greatly depend on your model. You
 
 ## Using a Monte Carlo Variational State
 
+### Skipping padded network evaluations
+
+For JAX discrete operators, the experimental flattened local-value kernel
+compacts connected configurations before evaluating the model:
+
+```python
+nk.config.netket_experimental_flattened_kernel = True
+values = vstate.local_estimators(H.to_jax_operator(), chunk_size=128)
+```
+
+This uses the operator's existing `get_conn_padded` implementation. Connection
+storage remains padded, but entries equal to the original sample reuse its
+log-amplitude. Built-in operators use that configuration for padding. Custom
+operators should follow the same convention to benefit from this compaction.
+Physical off-diagonal connections with a currently zero coefficient are retained
+so that derivatives with respect to the coefficient remain correct.
+
+The selected connections are evaluated in full chunks followed by smaller
+power-of-two batches for the remainder. By default, the smallest batch is
+one eighth of the resolved chunk size, rounded down to a power of two and
+at least one. For example, chunk size 128 uses tail batches down to 16 rows;
+the final batch evaluates at most 15 extra valid configurations, whose outputs
+are discarded. This limits the number of model batch shapes to compile.
+Changing connection counts within the same input shapes does not trigger
+recompilation.
+Full chunks run in blocks with static trip counts, selected from the number
+of occupied chunks. This reduces GPU loop-control overhead while preserving
+the full-chunk network batch size. Selected configurations are
+packed once and sliced contiguously within the blocks; when no full chunk is
+occupied, the block-selection phase is skipped.
+Compaction and branching run independently on each device. Static loops
+support native forward, reverse, and higher-order differentiation. Their total
+full-chunk capacity matches the allocated buffer, limiting storage reserved
+for intermediate values during differentiation. The network is JIT-compiled
+once per batch shape and shared across call sites to reduce tracing overhead.
+
+The kernel functions also accept `min_chunk_size=1` for exact tails, or
+`min_chunk_size=chunk_size` for a single connected-configuration batch shape.
+This is a kernel-level option; the MCState flag uses the default coarse policy.
+Smaller tail batches increase compilation cost and can add GPU launch overhead;
+fewer model evaluations do not always mean shorter execution time. Changing
+batch shapes can also change floating-point rounding, as with ordinary chunking,
+especially for mixed-precision models. Coarse tails reduce exposure to very
+small batches but do not guarantee precision for arbitrary model arithmetic.
+This option remains experimental and is disabled by default.
+
+### Reusing duplicate configurations
+
+An additional experimental kernel attempts to reuse model outputs across
+repeated reference samples and connected states:
+
+```python
+nk.config.netket_experimental_unique_kernel = True
+values = vstate.local_estimators(H.to_jax_operator(), chunk_size=128)
+```
+
+This option takes precedence over the flattened-kernel flag. On each device,
+the kernel groups reference and connected configurations by a 32-bit
+fingerprint and verifies exact equality before sharing outputs. Sorting one
+short key avoids lexicographic comparisons of whole configurations during
+sorting. It does not time models or tune chunk sizes. Changes in the number
+of groups do not trigger recompilation when input shapes remain the same.
+
+Fingerprint collisions can leave some duplicate evaluations, but can never cause
+unequal configurations to share a model output. Every original matrix element
+and the row-wise summation order are retained. Duplicated samples keep their
+statistical weight.
+Reuse uses the same coarse-tail policy. Only the final batch can evaluate
+extra filler configurations; these outputs do not enter the local values.
+Expansion of shared outputs uses a segmented scan whose transpose accumulates
+repeated contributions in a fixed tree, avoiding an overlapping scatter-add.
+Forward and reverse differentiation, including mixed second derivatives, are
+supported. No operator-specific implementation is required.
+The fixed-tree expansion does not guarantee bitwise repeatability of a model
+whose own operations or backward pass are nondeterministic.
+
+Grouping requires extra work and storage, so this can be slower when few
+configurations repeat or when the model is cheap. The examples in
+`Examples/LocalEnergy/` report actual duplicate counts, synchronized timings,
+and FP64 numerical comparisons for public spin, fermion, and ViT workloads.
+Choose based on measurements for the actual workload. This option is disabled
+by default. Model computations must themselves use sufficient precision;
+a double-precision output dtype does not establish double-precision accuracy.
+
 ### Expectation values
 
 One you have a variational state, you can do many things with it.
