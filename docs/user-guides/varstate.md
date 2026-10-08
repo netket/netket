@@ -103,12 +103,16 @@ Physical off-diagonal connections with a currently zero coefficient are retained
 so that derivatives with respect to the coefficient remain correct.
 
 The selected connections are evaluated in full chunks followed by smaller
-power-of-two batches for the remainder. No extra configurations are evaluated
-to fill the last chunk. All batch shapes are compiled in advance, so changing
-connection counts within the same input shapes does not trigger recompilation.
+power-of-two batches for the remainder. By default, the smallest batch is
+one eighth of the resolved chunk size, rounded down to a power of two and
+at least one. For example, chunk size 128 uses tail batches down to 16 rows;
+the final batch evaluates at most 15 extra valid configurations, whose outputs
+are discarded. This limits the number of model batch shapes to compile.
+Changing connection counts within the same input shapes does not trigger
+recompilation.
 Full chunks run in blocks with static trip counts, selected from the number
-of occupied chunks. This reduces GPU loop-control overhead without changing
-the network batch size or evaluating filler rows. Selected configurations are
+of occupied chunks. This reduces GPU loop-control overhead while preserving
+the full-chunk network batch size. Selected configurations are
 packed once and sliced contiguously within the blocks; when no full chunk is
 occupied, the block-selection phase is skipped.
 Compaction and branching run independently on each device. Static loops
@@ -117,9 +121,14 @@ full-chunk capacity matches the allocated buffer, limiting storage reserved
 for intermediate values during differentiation. The network is JIT-compiled
 once per batch shape and shared across call sites to reduce tracing overhead.
 
-The smaller batches increase compilation cost and can add GPU launch overhead;
+The kernel functions also accept `min_chunk_size=1` for exact tails, or
+`min_chunk_size=chunk_size` for a single connected-configuration batch shape.
+This is a kernel-level option; the MCState flag uses the default coarse policy.
+Smaller tail batches increase compilation cost and can add GPU launch overhead;
 fewer model evaluations do not always mean shorter execution time. Changing
-batch shapes can also change floating-point rounding, as with ordinary chunking.
+batch shapes can also change floating-point rounding, as with ordinary chunking,
+especially for mixed-precision models. Coarse tails reduce exposure to very
+small batches but do not guarantee precision for arbitrary model arithmetic.
 This option remains experimental and is disabled by default.
 
 ### Reusing duplicate configurations
@@ -143,6 +152,8 @@ Fingerprint collisions can leave some duplicate evaluations, but can never cause
 unequal configurations to share a model output. Every original matrix element
 and the row-wise summation order are retained. Duplicated samples keep their
 statistical weight.
+Reuse uses the same coarse-tail policy. Only the final batch can evaluate
+extra filler configurations; these outputs do not enter the local values.
 Expansion of shared outputs uses a segmented scan whose transpose accumulates
 repeated contributions in a fixed tree, avoiding an overlapping scatter-add.
 Forward and reverse differentiation, including mixed second derivatives, are

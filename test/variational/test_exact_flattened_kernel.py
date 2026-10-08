@@ -165,7 +165,7 @@ def test_existing_operator_interface_and_exact_work(chunk_size):
 
     run = jax.jit(
         lambda p, x, H: kernels.local_value_kernel_jax_flattened(
-            counted, p, x, H, chunk_size=chunk_size
+            counted, p, x, H, chunk_size=chunk_size, min_chunk_size=1
         )
     )
     actual = jax.block_until_ready(run(0.2, x, H))

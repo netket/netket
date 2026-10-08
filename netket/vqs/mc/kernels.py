@@ -238,10 +238,11 @@ def local_value_kernel_jax_flattened(
     O: DiscreteJaxOperator,
     *,
     chunk_size: int | None = None,
+    min_chunk_size: int | None = None,
 ):
     r"""
-    local_value kernel for MCState and jax-compatible operators that evaluates
-    :math:`\log\psi` only on the connected configurations :math:`x' \neq x`.
+    local_value kernel for MCState and jax-compatible operators that compacts
+    the connected configurations :math:`x' \neq x` before evaluating the model.
 
     :func:`local_value_kernel_jax` evaluates the network on all
     ``n_samples × max_conn_size`` configurations returned by
@@ -259,10 +260,12 @@ def local_value_kernel_jax_flattened(
       ``chunk_size`` configurations (``n_local_samples × max_conn_size / 16``
       if ``chunk_size`` is None). The number of chunks depends on the number
       of selected configurations. Full chunks have the requested size; the
-      remainder is split into power-of-two batches, down to a single row.
-      No extra rows are evaluated to fill a chunk. All batch shapes are
-      static, so a varying number of connections never triggers a
-      recompilation;
+      remainder is split into power-of-two batches down to ``min_chunk_size``
+      (by default, ``chunk_size // 8``, rounded down to a power of two and at
+      least one). The last batch evaluates at most ``min_chunk_size - 1``
+      extra valid configurations; their outputs are discarded. Set
+      ``min_chunk_size=1`` for exact tails. All batch shapes are static, so a
+      varying number of connections never triggers a recompilation;
     - gathers the values back to the padded layout and computes the local
       values with the same summation as :func:`local_value_kernel_jax`.
 
@@ -298,9 +301,17 @@ def local_value_kernel_jax_flattened(
         O: the operator.
         chunk_size: the number of connected configurations on which the
             network is evaluated at once.
+        min_chunk_size: the smallest connected-configuration batch. Defaults
+            to one eighth of the resolved chunk size, at least one. Values
+            are clamped to ``[1, chunk_size]`` and, unless equal to
+            ``chunk_size``, rounded down to a power of two. ``1`` evaluates
+            exact tails; ``chunk_size`` uses a single connected batch shape.
     """
     kernel = nkjax.HashablePartial(
-        _local_value_kernel_jax_flattened, logpsi, chunk_size=chunk_size
+        _local_value_kernel_jax_flattened,
+        logpsi,
+        chunk_size=chunk_size,
+        min_chunk_size=min_chunk_size,
     )
     # IMPORTANT: pars must be passed as explicit arg (not captured in the partial)
     # so that shard_map's pvary/pcast mechanism can give it Manual sharding.
@@ -311,7 +322,9 @@ def local_value_kernel_jax_flattened(
     )(pars, σ, O)
 
 
-def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
+def _local_value_kernel_jax_flattened(
+    logpsi, pars, σ, O, *, chunk_size, min_chunk_size=None
+):
     logpsi = jax.jit(logpsi)
     # Runs on the samples of a single device.
     n_samples, N = σ.shape
@@ -334,8 +347,11 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
     if chunk_size is None:
         chunk_size = -(-n_conns // _FLATTENED_N_CHUNKS_UNCHUNKED)
     chunk_size = max(1, min(chunk_size, n_conns))
+    min_chunk_size = _flattened_min_chunk_size(chunk_size, min_chunk_size)
     n_chunks_max = -(-n_conns // chunk_size)
-    buffer_size = n_chunks_max * chunk_size
+    # A rounded tail can cross the end of a non-power-of-two full chunk.
+    # Keep fewer than one extra full chunk so the block capacity is unchanged.
+    buffer_size = n_chunks_max * chunk_size + min_chunk_size - 1
 
     # Indices of the selected configurations, sample-major. The filling only
     # needs to be a valid configuration.
@@ -346,7 +362,13 @@ def _local_value_kernel_jax_flattened(logpsi, pars, σ, O, *, chunk_size):
         logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
     )(pars, σ)
     logpsi_conn = _flattened_logpsi(
-        logpsi, chunk_size, pars, σp.reshape(-1, N), idx, n_conn
+        logpsi,
+        chunk_size,
+        pars,
+        σp.reshape(-1, N),
+        idx,
+        n_conn,
+        min_chunk_size=min_chunk_size,
     )
 
     # Gather the values back to the padded layout, from the position of every
@@ -375,16 +397,31 @@ def _flattened_zeros(logpsi, pars, σp, idx):
     return jnp.zeros_like(idx, dtype=dtype)
 
 
-def _flattened_logpsi_tail(logpsi, chunk_size, pars, σp, idx, n_conn, out):
-    """Evaluate the remainder exactly, using statically sized batches.
+def _flattened_min_chunk_size(chunk_size, min_chunk_size):
+    """Resolve the coarse-tail policy, adapted from PR #2293."""
+    if min_chunk_size is None:
+        min_chunk_size = chunk_size // 8
+    min_chunk_size = max(1, min(min_chunk_size, chunk_size))
+    if min_chunk_size < chunk_size:
+        min_chunk_size = 1 << (min_chunk_size.bit_length() - 1)
+    return min_chunk_size
+
+
+def _flattened_logpsi_tail(
+    logpsi, chunk_size, pars, σp, idx, n_conn, out, *, min_chunk_size=1
+):
+    """Evaluate a static set of tail shapes, with bounded final padding.
 
     A static set of conditional branches covers every possible remainder.
-    Each active branch evaluates only occupied rows. Conditions run inside
-    shard_map, so devices with different counts can take different branches.
+    The final batch may evaluate fewer than min_chunk_size filler rows. Its
+    outputs are ignored by the caller. Conditions run inside shard_map, so
+    devices with different counts can take different branches.
     """
     start = (n_conn // chunk_size) * chunk_size
     for bit in reversed(range((chunk_size - 1).bit_length())):
         size = 1 << bit
+        if size < min_chunk_size:
+            break
 
         def evaluate(state):
             out, start = state
@@ -397,10 +434,21 @@ def _flattened_logpsi_tail(logpsi, chunk_size, pars, σp, idx, n_conn, out):
         out, start = jax.lax.cond(
             n_conn - start >= size, evaluate, lambda state: state, (out, start)
         )
+    if min_chunk_size > 1:
+
+        def evaluate(out):
+            values = _flattened_logpsi_chunk(
+                logpsi, min_chunk_size, pars, σp, idx, start
+            )
+            return jax.lax.dynamic_update_slice_in_dim(out, values, start, axis=0)
+
+        out = jax.lax.cond(n_conn > start, evaluate, lambda out: out, out)
     return out
 
 
-def _flattened_logpsi_blocks(logpsi, chunk_size, pars, σp, idx, n_conn):
+def _flattened_logpsi_blocks(
+    logpsi, chunk_size, pars, σp, idx, n_conn, *, min_chunk_size=1
+):
     # Exact-capacity blocks, adapted from PR #2293 (Filippo Vicentini).
     # Native reverse mode reserves residuals for every block, including skipped
     # blocks, so their combined capacity must not exceed n_chunks_max.
@@ -443,15 +491,21 @@ def _flattened_logpsi_blocks(logpsi, chunk_size, pars, σp, idx, n_conn):
         return out
 
     out = jax.lax.cond(n_chunks > 0, evaluate_blocks, lambda out: out, out)
-    return _flattened_logpsi_tail(logpsi, chunk_size, pars, σp, idx, n_conn, out)
+    return _flattened_logpsi_tail(
+        logpsi, chunk_size, pars, σp, idx, n_conn, out, min_chunk_size=min_chunk_size
+    )
 
 
-def _flattened_logpsi(logpsi, chunk_size, pars, σp, idx, n_conn):
-    return _flattened_logpsi_blocks(logpsi, chunk_size, pars, σp[idx], idx, n_conn)
+def _flattened_logpsi(logpsi, chunk_size, pars, σp, idx, n_conn, *, min_chunk_size=1):
+    return _flattened_logpsi_blocks(
+        logpsi, chunk_size, pars, σp[idx], idx, n_conn, min_chunk_size=min_chunk_size
+    )
 
 
-def local_value_kernel_jax_unique(logpsi, pars, σ, O, *, chunk_size=None):
-    """Local values with one model evaluation per distinct configuration.
+def local_value_kernel_jax_unique(
+    logpsi, pars, σ, O, *, chunk_size=None, min_chunk_size=None
+):
+    """Local values reusing one model output per distinct configuration.
 
     References and connected configurations are deduplicated together on each
     device. Matrix elements and their original row-wise reduction are retained.
@@ -459,13 +513,17 @@ def local_value_kernel_jax_unique(logpsi, pars, σ, O, *, chunk_size=None):
     with currently zero coefficients remain available for coefficient AD.
 
     Exact comparisons, rather than hashes, identify equal configurations.
-    Full chunks and exact tails use the shared flattened evaluator. Expansion
+    Full chunks and coarse tails use the shared flattened evaluator; see
+    :func:`local_value_kernel_jax_flattened` for ``min_chunk_size``. Expansion
     uses a segmented scan so its transpose does not require an atomic sum for
     repeated indices. Models must be pointwise in their input configurations;
     their compute precision still determines numerical accuracy.
     """
     kernel = nkjax.HashablePartial(
-        _local_value_kernel_jax_unique, logpsi, chunk_size=chunk_size
+        _local_value_kernel_jax_unique,
+        logpsi,
+        chunk_size=chunk_size,
+        min_chunk_size=min_chunk_size,
     )
     return sharding_decorator(
         kernel,
@@ -540,19 +598,28 @@ def _sample_reuse_predicate(samples):
     return 8 * repeated >= samples.shape[0]
 
 
-def local_value_kernel_jax_fingerprint(logpsi, pars, σ, O, *, chunk_size=None):
+def local_value_kernel_jax_fingerprint(
+    logpsi, pars, σ, O, *, chunk_size=None, min_chunk_size=None
+):
     """Reuse exactly matching rows found by inexpensive fingerprint grouping.
 
     Collisions can cause some duplicate evaluations, but unequal
     configurations never share a model value. No sample gate or tuner runs.
+    ``min_chunk_size`` follows :func:`local_value_kernel_jax_flattened`.
     """
     return local_value_kernel_jax_reuse(
-        logpsi, pars, σ, O, chunk_size=chunk_size, check_samples=False
+        logpsi,
+        pars,
+        σ,
+        O,
+        chunk_size=chunk_size,
+        min_chunk_size=min_chunk_size,
+        check_samples=False,
     )
 
 
 def local_value_kernel_jax_reuse(
-    logpsi, pars, σ, O, *, chunk_size=None, check_samples=True
+    logpsi, pars, σ, O, *, chunk_size=None, min_chunk_size=None, check_samples=True
 ):
     """Heuristic reuse with exact equality checks and a compact fallback.
 
@@ -561,12 +628,14 @@ def local_value_kernel_jax_reuse(
     This can miss savings but cannot merge unequal configurations. Set
     check_samples=False to benchmark fingerprint grouping without the gate.
     The choice is made per device at runtime without recompiling.
+    ``min_chunk_size`` follows :func:`local_value_kernel_jax_flattened`.
     """
     kernel = nkjax.HashablePartial(
         _local_value_kernel_jax_reuse,
         logpsi,
         chunk_size=chunk_size,
         check_samples=check_samples,
+        min_chunk_size=min_chunk_size,
     )
     return sharding_decorator(
         kernel,
@@ -575,10 +644,16 @@ def local_value_kernel_jax_reuse(
     )(pars, σ, O)
 
 
-def _local_value_kernel_jax_reuse(logpsi, pars, σ, O, *, chunk_size, check_samples):
+def _local_value_kernel_jax_reuse(
+    logpsi, pars, σ, O, *, chunk_size, min_chunk_size, check_samples
+):
     def reuse(args):
         return _local_value_kernel_jax_unique(
-            logpsi, *args, chunk_size=chunk_size, row_plan=_fingerprint_row_plan
+            logpsi,
+            *args,
+            chunk_size=chunk_size,
+            min_chunk_size=min_chunk_size,
+            row_plan=_fingerprint_row_plan,
         )
 
     if not check_samples:
@@ -587,7 +662,7 @@ def _local_value_kernel_jax_reuse(logpsi, pars, σ, O, *, chunk_size, check_samp
         _sample_reuse_predicate(σ),
         reuse,
         lambda args: _local_value_kernel_jax_flattened(
-            logpsi, *args, chunk_size=chunk_size
+            logpsi, *args, chunk_size=chunk_size, min_chunk_size=min_chunk_size
         ),
         (pars, σ, O),
     )
@@ -627,7 +702,7 @@ def _expand_unique_rows(values, order, starts, positions):
 
 
 def _local_value_kernel_jax_unique(
-    logpsi, pars, σ, O, *, chunk_size, row_plan=_unique_row_plan
+    logpsi, pars, σ, O, *, chunk_size, min_chunk_size=None, row_plan=_unique_row_plan
 ):
     logpsi = jax.jit(logpsi)
     n_samples, n_sites = σ.shape
@@ -641,9 +716,12 @@ def _local_value_kernel_jax_unique(
     if chunk_size is None:
         chunk_size = -(-rows.shape[0] // _FLATTENED_N_CHUNKS_UNCHUNKED)
     chunk_size = max(1, min(chunk_size, rows.shape[0]))
-    capacity = -(-rows.shape[0] // chunk_size) * chunk_size
+    min_chunk_size = _flattened_min_chunk_size(chunk_size, min_chunk_size)
+    capacity = -(-rows.shape[0] // chunk_size) * chunk_size + min_chunk_size - 1
     indices = jnp.pad(representatives, (0, capacity - rows.shape[0]))
-    unique_values = _flattened_logpsi(logpsi, chunk_size, pars, rows, indices, count)
+    unique_values = _flattened_logpsi(
+        logpsi, chunk_size, pars, rows, indices, count, min_chunk_size=min_chunk_size
+    )
     expanded = _expand_unique_rows(
         unique_values[: rows.shape[0]], order, starts, positions
     )

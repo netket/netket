@@ -60,7 +60,7 @@ def test_exact_unique_model_work_and_no_recompilation(chunk_size):
 
     run = jax.jit(
         lambda p, x, H: kernels.local_value_kernel_jax_unique(
-            counted, p, x, H, chunk_size=chunk_size
+            counted, p, x, H, chunk_size=chunk_size, min_chunk_size=1
         )
     )
     counts = []

@@ -29,8 +29,11 @@ cases. The small Hilbert spaces are deliberate demonstrations of reuse, not
 evidence that larger systems have the same duplicate fraction. Samples are
 produced by the sampler; none are manually repeated to inflate the benefit.
 
-The report compares padded evaluation, compaction with exact tails, and exact
-deduplication with exact tails. It records reference and connected row counts,
+The report compares padded evaluation, compaction, and exact deduplication.
+The compact paths use coarse tails by default: for chunk size 128, tail
+batches stop at 16 rows and evaluate at most 15 extra valid configurations.
+Their outputs are discarded. Direct kernel calls can select exact tails with
+`min_chunk_size=1`. It records reference and connected row counts,
 unique rows per device, parameter/output dtypes, input hashes, compile time,
 warmed synchronous timings, numerical differences, and repeated output hashes.
 `--check-gradients` additionally checks values and gradient repeatability on
@@ -153,7 +156,7 @@ reference samples among 2,048. The 2×2 Hubbard graph follows NetKet's
 length-two boundary behavior in every source. These seeded initial models do
 not establish speedups for all optimized states or whole VMC steps.
 
-## GPU loop overhead and numerical checks
+## Historical GPU loop overhead and numerical checks
 
 The old compact evaluator used a loop whose trip count depended on the input
 batch. A dense fixed-length scan could be faster despite doing more network
@@ -180,9 +183,9 @@ against all three original sources. All seven cases pass
 also check exact network-row counts across block boundaries, no retracing,
 zero-coefficient derivatives, mixed second derivatives and sharding.
 
-## Native differentiation and compilation (7 October update)
+## Historical native differentiation and compilation (7 October, `80c8d916`)
 
-The updated evaluator incorporates the network JIT wrapper and exact-capacity
+The evaluator at `80c8d916` incorporated the network JIT wrapper and exact-capacity
 block schedule from PR #2293 at `c87a3c77`. It uses native differentiation in
 place of the earlier custom-JVP scan. Exact tails, row packing and optional
 fingerprint reuse are retained. These changes require no new operator API.
@@ -191,7 +194,8 @@ limiting reverse-mode residual storage for skipped blocks.
 
 The baselines are main `5e4511b`, our published PR `b9dc149`, and latest #2293
 `c87a3c77`. Both the default coarse tail and explicit `min_chunk_size=1` of
-#2293 are measured. The updated implementation always retains exact tails.
+#2293 are measured. The implementation at `80c8d916` retained exact tails;
+the current branch uses coarse tails by default, as documented below.
 
 One H100, JAX/jaxlib 0.10.1, FP64 parameters and model arithmetic. Each
 (case, source, mode, chunk size) runs in a fresh process, with persistent
@@ -309,3 +313,127 @@ kernel with `min_chunk_size=1`; other forward variants are also checked against
 their revision's `MCState.local_estimators` API.
 
 All 336 pairwise comparisons pass the stated tolerances. The maximum absolute forward difference is 3.41e-12, and the maximum absolute gradient difference is 4.37e-10. All forward outputs are bitwise repeatable within each method. Most full-model gradients show small run-to-run rounding variation, also present on main and the published baseline; the hashes and maximum differences are recorded. Whole-model gradient bitwise determinism is not claimed. The updated tests pass on four CPUs (99) and one H100 (98, with one expected multi-device skip).
+
+## Coarse tails by default (8 October update)
+
+The compact and optional reuse paths now adopt the coarse-tail policy from
+PR #2293, with attribution. The minimum tail batch defaults to one eighth of
+the resolved chunk size, rounded down to a power of two and at least one.
+Chunk size 128 therefore compiles connected batches of 128, 64, 32 and 16
+rows, and evaluates at most 15 discarded filler rows per device and call.
+Direct kernel calls retain `min_chunk_size=1` for exact tails. Full-chunk
+capacity, native differentiation, packing and optional fingerprint reuse are
+preserved. No new operator API or timing tuner is needed.
+
+One H100, JAX/jaxlib 0.10.1, FP64 parameters and model arithmetic.
+Baselines: main `5e4511b`, our preceding exact-tail implementation `80c8d916`,
+and PR #2293 `c87a3c77` with its default coarse tails. Each source/mode/case
+runs in a fresh process on the same allocated GPU, with persistent compilation
+caching disabled and in-memory caches cleared after model setup. Source,
+parameter, sample and connectivity hashes are verified. Warm runtime is the
+median of 21 synchronized calls after ten warmups; source order rotates by
+case. Default forward paths are also checked through the actual MCState API.
+
+Spin/Hubbard forward and gradient runs use 2,048 saved samples; ViT forward
+uses 512, and its gradient runs use the same first 16 saved samples in every
+source. Gradients are of `mean(abs(E_loc)**2)`. These measure local-energy
+kernels and their derivatives, not complete VMC steps. XLA temporary-memory
+estimates are not whole-process peak GPU residency.
+
+Forward runtime, milliseconds:
+
+| Case | Main | Previous exact compact | Latest #2293 coarse | Coarse compact | Coarse dedup |
+|---|---:|---:|---:|---:|---:|
+| ising20 | 5.054 | 3.355 | 3.378 | 3.367 | 3.275 |
+| heisenberg20 | 12.672 | 1.923 | 1.888 | 1.867 | 0.728 |
+| heisenberg64 | 86.720 | 4.144 | 4.100 | 4.110 | 1.322 |
+| hubbard2 | 14.091 | 1.834 | 1.788 | 1.782 | 0.546 |
+| hubbard4 | 418.622 | 23.395 | 23.122 | 23.303 | 23.193 |
+| vit4 | 90.677 | 17.251 | 17.122 | 17.224 | 3.933 |
+| vit8 | 160.136 | 83.688 | 82.750 | 82.835 | 82.859 |
+
+Cold forward trace + compile, seconds:
+
+| Case | Main | Previous exact compact | Latest #2293 coarse | Coarse compact | Coarse dedup |
+|---|---:|---:|---:|---:|---:|
+| ising20 | 0.726 | 1.538 | 1.310 | 1.216 | 1.784 |
+| heisenberg20 | 0.816 | 1.778 | 1.439 | 1.349 | 1.984 |
+| heisenberg64 | 0.960 | 2.175 | 1.747 | 1.558 | 2.234 |
+| hubbard2 | 1.484 | 2.175 | 1.734 | 1.692 | 2.894 |
+| hubbard4 | 0.926 | 3.241 | 2.709 | 2.667 | 3.313 |
+| vit4 | 2.587 | 12.898 | 8.449 | 8.690 | 9.255 |
+| vit8 | 2.370 | 13.742 | 9.027 | 9.395 | 10.316 |
+
+Gradient runtime, milliseconds (ViT: 16 samples):
+
+| Case | Main | Previous exact compact | Latest #2293 coarse | Coarse compact | Coarse dedup |
+|---|---:|---:|---:|---:|---:|
+| ising20 | 19.487 | 12.245 | 11.695 | 12.222 | 12.030 |
+| heisenberg20 | 24.628 | 5.550 | 5.236 | 5.384 | 1.697 |
+| heisenberg64 | 154.262 | 13.347 | 12.733 | 13.339 | 4.149 |
+| hubbard2 | 21.474 | 5.236 | 5.126 | 5.117 | 0.930 |
+| hubbard4 | 734.849 | 77.468 | 75.481 | 78.847 | 75.343 |
+| vit4 | 18.558 | 10.523 | 8.473 | 8.809 | 5.555 |
+| vit8 | 52.711 | 36.566 | 34.388 | 34.526 | 36.015 |
+
+Cold gradient trace + compile, seconds:
+
+| Case | Main | Previous exact compact | Latest #2293 coarse | Coarse compact | Coarse dedup |
+|---|---:|---:|---:|---:|---:|
+| ising20 | 1.560 | 3.715 | 2.962 | 2.928 | 4.042 |
+| heisenberg20 | 1.853 | 4.177 | 3.399 | 3.442 | 4.469 |
+| heisenberg64 | 1.465 | 4.974 | 3.941 | 3.889 | 5.516 |
+| hubbard2 | 1.811 | 4.093 | 3.252 | 3.331 | 5.161 |
+| hubbard4 | 1.437 | 6.203 | 4.950 | 5.214 | 7.282 |
+| vit4 | 9.001 | 43.112 | 26.576 | 28.466 | 27.979 |
+| vit8 | 13.646 | 52.260 | 33.836 | 36.677 | 36.751 |
+
+Gradient executable temporary memory, MiB:
+
+| Case | Main | Previous exact compact | Latest #2293 coarse | Coarse compact | Coarse dedup |
+|---|---:|---:|---:|---:|---:|
+| ising20 | 49.716 | 50.937 | 51.044 | 50.626 | 51.953 |
+| heisenberg20 | 90.179 | 91.921 | 92.395 | 91.399 | 93.496 |
+| heisenberg64 | 860.364 | 864.064 | 873.062 | 863.971 | 875.371 |
+| hubbard2 | 2.510 | 3.175 | 3.017 | 3.019 | 3.970 |
+| hubbard4 | 152.736 | 157.622 | 156.592 | 155.582 | 160.734 |
+| vit4 | 280.209 | 344.306 | 341.398 | 341.604 | 339.552 |
+| vit8 | 4215.818 | 4416.990 | 4411.062 | 4413.540 | 4433.653 |
+
+Chunk-4096 ViT cold forward trace + compile, seconds:
+
+| Case | Main | Previous exact compact | Latest #2293 coarse | Coarse compact | Coarse dedup |
+|---|---:|---:|---:|---:|---:|
+| vit4 | 4.487 | 19.303 | 7.605 | 7.735 | 8.526 |
+| vit8 | 4.567 | 19.890 | 7.792 | 7.979 | 8.977 |
+
+Chunk-4096 ViT forward runtime, milliseconds:
+
+| Case | Main | Previous exact compact | Latest #2293 coarse | Coarse compact | Coarse dedup |
+|---|---:|---:|---:|---:|---:|
+| vit4 | 5.992 | 3.669 | 2.953 | 3.036 | 1.219 |
+| vit8 | 86.892 | 42.120 | 41.201 | 41.231 | 41.462 |
+
+All 160 pairwise comparisons across 80 measurements pass: forward
+`rtol=1e-12, atol=1e-10` (maximum difference 3.41e-12);
+gradients `rtol=1e-11, atol=1e-9` (maximum difference 4.42e-10).
+Every forward result repeats bitwise over 21 calls. Full-model gradients can
+have small run-to-run rounding variation, also present on main; their hashes
+and maximum differences are retained. Whole-model backward bitwise determinism
+is not claimed.
+
+The five kernel test files pass on four CPU devices (145 tests) and H100
+(144 tests, one expected multi-device skip). New tests count actual forward,
+JVP and VJP model rows, cover non-power-of-two chunks and capacity boundaries,
+verify discarded filler derivatives, and check all public tail options with
+zero operator coefficients. Changing occupied counts does not retrace.
+
+Use `benchmark_native_ad.py` with the source-selection commands above.
+`benchmark_coarse_tail_results.json` retains this update's measurements,
+source/input hashes, timings, compilation, memory and numerical checks;
+`benchmark_native_ad_results.json` preserves the historical exact-tail run.
+Coarse tails reduce the number of compiled shapes, but batch-shape-dependent
+rounding remains possible, particularly with mixed-precision networks.
+Optional reuse can cost more than it saves when configurations seldom repeat.
+Both experimental flags remain disabled by default. Full padded connectivity
+storage remains allocated and can still dominate memory at larger sizes.
