@@ -331,7 +331,7 @@ def _fake_status(status_code):
     return jnp.asarray(status.reshape(-1))
 
 
-def _install_fake_jaxmg(monkeypatch, version="1.4.0", status_code=0):
+def _install_fake_jaxmg(monkeypatch, version="1.4.1", status_code=0):
     """
     Install a fake `jaxmg` recording its calls and solving with plain jax.
 
@@ -340,8 +340,8 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0", status_code=0):
     mesh with :func:`jax.shard_map`, which checks that NetKet laid `A` out on
     that mesh consistently with the context mesh. Its high-level entry points donate their inputs, like
     jaxmg's, while the `_shardmap_ctx` ones do not. With a nonzero
-    `status_code`, the fake reports a failure, like jaxmg, alongside finite
-    output.
+    `status_code`, the fake reports a failure and, like jaxmg >= 1.4.1, fills
+    its outputs with NaNs.
     """
     calls = []
 
@@ -362,7 +362,9 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0", status_code=0):
         mesh, _, a = _layout(a, T_A)
         with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
             b = _fake_place(b, NamedSharding(mesh, P()))
-            x = jnp.linalg.solve(a, b) if status_code == 0 else jnp.zeros_like(b)
+            x = jnp.linalg.solve(a, b)
+            if status_code != 0:
+                x = jnp.full_like(x, jnp.nan)
         # (a_work, x, status), like jaxmg's non-donating entry point
         return a, x, _fake_status(status_code)
 
@@ -373,6 +375,8 @@ def _install_fake_jaxmg(monkeypatch, version="1.4.0", status_code=0):
             w, v = jnp.linalg.eigh(a)
             # Like jaxmg, give the eigenvectors back sharded as the matrix.
             v = _fake_place(v, NamedSharding(mesh, specs))
+            if status_code != 0:
+                w, v = jnp.full_like(w, jnp.nan), jnp.full_like(v, jnp.nan)
         return a, w, v, _fake_status(status_code)
 
     @partial(jax.jit, static_argnums=2, donate_argnums=(0, 1))
@@ -612,10 +616,11 @@ def test_matrix_size_not_divisible_by_grid(monkeypatch, solver):
         pytest.param(nk.optimizer.solver.pinv_smooth_distributed, id="pinv_smooth"),
     ],
 )
-@pytest.mark.parametrize("version", ["0.0.9", "1.0.0", "1.1.0", "1.3.0"])
+@pytest.mark.parametrize("version", ["0.0.9", "1.0.0", "1.1.0", "1.3.0", "1.4.0"])
 def test_unsupported_jaxmg_version(monkeypatch, solver, version):
     """jaxmg 0.0.x wrapped cuSOLVERMg through a different, unsupported API, and
-    jaxmg < 1.4 cannot infer the mesh and the sharding of `A` inside of jit."""
+    jaxmg < 1.4 cannot infer the mesh and the sharding of `A` inside of jit, and
+    jaxmg < 1.4.1 can return finite but wrong output when the solver fails."""
     _install_fake_jaxmg(monkeypatch, version=version)
 
     A = jnp.eye(16)
@@ -660,9 +665,8 @@ def test_distributed_solvers_report_backend_failures(
     monkeypatch, context_mesh, solver, jit
 ):
     """
-    jaxmg can report a failure, such as for a singular matrix, alongside finite
-    but wrong output. The solvers turn it into NaNs, so that `nan_fallback`
-    falls back.
+    jaxmg returns NaNs when the native solver fails, e.g. for a singular matrix.
+    The solvers must pass them on, so that `nan_fallback` falls back.
     """
     _install_fake_jaxmg(monkeypatch, status_code=26)
 

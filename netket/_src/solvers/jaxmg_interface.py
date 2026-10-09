@@ -32,21 +32,22 @@ import math
 from collections.abc import Callable
 
 import jax
-import jax.numpy as jnp
 from jax.sharding import AxisType, NamedSharding, PartitionSpec as P
 
 from netket.utils.optional_deps import import_optional_dependency
 
 # 1.4 is the first release inferring the mesh and the sharding of the matrix by
-# itself, also inside of `jax.jit`.
-JAXMG_MIN_VERSION = "1.4.0"
+# itself, also inside of `jax.jit`, and 1.4.1 fills the outputs with NaNs when
+# the native solver fails, which `nan_fallback` relies on.
+JAXMG_MIN_VERSION = "1.4.1"
 
 _JAXMG_VERSION_MSG = """Install jaxmg with the CUDA version of your jax, which also
                     installs NVIDIA's cuSOLVERMp library:
                     `pip install 'jaxmg[cuda12]'` or `pip install 'jaxmg[cuda13]'`.
 
-                    NetKet requires at least `jaxmg` 1.4, which infers the mesh and
-                    the sharding of the matrix inside of `jax.jit`. Older releases
+                    NetKet requires at least `jaxmg` 1.4.1, which infers the mesh
+                    and the sharding of the matrix inside of `jax.jit`, and returns
+                    NaNs when the native solver fails. Older releases
                     (0.0.x) wrapped the now deprecated cuSOLVERMg backend with a
                     different API, and are only supported by NetKet 3.22 and
                     earlier."""
@@ -149,21 +150,6 @@ def on_process_grid(
     if context_mesh.empty:
         return x
     return jax.device_put(x, P())
-
-
-def nan_on_failure(x: jax.Array, status: jax.Array) -> jax.Array:
-    """
-    Replace `x` with NaNs if `jaxmg` reported a failure on any process.
-
-    `jaxmg` returns one status vector per process, concatenated, whose first
-    entry is 0 on success. A failed solve can still give finite but wrong
-    results (e.g. a singular matrix for Cholesky), so the failure is turned
-    into NaNs, which :func:`~netket.optimizer.solver.nan_fallback` detects.
-    """
-    status_size = status.shape[0] // jax.device_count()
-    is_status_code = jnp.arange(status.shape[0]) % status_size == 0
-    failed = jnp.any(is_status_code & (status != 0))
-    return jnp.where(failed, jnp.nan, x)
 
 
 def default_tile_size(

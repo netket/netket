@@ -29,7 +29,6 @@ from netket._src.solvers.jaxmg_interface import (
     check_matrix_shardable,
     default_tile_size,
     import_jaxmg,
-    nan_on_failure,
     on_process_grid,
     process_grid_shape,
 )
@@ -395,7 +394,7 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
 
     .. note::
 
-        Requires `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_ >= 1.4.0
+        Requires `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_ >= 1.4.1
         and **one python process per GPU** (e.g. launch with ``djaxrun``).
 
     .. note::
@@ -500,8 +499,8 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
     # consume the linear problem, or combinators reusing it, such as
     # :func:`~netket.optimizer.solver.nan_fallback`, would crash.
     def solve(A, b):
-        _A_work, x, status = jaxmg.potrs_shardmap_ctx(A, b, T_A=local_tile_size)
-        return nan_on_failure(x, status)
+        _A_work, x, _status = jaxmg.potrs_shardmap_ctx(A, b, T_A=local_tile_size)
+        return x
 
     x = on_process_grid(solve, process_grid, A, b)
 
@@ -547,7 +546,7 @@ def pinv_smooth_distributed(
 
     .. note::
 
-        Requires `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_ >= 1.4.0
+        Requires `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_ >= 1.4.1
         and **one python process per GPU** (e.g. launch with ``djaxrun``).
 
     .. note::
@@ -638,7 +637,7 @@ def pinv_smooth_distributed(
     def solve(A, b):
         # Compute eigendecomposition using distributed solver. As above, the
         # `_shardmap_ctx` entry point is the one that does not consume `A`.
-        _A_work, Σ, U, status = jaxmg.syevd_shardmap_ctx(A, T_A=local_tile_size)
+        _A_work, Σ, U, _status = jaxmg.syevd_shardmap_ctx(A, T_A=local_tile_size)
 
         # Discard eigenvalues below numerical precision
         Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
@@ -651,7 +650,7 @@ def pinv_smooth_distributed(
         # U is sharded like `A`, so with Explicit mesh axes jax requires the
         # sharding of these contractions to be given.
         y = jnp.matmul(U.conj().T, b, out_sharding=P())
-        return nan_on_failure(jnp.matmul(U, Σ_inv * y, out_sharding=P()), status)
+        return jnp.matmul(U, Σ_inv * y, out_sharding=P())
 
     x = on_process_grid(solve, process_grid, A, b)
 
