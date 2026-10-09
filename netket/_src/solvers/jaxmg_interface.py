@@ -28,6 +28,7 @@ This module takes care of
 - picking a valid tile size for the grid.
 """
 
+import functools
 import math
 from collections.abc import Callable
 
@@ -101,14 +102,11 @@ def process_grid_shape(process_grid: tuple[int, int] | None) -> tuple[int, int]:
 
 
 def on_process_grid(
-    fn: Callable,
     process_grid: tuple[int, int] | None,
-    A: jax.Array,
-    b: jax.Array,
-) -> jax.Array:
+) -> Callable[[Callable], Callable]:
     """
-    Compute ``fn(A, b)``, which calls `jaxmg`, on the given process grid, and
-    return its result on the context mesh.
+    Decorate ``fn(A, b)``, which calls `jaxmg`, so that it runs on the given
+    process grid and returns its result on the context mesh.
 
     `jaxmg` lays `A` over the process grid described by its sharding, or by the
     context mesh inside of :func:`jax.jit`. By default, `A` is handed to `jaxmg`
@@ -123,33 +121,43 @@ def on_process_grid(
     devices in the same order, and that mesh lays out :func:`jax.devices` in
     order, so the context mesh must do so too, as NetKet's mesh does.
     """
-    grid_shape = process_grid_shape(process_grid)
-    context_mesh = jax.sharding.get_abstract_mesh()
-    if len(context_mesh.axis_names) == 1 and grid_shape[1] == 1:
-        if process_grid is not None:
-            row_specs = P(context_mesh.axis_names[0], None)
-            if context_mesh.axis_types[0] == AxisType.Explicit:
-                A = jax.reshard(A, row_specs)
-            else:
-                A = jax.lax.with_sharding_constraint(A, row_specs)
-        return fn(A, b)
 
-    axis_type = AxisType.Auto if context_mesh.empty else context_mesh.axis_types[0]
-    mesh = jax.make_mesh(
-        grid_shape, JAXMG_AXIS_NAMES, axis_types=(axis_type, axis_type)
-    )
-    A = jax.device_put(A, NamedSharding(mesh, P(*JAXMG_AXIS_NAMES)))
-    b = jax.device_put(b, NamedSharding(mesh, P()))
-    with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
-        x = fn(A, b)
-        # With Auto mesh axes, moving `x` back to the context mesh only gives
-        # it a sharding expressible there if it is replicated first. With
-        # Explicit ones, it is already replicated.
-        if axis_type == AxisType.Auto:
-            x = jax.lax.with_sharding_constraint(x, P())
-    if context_mesh.empty:
-        return x
-    return jax.device_put(x, P())
+    def decorator(fn: Callable) -> Callable:
+        @functools.wraps(fn)
+        def wrapper(A: jax.Array, b: jax.Array) -> jax.Array:
+            grid_shape = process_grid_shape(process_grid)
+            context_mesh = jax.sharding.get_abstract_mesh()
+            if len(context_mesh.axis_names) == 1 and grid_shape[1] == 1:
+                if process_grid is not None:
+                    row_specs = P(context_mesh.axis_names[0], None)
+                    if context_mesh.axis_types[0] == AxisType.Explicit:
+                        A = jax.reshard(A, row_specs)
+                    else:
+                        A = jax.lax.with_sharding_constraint(A, row_specs)
+                return fn(A, b)
+
+            axis_type = (
+                AxisType.Auto if context_mesh.empty else context_mesh.axis_types[0]
+            )
+            mesh = jax.make_mesh(
+                grid_shape, JAXMG_AXIS_NAMES, axis_types=(axis_type, axis_type)
+            )
+            A = jax.device_put(A, NamedSharding(mesh, P(*JAXMG_AXIS_NAMES)))
+            b = jax.device_put(b, NamedSharding(mesh, P()))
+            with jax.sharding.use_abstract_mesh(mesh.abstract_mesh):
+                x = fn(A, b)
+                # With Auto mesh axes, moving `x` back to the context mesh only gives
+                # it a sharding expressible there if it is replicated first. With
+                # Explicit ones, it is already replicated.
+                if axis_type == AxisType.Auto:
+                    x = jax.lax.with_sharding_constraint(x, P())
+            if context_mesh.empty:
+                return x
+            return jax.device_put(x, P())
+
+        return wrapper
+
+    return decorator
 
 
 def default_tile_size(

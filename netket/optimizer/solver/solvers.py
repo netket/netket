@@ -498,11 +498,12 @@ def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=No
     # deleting them when called outside of `jax.jit`. NetKet's solvers must not
     # consume the linear problem, or combinators reusing it, such as
     # :func:`~netket.optimizer.solver.nan_fallback`, would crash.
+    @on_process_grid(process_grid)
     def solve(A, b):
         _A_work, x, _status = jaxmg.potrs_shardmap_ctx(A, b, T_A=local_tile_size)
         return x
 
-    x = on_process_grid(solve, process_grid, A, b)
+    x = solve(A, b)
 
     return unravel(x), None
 
@@ -634,6 +635,7 @@ def pinv_smooth_distributed(
         # but 512 consumes less memory and seems ok
         local_tile_size = default_tile_size(A.shape[0], grid_shape, max_tile_size=512)
 
+    @on_process_grid(process_grid)
     def solve(A, b):
         # Compute eigendecomposition using distributed solver. As above, the
         # `_shardmap_ctx` entry point is the one that does not consume `A`.
@@ -652,6 +654,6 @@ def pinv_smooth_distributed(
         y = jnp.matmul(U.conj().T, b, out_sharding=P())
         return jnp.matmul(U, Σ_inv * y, out_sharding=P())
 
-    x = on_process_grid(solve, process_grid, A, b)
+    x = solve(A, b)
 
     return unravel(x), None
