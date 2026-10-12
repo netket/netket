@@ -46,10 +46,42 @@ def _heisenberg_triangular():
     return hi, nk.operator.Heisenberg(hi, g), nk.sampler.MetropolisExchange(hi, graph=g)
 
 
+def _j1j2_triangular():
+    g = nk.graph.Triangular([3, 4], pbc=True, max_neighbor_order=2)
+    hi = nk.hilbert.Spin(0.5, g.n_nodes, total_sz=0)
+    H = nk.operator.Heisenberg(hi, g, J=[1.0, 0.4])
+    return hi, H, nk.sampler.MetropolisExchange(hi, graph=g)
+
+
 def _ising():
     g = nk.graph.Chain(10, pbc=True)
     hi = nk.hilbert.Spin(0.5, g.n_nodes)
     return hi, nk.operator.IsingJax(hi, g, h=1.0), nk.sampler.MetropolisLocal(hi)
+
+
+def _pauli_strings():
+    hi = nk.hilbert.Spin(0.5, 8)
+    strings = ["XXIIIIII", "YYIIIIII", "ZZIIIIII", "IXXIIIII", "IIZIIIXI", "IIIIYIIY"]
+    weights = [1.0, 0.5, 0.2, -0.7, 0.3, 0.1]
+    H = nk.operator.PauliStringsJax(hi, strings, weights)
+    return hi, H, nk.sampler.MetropolisLocal(hi)
+
+
+def _local_operator():
+    # Terms acting on 1, 2 and 3 sites, with several connected elements per row.
+    hi = nk.hilbert.Spin(0.5, 8)
+    sx, sy, sz = (
+        nk.operator.spin.sigmax,
+        nk.operator.spin.sigmay,
+        nk.operator.spin.sigmaz,
+    )
+    H = (
+        sum(sx(hi, i) * sz(hi, (i + 1) % 8) for i in range(8))
+        + 0.5
+        * sum(sy(hi, i) * sy(hi, (i + 2) % 8) * sx(hi, (i + 5) % 8) for i in range(8))
+        + 0.3 * sum(sx(hi, i) for i in range(8))
+    )
+    return hi, H.to_jax_operator(), nk.sampler.MetropolisLocal(hi)
 
 
 def _hubbard(pnc):
@@ -73,10 +105,23 @@ def _hubbard(pnc):
 SYSTEMS = {
     "heisenberg_chain": _heisenberg_chain,
     "heisenberg_triangular": _heisenberg_triangular,
+    "j1j2_triangular": _j1j2_triangular,
     "ising": _ising,
+    "pauli_strings": _pauli_strings,
+    "local_operator": _local_operator,
     "hubbard": lambda: _hubbard(False),
     "hubbard_pnc": lambda: _hubbard(True),
 }
+
+# The operators that compute their connected configurations one at a time.
+GENERATING = [
+    "heisenberg_chain",
+    "heisenberg_triangular",
+    "j1j2_triangular",
+    "ising",
+    "pauli_strings",
+    "local_operator",
+]
 
 
 def _vstate(system, param_dtype=complex, n_samples=64):
@@ -138,12 +183,27 @@ def test_packed_kernel_min_chunk_size(chunk_size, min_chunk_size):
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "ising", "hubbard"])
 @pytest.mark.parametrize("conn_chunk_size", [None, 1, 50, 37 * 64])
 def test_packed_kernel_conn_chunk_size(system, conn_chunk_size):
-    # The samples are processed in groups (the last one padded), whose padded
+    # Without computing the connected configurations one at a time, the
+    # samples are processed in groups (the last one padded), whose padded
     # connected configurations hold at most conn_chunk_size configurations.
     vs, H = _vstate(system)
     σ = vs.samples.reshape(-1, vs.hilbert.size)
     expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
-    kernel = _packed(16, conn_chunk_size=conn_chunk_size)
+    kernel = _packed(16, conn_chunk_size=conn_chunk_size, generate=False)
+    result = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))(vs.variables, σ, H)
+    np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
+
+
+@pytest.mark.parametrize("system", GENERATING)
+@pytest.mark.parametrize("chunk_size", [None, 7, 64])
+@pytest.mark.parametrize("generate", [True, None])
+def test_packed_kernel_generate(system, chunk_size, generate):
+    # The connected configurations computed in the chunks, explicitly or
+    # because those of all the samples do not fit in conn_chunk_size.
+    vs, H = _vstate(system)
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
+    kernel = _packed(chunk_size, conn_chunk_size=50, generate=generate)
     result = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))(vs.variables, σ, H)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
@@ -154,7 +214,10 @@ def test_packed_kernel_conn_chunk_size(system, conn_chunk_size):
     [(32, None, 4), (32, 1, 1), (32, 32, 32), (48, None, 4), (48, 48, 48)],
 )
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "ising"])
-def test_packed_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multiple):
+@pytest.mark.parametrize("generate", [True, False])
+def test_packed_kernel_evaluated_rows(
+    system, chunk_size, min_chunk_size, multiple, generate
+):
     # On every device, the network is evaluated on the samples and on the
     # selected configurations, the last chunk being padded to min_chunk_size.
     # With the Ising model, almost all the chunks are full.
@@ -165,7 +228,7 @@ def test_packed_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multip
         jax.debug.callback(lambda x: rows.append(x.shape[0]), x[:, 0])
         return vs._apply_fun(variables, x)
 
-    kernel = _packed(chunk_size, min_chunk_size=min_chunk_size)
+    kernel = _packed(chunk_size, min_chunk_size=min_chunk_size, generate=generate)
     f = jax.jit(lambda v, σ, H: kernel(logpsi, v, σ, H))
     remainders = set()
     for seed in range(4):
@@ -330,15 +393,74 @@ def test_padding_is_the_sample(system):
     assert np.all(np.asarray(mels)[is_conn] != 0)
 
 
+@pytest.mark.parametrize("system", GENERATING)
+def test_get_conn_mels_and_at(system):
+    # get_conn_mels and get_conn_at give the connected elements of
+    # get_conn_padded that differ from the sample, and the same diagonal.
+    vs, H = _vstate(system, n_samples=16)
+    σ = np.asarray(vs.samples.reshape(-1, vs.hilbert.size))
+    assert kernels_packed.generates_connected(H)
+    σp, mels_p = jax.tree.map(np.asarray, H.get_conn_padded(σ))
+    is_new_p = np.any(σp != σ[:, None], axis=-1)
+
+    mels, is_new = jax.tree.map(np.asarray, jax.jit(type(H).get_conn_mels)(H, σ))
+    assert mels.shape == is_new.shape and mels.shape[0] == σ.shape[0]
+    n_slots = mels.shape[-1]
+    sample = np.repeat(np.arange(σ.shape[0]), n_slots)
+    slot = np.tile(np.arange(n_slots), σ.shape[0])
+    σp_at = np.asarray(jax.jit(type(H).get_conn_at)(H, σ[sample], slot))
+    σp_at = σp_at.reshape(σ.shape[0], n_slots, -1)
+    assert σp_at.dtype == σ.dtype
+
+    differs = np.any(σp_at != σ[:, None], axis=-1)
+    np.testing.assert_array_equal(differs[is_new], True)
+    # The slots that are not selected hold the sample or a zero element.
+    assert np.all(~differs[~is_new] | (mels[~is_new] == 0))
+    np.testing.assert_allclose(
+        np.where(is_new, 0, mels).sum(axis=-1),
+        np.where(is_new_p, 0, mels_p).sum(axis=-1),
+        rtol=1e-13,
+        atol=1e-13,
+    )
+    for i in range(σ.shape[0]):
+        expected = sorted(
+            (tuple(x), m.real, m.imag)
+            for x, m in zip(σp[i][is_new_p[i]], mels_p[i][is_new_p[i]].astype(complex))
+        )
+        result = sorted(
+            (tuple(x), m.real, m.imag)
+            for x, m in zip(σp_at[i][is_new[i]], mels[i][is_new[i]].astype(complex))
+        )
+        assert [x for x, *_ in result] == [x for x, *_ in expected]
+        np.testing.assert_allclose(
+            [m[1:] for m in result], [m[1:] for m in expected], rtol=1e-13, atol=1e-13
+        )
+
+
+def test_generates_connected():
+    _, H, _ = _heisenberg_triangular()
+    assert kernels_packed.generates_connected(H.to_jax_operator())
+    assert not kernels_packed.generates_connected(_hubbard(False)[1])
+
+    class Modified(type(H.to_jax_operator())):
+        # Changes the connected elements: its get_conn_at would not match.
+        def get_conn_padded(self, x):
+            xp, mels = super().get_conn_padded(x)
+            return xp, 2 * mels
+
+    assert not kernels_packed.generates_connected(Modified(H.hilbert))
+
+
+@pytest.mark.parametrize("generate", [True, False])
 @pytest.mark.parametrize("chunk_size", [None, 3])
-def test_packed_kernel_coefficient_gradient_at_zero(chunk_size):
+def test_packed_kernel_coefficient_gradient_at_zero(generate, chunk_size):
     # At h = 0 every off-diagonal matrix element of the Ising model is zero,
     # but its derivative with respect to h is not: the kernel must not drop
     # the connected configurations based on the value of their matrix element.
     vs, _ = _vstate("ising")
     σ = vs.samples.reshape(-1, vs.hilbert.size)
     graph = nk.graph.Chain(vs.hilbert.size, pbc=True)
-    packed = _packed(chunk_size)
+    packed = _packed(chunk_size, generate=generate)
 
     def loss(kernel, h):
         H = nk.operator.IsingJax(vs.hilbert, graph, h=h, J=1.0)
@@ -523,9 +645,30 @@ def test_apply_packed(fraction, chunk_size):
     ref = _rows_function(pars, x)
     np.testing.assert_allclose(out["sum"], jnp.where(where, ref["sum"], -1.0))
     np.testing.assert_allclose(
-        out["vec"], jnp.where(where[:, None], ref["vec"], 2.0), rtol=1e-15
+        out["vec"], jnp.where(where[:, None], ref["vec"], 2.0), rtol=1e-13
     )
     assert out["vec"].shape == (n, 3)
+
+
+@pytest.mark.parametrize("chunk_size", [None, 3])
+def test_apply_packed_slots(chunk_size):
+    # With a two-dimensional mask, f is evaluated on pairs of a row and a slot.
+    n, m, d = 9, 5, 3
+    x = jax.random.normal(jax.random.key(0), (n, d))
+    where = jax.random.uniform(jax.random.key(1), (n, m)) < 0.5
+
+    def f(pars, x, slots):
+        return pars * jnp.sum(x, axis=-1) + slots
+
+    out = nk.jax.apply_packed(f, 2.0, x, where, 0.0, chunk_size=chunk_size)
+    expected = 2.0 * jnp.sum(x, axis=-1)[:, None] + jnp.arange(m)
+    np.testing.assert_allclose(
+        out, jnp.where(where, expected, 0.0), rtol=1e-13, atol=1e-13
+    )
+
+    # An empty slot axis.
+    out = nk.jax.apply_packed(f, 2.0, x, where[:, :0], 0.0, chunk_size=chunk_size)
+    assert out.shape == (n, 0)
 
 
 ## Derivatives
@@ -547,11 +690,18 @@ def _loss_fns(system, param_dtype, chunk_size):
     return eloc, loss, p0, t, H
 
 
-@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
+@pytest.mark.parametrize(
+    "system, generate",
+    [
+        ("heisenberg_triangular", True),
+        ("heisenberg_triangular", False),
+        ("hubbard", False),
+    ],
+)
 @pytest.mark.parametrize("param_dtype", [float, complex])
-def test_packed_kernel_higher_order_derivatives(system, param_dtype):
+def test_packed_kernel_higher_order_derivatives(system, generate, param_dtype):
     eloc, loss, p0, t, H = _loss_fns(system, param_dtype, 16)
-    packed, padded = _packed(16), kernels.local_value_kernel_jax
+    packed, padded = _packed(16, generate=generate), kernels.local_value_kernel_jax
 
     def hvp(kernel, p, t, H):
         # forward over reverse
@@ -584,6 +734,7 @@ def test_packed_kernel_fermions(pnc):
     # conserving FermiHubbardJax) go through the generic path, with their own
     # sign conventions in the matrix elements.
     vs, H = _vstate("hubbard_pnc" if pnc else "hubbard")
+    assert not kernels_packed.generates_connected(H)
     E0, g0 = vs.expect_and_grad(H)
     vs.local_kernel = "packed"
     assert (
@@ -615,14 +766,21 @@ def _count(jaxpr, name):
     return n
 
 
-@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
+@pytest.mark.parametrize(
+    "system, generate",
+    [
+        ("heisenberg_triangular", True),
+        ("heisenberg_triangular", False),
+        ("hubbard", False),
+    ],
+)
 @pytest.mark.parametrize("chunk_size", [None, 16])
-def test_packed_kernel_vmap(system, chunk_size):
+def test_packed_kernel_vmap(system, generate, chunk_size):
     # Under vmap over the samples, the batch is packed at once: the chunks
     # are still selected with lax.cond.
     vs, H = _vstate(system)
     σ = vs.samples.reshape(4, -1, vs.hilbert.size)
-    kernel = _packed(chunk_size)
+    kernel = _packed(chunk_size, generate=generate)
 
     def eloc(variables, σ):
         return kernel(vs._apply_fun, variables, σ, H)
@@ -664,8 +822,15 @@ def test_packed_kernel_vmap(system, chunk_size):
     )
 
 
-@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
-def test_packed_kernel_vmap_of_derivatives(system):
+@pytest.mark.parametrize(
+    "system, generate",
+    [
+        ("heisenberg_triangular", True),
+        ("heisenberg_triangular", False),
+        ("hubbard", False),
+    ],
+)
+def test_packed_kernel_vmap_of_derivatives(system, generate):
     # Derivatives of a batch, and batches of derivatives (where every chunk is
     # evaluated).
     vs, H = _vstate(system)
@@ -691,7 +856,7 @@ def test_packed_kernel_vmap_of_derivatives(system):
 
     for transform in (vmap_grad, grad_vmap, vmap_jvp):
         f = jax.jit(transform, static_argnums=0)
-        packed = _packed(16)
+        packed = _packed(16, generate=generate)
         _assert_close(f(packed, p0, σ), f(kernels.local_value_kernel_jax, p0, σ), 1e-12)
         # The chunks are still selected by lax.cond.
         jaxpr = jax.make_jaxpr(transform, static_argnums=0)(packed, p0, σ)

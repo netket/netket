@@ -54,6 +54,17 @@ def apply_packed(
     a loop whose number of iterations depends on the data waits for the device
     at every iteration, while there are only logarithmically many conds.
 
+    ``where`` has one of two shapes:
+
+    - ``(n,)``: the leaves of ``x`` have ``n`` rows, and ``f(pars, x_rows)``
+      is evaluated on the selected rows;
+    - ``(n, m)``: the leaves of ``x`` have ``n`` rows, each with ``m`` slots,
+      and ``f(pars, x_rows, slots)`` is evaluated on the selected pairs of a
+      row and a slot, the rows of ``x`` being repeated for every selected
+      slot. This evaluates functions of the pairs that are cheaper to compute
+      on the fly than to store for all of them, such as the connected
+      configurations of an operator.
+
     ``f`` must be row-wise: the rows of its output must only depend on the
     corresponding rows of its input. It is evaluated on a few chunk shapes,
     and traced once per shape.
@@ -76,11 +87,12 @@ def apply_packed(
     :func:`jax.shard_map` it packs the rows of every device separately.
 
     Args:
-        f: the function to evaluate, ``f(pars, x_rows)``.
+        f: the function to evaluate, ``f(pars, x_rows)`` or
+            ``f(pars, x_rows, slots)``.
         pars: the arguments of ``f`` that are the same for all rows.
         x: a pytree of arrays with ``n`` rows.
-        where: the boolean mask of the rows on which ``f`` is evaluated, of
-            shape ``(n,)``.
+        where: the boolean mask of the rows (or of the pairs of a row and a
+            slot) on which ``f`` is evaluated.
         fill: the values of the other rows, a pytree like the output of ``f``
             whose leaves are broadcastable to the output.
         chunk_size: the number of rows on which ``f`` is evaluated at once
@@ -91,11 +103,12 @@ def apply_packed(
             ``min_chunk_size=chunk_size`` compiles a single chunk size.
 
     Returns:
-        A pytree like the output of ``f``, with ``n`` rows.
+        A pytree like the output of ``f``, with leaves of shape
+        ``where.shape + leaf.shape[1:]``.
     """
     where = jnp.asarray(where, dtype=bool)
-    if where.ndim != 1:
-        raise ValueError(f"where must have 1 dimension, not {where.ndim}.")
+    if where.ndim not in (1, 2):
+        raise ValueError(f"where must have 1 or 2 dimensions, not {where.ndim}.")
     impl = partial(_apply_packed, jax.jit(f), chunk_size, min_chunk_size)
 
     batched = custom_vmap(impl)
@@ -113,10 +126,12 @@ def _apply_packed(f, chunk_size, min_chunk_size, pars, x, where, fill):
     is_selected = where.reshape(-1)
 
     def evaluate(i):
-        # f on the rows at the indices i.
-        return f(pars, jax.tree.map(lambda a: a[i], x))
+        # f on the rows (or on the pairs of a row and a slot) at the flat indices i.
+        if where.ndim == 1:
+            return f(pars, jax.tree.map(lambda a: a[i], x))
+        return f(pars, jax.tree.map(lambda a: a[i // shape[1]], x), i % shape[1])
 
-    out_struct = _row_struct(f, pars, x)
+    out_struct = _row_struct(f, pars, x, where.ndim)
     fill = jax.tree.map(
         lambda v, s: jnp.broadcast_to(v, shape + s.shape[1:]).reshape(
             (n_rows,) + s.shape[1:]
@@ -186,10 +201,12 @@ def _vary(x, axes):
     return pcast(x, missing, to="varying") if missing else x
 
 
-def _row_struct(f, pars, x):
+def _row_struct(f, pars, x, ndim):
     # The shapes and dtypes of the output of f on a single row.
     row = jax.tree.map(lambda a: jax.ShapeDtypeStruct((1,) + a.shape[1:], a.dtype), x)
-    return jax.eval_shape(f, pars, row)
+    if ndim == 1:
+        return jax.eval_shape(f, pars, row)
+    return jax.eval_shape(f, pars, row, jax.ShapeDtypeStruct((1,), jnp.int32))
 
 
 def _evaluate_packed(
@@ -333,7 +350,7 @@ def _apply_packed_vmap_rule(
         x = jax.tree.map(fold, x, x_batched)
         where = fold(where, where_batched)
 
-        out_struct = _row_struct(f, pars, x)
+        out_struct = _row_struct(f, pars, x, len(shape))
 
         def fold_fill(v, batched, s):
             full = shape + s.shape[1:]
