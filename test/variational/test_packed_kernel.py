@@ -528,6 +528,77 @@ def test_apply_packed(fraction, chunk_size):
     assert out["vec"].shape == (n, 3)
 
 
+## Derivatives
+
+
+def _loss_fns(system, param_dtype, chunk_size):
+    vs, H = _vstate(system, param_dtype=param_dtype)
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    jax.block_until_ready(H.get_conn_padded(σ[:1]))
+    p0, unravel = ravel_pytree(vs.parameters)
+
+    def eloc(kernel, p, H):
+        return kernel(vs._apply_fun, {**vs.variables, "params": unravel(p)}, σ, H)
+
+    def loss(kernel, p, H):
+        return jnp.sum(jnp.abs(eloc(kernel, p, H)) ** 2)
+
+    t = jax.random.normal(jax.random.key(1), p0.shape, dtype=p0.dtype)
+    return eloc, loss, p0, t, H
+
+
+@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
+@pytest.mark.parametrize("param_dtype", [float, complex])
+def test_packed_kernel_higher_order_derivatives(system, param_dtype):
+    eloc, loss, p0, t, H = _loss_fns(system, param_dtype, 16)
+    packed, padded = _packed(16), kernels.local_value_kernel_jax
+
+    def hvp(kernel, p, t, H):
+        # forward over reverse
+        return jax.jvp(jax.grad(lambda p: loss(kernel, p, H)), (p,), (t,))[1]
+
+    def rev_rev(kernel, p, t, H):
+        grad = jax.grad(lambda p: loss(kernel, p, H))
+        return jax.grad(lambda p: jnp.real(jnp.vdot(grad(p), t)))(p)
+
+    def third(kernel, p, t, H):
+        return jax.jvp(
+            lambda p: jnp.real(jnp.vdot(hvp(kernel, p, t, H), t)), (p,), (t,)
+        )[1]
+
+    for derivative in (hvp, rev_rev, third):
+        f = jax.jit(derivative, static_argnums=0)
+        _assert_close(f(packed, p0, t, H), f(padded, p0, t, H), 1e-12)
+    if param_dtype is float:
+        f = jax.jit(jax.hessian(loss, argnums=1), static_argnums=0)
+        _assert_close(f(packed, p0, H), f(padded, p0, H), 1e-12)
+        f = jax.jit(jax.jacrev(eloc, argnums=1), static_argnums=0)
+        _assert_close(f(packed, p0, H), f(padded, p0, H), 1e-12)
+        f = jax.jit(jax.jacfwd(eloc, argnums=1), static_argnums=0)
+        _assert_close(f(packed, p0, H), f(padded, p0, H), 1e-12)
+
+
+@pytest.mark.parametrize("pnc", [False, True])
+def test_packed_kernel_fermions(pnc):
+    # Fermionic operators (FermionOperator2ndJax and the particle-number
+    # conserving FermiHubbardJax) go through the generic path, with their own
+    # sign conventions in the matrix elements.
+    vs, H = _vstate("hubbard_pnc" if pnc else "hubbard")
+    E0, g0 = vs.expect_and_grad(H)
+    vs.local_kernel = "packed"
+    assert (
+        nk.vqs.get_local_kernel(vs, H) is kernels_packed.local_value_kernel_jax_packed
+    )
+    E1, g1 = vs.expect_and_grad(H)
+    np.testing.assert_allclose(E1.mean, E0.mean, rtol=1e-12)
+    jax.tree.map(
+        lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12), g1, g0
+    )
+    vs.chunk_size = 16
+    E2 = vs.expect(H)
+    np.testing.assert_allclose(E2.mean, E0.mean, rtol=1e-12)
+
+
 ## vmap
 
 
