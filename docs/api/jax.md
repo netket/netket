@@ -78,6 +78,7 @@ This part of the API is not public, and can change without notice.
   apply_chunked
   vmap_chunked
   vjp_chunked
+  apply_packed
 ```
 
 ## Math

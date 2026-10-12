@@ -35,6 +35,7 @@ from netket.vqs import expect
 
 from netket.vqs.mc import (
     kernels,
+    kernels_packed,
     get_local_kernel,
 )
 
@@ -52,8 +53,8 @@ def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F
 def get_local_kernel(  # noqa: F811
     vstate: MCState, Ô: DiscreteJaxOperator, chunk_size: int
 ):  # noqa: F811
-    if config.netket_experimental_flattened_kernel:
-        return kernels.local_value_kernel_jax_flattened
+    if config.netket_experimental_packed_kernel:
+        return kernels_packed.local_value_kernel_jax_packed
     return kernels.local_value_kernel_jax_chunked
 
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for the flattened local-value kernel of jax operators."""
+"""Tests for the packed local-value kernel of jax operators."""
 
 import os
 import subprocess
@@ -27,7 +27,7 @@ import jax.numpy as jnp
 import flax
 
 import netket as nk
-from netket.vqs.mc import kernels
+from netket.vqs.mc import kernels, kernels_packed
 
 from .. import common
 
@@ -77,48 +77,51 @@ SYSTEMS = {
 }
 
 
-def _vstate(system):
+def _vstate(system, param_dtype=complex, n_samples=64):
     hi, H, sa = SYSTEMS[system]()
     sa = sa.replace(n_chains=8 * jax.device_count())
-    ma = nk.models.RBM(alpha=2, param_dtype=complex)
-    vs = nk.vqs.MCState(sa, ma, n_samples=64 * jax.device_count(), seed=0)
+    ma = nk.models.RBM(alpha=2, param_dtype=param_dtype)
+    vs = nk.vqs.MCState(sa, ma, n_samples=n_samples * jax.device_count(), seed=0)
+    # Set the operator up outside of any trace.
+    jax.block_until_ready(H.get_conn_padded(vs.samples.reshape(-1, hi.size)[:1]))
     return vs, H
 
 
-def _local_estimators(vs, H, chunk_size, flattened):
-    old = nk.config.netket_experimental_flattened_kernel
-    nk.config.netket_experimental_flattened_kernel = flattened
+def _local_estimators(vs, H, chunk_size, packed):
+    old = nk.config.netket_experimental_packed_kernel
+    nk.config.netket_experimental_packed_kernel = packed
     try:
         return np.asarray(vs.local_estimators(H, chunk_size=chunk_size).data)
     finally:
-        nk.config.netket_experimental_flattened_kernel = old
+        nk.config.netket_experimental_packed_kernel = old
+
+
+def _packed(chunk_size=None, **kwargs):
+    def kernel(*args):
+        return kernels_packed.local_value_kernel_jax_packed(
+            *args, chunk_size=chunk_size, **kwargs
+        )
+
+    return kernel
 
 
 @pytest.mark.parametrize("system", list(SYSTEMS))
 @pytest.mark.parametrize("chunk_size", [None, 7, 64, 100000])
-def test_flattened_kernel_matches_padded(system, chunk_size):
+def test_packed_kernel_matches_padded(system, chunk_size):
     vs, H = _vstate(system)
-    expected = _local_estimators(vs, H, None, flattened=False)
-    result = _local_estimators(vs, H, chunk_size, flattened=True)
+    expected = _local_estimators(vs, H, None, False)
+    result = _local_estimators(vs, H, chunk_size, True)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
 @pytest.mark.parametrize("chunk_size", [1, 7, 64, 100000])
 @pytest.mark.parametrize("min_chunk_size", [None, 1, 3, 64])
-def test_flattened_kernel_min_chunk_size(chunk_size, min_chunk_size):
+def test_packed_kernel_min_chunk_size(chunk_size, min_chunk_size):
     vs, H = _vstate("heisenberg_triangular")
     σ = vs.samples.reshape(-1, vs.hilbert.size)
     expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
-    result = jax.jit(
-        lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
-            vs._apply_fun,
-            v,
-            σ,
-            H,
-            chunk_size=chunk_size,
-            min_chunk_size=min_chunk_size,
-        )
-    )(vs.variables, σ, H)
+    kernel = _packed(chunk_size, min_chunk_size=min_chunk_size)
+    result = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))(vs.variables, σ, H)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
@@ -128,7 +131,7 @@ def test_flattened_kernel_min_chunk_size(chunk_size, min_chunk_size):
     [(32, None, 4), (32, 1, 1), (32, 32, 32), (48, None, 4), (48, 48, 48)],
 )
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "ising"])
-def test_flattened_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multiple):
+def test_packed_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multiple):
     # On every device, the network is evaluated on the samples and on the
     # selected configurations, the last chunk being padded to min_chunk_size.
     # With the Ising model, almost all the chunks are full.
@@ -139,11 +142,8 @@ def test_flattened_kernel_evaluated_rows(system, chunk_size, min_chunk_size, mul
         jax.debug.callback(lambda x: rows.append(x.shape[0]), x[:, 0])
         return vs._apply_fun(variables, x)
 
-    f = jax.jit(
-        lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
-            logpsi, v, σ, H, chunk_size=chunk_size, min_chunk_size=min_chunk_size
-        )
-    )
+    kernel = _packed(chunk_size, min_chunk_size=min_chunk_size)
+    f = jax.jit(lambda v, σ, H: kernel(logpsi, v, σ, H))
     remainders = set()
     for seed in range(4):
         σ = vs.hilbert.random_state(jax.random.key(seed), 61 * jax.device_count())
@@ -161,29 +161,25 @@ def test_flattened_kernel_evaluated_rows(system, chunk_size, min_chunk_size, mul
         assert len(remainders) > 1
 
 
-def test_flattened_kernel_dispatch():
+def test_packed_kernel_dispatch():
     vs, H = _vstate("heisenberg_chain")
-    old = nk.config.netket_experimental_flattened_kernel
+    old = nk.config.netket_experimental_packed_kernel
     try:
-        nk.config.netket_experimental_flattened_kernel = False
+        nk.config.netket_experimental_packed_kernel = False
         assert nk.vqs.get_local_kernel(vs, H) is kernels.local_value_kernel_jax
         assert (
             nk.vqs.get_local_kernel(vs, H, 16) is kernels.local_value_kernel_jax_chunked
         )
-        nk.config.netket_experimental_flattened_kernel = True
-        assert (
-            nk.vqs.get_local_kernel(vs, H) is kernels.local_value_kernel_jax_flattened
-        )
-        assert (
-            nk.vqs.get_local_kernel(vs, H, 16)
-            is kernels.local_value_kernel_jax_flattened
-        )
+        nk.config.netket_experimental_packed_kernel = True
+        packed = kernels_packed.local_value_kernel_jax_packed
+        assert nk.vqs.get_local_kernel(vs, H) is packed
+        assert nk.vqs.get_local_kernel(vs, H, 16) is packed
     finally:
-        nk.config.netket_experimental_flattened_kernel = old
+        nk.config.netket_experimental_packed_kernel = old
 
 
 @pytest.mark.parametrize("chunk_size", [None, 32])
-def test_flattened_kernel_no_recompilation(chunk_size):
+def test_packed_kernel_no_recompilation(chunk_size):
     # The number of nonzero connected elements changes from batch to batch,
     # but the kernel must be compiled only once.
     vs, H = _vstate("heisenberg_triangular")
@@ -194,11 +190,11 @@ def test_flattened_kernel_no_recompilation(chunk_size):
         n_traces += 1
         return vs._apply_fun(variables, x)
 
+    kernel = _packed(chunk_size)
+
     @jax.jit
     def eloc(variables, σ, H):
-        return kernels.local_value_kernel_jax_flattened(
-            logpsi, variables, σ, H, chunk_size=chunk_size
-        )
+        return kernel(logpsi, variables, σ, H)
 
     @jax.jit
     def n_nonzero(σ, H):
@@ -215,11 +211,12 @@ def test_flattened_kernel_no_recompilation(chunk_size):
     assert n_traces == n_traces_first
 
 
+@pytest.mark.parametrize("system", ["hubbard", "heisenberg_triangular"])
 @pytest.mark.parametrize("chunk_size", [None, 32])
-def test_flattened_kernel_gradient(chunk_size):
+def test_packed_kernel_gradient(system, chunk_size):
     # The chunks are selected by lax.cond and evaluated in loops with a static
     # number of iterations, which reverse-mode differentiation must go through.
-    vs, H = _vstate("hubbard")
+    vs, H = _vstate(system)
     σ = vs.samples.reshape(-1, vs.hilbert.size)
 
     # The operator is passed as an argument: FermionOperator2ndJax must not be
@@ -228,13 +225,12 @@ def test_flattened_kernel_gradient(chunk_size):
         variables = {**vs.variables, "params": params}
         return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
 
-    def flattened(*args):
-        return kernels.local_value_kernel_jax_flattened(*args, chunk_size=chunk_size)
-
     expected = jax.jit(
         jax.grad(lambda p, H: loss(kernels.local_value_kernel_jax, p, H))
     )(vs.parameters, H)
-    result = jax.jit(jax.grad(lambda p, H: loss(flattened, p, H)))(vs.parameters, H)
+    result = jax.jit(jax.grad(lambda p, H: loss(_packed(chunk_size), p, H)))(
+        vs.parameters, H
+    )
     jax.tree.map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12),
         result,
@@ -242,42 +238,40 @@ def test_flattened_kernel_gradient(chunk_size):
     )
 
 
+@pytest.mark.parametrize("system", ["hubbard", "heisenberg_triangular"])
 @pytest.mark.parametrize("chunk_size", [None, 32])
-def test_flattened_kernel_jvp(chunk_size):
-    vs, H = _vstate("hubbard")
+def test_packed_kernel_jvp(system, chunk_size):
+    vs, H = _vstate(system)
     σ = vs.samples.reshape(-1, vs.hilbert.size)
     tangent = jax.tree.map(lambda p: jnp.ones_like(p) * 0.1, vs.parameters)
 
     def f(kernel, params, H):
         return kernel(vs._apply_fun, {**vs.variables, "params": params}, σ, H)
 
-    def flattened(*args):
-        return kernels.local_value_kernel_jax_flattened(*args, chunk_size=chunk_size)
-
     expected = jax.jit(
         lambda p, t, H: jax.jvp(
             lambda p: f(kernels.local_value_kernel_jax, p, H), (p,), (t,)
         )
     )(vs.parameters, tangent, H)
-    result = jax.jit(lambda p, t, H: jax.jvp(lambda p: f(flattened, p, H), (p,), (t,)))(
-        vs.parameters, tangent, H
-    )
+    result = jax.jit(
+        lambda p, t, H: jax.jvp(lambda p: f(_packed(chunk_size), p, H), (p,), (t,))
+    )(vs.parameters, tangent, H)
     for a, b in zip(result, expected):
         np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12)
 
 
-def test_flattened_kernel_expect_and_grad_nonhermitian():
+def test_packed_kernel_expect_and_grad_nonhermitian():
     vs, H = _vstate("heisenberg_chain")
-    old_flat = nk.config.netket_experimental_flattened_kernel
+    old_packed = nk.config.netket_experimental_packed_kernel
     old_exp = nk.config.netket_experimental
     try:
         nk.config.netket_experimental = True
-        nk.config.netket_experimental_flattened_kernel = False
+        nk.config.netket_experimental_packed_kernel = False
         E0, g0 = vs.expect_and_grad(H, use_covariance=False)
-        nk.config.netket_experimental_flattened_kernel = True
+        nk.config.netket_experimental_packed_kernel = True
         E1, g1 = vs.expect_and_grad(H, use_covariance=False)
     finally:
-        nk.config.netket_experimental_flattened_kernel = old_flat
+        nk.config.netket_experimental_packed_kernel = old_packed
         nk.config.netket_experimental = old_exp
     np.testing.assert_allclose(E1.mean, E0.mean, rtol=1e-12)
     jax.tree.map(
@@ -286,15 +280,15 @@ def test_flattened_kernel_expect_and_grad_nonhermitian():
 
 
 @common.onlyif_sharding_single_process
-def test_flattened_kernel_no_collectives():
-    # The compaction must run per device: under GSPMD it would gather the
+@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
+def test_packed_kernel_no_collectives(system):
+    # The packing must run per device: under GSPMD it would gather the
     # connected configurations of all devices.
-    vs, H = _vstate("heisenberg_triangular")
+    vs, H = _vstate(system)
     σ = vs.samples.reshape(-1, vs.hilbert.size)
+    kernel = _packed(None)
 
-    f = jax.jit(
-        lambda v, σ, H: kernels.local_value_kernel_jax_flattened(vs._apply_fun, v, σ, H)
-    )
+    f = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))
     hlo = f.lower(vs.variables, σ, H).compile().as_text()
     for collective in ("all-gather", "all-reduce", "all-to-all", "collective-permute"):
         assert collective not in hlo
@@ -313,16 +307,14 @@ def test_padding_is_the_sample(system):
 
 
 @pytest.mark.parametrize("chunk_size", [None, 3])
-def test_flattened_kernel_coefficient_gradient_at_zero(chunk_size):
+def test_packed_kernel_coefficient_gradient_at_zero(chunk_size):
     # At h = 0 every off-diagonal matrix element of the Ising model is zero,
     # but its derivative with respect to h is not: the kernel must not drop
     # the connected configurations based on the value of their matrix element.
     vs, _ = _vstate("ising")
     σ = vs.samples.reshape(-1, vs.hilbert.size)
     graph = nk.graph.Chain(vs.hilbert.size, pbc=True)
-
-    def flattened(*args):
-        return kernels.local_value_kernel_jax_flattened(*args, chunk_size=chunk_size)
+    packed = _packed(chunk_size)
 
     def loss(kernel, h):
         H = nk.operator.IsingJax(vs.hilbert, graph, h=h, J=1.0)
@@ -330,9 +322,9 @@ def test_flattened_kernel_coefficient_gradient_at_zero(chunk_size):
 
     h = jnp.array(0.0)
     expected = jax.jit(jax.grad(lambda h: loss(kernels.local_value_kernel_jax, h)))(h)
-    result = jax.jit(jax.grad(lambda h: loss(flattened, h)))(h)
+    result = jax.jit(jax.grad(lambda h: loss(packed, h)))(h)
     eps = 1e-5
-    finite_diff = (loss(flattened, h + eps) - loss(flattened, h - eps)) / (2 * eps)
+    finite_diff = (loss(packed, h + eps) - loss(packed, h - eps)) / (2 * eps)
 
     assert abs(expected) > 1
     np.testing.assert_allclose(result, expected, rtol=1e-10)
@@ -356,25 +348,23 @@ def _empty_operator(name):
 
 @pytest.mark.parametrize("operator", ["local_operator", "fermion_operator"])
 @pytest.mark.parametrize("chunk_size", [None, 4])
-def test_flattened_kernel_empty_operator(operator, chunk_size):
+def test_packed_kernel_empty_operator(operator, chunk_size):
     # An operator without connected elements is a valid zero operator.
     vs, H = _empty_operator(operator)
     assert H.max_conn_size == 0
-    expected = _local_estimators(vs, H, chunk_size, flattened=False)
-    result = _local_estimators(vs, H, chunk_size, flattened=True)
+    expected = _local_estimators(vs, H, chunk_size, False)
+    result = _local_estimators(vs, H, chunk_size, True)
     assert result.shape == expected.shape
     assert result.dtype == expected.dtype
     np.testing.assert_array_equal(result, 0)
     np.testing.assert_array_equal(expected, 0)
 
     σ = vs.samples.reshape(-1, vs.hilbert.size)
+    kernel = _packed(chunk_size)
 
     def loss(params, H):
         variables = {**vs.variables, "params": params}
-        out = kernels.local_value_kernel_jax_flattened(
-            vs._apply_fun, variables, σ, H, chunk_size=chunk_size
-        )
-        return jnp.sum(jnp.abs(out) ** 2)
+        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
 
     grad = jax.jit(jax.grad(loss))(vs.parameters, H)
     jax.tree.map(lambda g: np.testing.assert_array_equal(g, 0), grad)
@@ -386,34 +376,29 @@ def _bitwise(x):
 
 
 @pytest.mark.parametrize("chunk_size", [None, 1024])
-def test_flattened_kernel_bitwise_repeatable(chunk_size):
+def test_packed_kernel_bitwise_repeatable(chunk_size):
     # Repeated evaluations on the same inputs must give the same bits. A
     # scatter-add accumulating several terms per sample would not guarantee
     # it on GPU, where the order of the overlapping updates is not fixed: many
     # samples, so that there are many of them.
     vs, H = _vstate("heisenberg_triangular")
     σ = vs.hilbert.random_state(jax.random.key(0), 4096 * jax.device_count())
-    f = jax.jit(
-        lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
-            vs._apply_fun, v, σ, H, chunk_size=chunk_size
-        )
-    )
+    kernel = _packed(chunk_size)
+    f = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))
     expected = _bitwise(f(vs.variables, σ, H))
     for _ in range(20):
         assert _bitwise(f(vs.variables, σ, H)) == expected
 
 
 @pytest.mark.parametrize("chunk_size", [None, 32])
-def test_flattened_kernel_gradient_bitwise_repeatable(chunk_size):
+def test_packed_kernel_gradient_bitwise_repeatable(chunk_size):
     vs, H = _vstate("hubbard")
     σ = vs.samples.reshape(-1, vs.hilbert.size)
+    kernel = _packed(chunk_size)
 
     def loss(params, H):
         variables = {**vs.variables, "params": params}
-        out = kernels.local_value_kernel_jax_flattened(
-            vs._apply_fun, variables, σ, H, chunk_size=chunk_size
-        )
-        return jnp.sum(jnp.abs(out) ** 2)
+        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
 
     f = jax.jit(jax.grad(loss))
     expected = jax.tree.map(_bitwise, f(vs.parameters, H))
@@ -428,7 +413,7 @@ _REPEATABILITY_SCRIPT = textwrap.dedent(
     import jax
     import flax
     import netket as nk
-    from netket.vqs.mc import kernels
+    from netket.vqs.mc import kernels_packed
 
     inputs, output = sys.argv[1:]
     data = np.load(inputs)
@@ -441,7 +426,7 @@ _REPEATABILITY_SCRIPT = textwrap.dedent(
     out = {}
     for chunk_size in (None, 32):
         f = jax.jit(
-            lambda v, σ, H: kernels.local_value_kernel_jax_flattened(
+            lambda v, σ, H: kernels_packed.local_value_kernel_jax_packed(
                 model.apply, v, σ, H, chunk_size=chunk_size
             )
         )
@@ -452,7 +437,7 @@ _REPEATABILITY_SCRIPT = textwrap.dedent(
 
 
 @pytest.mark.skipif(jax.process_count() > 1, reason="spawns single-process runs")
-def test_flattened_kernel_bitwise_repeatable_across_processes(tmp_path):
+def test_packed_kernel_bitwise_repeatable_across_processes(tmp_path):
     # Fresh processes on the same hardware and software, given the same saved
     # inputs, must give the same bits.
     vs, H = _vstate("heisenberg_triangular")
@@ -485,3 +470,35 @@ def test_flattened_kernel_bitwise_repeatable_across_processes(tmp_path):
     assert set(outputs[0]) == {"None", "32"}
     for key, value in outputs[0].items():
         assert _bitwise(outputs[1][key]) == _bitwise(value)
+
+
+## The primitive
+
+
+def _rows_function(pars, x):
+    # A row-wise function with a pytree output.
+    a, b = pars
+    return {"sum": jnp.sum(jnp.sin(a * x), axis=-1), "vec": jnp.cos(x[:, :3] * b)}
+
+
+@pytest.mark.parametrize("fraction", [0.0, 0.3, 1.0])
+@pytest.mark.parametrize("chunk_size", [None, 1, 5, 64])
+def test_apply_packed(fraction, chunk_size):
+    n, d = 37, 4
+    x = jax.random.normal(jax.random.key(0), (n, d))
+    where = jax.random.uniform(jax.random.key(1), (n,)) < fraction
+    pars = (jnp.array(1.3), jnp.array(0.7))
+    fill = {"sum": jnp.array(-1.0), "vec": jnp.full((n, 1), 2.0)}
+
+    out = jax.jit(
+        lambda pars, x, where, fill: nk.jax.apply_packed(
+            _rows_function, pars, x, where, fill, chunk_size=chunk_size
+        )
+    )(pars, x, where, fill)
+
+    ref = _rows_function(pars, x)
+    np.testing.assert_allclose(out["sum"], jnp.where(where, ref["sum"], -1.0))
+    np.testing.assert_allclose(
+        out["vec"], jnp.where(where[:, None], ref["vec"], 2.0), rtol=1e-15
+    )
+    assert out["vec"].shape == (n, 3)
