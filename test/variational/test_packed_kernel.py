@@ -24,7 +24,9 @@ import pytest
 
 import jax
 import jax.numpy as jnp
+import jax.extend
 import flax
+from jax.flatten_util import ravel_pytree
 
 import netket as nk
 from netket.vqs.mc import kernels, kernels_packed
@@ -103,6 +105,14 @@ def _packed(chunk_size=None, **kwargs):
         )
 
     return kernel
+
+
+def _assert_close(a, b, rtol):
+    # Relative to the largest element: the derivatives of a sum of many terms
+    # are rounded relative to their scale, not to the element.
+    a, b = np.asarray(a), np.asarray(b)
+    assert a.shape == b.shape
+    assert np.max(np.abs(a - b)) <= rtol * np.max(np.abs(b)), np.max(np.abs(a - b))
 
 
 @pytest.mark.parametrize("system", list(SYSTEMS))
@@ -516,3 +526,102 @@ def test_apply_packed(fraction, chunk_size):
         out["vec"], jnp.where(where[:, None], ref["vec"], 2.0), rtol=1e-15
     )
     assert out["vec"].shape == (n, 3)
+
+
+## vmap
+
+
+def _count(jaxpr, name):
+    n = 0
+    for eqn in jaxpr.eqns:
+        n += eqn.primitive.name == name
+        for param in eqn.params.values():
+            for p in param if isinstance(param, tuple | list) else (param,):
+                if isinstance(p, jax.extend.core.ClosedJaxpr):
+                    n += _count(p.jaxpr, name)
+                elif isinstance(p, jax.extend.core.Jaxpr):
+                    n += _count(p, name)
+    return n
+
+
+@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
+@pytest.mark.parametrize("chunk_size", [None, 16])
+def test_packed_kernel_vmap(system, chunk_size):
+    # Under vmap over the samples, the batch is packed at once: the chunks
+    # are still selected with lax.cond.
+    vs, H = _vstate(system)
+    σ = vs.samples.reshape(4, -1, vs.hilbert.size)
+    kernel = _packed(chunk_size)
+
+    def eloc(variables, σ):
+        return kernel(vs._apply_fun, variables, σ, H)
+
+    expected = jnp.stack([eloc(vs.variables, s) for s in σ])
+    batched = jax.vmap(eloc, in_axes=(None, 0))
+    np.testing.assert_allclose(
+        jax.jit(batched)(vs.variables, σ), expected, rtol=1e-12, atol=1e-12
+    )
+    assert _count(jax.make_jaxpr(batched)(vs.variables, σ).jaxpr, "cond") > 0
+
+    # Nested vmap.
+    nested = jax.vmap(jax.vmap(eloc, in_axes=(None, 0)), in_axes=(None, 0))
+    np.testing.assert_allclose(
+        jax.jit(nested)(vs.variables, σ.reshape(2, 2, *σ.shape[1:])).reshape(4, -1),
+        expected,
+        rtol=1e-12,
+        atol=1e-12,
+    )
+
+    # vmap over the parameters keeps the packing of the samples.
+    variables = jax.tree.map(lambda p: jnp.stack([p, 1.1 * p]), vs.variables)
+    expected = jnp.stack(
+        [eloc(jax.tree.map(lambda p: p[i], variables), σ[0]) for i in range(2)]
+    )
+    batched = jax.vmap(eloc, in_axes=(0, None))
+    np.testing.assert_allclose(
+        jax.jit(batched)(variables, σ[0]), expected, rtol=1e-12, atol=1e-12
+    )
+    assert _count(jax.make_jaxpr(batched)(variables, σ[0]).jaxpr, "cond") > 0
+
+    # Both batched.
+    expected = jnp.stack(
+        [eloc(jax.tree.map(lambda p: p[i], variables), σ[i]) for i in range(2)]
+    )
+    batched = jax.vmap(eloc, in_axes=(0, 0))
+    np.testing.assert_allclose(
+        jax.jit(batched)(variables, σ[:2]), expected, rtol=1e-12, atol=1e-12
+    )
+
+
+@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
+def test_packed_kernel_vmap_of_derivatives(system):
+    # Derivatives of a batch, and batches of derivatives (where every chunk is
+    # evaluated).
+    vs, H = _vstate(system)
+    σ = vs.samples.reshape(4, -1, vs.hilbert.size)
+    p0, unravel = ravel_pytree(vs.parameters)
+    t = jnp.ones_like(p0)
+
+    def loss(kernel, p, σ):
+        variables = {**vs.variables, "params": unravel(p)}
+        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
+
+    def vmap_grad(kernel, p, σ):
+        return jax.vmap(jax.grad(lambda p, σ: loss(kernel, p, σ)), (None, 0))(p, σ)
+
+    def grad_vmap(kernel, p, σ):
+        return jax.grad(lambda p: jnp.sum(jax.vmap(lambda σ: loss(kernel, p, σ))(σ)))(p)
+
+    def vmap_jvp(kernel, p, σ):
+        def jvp(σ):
+            return jax.jvp(lambda p: loss(kernel, p, σ), (p,), (t,))[1]
+
+        return jax.vmap(jvp)(σ)
+
+    for transform in (vmap_grad, grad_vmap, vmap_jvp):
+        f = jax.jit(transform, static_argnums=0)
+        packed = _packed(16)
+        _assert_close(f(packed, p0, σ), f(kernels.local_value_kernel_jax, p0, σ), 1e-12)
+        # The chunks are still selected by lax.cond.
+        jaxpr = jax.make_jaxpr(transform, static_argnums=0)(packed, p0, σ)
+        assert _count(jaxpr.jaxpr, "cond") > 0
