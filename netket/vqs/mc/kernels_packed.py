@@ -28,6 +28,10 @@ from netket.operator import DiscreteJaxOperator
 from netket.jax.sharding import sharding_decorator
 from netket.jax._apply_packed import _N_CHUNKS_UNCHUNKED
 
+_CONN_CHUNK_BYTES = 2**28
+"""Default size in bytes of the padded connected configurations computed at
+once by :func:`local_value_kernel_jax_packed`."""
+
 
 def local_value_kernel_jax_packed(
     logpsi: Callable,
@@ -37,6 +41,7 @@ def local_value_kernel_jax_packed(
     *,
     chunk_size: int | None = None,
     min_chunk_size: int | None = None,
+    conn_chunk_size: int | None = None,
 ):
     r"""
     local_value kernel for MCState and jax-compatible operators that evaluates
@@ -61,6 +66,12 @@ def local_value_kernel_jax_packed(
       :func:`jax.lax.cond`;
     - computes the local values with the same summation as
       :func:`~netket.vqs.mc.kernels.local_value_kernel_jax`.
+
+    The connected configurations are not stored for all the samples at once:
+    the samples are processed in groups whose padded connected configurations,
+    computed with :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded`,
+    hold at most ``conn_chunk_size`` configurations (256 MiB if None). Every
+    group is packed separately.
 
     ``chunk_size`` is the number of configurations on which the network is
     evaluated at once. :func:`~netket.vqs.mc.kernels.local_value_kernel_jax_chunked`
@@ -99,12 +110,15 @@ def local_value_kernel_jax_packed(
             network is evaluated at once.
         min_chunk_size: the size of the smallest chunk (``chunk_size // 8``
             if None, rounded down to a power of two).
+        conn_chunk_size: the number of padded connected configurations
+            computed at once.
     """
     kernel = nkjax.HashablePartial(
         _local_value_kernel_jax_packed,
         logpsi,
         chunk_size=chunk_size,
         min_chunk_size=min_chunk_size,
+        conn_chunk_size=conn_chunk_size,
     )
     # IMPORTANT: pars must be passed as explicit arg (not captured in the partial)
     # so that shard_map's pvary/pcast mechanism can give it Manual sharding.
@@ -115,7 +129,9 @@ def local_value_kernel_jax_packed(
     )(pars, σ, O)
 
 
-def _local_value_kernel_jax_packed(logpsi, pars, σ, O, *, chunk_size, min_chunk_size):
+def _local_value_kernel_jax_packed(
+    logpsi, pars, σ, O, *, chunk_size, min_chunk_size, conn_chunk_size
+):
     # Runs on the samples of a single device.
     n_samples, N = σ.shape
     # The network is called in many places, on a few shapes of chunks: as a
@@ -131,18 +147,40 @@ def _local_value_kernel_jax_packed(logpsi, pars, σ, O, *, chunk_size, min_chunk
         logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
     )(pars, σ)
 
-    σp, mels = O.get_conn_padded(σ)
-    # The connected configurations equal to σ (the diagonal and the padding)
-    # are found by comparison, so that we do not rely on the operator placing
-    # them at a given position.
-    is_new = jnp.any(σp != jnp.expand_dims(σ, -2), axis=-1)
-    logpsi_σp = nkjax.apply_packed(
-        logpsi,
-        pars,
-        σp.reshape(-1, N),
-        is_new.reshape(-1),
-        jnp.repeat(logpsi_σ, max_conn_size),
-        chunk_size=chunk_size,
-        min_chunk_size=min_chunk_size,
-    ).reshape(is_new.shape)
-    return jnp.sum(mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
+    def local_values(σ, logpsi_σ):
+        σp, mels = O.get_conn_padded(σ)
+        # The connected configurations equal to σ (the diagonal and the
+        # padding) are found by comparison, so that we do not rely on the
+        # operator placing them at a given position.
+        is_new = jnp.any(σp != jnp.expand_dims(σ, -2), axis=-1)
+        logpsi_σp = nkjax.apply_packed(
+            logpsi,
+            pars,
+            σp.reshape(-1, N),
+            is_new.reshape(-1),
+            jnp.repeat(logpsi_σ, max_conn_size),
+            chunk_size=chunk_size,
+            min_chunk_size=min_chunk_size,
+        ).reshape(is_new.shape)
+        return jnp.sum(
+            mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1
+        )
+
+    # Groups of samples whose padded connected configurations hold at most
+    # conn_chunk_size configurations, all of the same size.
+    if conn_chunk_size is None:
+        conn_chunk_size = max(chunk_size, _CONN_CHUNK_BYTES // (N * σ.dtype.itemsize))
+    group_size = max(1, min(n_samples, conn_chunk_size // max(1, max_conn_size)))
+    n_groups = -(-n_samples // group_size)
+    if n_groups == 1:
+        return local_values(σ, logpsi_σ)
+    group_size = -(-n_samples // n_groups)
+    n_pad = n_groups * group_size - n_samples
+    # The last group is padded with copies of the last sample.
+    σ = jnp.concatenate([σ, jnp.repeat(σ[-1:], n_pad, axis=0)])
+    logpsi_σ = jnp.concatenate([logpsi_σ, jnp.repeat(logpsi_σ[-1:], n_pad)])
+    out = jax.lax.map(
+        lambda args: local_values(*args),
+        (σ.reshape(n_groups, group_size, N), logpsi_σ.reshape(n_groups, group_size)),
+    )
+    return out.reshape(-1)[:n_samples]

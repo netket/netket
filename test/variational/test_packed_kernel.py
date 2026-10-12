@@ -125,6 +125,19 @@ def test_packed_kernel_min_chunk_size(chunk_size, min_chunk_size):
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
+@pytest.mark.parametrize("system", ["heisenberg_triangular", "ising", "hubbard"])
+@pytest.mark.parametrize("conn_chunk_size", [None, 1, 50, 37 * 64])
+def test_packed_kernel_conn_chunk_size(system, conn_chunk_size):
+    # The samples are processed in groups (the last one padded), whose padded
+    # connected configurations hold at most conn_chunk_size configurations.
+    vs, H = _vstate(system)
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
+    kernel = _packed(16, conn_chunk_size=conn_chunk_size)
+    result = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))(vs.variables, σ, H)
+    np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
+
+
 @pytest.mark.skipif(jax.process_count() > 1, reason="counts the rows of every device")
 @pytest.mark.parametrize(
     "chunk_size, min_chunk_size, multiple",
@@ -287,7 +300,7 @@ def test_packed_kernel_no_collectives(system):
     # connected configurations of all devices.
     vs, H = _vstate(system)
     σ = vs.samples.reshape(-1, vs.hilbert.size)
-    kernel = _packed(None)
+    kernel = _packed(None, conn_chunk_size=50)
 
     f = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))
     hlo = f.lower(vs.variables, σ, H).compile().as_text()
