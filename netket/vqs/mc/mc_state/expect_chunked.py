@@ -17,7 +17,6 @@ import warnings
 
 from netket import jax as nkjax
 from netket.stats import Stats
-from netket.utils import config
 from netket.utils.dispatch import dispatch
 
 from netket.operator import (
@@ -53,7 +52,7 @@ def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F
 def get_local_kernel(  # noqa: F811
     vstate: MCState, Ô: DiscreteJaxOperator, chunk_size: int
 ):  # noqa: F811
-    if config.netket_experimental_packed_kernel:
+    if vstate.local_kernel == "packed":
         return kernels_packed.local_value_kernel_jax_packed
     return kernels.local_value_kernel_jax_chunked
 

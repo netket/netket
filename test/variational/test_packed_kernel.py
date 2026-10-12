@@ -87,13 +87,13 @@ def _vstate(system, param_dtype=complex, n_samples=64):
     return vs, H
 
 
-def _local_estimators(vs, H, chunk_size, packed):
-    old = nk.config.netket_experimental_packed_kernel
-    nk.config.netket_experimental_packed_kernel = packed
+def _local_estimators(vs, H, chunk_size, local_kernel):
+    old = vs.local_kernel
+    vs.local_kernel = local_kernel
     try:
         return np.asarray(vs.local_estimators(H, chunk_size=chunk_size).data)
     finally:
-        nk.config.netket_experimental_packed_kernel = old
+        vs.local_kernel = old
 
 
 def _packed(chunk_size=None, **kwargs):
@@ -109,8 +109,8 @@ def _packed(chunk_size=None, **kwargs):
 @pytest.mark.parametrize("chunk_size", [None, 7, 64, 100000])
 def test_packed_kernel_matches_padded(system, chunk_size):
     vs, H = _vstate(system)
-    expected = _local_estimators(vs, H, None, False)
-    result = _local_estimators(vs, H, chunk_size, True)
+    expected = _local_estimators(vs, H, None, None)
+    result = _local_estimators(vs, H, chunk_size, "packed")
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
@@ -163,19 +163,23 @@ def test_packed_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multip
 
 def test_packed_kernel_dispatch():
     vs, H = _vstate("heisenberg_chain")
-    old = nk.config.netket_experimental_packed_kernel
-    try:
-        nk.config.netket_experimental_packed_kernel = False
-        assert nk.vqs.get_local_kernel(vs, H) is kernels.local_value_kernel_jax
-        assert (
-            nk.vqs.get_local_kernel(vs, H, 16) is kernels.local_value_kernel_jax_chunked
-        )
-        nk.config.netket_experimental_packed_kernel = True
-        packed = kernels_packed.local_value_kernel_jax_packed
-        assert nk.vqs.get_local_kernel(vs, H) is packed
-        assert nk.vqs.get_local_kernel(vs, H, 16) is packed
-    finally:
-        nk.config.netket_experimental_packed_kernel = old
+    assert vs.local_kernel is None
+    assert nk.vqs.get_local_kernel(vs, H) is kernels.local_value_kernel_jax
+    assert nk.vqs.get_local_kernel(vs, H, 16) is kernels.local_value_kernel_jax_chunked
+    vs.local_kernel = "packed"
+    packed = kernels_packed.local_value_kernel_jax_packed
+    assert nk.vqs.get_local_kernel(vs, H) is packed
+    assert nk.vqs.get_local_kernel(vs, H, 16) is packed
+    # Only jax operators are affected.
+    H_numba = H.to_numba_operator()
+    assert nk.vqs.get_local_kernel(vs, H_numba) is kernels.local_value_kernel
+    with pytest.raises(ValueError, match="local kernel"):
+        vs.local_kernel = "flattened"
+
+    hi, _, sa = SYSTEMS["heisenberg_chain"]()
+    vs = nk.vqs.MCState(sa, nk.models.RBM(), local_kernel="packed")
+    assert vs.local_kernel == "packed"
+    assert nk.vqs.get_local_kernel(vs, H) is packed
 
 
 @pytest.mark.parametrize("chunk_size", [None, 32])
@@ -262,16 +266,13 @@ def test_packed_kernel_jvp(system, chunk_size):
 
 def test_packed_kernel_expect_and_grad_nonhermitian():
     vs, H = _vstate("heisenberg_chain")
-    old_packed = nk.config.netket_experimental_packed_kernel
     old_exp = nk.config.netket_experimental
     try:
         nk.config.netket_experimental = True
-        nk.config.netket_experimental_packed_kernel = False
         E0, g0 = vs.expect_and_grad(H, use_covariance=False)
-        nk.config.netket_experimental_packed_kernel = True
+        vs.local_kernel = "packed"
         E1, g1 = vs.expect_and_grad(H, use_covariance=False)
     finally:
-        nk.config.netket_experimental_packed_kernel = old_packed
         nk.config.netket_experimental = old_exp
     np.testing.assert_allclose(E1.mean, E0.mean, rtol=1e-12)
     jax.tree.map(
@@ -352,8 +353,8 @@ def test_packed_kernel_empty_operator(operator, chunk_size):
     # An operator without connected elements is a valid zero operator.
     vs, H = _empty_operator(operator)
     assert H.max_conn_size == 0
-    expected = _local_estimators(vs, H, chunk_size, False)
-    result = _local_estimators(vs, H, chunk_size, True)
+    expected = _local_estimators(vs, H, chunk_size, None)
+    result = _local_estimators(vs, H, chunk_size, "packed")
     assert result.shape == expected.shape
     assert result.dtype == expected.dtype
     np.testing.assert_array_equal(result, 0)
