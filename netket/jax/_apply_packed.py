@@ -20,9 +20,11 @@ import jax.numpy as jnp
 from jax.custom_batching import custom_vmap
 from jax.custom_derivatives import SymbolicZero
 
+from netket.utils import config
 from netket.utils.types import Array, PyTree
 from netket.jax._compat import aval_varying_axes
 from netket.jax.lax import pcast
+from netket.jax.sharding import sharding_decorator
 
 _N_CHUNKS_UNCHUNKED = 16
 """Number of chunks the rows are split into by :func:`apply_packed` when no
@@ -38,6 +40,7 @@ def apply_packed(
     *,
     chunk_size: int | None,
     min_chunk_size: int | None = None,
+    axis_0_is_sharded: bool | None = None,
 ) -> PyTree:
     r"""
     Row-wise ``jnp.where(where, f(pars, x), fill)``, evaluating ``f`` only on
@@ -83,8 +86,16 @@ def apply_packed(
     of the batch is packed separately, and evaluates as many chunks as the
     largest one. In all cases the chunks are selected by :func:`jax.lax.cond`.
 
-    The function runs on the arrays it is given: inside of
-    :func:`jax.shard_map` it packs the rows of every device separately.
+    The packing is a global operation, which GSPMD would gather on every
+    device. With ``axis_0_is_sharded`` (the default when
+    ``netket.config.netket_sharding`` is set, as for
+    :func:`~netket.jax.apply_chunked`) the rows of every device are packed
+    separately, inside of :func:`jax.shard_map` over axis 0 of ``x``,
+    ``where`` and the leaves of ``fill`` that have one value per row, with
+    ``pars`` and the other leaves of ``fill`` replicated: the output is
+    sharded like the rows, and there is no communication. Otherwise the
+    function packs the arrays it is given, which is what to use inside of a
+    :func:`jax.shard_map` (NetKet's own sharding decorator is detected).
 
     Args:
         f: the function to evaluate, ``f(pars, x_rows)`` or
@@ -101,14 +112,50 @@ def apply_packed(
             None, rounded down to a power of two). Every chunk size is compiled
             separately: ``min_chunk_size=1`` pads nothing,
             ``min_chunk_size=chunk_size`` compiles a single chunk size.
+        axis_0_is_sharded: whether axis 0 of ``x``, ``where`` and ``fill`` is
+            sharded among the devices, and every device should pack its own
+            rows. Defaults to True if ``netket.config.netket_sharding``,
+            otherwise to False.
 
     Returns:
         A pytree like the output of ``f``, with leaves of shape
         ``where.shape + leaf.shape[1:]``.
     """
+    if axis_0_is_sharded is None:
+        axis_0_is_sharded = config.netket_sharding
     where = jnp.asarray(where, dtype=bool)
     if where.ndim not in (1, 2):
         raise ValueError(f"where must have 1 or 2 dimensions, not {where.ndim}.")
+    packed = partial(_apply_packed_local, f, chunk_size, min_chunk_size)
+    if not axis_0_is_sharded:
+        return packed(pars, x, where, fill)
+
+    # The leaves of fill with one value per row (their rank is that of the
+    # output, and their first axis has the rows) are sharded like the rows, the
+    # others are broadcast to them and replicated.
+    out_struct = _row_struct(f, pars, x, where.ndim)
+    fill_is_sharded = jax.tree.map(
+        lambda v, s: (
+            jnp.ndim(v) == where.ndim + len(s.shape) - 1
+            and jnp.shape(v)[0] == where.shape[0]
+        ),
+        fill,
+        out_struct,
+    )
+    return sharding_decorator(
+        packed,
+        sharded_args_tree=(False, True, True, fill_is_sharded),
+        pvary_args_tree=(
+            True,
+            False,
+            False,
+            jax.tree.map(lambda sharded: not sharded, fill_is_sharded),
+        ),
+    )(pars, x, where, fill)
+
+
+def _apply_packed_local(f, chunk_size, min_chunk_size, pars, x, where, fill):
+    # apply_packed on the arrays it is given, with its own vmap and JVP rules.
     impl = partial(_apply_packed, jax.jit(f), chunk_size, min_chunk_size)
 
     batched = custom_vmap(impl)
@@ -364,16 +411,9 @@ def _apply_packed_vmap_rule(
             return v.reshape((axis_size * n,) + full[1:])
 
         fill = jax.tree.map(fold_fill, fill, fill_batched, out_struct)
-        # Through the public function, so that a nested vmap is folded as well.
-        out = apply_packed(
-            f,
-            pars,
-            x,
-            where,
-            fill,
-            chunk_size=chunk_size,
-            min_chunk_size=min_chunk_size,
-        )
+        # Through the custom rules again, so that a nested vmap is folded as
+        # well.
+        out = _apply_packed_local(f, chunk_size, min_chunk_size, pars, x, where, fill)
         out = jax.tree.map(
             lambda o: o.reshape((axis_size,) + shape + o.shape[len(shape) :]), out
         )

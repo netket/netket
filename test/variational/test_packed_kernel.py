@@ -630,9 +630,16 @@ def test_apply_packed(fraction, chunk_size):
     pars = (jnp.array(1.3), jnp.array(0.7))
     fill = {"sum": jnp.array(-1.0), "vec": jnp.full((n, 1), 2.0)}
 
+    # On the arrays as given: 37 rows are not split among devices.
     out = jax.jit(
         lambda pars, x, where, fill: nk.jax.apply_packed(
-            _rows_function, pars, x, where, fill, chunk_size=chunk_size
+            _rows_function,
+            pars,
+            x,
+            where,
+            fill,
+            chunk_size=chunk_size,
+            axis_0_is_sharded=False,
         )
     )(pars, x, where, fill)
 
@@ -654,15 +661,105 @@ def test_apply_packed_slots(chunk_size):
     def f(pars, x, slots):
         return pars * jnp.sum(x, axis=-1) + slots
 
-    out = nk.jax.apply_packed(f, 2.0, x, where, 0.0, chunk_size=chunk_size)
+    out = nk.jax.apply_packed(
+        f, 2.0, x, where, 0.0, chunk_size=chunk_size, axis_0_is_sharded=False
+    )
     expected = 2.0 * jnp.sum(x, axis=-1)[:, None] + jnp.arange(m)
     np.testing.assert_allclose(
         out, jnp.where(where, expected, 0.0), rtol=1e-13, atol=1e-13
     )
 
     # An empty slot axis.
-    out = nk.jax.apply_packed(f, 2.0, x, where[:, :0], 0.0, chunk_size=chunk_size)
+    out = nk.jax.apply_packed(
+        f, 2.0, x, where[:, :0], 0.0, chunk_size=chunk_size, axis_0_is_sharded=False
+    )
     assert out.shape == (n, 0)
+
+
+def _shard(x, axis=0):
+    return jax.jit(lambda x: nk.jax.sharding.shard_along_axis(x, axis))(x)
+
+
+@pytest.mark.parametrize("slots", [False, True])
+def test_apply_packed_sharded(slots):
+    # With axis_0_is_sharded, the rows of every device are packed separately:
+    # the result is that of the arrays packed at once, the output keeps the
+    # sharding of the rows, and there is no communication.
+    n, d, m = 16 * jax.device_count(), 4, 3
+    x = jax.random.normal(jax.random.key(0), (n, d))
+    shape = (n, m) if slots else (n,)
+    where = jax.random.uniform(jax.random.key(1), shape) < 0.4
+    pars = (jnp.array(1.3), jnp.array(0.7))
+    if slots:
+
+        def f(pars, x, slots):
+            out = _rows_function(pars, x)
+            return {"sum": out["sum"] + slots, "vec": out["vec"] * slots[:, None]}
+
+        # one value per row, and one per slot (replicated)
+        fill = {"sum": jnp.linspace(-1, 1, n)[:, None], "vec": jnp.full((3,), 2.0)}
+    else:
+        f = _rows_function
+        fill = {"sum": jnp.linspace(-1, 1, n), "vec": jnp.array(2.0)}
+
+    def packed(pars, x, where, fill, sharded):
+        return nk.jax.apply_packed(
+            f, pars, x, where, fill, chunk_size=5, axis_0_is_sharded=sharded
+        )
+
+    expected = jax.jit(partial(packed, sharded=False))(pars, x, where, fill)
+    xs, ws = _shard(x), _shard(where)
+    fs = {"sum": _shard(fill["sum"]), "vec": fill["vec"]}
+    g = jax.jit(partial(packed, sharded=True))
+    result = g(pars, xs, ws, fs)
+    jax.tree.map(
+        lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-14, atol=1e-14),
+        result,
+        expected,
+    )
+    if jax.device_count() > 1 and nk.config.netket_sharding:
+        for leaf in jax.tree.leaves(result):
+            assert leaf.sharding.spec[0] == "S"
+    hlo = g.lower(pars, xs, ws, fs).compile().as_text()
+    for collective in ("all-gather", "all-reduce", "all-to-all", "collective-permute"):
+        assert collective not in hlo
+
+    # Under vmap over the rows, the custom batching rule still applies on every
+    # device.
+    xb, wb = _shard(jnp.stack([x, x[::-1]]), 1), _shard(
+        jnp.stack([where, where[::-1]]), 1
+    )
+    batched = jax.vmap(partial(packed, sharded=True), in_axes=(None, 0, 0, None))
+    result = jax.jit(batched)(pars, xb, wb, fs)
+    for i, (xi, wi) in enumerate([(x, where), (x[::-1], where[::-1])]):
+        expected_i = jax.jit(partial(packed, sharded=False))(pars, xi, wi, fill)
+        jax.tree.map(
+            lambda a, b: np.testing.assert_allclose(a[i], b, rtol=1e-14, atol=1e-14),
+            result,
+            expected_i,
+        )
+    assert _count(jax.make_jaxpr(batched)(pars, xb, wb, fs).jaxpr, "cond") > 0
+
+    # Forward and reverse derivatives with respect to pars and fill.
+    def loss(pars, fill, x, where, sharded):
+        out = packed(pars, x, where, fill, sharded)
+        return sum(jnp.sum(jnp.sin(o)) for o in jax.tree.leaves(out))
+
+    grad = jax.jit(jax.grad(loss, argnums=(0, 1)), static_argnums=4)
+    jax.tree.map(
+        lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-12, atol=1e-13),
+        grad(pars, fs, xs, ws, True),
+        grad(pars, fill, x, where, False),
+    )
+    tangent = (jnp.array(0.3), jnp.array(-0.2))
+
+    def jvp(x, where, fill, sharded):
+        return jax.jvp(lambda p: loss(p, fill, x, where, sharded), (pars,), (tangent,))
+
+    jvp = jax.jit(jvp, static_argnums=3)
+    np.testing.assert_allclose(
+        jvp(xs, ws, fs, True), jvp(x, where, fill, False), rtol=1e-12, atol=1e-13
+    )
 
 
 ## Derivatives

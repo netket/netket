@@ -219,6 +219,7 @@ def _local_value_kernel_jax_packed(
             jnp.expand_dims(logpsi_σ, -1),
             chunk_size=chunk_size,
             min_chunk_size=min_chunk_size,
+            axis_0_is_sharded=False,
         )
         return jnp.sum(
             mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1
@@ -238,6 +239,7 @@ def _local_value_kernel_jax_packed(
             jnp.repeat(logpsi_σ, max_conn_size),
             chunk_size=chunk_size,
             min_chunk_size=min_chunk_size,
+            axis_0_is_sharded=False,
         ).reshape(is_new.shape)
         return jnp.sum(
             mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1
