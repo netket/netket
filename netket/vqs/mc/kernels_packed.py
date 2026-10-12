@@ -50,6 +50,17 @@ def local_value_kernel_jax_packed(
     local_value kernel for MCState and jax-compatible operators that evaluates
     :math:`\log\psi` only on the connected configurations :math:`x' \neq x`.
 
+    :class:`~netket.vqs.MCState` does not use it: it is called explicitly,
+    with the same arguments as
+    :func:`~netket.vqs.mc.kernels.local_value_kernel_jax`, for example
+
+    .. code-block:: python
+
+        σ = vstate.samples.reshape(-1, vstate.hilbert.size)
+        eloc = local_value_kernel_jax_packed(
+            vstate._apply_fun, vstate.variables, σ, H, chunk_size=4096
+        )
+
     :func:`~netket.vqs.mc.kernels.local_value_kernel_jax` evaluates the network
     on all ``n_samples × max_conn_size`` configurations returned by
     :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded`, including

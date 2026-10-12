@@ -146,8 +146,6 @@ class MCState(VariationalState):
     """Number of samples discarded at the beginning of every Markov chain."""
     _chunk_size: int | None = None
     """The chunk size used in the evaluation of the model."""
-    _local_kernel: str | None = None
-    """The kernel computing the local estimators of jax operators."""
 
     #####################
     #   Model related   #
@@ -188,7 +186,6 @@ class MCState(VariationalState):
         n_samples_per_rank: int | None = None,
         n_discard_per_chain: int | None = None,
         chunk_size: int | None = None,
-        local_kernel: str | None = None,
         variables: PyTree | None = None,
         init_fun: NNInitFunc | None = None,
         apply_fun: Callable | None = None,
@@ -226,8 +223,6 @@ class MCState(VariationalState):
             chunk_size: (Defaults to `None`) If specified, calculations are split into chunks where the neural network
                 is evaluated at most on :code:`chunk_size` samples at once. This does not change the mathematical results,
                 but will trade a higher computational cost for lower memory cost.
-            local_kernel: (Defaults to `None`) The kernel computing the local estimators of jax operators. See
-                :attr:`~netket.vqs.MCState.local_kernel`.
         """
         super().__init__(sampler.hilbert)
 
@@ -325,7 +320,6 @@ class MCState(VariationalState):
         self.n_discard_per_chain = n_discard_per_chain  # type: ignore[assignment]
 
         self.chunk_size = chunk_size
-        self.local_kernel = local_kernel
 
     def init(self, seed=None, dtype=None):
         """
@@ -517,38 +511,6 @@ class MCState(VariationalState):
 
         self._chunk_size = chunk_size
 
-    @property
-    def local_kernel(self) -> str | None:
-        """
-        The kernel computing the local estimators of jax operators
-        (:class:`netket.operator.DiscreteJaxOperator`).
-
-        - None (default): the network is evaluated on all the connected
-          configurations returned by
-          :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded`, with
-          :func:`netket.vqs.mc.kernels.local_value_kernel_jax` (or its chunked
-          version).
-        - ``"packed"`` (experimental): the network is evaluated only on the
-          connected configurations that differ from the sample, packed in
-          chunks of ``chunk_size`` configurations, with
-          :func:`netket.vqs.mc.kernels_packed.local_value_kernel_jax_packed`.
-          This is faster for operators with many zero matrix elements (e.g.
-          Heisenberg or Hubbard models) and slightly slower for operators
-          without (e.g. the transverse-field Ising model).
-
-        The local estimators are the same up to rounding. Other operators, and
-        jax operators with a kernel of their own, are not affected.
-        """
-        return self._local_kernel
-
-    @local_kernel.setter
-    def local_kernel(self, local_kernel: str | None):
-        if local_kernel not in (None, "packed"):
-            raise ValueError(
-                f"Unknown local kernel {local_kernel!r}: it must be None or 'packed'."
-            )
-        self._local_kernel = local_kernel
-
     def reset(self):
         """
         Resets the sampled states. This method is called automatically every time
@@ -565,7 +527,6 @@ class MCState(VariationalState):
             n_samples=self.n_samples,
             n_discard_per_chain=self.n_discard_per_chain,
             chunk_size=self.chunk_size,
-            local_kernel=self.local_kernel,
             mutable=self.mutable,
             training_kwargs=dict(self.training_kwargs),
         )

@@ -18,6 +18,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from functools import partial
 
 import numpy as np
 import pytest
@@ -134,13 +135,18 @@ def _vstate(system, param_dtype=complex, n_samples=64):
     return vs, H
 
 
-def _local_estimators(vs, H, chunk_size, local_kernel):
-    old = vs.local_kernel
-    vs.local_kernel = local_kernel
-    try:
-        return np.asarray(vs.local_estimators(H, chunk_size=chunk_size).data)
-    finally:
-        vs.local_kernel = old
+def _local_values(vs, H, chunk_size, packed):
+    # The local values of the samples of vs, with the packed kernel or with the
+    # padded one, called explicitly.
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+    if packed:
+        kernel = _packed(chunk_size)
+    elif chunk_size is None:
+        kernel = kernels.local_value_kernel_jax
+    else:
+        kernel = partial(kernels.local_value_kernel_jax_chunked, chunk_size=chunk_size)
+    f = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))
+    return np.asarray(f(vs.variables, σ, H))
 
 
 def _packed(chunk_size=None, **kwargs):
@@ -164,8 +170,8 @@ def _assert_close(a, b, rtol):
 @pytest.mark.parametrize("chunk_size", [None, 7, 64, 100000])
 def test_packed_kernel_matches_padded(system, chunk_size):
     vs, H = _vstate(system)
-    expected = _local_estimators(vs, H, None, None)
-    result = _local_estimators(vs, H, chunk_size, "packed")
+    expected = _local_values(vs, H, None, packed=False)
+    result = _local_values(vs, H, chunk_size, packed=True)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
@@ -245,27 +251,6 @@ def test_packed_kernel_evaluated_rows(
         assert sum(rows) == expected
     if system == "heisenberg_triangular":
         assert len(remainders) > 1
-
-
-def test_packed_kernel_dispatch():
-    vs, H = _vstate("heisenberg_chain")
-    assert vs.local_kernel is None
-    assert nk.vqs.get_local_kernel(vs, H) is kernels.local_value_kernel_jax
-    assert nk.vqs.get_local_kernel(vs, H, 16) is kernels.local_value_kernel_jax_chunked
-    vs.local_kernel = "packed"
-    packed = kernels_packed.local_value_kernel_jax_packed
-    assert nk.vqs.get_local_kernel(vs, H) is packed
-    assert nk.vqs.get_local_kernel(vs, H, 16) is packed
-    # Only jax operators are affected.
-    H_numba = H.to_numba_operator()
-    assert nk.vqs.get_local_kernel(vs, H_numba) is kernels.local_value_kernel
-    with pytest.raises(ValueError, match="local kernel"):
-        vs.local_kernel = "flattened"
-
-    hi, _, sa = SYSTEMS["heisenberg_chain"]()
-    vs = nk.vqs.MCState(sa, nk.models.RBM(), local_kernel="packed")
-    assert vs.local_kernel == "packed"
-    assert nk.vqs.get_local_kernel(vs, H) is packed
 
 
 @pytest.mark.parametrize("chunk_size", [None, 32])
@@ -350,17 +335,26 @@ def test_packed_kernel_jvp(system, chunk_size):
         np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12)
 
 
-def test_packed_kernel_expect_and_grad_nonhermitian():
+def test_packed_kernel_expect_gradient():
+    # The packed kernel as the integrand of nk.jax.expect, whose gradient also
+    # differentiates the local values (like MCState.expect_and_grad with
+    # use_covariance=False).
     vs, H = _vstate("heisenberg_chain")
-    old_exp = nk.config.netket_experimental
-    try:
-        nk.config.netket_experimental = True
-        E0, g0 = vs.expect_and_grad(H, use_covariance=False)
-        vs.local_kernel = "packed"
-        E1, g1 = vs.expect_and_grad(H, use_covariance=False)
-    finally:
-        nk.config.netket_experimental = old_exp
-    np.testing.assert_allclose(E1.mean, E0.mean, rtol=1e-12)
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+
+    def expect(kernel, params, H):
+        def log_pdf(params, σ):
+            return 2 * vs._apply_fun({**vs.variables, "params": params}, σ).real
+
+        def local_values(params, σ):
+            return kernel(vs._apply_fun, {**vs.variables, "params": params}, σ, H)
+
+        return nk.jax.expect(log_pdf, local_values, params, σ)[0].real
+
+    f = jax.jit(jax.value_and_grad(expect, argnums=1), static_argnums=0)
+    E0, g0 = f(kernels.local_value_kernel_jax, vs.parameters, H)
+    E1, g1 = f(_packed(16), vs.parameters, H)
+    np.testing.assert_allclose(E1, E0, rtol=1e-12)
     jax.tree.map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12), g1, g0
     )
@@ -498,8 +492,8 @@ def test_packed_kernel_empty_operator(operator, chunk_size):
     # An operator without connected elements is a valid zero operator.
     vs, H = _empty_operator(operator)
     assert H.max_conn_size == 0
-    expected = _local_estimators(vs, H, chunk_size, None)
-    result = _local_estimators(vs, H, chunk_size, "packed")
+    expected = _local_values(vs, H, chunk_size, packed=False)
+    result = _local_values(vs, H, chunk_size, packed=True)
     assert result.shape == expected.shape
     assert result.dtype == expected.dtype
     np.testing.assert_array_equal(result, 0)
@@ -729,25 +723,32 @@ def test_packed_kernel_higher_order_derivatives(system, generate, param_dtype):
 
 
 @pytest.mark.parametrize("pnc", [False, True])
-def test_packed_kernel_fermions(pnc):
+@pytest.mark.parametrize("chunk_size", [None, 16])
+def test_packed_kernel_fermions(pnc, chunk_size):
     # Fermionic operators (FermionOperator2ndJax and the particle-number
     # conserving FermiHubbardJax) go through the generic path, with their own
-    # sign conventions in the matrix elements.
+    # sign conventions in the matrix elements: local values and gradients.
     vs, H = _vstate("hubbard_pnc" if pnc else "hubbard")
     assert not kernels_packed.generates_connected(H)
-    E0, g0 = vs.expect_and_grad(H)
-    vs.local_kernel = "packed"
-    assert (
-        nk.vqs.get_local_kernel(vs, H) is kernels_packed.local_value_kernel_jax_packed
+    np.testing.assert_allclose(
+        _local_values(vs, H, chunk_size, packed=True),
+        _local_values(vs, H, None, packed=False),
+        rtol=1e-12,
+        atol=1e-12,
     )
-    E1, g1 = vs.expect_and_grad(H)
-    np.testing.assert_allclose(E1.mean, E0.mean, rtol=1e-12)
+
+    σ = vs.samples.reshape(-1, vs.hilbert.size)
+
+    def loss(kernel, params, H):
+        variables = {**vs.variables, "params": params}
+        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
+
+    f = jax.jit(jax.grad(loss, argnums=1), static_argnums=0)
     jax.tree.map(
-        lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12), g1, g0
+        lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12),
+        f(_packed(chunk_size), vs.parameters, H),
+        f(kernels.local_value_kernel_jax, vs.parameters, H),
     )
-    vs.chunk_size = 16
-    E2 = vs.expect(H)
-    np.testing.assert_allclose(E2.mean, E0.mean, rtol=1e-12)
 
 
 ## vmap

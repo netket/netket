@@ -28,7 +28,6 @@ from netket.operator import (
 from netket.operator._sum import SumGenericOperator
 from netket.vqs.mc import (
     kernels,
-    kernels_packed,
     check_hilbert,
     get_local_kernel_arguments,
     get_local_kernel,
@@ -76,8 +75,6 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteJaxOperator):  # no
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: DiscreteJaxOperator):  # noqa: F811
-    if vstate.local_kernel == "packed":
-        return kernels_packed.local_value_kernel_jax_packed
     return kernels.local_value_kernel_jax
 
 
