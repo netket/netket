@@ -1,3 +1,5 @@
+import operator
+
 import netket as nk
 import numpy as np
 import scipy
@@ -432,6 +434,35 @@ def test_enforce_float_BoseHubbard():
     assert np.issubdtype(op.dtype, np.floating)
     op = nk.operator.BoseHubbardJax(hilbert=hi, graph=g, J=1, U=2, V=3, mu=4)
     assert np.issubdtype(op.dtype, np.floating)
+
+
+@pytest.mark.parametrize(
+    "operator_class", [nk.operator.BoseHubbardJax, nk.operator.BoseHubbardNumba]
+)
+@pytest.mark.parametrize(
+    "operation", [operator.add, operator.sub, operator.iadd, operator.isub]
+)
+def test_bose_hubbard_arithmetic(operator_class, operation):
+    hi = nk.hilbert.Fock(n_max=2, N=2)
+    g = nk.graph.Chain(2, pbc=False)
+    a = operator_class(hi, g, U=1.0, V=2.0, J=3.0, mu=4.0)
+    b = operator_class(hi, g, U=2.0, V=3.0, J=4.0, mu=5.0)
+    a_dense, b_dense = a.to_dense(), b.to_dense()
+
+    result = operation(a, b)
+    assert isinstance(result, operator_class)
+    if operation in (operator.iadd, operator.isub):
+        assert result is a
+    else:
+        assert result is not a
+        np.testing.assert_allclose(a.to_dense(), a_dense)
+    np.testing.assert_allclose(b.to_dense(), b_dense)
+
+    if operation in (operator.add, operator.iadd):
+        expected = a_dense + b_dense
+    else:
+        expected = a_dense - b_dense
+    np.testing.assert_allclose(result.to_dense(), expected)
 
 
 def test_no_segfault():

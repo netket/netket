@@ -210,6 +210,7 @@ class BoseHubbardBase(SpecialHamiltonian):
         self._V += other.V
         self._J += other.J
         self._mu += other.mu
+        return self
 
     def _isub_same_hamiltonian(self, other):
         if self.hilbert != other.hilbert:
@@ -221,6 +222,7 @@ class BoseHubbardBase(SpecialHamiltonian):
         self._V -= other.V
         self._J -= other.J
         self._mu -= other.mu
+        return self
 
     def __repr__(self):
         return f"{type(self).__name__}(U={self._U}, V={self._V}, J={self._J}, mu={self._mu}; dim={self.hilbert.size})"
