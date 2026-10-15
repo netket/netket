@@ -87,21 +87,6 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
 
-    @jax.jit
-    def get_conn_mels(self, x):
-        x_ids = self.hilbert.states_to_local_indices(x)
-        mels = _ising_mels_jax(x_ids, self._edges, self.h, self.J)
-        # The diagonal, then the flip of every site.
-        is_new = jnp.broadcast_to(jnp.arange(mels.shape[-1]) > 0, mels.shape)
-        return mels, is_new
-
-    @jax.jit
-    def get_conn_at(self, x, slots):
-        x_ids = self.hilbert.states_to_local_indices(x)
-        flip = jnp.arange(x.shape[-1]) == jnp.expand_dims(slots - 1, -1)
-        xp_ids = _ising_conn_states_jax(x_ids, flip)
-        return self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
-
     def to_numba_operator(self) -> "IsingNumba":  # noqa: F821
         """
         Returns the standard (numba) version of this operator, which is an

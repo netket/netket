@@ -201,71 +201,6 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         return xp, mels, n_conn_total
 
 
-@partial(jax.jit, static_argnums=(0,))
-def _local_operator_mels_jax(nonzero_diagonal, mel_cutoff, op_args, x):
-    # The matrix elements of the connected elements of x, without the connected
-    # configurations, in the layout of _local_operator_conn_at_jax: the
-    # diagonal (if nonzero_diagonal), then for every group of operators acting
-    # on the same number of sites, every operator and every off-diagonal
-    # element of its rows.
-    acting_on_, n_conns_, diag_mels_, _, mels_, basis_, constant = op_args
-    n_groups = len(acting_on_)
-    i_row_ = [_state_to_number(x[:, acting_on_[k]], basis_[k]) for k in range(n_groups)]
-
-    mels_list = []
-    is_new_list = []
-    if nonzero_diagonal:
-        mels_diag = constant + sum(
-            [m.sum(axis=-1) for m in map(_index_at, diag_mels_, i_row_)]
-        )
-        mels_list.append(mels_diag[:, None])
-        is_new_list.append(jnp.zeros(mels_diag.shape + (1,), dtype=bool))
-    for k in range(n_groups):
-        i = i_row_[k]
-        a = jnp.arange(i.shape[1])
-        is_conn = (
-            jnp.arange(mels_[k].shape[2])[None, None] < n_conns_[k][a, i][:, :, None]
-        )
-        mels_list.append(jnp.where(is_conn, mels_[k][a, i], 0).reshape(x.shape[0], -1))
-        is_new_list.append(is_conn.reshape(x.shape[0], -1))
-    mels = jnp.concatenate(mels_list, axis=-1)
-    is_new = jnp.concatenate(is_new_list, axis=-1)
-    if mel_cutoff is not None:
-        # As in get_conn_padded.
-        is_nonzero = jnp.abs(mels) > mel_cutoff
-        mels = jnp.where(is_nonzero, mels, 0)
-        is_new = is_new & is_nonzero
-    return mels, is_new
-
-
-@partial(jax.jit, static_argnums=(0,))
-def _local_operator_conn_at_jax(nonzero_diagonal, op_args, x, slots):
-    # The connected configuration of every row of x in its slot of the layout
-    # of _local_operator_mels_jax. The sites are set with selects rather than
-    # a scatter, so that XLA fuses this with the gathers.
-    acting_on_, n_conns_, _, x_prime_, mels_, basis_, _ = op_args
-    site = jnp.arange(x.shape[-1])
-    xp = x
-    start = 1 if nonzero_diagonal else 0
-    for k in range(len(acting_on_)):
-        n_ops, _, ncmax = mels_[k].shape
-        size = n_ops * ncmax
-        if size == 0:
-            continue
-        in_group = (slots >= start) & (slots < start + size)
-        op, c = jnp.divmod(jnp.clip(slots - start, 0, size - 1), ncmax)
-        sites = acting_on_[k][op]
-        old = jnp.take_along_axis(x, sites, axis=1)
-        i = (basis_[k][op] * old[:, ::-1]).sum(axis=-1)
-        is_conn = in_group & (c < n_conns_[k][op, i])
-        new = x_prime_[k][op, i, c].astype(x.dtype)
-        for j in range(sites.shape[1]):
-            is_set = is_conn[:, None] & (site == sites[:, j : j + 1])
-            xp = jnp.where(is_set, new[:, j : j + 1], xp)
-        start = start + size
-    return xp
-
-
 @register_pytree_node_class
 class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
     """Jax implementation of an operator composed of a sum of
@@ -357,37 +292,6 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
             raise NotImplementedError()
         _, _, n_conn = self._get_conn_padded(x)
         return n_conn
-
-    def _op_args(self):
-        return (
-            self._acting_on,
-            self._n_conns,
-            self._diag_mels,
-            self._x_prime,
-            self._mels,
-            self._basis,
-            self._constant,
-        )
-
-    def get_conn_mels(self, x):
-        self._setup()
-        shape = x.shape
-        x_ids = self.hilbert.states_to_local_indices(x.reshape(-1, shape[-1]))
-        mels, is_new = _local_operator_mels_jax(
-            self._nonzero_diagonal, self._mel_cutoff, self._op_args(), x_ids
-        )
-        return (
-            mels.reshape(shape[:-1] + mels.shape[-1:]),
-            is_new.reshape(shape[:-1] + is_new.shape[-1:]),
-        )
-
-    def get_conn_at(self, x, slots):
-        self._setup()
-        x_ids = self.hilbert.states_to_local_indices(x)
-        xp_ids = _local_operator_conn_at_jax(
-            self._nonzero_diagonal, self._op_args(), x_ids, slots
-        )
-        return self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
 
     def tree_flatten(self):
         self._setup()

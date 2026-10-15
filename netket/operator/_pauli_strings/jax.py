@@ -436,25 +436,6 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         return xp, mels
 
-    def get_conn_mels(self, x):
-        self._setup()
-        x_ids = self.hilbert.states_to_local_indices(x)
-        mels = _pauli_strings_mels_jax(self._z_data, x_ids)
-        # One slot for every set of flipped sites.
-        is_new = jnp.broadcast_to(self._x_flip_masks_stacked.any(axis=-1), mels.shape)
-        if self._cutoff is not None:
-            # As in get_conn_padded.
-            is_nonzero = jnp.abs(mels) > self._cutoff
-            mels = jax.lax.select(is_nonzero, mels, jnp.zeros_like(mels))
-            is_new = is_new & is_nonzero
-        return mels, is_new
-
-    def get_conn_at(self, x, slots):
-        self._setup()
-        x_ids = self.hilbert.states_to_local_indices(x)
-        xp_ids = _ising_conn_states_jax(x_ids, self._x_flip_masks_stacked[slots])
-        return self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
-
     def tree_flatten(self):
         self._setup()
         data = (self.weights, self._x_flip_masks_stacked, self._z_data)

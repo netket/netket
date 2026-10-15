@@ -138,52 +138,6 @@ class DiscreteJaxOperator(DiscreteOperator[DiscreteHilbertType]):
             associated to each x' for every batch.
         """
 
-    def get_conn_mels(self, x: jax.Array) -> tuple[jax.Array, jax.Array]:
-        r"""The matrix elements of the connected elements of ``x``, without the
-        connected configurations, which :meth:`get_conn_at` computes for a few
-        of them at a time.
-
-        Together with :meth:`get_conn_at`, this describes the same connected
-        elements as :meth:`get_conn_padded`, laid out in a static number of
-        slots, which can differ from :attr:`max_conn_size` and need not follow
-        the order of :meth:`get_conn_padded`. It lets the packed local-value
-        kernel (:func:`netket.vqs.mc.kernels_packed.local_value_kernel_jax_packed`)
-        avoid storing the connected configurations of all the samples at once.
-        Operators that do not implement it use :meth:`get_conn_padded` instead,
-        and so do subclasses that override :meth:`get_conn_padded` but not
-        :meth:`get_conn_at`.
-
-        Args:
-            x: a batch of configurations, of shape ``(..., hilbert.size)``.
-
-        Returns:
-            **(mels, is_new)**: the matrix elements, of shape
-            ``(..., n_slots)``, and a boolean mask of the same shape which is
-            True for the connected configurations that differ from ``x``. The
-            other slots hold ``x`` itself, or a zero matrix element that does
-            not depend on the coefficients of the operator. The mask must be
-            True wherever :meth:`get_conn_padded` returns a configuration
-            different from ``x``, also when its matrix element is zero for the
-            current coefficients, so that the derivatives with respect to them
-            are correct.
-        """
-        raise NotImplementedError
-
-    def get_conn_at(self, x: jax.Array, slots: jax.Array) -> jax.Array:
-        r"""The connected configurations of ``x`` in the given slots of the
-        layout of :meth:`get_conn_mels`.
-
-        Args:
-            x: configurations, of shape ``(n, hilbert.size)``.
-            slots: one slot for every configuration, an integer array of
-                shape ``(n,)``.
-
-        Returns:
-            The connected configurations, of shape ``(n, hilbert.size)``, with
-            the dtype of ``x``.
-        """
-        raise NotImplementedError
-
     def get_conn_flattened(
         self,
         x: np.ndarray,
