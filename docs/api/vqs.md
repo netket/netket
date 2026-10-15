@@ -82,3 +82,18 @@ excluded from gradient computation and optimizer updates. See the
   unfreeze_parameters
 ```
 
+### Local-value kernels
+
+{class}`~netket.vqs.MCState` computes the local estimators of jax operators with the kernels chosen by {func}`~netket.vqs.get_local_kernel`.
+The packed kernel below is an alternative that is called explicitly, with the same arguments, and evaluates the network only on the connected configurations that differ from the sample.
+It is experimental: it can change in a minor release, with a note in the changelog.
+
+```{eval-rst}
+.. currentmodule:: netket.vqs.mc.kernels_packed
+
+.. autosummary::
+  :toctree: _generated/vqs
+  :nosignatures:
+
+  local_value_kernel_jax_packed
+```

@@ -46,6 +46,10 @@ def apply_packed(
     Row-wise ``jnp.where(where, f(pars, x), fill)``, evaluating ``f`` only on
     the rows where ``where`` is True.
 
+    .. warning::
+        This function is experimental: it is public, but it can change in a
+        minor release of NetKet, with a note in the changelog.
+
     The selected rows are packed into chunks of ``chunk_size`` rows, and the
     remaining ones into chunks of decreasing powers of two down to
     ``min_chunk_size``, the last of which is padded. The number of chunks
