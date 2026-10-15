@@ -676,6 +676,106 @@ def test_apply_packed_slots(chunk_size):
     assert out.shape == (n, 0)
 
 
+def _sqrt_rows(p, x):
+    # Not differentiable on the rows with x < 0, which are not selected.
+    return jnp.sqrt(p * x[:, 0])
+
+
+def _sqrt_slots(p, x, slots):
+    return jnp.sqrt(p * x[:, 0] * (slots + 1))
+
+
+def test_apply_packed_padding_gradient():
+    # The padding of the last chunk repeats a selected row: the derivative of
+    # its discarded value is zero, not NaN, also when f is not differentiable
+    # on the rows that are not selected.
+    x = jnp.array([[1.0], [-1.0]])
+    where = jnp.array([True, False])
+
+    def loss(p, minimum):
+        return nk.jax.apply_packed(
+            lambda p, x: jnp.sqrt(p * x[:, 0]),
+            p,
+            x,
+            where,
+            0.0,
+            chunk_size=2,
+            min_chunk_size=minimum,
+            axis_0_is_sharded=False,
+        ).sum()
+
+    for minimum in (1, 2):
+        value, grad = jax.jit(jax.value_and_grad(lambda p: loss(p, minimum)))(1.0)
+        np.testing.assert_allclose(value, 1.0)
+        np.testing.assert_allclose(grad, 0.5)
+
+    # The same with pairs of a row and a slot.
+    def loss(p, minimum):
+        return nk.jax.apply_packed(
+            _sqrt_slots,
+            p,
+            x,
+            jnp.array([[True, False], [False, False]]),
+            0.0,
+            chunk_size=2,
+            min_chunk_size=minimum,
+            axis_0_is_sharded=False,
+        ).sum()
+
+    for minimum in (1, 2):
+        value, grad = jax.jit(jax.value_and_grad(lambda p: loss(p, minimum)))(1.0)
+        np.testing.assert_allclose(value, 1.0)
+        np.testing.assert_allclose(grad, 0.5)
+
+
+@pytest.mark.parametrize("slots", [False, True])
+def test_apply_packed_empty_element_derivatives(slots):
+    # Under vmap of a derivative, every element of the batch evaluates the
+    # chunks of the largest one: an element without selected rows evaluates
+    # them on rows where f is not differentiable, whose derivatives must not
+    # reach the result.
+    x = jnp.array([[[1.0], [4.0]], [[-1.0], [-4.0]]])
+    if slots:
+        f = _sqrt_slots
+        where = jnp.array([[[True, True], [True, True]], [[False] * 2] * 2])
+    else:
+        f = _sqrt_rows
+        where = jnp.array([[True, True], [False, False]])
+
+    def loss(p, x, where):
+        return nk.jax.apply_packed(
+            f,
+            p,
+            x,
+            where,
+            0.0,
+            chunk_size=2,
+            min_chunk_size=1,
+            axis_0_is_sharded=False,
+        ).sum()
+
+    expected = jnp.stack([jax.grad(loss)(1.0, x[i], where[i]) for i in range(2)])
+    assert expected[1] == 0
+    vmap_grad = jax.jit(jax.vmap(jax.grad(loss), in_axes=(None, 0, 0)))
+    np.testing.assert_allclose(vmap_grad(1.0, x, where), expected)
+
+    def grad_vmap(p, x, where):
+        return jax.grad(lambda p: jax.vmap(loss, (None, 0, 0))(p, x, where).sum())(p)
+
+    np.testing.assert_allclose(jax.jit(grad_vmap)(1.0, x, where), expected.sum())
+
+    def jvp(p, x, where):
+        return jax.jvp(lambda p: loss(p, x, where), (p,), (1.0,))[1]
+
+    vmap_jvp = jax.jit(jax.vmap(jvp, in_axes=(None, 0, 0)))
+    np.testing.assert_allclose(vmap_jvp(1.0, x, where), expected)
+
+    hessian = jnp.stack([jax.hessian(loss)(1.0, x[i], where[i]) for i in range(2)])
+    vmap_hessian = jax.jit(jax.vmap(jax.hessian(loss), in_axes=(None, 0, 0)))
+    np.testing.assert_allclose(vmap_hessian(1.0, x, where), hessian)
+    assert hessian[1] == 0
+
+
 def _shard(x, axis=0):
     return jax.jit(lambda x: nk.jax.sharding.shard_along_axis(x, axis))(x)
 

@@ -70,7 +70,9 @@ def apply_packed(
 
     ``f`` must be row-wise: the rows of its output must only depend on the
     corresponding rows of its input. It is evaluated on a few chunk shapes,
-    and traced once per shape.
+    and traced once per shape. It does not need to be defined, nor
+    differentiable, on the rows that are not selected: the padding of the
+    last chunk repeats the first selected row.
 
     The function can be differentiated with respect to ``pars`` and ``fill``
     in forward and reverse mode, at any order. Like a :func:`jax.lax.scan`
@@ -84,7 +86,11 @@ def apply_packed(
     the rows and ``pars`` are batched, the elements of the batch are evaluated
     one after the other. Under :func:`jax.vmap` of a derivative, every element
     of the batch is packed separately, and evaluates as many chunks as the
-    largest one. In all cases the chunks are selected by :func:`jax.lax.cond`.
+    largest one, padded with its first selected row. An element without
+    selected rows evaluates them on its own rows, with the derivatives with
+    respect to ``pars`` and ``x`` stopped, so that neither the values nor the
+    derivatives of ``f`` there (which can be NaN) reach the result. In all
+    cases the chunks are selected by :func:`jax.lax.cond`.
 
     The packing is a global operation, which GSPMD would gather on every
     device. With ``axis_0_is_sharded`` (the default when
@@ -209,9 +215,22 @@ def _apply_packed(f, chunk_size, min_chunk_size, pars, x, where, fill):
     # The padded last chunk can end after the last full chunk.
     buffer_size = n_chunks_max * chunk_size + min_chunk_size
 
-    # Indices of the selected rows. The filling only needs to be a valid row.
+    # Indices of the selected rows, filled with the first one: the padding of
+    # the last chunk evaluates f on a selected row, where it is defined, so
+    # that the zero derivatives of its discarded values are not NaN.
     n_selected = is_selected.sum()
-    (idx,) = jnp.nonzero(is_selected, size=buffer_size, fill_value=n_rows - 1)
+    (idx,) = jnp.nonzero(
+        is_selected, size=buffer_size, fill_value=jnp.argmax(is_selected)
+    )
+    # Under vmap of a derivative, an element of the batch without selected
+    # rows evaluates the chunks of the others (see _max_over_batch) on rows
+    # where f need not be defined. (Evaluating the elements one after the
+    # other would need a batching rule for the derivative, which reverse mode
+    # cannot transpose.) The derivatives with respect to the inputs of f are
+    # stopped there, at every order, so that they are zero rather than NaN.
+    pars, x = jax.tree.map(
+        lambda a: jnp.where(n_selected > 0, a, jax.lax.stop_gradient(a)), (pars, x)
+    )
     # Inside shard_map, the buffers must vary over the manual axes like the
     # values written into them.
     axes = set()
