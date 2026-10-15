@@ -676,6 +676,70 @@ def test_apply_packed_slots(chunk_size):
     assert out.shape == (n, 0)
 
 
+@pytest.mark.parametrize("x64", [True, False])
+def test_apply_packed_integer_slots(x64):
+    # The slots have the same dtype when the shape of the output is traced and
+    # when f is evaluated: that of the indices of jnp.nonzero, int64 with
+    # 64-bit types and int32 without.
+    with jax.enable_x64(x64):
+        index_dtype = jnp.nonzero(jnp.ones(1))[0].dtype
+        assert index_dtype == (jnp.int64 if x64 else jnp.int32)
+
+        out = nk.jax.apply_packed(
+            lambda p, x, slots: slots,
+            None,
+            jnp.ones((2, 1)),
+            jnp.array([[True, False, True], [False, True, False]]),
+            0,
+            chunk_size=2,
+            axis_0_is_sharded=False,
+        )
+        assert out.dtype == index_dtype
+        np.testing.assert_array_equal(out, [[0, 0, 2], [0, 1, 0]])
+
+        # Integer and floating outputs, with integer rows, under jit and vmap.
+        n, m = 5, 3
+        x = jnp.arange(2 * n, dtype=jnp.int32).reshape(n, 2)
+        where = jax.random.uniform(jax.random.key(0), (2, n, m)) < 0.5
+
+        def f(p, x, slots):
+            return {"slot": slots, "row": x[:, 0], "value": p * x[:, 1] + slots}
+
+        fill = {"slot": -1, "row": -2, "value": 0.5}
+
+        def packed(where, x=x):
+            return nk.jax.apply_packed(
+                f, 2.0, x, where, fill, chunk_size=2, axis_0_is_sharded=False
+            )
+
+        float_dtype = jnp.float64 if x64 else jnp.float32
+        x_np, slots = np.asarray(x), np.arange(m)
+        values = {
+            "slot": np.broadcast_to(slots, (n, m)),
+            "row": np.broadcast_to(x_np[:, :1], (n, m)),
+            "value": 2.0 * x_np[:, 1:] + slots,
+        }
+        expected = [
+            {k: np.where(w, v, fill[k]) for k, v in values.items()} for w in where
+        ]
+        results = [jax.jit(packed)(where[0]), jax.jit(jax.vmap(packed))(where)]
+        for result, expected_i in [(results[0], expected[0])] + [
+            (jax.tree.map(lambda o: o[i], results[1]), expected[i]) for i in range(2)
+        ]:
+            assert result["slot"].dtype == index_dtype
+            assert result["row"].dtype == jnp.int32
+            assert result["value"].dtype == float_dtype
+            jax.tree.map(np.testing.assert_array_equal, result, expected_i)
+
+        # An empty slot axis.
+        out = packed(where[0, :, :0])
+        assert jax.tree.map(lambda o: (o.shape, o.dtype), out) == {
+            "slot": ((n, 0), index_dtype),
+            "row": ((n, 0), jnp.int32),
+            "value": ((n, 0), float_dtype),
+        }
+
+
 def _sqrt_rows(p, x):
     # Not differentiable on the rows with x < 0, which are not selected.
     return jnp.sqrt(p * x[:, 0])

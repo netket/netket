@@ -64,7 +64,9 @@ def apply_packed(
     - ``(n, m)``: the leaves of ``x`` have ``n`` rows, each with ``m`` slots,
       and ``f(pars, x_rows, slots)`` is evaluated on the selected pairs of a
       row and a slot, the rows of ``x`` being repeated for every selected
-      slot. This evaluates functions of the pairs that are cheaper to compute
+      slot, and ``slots`` being integers of the dtype of the indices of
+      :func:`jax.numpy.nonzero` (int64 if 64-bit types are enabled, otherwise
+      int32). This evaluates functions of the pairs that are cheaper to compute
       on the fly than to store for all of them, such as the connected
       configurations of an operator.
 
@@ -182,7 +184,8 @@ def _apply_packed(f, chunk_size, min_chunk_size, pars, x, where, fill):
         # f on the rows (or on the pairs of a row and a slot) at the flat indices i.
         if where.ndim == 1:
             return f(pars, jax.tree.map(lambda a: a[i], x))
-        return f(pars, jax.tree.map(lambda a: a[i // shape[1]], x), i % shape[1])
+        slots = (i % shape[1]).astype(_index_dtype())
+        return f(pars, jax.tree.map(lambda a: a[i // shape[1]], x), slots)
 
     out_struct = _row_struct(f, pars, x, where.ndim)
     fill = jax.tree.map(
@@ -272,7 +275,13 @@ def _row_struct(f, pars, x, ndim):
     row = jax.tree.map(lambda a: jax.ShapeDtypeStruct((1,) + a.shape[1:], a.dtype), x)
     if ndim == 1:
         return jax.eval_shape(f, pars, row)
-    return jax.eval_shape(f, pars, row, jax.ShapeDtypeStruct((1,), jnp.int32))
+    return jax.eval_shape(f, pars, row, jax.ShapeDtypeStruct((1,), _index_dtype()))
+
+
+def _index_dtype():
+    # The dtype of the slots passed to f, that of the indices of jnp.nonzero:
+    # int64 if 64-bit types are enabled, otherwise int32.
+    return jax.dtypes.canonicalize_dtype(jnp.int_)
 
 
 def _evaluate_packed(
