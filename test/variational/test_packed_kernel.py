@@ -253,6 +253,63 @@ def test_packed_kernel_evaluated_rows(
         assert len(remainders) > 1
 
 
+def _counting_ising(hilbert, graph, calls):
+    # The Ising model, recording the number of rows of every call to
+    # get_conn_padded and get_conn_at.
+    @jax.tree_util.register_pytree_node_class
+    class CountingIsing(nk.operator.IsingJax):
+        def get_conn_padded(self, x):
+            jax.debug.callback(lambda r: calls["padded"].append(len(r)), x[:, 0])
+            return super().get_conn_padded(x)
+
+        def get_conn_at(self, x, slots):
+            jax.debug.callback(lambda r: calls["at"].append(len(r)), x[:, 0])
+            return super().get_conn_at(x, slots)
+
+    return CountingIsing(hilbert, graph, h=1.0)
+
+
+@pytest.mark.skipif(jax.process_count() > 1, reason="counts the rows of every device")
+@pytest.mark.parametrize("conn_chunk_size", [2, 12, 40])
+@pytest.mark.parametrize("chunk_size", [None, 7, 64])
+@pytest.mark.parametrize("generate", [None, True, False])
+def test_packed_kernel_conn_chunk_size_bound(conn_chunk_size, chunk_size, generate):
+    # The connected configurations are computed at most conn_chunk_size at a
+    # time, in the chunks or in groups of samples, or those of a single sample
+    # (max_conn_size = 5) when it has more. When the chunks compute them, the
+    # network is evaluated on at most as many configurations. (The review of
+    # https://github.com/netket/netket/pull/2293 found chunks of 10 rows for
+    # conn_chunk_size=2 and chunk_size=None.)
+    calls = {"padded": [], "at": [], "logpsi": []}
+    hi = nk.hilbert.Spin(0.5, 4)
+    graph = nk.graph.Chain(4)
+    H = _counting_ising(hi, graph, calls)
+    σ = hi.random_state(jax.random.key(0), 32 * jax.device_count())
+    p = jnp.array([0.1, 0.2, -0.3, 0.4])
+
+    def logpsi(p, x):
+        jax.debug.callback(lambda r: calls["logpsi"].append(len(r)), x[:, 0])
+        return x @ p
+
+    kernel = _packed(chunk_size, conn_chunk_size=conn_chunk_size, generate=generate)
+    result = jax.jit(lambda p, σ, H: kernel(logpsi, p, σ, H))(p, σ, H)
+    jax.block_until_ready(result)
+    jax.effects_barrier()
+    expected = kernels.local_value_kernel_jax(
+        lambda p, x: x @ p, p, σ, nk.operator.IsingJax(hi, graph, h=1.0)
+    )
+    np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
+
+    generated = generate or (generate is None and 32 * 5 > conn_chunk_size)
+    assert bool(calls["at"]) == generated
+    assert bool(calls["padded"]) == (not generated)
+    assert all(n <= conn_chunk_size for n in calls["at"])
+    budget = max(conn_chunk_size, H.max_conn_size)
+    assert all(n * H.max_conn_size <= budget for n in calls["padded"])
+    if generated:
+        assert all(n <= conn_chunk_size for n in calls["logpsi"])
+
+
 @pytest.mark.parametrize("chunk_size", [None, 32])
 def test_packed_kernel_no_recompilation(chunk_size):
     # The number of nonzero connected elements changes from batch to batch,

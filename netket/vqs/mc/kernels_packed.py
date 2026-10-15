@@ -81,23 +81,30 @@ def local_value_kernel_jax_packed(
     - computes the local values with the same summation as
       :func:`~netket.vqs.mc.kernels.local_value_kernel_jax`.
 
-    The connected configurations take at most ``conn_chunk_size``
-    configurations (256 MiB if None) at once:
+    The connected configurations are computed at most ``conn_chunk_size`` at
+    a time (as many as take 256 MiB if None), or those of a single sample if
+    it has more:
 
-    - if those of all the samples take more, operators that compute their
+    - if those of all the samples are more, operators that compute their
       connected configurations one at a time
       (:meth:`~netket.operator.DiscreteJaxOperator.get_conn_at`, e.g.
       :class:`~netket.operator.LocalOperatorJax`,
       :class:`~netket.operator.IsingJax` and
       :class:`~netket.operator.PauliStringsJax`) give the matrix elements and
       which connected configurations differ from the sample
-      (:meth:`~netket.operator.DiscreteJaxOperator.get_conn_mels`), and the
-      configurations are computed inside of every chunk;
+      (:meth:`~netket.operator.DiscreteJaxOperator.get_conn_mels`), and every
+      chunk computes its own configurations, so ``chunk_size`` is capped to
+      ``conn_chunk_size``;
     - otherwise, the samples are processed in groups whose padded connected
       configurations, computed with
       :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded`, hold at
-      most ``conn_chunk_size`` configurations. Every group is packed
-      separately.
+      most ``conn_chunk_size`` configurations, or ``max_conn_size`` for a
+      group of one sample. Every group is packed separately, in chunks of at
+      most its size.
+
+    This bounds the shapes of the connected configurations that the kernel
+    asks for, not the memory used by XLA: the network usually takes most of
+    it, and the operator can make temporary copies of its configurations.
 
     ``chunk_size`` is the number of configurations on which the network is
     evaluated at once. :func:`~netket.vqs.mc.kernels.local_value_kernel_jax_chunked`
@@ -133,11 +140,15 @@ def local_value_kernel_jax_packed(
         σ: the samples, of shape ``(n_samples, hilbert.size)``.
         O: the operator.
         chunk_size: the number of connected configurations on which the
-            network is evaluated at once.
+            network is evaluated at once (``n_local_samples × max_conn_size /
+            16`` if None, and at most ``conn_chunk_size`` when the chunks
+            compute their connected configurations).
         min_chunk_size: the size of the smallest chunk (``chunk_size // 8``
             if None, rounded down to a power of two).
-        conn_chunk_size: the number of padded connected configurations
-            computed at once, when they are not computed one at a time.
+        conn_chunk_size: the number of connected configurations computed at
+            once (as many as take 256 MiB if None), or the ``max_conn_size``
+            padded connected configurations of a single sample if they are
+            more and are computed with ``get_conn_padded``.
         generate: whether to compute the connected configurations one at a
             time (default: if the operator supports it and those of all the
             samples do not fit in ``conn_chunk_size``).
@@ -212,6 +223,9 @@ def _local_value_kernel_jax_packed(
         max_conn_size = O.max_conn_size
     if chunk_size is None:
         chunk_size = -(-n_samples * max_conn_size // _N_CHUNKS_UNCHUNKED)
+    if generate:
+        # Every chunk computes its connected configurations.
+        chunk_size = min(chunk_size, conn_chunk_size)
     chunk_size = max(1, chunk_size)
     logpsi_σ = nkjax.apply_chunked(
         logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
