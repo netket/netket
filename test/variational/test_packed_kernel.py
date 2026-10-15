@@ -510,6 +510,68 @@ def test_packed_kernel_empty_operator(operator, chunk_size):
     jax.tree.map(lambda g: np.testing.assert_array_equal(g, 0), grad)
 
 
+def test_packed_kernel_zero_samples_reproducer():
+    # The reproducer of the review of https://github.com/netket/netket/pull/2293:
+    # no samples, with an operator that has connected elements (unlike
+    # test_packed_kernel_empty_operator).
+    hi = nk.hilbert.Spin(0.5, N=4)
+    H = nk.operator.IsingJax(hi, nk.graph.Chain(4), h=1.0)
+    p = jnp.array([0.1, 0.2, -0.3, 0.4])
+    x = jnp.empty((0, 4))
+    logpsi = lambda p, x: x @ p
+
+    results = [
+        jax.jit(lambda p, x: kernel(logpsi, p, x, H))(p, x)
+        for kernel in (
+            kernels.local_value_kernel_jax,
+            kernels_packed.local_value_kernel_jax_packed,
+        )
+    ]
+    for result in results:
+        assert result.shape == (0,)
+        assert result.dtype == results[0].dtype
+
+
+@pytest.mark.parametrize("operator", ["ising", "fermion_operator"])
+@pytest.mark.parametrize("generate", [None, True, False])
+@pytest.mark.parametrize("chunk_size", [None, 4])
+@pytest.mark.parametrize("param_dtype", [float, complex])
+def test_packed_kernel_zero_samples(operator, generate, chunk_size, param_dtype):
+    # Without samples, the local values are an empty array of the dtype of
+    # those of the padded kernel, whatever the way of computing the connected
+    # configurations, and their derivatives are zero. (The padded kernel
+    # itself fails without samples for the fermionic operator: the dtype is
+    # that of its local values of one sample.)
+    if operator == "ising":
+        hi = nk.hilbert.Spin(0.5, 6)
+        H = nk.operator.IsingJax(hi, nk.graph.Chain(6), h=1.0)
+    else:
+        if generate:
+            pytest.skip("FermionOperator2ndJax does not implement get_conn_at")
+        hi, H, _ = _hubbard(False)
+    # Set the operator up outside of any trace.
+    jax.block_until_ready(H.get_conn_padded(hi.random_state(jax.random.key(0), 1)))
+    ma = nk.models.RBM(alpha=1, param_dtype=param_dtype)
+    σ = jnp.zeros((0, hi.size), dtype=hi.random_state(jax.random.key(0), 1).dtype)
+    variables = ma.init(jax.random.key(1), jnp.zeros((1, hi.size)))
+
+    kernel = _packed(chunk_size, generate=generate)
+    expected = jax.eval_shape(
+        lambda v, σ: kernels.local_value_kernel_jax(ma.apply, v, σ, H),
+        variables,
+        jnp.zeros((1, hi.size), dtype=σ.dtype),
+    )
+    result = jax.jit(lambda v, σ: kernel(ma.apply, v, σ, H))(variables, σ)
+    assert result.shape == (0,)
+    assert result.dtype == expected.dtype
+
+    def loss(v):
+        return jnp.sum(jnp.abs(kernel(ma.apply, v, σ, H)) ** 2)
+
+    grad = jax.jit(jax.grad(loss))(variables)
+    jax.tree.map(lambda g: np.testing.assert_array_equal(g, 0), grad)
+
+
 def _bitwise(x):
     x = np.asarray(x)
     return x.dtype, x.shape, x.tobytes()

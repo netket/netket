@@ -182,6 +182,13 @@ def _local_value_kernel_jax_packed(
 ):
     # Runs on the samples of a single device.
     n_samples, N = σ.shape
+    if n_samples == 0:
+        # Nothing to evaluate: the empty local values, with the dtype of those
+        # of a sample.
+        sample = jax.ShapeDtypeStruct((1, N), σ.dtype)
+        _, mels = jax.eval_shape(O.get_conn_padded, sample)
+        logpsi_σ = jax.eval_shape(logpsi, pars, sample)
+        return jnp.zeros((0,), jnp.result_type(mels.dtype, logpsi_σ.dtype))
     if conn_chunk_size is None:
         conn_chunk_size = _CONN_CHUNK_BYTES // (N * σ.dtype.itemsize)
     if generate is None:
