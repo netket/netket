@@ -893,7 +893,7 @@ def test_apply_packed_padding_gradient():
         np.testing.assert_allclose(grad, 0.5)
 
     # The same with pairs of a row and a slot.
-    def loss(p, minimum):
+    def loss_slots(p, minimum):
         return nk.jax.apply_packed(
             _sqrt_slots,
             p,
@@ -906,7 +906,7 @@ def test_apply_packed_padding_gradient():
         ).sum()
 
     for minimum in (1, 2):
-        value, grad = jax.jit(jax.value_and_grad(lambda p: loss(p, minimum)))(1.0)
+        value, grad = jax.jit(jax.value_and_grad(lambda p: loss_slots(p, minimum)))(1.0)
         np.testing.assert_allclose(value, 1.0)
         np.testing.assert_allclose(grad, 0.5)
 
