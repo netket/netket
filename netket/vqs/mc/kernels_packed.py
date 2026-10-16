@@ -69,64 +69,16 @@ def local_value_kernel_jax_packed(
     (64,)
 
     :func:`~netket.vqs.mc.kernels.local_value_kernel_jax` evaluates the network
-    on all ``n_samples × max_conn_size`` configurations returned by
-    :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded`, including
-    the diagonal :math:`x' = x` and the padding entries, which NetKet's
-    operators fill with :math:`x` and a zero matrix element. This kernel
-    instead, on every device:
+    on all the configurations returned by
+    :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded`, including the
+    diagonal :math:`x' = x` and the padding. This kernel skips them, and
+    evaluates the other ones with :func:`netket.jax.apply_packed`, which never
+    recompiles when their number changes. This is faster for operators with
+    many zero matrix elements, such as the Heisenberg and Hubbard models. The
+    result agrees with :func:`~netket.vqs.mc.kernels.local_value_kernel_jax` up
+    to rounding, and is deterministic.
 
-    - uses :math:`\log\psi(x)` for the connected configurations equal to
-      :math:`x`, without evaluating the network;
-    - evaluates :math:`\log\psi` on the other ones with
-      :func:`netket.jax.apply_packed`, packed into chunks of ``chunk_size``
-      configurations (``n_local_samples × max_conn_size / 16`` if
-      ``chunk_size`` is None) and of decreasing powers of two down to
-      ``min_chunk_size``. Their number changes from batch to batch, but their
-      shapes are static: a varying number of connected elements never
-      triggers a recompilation, and there are only logarithmically many
-      :func:`jax.lax.cond`;
-    - computes the local values with the same summation as
-      :func:`~netket.vqs.mc.kernels.local_value_kernel_jax`.
-
-    The connected configurations are computed with
-    :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded` at most
-    ``conn_chunk_size`` at a time (as many as take 256 MiB if None), or those
-    of a single sample if it has more: the samples are processed in groups
-    whose padded connected configurations hold at most ``conn_chunk_size``
-    configurations, or ``max_conn_size`` for a group of one sample. Every
-    group is packed separately, in chunks of at most its size.
-
-    This bounds the shapes of the connected configurations that the kernel
-    asks for, not the memory used by XLA: the network usually takes most of
-    it, and the operator can make temporary copies of its configurations.
-
-    ``chunk_size`` is the number of configurations on which the network is
-    evaluated at once. :func:`~netket.vqs.mc.kernels.local_value_kernel_jax_chunked`
-    instead evaluates the connected configurations of
-    ``chunk_size // max_conn_size`` samples at once, which can be as few as
-    half as many: to bound the memory of the network to the same value, pass
-    ``(chunk_size // max_conn_size) * max_conn_size``.
-
-    The selection only depends on the configurations, not on the values of
-    the matrix elements: a connected configuration whose matrix element is
-    zero for the current coefficients of the operator is still evaluated, so
-    that the derivatives with respect to those coefficients are correct.
-
-    The kernel can be differentiated in forward and reverse mode. Like a
-    :func:`jax.lax.scan` over all the chunks, the reverse mode stores the
-    intermediate values of the network for all the selected connected
-    configurations, also for the chunks that are skipped.
-
-    No step accumulates several terms in an order that can change from call
-    to call (unlike a scatter-add on GPU), so the result is deterministic.
-
-    The kernel runs per device (inside :func:`jax.shard_map` over the sample
-    axis), because the packing is a global operation that GSPMD would
-    otherwise replicate on every device.
-
-    The result agrees with :func:`~netket.vqs.mc.kernels.local_value_kernel_jax`
-    up to the rounding of :math:`\log\psi`, which can depend on the batch it is
-    evaluated in.
+    The kernel is differentiable.
 
     Args:
         logpsi: the log-amplitude function.
@@ -137,11 +89,14 @@ def local_value_kernel_jax_packed(
             network is evaluated at once (``n_local_samples × max_conn_size /
             16`` if None).
         min_chunk_size: the size of the smallest chunk (``chunk_size // 8``
-            if None, rounded down to a power of two).
+            if None).
         conn_chunk_size: the number of connected configurations computed at
             once (as many as take 256 MiB if None), or the ``max_conn_size``
             padded connected configurations of a single sample if they are
             more.
+
+    Returns:
+        The local values, of shape ``(n_samples,)``.
     """
     kernel = nkjax.HashablePartial(
         _local_value_kernel_jax_packed,
@@ -150,6 +105,9 @@ def local_value_kernel_jax_packed(
         min_chunk_size=min_chunk_size,
         conn_chunk_size=conn_chunk_size,
     )
+    # The kernel runs per device, inside of shard_map over the samples: the
+    # packing is a global operation that GSPMD would otherwise replicate on
+    # every device.
     # IMPORTANT: pars must be passed as explicit arg (not captured in the partial)
     # so that shard_map's pvary/pcast mechanism can give it Manual sharding.
     return sharding_decorator(
@@ -179,6 +137,9 @@ def _local_value_kernel_jax_packed(
     logpsi = jax.jit(logpsi)
 
     max_conn_size = O.max_conn_size
+    # chunk_size counts the configurations evaluated at once, while
+    # local_value_kernel_jax_chunked evaluates those of chunk_size //
+    # max_conn_size samples, which can be as few as half as many.
     if chunk_size is None:
         chunk_size = -(-n_samples * max_conn_size // _N_CHUNKS_UNCHUNKED)
     chunk_size = max(1, chunk_size)
@@ -190,7 +151,11 @@ def _local_value_kernel_jax_packed(
         σp, mels = O.get_conn_padded(σ)
         # The connected configurations equal to σ (the diagonal and the
         # padding) are found by comparison, so that we do not rely on the
-        # operator placing them at a given position.
+        # operator placing them at a given position, and take logpsi(σ) without
+        # evaluating the network. The selection does not depend on the matrix
+        # elements: a configuration whose matrix element is zero for the current
+        # coefficients of the operator is still evaluated, so that the
+        # derivatives with respect to those coefficients are correct.
         is_new = jnp.any(σp != jnp.expand_dims(σ, -2), axis=-1)
         logpsi_σp = nkjax.apply_packed(
             logpsi,
@@ -202,12 +167,19 @@ def _local_value_kernel_jax_packed(
             min_chunk_size=min_chunk_size,
             axis_0_is_sharded=False,
         ).reshape(is_new.shape)
+        # The same summation as local_value_kernel_jax. No step accumulates
+        # terms in an order that can change from call to call (unlike a
+        # scatter-add on GPU), so that the result is deterministic.
         return jnp.sum(
             mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1
         )
 
     # Groups of samples whose padded connected configurations hold at most
-    # conn_chunk_size configurations, all of the same size.
+    # conn_chunk_size configurations, all of the same size, each packed
+    # separately in chunks of at most its size. This bounds the shapes of the
+    # connected configurations that the kernel asks for, not the memory used by
+    # XLA: the network usually takes most of it, and the operator can make
+    # temporary copies of its configurations.
     group_size = max(1, min(n_samples, conn_chunk_size // max(1, max_conn_size)))
     n_groups = -(-n_samples // group_size)
     if n_groups == 1:

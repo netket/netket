@@ -50,84 +50,36 @@ def apply_packed(
         This function is experimental: it is public, but it can change in a
         minor release of NetKet, with a note in the changelog.
 
-    The selected rows are packed into chunks of ``chunk_size`` rows, and the
-    remaining ones into chunks of decreasing powers of two down to
-    ``min_chunk_size``, the last of which is padded. The number of chunks
-    depends on the number of selected rows, which can change from call to call
-    without recompiling: only their shapes are static. The full chunks are
-    evaluated in blocks of :math:`2^k` chunks, one for every bit of their
-    number, and every smaller chunk at most once, each selected by a
-    :func:`jax.lax.cond`, in loops with a static number of iterations. On GPU,
-    a loop whose number of iterations depends on the data waits for the device
-    at every iteration, while there are only logarithmically many conds.
+    The selected rows are packed into chunks of a few static sizes, so that a
+    number of selected rows that changes from call to call does not trigger a
+    recompilation. ``f`` must be row-wise: the rows of its output must only
+    depend on the corresponding rows of its input. It does not need to be
+    defined on the rows that are not selected.
 
-    ``where`` has one of two shapes:
+    If ``where`` has shape ``(n, m)``, every row of ``x`` has ``m`` slots, and
+    ``f(pars, x_rows, slots)`` is evaluated on the selected pairs of a row and
+    a slot, with ``slots`` the integer indices of the slots. This evaluates
+    functions of the pairs that are cheaper to compute on the fly than to
+    store, such as the connected configurations of an operator.
 
-    - ``(n,)``: the leaves of ``x`` have ``n`` rows, and ``f(pars, x_rows)``
-      is evaluated on the selected rows;
-    - ``(n, m)``: the leaves of ``x`` have ``n`` rows, each with ``m`` slots,
-      and ``f(pars, x_rows, slots)`` is evaluated on the selected pairs of a
-      row and a slot, the rows of ``x`` being repeated for every selected
-      slot, and ``slots`` being integers of the dtype of the indices of
-      :func:`jax.numpy.nonzero` (int64 if 64-bit types are enabled, otherwise
-      int32). This evaluates functions of the pairs that are cheaper to compute
-      on the fly than to store for all of them, such as the connected
-      configurations of an operator.
-
-    ``f`` must be row-wise: the rows of its output must only depend on the
-    corresponding rows of its input. It is evaluated on a few chunk shapes,
-    and traced once per shape. It does not need to be defined, nor
-    differentiable, on the rows that are not selected: the padding of the
-    last chunk repeats the first selected row.
-
-    The function can be differentiated with respect to ``pars`` and ``fill``
-    in forward and reverse mode, at any order. Like a :func:`jax.lax.scan`
-    over all the chunks, the reverse mode stores the intermediate values of
-    ``f`` for all the rows, also for the chunks that are skipped.
-
-    Under :func:`jax.vmap` over ``x`` or ``where`` (the rows), the batch is
-    folded into the rows and packed at once, so that only the selected rows of
-    all the batch are evaluated, in chunks of ``chunk_size`` rows. A batch of
-    ``pars`` or ``fill`` alone is evaluated with the same packing. When both
-    the rows and ``pars`` are batched, the elements of the batch are evaluated
-    one after the other. Under :func:`jax.vmap` of a derivative, every element
-    of the batch is packed separately, and evaluates as many chunks as the
-    largest one, padded with its first selected row. An element without
-    selected rows evaluates them on its own rows, with the derivatives with
-    respect to ``pars`` and ``x`` stopped, so that neither the values nor the
-    derivatives of ``f`` there (which can be NaN) reach the result. In all
-    cases the chunks are selected by :func:`jax.lax.cond`.
-
-    The packing is a global operation, which GSPMD would gather on every
-    device. With ``axis_0_is_sharded`` (the default when
-    ``netket.config.netket_sharding`` is set, as for
-    :func:`~netket.jax.apply_chunked`) the rows of every device are packed
-    separately, inside of :func:`jax.shard_map` over axis 0 of ``x``,
-    ``where`` and the leaves of ``fill`` that have one value per row, with
-    ``pars`` and the other leaves of ``fill`` replicated: the output is
-    sharded like the rows, and there is no communication. Otherwise the
-    function packs the arrays it is given, which is what to use inside of a
-    :func:`jax.shard_map` (NetKet's own sharding decorator is detected).
+    The function is differentiable.
 
     Args:
         f: the function to evaluate, ``f(pars, x_rows)`` or
             ``f(pars, x_rows, slots)``.
         pars: the arguments of ``f`` that are the same for all rows.
         x: a pytree of arrays with ``n`` rows.
-        where: the boolean mask of the rows (or of the pairs of a row and a
-            slot) on which ``f`` is evaluated.
+        where: the boolean mask, of shape ``(n,)`` or ``(n, m)``, of the rows
+            (or of the pairs of a row and a slot) on which ``f`` is evaluated.
         fill: the values of the other rows, a pytree like the output of ``f``
             whose leaves are broadcastable to the output.
         chunk_size: the number of rows on which ``f`` is evaluated at once
             (``where.size / 16`` if None).
         min_chunk_size: the size of the smallest chunk (``chunk_size // 8`` if
-            None, rounded down to a power of two). Every chunk size is compiled
-            separately: ``min_chunk_size=1`` pads nothing,
-            ``min_chunk_size=chunk_size`` compiles a single chunk size.
+            None). Every chunk size is compiled separately.
         axis_0_is_sharded: whether axis 0 of ``x``, ``where`` and ``fill`` is
             sharded among the devices, and every device should pack its own
-            rows. Defaults to True if ``netket.config.netket_sharding``,
-            otherwise to False.
+            rows. Defaults to ``netket.config.netket_sharding``.
 
     Returns:
         A pytree like the output of ``f``, with leaves of shape
@@ -152,6 +104,13 @@ def apply_packed(
     if where.ndim not in (1, 2):
         raise ValueError(f"where must have 1 or 2 dimensions, not {where.ndim}.")
     packed = partial(_apply_packed_local, f, chunk_size, min_chunk_size)
+    # The packing is a global operation, which GSPMD would gather on every
+    # device. With axis_0_is_sharded, the rows of every device are packed
+    # separately inside of shard_map over axis 0 of x, where and the leaves of
+    # fill with one value per row, with pars and the other leaves of fill
+    # replicated: the output is sharded like the rows, and there is no
+    # communication. Otherwise the arrays are packed as they are given, which
+    # is what to use inside of a shard_map.
     if not axis_0_is_sharded:
         return packed(pars, x, where, fill)
 
@@ -181,6 +140,9 @@ def apply_packed(
 
 def _apply_packed_local(f, chunk_size, min_chunk_size, pars, x, where, fill):
     # apply_packed on the arrays it is given, with its own vmap and JVP rules.
+    # The JVP rule differentiates the implementation with respect to pars and
+    # fill, in forward and reverse mode and at any order. f is evaluated on a
+    # few chunk shapes: as a jitted function, it is traced once per shape.
     impl = partial(_apply_packed, jax.jit(f), chunk_size, min_chunk_size)
 
     batched = custom_vmap(impl)
@@ -223,12 +185,24 @@ def _apply_packed(f, chunk_size, min_chunk_size, pars, x, where, fill):
             out_struct,
         )
 
+    # The selected rows are packed into chunks of chunk_size rows, and the
+    # remaining ones into chunks of decreasing powers of two down to
+    # min_chunk_size, the last of which is padded. The number of chunks depends
+    # on the number of selected rows, but only their shapes are static, so that
+    # it can change without recompiling. Every chunk is selected by a
+    # jax.lax.cond in loops with a static number of iterations (see
+    # _evaluate_packed): on GPU, a loop whose number of iterations depends on
+    # the data waits for the device at every iteration, while there are only
+    # logarithmically many conds.
     if chunk_size is None:
         chunk_size = -(-n_rows // _N_CHUNKS_UNCHUNKED)
     chunk_size = max(1, min(chunk_size, n_rows))
     if min_chunk_size is None:
         min_chunk_size = chunk_size // 8
     min_chunk_size = max(1, min(min_chunk_size, chunk_size))
+    # Every chunk size is compiled separately: min_chunk_size=1 pads nothing,
+    # min_chunk_size=chunk_size compiles a single chunk size. In between, it is
+    # rounded down to a power of two, the smallest of the tail chunks.
     if min_chunk_size < chunk_size:
         min_chunk_size = 1 << (min_chunk_size.bit_length() - 1)
     n_chunks_max = -(-n_rows // chunk_size)
@@ -426,6 +400,11 @@ def _apply_packed_jvp(impl, primals, tangents):
 def _apply_packed_vmap_rule(
     impl, f, chunk_size, min_chunk_size, axis_size, in_batched, pars, x, where, fill
 ):
+    # Only the selected rows of the whole batch are evaluated, in chunks of
+    # chunk_size rows, and the chunks are still selected by jax.lax.cond. Under
+    # vmap of a derivative this rule is not used (see _apply_packed_jvp): every
+    # element of the batch is packed separately, and evaluates as many chunks
+    # as the largest one (see _max_over_batch).
     pars_batched, x_batched, where_batched, fill_batched = in_batched
     rows_batched = where_batched or any(jax.tree.leaves(x_batched))
 
