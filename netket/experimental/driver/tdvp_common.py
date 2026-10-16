@@ -58,7 +58,6 @@ class TDVPBaseDriver(AbstractDriver):
     """
 
     _generator: Callable = struct.field(pytree_node=False, serialize=False)
-    _generator_repr: str = struct.field(pytree_node=False, serialize=False)
     _t0: float = struct.field(pytree_node=False, serialize=False)
     _error_norm: Callable | str = struct.field(pytree_node=False, serialize=False)
 
@@ -122,7 +121,6 @@ class TDVPBaseDriver(AbstractDriver):
 
         super().__init__(variational_state, minimized_quantity_name="Generator")
 
-        self._generator_repr = repr(operator)
         if isinstance(operator, AbstractOperator):
             op = operator.collect()
             self._generator = lambda _: op
