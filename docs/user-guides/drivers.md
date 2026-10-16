@@ -64,14 +64,15 @@ run(n_iter, out=None, obs=None, callback=None, step_size=None)
 
   - {code}`Logger`: a logger, or iterable of loggers, respecting the standard logging interface. The available loggers are listed [here](netket_logging_api).
 
-  - The {code}`callbacks` can be used to pass callbacks to the optimisation driver. Callbacks must be callables with the signature
-    .. code:: python
+- The {code}`callback` argument can be used to pass a callback, or a list of callbacks, to the optimisation driver. Callbacks must be callables with the signature
 
-    > (step:int, logdata:dict, driver:AbstractDriver) -> bool
+  ```python
+  (step: int, logdata: dict, driver: AbstractDriver) -> bool
+  ```
 
   The first argument is the step number, the second argument is the dictionary holding data that will be logged, and it can be modified by the callback, and the third is the driver itself, which can be used to access the current state or any other quantity.
   The output of the callback must be a boolean, which signals whether to continue the optimisation or not. When any one of the callbacks return {code}`False`, the optimisation will be stopped.
-  NetKet comes with a few built-in callbacks, listed [in the API docs](netket_callbacks_api)`, but you can also implement your own.
+  NetKet comes with a few built-in callbacks, listed [in the API docs](netket_callbacks_api), but you can also implement your own.
 
 - {code}`step_size`: Data will be logged and callbacks will be called every {code}`step_size` optimisation steps. Useful if your callbacks have a high computational cost. If unspecified, logs at every step.
 

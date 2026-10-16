@@ -106,7 +106,7 @@ def tree_log(tree, root, data, *, iter=None, chunk_size: int | None = None):
 
 class HDF5Log(AbstractCallback):
     r"""
-    HDF5 Logger, that can be passed with keyword argument `logger` to Monte
+    HDF5 Logger, that can be passed with keyword argument `out` to Monte
     Carlo drivers in order to serialize the output data of the simulation.
 
     The logger has support for scalar numbers, NumPy/JAX arrays, and netket.stats.Stats objects.
@@ -123,7 +123,7 @@ class HDF5Log(AbstractCallback):
     inspecting the datasets as a dictionary, i.e. :code:`f['data/energy/Mean']`
 
     This class is a full :class:`~netket.callbacks.AbstractCallback` and can be passed
-    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.
+    either as ``out=logger`` *or* as ``callback=logger``.
 
     .. tip::
         Use the ``metadata`` argument to attach a flat dict of hyper-parameters
@@ -159,7 +159,7 @@ class HDF5Log(AbstractCallback):
         >>>
         >>> import netket as nk
         >>> logger = nk.logging.HDF5Log("output")
-        >>> gs.run(n_iter=300, callbacks=[logger])
+        >>> gs.run(n_iter=300, callback=logger)
 
     .. note::
         The API of this logger is covered by our Semantic Versioning API guarantees. However, the structure of the

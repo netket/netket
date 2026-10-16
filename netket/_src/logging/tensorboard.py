@@ -67,7 +67,7 @@ class TensorBoardLog(AbstractCallback):
     TensorBoardX must be installed.
 
     This class is a full :class:`~netket.callbacks.AbstractCallback` and can be passed
-    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.  When
+    either as ``out=logger`` *or* as ``callback=logger``.  When
     used as a callback the logger automatically captures the variational state snapshot
     taken just before the parameter update.
 
@@ -137,7 +137,7 @@ class TensorBoardLog(AbstractCallback):
         >>>
         >>> import netket as nk
         >>> writer = nk.logging.TensorBoardLog("my_experiment")
-        >>> gs.run(n_iter=300, callbacks=[writer])
+        >>> gs.run(n_iter=300, callback=writer)
     """
 
     _metadata: Any = struct.field(pytree_node=False, serialize=False)
