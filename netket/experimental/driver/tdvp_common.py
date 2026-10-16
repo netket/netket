@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Any
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from copy import copy
 from functools import partial
 import sys
@@ -38,7 +38,7 @@ from netket.experimental.dynamics._utils import (
 from netket._src.callbacks.base import (
     AbstractCallback,
     STOPPING_CALLBACK_ORDER,
-    _RunFinished,
+    RunFinished,
 )
 from netket._src.callbacks.callback_list import CallbackList
 from netket._src.callbacks.legacy_wrappers import (
@@ -77,9 +77,6 @@ class TDVPBaseDriver(AbstractDriver):
     _t_end: Any = struct.field(pytree_node=False, serialize=False, default=None)
     _tstops: np.ndarray | None = struct.field(
         pytree_node=False, serialize=False, default=None
-    )
-    _skip_passed_tstops: bool = struct.field(
-        pytree_node=False, serialize=False, default=False
     )
     # The current step: its time if it is a stopping time (None otherwise), the
     # longest it can be to not go past the next stopping time, and whether it is
@@ -211,54 +208,6 @@ class TDVPBaseDriver(AbstractDriver):
         if self.integrator is not None:
             self.integrator.norm = self.error_norm
 
-    def advance(self, T: float):
-        """
-        Advance the time propagation by :code:`T` to :code:`self.t + T`.
-
-        Args:
-            T: Length of the integration interval.
-        """
-        for _ in self.iter(T):
-            pass
-
-    def iter(self, T: float, *, tstops: Sequence[float] | None = None):
-        """
-        Returns a generator which advances the time evolution for an interval
-        of length :code:`T`, stopping at :code:`tstops`.
-
-        Args:
-            T: Length of the integration interval.
-            tstops: A sequence of stopping times, each within the interval :code:`[self.t0, self.t0 + T]`,
-                at which this method will stop and yield. By default, a stop is performed
-                after each time step (at potentially varying step size if an adaptive
-                integrator is used).
-
-        Yields:
-            The current step count.
-        """
-        yield from self._iter(T, tstops)
-
-    def _iter(self, T: float, tstops: Sequence[float] | None = None):
-        """
-        Implementation of :code:`iter`.
-        """
-        self._set_stopping_times(T, tstops)
-        while True:
-            self._begin_step()
-            if self._stop_time is not None:
-                yield self._stop_time
-            if self._is_last_step:
-                break
-
-            while True:
-                integrator, self._loss_stats = self._integrate_step(self._max_dt)
-                if integrator._state.accepted:
-                    break
-                # The step controller has changed the time step: retry with it.
-                self._integrator = integrator
-            self.update_parameters(integrator)
-            self._step_count += 1
-
     def run(
         self,
         T,
@@ -288,11 +237,17 @@ class TDVPBaseDriver(AbstractDriver):
                 varying step size if an adaptive integrator is used).
             show_progress: If true displays a progress bar (default=True)
             callback: Callable or list of callable callback functions to be executed at each
-                stopping time. :class:`~netket.callbacks.AbstractCallback` objects are instead
-                called at every time step, as in the other drivers.
+                stopping time, with the time as their first argument. Like the loggers and the
+                observables, they are not called at the other time steps.
+                :class:`~netket.callbacks.AbstractCallback` objects are instead called at every
+                time step, with the step count, as in the other drivers.
             timeit: If True, provide timing information.
         """
-        self._set_stopping_times(T, tstops)
+        # Fixed before `on_run_start`, so that a callback restoring the time there
+        # (e.g. when resuming from a checkpoint) does not move the end of the run.
+        self._t_start = self.t
+        self._t_end = self.t + T
+        self._tstops = _check_tstops(tstops, self._t_start, self._t_end)
         # The run ends at the final time, not after a number of steps.
         return super().run(
             sys.maxsize,
@@ -303,80 +258,22 @@ class TDVPBaseDriver(AbstractDriver):
             timeit=timeit,
         )
 
-    def _set_stopping_times(self, T: float, tstops: Sequence[float] | None):
-        # Fixed before `on_run_start`, so that a callback restoring the time there
-        # (e.g. when resuming from a checkpoint) does not move the end of the run.
-        t_end = self.t + T
-        if tstops is not None and (
-            np.any(np.less(tstops, self.t)) or np.any(np.greater(tstops, t_end))
-        ):
-            raise ValueError(
-                f"All tstops must be in range [t, t + T]=[{self.t}, {t_end}]"
+    def compute_loss_and_update(self):
+        """
+        Attempts a step of the integrator from the current time, without changing
+        the time and the parameters of the driver.
+
+        Returns the value of the generator at the start of the step, and the
+        integrator after the step, which :meth:`update_parameters` applies.
+        """
+        if self._step_attempt == 0:
+            at_stop, self._max_dt, self._is_last_step, self._tstops = _next_step(
+                self.t, self._t_end, self._tstops
             )
+            self._stop_time = self.t if at_stop else None
+        if self._is_last_step:
+            return None, None
 
-        if tstops is not None and len(tstops) > 0:
-            tstops = np.sort(tstops)
-        else:
-            tstops = None
-
-        self._t_start = self.t
-        self._t_end = t_end
-        self._tstops = tstops
-        self._skip_passed_tstops = True
-
-    def _begin_step(self):
-        """
-        Finds out whether the step starting now is at a stopping time, how long it
-        can be to not go past the next one, and whether it is the last step.
-        """
-        t = self.t
-        tstops = self._tstops
-
-        if tstops is not None and self._skip_passed_tstops:
-            # If a callback has moved the time forward since `run` was called
-            # (e.g. when resuming from a checkpoint), the stopping times before it
-            # have already been reached.
-            t_np = np.asarray(t)
-            tstops = tstops[(tstops > t_np) | np.isclose(tstops, t_np)]
-        self._skip_passed_tstops = False
-
-        if t < self._t_end:
-            if tstops is None:
-                at_stop = True
-            else:
-                at_stop = len(tstops) > 0 and (
-                    np.isclose(t, tstops[0]) or t > tstops[0]
-                )
-                if at_stop:
-                    tstops = tstops[1:]
-
-            if tstops is not None and len(tstops) > 0:
-                max_dt = tstops[0] - t
-            else:
-                max_dt = None
-            is_last_step = False
-        else:
-            # Stop one last time if the run ends at a stopping time.
-            if tstops is None:
-                at_stop = np.isclose(t, self._t_end)
-            else:
-                at_stop = len(tstops) > 0 and np.isclose(tstops[0], self._t_end)
-            max_dt = None
-            is_last_step = True
-
-        self._tstops = tstops
-        self._stop_time = t if at_stop else None
-        self._max_dt = max_dt
-        self._is_last_step = is_last_step
-
-    def _integrate_step(self, max_dt: float | None = None):
-        """
-        Attempts a step of the integrator, without changing the time and the
-        parameters of the driver.
-
-        Returns the integrator after the step, and the loss at the start of the step.
-        The step is accepted if :code:`integrator._state.accepted`.
-        """
         loss_stats = None
 
         def f(t, w, *, stage=0):
@@ -391,7 +288,7 @@ class TDVPBaseDriver(AbstractDriver):
         integrator = copy(self._integrator)
         integrator.f = f
         integrator.norm = self.error_norm
-        integrator.step(max_dt=max_dt)
+        integrator.step(max_dt=self._max_dt)
 
         # The ODE function sets the parameters of the intermediate stages.
         self.state.parameters = self._integrator.y
@@ -402,22 +299,8 @@ class TDVPBaseDriver(AbstractDriver):
             warnings.warn(
                 f"ODE integrator: {integrator.warnings.message()}",
                 UserWarning,
-                stacklevel=3,
+                stacklevel=2,
             )
-        return integrator, loss_stats
-
-    def compute_loss_and_update(self):
-        """
-        Attempts a step of the integrator from the current time.
-
-        Returns the value of the generator at the start of the step, and the
-        integrator after the step, which :meth:`update_parameters` applies.
-        """
-        if self._step_attempt == 0:
-            self._begin_step()
-        if self._is_last_step:
-            return None, None
-        integrator, loss_stats = self._integrate_step(self._max_dt)
         return loss_stats, integrator
 
     def _accept_step(self) -> bool:
@@ -542,6 +425,46 @@ def qgt_norm(driver: TDVPBaseDriver, x: PyTree):
     return jnp.sqrt(jnp.real(xc_dot_y))
 
 
+def _check_tstops(tstops, t_start, t_end) -> np.ndarray | None:
+    """
+    Checks that the stopping times are within the run, and sorts them.
+    Returns None, meaning to stop at every step, if there are none.
+    """
+    if tstops is None or len(tstops) == 0:
+        return None
+    if np.any(np.less(tstops, t_start)) or np.any(np.greater(tstops, t_end)):
+        raise ValueError(f"All tstops must be in range [t, t + T]=[{t_start}, {t_end}]")
+    return np.sort(tstops)
+
+
+def _next_step(t, t_end, tstops):
+    """
+    Plans the step of a run ending at `t_end` that starts at time `t`.
+
+    Returns whether `t` is a stopping time, the longest the step can be to not
+    go past the next stopping time (None if unbounded), whether it is the last
+    step of the run, which only reports the final time, and the stopping times
+    after `t`. `tstops` is None to stop at every step.
+    """
+    is_last_step = not t < t_end
+    if tstops is None:
+        at_stop = np.isclose(t, t_end) if is_last_step else True
+        return at_stop, None, is_last_step, None
+
+    # The stopping times before `t` have already been reached, or skipped if a
+    # callback moved the time forward (e.g. when resuming from a checkpoint).
+    t_np = np.asarray(t)
+    reached = (tstops < t_np) | np.isclose(tstops, t_np)
+    at_stop = bool(np.any(np.isclose(tstops[reached], t_np)))
+    tstops = tstops[~reached]
+
+    if len(tstops) > 0 and not is_last_step:
+        max_dt = tstops[0] - t
+    else:
+        max_dt = None
+    return at_stop, max_dt, is_last_step, tstops
+
+
 class _AtStoppingTimes(AbstractCallback):
     """
     Calls a callback or a logger only at the stopping times of
@@ -588,7 +511,7 @@ class _StopAfterLastStep(AbstractCallback):
 
     def on_step_end(self, step, log_data, driver):
         if driver._is_last_step:
-            raise _RunFinished(f"Reached t={driver.t:.6g}")
+            raise RunFinished(f"Reached t={driver.t:.6g}")
 
 
 @dispatch

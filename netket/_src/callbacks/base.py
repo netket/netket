@@ -25,11 +25,13 @@ class StopRun(Exception):
     pass
 
 
-class _RunFinished(StopRun):
+class RunFinished(StopRun):
     """
-    Raised by a driver's internal callback to end a run that reached its end
-    (e.g. the final time of a time evolution), so that it is not reported as
-    stopping early.
+    Exception to be raised by callbacks to end a run that has reached its end,
+    for example the final time of a time evolution.
+
+    It works like :class:`~netket.callbacks.StopRun`, but the driver does not
+    print that the run is stopping early.
     """
 
 

@@ -15,6 +15,7 @@
 from netket._src.callbacks.base import (
     AbstractCallback as AbstractCallback,
     StopRun as StopRun,
+    RunFinished as RunFinished,
 )
 
 from netket._src.callbacks.auto_chunk_size import AutoChunkSize as AutoChunkSize

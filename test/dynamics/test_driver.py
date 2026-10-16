@@ -208,13 +208,22 @@ def test_stop_times(solver):
             propagation_type="imag",
         )
 
+    def run(driver, T, tstops=None):
+        ts = []
+
+        def callback(t, log_data, driver):
+            assert t == driver.t
+            assert t == driver.step_value
+            ts.append((t, driver.step_count))
+            return True
+
+        driver.run(T, tstops=tstops, callback=callback, show_progress=False)
+        return ts
+
     driver = make_driver()
-    ts = []
-    for i, t in enumerate(driver.iter(T=0.1)):
-        assert t == driver.t
-        assert t == driver.step_value
-        assert i == driver.step_count
-        ts.append(t)
+    ts = run(driver, 0.1)
+    assert [i for _, i in ts] == list(range(len(ts)))
+    ts = [t for t, _ in ts]
     if driver.integrator.use_adaptive:
         assert np.all(np.greater_equal(ts, 0.0))
         assert np.all(np.less_equal(ts, 0.1))
@@ -223,26 +232,18 @@ def test_stop_times(solver):
 
     driver = make_driver()
     tstops = [0.00, 0.02, 0.04, 0.06, 0.08, 0.10]
-    ts = []
-    for i, t in enumerate(driver.iter(T=0.1, tstops=tstops)):
-        assert t == driver.t
-        assert t == driver.step_value
-        ts.append(t)
-    np.testing.assert_allclose(ts, tstops)
+    ts = run(driver, 0.1, tstops)
+    np.testing.assert_allclose([t for t, _ in ts], tstops)
 
     with pytest.raises(ValueError, match="All tstops must be in range"):
-        list(driver.iter(T=0.1, tstops=tstops))
+        driver.run(0.1, tstops=tstops)
     with pytest.raises(ValueError, match="All tstops must be in range"):
-        list(driver.iter(T=0.1, tstops=[42.0]))
+        driver.run(0.1, tstops=[42.0])
 
     driver = make_driver()
     tstops = [0.012, 0.014, 0.016, 0.018, 0.020]
-    ts = []
-    for i, t in enumerate(driver.iter(T=0.03, tstops=tstops)):
-        assert t == driver.t
-        assert t == driver.step_value
-        ts.append(t)
-    np.testing.assert_allclose(ts, tstops)
+    ts = run(driver, 0.03, tstops)
+    np.testing.assert_allclose([t for t, _ in ts], tstops)
 
 
 def test_repr_and_info():
@@ -391,7 +392,7 @@ class _RecordSteps(nk.callbacks.AbstractCallback):
 
 
 @pytest.mark.parametrize("tstops", [None, [0.0, 0.02, 0.05]])
-def test_run_logs_at_stopping_times(tstops):
+def test_run_logs_at_stopping_times(tstops, capsys):
     ha, vstate, obs = _setup_system(L=2)
     driver = nkx.TDVP(ha, vstate, nkx.dynamics.Euler(dt=0.01), propagation_type="imag")
 
@@ -405,6 +406,8 @@ def test_run_logs_at_stopping_times(tstops):
         return True
 
     driver.run(0.05, out=log, obs=obs, tstops=tstops, callback=[callback, recorder])
+    # Reaching the final time is not reported as stopping early.
+    assert "Stopping early" not in capsys.readouterr().out
 
     # Loggers and callback functions are called at the stopping times, with the
     # time, including the start and the end of the run.

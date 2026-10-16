@@ -20,6 +20,7 @@ For a detailed description of the run loop and all available callback hooks, see
 
    AbstractCallback
    StopRun
+   RunFinished
 ```
 
 ## Built-in callbacks
