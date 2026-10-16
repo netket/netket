@@ -88,9 +88,14 @@ def local_value_kernel_jax_packed(
         pars: the variables of the model.
         σ: the samples, of shape ``(n_samples, hilbert.size)``.
         O: the operator.
-        chunk_size: the number of connected configurations on which the
-            network is evaluated at once (``n_local_samples × max_conn_size /
-            16`` if None).
+        chunk_size: the number of configurations on which the network is
+            evaluated at once: every call of ``logpsi`` has this batch, except
+            the smaller chunks of the remainder (``n_local_samples ×
+            max_conn_size / 16`` if None). :class:`~netket.vqs.MCState` passes
+            its ``chunk_size``, whereas the padded kernel
+            :func:`~netket.vqs.mc.kernels.local_value_kernel_jax_chunked`
+            evaluates the ``max_conn_size`` connected configurations of
+            ``chunk_size // max_conn_size`` samples at once.
         min_chunk_size: the size of the smallest chunk (``chunk_size // 8``
             if None).
         conn_chunk_size: the number of connected configurations computed at
