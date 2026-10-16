@@ -19,6 +19,7 @@ import subprocess
 import sys
 import textwrap
 from functools import partial
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -373,6 +374,63 @@ def test_packed_kernel_expect_gradient():
     jax.tree.map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12), g1, g0
     )
+
+
+@pytest.mark.parametrize("conn_chunk_size", [None, 37 * 16])
+def test_packed_kernel_logpsi_of_samples_after_loops(conn_chunk_size):
+    # log ψ(σ) of the samples is computed with the same function and inputs as
+    # the forward pass of the vjp of expect_and_grad, so that XLA merges them.
+    # If a loop of the kernel takes it as an input, the intermediates of that
+    # forward pass, which the vjp keeps for the backward pass, stay in memory
+    # during the whole kernel. log ψ(σ) must therefore only be used after the
+    # loops over the groups of samples and over the chunks.
+    vs, H = _vstate("heisenberg_triangular")
+    assert H.max_conn_size == 37
+    # 60 samples, a shape on which no chunk of connected configurations is
+    # evaluated: 4 groups of 15 samples with conn_chunk_size=37 * 16.
+    σ = vs.samples.reshape(-1, vs.hilbert.size)[:60]
+
+    def logpsi(variables, x):
+        return vs._apply_fun(variables, x)
+
+    def kernel(variables, σ, H):
+        return kernels_packed._local_value_kernel_jax_packed(
+            logpsi,
+            variables,
+            σ,
+            H,
+            chunk_size=None,
+            min_chunk_size=None,
+            conn_chunk_size=conn_chunk_size,
+        )
+
+    jaxpr = jax.make_jaxpr(kernel)(vs.variables, σ, H).jaxpr
+    on_samples = [
+        eqn
+        for eqn in jaxpr.eqns
+        if eqn.params.get("name") == "logpsi"
+        and any(getattr(v.aval, "shape", None) == σ.shape for v in eqn.invars)
+    ]
+    assert len(on_samples) == 1
+    # The values computed from log ψ(σ), none of which may enter an equation
+    # that contains a loop or a cond (directly, or as apply_packed does).
+    depends = set(on_samples[0].outvars)
+    n_loops = 0
+    for eqn in jaxpr.eqns:
+        inputs = {v for v in eqn.invars if isinstance(v, jax.extend.core.Var)}
+        loops = sum(
+            _count(SimpleNamespace(eqns=[eqn]), name)
+            for name in ("scan", "while", "cond")
+        )
+        n_loops += loops
+        assert not (loops and inputs & depends), eqn.primitive.name
+        if inputs & depends:
+            depends.update(eqn.outvars)
+    assert n_loops > 0
+
+    expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
+    result = jax.jit(kernel)(vs.variables, σ, H)
+    np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])

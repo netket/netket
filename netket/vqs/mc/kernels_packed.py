@@ -146,11 +146,11 @@ def _local_value_kernel_jax_packed(
     if chunk_size is None:
         chunk_size = -(-n_samples * max_conn_size // _N_CHUNKS_UNCHUNKED)
     chunk_size = max(1, chunk_size)
-    logpsi_σ = nkjax.apply_chunked(
-        logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
-    )(pars, σ)
+    logpsi_dtype = jax.eval_shape(
+        logpsi, pars, jax.ShapeDtypeStruct((1, N), σ.dtype)
+    ).dtype
 
-    def local_values(σ, logpsi_σ):
+    def evaluate_connected(σ):
         σp, mels = O.get_conn_padded(σ)
         # The connected configurations equal to σ (the diagonal and the
         # padding) are found by comparison, so that we do not rely on the
@@ -165,17 +165,12 @@ def _local_value_kernel_jax_packed(
             pars,
             σp.reshape(-1, N),
             is_new.reshape(-1),
-            jnp.repeat(logpsi_σ, max_conn_size),
+            jnp.zeros((), logpsi_dtype),
             chunk_size=chunk_size,
             min_chunk_size=min_chunk_size,
             axis_0_is_sharded=False,
         ).reshape(is_new.shape)
-        # The same summation as local_value_kernel_jax. No step accumulates
-        # terms in an order that can change from call to call (unlike a
-        # scatter-add on GPU), so that the result is deterministic.
-        return jnp.sum(
-            mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1
-        )
+        return logpsi_σp, is_new, mels
 
     # Groups of samples whose padded connected configurations hold at most
     # conn_chunk_size configurations, all of the same size, each packed
@@ -186,14 +181,27 @@ def _local_value_kernel_jax_packed(
     group_size = max(1, min(n_samples, conn_chunk_size // max(1, max_conn_size)))
     n_groups = -(-n_samples // group_size)
     if n_groups == 1:
-        return local_values(σ, logpsi_σ)
-    group_size = -(-n_samples // n_groups)
-    n_pad = n_groups * group_size - n_samples
-    # The last group is padded with copies of the last sample.
-    σ = jnp.concatenate([σ, jnp.repeat(σ[-1:], n_pad, axis=0)])
-    logpsi_σ = jnp.concatenate([logpsi_σ, jnp.repeat(logpsi_σ[-1:], n_pad)])
-    out = jax.lax.map(
-        lambda args: local_values(*args),
-        (σ.reshape(n_groups, group_size, N), logpsi_σ.reshape(n_groups, group_size)),
-    )
-    return out.reshape(-1)[:n_samples]
+        logpsi_σp, is_new, mels = evaluate_connected(σ)
+    else:
+        group_size = -(-n_samples // n_groups)
+        n_pad = n_groups * group_size - n_samples
+        # The last group is padded with copies of the last sample.
+        σ_groups = jnp.concatenate([σ, jnp.repeat(σ[-1:], n_pad, axis=0)])
+        logpsi_σp, is_new, mels = jax.tree.map(
+            lambda a: a.reshape((-1,) + a.shape[2:])[:n_samples],
+            jax.lax.map(evaluate_connected, σ_groups.reshape(n_groups, group_size, N)),
+        )
+
+    # logpsi(σ) is used only after the loops over the connected configurations,
+    # so that XLA can evaluate the network on σ after them. Under
+    # expect_and_grad, XLA merges that evaluation with the forward pass of the
+    # vjp, whose intermediates (kept for the backward pass) would otherwise be
+    # in memory during the whole kernel.
+    logpsi_σ = nkjax.apply_chunked(
+        logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
+    )(pars, σ)
+    logpsi_σp = jnp.where(is_new, logpsi_σp, jnp.expand_dims(logpsi_σ, -1))
+    # The same summation as local_value_kernel_jax. No step accumulates terms in
+    # an order that can change from call to call (unlike a scatter-add on GPU),
+    # so that the result is deterministic.
+    return jnp.sum(mels * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
