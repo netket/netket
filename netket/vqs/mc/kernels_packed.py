@@ -51,8 +51,11 @@ def local_value_kernel_jax_packed(
         This function is experimental: it is public, but it can change in a
         minor release of NetKet, with a note in the changelog.
 
-    :class:`~netket.vqs.MCState` does not use it: it is called explicitly,
-    with the same arguments as
+    :class:`~netket.vqs.MCState` uses it in ``expect`` and ``expect_and_grad``
+    if the experimental flag ``NETKET_EXPERIMENTAL_PACKED_KERNEL`` is set (off
+    by default), for instance with
+    ``nk.config.netket_experimental_packed_kernel = True``. It can also be
+    called explicitly, with the same arguments as
     :func:`~netket.vqs.mc.kernels.local_value_kernel_jax`, for example
 
     >>> import netket as nk

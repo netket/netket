@@ -85,7 +85,8 @@ excluded from gradient computation and optimizer updates. See the
 ### Local-value kernels
 
 {class}`~netket.vqs.MCState` computes the local estimators of jax operators with the kernels chosen by {func}`~netket.vqs.get_local_kernel`.
-The packed kernel below is an alternative that is called explicitly, with the same arguments, and evaluates the network only on the connected configurations that differ from the sample.
+The packed kernel below is an alternative, with the same arguments, that evaluates the network only on the connected configurations that differ from the sample.
+{class}`~netket.vqs.MCState` uses it in place of the default kernels if the experimental flag `NETKET_EXPERIMENTAL_PACKED_KERNEL` is set (off by default), for instance with `nk.config.netket_experimental_packed_kernel = True`; it can also be called explicitly.
 It is experimental: it can change in a minor release, with a note in the changelog.
 
 ```{eval-rst}

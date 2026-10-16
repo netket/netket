@@ -375,6 +375,40 @@ def test_packed_kernel_expect_gradient():
     )
 
 
+@pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
+@pytest.mark.parametrize("chunk_size", [None, 32])
+def test_packed_kernel_config_flag(system, chunk_size, monkeypatch):
+    # With NETKET_EXPERIMENTAL_PACKED_KERNEL, MCState.expect and expect_and_grad
+    # compute the local values of jax operators with the packed kernel, with
+    # the same results.
+    vs, H = _vstate(system)
+    vs.chunk_size = chunk_size
+    assert not nk.config.netket_experimental_packed_kernel
+    E0 = vs.expect(H)
+    E0_, g0 = vs.expect_and_grad(H)
+
+    packed = kernels_packed.local_value_kernel_jax_packed
+    calls = []
+
+    def spy(*args, **kwargs):
+        calls.append(kwargs.get("chunk_size"))
+        return packed(*args, **kwargs)
+
+    monkeypatch.setattr(kernels_packed, "local_value_kernel_jax_packed", spy)
+    with common.set_config("NETKET_EXPERIMENTAL_PACKED_KERNEL", True):
+        E1 = vs.expect(H)
+        assert calls == [chunk_size]
+        E1_, g1 = vs.expect_and_grad(H)
+        assert calls == [chunk_size, chunk_size]
+
+    for a, b in [(E1, E0), (E1_, E0_)]:
+        np.testing.assert_allclose(a.mean, b.mean, rtol=1e-12)
+        np.testing.assert_allclose(a.variance, b.variance, rtol=1e-10)
+    jax.tree.map(
+        lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12), g1, g0
+    )
+
+
 @common.onlyif_sharding_single_process
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
 def test_packed_kernel_no_collectives(system):
