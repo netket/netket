@@ -97,12 +97,19 @@ def test_wandb_log_metrics(offline_wandb, item, expected):
 @common.skipif_distributed
 def test_wandb_log_run_id(offline_wandb):
     log = nk.logging.WandbLog(
-        project="test_resume", run_id="nk-test-run-id", metadata={"L": 20}
+        project="test_resume",
+        run_id="nk-test-run-id",
+        metadata={"L": 20},
+        ignore=["skip_me"],
     )
-    log(0, {"loss": 1.0})
+    log(0, {"loss": 1.0, "skip_me": 2.0})
     assert log._run.id == "nk-test-run-id"
     assert log._run.config["L"] == 20
     del log
+
+    (logged,) = offline_wandb.logged
+    assert "loss" in logged
+    assert not any(k.startswith("skip_me") for k in logged)
 
 
 @common.skipif_distributed
@@ -135,12 +142,17 @@ def test_wandb_log_as_callback(vstate, offline_wandb):
     ha = nk.operator.Ising(hi, nk.graph.Chain(hi.size), h=1.0)
     driver = nk.driver.VMC(ha, nk.optimizer.Sgd(0.01), variational_state=vstate)
 
-    log = nk.logging.WandbLog(project="test_callback", save_params_every=2)
+    log = nk.logging.WandbLog(
+        project="test_callback", save_params_every=2, log_histograms=True
+    )
     driver.run(3, out=(), callback=log, show_progress=False)
     run_id = log._run.id
 
     assert [d["Energy/step"] for d in offline_wandb.logged] == [0, 1, 2]
     assert "Energy/Mean" in offline_wandb.logged[0]
+    # histograms are logged together with the parameters
+    assert "histograms/Dense/kernel" in offline_wandb.logged[0]
+    assert "histograms/Dense/kernel" not in offline_wandb.logged[1]
     # steps 0 and 2, the flush at the end of the run, and the final state
     assert offline_wandb.artifacts == [f"{run_id}-parameters"] * 3 + [
         f"{run_id}-final-state"
