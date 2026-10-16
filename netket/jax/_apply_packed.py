@@ -132,6 +132,19 @@ def apply_packed(
     Returns:
         A pytree like the output of ``f``, with leaves of shape
         ``where.shape + leaf.shape[1:]``.
+
+    Examples:
+        Scale the sum of every row, evaluating ``f`` only on the first and the
+        last row, and setting the others to zero:
+
+        >>> import jax.numpy as jnp
+        >>> import netket as nk
+        >>> def f(pars, x):
+        ...     return pars * x.sum(axis=-1)
+        >>> x = jnp.arange(8.0).reshape(4, 2)
+        >>> where = jnp.array([True, False, False, True])
+        >>> nk.jax.apply_packed(f, 2.0, x, where, 0.0, chunk_size=2)
+        Array([ 2.,  0.,  0., 26.], dtype=float64)
     """
     if axis_0_is_sharded is None:
         axis_0_is_sharded = config.netket_sharding
