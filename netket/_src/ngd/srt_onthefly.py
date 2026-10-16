@@ -200,12 +200,12 @@ def srt_onthefly(
     # Create identity matrix with same sharding as ntk: P("S", None)
     if config.netket_sharding:
         local_size = ntk.shape[0]
-        identity = jnp.eye(local_size)
+        identity = jnp.eye(local_size, dtype=ntk.dtype)
         identity = jax.lax.with_sharding_constraint(
             identity, NamedSharding(jax.sharding.get_abstract_mesh(), P("S", None))
         )
     else:
-        identity = jnp.eye(ntk.shape[0])
+        identity = jnp.eye(ntk.shape[0], dtype=ntk.dtype)
 
     # add diag shift
     ntk_shifted = ntk + diag_shift * identity

@@ -501,3 +501,31 @@ def test_fullsum_vmc_vs_vmcsr(model, momentum):
         energy_SR = logger_sr.data["Energy"]["Mean"]
 
         np.testing.assert_allclose(energy_vmc, energy_SR, atol=1e-10)
+
+
+@skipif_distributed
+@pytest.mark.parametrize("onthefly", onthefly_vals)
+def test_SRt_ntk_dtype_is_preserved(onthefly):
+    """
+    The diagonal shift must not promote a float32 NTK to float64 before the solve.
+    """
+    H, opt, vstate = _setup(machine=nk.models.RBM(alpha=1, param_dtype=jnp.float32))
+
+    ntk_dtypes = []
+
+    def solver(A, b):
+        ntk_dtypes.append(A.dtype)
+        return nk.optimizer.solver.cholesky(A, b)
+
+    gs = nk.driver.VMC_SR(
+        H,
+        opt,
+        variational_state=vstate,
+        diag_shift=0.1,
+        linear_solver=solver,
+        use_ntk=True,
+        on_the_fly=onthefly,
+    )
+    gs.run(1)
+
+    assert ntk_dtypes == [jnp.float32]
