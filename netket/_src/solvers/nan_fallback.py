@@ -62,6 +62,14 @@ def nan_fallback(primary_solver, fallback_solver):
     The returned solver supports equality and hashing, so that two calls with
     the same solvers produce equal objects and do not trigger JAX recompilation.
 
+    .. warning::
+
+        The fallback solver needs ``A`` after the primary solver has run, so
+        ``A`` must be kept alive through the primary solve. A primary solver
+        that would otherwise factorise ``A`` in place (such as the
+        distributed solvers) then needs an extra copy of ``A``, which can run
+        out of memory for matrices that fit with the primary solver alone.
+
     Args:
         primary_solver: The preferred (usually faster) solver.
         fallback_solver: The robust solver to use when the primary fails.

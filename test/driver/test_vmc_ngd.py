@@ -501,3 +501,82 @@ def test_fullsum_vmc_vs_vmcsr(model, momentum):
         energy_SR = logger_sr.data["Energy"]["Mean"]
 
         np.testing.assert_allclose(energy_vmc, energy_SR, atol=1e-10)
+
+
+@skipif_distributed
+@pytest.mark.parametrize("onthefly", onthefly_vals)
+def test_SRt_ntk_dtype_is_preserved(onthefly):
+    """
+    The diagonal shift must not promote a float32 NTK to float64 before the solve.
+    """
+    H, opt, vstate = _setup(machine=nk.models.RBM(alpha=1, param_dtype=jnp.float32))
+
+    ntk_dtypes = []
+
+    def solver(A, b):
+        ntk_dtypes.append(A.dtype)
+        return nk.optimizer.solver.cholesky(A, b)
+
+    gs = nk.driver.VMC_SR(
+        H,
+        opt,
+        variational_state=vstate,
+        diag_shift=0.1,
+        linear_solver=solver,
+        use_ntk=True,
+        on_the_fly=onthefly,
+    )
+    gs.run(1)
+
+    assert ntk_dtypes == [jnp.float32]
+
+
+class _LargeCommonJacobian(nn.Module):
+    # log ψ(x) = w·(x + offset): every per-sample Jacobian is x + offset, so the
+    # Jacobian has a component common to all samples much larger than its spread.
+    offset: float = 30.0
+
+    @nn.compact
+    def __call__(self, x):
+        w = self.param("w", nn.initializers.normal(), (x.shape[-1],), jnp.float32)
+        return (x + self.offset) @ w
+
+
+@pytest.mark.parametrize("chunk_size", [None, 16])
+def test_srt_onthefly_large_common_jacobian(chunk_size):
+    """
+    The on-the-fly NTK must stay accurate in single precision when the per-sample
+    Jacobians share a component much larger than their spread around the mean.
+    """
+    from netket._src.ngd.srt_onthefly import srt_onthefly
+
+    n_samples, n_params, diag_shift = 64, 32, 1e-3
+    model = _LargeCommonJacobian()
+    k1, k2, k3 = jax.random.split(jax.random.key(0), 3)
+    samples = jax.random.normal(k1, (n_samples, n_params), dtype=jnp.float32)
+    variables = model.init(k2, samples)
+    local_energies = jax.random.normal(k3, (n_samples,), dtype=jnp.float32)
+
+    updates, _, _ = srt_onthefly(
+        model.apply,
+        local_energies,
+        variables["params"],
+        {},
+        samples,
+        diag_shift=diag_shift,
+        solver_fn=lambda A, b: jnp.linalg.solve(A, b),
+        mode="real",
+        chunk_size=chunk_size,
+    )
+
+    # float64 reference with the Jacobian centred before forming the NTK
+    x = np.asarray(samples, dtype=np.float64)
+    jac = (x - x.mean(axis=0)) / np.sqrt(n_samples)
+    e = np.asarray(local_energies, dtype=np.float64)
+    dv = 2 * (e - e.mean()) / np.sqrt(n_samples)
+    ntk = jac @ jac.T + diag_shift * np.eye(n_samples)
+    expected = jac.T @ np.linalg.solve(ntk, dv)
+
+    np.testing.assert_allclose(
+        updates["w"], expected, rtol=0, atol=1e-2 * np.abs(expected).max()
+    )

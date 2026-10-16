@@ -226,7 +226,12 @@ def empirical_ntk_by_jacobian(
         return jax.tree.reduce(operator.add, jax.tree.map(contract, j1, j2))
 
     def ntk_fn(
-        x1: PyTree, x2: PyTree | None, params: PyTree, **apply_fn_kwargs
+        x1: PyTree,
+        x2: PyTree | None,
+        params: PyTree,
+        *,
+        jacobian_shift: PyTree | None = None,
+        **apply_fn_kwargs,
     ) -> jnp.ndarray:
         """Computes a single sample of the empirical NTK (jacobian outer product).
 
@@ -241,6 +246,11 @@ def empirical_ntk_by_jacobian(
           params:
             A `PyTree` of parameters about which we would like to compute the
             neural tangent kernel.
+
+          jacobian_shift:
+            optional `PyTree` like `params`, with leaves shaped like the Jacobian
+            of a single sample, subtracted from every per-sample Jacobian block
+            before the contraction (requires `vmap_axes=0`).
 
           **apply_fn_kwargs:
             keyword arguments passed to `apply_fn`. `apply_fn_kwargs` will be split
@@ -271,8 +281,13 @@ def empirical_ntk_by_jacobian(
             in_axes = [x_axis] + [kw_axes[k] if k in kw_axes else None for k in keys]
             j_fn = jax.vmap(j_fn, in_axes=in_axes, out_axes=fx_axis)
 
-        j1 = j_fn(x1, *args1)
-        j2 = j_fn(x2, *args2) if not utils.all_none(x2) else j1
+        def shift(j):
+            if jacobian_shift is None:
+                return j
+            return jax.tree.map(jnp.subtract, j, jacobian_shift)
+
+        j1 = shift(j_fn(x1, *args1))
+        j2 = shift(j_fn(x2, *args2)) if not utils.all_none(x2) else j1
         ntk = jax.tree.map(sum_and_contract, fx1, j1, j2)
         return ntk
 

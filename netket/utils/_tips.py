@@ -34,7 +34,7 @@ TIPS = [
     # Loggers
     "You can load logged data with nk.utils.history.HistoryDict.from_file(data.log).",
     "You can plot data with JsonLog.data['Energy'][:-30].plot().",
-    "HDF5Log/MLFlowLog/TensorBoardLog accept metadata={'L': 20, 'model': 'RBM'} to store hyperparameters with the run.",
+    "HDF5Log/MLFlowLog/WandbLog/TensorBoardLog accept metadata={'L': 20, 'model': 'RBM'} to store hyperparameters with the run.",
     # Variational states
     "To build H|ψ⟩ use nk.vqs.apply_operator(H, vstate_ψ).",
     "log(ψ) ∈ ℜ → ψ = exp(logψ) ∈ ℜ₊ (real NN gives only positive wave-function).",
