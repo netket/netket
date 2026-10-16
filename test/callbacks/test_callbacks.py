@@ -229,7 +229,7 @@ def test_earlystopping_baseline_with_patience_abstol_delayed_start():
     assert es._best_val == 9.0
 
 
-@pytest.mark.parametrize("driver", [_vmc()])
+@pytest.mark.parametrize("driver", [_vmc(), _tdvp()])
 def test_invalid_loss_stopping(driver):
     patience = 10
     nsteps = 2 * patience
@@ -478,6 +478,46 @@ def test_progress_bar_after_resume(restore_before_bar):
         pb.on_step_end(step, {}, driver)
     assert pb._pbar.n == 8
     pb.on_run_end(driver.step_count, driver)
+
+
+@pytest.mark.parametrize("restore_before_bar", [True, False])
+def test_time_progress_bar_after_resume(restore_before_bar):
+    # run(T=0.8) called at t=0.2, with a checkpoint restoring t=0.6 either before
+    # or after the progress bar starts.
+    driver = DummyDriver()
+    driver.t = 0.2
+    driver.dt = 0.1
+    driver._t_start = 0.2
+    driver._loss_stats = None
+
+    pb = nk._src.callbacks.progressbar.TimeProgressBarCallback(0.8)
+    if restore_before_bar:
+        driver.t = 0.6
+    pb.on_run_start(0, driver)
+    driver.t = 0.6
+    assert pb._pbar.n == pytest.approx(0.4 if restore_before_bar else 0.0)
+
+    for t in (0.7, 0.8, 0.9, 1.0):
+        driver.t = t
+        pb.on_step_end(0, {}, driver)
+    assert pb._pbar.n == pytest.approx(0.8)
+    pb.on_run_end(0, driver)
+
+
+def test_time_progress_bar_without_start_time():
+    # Drivers that don't set `_t_start` count from t=0.
+    driver = DummyDriver()
+    driver.t = 0.3
+    driver.dt = 0.1
+    driver._loss_stats = None
+
+    pb = nk._src.callbacks.progressbar.TimeProgressBarCallback(1.0)
+    pb.on_run_start(0, driver)
+    assert pb._pbar.n == pytest.approx(0.3)
+    driver.t = 1.0
+    pb.on_step_end(0, {}, driver)
+    assert pb._pbar.n == pytest.approx(1.0)
+    pb.on_run_end(0, driver)
 
 
 def test_progress_bar_with_its_own_size():

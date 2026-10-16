@@ -21,6 +21,8 @@ import numpy as np
 import copy
 import scipy
 
+from flax import serialization
+
 import netket as nk
 import netket.experimental as nkx
 
@@ -308,7 +310,7 @@ def test_pbar_starts_zero_ends_hundred(t0):
         t0=t0,
     )
 
-    with patch("netket.experimental.driver.tdvp_common.tqdm", BufferedTqdm):
+    with patch("netket._src.callbacks.progressbar.tqdm", BufferedTqdm):
         driver.run(T=T, show_progress=True)
 
     lines = [
@@ -376,6 +378,151 @@ def test_change_norm():
 
     with pytest.raises(ValueError):
         driver.error_norm = "assd"
+
+
+class _RecordSteps(nk.callbacks.AbstractCallback):
+    steps: list = nk.utils.struct.field(pytree_node=False, serialize=False)
+
+    def __init__(self):
+        self.steps = []
+
+    def on_step_end(self, step, log_data, driver):
+        self.steps.append(step)
+
+
+@pytest.mark.parametrize("tstops", [None, [0.0, 0.02, 0.05]])
+def test_run_logs_at_stopping_times(tstops):
+    ha, vstate, obs = _setup_system(L=2)
+    driver = nkx.TDVP(ha, vstate, nkx.dynamics.Euler(dt=0.01), propagation_type="imag")
+
+    log = nk.logging.RuntimeLog()
+    times = []
+    recorder = _RecordSteps()
+
+    def callback(t, log_data, driver):
+        assert "sx" in log_data
+        times.append(t)
+        return True
+
+    driver.run(0.05, out=log, obs=obs, tstops=tstops, callback=[callback, recorder])
+
+    # Loggers and callback functions are called at the stopping times, with the
+    # time, including the start and the end of the run.
+    expected = np.linspace(0.0, 0.05, 6) if tstops is None else tstops
+    np.testing.assert_allclose(times, expected)
+    np.testing.assert_allclose(log.data["sx"].iters, expected)
+    np.testing.assert_allclose(log.data["t"].values, expected)
+    # The generator is evaluated at the start of each step.
+    np.testing.assert_allclose(log.data["Generator"].iters, expected[:-1])
+
+    np.testing.assert_allclose(driver.t, 0.05)
+    assert driver.step_count == 5
+    # Other callbacks are called at every step, with the step count, and once
+    # more at the end of the run.
+    assert recorder.steps == list(range(6))
+
+
+def test_observables_at_current_parameters():
+    # With a multi-stage solver, the parameters are moved to the intermediate
+    # stages during a step: the observables must still use those at time t.
+    hi = nk.hilbert.Spin(s=0.5, N=2)
+    ha = nk.operator.Ising(hi, graph=nk.graph.Chain(2), h=1.0)
+    sx = sum(nk.operator.spin.sigmax(hi, i) for i in range(2))
+    vstate = nk.vqs.FullSumState(hi, nk.models.RBM(alpha=1, param_dtype=complex))
+
+    driver = nkx.TDVP(ha, vstate, nkx.dynamics.Heun(dt=0.01))
+    log = nk.logging.RuntimeLog()
+    driver.run(0.03, out=log, obs={"sx": sx})
+
+    jax.tree.map(
+        np.testing.assert_array_equal, driver.state.parameters, driver.integrator.y
+    )
+    np.testing.assert_allclose(
+        log.data["sx"]["Mean"][-1], driver.state.expect(sx).mean, rtol=1e-12
+    )
+
+
+def _make_tdvp(kind, solver):
+    ha, vstate, _ = _setup_system(L=2)
+    if kind == "TDVP":
+        return nkx.TDVP(
+            ha, vstate, solver, qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True)
+        )
+    return nkx.driver.TDVPSchmitt(ha, vstate, solver, holomorphic=True)
+
+
+@pytest.mark.parametrize("kind", ["TDVP", "TDVPSchmitt"])
+@pytest.mark.parametrize(
+    "solver",
+    [
+        pytest.param(nkx.dynamics.Heun(dt=0.01), id="Heun"),
+        pytest.param(
+            nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-3, atol=1e-3),
+            id="RK23(adaptive)",
+        ),
+    ],
+)
+def test_restore_into_fresh_driver(kind, solver):
+    driver = _make_tdvp(kind, solver)
+    driver.run(0.02, show_progress=False)
+    fresh = _make_tdvp(kind, solver)
+
+    # A new driver saves the same fields, with the same shapes and dtypes, as one
+    # that has already run.
+    def layout(d):
+        state = serialization.to_state_dict(d)
+        return jax.tree.map(lambda x: (np.shape(x), np.result_type(x)), state)
+
+    assert layout(fresh) == layout(driver)
+
+    restored = serialization.from_bytes(fresh, serialization.to_bytes(driver))
+    assert restored.step_count == driver.step_count
+    np.testing.assert_array_equal(restored.t, driver.t)
+    np.testing.assert_array_equal(restored.dt, driver.dt)
+
+    # The restored driver continues exactly as the original one.
+    driver.run(0.02, show_progress=False)
+    restored.run(0.02, show_progress=False)
+    assert restored.step_count == driver.step_count
+    np.testing.assert_array_equal(restored.t, driver.t)
+    jax.tree.map(
+        np.testing.assert_array_equal,
+        restored.state.parameters,
+        driver.state.parameters,
+    )
+
+
+class _RestoreOnRunStart(nk.callbacks.AbstractCallback):
+    """Restores a saved driver on run start, like a checkpointer resuming a run."""
+
+    data: bytes = nk.utils.struct.field(pytree_node=False, serialize=False)
+
+    def __init__(self, data):
+        self.data = data
+
+    def on_run_start(self, step, driver):
+        restored = serialization.from_bytes(driver, self.data)
+        driver._step_count = restored._step_count
+        driver._integrator = restored._integrator
+        driver.state.parameters = restored.state.parameters
+
+
+def test_run_end_ignores_time_restored_on_run_start():
+    solver = nkx.dynamics.Euler(dt=0.01)
+    saved = _make_tdvp("TDVP", solver)
+    saved.run(0.03, show_progress=False)
+    data = serialization.to_bytes(saved)
+
+    driver = _make_tdvp("TDVP", solver)
+    log = nk.logging.RuntimeLog()
+    tstops = np.linspace(0.0, 0.05, 6)
+    driver.run(0.05, out=log, tstops=tstops, callback=_RestoreOnRunStart(data))
+
+    # The run still ends at t=0.05, and only logs the stopping times after the
+    # restored one.
+    np.testing.assert_allclose(driver.t, 0.05)
+    assert driver.step_count == 5
+    np.testing.assert_allclose(log.data["t"].iters, tstops[3:])
 
 
 def exact_time_evolution(H, psi0, T, dt, obs):

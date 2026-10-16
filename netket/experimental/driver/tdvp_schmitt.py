@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
 from collections.abc import Callable
 
 from functools import partial
@@ -25,7 +26,8 @@ from netket.optimizer.qgt import QGTJacobianDense
 from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 from netket.jax import tree_cast
-from netket.utils import timing
+from netket.utils import struct, timing
+from netket.utils.types import PyTree
 from netket.utils.citations import reference
 from netket.experimental.dynamics import AbstractSolver
 
@@ -95,6 +97,20 @@ class TDVPSchmitt(TDVPBaseDriver):
     `[arXiv:1912.08828] <https://arxiv.org/pdf/1912.08828.pdf>`_ for details).
 
     """
+
+    propagation_type: str = struct.field(pytree_node=False, serialize=False)
+    _loss_grad_factor: complex = struct.field(pytree_node=False, serialize=False)
+    rcond: float = struct.field(pytree_node=False, serialize=False)
+    rcond_smooth: float = struct.field(pytree_node=False, serialize=False)
+    snr_atol: float = struct.field(pytree_node=False, serialize=False)
+    diag_shift: float = struct.field(pytree_node=False, serialize=False)
+    holomorphic: bool | None = struct.field(pytree_node=False, serialize=False)
+    diag_scale: float | None = struct.field(pytree_node=False, serialize=False)
+
+    # Recomputed at every step
+    _S: Any = struct.field(serialize=False, default=None)
+    _rmd: Any = struct.field(serialize=False, default=None)
+    _snr: PyTree = struct.field(serialize=False, default=None)
 
     def __init__(
         self,

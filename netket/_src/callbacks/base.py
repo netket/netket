@@ -25,6 +25,14 @@ class StopRun(Exception):
     pass
 
 
+class _RunFinished(StopRun):
+    """
+    Raised by a driver's internal callback to end a run that reached its end
+    (e.g. the final time of a time evolution), so that it is not reported as
+    stopping early.
+    """
+
+
 #: ``callback_order`` for callbacks that may raise :class:`StopRun`. They run
 #: *last* (after observables at 0 and loggers at 10) so that, on the step a
 #: callback stops the run, no later callback in the hook is skipped — a skipped

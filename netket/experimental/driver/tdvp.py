@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
 from collections.abc import Callable
 from functools import partial
 
@@ -28,6 +29,8 @@ from netket.vqs import (
     MCState,
     FullSumState,
 )
+from netket.utils import struct
+from netket.utils.types import PyTree
 from netket.experimental.dynamics import AbstractSolver
 
 from .tdvp_common import TDVPBaseDriver, odefun
@@ -39,6 +42,16 @@ class TDVP(TDVPBaseDriver):
     when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
     """
+
+    propagation_type: str = struct.field(pytree_node=False, serialize=False)
+    _loss_grad_factor: complex = struct.field(pytree_node=False, serialize=False)
+    qgt: Any = struct.field(pytree_node=False, serialize=False)
+    linear_solver: Callable = struct.field(pytree_node=False, serialize=False)
+    linear_solver_restart: bool = struct.field(pytree_node=False, serialize=False)
+
+    # Recomputed at every step
+    _loss_forces: PyTree = struct.field(serialize=False, default=None)
+    _loss_grad: PyTree = struct.field(serialize=False, default=None)
 
     def __init__(
         self,

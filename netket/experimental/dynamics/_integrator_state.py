@@ -76,8 +76,11 @@ class IntegratorState(struct.Pytree):
     """The solution norm at previous time step."""
     last_scaled_error: float | None = None
     """The error of the TDVP integrator at the last time step."""
-    flags: IntegratorFlags = IntegratorFlags.INFO_STEP_ACCEPTED
-    """The flags containing information on the solver state."""
+    flags: IntegratorFlags = struct.field(
+        serialize=False, default=IntegratorFlags.INFO_STEP_ACCEPTED
+    )
+    """The flags containing information on the solver state. They only describe
+    the last step, so they are not saved."""
 
     def __init__(
         self,
