@@ -73,7 +73,7 @@ class MLFlowLog(AbstractCallback):
     separate ``<key>/re`` and ``<key>/im`` entries.
 
     This class is a full :class:`~netket.callbacks.AbstractCallback` and can be passed
-    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.  When
+    either as ``out=logger`` *or* as ``callback=logger``.  When
     used as a callback the logger automatically captures the variational state snapshot
     taken just before the parameter update.
 
@@ -142,7 +142,7 @@ class MLFlowLog(AbstractCallback):
         >>>
         >>> import netket as nk
         >>> logger = nk.logging.MLFlowLog(experiment_name="Ising1d")
-        >>> gs.run(n_iter=500, callbacks=[logger])
+        >>> gs.run(n_iter=500, callback=logger)
     """
 
     _metadata: Any = struct.field(pytree_node=False, serialize=False)
