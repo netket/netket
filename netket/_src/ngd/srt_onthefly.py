@@ -114,26 +114,48 @@ def srt_onthefly(
             samples, NamedSharding(jax.sharding.get_abstract_mesh(), P())
         )
 
+    # The NTK is centred only after the contraction below. If the per-sample
+    # Jacobians share a large common component, that centring cancels it away in
+    # single precision, losing the small eigenvalues of the centred NTK. We
+    # therefore subtract an estimate c of the mean Jacobian from every block
+    # before contracting. This does not change the centred NTK for any constant
+    # shift (P (J - 1cᵀ)(J - 1cᵀ)ᵀ P = P J Jᵀ P with P 1 = 0), so c only needs to
+    # remove the bulk of the common part: the mean over a few samples is enough.
+    jacobian_shift = _mean_jacobian_estimate(
+        _apply_fn, parameters_real, all_samples, model_state, n_subset=32
+    )
+
     _jacobian_contraction = nt.empirical_ntk_by_jacobian(
         f=_apply_fn,
         trace_axes=(),
         vmap_axes=0,
     )
 
-    def jacobian_contraction(samples, all_samples, parameters_real, model_state):
+    def jacobian_contraction(
+        samples, all_samples, parameters_real, model_state, jacobian_shift
+    ):
         if config.netket_sharding:
             parameters_real = nkjax.lax.pcast(parameters_real, "S", to="varying")
+            jacobian_shift = nkjax.lax.pcast(jacobian_shift, "S", to="varying")
         if chunk_size is None:
             # STRUCTURED_DERIVATIVES returns a complex array, but the imaginary part is zero
             # shape [N_mc/p.size, N_mc, 2, 2]
             return _jacobian_contraction(
-                samples, all_samples, parameters_real, model_state=model_state
+                samples,
+                all_samples,
+                parameters_real,
+                model_state=model_state,
+                jacobian_shift=jacobian_shift,
             ).real
         else:
             _all_samples, _ = nkjax.chunk(all_samples, chunk_size=chunk_size)
             ntk_local = jax.lax.map(
                 lambda batch_lattice: _jacobian_contraction(
-                    samples, batch_lattice, parameters_real, model_state=model_state
+                    samples,
+                    batch_lattice,
+                    parameters_real,
+                    model_state=model_state,
+                    jacobian_shift=jacobian_shift,
                 ).real,
                 _all_samples,
             )
@@ -145,8 +167,8 @@ def srt_onthefly(
     # If we are sharding, use shard_map manually
     if config.netket_sharding:
         mesh = jax.sharding.get_abstract_mesh()
-        # SAMPLES, ALL_SAMPLES PARAMETERS_REAL
-        in_specs = (P("S", None), P(), P(), P())
+        # SAMPLES, ALL_SAMPLES, PARAMETERS_REAL, MODEL_STATE, JACOBIAN_SHIFT
+        in_specs = (P("S", None), P(), P(), P(), P())
         out_specs = P("S", None)
 
         # By default, I'm not sure whether the jacobian_contraction of NeuralTangents
@@ -164,7 +186,7 @@ def srt_onthefly(
     # in the apply function inside.
     with nkjax.sharding._increase_SHARD_MAP_STACK_LEVEL():
         ntk_local = jacobian_contraction(
-            samples, all_samples, parameters_real, model_state
+            samples, all_samples, parameters_real, model_state, jacobian_shift
         ).real
 
     # shape [N_mc, N_mc, 2, 2] or [N_mc, N_mc]
@@ -267,3 +289,26 @@ def srt_onthefly(
         old_updates = updates
 
     return rss(updates), old_updates, info
+
+
+def _mean_jacobian_estimate(apply_fn, parameters, samples, model_state, *, n_subset):
+    """
+    Mean per-sample Jacobian of `apply_fn`, estimated on `n_subset` evenly strided
+    samples. Leaves have shape `[*out, *param_shape]`, where `out` is the output
+    shape of a single sample.
+    """
+    n = samples.shape[0]
+    k = min(n, n_subset)
+    subset = samples[jnp.arange(k) * (n // k)]
+
+    out, vjp_fun = jax.vjp(lambda p: apply_fn(p, subset, model_state), parameters)
+    if out.ndim == 1:
+        (mean,) = vjp_fun(jnp.full(out.shape, 1.0 / k, out.dtype))
+    else:
+        # one mean per output component: cotangent i selects component i
+        cotangents = jnp.broadcast_to(
+            jnp.eye(out.shape[1], dtype=out.dtype)[:, None, :] / k,
+            (out.shape[1], *out.shape),
+        )
+        (mean,) = jax.vmap(vjp_fun)(cotangents)
+    return jax.lax.stop_gradient(mean)
