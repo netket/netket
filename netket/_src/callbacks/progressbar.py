@@ -10,28 +10,39 @@ from netket.utils import struct
 from netket._src.callbacks.base import AbstractCallback
 
 
+def _elapsed_time(driver, t_start: float, T_final: float) -> float:
+    """Time elapsed since `t_start`, at most `T_final`."""
+    return min(float(driver.t) - t_start, T_final)
+
+
 class TimeProgressBarCallback(AbstractCallback, mutable=True):
     """
     Progress bar displaying physical time for dynamics drivers.
 
-    Tracks ``driver.t ∈ [0, T_final]`` instead of step count.
+    Tracks the time elapsed since the start of the run, ``driver.t - t_start ∈
+    [0, T_final]``, instead of step count. ``t_start`` is ``driver._t_start`` if
+    the driver sets it (as the TDVP drivers do), and 0 otherwise.
     Used automatically by :class:`~netket.driver.AbstractDynamicsDriver`
     when :meth:`run` is called with a float time argument.
     """
 
     _T_final: float = struct.field(pytree_node=False, serialize=False)
-    _last_t: float = struct.field(pytree_node=False, serialize=False)
+    _t_start: float = struct.field(pytree_node=False, serialize=False)
     _pbar: Any = struct.field(pytree_node=False, serialize=False)
     _leave: bool = struct.field(pytree_node=False, serialize=False)
 
     def __init__(self, T_final: float, leave: bool = True):
         self._T_final = T_final
-        self._last_t = 0.0
+        self._t_start = 0.0
         self._pbar = None
         self._leave = leave
 
     def on_run_start(self, step, driver):
-        self._last_t = float(driver.t)
+        # Count from the time the run started at, even if another callback
+        # changes the time (e.g. when resuming from a checkpoint).
+        t_start = getattr(driver, "_t_start", None)
+        self._t_start = 0.0 if t_start is None else float(t_start)
+
         dt = float(driver.dt)
         n_dec = max(4, math.ceil(-math.log10(dt))) if dt > 0 else 4
         bar_format = (
@@ -46,7 +57,7 @@ class TimeProgressBarCallback(AbstractCallback, mutable=True):
             leave=self._leave,
             bar_format=bar_format,
         )
-        self._pbar.update(float(driver.t))
+        self._pbar.update(_elapsed_time(driver, self._t_start, self._T_final))
         self._pbar.unpause()
         self._pbar.refresh()
 
@@ -57,16 +68,16 @@ class TimeProgressBarCallback(AbstractCallback, mutable=True):
             )
 
     def on_step_end(self, step, log_data, driver):
-        t = float(driver.t)
-        self._pbar.update(t - self._last_t)
-        self._last_t = t
+        self._pbar.update(
+            _elapsed_time(driver, self._t_start, self._T_final) - self._pbar.n
+        )
         self._pbar.refresh()
 
     def on_run_end(self, step, driver):
         if self._pbar is not None:
-            t = float(driver.t)
-            self._pbar.update(t - self._last_t)
-            self._last_t = t
+            self._pbar.update(
+                _elapsed_time(driver, self._t_start, self._T_final) - self._pbar.n
+            )
             self._pbar.close()
             self._pbar = None
 

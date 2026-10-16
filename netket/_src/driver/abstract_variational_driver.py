@@ -29,7 +29,7 @@ from netket.utils.iterators import to_iterable
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState, FullSumState
 
-from netket._src.callbacks.base import AbstractCallback, StopRun
+from netket._src.callbacks.base import AbstractCallback, StopRun, RunFinished
 from netket._src.callbacks.observables import ObservableCallback
 from netket._src.callbacks.legacy_wrappers import (
     LegacyCallbackT,
@@ -493,7 +493,11 @@ class AbstractDriver(struct.Pytree, mutable=True):
                 callbacks.on_run_end(self.step_count, self)
                 # If all processes did not raise StopRun, some will deadlock here.
                 # This means you have a bug somewhere in YOUR code.
-                if jax.process_count() > 1:
+                if isinstance(error, RunFinished):
+                    # The run reached its end (e.g. the final time of a time
+                    # evolution), it did not stop early.
+                    pass
+                elif jax.process_count() > 1:
                     print(
                         f"[process {jax.process_index()}/{jax.process_count()}] "
                         f"Stopping early because of : {error}"

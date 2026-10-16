@@ -12,21 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable, Sequence
+from typing import Any
+from collections.abc import Callable
+from copy import copy
 from functools import partial
+import sys
 import warnings
 
+import jax
 import jax.numpy as jnp
 import numpy as np
-from tqdm.auto import tqdm
 
 import netket as nk
-from netket._src.driver.abstract_variational_driver_old import AbstractVariationalDriver
-from netket._src.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
-from netket.utils import timing
+from netket.utils import struct
 from netket.utils.dispatch import dispatch
-from netket.utils.iterators import to_iterable
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
 from netket.experimental.dynamics import AbstractSolver, Integrator
@@ -35,13 +35,56 @@ from netket.experimental.dynamics._utils import (
     maximum_norm,
 )
 
+from netket._src.callbacks.base import (
+    AbstractCallback,
+    STOPPING_CALLBACK_ORDER,
+    RunFinished,
+)
+from netket._src.callbacks.callback_list import CallbackList
+from netket._src.callbacks.legacy_wrappers import (
+    LegacyCallbackWrapper,
+    LegacyLoggerWrapper,
+)
+from netket._src.callbacks.observables import ObservableCallback
+from netket._src.callbacks.progressbar import TimeProgressBarCallback
+from netket._src.driver.abstract_variational_driver import AbstractDriver
 
-class TDVPBaseDriver(AbstractVariationalDriver):
+
+class TDVPBaseDriver(AbstractDriver):
     """
     Variational time evolution based on the time-dependent variational principle which,
     when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
     """
+
+    _generator: Callable = struct.field(pytree_node=False, serialize=False)
+    _t0: float = struct.field(pytree_node=False, serialize=False)
+    _error_norm: Callable | str = struct.field(pytree_node=False, serialize=False)
+
+    # State of the time evolution: the integrator holds the time, the time step
+    # and the parameters, and `_dw` is the last solution of the equation of
+    # motion, used as the starting point of the next one.
+    _integrator: Integrator
+    _dw: PyTree
+
+    # Recomputed at every step
+    _last_qgt: Any = struct.field(serialize=False, default=None)
+
+    # The times at which the current (or last) call to `run` started and stops,
+    # and the stopping times it has not reached yet (None to stop at every step).
+    _t_start: Any = struct.field(pytree_node=False, serialize=False, default=None)
+    _t_end: Any = struct.field(pytree_node=False, serialize=False, default=None)
+    _tstops: np.ndarray | None = struct.field(
+        pytree_node=False, serialize=False, default=None
+    )
+    # The current step: its time if it is a stopping time (None otherwise), the
+    # longest it can be to not go past the next stopping time, and whether it is
+    # the last step of the run, which only reports the final time.
+    _stop_time: Any = struct.field(pytree_node=False, serialize=False, default=None)
+    _max_dt: Any = struct.field(pytree_node=False, serialize=False, default=None)
+    _is_last_step: bool = struct.field(
+        pytree_node=False, serialize=False, default=False
+    )
 
     def __init__(
         self,
@@ -76,26 +119,19 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         """
         self._t0 = t0
 
-        super().__init__(
-            variational_state, optimizer=None, minimized_quantity_name="Generator"
-        )
+        super().__init__(variational_state, minimized_quantity_name="Generator")
 
-        self._generator_repr = repr(operator)
         if isinstance(operator, AbstractOperator):
             op = operator.collect()
             self._generator = lambda _: op
         else:
             self._generator = operator
 
-        self._dw = None  # type: PyTree
-        self._last_qgt = None
+        self._dw = jax.tree.map(jnp.zeros_like, self.state.parameters)
         self._integrator = None
 
         self.error_norm = error_norm
         self.ode_solver = ode_solver
-
-        self._stop_count = 0
-        self._postfix = {}
 
     @property
     def ode_solver(self):
@@ -145,6 +181,8 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         Can be set to a Callable accepting a pytree and returning a real scalar, or
         a string between 'euclidean', 'maximum' or 'qgt'.
         """
+        if isinstance(self._error_norm, str):
+            return partial(qgt_norm, self)
         return self._error_norm
 
     @error_norm.setter
@@ -156,7 +194,9 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         elif error_norm == "maximum":
             self._error_norm = maximum_norm
         elif error_norm == "qgt":
-            self._error_norm = partial(qgt_norm, self)
+            # Bound to the driver when it is used, as this one may be copied
+            # (e.g. when restoring it from a checkpoint).
+            self._error_norm = "qgt"
         else:
             raise ValueError(
                 "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum',"
@@ -164,96 +204,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             )
 
         if self.integrator is not None:
-            self.integrator.norm = self._error_norm
-
-    def advance(self, T: float):
-        """
-        Advance the time propagation by :code:`T` to :code:`self.t + T`.
-
-        Args:
-            T: Length of the integration interval.
-        """
-        for _ in self.iter(T):
-            pass
-
-    def iter(self, T: float, *, tstops: Sequence[float] | None = None):
-        """
-        Returns a generator which advances the time evolution for an interval
-        of length :code:`T`, stopping at :code:`tstops`.
-
-        Args:
-            T: Length of the integration interval.
-            tstops: A sequence of stopping times, each within the interval :code:`[self.t0, self.t0 + T]`,
-                at which this method will stop and yield. By default, a stop is performed
-                after each time step (at potentially varying step size if an adaptive
-                integrator is used).
-
-        Yields:
-            The current step count.
-        """
-        yield from self._iter(T, tstops)
-
-    def _iter(
-        self,
-        T: float,
-        tstops: Sequence[float] | None = None,
-        callback: Callable | None = None,
-    ):
-        """
-        Implementation of :code:`iter`. This method accepts and additional `callback` object, which
-        is called after every accepted step.
-        """
-        t_end = self.t + T
-        if tstops is not None and (
-            np.any(np.less(tstops, self.t)) or np.any(np.greater(tstops, t_end))
-        ):
-            raise ValueError(
-                f"All tstops must be in range [t, t + T]=[{self.t}, {t_end}]"
-            )
-
-        if tstops is not None and len(tstops) > 0:
-            tstops = np.sort(tstops)
-            always_stop = False
-        else:
-            tstops = []
-            always_stop = True
-
-        while self.t < t_end:
-            if always_stop or (
-                len(tstops) > 0
-                and (np.isclose(self.t, tstops[0]) or self.t > tstops[0])
-            ):
-                self._stop_count += 1
-                yield self.t
-                tstops = tstops[1:]
-
-            step_accepted = False
-            while not step_accepted:
-                if not always_stop and len(tstops) > 0:
-                    max_dt = tstops[0] - self.t
-                else:
-                    max_dt = None
-                step_accepted = self._integrator.step(max_dt=max_dt)
-                if self._integrator.errors:
-                    raise RuntimeError(
-                        f"ODE integrator: {self._integrator.errors.message()}"
-                    )
-                elif self._integrator.warnings:
-                    warnings.warn(
-                        f"ODE integrator: {self._integrator.warnings.message()}",
-                        UserWarning,
-                        stacklevel=3,
-                    )
-            self._step_count += 1
-            # optionally call callback
-            if callback:
-                callback()
-
-        # Yield one last time if the remaining tstop is at t_end
-        if (always_stop and np.isclose(self.t, t_end)) or (
-            len(tstops) > 0 and np.isclose(tstops[0], t_end)
-        ):
-            yield self.t
+            self.integrator.norm = self.error_norm
 
     def run(
         self,
@@ -284,107 +235,128 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 varying step size if an adaptive integrator is used).
             show_progress: If true displays a progress bar (default=True)
             callback: Callable or list of callable callback functions to be executed at each
-                stopping time.
+                stopping time, with the time as their first argument. Like the loggers and the
+                observables, they are not called at the other time steps.
+                :class:`~netket.callbacks.AbstractCallback` objects are instead called at every
+                time step, with the step count, as in the other drivers.
             timeit: If True, provide timing information.
         """
-        if obs is None:
-            obs = {}
+        # Fixed before `on_run_start`, so that a callback restoring the time there
+        # (e.g. when resuming from a checkpoint) does not move the end of the run.
+        self._t_start = self.t
+        self._t_end = self.t + T
+        self._tstops = _check_tstops(tstops, self._t_start, self._t_end)
+        # The run ends at the final time, not after a number of steps.
+        return super().run(
+            sys.maxsize,
+            out=out,
+            obs=obs,
+            show_progress=show_progress,
+            callback=callback,
+            timeit=timeit,
+        )
 
-        if callback is None:
-            callback = lambda *_args, **_kwargs: True
+    def compute_loss_and_update(self):
+        """
+        Attempts a step of the integrator from the current time, without changing
+        the time and the parameters of the driver.
 
-        # if out is a path, create an overwriting Json Log for output
-        if isinstance(out, str):
-            out = JsonLog(out, "w")
-        elif out is None:
-            out = ()
+        Returns the value of the generator at the start of the step, and the
+        integrator after the step, which :meth:`update_parameters` applies.
+        """
+        if self._step_attempt == 0:
+            at_stop, self._max_dt, self._is_last_step, self._tstops = _next_step(
+                self.t, self._t_end, self._tstops
+            )
+            self._stop_time = self.t if at_stop else None
+        if self._is_last_step:
+            return None, None
 
-        loggers = to_iterable(out)
-        callbacks = to_iterable(callback)
-        callback_stop = False
+        loss_stats = None
 
-        t_init = np.asarray(self.t)
-        t_tot = np.asarray(T)
+        def f(t, w, *, stage=0):
+            nonlocal loss_stats
+            dw = odefun(self.state, self, t, w, stage=stage)
+            if stage == 0:
+                loss_stats = self._loss_stats
+            return dw
 
-        with tqdm(
-            total=t_tot,
-            disable=not show_progress or not self._is_root,
-            unit_scale=True,
-            dynamic_ncols=True,
-        ) as pbar:
-            first_step = True
+        # Bound to this driver, which may be a copy of the one that created the
+        # integrator (e.g. when restoring it from a checkpoint).
+        integrator = copy(self._integrator)
+        integrator.f = f
+        integrator.norm = self.error_norm
+        integrator.step(max_dt=self._max_dt)
 
-            # We need a closure to pass to self._iter in order to update the progress bar even if
-            # there are no tstops
-            def update_progress_bar():
-                # Reset the timing of tqdm after the first step to ignore compilation time
-                nonlocal first_step
-                if first_step:
-                    first_step = False
-                    pbar.unpause()
+        # The ODE function sets the parameters of the intermediate stages.
+        self.state.parameters = self._integrator.y
 
-                pbar.n = min(np.asarray(self._integrator.t) - t_init, t_tot)
-                self._postfix["n"] = self.step_count
-                self._postfix.update(
-                    {
-                        self._loss_name: str(self._loss_stats),
-                    }
-                )
+        if integrator.errors:
+            raise RuntimeError(f"ODE integrator: {integrator.errors.message()}")
+        elif integrator.warnings:
+            warnings.warn(
+                f"ODE integrator: {integrator.warnings.message()}",
+                UserWarning,
+                stacklevel=2,
+            )
+        return loss_stats, integrator
 
-                pbar.set_postfix(self._postfix)
-                pbar.refresh()
+    def _accept_step(self) -> bool:
+        integrator = self._dp
+        if integrator is None or integrator._state.accepted:
+            return True
+        # The step controller has changed the time step: retry with it.
+        self._integrator = integrator
+        return False
 
-            with timing.timed_scope(force=timeit) as timer:
-                for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
-                    log_data = self.estimate(obs)
-                    self._log_additional_data(log_data, step)
+    def update_parameters(self, dp):
+        """
+        Moves the time and the parameters to the end of the step computed by
+        :meth:`compute_loss_and_update`.
 
-                    self._postfix = {"n": self.step_count}
-                    # if the cost-function is defined then report it in the progress bar
-                    if self._loss_stats is not None:
-                        self._postfix.update(
-                            {
-                                self._loss_name: str(self._loss_stats),
-                            }
-                        )
-                        log_data[self._loss_name] = self._loss_stats
-                    pbar.set_postfix(self._postfix)
+        Args:
+            dp: the integrator after the step.
+        """
+        if dp is not None:
+            self._integrator = dp
+            self.state.parameters = dp.y
 
-                    # Execute callbacks before loggers because they can append to log_data
-                    for callback in callbacks:
-                        if not callback(step, log_data, self):
-                            callback_stop = True
+    def _default_callbacks(
+        self,
+        callbacks,
+        *,
+        n_iter,
+        obs,
+        step_size,
+        loggers,
+        show_progress,
+        **kwargs,
+    ) -> CallbackList:
+        # Observables, loggers and callback functions are only called at the
+        # stopping times, with the time instead of the step count.
+        callback_list = []
+        if obs is not None:
+            # First, so that callbacks find the observables in the logged data.
+            callback_list.append(_AtStoppingTimes(ObservableCallback(obs, interval=0)))
+        for callback in callbacks:
+            if isinstance(callback, AbstractCallback):
+                callback_list.append(callback)
+            else:
+                callback_list.append(_AtStoppingTimes(LegacyCallbackWrapper(callback)))
+        for log in loggers:
+            if not isinstance(log, AbstractCallback):
+                log = LegacyLoggerWrapper(log)
+            callback_list.append(_AtStoppingTimes(log))
+        if show_progress:
+            callback_list.append(
+                TimeProgressBarCallback(float(self._t_end - self._t_start))
+            )
+        callback_list.append(_StopAfterLastStep())
+        return CallbackList(callback_list)
 
-                    for logger in loggers:
-                        logger(self.step_value, log_data, self.state)
-
-                    if len(callbacks) > 0:
-                        if callback_stop:
-                            break
-                    update_progress_bar()
-
-            # Final update so that it shows up filled.
-            update_progress_bar()
-
-        # flush at the end of the evolution so that final values are saved to
-        # file
-        for logger in loggers:
-            logger.flush(self.state)
-
-        if timeit:
-            self._timer = timer
-            if self._is_root:
-                print(timer)
-        return loggers
-
-    def _log_additional_data(self, log_dict, step):
-        super()._log_additional_data(log_dict, step)
+    def _log_additional_data(self, log_dict):
+        super()._log_additional_data(log_dict)
         log_dict["t"] = self.t
-
-    @property
-    def _default_step_size(self):
-        # Essentially means
-        return None
 
     @property
     def step_value(self):
@@ -449,6 +421,95 @@ def qgt_norm(driver: TDVPBaseDriver, x: PyTree):
     y = driver._last_qgt @ x  # pylint: disable=protected-access
     xc_dot_y = nk.jax.tree_dot(nk.jax.tree_conj(x), y)
     return jnp.sqrt(jnp.real(xc_dot_y))
+
+
+def _check_tstops(tstops, t_start, t_end) -> np.ndarray | None:
+    """
+    Checks that the stopping times are within the run, and sorts them.
+    Returns None, meaning to stop at every step, if there are none.
+    """
+    if tstops is None or len(tstops) == 0:
+        return None
+    if np.any(np.less(tstops, t_start)) or np.any(np.greater(tstops, t_end)):
+        raise ValueError(f"All tstops must be in range [t, t + T]=[{t_start}, {t_end}]")
+    return np.sort(tstops)
+
+
+def _next_step(t, t_end, tstops):
+    """
+    Plans the step of a run ending at `t_end` that starts at time `t`.
+
+    Returns whether `t` is a stopping time, the longest the step can be to not
+    go past the next stopping time (None if unbounded), whether it is the last
+    step of the run, which only reports the final time, and the stopping times
+    after `t`. `tstops` is None to stop at every step.
+    """
+    is_last_step = not t < t_end
+    if tstops is None:
+        at_stop = np.isclose(t, t_end) if is_last_step else True
+        return at_stop, None, is_last_step, None
+
+    # The stopping times before `t` have already been reached, or skipped if a
+    # callback moved the time forward (e.g. when resuming from a checkpoint).
+    t_np = np.asarray(t)
+    reached = (tstops < t_np) | np.isclose(tstops, t_np)
+    at_stop = bool(np.any(np.isclose(tstops[reached], t_np)))
+    tstops = tstops[~reached]
+
+    if len(tstops) > 0 and not is_last_step:
+        max_dt = tstops[0] - t
+    else:
+        max_dt = None
+    return at_stop, max_dt, is_last_step, tstops
+
+
+class _AtStoppingTimes(AbstractCallback):
+    """
+    Calls a callback or a logger only at the stopping times of
+    :meth:`TDVPBaseDriver.run`, with the time instead of the step count.
+    """
+
+    callback: AbstractCallback
+
+    def __init__(self, callback: AbstractCallback):
+        self.callback = callback
+
+    @property
+    def callback_order(self) -> int:
+        return self.callback.callback_order
+
+    def on_run_start(self, step, driver):
+        self.callback.on_run_start(driver.t, driver)
+
+    def before_parameter_update(self, step, log_data, driver):
+        if driver._stop_time is not None:
+            self.callback.before_parameter_update(driver._stop_time, log_data, driver)
+
+    def on_step_end(self, step, log_data, driver):
+        if driver._stop_time is not None:
+            self.callback.on_step_end(driver._stop_time, log_data, driver)
+
+    def on_run_end(self, step, driver):
+        self.callback.on_run_end(driver.t, driver)
+
+    def on_run_error(self, step, error, driver):
+        self.callback.on_run_error(driver.t, error, driver)
+
+
+class _StopAfterLastStep(AbstractCallback):
+    """
+    Ends :meth:`TDVPBaseDriver.run` after its last step, which only reports the
+    final time.
+    """
+
+    @property
+    def callback_order(self) -> int:
+        # Run last, so raising StopRun never skips a later callback's collective.
+        return STOPPING_CALLBACK_ORDER
+
+    def on_step_end(self, step, log_data, driver):
+        if driver._is_last_step:
+            raise RunFinished(f"Reached t={driver.t:.6g}")
 
 
 @dispatch
