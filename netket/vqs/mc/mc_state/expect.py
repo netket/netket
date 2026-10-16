@@ -17,7 +17,7 @@ from functools import partial
 
 from netket.stats import Stats
 from netket.utils.dispatch import dispatch
-from netket.utils import HashablePartial
+from netket.utils import HashablePartial, config
 from netket.operator import (
     AbstractOperator,
     DiscreteOperator,
@@ -75,6 +75,10 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteJaxOperator):  # no
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: DiscreteJaxOperator):  # noqa: F811
+    if config.netket_experimental_unique_kernel:
+        return kernels.local_value_kernel_jax_fingerprint
+    if config.netket_experimental_flattened_kernel:
+        return kernels.local_value_kernel_jax_flattened
     return kernels.local_value_kernel_jax
 
 

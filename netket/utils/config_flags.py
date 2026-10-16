@@ -263,6 +263,43 @@ config.define(
 )
 
 config.define(
+    "NETKET_EXPERIMENTAL_UNIQUE_KERNEL",
+    bool,
+    default=False,
+    help=dedent(
+        """
+        Attempt to reuse repeated reference and connected configurations in
+        the generic MCState local-value kernel for JAX discrete operators.
+        Sort inexpensive fingerprints independently on each device and check
+        full equality before sharing model outputs. Collisions can leave some
+        duplicate evaluations but never merge unequal configurations. Overrides
+        the flattened-kernel flag. Disabled by default because grouping can
+        still cost more than it saves.
+        """
+    ),
+    runtime=True,
+)
+
+config.define(
+    "NETKET_EXPERIMENTAL_FLATTENED_KERNEL",
+    bool,
+    default=False,
+    help=dedent(
+        """
+        If True, the local estimators of jax operators
+        (:class:`netket.operator.DiscreteJaxOperator`) on a :class:`netket.vqs.MCState`
+        are computed with :func:`netket.vqs.mc.kernels.local_value_kernel_jax_flattened`,
+        which evaluates the network only on the connected configurations that
+        differ from the sample instead of on all the padded ones. Uses the
+        operator's existing connectivity implementation without per-operator
+        bounds. Runtime gains depend on the model, connectivity and chunk size.
+        Disabled by default.
+        """
+    ),
+    runtime=True,
+)
+
+config.define(
     "NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION",
     bool,
     default=False,
