@@ -12,6 +12,7 @@
   Both solvers keep `A` and `b` intact, so they can still be composed with {func}`netket.optimizer.solver.nan_fallback`, even though JAXMg's default entry points donate their input buffers.
 
 ### New Features
+* Added {class}`netket.logging.WandbLog`, a logger that streams metrics and optional model checkpoints to [Weights & Biases](https://wandb.ai). It has the same interface as {class}`~netket.logging.MLFlowLog`, and requires `wandb` to be installed (it is part of the `extra` extra) [PR #2302](https://github.com/netket/netket/pull/2302).
 * {class}`netket.utils.struct.Pytree` subclasses can override `__process_deserialization_state__` to adjust the saved state before it is loaded, e.g. to read files saved by older versions [PR #2285](https://github.com/netket/netket/pull/2285).
 
 ### Bug Fixes

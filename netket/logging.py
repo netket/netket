@@ -19,6 +19,7 @@ from netket._src.logging.state_log import StateLog as StateLog
 from netket._src.logging.tensorboard import TensorBoardLog as TensorBoardLog
 from netket._src.logging.hdf5_log import HDF5Log as HDF5Log
 from netket._src.logging.mlflow_log import MLFlowLog as MLFlowLog
+from netket._src.logging.wandb_log import WandbLog as WandbLog
 
 from netket._src.callbacks.save_state import (
     SaveVariationalState as SaveVariationalState,
