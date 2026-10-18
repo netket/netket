@@ -104,7 +104,9 @@ def test_metropolis_serialization(key_type, sampler, tmp_path_distributed):
                 jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :])
             )
         else:
-            assert sampler_state_2.σ.sharding.shape == (len(jax.devices()), 1)
+            assert isinstance(
+                sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding
+            )
         assert bool(jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :]))
 
         # verify that it works

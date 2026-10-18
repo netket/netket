@@ -8,12 +8,12 @@ import jax
 @pytest.fixture
 def _device_count(request):
     """
-    Fixture returning the number of MPI nodes detected by NetKet
+    Fixture returning the number of devices among which NetKet distributes
+    the calculation (1 if sharding is disabled).
     """
+    import netket as nk
 
-    import jax
-
-    return jax.device_count()
+    return jax.device_count() if nk.config.netket_sharding else 1
 
 
 @pytest.fixture

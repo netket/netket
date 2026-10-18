@@ -199,7 +199,10 @@ def test_random_states_discrete_sharding(hi: DiscreteHilbert):
 
     # check that the sharding is correct
     s = hi.random_state(jax.random.key(13), 4)
-    assert s.sharding.spec == P()
+    if nk.config.netket_sharding:
+        assert s.sharding.spec == P()
+    else:
+        assert s.sharding.is_fully_replicated
 
     # Check that no communication happens
     @jax.jit
