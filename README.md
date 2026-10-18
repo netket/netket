@@ -24,7 +24,7 @@ NetKet is an affiliated project to [numFOCUS](https://numfocus.org).
 
 ## Installation and Usage
 
-NetKet runs on MacOS and Linux and requires Python 3.11 or later. We recommend installing NetKet using `pip` or `uv`. **Do not use conda** as JAX has known issues when installed through conda.
+NetKet runs on MacOS and Linux and requires Python 3.13 or later. We recommend installing NetKet using `pip` or `uv`. **Do not use conda** as JAX has known issues when installed through conda.
 
 ```sh
 pip install --upgrade pip
