@@ -16,13 +16,7 @@
 
 from textwrap import dedent as _dedent
 
-from netket.utils import module_version as _module_version
-
-# TODO: (April 2026) keep only a branch when we drop jax 0.9
-if _module_version("jax") >= (0, 10):
-    from jax.extend.core import concrete_or_error as _jax_concrete_or_error
-else:  # pragma: no cover
-    from jax.core import concrete_or_error as _jax_concrete_or_error
+from jax.extend.core import concrete_or_error as _jax_concrete_or_error
 
 """NetKet error classes.
 (Inspired by NetKet error classes)

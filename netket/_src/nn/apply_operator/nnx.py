@@ -80,28 +80,14 @@ class ApplyOperatorModuleNNX(nnx.Module):
     @property
     def operator(self):
         """The operator applied to the base module."""
-        # Support both old and new Flax NNX Variable API
-        # Old API: get_value() method (Flax < 0.11)
-        # New API: .value property (Flax >= 0.11)
-        # TODO: Remove backward compatibility when minimum Flax version >= 0.11
-        if hasattr(self._operator_leaves, "get_value"):
-            leaves = self._operator_leaves.get_value()
-        else:
-            leaves = self._operator_leaves.value
+        leaves = self._operator_leaves.get_value()
         return jax.tree.unflatten(self._operator_treedef, leaves)
 
     @operator.setter
     def operator(self, new_operator):
         leaves, treedef = jax.tree.flatten(new_operator)
         self._operator_treedef = treedef
-        # Support both old and new Flax NNX Variable API
-        # Old API: set_value() method (Flax < 0.11)
-        # New API: .value property (Flax >= 0.11)
-        # TODO: Remove backward compatibility when minimum Flax version >= 0.11
-        if hasattr(self._operator_leaves, "set_value"):
-            self._operator_leaves.set_value(leaves)
-        else:
-            self._operator_leaves.value = leaves
+        self._operator_leaves.set_value(leaves)
 
     def __nnx_repr__(self):
         """Custom repr to avoid issues with operator repr in NNX."""

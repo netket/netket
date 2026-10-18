@@ -40,9 +40,9 @@ dependencies = [
     "numba>=0.59",
     "igraph>=0.10.0",
     # jax 0.11.2 breaks flax 0.12.9 (google/flax#5596). Remove once flax is fixed.
-    "jax>=0.8.2,<0.11.2",
+    "jax>=0.10.0,<0.11.2",
     "equinox>=0.12.2",
-    "flax>=0.10.6",
+    "flax>=0.12.7",
     "orjson>=3.10.7, <4",
     "optax>=0.2.2, <0.3",
     "plum-dispatch>=2.4",
