@@ -32,13 +32,9 @@
 """
 Utilities for defining custom classes that can be used with jax transformations.
 """
-from typing import TypeVar, overload
-from collections.abc import Callable
 
-# TODO: switch to typing when we require python 3.11
-from typing_extensions import (
-    dataclass_transform,  # pytype: disable=not-supported-yet
-)
+from typing import TypeVar, dataclass_transform, overload
+from collections.abc import Callable
 from functools import partial
 
 

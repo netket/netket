@@ -148,10 +148,6 @@ class LocalOperatorNumba(LocalOperatorBase):
         n_sites = x.shape[1]
         dtype = all_mels.dtype
 
-        # TODO remove this line when numba 0.53 is dropped 0.54 is minimum version
-        # workaround a bug in Numba arising when NUMBA_BOUNDSCHECK=1
-        constant = constant.item()
-
         assert sections.shape[0] == batch_size
 
         n_operators = n_conns.shape[0]
@@ -308,10 +304,6 @@ class LocalOperatorNumba(LocalOperatorBase):
         dtype = all_mels.dtype
 
         assert filters.shape[0] == batch_size and sections.shape[0] == batch_size
-
-        # TODO remove this line when numba 0.53 is dropped 0.54 is minimum version
-        # workaround a bug in Numba arising when NUMBA_BOUNDSCHECK=1
-        constant = constant.item()
 
         n_operators = n_conns.shape[0]
         xs_n = np.empty((batch_size, n_operators), dtype=np.intp)
