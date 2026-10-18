@@ -27,6 +27,7 @@ from netket import jax as nkjax
 from netket.jax import canonicalize_dtypes
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import dtype as _dtype, is_scalar
+from netket.errors import OperatorMultiplicationError
 
 from .._abstract_operator import AbstractOperator
 from .._discrete_operator import DiscreteOperator
@@ -375,14 +376,7 @@ class PauliStringsBase(DiscreteOperator):
 
     def __mul__(self, other):
         if isinstance(other, AbstractOperator):
-            raise TypeError(
-                "To multiply operators use the matrix`@` "
-                "multiplication operator `@` instead of the element-wise "
-                "multiplication operator `*`.\n\n"
-                "For example:\n\n"
-                ">>> nk.operator.PauliStrings('XY')@nk.operator.PauliStrings('ZY')"
-                "\n\n"
-            )
+            raise OperatorMultiplicationError()
         elif is_scalar(other):
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
@@ -391,14 +385,7 @@ class PauliStringsBase(DiscreteOperator):
 
     def __imul__(self, other):
         if isinstance(other, AbstractOperator):
-            raise TypeError(
-                "To multiply operators use the matrix`@` "
-                "multiplication operator `@` instead of the element-wise "
-                "multiplication operator `*`.\n\n"
-                "For example:\n\n"
-                ">>> nk.operator.PauliStrings('XY')@nk.operator.PauliStrings('ZY')"
-                "\n\n"
-            )
+            raise OperatorMultiplicationError()
         elif is_scalar(other):
             if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
                 raise ValueError(

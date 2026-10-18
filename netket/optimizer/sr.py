@@ -92,7 +92,7 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         is therefore much more efficient than the standard SR for very large numbers
         of parameters.
 
-        Look at :class:`netket.driver.VMC_SRt` for more details.
+        Look at :class:`netket.driver.VMC_SR` for more details.
 
     """
 

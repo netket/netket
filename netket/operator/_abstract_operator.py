@@ -17,6 +17,7 @@ import abc
 
 from netket.utils.types import DType
 from netket.utils.numbers import is_scalar
+from netket.errors import OperatorMultiplicationError
 
 
 from ._abstract_observable import AbstractObservable, HilbertType
@@ -142,7 +143,8 @@ class AbstractOperator(AbstractObservable[HilbertType]):
             from ._sum import SumOperator
 
             return SumOperator(self, coefficients=[other])
-        # TODO: When the operator multiplication deprecation warning is turned into an error, add a helpful message here
+        if isinstance(other, AbstractOperator):
+            raise OperatorMultiplicationError()
         return NotImplemented
 
     def __rmul__(self, other):

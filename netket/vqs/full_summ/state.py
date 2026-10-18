@@ -122,8 +122,7 @@ class FullSumState(VariationalState):
         else:
             par_sharding = None
 
-        # TODO: deprecated in July 2025
-        # For simplicity, we do not accept numpy inputs in variables
+        # numpy leaves in variables are converted to jax arrays
         # resultis in SingleDeviceSharding if par_sharding is None
         if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
             variables = jax.tree.map(

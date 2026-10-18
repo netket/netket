@@ -287,7 +287,7 @@ def test_lattice_symmetry(i, name):
     assert len(sgb.little_group(*kvec[i])) == little_group_size[i]
     assert len(sgb.little_group(kvec[i])) == little_group_size[i]
     irrep_from_lg = sgb.space_group_irreps(kvec[i])
-    irrep_from_sg = sgb.space_group.character_table()
+    irrep_from_sg = sgb.character_table()
     for irrep in irrep_from_lg:
         assert np.any(np.all(np.isclose(irrep, irrep_from_sg), axis=1))
 
@@ -584,7 +584,10 @@ def _check_symmgroup(autom, symmgroup):
     """Asserts that symmgroup consists of automorphisms listed in autom and has no duplicate elements."""
 
     for el in symmgroup.to_array():
-        assert group.Permutation(el, validate=False) in autom.elems
+        assert (
+            group.Permutation(inverse_permutation_array=el, validate=False)
+            in autom.elems
+        )
 
     assert symmgroup == symmgroup.remove_duplicates()
     assert isinstance(symmgroup[0], group.Identity)

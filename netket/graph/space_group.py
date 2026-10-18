@@ -20,7 +20,7 @@ from functools import reduce
 from collections.abc import Iterable, Sequence
 from warnings import warn
 
-from netket.utils import struct, deprecated_new_name, deprecated
+from netket.utils import struct
 from netket.utils.types import Array
 from netket.utils.float import prune_zeros
 from netket.utils.dispatch import dispatch
@@ -45,8 +45,7 @@ class Translation(Permutation):
 
     def __init__(
         self,
-        permutation: Array | None = None,
-        *,  # maybe change something
+        *,
         displacement: Array,
         permutation_array: Array | None = None,
         inverse_permutation_array: Array | None = None,
@@ -57,18 +56,12 @@ class Translation(Permutation):
         and a displacement vector.
 
         Exactly one argument among `permutation_array` and
-        `inverse_permutation_array` (and the deprecated argument `permutation`)
-        must be specified.
-
-        The deprecated argument `permutation` should be substituted for
-        `inverse_permutation_array`.
+        `inverse_permutation_array` must be specified.
 
         Note that the left action of a permutation on an array `a` is
         `a[inverse_permutation_array]`.
 
         Args:
-            permutation: (deprecated) 1D array listing
-                :math:`g^{-1}(x)` for all :math:`0\le x \le N-1`.
             displacement: displacement vector is units of lattice basis vectors
             permutation_array: 1D array listing
                 :math:`g(x)` for all :math:`0\le x \le N-1`.
@@ -81,7 +74,6 @@ class Translation(Permutation):
         super().__init__(
             permutation_array=permutation_array,
             inverse_permutation_array=inverse_permutation_array,
-            permutation=permutation,
         )
         self._vector = np.asarray(displacement)
 
@@ -498,21 +490,6 @@ class SpaceGroup(PermutationGroup):
             return self.full_translation_group
         else:
             return TranslationGroup(self.lattice, axes=axes)
-
-    @deprecated_new_name("translation_group")
-    def _translations_along_axis(self, axis: int) -> TranslationGroup:
-        # DEPRECATED: use `self.translation_group(axes=axis)` instead
-        return self.translation_group(axes=axis)
-
-    @property
-    @deprecated(
-        reason="This `SpaceGroup` object can be used directly as a permutation group"
-    )
-    def space_group(self) -> "SpaceGroup":
-        """
-        Deprecated. Returns :code:`self`.
-        """
-        return self
 
     @struct.property_cached
     def product_table(self) -> Array:

@@ -23,7 +23,7 @@ import warnings
 
 import numpy as _np
 
-from netket.utils import HashableArray, deprecated_new_name, struct
+from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup
 
@@ -548,18 +548,6 @@ class Lattice(Graph):
 
     # Generating space groups
     # -----------------------------------------------------------------------
-    @deprecated_new_name(
-        "space_group",
-        reason="Functionality of `SpaceGroupBuilder` and `SpaceGroup` merged",
-    )
-    def space_group_builder(
-        self, point_group: PointGroup | None = None
-    ) -> "SpaceGroup":
-        """
-        Deprecated. See `Lattice.space_group` for details.
-        """
-        return self.space_group(point_group)
-
     @struct.property_cached
     def default_space_group(self) -> "SpaceGroup":
         from .space_group import SpaceGroup

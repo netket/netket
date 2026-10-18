@@ -20,6 +20,15 @@
 * Removed the aliases `Any`, `Union`, `Protocol`, `Callable` and `Sequence` from `netket.utils.types`, deprecated in NetKet 3.17. Import them from {mod}`typing` or {mod}`collections.abc` instead.
 * Constructing {class}`netket.optimizer.SR` with a QGT partial that sets `diag_shift` or `diag_scale` (e.g. `SR(qgt=QGTJacobianDense(diag_shift=0.1))`) now raises an error instead of a warning. Pass them to `SR` instead: `SR(qgt=QGTJacobianDense, diag_shift=0.1)`.
 * Defining `__pre_init__` or `__post_init__` in a class decorated with {func}`netket.utils.struct.dataclass` that inherits from {class}`netket.utils.struct.Pytree` now raises an error instead of a warning. Define a standard `__init__` instead.
+* Multiplying two operators with `*` (deprecated in NetKet 3.20) now raises a {class}`netket.errors.OperatorMultiplicationError`, both for `A * B` and `A *= B`. Use `A @ B` instead. `netket.errors.OperatorMultiplicationDeprecationWarning` has been removed.
+* Removed `netket.utils.mpi`, deprecated in NetKet 3.19 when MPI support was removed. Use {func}`jax.process_count` and {func}`jax.process_index` instead.
+* Removed `netket.experimental.driver.VMC_SRt` (use {class}`netket.driver.VMC_SR` with `use_ntk=True`) and `netket.experimental.driver.VMC_SR` (use {class}`netket.driver.VMC_SR`).
+* Removed the `linear_solver_fn` argument of {class}`netket.driver.VMC_SR` and {class}`netket.driver.Infidelity_SR`, deprecated in NetKet 3.20. Use `linear_solver` instead.
+* Removed the activation functions re-exported from jax in `netket.nn` and `netket.nn.activation` (e.g. `nk.nn.relu`, `nk.nn.activation.gelu`). Use those in {mod}`jax.nn` and {mod}`jax.numpy` instead. The NetKet-specific ones (`log_cosh`, `reim_selu`, ...) are only available from {mod}`netket.nn.activation`.
+* Removed `netket.jax.tree_ravel`. Use {func}`jax.flatten_util.ravel_pytree` instead.
+* Removed `Lattice.space_group_builder` (use {meth}`netket.graph.Lattice.space_group`), `SpaceGroup.space_group` (use the `SpaceGroup` itself) and `SpaceGroup._translations_along_axis` (use `SpaceGroup.translation_group(axes=...)`).
+* Removed the positional `permutation` argument of {class}`netket.utils.group.Permutation` and `Translation`, the `Permutation.permutation` property and `np.asarray(permutation)`. Use `inverse_permutation_array` (or `permutation_array`) instead.
+* Removed the internal `netket.jax.sharding.with_samples_sharding_constraint` (use `netket.jax.sharding.shard_along_axis(x, axis=0)`), `netket.jax.sharding.SHARD_MAP_STACK_LEVEL` and `netket.vqs.mc.mc_state.state.check_chunk_size`.
 * Removed the `inverted_ordering` argument of {class}`netket.hilbert.Spin`, which allowed to use the encoding of NetKet 3.15 and earlier (where spin up was -1). Spin up is always +1, and `ordering=new` is no longer printed in the `repr` of the Hilbert space.
 
 ### New Features

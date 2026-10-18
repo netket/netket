@@ -78,9 +78,9 @@ def _local_operator():
         nk.operator.spin.sigmaz,
     )
     H = (
-        sum(sx(hi, i) * sz(hi, (i + 1) % 8) for i in range(8))
+        sum(sx(hi, i) @ sz(hi, (i + 1) % 8) for i in range(8))
         + 0.5
-        * sum(sy(hi, i) * sy(hi, (i + 2) % 8) * sx(hi, (i + 5) % 8) for i in range(8))
+        * sum(sy(hi, i) @ sy(hi, (i + 2) % 8) @ sx(hi, (i + 5) % 8) for i in range(8))
         + 0.3 * sum(sx(hi, i) for i in range(8))
     )
     return hi, H.to_jax_operator(), nk.sampler.MetropolisLocal(hi)
