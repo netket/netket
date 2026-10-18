@@ -11,18 +11,13 @@ from netket.operator.boson import (
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 from netket.operator import AbstractOperator
-from netket.utils import module_version
 
 import pytest
 from pytest import raises
 
 from .. import common
 
-# TODO: once we require np 2.0.0, we can remove this
-if module_version(np) >= (2, 0, 0):
-    from numpy.exceptions import ComplexWarning
-else:
-    from numpy import ComplexWarning
+from numpy.exceptions import ComplexWarning
 
 import jax
 
