@@ -172,7 +172,7 @@ class PauliStringsBase(DiscreteOperator):
            >>> hilbert = nk.hilbert.Spin(1/2, 2)
            >>> op = nk.operator.PauliStrings(hilbert, operators, weights)
            >>> op.hilbert
-           Spin(s=1/2, N=2, ordering=new)
+           Spin(s=1/2, N=2)
         """
         if hilbert is None:
             raise ValueError("None-valued hilbert passed.")

@@ -15,7 +15,6 @@
 from collections.abc import Callable
 import functools
 from typing import Any
-import warnings
 
 import jax
 
@@ -30,7 +29,7 @@ from .preconditioner import AbstractLinearPreconditioner
 def check_conflicting_args_in_partial(
     qgt: functools.partial | Any,
     conflicting_args: list[str],
-    warning_message: str,
+    error_message: str,
 ) -> None:
     """
     Check for conflicting arguments in a QGT partial.
@@ -38,10 +37,10 @@ def check_conflicting_args_in_partial(
     Args:
         qgt: The partial to perform the check or any other object.
         conflicting_args: List of argument names to check for conflicts.
-        warning_message: Warning message for the user.
+        error_message: Error message for the user.
 
     Raises:
-        UserWarning: If conflicting arguments are found.
+        ValueError: If conflicting arguments are found.
     """
 
     if not isinstance(qgt, functools.partial):
@@ -50,12 +49,8 @@ def check_conflicting_args_in_partial(
     specified_args = set(qgt.keywords.keys())
     conflicting = set(conflicting_args).intersection(specified_args)
     if conflicting:
-        warnings.warn(
-            warning_message.format(
-                conflicting, {k: qgt.keywords[k] for k in conflicting}
-            ),
-            UserWarning,
-            stacklevel=3,
+        raise ValueError(
+            error_message.format(conflicting, {k: qgt.keywords[k] for k in conflicting})
         )
 
 
@@ -165,10 +160,9 @@ class SR(AbstractLinearPreconditioner, mutable=True):
         check_conflicting_args_in_partial(
             qgt,
             ["diag_shift", "diag_scale"],
-            "Constructing the SR object with `SR(qgt= MyQGTType({}))` can lead to unexpected results and has been deprecated, "
+            "Constructing the SR object with `SR(qgt= MyQGTType({}))` is not supported, "
             "because the keyword arguments specified in the QGTType are overwritten by those specified by the SR class and its defaults.\n\n"
-            "To fix this, construct SR as  `SR(qgt=MyQGTType, {})` .\n\n"
-            "In the future, this warning will become an error.",
+            "To fix this, construct SR as  `SR(qgt=MyQGTType, {})` .",
         )
 
         super().__init__(solver, solver_restart=solver_restart)

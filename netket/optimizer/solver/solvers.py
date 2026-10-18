@@ -20,7 +20,6 @@ from jax.sharding import PartitionSpec as P
 from jax.flatten_util import ravel_pytree
 
 from netket.utils.api_utils import partial_from_kwargs
-from netket.utils.deprecation import warn_deprecation
 from netket._src.solvers.nan_fallback import (
     _nan_fallback_solver,
     nan_fallback as nan_fallback,
@@ -43,8 +42,6 @@ def pinv_smooth(
     rtol: float = 1e-14,
     rtol_smooth: float = 1e-14,
     x0=None,
-    rcond: float = None,
-    rcond_smooth: float = None,
     return_eigvals: bool = False,
 ):
     r"""
@@ -93,25 +90,9 @@ def pinv_smooth(
         rtol_smooth : Regularization parameter used with a similar effect to `rtol`
             but with a softer curve. See :math:`\epsilon` in the formula
             above.
-        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
-        rcond_smooth: (deprecated) Alias for `rtol_smooth`. Will be removed in a future release.
         return_eigvals: If True, also return the eigenvalues of A.
     """
     del x0
-
-    if rcond is not None:
-        warn_deprecation(
-            "The 'rcond' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol' instead."
-        )
-        rtol = rcond
-
-    if rcond_smooth is not None:
-        warn_deprecation(
-            "The 'rcond_smooth' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol_smooth' instead."
-        )
-        rtol_smooth = rcond
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
@@ -150,7 +131,6 @@ def pinv(
     *,
     rtol: float = 1e-12,
     x0=None,
-    rcond: float = None,
     return_eigvals: bool = False,
 ):
     """
@@ -187,16 +167,8 @@ def pinv(
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
         rtol: Cut-off ratio for small singular values of :code:`A`.
-        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
     """
     del x0
-
-    if rcond is not None:
-        warn_deprecation(
-            "The 'rcond' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol' instead."
-        )
-        rtol = rcond
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()

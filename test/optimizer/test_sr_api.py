@@ -142,31 +142,31 @@ def test_qgt_auto_diag_scale_passed():
 @pytest.mark.parametrize(
     "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]
 )
-def test_sr_diag_warnings(qgt):
+def test_sr_diag_errors(qgt):
     """
-    Test various scenarios for warnings related to diag_shift and diag_scale in SR.
+    Test various scenarios for errors related to diag_shift and diag_scale in SR.
     """
-    warning_message = r"Constructing the SR object with `SR\(qgt= MyQGTType\({.*}\)\)` can lead to unexpected results and has been deprecated, because the keyword arguments specified in the QGTType are overwritten by those specified by the SR class and its defaults\.\n\nTo fix this, construct SR as  `SR\(qgt=MyQGTType, {.*}\)` \.\n\nIn the future, this warning will become an error\."
+    error_message = r"Constructing the SR object with `SR\(qgt= MyQGTType\({.*}\)\)` is not supported, because the keyword arguments specified in the QGTType are overwritten by those specified by the SR class and its defaults\.\n\nTo fix this, construct SR as  `SR\(qgt=MyQGTType, {.*}\)` \."
 
     # Case 1: Overwriting diag_shift from SR default
-    with pytest.warns(UserWarning, match=warning_message):
+    with pytest.raises(ValueError, match=error_message):
         nk.optimizer.SR(qgt=qgt(diag_shift=1e-3))
 
     # Case 2: Overwriting diag_scale from SR default
-    with pytest.warns(UserWarning, match=warning_message):
+    with pytest.raises(ValueError, match=error_message):
         nk.optimizer.SR(qgt=qgt(diag_scale=1e-4))
 
     # Case 3: Overwriting both diag_shift and diag_scale from SR default
-    with pytest.warns(UserWarning, match=warning_message):
+    with pytest.raises(ValueError, match=error_message):
         nk.optimizer.SR(qgt=qgt(diag_shift=1e-3, diag_scale=1e-4))
 
-    # Case 4: Warning with default diag_shift and diag_scale by specifying them in SR
-    with pytest.warns(UserWarning, match=warning_message):
+    # Case 4: Error with default diag_shift and diag_scale by specifying them in SR
+    with pytest.raises(ValueError, match=error_message):
         nk.optimizer.SR(
             qgt=qgt(diag_shift=1e-3, diag_scale=1e-4), diag_shift=1e-2, diag_scale=1e-3
         )
 
-    # Case 5: No warning when diag_shift and diag_scale are specified only in SR
+    # Case 5: No error or warning when diag_shift and diag_scale are specified only in SR
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         nk.optimizer.SR(qgt=qgt)

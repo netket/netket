@@ -477,16 +477,6 @@ class SpaceGroup(PermutationGroup):
             + f"(lattice:\n{self.lattice}\npoint_group:\n{self._point_group})"
         )
 
-    @property
-    @deprecated_new_name("_point_group", reason="Consistency")
-    def point_group_(self) -> PointGroup:
-        """
-        Deprecated: Returns the internally stored point group as a point group,
-        instead of the one stored as a permutation group.
-        """
-
-        return self._point_group
-
     # TODO describe ordering of group elements here and later in docstring
 
     @struct.property_cached
@@ -578,7 +568,7 @@ class SpaceGroup(PermutationGroup):
         # should test for pbc before taking the modulus, but the only valid wave
         # vector for non-pbc axes is 0 and 0 % anything == 0
 
-        # assumes point_group_[0] is the identity
+        # assumes _point_group[0] is the identity
         is_in_little_group = np.all(big_star == big_star[0], axis=1)
         return np.arange(len(self._point_group))[is_in_little_group]
 

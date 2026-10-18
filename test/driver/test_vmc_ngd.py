@@ -97,7 +97,7 @@ def _setup(
     L = 2
     Ns = L * L
     lattice = nk.graph.Square(L, max_neighbor_order=2)
-    hi = nk.hilbert.Spin(s=1 / 2, N=lattice.n_nodes, inverted_ordering=False)
+    hi = nk.hilbert.Spin(s=1 / 2, N=lattice.n_nodes)
     H = nk.operator.Ising(hilbert=hi, graph=lattice, h=1.0)
     if nk.config.netket_experimental_sharding:
         H = H.to_jax_operator()
