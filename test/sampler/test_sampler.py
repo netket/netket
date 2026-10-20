@@ -889,3 +889,24 @@ def test_chunking_invariant(model_and_weights, sampler_type):
     )
 
     np.testing.assert_allclose(samples, samples_ch)
+
+
+@common.skipif_distributed
+def test_metropolis_keeps_chunk_size():
+    # The constructor used to validate chunk_size and then drop it, so the
+    # "chunked" samplers above silently evaluated all the chains at once.
+    hi = nk.hilbert.Spin(0.5, 4)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains_per_rank=16, chunk_size=8)
+    assert sa.chunk_size == 8
+
+    batch_sizes = set()
+
+    def logpsi(params, x):
+        batch_sizes.add(x.shape[0])  # at trace time
+        return jnp.zeros(x.shape[0])
+
+    state = sa.init_state(logpsi, {}, seed=SAMPLER_SEED)
+    batch_sizes.clear()  # init_state only evaluates the shapes of a full batch
+    state = sa.reset(logpsi, {}, state=state)
+    sa.sample(logpsi, {}, state=state, chain_length=2)
+    assert batch_sizes == {8}

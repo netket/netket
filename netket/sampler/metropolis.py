@@ -320,6 +320,7 @@ class MetropolisSampler(Sampler):
         self.reset_chains = reset_chains
         self.rule = rule
         self.sweep_size = sweep_size
+        self.chunk_size = chunk_size
 
     def sample_next(
         self,
