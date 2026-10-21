@@ -92,24 +92,15 @@ class AbstractCallback(struct.Pytree, mutable=True):
         return 0
 
     def on_run_prep_allocate(self, driver):
-        """Called first in every :meth:`~netket.driver.AbstractDriver.run`, before
-        a checkpoint is restored. Allocate here the saved state whose shape
-        depends on the driver (e.g. a buffer shaped like the parameters), so that
-        a checkpoint can be restored into it. A cheap initialisation needed only
-        on a fresh start can go here too: a restore overwrites it. Nothing else
-        (no logging, no files): the step is not restored yet. Default: no-op.
+        """Called first in :meth:`~netket.driver.AbstractDriver.run`, before
+        a checkpoint is restored. Allocate here arrays with the correct
+        shape/dtype to avoid recompilation and allow deserialisation.
         """
         pass
 
     def on_run_start(self, step, driver):
-        """Called when a run starts at step ``step``, after any restore. A
-        resumed run calls it again, so it must not change what the run computes
-        (e.g. by sampling); setting up files or tuning chunk sizes is fine.
-        Loggers drop here what an earlier run logged at iteration ``>= step``.
-
-        An expensive initialisation needed only on a fresh start (e.g. a long
-        thermalisation) can run here if :meth:`on_checkpoint_restore` was not
-        called since :meth:`on_run_prep_allocate`.
+        """Called when a run starts at step ``step``, eventually after a checkpoint
+        restore, but before any actual step/calculation is performed.
         """
         pass
 

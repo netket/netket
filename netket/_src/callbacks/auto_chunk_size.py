@@ -1,11 +1,12 @@
+import copy
+import zlib
+
 import jax
-from flax import serialization
 from jax.errors import JaxRuntimeError
 
 from netket.utils import struct, timing, dispatch
 
 from netket._src.callbacks.base import AbstractCallback
-from netket._src.driver.checkpointer import load_state_inplace
 
 
 @dispatch.dispatch
@@ -30,6 +31,23 @@ def get_forward_operator(driver):
     )
 
 
+def compute_memory_config_hash(driver, hints) -> int:
+    """A hash of what the chunk sizes depend on: the devices, the number of samples
+    and chains, the structure, shapes and dtypes of the parameters, and ``hints``,
+    the chunk sizes tuning starts from."""
+    state = driver.state
+    memory_config = (
+        jax.device_count(),
+        jax.devices()[0].device_kind,
+        getattr(state, "n_samples", None),
+        getattr(getattr(state, "sampler", None), "n_chains", None),
+        jax.tree.structure(state.parameters),
+        [(x.shape, x.dtype) for x in jax.tree.leaves(state.parameters)],
+        hints,
+    )
+    return zlib.crc32(repr(memory_config).encode())
+
+
 class AutoChunkSize(AbstractCallback):
     """
     Automatically tunes the chunk size for the (i) sampler, (ii) forward pass and
@@ -43,8 +61,13 @@ class AutoChunkSize(AbstractCallback):
     is halved on each failure, down to ``minimum_chunk_size``.
 
     After the largest chunk size that works is found, the callback will print those
-    values and store them in the callback object. If you reuse the same callback object
-    in a subsequent run, it will reuse the same chunk sizes.
+    values and store them in the callback object, leaving the initial chunk sizes it
+    was given unchanged. A later run with the same callback object reuses them without
+    tuning again, unless the devices, the number of samples or chains, the shapes and
+    dtypes of the parameters, or the initial chunk sizes changed: then it tunes again,
+    starting from the initial chunk sizes. Passed as a persistent callback
+    (``callbacks=`` of the driver), the chunk sizes are saved with a checkpoint, so a
+    resumed run does not tune again either.
 
     .. rubric:: Supporting custom drivers
 
@@ -80,6 +103,12 @@ class AutoChunkSize(AbstractCallback):
     sampler_chunk_size: int | None = struct.field(pytree_node=False, serialize=False)
     chunk_size: int | None = struct.field(pytree_node=False, serialize=False)
     chunk_size_bwd: int | None = struct.field(pytree_node=False, serialize=False)
+    #: The chunk sizes found by tuning (-1: keep the driver's own), and the memory
+    #: configuration hash they were found for (-1: not tuned); saved with a checkpoint.
+    _inferred_sampler_chunk_size: int = struct.field(pytree_node=False, serialize=True)
+    _inferred_chunk_size: int = struct.field(pytree_node=False, serialize=True)
+    _inferred_chunk_size_bwd: int = struct.field(pytree_node=False, serialize=True)
+    _memory_config_hash: int = struct.field(pytree_node=False, serialize=True)
 
     def __init__(
         self,
@@ -109,19 +138,49 @@ class AutoChunkSize(AbstractCallback):
         self.chunk_size_bwd = chunk_size_bwd
 
         self.minimum_chunk_size = minimum_chunk_size
+        self._inferred_sampler_chunk_size = -1
+        self._inferred_chunk_size = -1
+        self._inferred_chunk_size_bwd = -1
+        self._memory_config_hash = -1
+
+    def __process_deserialization_state__(self, state):
+        # TODO: backward compatibility, for checkpoints saved before October 2026
+        # (without these fields, or with them packed in `_tuned`): tune again.
+        not_tuned = {
+            "_inferred_sampler_chunk_size": -1,
+            "_inferred_chunk_size": -1,
+            "_inferred_chunk_size_bwd": -1,
+            "_memory_config_hash": -1,
+        }
+        state = {name: value for name, value in state.items() if name != "_tuned"}
+        return {**not_tuned, **state}
 
     def on_run_start(self, step, driver):
-        # The tuning samples and computes an update: give the driver back the
-        # state it had, with the new chunk sizes, so that it does not change what
-        # the run computes (a run resumed from a checkpoint tunes again).
-        state = serialization.to_state_dict(driver)
-        self._tune(driver)
-        chunk_size = getattr(driver.state, "chunk_size", None)
-        load_state_inplace(driver, state)
-        if hasattr(driver.state, "chunk_size"):
-            driver.state.chunk_size = chunk_size
+        hints = (self.sampler_chunk_size, self.chunk_size, self.chunk_size_bwd)
+        memory_config_hash = compute_memory_config_hash(driver, hints)
+        if self._memory_config_hash != memory_config_hash:
+            # Probe a copy: probing samples and computes an update, which must not
+            # change what the run computes.
+            probe = driver.replace(_variational_state=copy.copy(driver.state))
+            (
+                self._inferred_sampler_chunk_size,
+                self._inferred_chunk_size,
+                self._inferred_chunk_size_bwd,
+            ) = (-1 if size is None else size for size in self._tune(probe))
+            self._memory_config_hash = memory_config_hash
+        state = driver.state
+        sampler_chunk_size = self._inferred_sampler_chunk_size
+        if sampler_chunk_size != -1 and hasattr(state, "sampler"):
+            # Not through the `sampler` setter, which would draw new chains.
+            state._sampler = state.sampler.replace(chunk_size=sampler_chunk_size)
+        if self._inferred_chunk_size != -1 and hasattr(state, "chunk_size"):
+            state.chunk_size = self._inferred_chunk_size
+        if self._inferred_chunk_size_bwd != -1 and hasattr(driver, "chunk_size_bwd"):
+            driver.chunk_size_bwd = self._inferred_chunk_size_bwd
 
-    def _tune(self, driver):
+    def _tune(self, driver) -> tuple[int | None, int | None, int | None]:
+        """Tunes ``driver``, starting from the initial chunk sizes, and returns the
+        sampler, forward and backward chunk sizes found (None: keep the driver's)."""
         if jax.process_index() == 0:
             print("Automatically tuning chunk size....")
 
@@ -158,7 +217,6 @@ class AutoChunkSize(AbstractCallback):
                     else:
                         print(f"- Sampling succeeded with {sampler_chunk_size = }")
                         break
-                self.sampler_chunk_size = sampler_chunk_size
         # Try to check if forward pass works
         set_vstate_chunk_size = False
         vstate_chunk_size = None
@@ -189,7 +247,6 @@ class AutoChunkSize(AbstractCallback):
                 else:
                     print(f"- Forward pass succeeded with {vstate_chunk_size = }")
                     break
-            self.chunk_size = vstate_chunk_size
         # backward
         set_bwd_chunk_size = False
         chunk_size_bwd = None
@@ -222,7 +279,6 @@ class AutoChunkSize(AbstractCallback):
                 else:
                     print(f"- Optimisation step succeeded with {chunk_size_bwd = }")
                     break
-            self.chunk_size_bwd = chunk_size_bwd
 
         print("Chunk size tuning complete:")
         if set_sampler_chunk_size:
@@ -231,3 +287,4 @@ class AutoChunkSize(AbstractCallback):
             print(f"  {vstate_chunk_size = }")
         if set_bwd_chunk_size:
             print(f"  {chunk_size_bwd = }")
+        return sampler_chunk_size, vstate_chunk_size, chunk_size_bwd

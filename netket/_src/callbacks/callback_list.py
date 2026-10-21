@@ -44,8 +44,7 @@ class CallbackList(AbstractCallback):
             callback.before_parameter_update(step, log_data, driver)
 
     def on_step_end(self, step, log_data, driver):
-        # Every callback sees the end of the step; the first stop returned (or
-        # raised, the older way) is the run's.
+        # TODO (October 2026): deprecate the support for errors as raised errors.
         stop = None
         for callback in self.callbacks:
             try:

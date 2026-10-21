@@ -163,28 +163,33 @@ class RuntimeLog(AbstractLog):
 
 def _drop_from(tree, step):
     """``tree`` without the entries of its histories logged at ``step`` or later."""
-    if isinstance(tree, History):
-        return tree._get_slice(np.asarray(tree.iters) < step)
-    if isinstance(tree, HistoryDict):
-        return HistoryDict(_drop_from(tree._data, step))
-    if isinstance(tree, dict):
-        return {k: _drop_from(v, step) for k, v in tree.items()}
-    if isinstance(tree, (list, tuple)):
-        return type(tree)(_drop_from(v, step) for v in tree)
-    return tree
+
+    def drop(x):
+        if isinstance(x, HistoryDict):
+            return HistoryDict(_drop_from(x._data, step))
+        if isinstance(x, History):
+            return x._get_slice(np.asarray(x.iters) < step)
+        return x
+
+    return jax.tree.map(
+        drop, tree, is_leaf=lambda x: isinstance(x, History | HistoryDict)
+    )
 
 
 def _last_step(tree) -> int:
     """The last iteration logged in the histories of ``tree`` (0 if none)."""
-    if isinstance(tree, History):
-        return int(tree.iters[-1]) if len(tree.iters) > 0 else 0
-    if isinstance(tree, HistoryDict):
-        tree = tree._data
-    if isinstance(tree, dict):
-        tree = list(tree.values())
-    if isinstance(tree, (list, tuple)):
-        return max((_last_step(v) for v in tree), default=0)
-    return 0
+
+    def last(x):
+        if isinstance(x, HistoryDict):
+            return _last_step(x._data)
+        if isinstance(x, History) and len(x.iters) > 0:
+            return int(x.iters[-1])
+        return 0
+
+    leaves = jax.tree.leaves(
+        tree, is_leaf=lambda x: isinstance(x, History | HistoryDict)
+    )
+    return max(map(last, leaves), default=0)
 
 
 def default(obj):

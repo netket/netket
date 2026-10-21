@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from flax import serialization
 
 import netket as nk
 from netket._src.callbacks.legacy_wrappers import LegacyLoggerWrapper
@@ -13,20 +14,22 @@ from .. import common
 pytestmark = common.skipif_distributed
 
 
-def _system(mc=False):
+def _system(mc=False, *, n_samples=64, param_dtype=float):
     hi = nk.hilbert.Spin(0.5, 4)
     ha = nk.operator.IsingJax(hi, nk.graph.Chain(4), h=1.0)
-    model = nk.models.RBM(alpha=1, param_dtype=float)
+    model = nk.models.RBM(alpha=1, param_dtype=param_dtype)
     if mc:
         sampler = nk.sampler.MetropolisLocal(hi, n_chains=4)
-        vs = nk.vqs.MCState(sampler, model, n_samples=64, seed=12, sampler_seed=13)
+        vs = nk.vqs.MCState(
+            sampler, model, n_samples=n_samples, seed=12, sampler_seed=13
+        )
     else:
         vs = nk.vqs.FullSumState(hi, model, seed=12)
     return ha, vs
 
 
-def _vmc(callbacks=(), *, mc=False, sr=False):
-    ha, vs = _system(mc)
+def _vmc(callbacks=(), *, mc=False, sr=False, **system):
+    ha, vs = _system(mc, **system)
     if sr:
         return nk.driver.VMC_SR(
             ha,
@@ -332,6 +335,45 @@ def test_auto_chunk_size_does_not_change_what_a_resumed_run_computes():
     _assert_same(resumed.state.parameters, reference.state.parameters)
     _assert_same(resumed.state.sampler_state, reference.state.sampler_state)
     _assert_same(resumed._old_updates, reference._old_updates)
+
+
+@pytest.mark.parametrize("hint, tunes", [(16, 1), (32, 2)])
+def test_auto_chunk_size_is_saved_with_the_run(hint, tunes, capsys):
+    # Persistent, its tuned sizes come back with the checkpoint: the resumed run
+    # reuses them, unless it is given other hints.
+    def driver(hint):
+        tuner = nk.callbacks.AutoChunkSize(chunk_size_bwd=hint)
+        return _vmc((tuner,), mc=True, sr=True)
+
+    resumed = driver(hint)
+    _crash_then_resume(driver(16), resumed, n_iter=6)
+    assert resumed.chunk_size_bwd == hint
+    assert capsys.readouterr().out.count("Automatically tuning") == tunes
+
+
+@pytest.mark.parametrize("setup", [{"n_samples": 32}, {"param_dtype": complex}])
+def test_auto_chunk_size_tunes_again_from_its_hints_for_another_setup(setup):
+    tuner = nk.callbacks.AutoChunkSize(chunk_size_bwd=16)
+    _vmc(mc=True, sr=True).run(1, callback=[tuner], show_progress=False)
+    # As if tuning had halved the hint, out of memory.
+    tuner._inferred_chunk_size_bwd = 8
+    same, other = _vmc(mc=True, sr=True), _vmc(mc=True, sr=True, **setup)
+    same.run(1, callback=[tuner], show_progress=False)
+    other.run(1, callback=[tuner], show_progress=False)
+    # Reused on the same setup; tuned again on another, from the hint.
+    assert (same.chunk_size_bwd, other.chunk_size_bwd) == (8, 16)
+
+
+@pytest.mark.parametrize(
+    "saved", [{}, {"_tuned": np.array([7, 0, 0, 8])}], ids=["no-sizes", "packed"]
+)
+def test_auto_chunk_size_tunes_again_from_an_old_checkpoint(saved, capsys):
+    tuner = nk.callbacks.AutoChunkSize(chunk_size_bwd=16)
+    tuner = serialization.from_state_dict(tuner, saved)
+    driver = _vmc(mc=True, sr=True)
+    driver.run(1, callback=[tuner], show_progress=False)
+    assert "Automatically tuning" in capsys.readouterr().out
+    assert driver.chunk_size_bwd == 16
 
 
 def test_an_early_stop_saves_the_step_it_stopped_after():
