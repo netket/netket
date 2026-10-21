@@ -1,7 +1,7 @@
 from typing import Any
 
 
-from netket._src.callbacks.base import AbstractCallback
+from netket._src.callbacks.base import AbstractCallback, StopRun
 
 
 class CallbackList(AbstractCallback):
@@ -14,6 +14,10 @@ class CallbackList(AbstractCallback):
         if isinstance(callbacks, AbstractCallback):
             callbacks = (callbacks,)
         self.callbacks = tuple(sorted(callbacks, key=lambda x: x.callback_order))
+
+    def on_run_prep_allocate(self, driver):
+        for callback in self.callbacks:
+            callback.on_run_prep_allocate(driver)
 
     def on_run_start(self, step, driver):
         for callback in self.callbacks:
@@ -40,8 +44,20 @@ class CallbackList(AbstractCallback):
             callback.before_parameter_update(step, log_data, driver)
 
     def on_step_end(self, step, log_data, driver):
+        # TODO (October 2026): deprecate the support for errors as raised errors.
+        stop = None
         for callback in self.callbacks:
-            callback.on_step_end(step, log_data, driver)
+            try:
+                request = callback.on_step_end(step, log_data, driver)
+            except StopRun as error:
+                request = error
+            if request is not None and not isinstance(request, StopRun):
+                raise TypeError(
+                    f"{type(callback).__name__}.on_step_end returned {request!r}: "
+                    "return None, or a StopRun to stop the run."
+                )
+            stop = request if stop is None else stop
+        return stop
 
     def on_run_end(self, step, driver):
         for callback in self.callbacks:
@@ -50,3 +66,11 @@ class CallbackList(AbstractCallback):
     def on_run_error(self, step, error, driver):
         for callback in self.callbacks:
             callback.on_run_error(step, error, driver)
+
+    def on_checkpoint_save(self, step, driver):
+        for callback in self.callbacks:
+            callback.on_checkpoint_save(step, driver)
+
+    def on_checkpoint_restore(self, step, driver):
+        for callback in self.callbacks:
+            callback.on_checkpoint_restore(step, driver)

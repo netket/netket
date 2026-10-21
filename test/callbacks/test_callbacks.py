@@ -74,7 +74,8 @@ def test_earlystopping_with_patience():
 
     vmc.run(20, callback=es)
 
-    assert vmc.step_count == patience
+    # It stops at the end of step `patience`, which is counted.
+    assert vmc.step_count == patience + 1
 
 
 def test_earlystopping_baseline_with_patience():

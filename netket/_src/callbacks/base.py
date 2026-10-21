@@ -3,23 +3,20 @@ from netket.utils import struct
 
 class StopRun(Exception):
     """
-    Exception to be raised by callbacks to gracefully stop the optimisation loop.
+    A request to stop the :meth:`~netket.driver.AbstractDriver.run` loop early,
+    returned by :meth:`~netket.callbacks.AbstractCallback.on_step_end`. The run
+    stops after that step, on every process, calls ``on_run_end`` on all
+    callbacks and returns normally; the message is printed.
 
-    Raise this exception (or a subclass of it) from any callback hook to stop
-    the :meth:`~netket.driver.AbstractDriver.run` loop early.
-    The driver will catch it, call
-    :meth:`~netket.callbacks.AbstractCallback.on_run_end` on all callbacks, and
-    then return normally — no traceback is printed and no exception propagates to
-    the caller.
-
-    The message passed to the exception will be printed to stdout.
+    Raising it from ``on_step_end`` also works. Raised from any other hook, it is
+    an error: the run fails with a ``RuntimeError``.
 
     Example::
 
         class StopAfterConvergence(nk.callbacks.AbstractCallback):
             def on_step_end(self, step, log_data, driver):
                 if log_data["Energy"].error_of_mean < 1e-4:
-                    raise nk.callbacks.StopRun("Energy converged.")
+                    return nk.callbacks.StopRun("Energy converged.")
     """
 
     pass
@@ -27,18 +24,19 @@ class StopRun(Exception):
 
 class RunFinished(StopRun):
     """
-    Exception to be raised by callbacks to end a run that has reached its end,
-    for example the final time of a time evolution.
+    A :class:`~netket.callbacks.StopRun` for a run that has reached its end, for
+    example the final time of a time evolution.
 
     It works like :class:`~netket.callbacks.StopRun`, but the driver does not
-    print that the run is stopping early.
+    print that the run is stopping early, and the run counts as completed. The
+    step that returns it is not counted in ``step_count``: it is meant for a step
+    that only reports the end of the run, such as the last step of a time
+    evolution, which logs the final time.
     """
 
 
-#: ``callback_order`` for callbacks that may raise :class:`StopRun`. They run
-#: *last* (after observables at 0 and loggers at 10) so that, on the step a
-#: callback stops the run, no later callback in the hook is skipped — a skipped
-#: collective would deadlock the run under ``jax.distributed``.
+#: ``callback_order`` for callbacks that may stop the run. They run *last*
+#: (after observables at 0 and loggers at 10), on a step's complete log.
 STOPPING_CALLBACK_ORDER = 100
 
 
@@ -55,9 +53,8 @@ class AbstractCallback(struct.Pytree, mutable=True):
     no-op default implementations, so you only need to override the ones you
     need.
 
-    To stop the optimisation early from inside any hook, raise
-    :class:`~netket.callbacks.StopRun` (or a subclass of it).  The driver will
-    catch it, call :meth:`on_run_end` on all callbacks, and return normally.
+    To stop the optimisation early, return a :class:`~netket.callbacks.StopRun`
+    from :meth:`on_step_end`.
 
     For a full description of the run loop structure and every available hook,
     including pseudocode showing exactly when each hook is called, see
@@ -94,7 +91,17 @@ class AbstractCallback(struct.Pytree, mutable=True):
         """
         return 0
 
+    def on_run_prep_allocate(self, driver):
+        """Called first in :meth:`~netket.driver.AbstractDriver.run`, before
+        a checkpoint is restored. Allocate here arrays with the correct
+        shape/dtype to avoid recompilation and allow deserialisation.
+        """
+        pass
+
     def on_run_start(self, step, driver):
+        """Called when a run starts at step ``step``, eventually after a checkpoint
+        restore, but before any actual step/calculation is performed.
+        """
         pass
 
     def on_step_start(self, step, log_data, driver):
@@ -136,10 +143,30 @@ class AbstractCallback(struct.Pytree, mutable=True):
         pass
 
     def on_step_end(self, step, log_data, driver):
+        """Called at the end of an accepted step ``step``, after the parameter
+        update. Returns ``None``, or a :class:`StopRun` to stop the run after this
+        step."""
         pass
 
     def on_run_end(self, step, driver):
+        """Called once when a run ends, normally or stopped (not when it fails:
+        see :meth:`on_run_error`)."""
         pass
 
     def on_run_error(self, step, error, driver):
+        pass
+
+    def on_checkpoint_save(self, step, driver):
+        """Called before the checkpointer saves the run at step ``step``. Write
+        here what this callback keeps outside the driver (e.g. a log file) up to
+        ``step``, so it never lags the checkpoint. It must not change what the
+        run computes. Default: no-op.
+        """
+        pass
+
+    def on_checkpoint_restore(self, step, driver):
+        """Called when the run was restored from a checkpoint of step ``step``,
+        before :meth:`on_run_start`; not when there was nothing to restore. What
+        every run start needs belongs in :meth:`on_run_start`. Default: no-op.
+        """
         pass

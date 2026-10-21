@@ -19,7 +19,7 @@ import jax
 import numpy as np
 import orjson
 
-from netket.utils.history import accum_histories_in_tree, HistoryDict
+from netket.utils.history import accum_histories_in_tree, History, HistoryDict
 
 if TYPE_CHECKING:
     from netket.vqs import VariationalState
@@ -71,6 +71,19 @@ class RuntimeLog(AbstractLog):
     def flush(self, variational_state=None):
         pass
 
+    def on_checkpoint_save(self, step, driver):
+        """Writes the logged data to disk before a checkpoint is taken."""
+        self.flush(driver.state)
+
+    def on_run_start(self, step, driver):
+        """
+        Drops the data logged at iteration ``step`` or later when a run starts at
+        ``step``, so that a run resumed from a checkpoint does not log the steps
+        after it twice, and a fresh run does not mix with the rows of an earlier one.
+        """
+        self._data = _drop_from(self._data, step)
+        self._old_step = _last_step(self._data)
+
     @classmethod
     def deserialize(cls, path: str | Path) -> "RuntimeLog":
         r"""
@@ -98,18 +111,7 @@ class RuntimeLog(AbstractLog):
 
         log = cls.__new__(cls)
         log._data = data
-
-        # Recover _old_step from the maximum last iter across all histories
-        def _find_last_step(d):
-            last = 0
-            for val in d.values():
-                if isinstance(val, dict):
-                    last = max(last, _find_last_step(val))
-                elif hasattr(val, "iters") and len(val.iters) > 0:
-                    last = max(last, int(val.iters[-1]))
-            return last
-
-        log._old_step = _find_last_step(data._data)
+        log._old_step = _last_step(data)
 
         return log
 
@@ -157,6 +159,37 @@ class RuntimeLog(AbstractLog):
         if self.data is not None:
             _str += f" keys = {list(self.data.keys())}"
         return _str
+
+
+def _drop_from(tree, step):
+    """``tree`` without the entries of its histories logged at ``step`` or later."""
+
+    def drop(x):
+        if isinstance(x, HistoryDict):
+            return HistoryDict(_drop_from(x._data, step))
+        if isinstance(x, History):
+            return x._get_slice(np.asarray(x.iters) < step)
+        return x
+
+    return jax.tree.map(
+        drop, tree, is_leaf=lambda x: isinstance(x, History | HistoryDict)
+    )
+
+
+def _last_step(tree) -> int:
+    """The last iteration logged in the histories of ``tree`` (0 if none)."""
+
+    def last(x):
+        if isinstance(x, HistoryDict):
+            return _last_step(x._data)
+        if isinstance(x, History) and len(x.iters) > 0:
+            return int(x.iters[-1])
+        return 0
+
+    leaves = jax.tree.leaves(
+        tree, is_leaf=lambda x: isinstance(x, History | HistoryDict)
+    )
+    return max(map(last, leaves), default=0)
 
 
 def default(obj):
