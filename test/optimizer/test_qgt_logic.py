@@ -277,8 +277,10 @@ def test_reassemble_complex(e):
     )
 
 
+# A single, small number of samples: chunk_size=8 already splits it in several
+# chunks, and more samples would not exercise any other code path.
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [24 * jax.device_count(), 1024])
+@common.named_parametrize("n_samp", [24 * jax.device_count()])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
@@ -309,7 +311,7 @@ def test_matvec(e, jit, chunk_size):
 
 
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [24 * jax.device_count(), 1024])
+@common.named_parametrize("n_samp", [24 * jax.device_count()])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
@@ -355,7 +357,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
 
 # TODO separate test for prepare_centered_oks
 @common.named_parametrize("holomorphic", [True])
-@common.named_parametrize("n_samp", [25 * jax.device_count(), 1024])
+@common.named_parametrize("n_samp", [25 * jax.device_count()])
 @common.named_parametrize("jit", [True, False])
 @common.named_parametrize("chunk_size", [7, None])
 @pytest.mark.parametrize(
@@ -394,7 +396,7 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 # TODO separate test for prepare_centered_oks
 # TODO test C->R ?
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [25 * jax.device_count(), 1024])
+@common.named_parametrize("n_samp", [25 * jax.device_count()])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):

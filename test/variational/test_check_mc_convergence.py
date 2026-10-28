@@ -100,13 +100,16 @@ def test_check_mc_convergence_runs(vstate):
     assert "mean" in hist and "tau_corr_acf" in hist
 
 
-def test_check_mc_convergence_plot(vstate):
-    """plot=True runs without error and does not open a window."""
+def test_check_mc_convergence_plot(vstate, tmp_path):
+    """plot=<path> saves the figure there and does not open a window."""
     from unittest.mock import patch
 
     H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
     with patch("matplotlib.pyplot.show"):
-        vstate.check_mc_convergence(H, max_chain_length=50, plot=True)
+        vstate.check_mc_convergence(
+            H, max_chain_length=50, plot=tmp_path / "mc_convergence.png"
+        )
+    assert (tmp_path / "mc_convergence.png").exists()
 
 
 # --- expect_to_precision ---

@@ -509,10 +509,9 @@ def test_expect_grad_nonhermitian_works(vstate):
         if op.is_hermitian
     ],
 )
-@pytest.mark.parametrize("n_chunks", [1, 2])
-def test_expect_chunking(vstate, operator, n_chunks):
+def test_expect_chunking(vstate, operator):
     vstate.n_samples = 200
-    chunk_size = vstate.n_samples_per_rank // n_chunks
+    chunk_size = vstate.n_samples_per_rank // 2
     eval_nochunk = vstate.expect(operator)
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)

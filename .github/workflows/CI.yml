@@ -25,14 +25,16 @@ jobs:
             python-version: "3.13"
             test_type: "doctest"
 
+          # 3.14: coverage measures branches with sys.monitoring there, which
+          # is much cheaper than the tracing it falls back to on 3.13.
           - name: "Ubuntu"
             os: ubuntu-latest
-            python-version: "3.13"
+            python-version: "3.14"
             test_type: "main"
 
           - name: "macOS"
             os: macos-latest
-            python-version: "3.13"
+            python-version: "3.14"
             test_type: "main"
             env: NUMBA_BOUNDSCHECK=1
 
