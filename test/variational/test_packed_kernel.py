@@ -14,6 +14,7 @@
 
 """Tests for the packed local-value kernel of jax operators."""
 
+import functools
 import os
 import subprocess
 import sys
@@ -116,7 +117,8 @@ SYSTEMS = {
 }
 
 
-def _vstate(system, param_dtype=complex, n_samples=64):
+def _new_vstate(system, param_dtype=complex, n_samples=64):
+    # A fresh variational state, for the tests that modify it.
     hi, H, sa = SYSTEMS[system]()
     sa = sa.replace(n_chains=8 * jax.device_count())
     ma = nk.models.RBM(alpha=2, param_dtype=param_dtype)
@@ -126,27 +128,95 @@ def _vstate(system, param_dtype=complex, n_samples=64):
     return vs, H
 
 
+def _vstate(system, param_dtype=complex):
+    # The variational state of a system and its operator, shared by the tests
+    # that do not modify them (its samples are those of a fresh state). The
+    # functions below are jitted once at module level and take the network as
+    # a static argument, so that a kernel used by several tests is compiled
+    # once.
+    return _shared_vstate(system, param_dtype)
+
+
+@functools.cache
+def _shared_vstate(system, param_dtype):
+    return _new_vstate(system, param_dtype)
+
+
+def _samples(vs):
+    return vs.samples.reshape(-1, vs.hilbert.size)
+
+
+def _packed(chunk_size=None, *, min_chunk_size=None, conn_chunk_size=None):
+    return _packed_kernel(chunk_size, min_chunk_size, conn_chunk_size)
+
+
+@functools.cache
+def _packed_kernel(chunk_size, min_chunk_size, conn_chunk_size):
+    # Cached, so that the same kernel is the same static argument of the
+    # jitted functions below.
+    def kernel(*args):
+        return kernels_packed.local_value_kernel_jax_packed(
+            *args,
+            chunk_size=chunk_size,
+            min_chunk_size=min_chunk_size,
+            conn_chunk_size=conn_chunk_size,
+        )
+
+    return kernel
+
+
+@functools.cache
+def _padded_chunked(chunk_size):
+    return partial(kernels.local_value_kernel_jax_chunked, chunk_size=chunk_size)
+
+
+@partial(jax.jit, static_argnums=(0, 1))
+def _apply_kernel(kernel, logpsi, variables, σ, H):
+    return kernel(logpsi, variables, σ, H)
+
+
+def _sq_loss(kernel, logpsi, variables, params, σ, H):
+    variables = {**variables, "params": params}
+    return jnp.sum(jnp.abs(kernel(logpsi, variables, σ, H)) ** 2)
+
+
+# The derivative of the sum of the squared moduli of the local values with
+# respect to the parameters.
+_sq_loss_grad = jax.jit(jax.grad(_sq_loss, argnums=3), static_argnums=(0, 1))
+
+
 def _local_values(vs, H, chunk_size, packed):
     # The local values of the samples of vs, with the packed kernel or with the
     # padded one, called explicitly.
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
     if packed:
         kernel = _packed(chunk_size)
     elif chunk_size is None:
         kernel = kernels.local_value_kernel_jax
     else:
-        kernel = partial(kernels.local_value_kernel_jax_chunked, chunk_size=chunk_size)
-    f = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))
-    return np.asarray(f(vs.variables, σ, H))
+        kernel = _padded_chunked(chunk_size)
+    return np.asarray(
+        _apply_kernel(kernel, vs._apply_fun, vs.variables, _samples(vs), H)
+    )
 
 
-def _packed(chunk_size=None, **kwargs):
-    def kernel(*args):
-        return kernels_packed.local_value_kernel_jax_packed(
-            *args, chunk_size=chunk_size, **kwargs
-        )
+@functools.cache
+def _expected_local_values(system):
+    # The local values of the padded kernel on the samples of _vstate(system).
+    return _local_values(*_vstate(system), None, packed=False)
 
-    return kernel
+
+@functools.cache
+def _expected_grad(system):
+    # The derivative of _sq_loss with the padded kernel at _vstate(system).
+    vs, H = _vstate(system)
+    return _sq_loss_grad(
+        kernels.local_value_kernel_jax,
+        vs._apply_fun,
+        vs.variables,
+        vs.parameters,
+        _samples(vs),
+        H,
+    )
 
 
 def _assert_close(a, b, rtol):
@@ -160,7 +230,11 @@ def _assert_close(a, b, rtol):
 @pytest.mark.parametrize("system", list(SYSTEMS))
 @pytest.mark.parametrize("chunk_size", [None, 7, 64, 100000])
 def test_packed_kernel_matches_padded(system, chunk_size):
-    vs, H = _vstate(system)
+    vs, _ = _vstate(system)
+    # A new operator, equal to that of the shared state: the padded kernel
+    # compiled by the previous tests is found by comparing it to theirs.
+    _, H, _ = SYSTEMS[system]()
+    jax.block_until_ready(H.get_conn_padded(_samples(vs)[:1]))
     expected = _local_values(vs, H, None, packed=False)
     result = _local_values(vs, H, chunk_size, packed=True)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
@@ -170,10 +244,9 @@ def test_packed_kernel_matches_padded(system, chunk_size):
 @pytest.mark.parametrize("min_chunk_size", [None, 1, 3, 64])
 def test_packed_kernel_min_chunk_size(chunk_size, min_chunk_size):
     vs, H = _vstate("heisenberg_triangular")
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
-    expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
+    expected = _expected_local_values("heisenberg_triangular")
     kernel = _packed(chunk_size, min_chunk_size=min_chunk_size)
-    result = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))(vs.variables, σ, H)
+    result = _apply_kernel(kernel, vs._apply_fun, vs.variables, _samples(vs), H)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
@@ -183,10 +256,9 @@ def test_packed_kernel_conn_chunk_size(system, conn_chunk_size):
     # The samples are processed in groups (the last one padded), whose padded
     # connected configurations hold at most conn_chunk_size configurations.
     vs, H = _vstate(system)
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
-    expected = kernels.local_value_kernel_jax(vs._apply_fun, vs.variables, σ, H)
+    expected = _expected_local_values(system)
     kernel = _packed(16, conn_chunk_size=conn_chunk_size)
-    result = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))(vs.variables, σ, H)
+    result = _apply_kernel(kernel, vs._apply_fun, vs.variables, _samples(vs), H)
     np.testing.assert_allclose(result, expected, rtol=1e-12, atol=1e-12)
 
 
@@ -273,8 +345,8 @@ def test_packed_kernel_conn_chunk_size_bound(conn_chunk_size, chunk_size):
 @pytest.mark.parametrize("chunk_size", [None, 32])
 def test_packed_kernel_no_recompilation(chunk_size):
     # The number of nonzero connected elements changes from batch to batch,
-    # but the kernel must be compiled only once.
-    vs, H = _vstate("heisenberg_triangular")
+    # but the kernel must be compiled only once. (A fresh state: it is sampled.)
+    vs, H = _new_vstate("heisenberg_triangular")
     n_traces = 0
 
     def logpsi(variables, x):
@@ -309,19 +381,11 @@ def test_packed_kernel_gradient(system, chunk_size):
     # The chunks are selected by lax.cond and evaluated in loops with a static
     # number of iterations, which reverse-mode differentiation must go through.
     vs, H = _vstate(system)
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
-
     # The operator is passed as an argument: FermionOperator2ndJax must not be
     # set up inside of a trace.
-    def loss(kernel, params, H):
-        variables = {**vs.variables, "params": params}
-        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
-
-    expected = jax.jit(
-        jax.grad(lambda p, H: loss(kernels.local_value_kernel_jax, p, H))
-    )(vs.parameters, H)
-    result = jax.jit(jax.grad(lambda p, H: loss(_packed(chunk_size), p, H)))(
-        vs.parameters, H
+    expected = _expected_grad(system)
+    result = _sq_loss_grad(
+        _packed(chunk_size), vs._apply_fun, vs.variables, vs.parameters, _samples(vs), H
     )
     jax.tree.map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12),
@@ -330,24 +394,29 @@ def test_packed_kernel_gradient(system, chunk_size):
     )
 
 
+@partial(jax.jit, static_argnums=(0, 1))
+def _jvp(kernel, logpsi, variables, params, tangent, σ, H):
+    def f(params):
+        return kernel(logpsi, {**variables, "params": params}, σ, H)
+
+    return jax.jvp(f, (params,), (tangent,))
+
+
+@functools.cache
+def _jvp_local_values(kernel, system):
+    # The local values and their JVP along a fixed tangent at _vstate(system).
+    vs, H = _vstate(system)
+    tangent = jax.tree.map(lambda p: jnp.ones_like(p) * 0.1, vs.parameters)
+    return _jvp(
+        kernel, vs._apply_fun, vs.variables, vs.parameters, tangent, _samples(vs), H
+    )
+
+
 @pytest.mark.parametrize("system", ["hubbard", "heisenberg_triangular"])
 @pytest.mark.parametrize("chunk_size", [None, 32])
 def test_packed_kernel_jvp(system, chunk_size):
-    vs, H = _vstate(system)
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
-    tangent = jax.tree.map(lambda p: jnp.ones_like(p) * 0.1, vs.parameters)
-
-    def f(kernel, params, H):
-        return kernel(vs._apply_fun, {**vs.variables, "params": params}, σ, H)
-
-    expected = jax.jit(
-        lambda p, t, H: jax.jvp(
-            lambda p: f(kernels.local_value_kernel_jax, p, H), (p,), (t,)
-        )
-    )(vs.parameters, tangent, H)
-    result = jax.jit(
-        lambda p, t, H: jax.jvp(lambda p: f(_packed(chunk_size), p, H), (p,), (t,))
-    )(vs.parameters, tangent, H)
+    expected = _jvp_local_values(kernels.local_value_kernel_jax, system)
+    result = _jvp_local_values(_packed(chunk_size), system)
     for a, b in zip(result, expected):
         np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12)
 
@@ -440,7 +509,7 @@ def test_packed_kernel_config_flag(system, chunk_size, monkeypatch):
     # With NETKET_EXPERIMENTAL_PACKED_KERNEL, MCState.expect and expect_and_grad
     # compute the local values of jax operators with the packed kernel, with
     # the same results.
-    vs, H = _vstate(system)
+    vs, H = _new_vstate(system)
     vs.chunk_size = chunk_size
     assert not nk.config.netket_experimental_packed_kernel
     E0 = vs.expect(H)
@@ -513,7 +582,9 @@ def test_packed_kernel_coefficient_gradient_at_zero(chunk_size):
     expected = jax.jit(jax.grad(lambda h: loss(kernels.local_value_kernel_jax, h)))(h)
     result = jax.jit(jax.grad(lambda h: loss(packed, h)))(h)
     eps = 1e-5
-    finite_diff = (loss(packed, h + eps) - loss(packed, h - eps)) / (2 * eps)
+    # Jitted, so that it is compiled once for both evaluations.
+    loss_packed = jax.jit(partial(loss, packed))
+    finite_diff = (loss_packed(h + eps) - loss_packed(h - eps)) / (2 * eps)
 
     assert abs(expected) > 1
     np.testing.assert_allclose(result, expected, rtol=1e-10)
@@ -548,14 +619,9 @@ def test_packed_kernel_empty_operator(operator, chunk_size):
     np.testing.assert_array_equal(result, 0)
     np.testing.assert_array_equal(expected, 0)
 
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
-    kernel = _packed(chunk_size)
-
-    def loss(params, H):
-        variables = {**vs.variables, "params": params}
-        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
-
-    grad = jax.jit(jax.grad(loss))(vs.parameters, H)
+    grad = _sq_loss_grad(
+        _packed(chunk_size), vs._apply_fun, vs.variables, vs.parameters, _samples(vs), H
+    )
     jax.tree.map(lambda g: np.testing.assert_array_equal(g, 0), grad)
 
 
@@ -630,8 +696,7 @@ def test_packed_kernel_bitwise_repeatable(chunk_size):
     # samples, so that there are many of them.
     vs, H = _vstate("heisenberg_triangular")
     σ = vs.hilbert.random_state(jax.random.key(0), 4096 * jax.device_count())
-    kernel = _packed(chunk_size)
-    f = jax.jit(lambda v, σ, H: kernel(vs._apply_fun, v, σ, H))
+    f = partial(_apply_kernel, _packed(chunk_size), vs._apply_fun)
     expected = _bitwise(f(vs.variables, σ, H))
     for _ in range(20):
         assert _bitwise(f(vs.variables, σ, H)) == expected
@@ -640,17 +705,12 @@ def test_packed_kernel_bitwise_repeatable(chunk_size):
 @pytest.mark.parametrize("chunk_size", [None, 32])
 def test_packed_kernel_gradient_bitwise_repeatable(chunk_size):
     vs, H = _vstate("hubbard")
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
-    kernel = _packed(chunk_size)
-
-    def loss(params, H):
-        variables = {**vs.variables, "params": params}
-        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
-
-    f = jax.jit(jax.grad(loss))
-    expected = jax.tree.map(_bitwise, f(vs.parameters, H))
+    f = partial(
+        _sq_loss_grad, _packed(chunk_size), vs._apply_fun, vs.variables, vs.parameters
+    )
+    expected = jax.tree.map(_bitwise, f(_samples(vs), H))
     for _ in range(10):
-        assert jax.tree.map(_bitwise, f(vs.parameters, H)) == expected
+        assert jax.tree.map(_bitwise, f(_samples(vs), H)) == expected
 
 
 _REPEATABILITY_SCRIPT = textwrap.dedent(
@@ -705,15 +765,17 @@ def test_packed_kernel_bitwise_repeatable_across_processes(tmp_path):
         "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
         "XLA_FLAGS": os.environ.get("XLA_FLAGS", "") + " --xla_gpu_autotune_level=0",
     }
-    outputs = []
-    for k in range(2):
-        output = tmp_path / f"output{k}.npz"
-        subprocess.run(
+    # The two processes run concurrently.
+    paths = [tmp_path / f"output{k}.npz" for k in range(2)]
+    processes = [
+        subprocess.Popen(
             [sys.executable, "-c", _REPEATABILITY_SCRIPT, str(inputs), str(output)],
             env=env,
-            check=True,
         )
-        outputs.append(dict(np.load(output)))
+        for output in paths
+    ]
+    assert [process.wait() for process in processes] == [0, 0]
+    outputs = [dict(np.load(output)) for output in paths]
     assert set(outputs[0]) == {"None", "32"}
     for key, value in outputs[0].items():
         assert _bitwise(outputs[1][key]) == _bitwise(value)
@@ -925,7 +987,9 @@ def test_apply_packed_empty_element_derivatives(slots):
             axis_0_is_sharded=False,
         ).sum()
 
-    expected = jnp.stack([jax.grad(loss)(1.0, x[i], where[i]) for i in range(2)])
+    # The references are jitted, so that they are compiled once for both elements.
+    grad = jax.jit(jax.grad(loss))
+    expected = jnp.stack([grad(1.0, x[i], where[i]) for i in range(2)])
     assert expected[1] == 0
     vmap_grad = jax.jit(jax.vmap(jax.grad(loss), in_axes=(None, 0, 0)))
     np.testing.assert_allclose(vmap_grad(1.0, x, where), expected)
@@ -941,7 +1005,8 @@ def test_apply_packed_empty_element_derivatives(slots):
     vmap_jvp = jax.jit(jax.vmap(jvp, in_axes=(None, 0, 0)))
     np.testing.assert_allclose(vmap_jvp(1.0, x, where), expected)
 
-    hessian = jnp.stack([jax.hessian(loss)(1.0, x[i], where[i]) for i in range(2)])
+    hess = jax.jit(jax.hessian(loss))
+    hessian = jnp.stack([hess(1.0, x[i], where[i]) for i in range(2)])
     vmap_hessian = jax.jit(jax.vmap(jax.hessian(loss), in_axes=(None, 0, 0)))
     np.testing.assert_allclose(vmap_hessian(1.0, x, where), hessian)
     assert hessian[1] == 0
@@ -1088,25 +1153,26 @@ def test_packed_kernel_fermions(pnc, chunk_size):
     # Fermionic operators (FermionOperator2ndJax and the particle-number
     # conserving FermiHubbardJax) go through the generic path, with their own
     # sign conventions in the matrix elements: local values and gradients.
-    vs, H = _vstate("hubbard_pnc" if pnc else "hubbard")
+    system = "hubbard_pnc" if pnc else "hubbard"
+    vs, H = _vstate(system)
     np.testing.assert_allclose(
         _local_values(vs, H, chunk_size, packed=True),
-        _local_values(vs, H, None, packed=False),
+        _expected_local_values(system),
         rtol=1e-12,
         atol=1e-12,
     )
 
-    σ = vs.samples.reshape(-1, vs.hilbert.size)
-
-    def loss(kernel, params, H):
-        variables = {**vs.variables, "params": params}
-        return jnp.sum(jnp.abs(kernel(vs._apply_fun, variables, σ, H)) ** 2)
-
-    f = jax.jit(jax.grad(loss, argnums=1), static_argnums=0)
     jax.tree.map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=1e-11, atol=1e-12),
-        f(_packed(chunk_size), vs.parameters, H),
-        f(kernels.local_value_kernel_jax, vs.parameters, H),
+        _sq_loss_grad(
+            _packed(chunk_size),
+            vs._apply_fun,
+            vs.variables,
+            vs.parameters,
+            _samples(vs),
+            H,
+        ),
+        _expected_grad(system),
     )
 
 
@@ -1138,7 +1204,9 @@ def test_packed_kernel_vmap(system, chunk_size):
     def eloc(variables, σ):
         return kernel(vs._apply_fun, variables, σ, H)
 
-    expected = jnp.stack([eloc(vs.variables, s) for s in σ])
+    # The unbatched references, jitted: compiled once for all of them.
+    eloc_jit = jax.jit(eloc)
+    expected = jnp.stack([eloc_jit(vs.variables, s) for s in σ])
     batched = jax.vmap(eloc, in_axes=(None, 0))
     np.testing.assert_allclose(
         jax.jit(batched)(vs.variables, σ), expected, rtol=1e-12, atol=1e-12
@@ -1157,7 +1225,7 @@ def test_packed_kernel_vmap(system, chunk_size):
     # vmap over the parameters keeps the packing of the samples.
     variables = jax.tree.map(lambda p: jnp.stack([p, 1.1 * p]), vs.variables)
     expected = jnp.stack(
-        [eloc(jax.tree.map(lambda p: p[i], variables), σ[0]) for i in range(2)]
+        [eloc_jit(jax.tree.map(lambda p: p[i], variables), σ[0]) for i in range(2)]
     )
     batched = jax.vmap(eloc, in_axes=(0, None))
     np.testing.assert_allclose(
@@ -1167,7 +1235,7 @@ def test_packed_kernel_vmap(system, chunk_size):
 
     # Both batched.
     expected = jnp.stack(
-        [eloc(jax.tree.map(lambda p: p[i], variables), σ[i]) for i in range(2)]
+        [eloc_jit(jax.tree.map(lambda p: p[i], variables), σ[i]) for i in range(2)]
     )
     batched = jax.vmap(eloc, in_axes=(0, 0))
     np.testing.assert_allclose(
