@@ -144,3 +144,20 @@ def test_write_only_on_master(vstate, tmp_path):
         assert len(files) == 10
     else:
         assert len(files) == 0
+
+
+@common.skipif_distributed
+@pytest.mark.parametrize("tar", [False, True])
+def test_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch, tar):
+    # Pretend to be rank 1: nothing should be created on disk.
+    monkeypatch.setattr(jax, "process_index", lambda *args, **kwargs: 1)
+
+    root = tmp_path / "dir1"
+    log = nk.logging.StateLog(str(root / "dir2"), "w", tar=tar, save_every=1)
+    for i in range(3):
+        log(i, None, vstate)
+    log.flush()
+    log.close()
+
+    assert not root.exists()
+    assert list(tmp_path.iterdir()) == []

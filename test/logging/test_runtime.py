@@ -236,3 +236,19 @@ def test_write_only_on_master(tmp_path):
         assert tmp_path.exists()
     else:
         assert not tmp_path.exists()
+
+
+@common.skipif_distributed
+def test_json_log_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch):
+    # Pretend to be rank 1: nothing should be created on disk.
+    monkeypatch.setattr(jax, "process_index", lambda *args, **kwargs: 1)
+
+    root = tmp_path / "dir1"
+    log = nk.logging.JsonLog(str(root / "dir2" / "out"), "w", write_every=1)
+    for i in range(3):
+        log(i, {"energy": float(i)}, vstate)
+    log.flush(vstate)
+    del log
+
+    assert not root.exists()
+    assert list(tmp_path.iterdir()) == []

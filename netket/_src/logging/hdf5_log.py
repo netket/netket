@@ -245,8 +245,9 @@ class HDF5Log(AbstractCallback):
                 "Output file already exists. Either delete it manually orchange `path`."
             )
 
+        # Only the master process writes to disk, so only it creates the folder.
         dir_name = os.path.dirname(path)
-        if dir_name != "":
+        if dir_name != "" and self._is_master_process:
             os.makedirs(dir_name, exist_ok=True)
 
         self._file_mode = mode
