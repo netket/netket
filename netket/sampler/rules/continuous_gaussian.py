@@ -45,9 +45,7 @@ class GaussianRule(MetropolisRule):
 
     def transition(rule, sampler, machine, parameters, state, key, r):
         if jnp.issubdtype(r.dtype, jnp.complexfloating):
-            raise TypeError(
-                "Gaussian Rule does not work with complex " "basis elements."
-            )
+            raise TypeError("Gaussian Rule does not work with complex basis elements.")
 
         n_chains = r.shape[0]
         hilb = sampler.hilbert

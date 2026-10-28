@@ -24,7 +24,6 @@ from ._autocorr import integrated_time
 
 
 def _format_main_string(value, std, var):
-
     if not math.isfinite(abs(value)) or not math.isfinite(std):
         return f"{value:.2e} ± {std:.2e} [σ²={var:.1e}"
 
@@ -44,7 +43,6 @@ def _format_main_string(value, std, var):
 
 
 def _format_scientific_notation(value, std):
-
     length = 5
 
     value_ref = (

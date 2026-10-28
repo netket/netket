@@ -380,7 +380,9 @@ def dataclass(
     """
     # Support passing arguments to the decorator (e.g. @dataclass(kw_only=True))
     if clz is None:
-        return partial(dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen)  # type: ignore[bad-return-type]
+        return partial(
+            dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen
+        )  # type: ignore[bad-return-type]
 
     is_pytree = Pytree in clz.__mro__
 

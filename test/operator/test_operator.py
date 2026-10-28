@@ -233,7 +233,6 @@ def test_produce_elements_in_hilbert(op, attr):
 )
 @common.skipif_distributed
 def test_is_hermitian(op):
-
     # There should be a list of Hermitian operators instead of having this weird skip condition
     if isinstance(
         op,
@@ -276,7 +275,6 @@ def test_is_hermitian(op):
     [pytest.param(op, id=name) for name, op in operators.items()],
 )
 def test_lazy_hermitian(op):
-
     if isinstance(
         op,
         (

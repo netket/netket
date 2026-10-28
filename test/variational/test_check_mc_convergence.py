@@ -172,6 +172,15 @@ def test_expect_to_precision_combined_tol(vstate):
     assert stats.n_samples < 500 * vstate.n_samples
 
 
+def test_expect_to_precision_min_length(vstate):
+    """A tolerance met at once still samples min_length per chain."""
+    H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
+    stats = vstate.expect_to_precision(H, atol=1e3, min_length=8, verbose=False)
+    assert stats.n_samples == 8 * vstate.sampler.n_chains
+    stats = vstate.expect_to_precision(H, atol=1e3, min_length=1, verbose=False)
+    assert stats.n_samples == vstate.n_samples
+
+
 def test_expect_to_precision_tol_pytree(vstate):
     """Per-operator tolerances as pytrees matching the operator structure."""
     hi = vstate.hilbert

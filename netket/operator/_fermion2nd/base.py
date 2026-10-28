@@ -447,8 +447,7 @@ class FermionOperator2ndBase(DiscreteOperator):
             )
         if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             raise NotImplementedError(
-                f"In-place addition not implemented for {type(self)} "
-                f"and {type(other)}"
+                f"In-place addition not implemented for {type(self)} and {type(other)}"
             )
         if not self.hilbert == other.hilbert:
             raise ValueError(

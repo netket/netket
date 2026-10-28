@@ -70,7 +70,7 @@ def _canonicalize_bases_type(Us: list[BaseType] | np.ndarray) -> list[AbstractOp
     """
     if not (isinstance(Us, list) or isinstance(Us, np.ndarray)):
         raise ValueError(
-            "The bases should be a list or np.ndarray(dtype=object)" " of the bases."
+            "The bases should be a list or np.ndarray(dtype=object) of the bases."
         )
 
     if isinstance(Us[0], AbstractOperator):
@@ -128,9 +128,9 @@ def _convert_data(
     Us = _canonicalize_bases_type(Us)
 
     # Error message when user tries to convert less or more sigmas than Us
-    assert (
-        sigma_s.shape[0] == Us.shape[0]
-    ), "The number of samples should be equal to the number of rotations."
+    assert sigma_s.shape[0] == Us.shape[0], (
+        "The number of samples should be equal to the number of rotations."
+    )
 
     N = sigma_s.shape[-1]
     sigma_s = sigma_s.reshape(-1, N)

@@ -134,7 +134,7 @@ class AutoChunkSize(AbstractCallback):
                             sampler_chunk_size = driver.state.sampler.n_chains_per_rank
 
                         print(
-                            f"- Sampling failed with {sampler_chunk_size = }, trying with {sampler_chunk_size // 2 }"
+                            f"- Sampling failed with {sampler_chunk_size = }, trying with {sampler_chunk_size // 2}"
                         )
                         sampler_chunk_size = sampler_chunk_size // 2
                         if sampler_chunk_size < self.minimum_chunk_size:
@@ -166,7 +166,7 @@ class AutoChunkSize(AbstractCallback):
                         vstate_chunk_size = driver.state.n_samples
 
                     print(
-                        f"- Forward pass failed with {vstate_chunk_size = }, trying with {vstate_chunk_size // 2 }"
+                        f"- Forward pass failed with {vstate_chunk_size = }, trying with {vstate_chunk_size // 2}"
                     )
                     vstate_chunk_size = vstate_chunk_size // 2
                     if vstate_chunk_size < self.minimum_chunk_size:
@@ -198,7 +198,7 @@ class AutoChunkSize(AbstractCallback):
                         chunk_size_bwd = driver.state.n_samples
 
                     print(
-                        f"- Optimisation step failed with {chunk_size_bwd = }, trying with {chunk_size_bwd // 2 }"
+                        f"- Optimisation step failed with {chunk_size_bwd = }, trying with {chunk_size_bwd // 2}"
                     )
                     chunk_size_bwd = chunk_size_bwd // 2
                     if chunk_size_bwd < self.minimum_chunk_size:

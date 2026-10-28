@@ -115,7 +115,7 @@ def show_random_tip():
     for i, line in enumerate(lines):
         if i == 0:
             # First line: style the prefix
-            console.print(f"[bold cyan]{prefix}[/bold cyan]{line[len(prefix):]}")
+            console.print(f"[bold cyan]{prefix}[/bold cyan]{line[len(prefix) :]}")
         else:
             # Subsequent lines: already have proper indentation
             console.print(line)

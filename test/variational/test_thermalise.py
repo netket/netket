@@ -161,9 +161,9 @@ def test_converges_from_biased_start(vstate_uniform, hamiltonian):
 
     # Converged well before the budget.
     n_samples_per_chain = stats._n_samples_total / vstate_uniform.sampler.n_chains
-    assert (
-        n_samples_per_chain < 500
-    ), f"Used {n_samples_per_chain} samples/chain — should have converged much earlier"
+    assert n_samples_per_chain < 500, (
+        f"Used {n_samples_per_chain} samples/chain — should have converged much earlier"
+    )
 
 
 @common.skipif_distributed

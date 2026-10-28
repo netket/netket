@@ -89,7 +89,7 @@ Follow these steps to contribute code:
    pytest -n auto test/hilbert -k 'Spin'
    ```
 
-8. To make sure that your code is properly formatted and passes some 'preliminary checks' you should also run black (and ruff) by running
+8. To make sure that your code is properly formatted and passes some 'preliminary checks' you should also run ruff (linter and formatter) by running
    ```bash
    pre-commit run --all-files 
    ```
@@ -140,22 +140,22 @@ We don't really enforce or require those rules, but they are welcome additions.
 ### Python coding style
 
 Code should follow [PEP 8](https://www.python.org/dev/peps/pep-0008/).
-For consistency, we use the [Black](https://github.com/python/black) code formatter.
+For consistency, we use the [Ruff](https://docs.astral.sh/ruff/formatter/) code formatter.
 The precise version we use to check formatting will be installed when you install NetKet's development
 dependencies as outlined above.
 
-If you edit Python code, you should run Black on the affected files.
+If you edit Python code, you should run the Ruff formatter on the affected files.
 On the command line, this can be done via
 ```bash
 # to reformat a specific file
-black Path/To/The/file.py
+ruff format Path/To/The/file.py
 # to reformat all files below the specified directories
-black test/ Examples/
+ruff format test/ Examples/
 ```
 before creating a pull request.
-There are other options of running Black: For example, an [Atom package](https://atom.io/packages/python-black) is available and Black is integrated into the [VS Code Python extension](https://code.visualstudio.com/docs/python/editing#_formatting).
+Ruff is also integrated into most editors, for example via the [Ruff VS Code extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff).
 
-If you have installed [pre-commit](https://pre-commit.com/), black will be run automatically before you commit or
+If you have installed [pre-commit](https://pre-commit.com/), ruff will be run automatically before you commit or
 if you run the command below.
 
 ```bash

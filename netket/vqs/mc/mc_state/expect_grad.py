@@ -142,8 +142,8 @@ def _grad_expect_nonherm_kernel(
     logpsi = lambda w, σ: model_apply_fun(
         {"params": w, **model_state}, σ, mutable=mutable
     )
-    log_pdf = (
-        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
+    log_pdf = lambda w, σ: (
+        machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
     )
 
     def expect_closure_pars(pars):
