@@ -97,7 +97,6 @@ def with_meshes(
     }
 
     def decorator(fn):
-
         sig = inspect.signature(fn)
         accepts_mesh = "mesh" in sig.parameters
 

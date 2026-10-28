@@ -1001,9 +1001,9 @@ def test_small_lattice_warning_higher_dim():
         nk.graph.Grid([2, 3, 2], pbc=True)
         nk.graph.Square(2, pbc=True)
         nk.graph.Cube(2, pbc=True)
-    assert (
-        len(record) == 12
-    ), "All examples above should raise warnings but some didn't."
+    assert len(record) == 12, (
+        "All examples above should raise warnings but some didn't."
+    )
     with warnings.catch_warnings():  # None of the following should raise warnings
         warnings.simplefilter("error")
         nk.graph.Triangular([2, 3], pbc=False)

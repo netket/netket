@@ -1,2 +1,5 @@
 # Upgrade to black 22.1.0
 4620b1043ff156497d6696b929ac495cfc08a0b9
+
+# Switch from black to ruff format
+2e85f2e8f7354a7520f6558206b74ad07f69f8c2

@@ -117,9 +117,9 @@ class FermionOperator2ndNumba(FermionOperator2ndBase):
             self,
         )
 
-        assert (
-            x.shape[-1] == self.hilbert.size
-        ), "size of hilbert space does not match size of x"
+        assert x.shape[-1] == self.hilbert.size, (
+            "size of hilbert space does not match size of x"
+        )
         return self._flattened_kernel(
             x,
             sections,

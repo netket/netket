@@ -857,14 +857,19 @@ def DenseEquivariant(
             )
         else:
             return DenseEquivariantFFT(
-                HashableArray(sg.product_table), mask=mask, shape=shape, **kwargs  # type: ignore
+                HashableArray(sg.product_table),
+                mask=mask,
+                shape=shape,
+                **kwargs,  # type: ignore
             )
     elif mode in ["irreps", "auto"]:
         irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
         return DenseEquivariantIrrep(irreps, mask=mask, **kwargs)
     elif mode == "matrix":
         return DenseEquivariantMatrix(
-            HashableArray(sg.product_table), mask=mask, **kwargs  # type: ignore
+            HashableArray(sg.product_table),
+            mask=mask,
+            **kwargs,  # type: ignore
         )
     else:
         raise ValueError(

@@ -117,12 +117,12 @@ E_staged = vs_staged.expect(H)
 
 print("Equivalence: P_T11  vs  F_x @ F_y @ P_T22  (same RBM params, should match)")
 print(
-    f"  Direct  P_T11 : E/site = {E_direct.mean.real / (L*L):.5f}"
-    f" ± {E_direct.error_of_mean.real / (L*L):.5f}"
+    f"  Direct  P_T11 : E/site = {E_direct.mean.real / (L * L):.5f}"
+    f" ± {E_direct.error_of_mean.real / (L * L):.5f}"
 )
 print(
-    f"  Staged Fx·Fy·P : E/site = {E_staged.mean.real / (L*L):.5f}"
-    f" ± {E_staged.error_of_mean.real / (L*L):.5f}"
+    f"  Staged Fx·Fy·P : E/site = {E_staged.mean.real / (L * L):.5f}"
+    f" ± {E_staged.error_of_mean.real / (L * L):.5f}"
 )
 print()
 
@@ -170,8 +170,8 @@ def run_stage(vs_cur, operator, label, n_iter=100, lr=0.01):
     gs.run(n_iter=n_iter, out=None)
     E = vs_cur.expect(H)
     print(
-        f"  {label:58s}  E/site = {E.mean.real / (L*L):.5f}"
-        f" ± {E.error_of_mean.real / (L*L):.5f}"
+        f"  {label:58s}  E/site = {E.mean.real / (L * L):.5f}"
+        f" ± {E.error_of_mean.real / (L * L):.5f}"
     )
     return vs_cur
 

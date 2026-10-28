@@ -196,7 +196,6 @@ def test_random_states_discrete(hi: DiscreteHilbert):
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_random_states_discrete_sharding(hi: DiscreteHilbert):
-
     # check that the sharding is correct
     s = hi.random_state(jax.random.key(13), 4)
     if nk.config.netket_sharding:

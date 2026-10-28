@@ -254,9 +254,9 @@ def test_decay_forgets_old():
         est = online_statistics(batch, est, decay=0.01)
 
     # Mean should be very close to 10
-    assert (
-        abs(est.mean - 10.0) < 0.5
-    ), f"mean={est.mean} should be near 10 with strong decay"
+    assert abs(est.mean - 10.0) < 0.5, (
+        f"mean={est.mean} should be near 10 with strong decay"
+    )
 
 
 # --- Test 7: tau_corr is finite with decay ---
@@ -291,14 +291,14 @@ def test_single_chain_1d():
     assert math.isnan(est.R_hat), "R_hat should be NaN for single chain"
     # With max_lag > 0 (default), tau_corr uses the ACF estimator and is valid
     # even for a single chain.
-    assert math.isfinite(
-        est.tau_corr
-    ), "tau_corr should be finite via ACF for single chain"
+    assert math.isfinite(est.tau_corr), (
+        "tau_corr should be finite via ACF for single chain"
+    )
     # Without ACF tracking, it falls back to between-chain which needs >= 2 chains.
     est_no_acf = online_statistics(data, max_lag=0)
-    assert math.isnan(
-        est_no_acf.tau_corr
-    ), "tau_corr should be NaN for single chain without ACF"
+    assert math.isnan(est_no_acf.tau_corr), (
+        "tau_corr should be NaN for single chain without ACF"
+    )
 
 
 # --- Test 14: ACF shape and normalization ---
@@ -330,9 +330,9 @@ def test_tau_corr_acf_stable_across_chains():
 
     # All estimates should be within 50% of each other (Sokal would vary by 2x+)
     taus = np.array(taus)
-    assert (
-        np.max(taus) / np.min(taus) < 1.5
-    ), f"tau_corr_acf varies too much with n_chains: {taus}"
+    assert np.max(taus) / np.min(taus) < 1.5, (
+        f"tau_corr_acf varies too much with n_chains: {taus}"
+    )
 
 
 # --- Test 15: ACF is None when max_lag=0; with decay it is still computed ---
@@ -362,9 +362,9 @@ def test_tau_corr_acf_noniid():
 
     est = online_statistics(data, max_lag=64)
     # Theoretical tau = 1 + 2*phi/(1-phi) ≈ 1 + 2*4 = 9  (very roughly)
-    assert (
-        est.tau_corr_acf > 2.0
-    ), f"tau_corr_acf={est.tau_corr_acf} should be > 2 for AR(1) phi=0.8"
+    assert est.tau_corr_acf > 2.0, (
+        f"tau_corr_acf={est.tau_corr_acf} should be > 2 for AR(1) phi=0.8"
+    )
     assert math.isfinite(est.tau_corr_acf)
 
 
@@ -647,9 +647,9 @@ def test_expand_max_lag_subsequent_updates():
     np.testing.assert_allclose(acf[0], 1.0, rtol=1e-10)
 
     # New lags (>16) should now have non-zero pair counts from the extra batches.
-    assert (
-        float(est._pair_count[:, 20:].sum()) > 0
-    ), "new lags should accumulate pairs after subsequent updates"
+    assert float(est._pair_count[:, 20:].sum()) > 0, (
+        "new lags should accumulate pairs after subsequent updates"
+    )
 
 
 def test_expand_max_lag_convergence():
@@ -678,9 +678,9 @@ def test_expand_max_lag_convergence():
     # The estimate won't be identical (new lags miss the first half) but
     # should be in the same ballpark (within 50%).
     assert math.isfinite(est.tau_corr_acf)
-    assert (
-        abs(est.tau_corr_acf - tau_ref) / tau_ref < 0.5
-    ), f"tau after expand ({est.tau_corr_acf:.2f}) too far from reference ({tau_ref:.2f})"
+    assert abs(est.tau_corr_acf - tau_ref) / tau_ref < 0.5, (
+        f"tau after expand ({est.tau_corr_acf:.2f}) too far from reference ({tau_ref:.2f})"
+    )
 
 
 def test_expand_max_lag_from_zero():

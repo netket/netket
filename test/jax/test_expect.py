@@ -69,9 +69,7 @@ def test_expect_fermionic_operators_chunked_sharding_regression(
                 hi, v, sz=sz
             ) - t * nk.operator.fermion.create(
                 hi, v, sz=sz
-            ) @ nk.operator.fermion.destroy(
-                hi, u, sz=sz
-            )
+            ) @ nk.operator.fermion.destroy(hi, u, sz=sz)
     for u in g.nodes():
         ham_generic += (
             U

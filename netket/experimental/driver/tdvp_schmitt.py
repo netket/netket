@@ -173,7 +173,7 @@ class TDVPSchmitt(TDVPBaseDriver):
                 self._loss_grad_factor = 1.0
             else:
                 raise ValueError(
-                    "only real-time Lindblad evolution is supported for " "mixed states"
+                    "only real-time Lindblad evolution is supported for mixed states"
                 )
         else:
             if propagation_type == "real":
