@@ -99,11 +99,12 @@ def expect_to_precision(
     rtol=None,
     max_iter: int = 10_000,
     max_lag: int = 64,
+    min_length: int = 32,
     verbose: bool = True,
 ):
     """
     Sample until the estimated standard error of the mean meets the requested
-    tolerance(s).
+    tolerance(s), with at least ``min_length`` samples per chain.
 
     This uses NetKet's online_statistics to update estimates incrementally.
 
@@ -145,6 +146,8 @@ def expect_to_precision(
             pytree matching the structure of ``op``.
         max_iter: Maximum number of sampling iterations.
         max_lag: Max lag used for autocorrelation estimation.
+        min_length: Minimum number of samples per chain before stopping, so
+            that the split-R̂ of the result is meaningful.
         verbose: Whether to show a progress bar.
     """
     if not isinstance(state.sampler, MetropolisSampler):
@@ -165,6 +168,7 @@ def expect_to_precision(
         )
 
     state.sample()
+    chain_length = state.chain_length
     stats_list = _accumulate_stats(
         state,
         op_leaves,
@@ -175,7 +179,8 @@ def expect_to_precision(
     active = [
         i
         for i in range(len(op_leaves))
-        if _check_not_converged(stats_list[i], atol_leaves[i], rtol_leaves[i])
+        if chain_length < min_length
+        or _check_not_converged(stats_list[i], atol_leaves[i], rtol_leaves[i])
     ]
 
     it = 0
@@ -189,13 +194,15 @@ def expect_to_precision(
         try:
             while active and it < max_iter:
                 state.sample(n_discard_per_chain=0)
+                chain_length += state.chain_length
                 stats_list = _accumulate_stats(
                     state, op_leaves, active, stats_list, max_lag=max_lag
                 )
                 active = [
                     i
                     for i in active
-                    if _check_not_converged(
+                    if chain_length < min_length
+                    or _check_not_converged(
                         stats_list[i], atol_leaves[i], rtol_leaves[i]
                     )
                 ]

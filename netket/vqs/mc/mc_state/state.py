@@ -876,6 +876,7 @@ class MCState(VariationalState):
         rtol: float | PyTree | None = None,
         max_iter: int = 10_000,
         max_lag: int = 64,
+        min_length: int = 32,
         verbose: bool = True,
     ):
         r"""Sample until the standard error of :math:`\langle O \rangle` meets the requested tolerance.
@@ -938,6 +939,8 @@ class MCState(VariationalState):
             max_iter: Maximum number of sampling iterations before stopping
                 unconditionally.
             max_lag: Maximum lag used by the online autocorrelation estimator.
+            min_length: Minimum number of samples per chain before stopping,
+                so that the split-R̂ of the result is meaningful.
             verbose: If ``True`` (default), display a :mod:`tqdm` progress bar
                 showing the current error and tolerances.
 
@@ -966,6 +969,7 @@ class MCState(VariationalState):
             rtol=rtol,
             max_iter=max_iter,
             max_lag=max_lag,
+            min_length=min_length,
             verbose=verbose,
         )
 
