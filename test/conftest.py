@@ -60,7 +60,9 @@ def tmp_path_distributed(request, tmp_path):
     return tmp_path
 
 
-def parse_clearcache(s: str) -> int | None:
+def parse_clearcache(s: str) -> int | str | None:
+    if s == "file":
+        return s
     if s in ("auto", None):
         if os.environ.get("CI", False):
             return 40
@@ -83,13 +85,7 @@ def pytest_addoption(parser):
         metavar="clear_cache_every",
         type=parse_clearcache,
         default="auto",
-        help="...",
-    )
-    parser.addoption(
-        "--arnn_test_rate",
-        type=float,
-        default=0.2,
-        help="rate of running a test for ARNN",
+        help="Clear the jax caches every N tests, or after every test file with `file` (0: never; auto: 40 on CI)",
     )
     parser.addoption(
         "--devices",
@@ -116,6 +112,17 @@ _n_test_since_reset: int = 0
 _clear_cache_every: int = 0
 
 
+@pytest.hookimpl(trylast=True)
+def pytest_runtest_teardown(item, nextitem):
+    """With `--clear-cache-every file`, clear the jax caches after the last test of
+    every file. Under `--dist loadfile` the tests of a file share their compiled
+    functions, and the memory they hold is released before the next file."""
+    if _clear_cache_every == "file" and (
+        nextitem is None or nextitem.path != item.path
+    ):
+        jax.clear_caches()
+
+
 @pytest.fixture(autouse=True)
 def clear_jax_cache(request):
     """Fixture to clear jax cache every a certain number of tests.
@@ -128,7 +135,7 @@ def clear_jax_cache(request):
     yield
 
     # Teardown : fill with any logic you want
-    if _clear_cache_every is not None:
+    if isinstance(_clear_cache_every, int):
         global _n_test_since_reset
         _n_test_since_reset += 1
 
