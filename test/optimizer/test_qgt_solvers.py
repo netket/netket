@@ -266,3 +266,30 @@ def test_nan_fallback_equality_and_hash():
     assert s1 == s2
     assert hash(s1) == hash(s2)
     assert s1 is not s2  # distinct objects
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_pinv_smooth_discards_negative_and_unresolved_eigenvalues(dtype):
+    # 1e-12 is below float32's resolution of the spectrum but above rtol=1e-14.
+    evals = np.array([-1e-3, 1e-12, 1e-2, 1.0], dtype=dtype)
+    A = jnp.diag(jnp.asarray(evals))
+    b = jnp.ones(evals.size, dtype=dtype)
+
+    x, info = pinv_smooth(A, b)
+
+    keep = np.array([False, dtype == np.float64, True, True])
+    expected = np.where(keep, 1.0 / np.where(keep, evals, 1.0), 0.0)
+    np.testing.assert_allclose(x, expected, rtol=1e-5)
+    assert info["rank"] == keep.sum()
+
+
+def test_cholesky_with_fallback_drops_negative_modes():
+    evals = jnp.array([-1e-4, 1e-3, 1.0])
+    Q, _ = jnp.linalg.qr(jax.random.normal(jax.random.key(0), (3, 3)))
+    A = Q @ jnp.diag(evals) @ Q.T
+    b = Q @ jnp.ones(3)
+
+    x, info = nk.optimizer.solver.cholesky_with_fallback(A, b)
+
+    assert info["solver_fallback"]
+    np.testing.assert_allclose(Q.T @ x, [0.0, 1e3, 1.0], rtol=1e-6, atol=1e-8)

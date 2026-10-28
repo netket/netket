@@ -34,6 +34,23 @@ from netket._src.solvers.jaxmg_interface import (
 from netket.utils.citations import reference
 
 
+def _smooth_inverse_eigenvalues(Σ, rtol, rtol_smooth):
+    r"""The regularised inverse of the ascending spectrum ``Σ`` of a Hermitian
+    positive semi-definite matrix, as used by :func:`pinv_smooth`.
+
+    Eigenvalues at or below ``max(rtol, eps) * λ_max`` are discarded, with ``eps``
+    the machine epsilon of ``Σ``'s dtype. Negative eigenvalues are roundoff and
+    are always discarded.
+    """
+    λ_max = jnp.maximum(Σ[-1], 0.0)
+    cutoff = jnp.maximum(rtol, jnp.finfo(Σ.dtype).eps) * λ_max
+    keep = Σ > cutoff
+    # A discarded eigenvalue may be exactly zero.
+    Σ_safe = jnp.where(keep, Σ, 1.0)
+    regularizer = 1.0 / (1.0 + (rtol_smooth * λ_max / Σ_safe) ** 6)
+    return jnp.where(keep, regularizer / Σ_safe, 0.0), keep
+
+
 @partial_from_kwargs
 def pinv_smooth(
     A,
@@ -48,9 +65,15 @@ def pinv_smooth(
     Solve the linear system by building a pseudo-inverse from the
     eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
 
-    The eigenvalues :math:`\lambda_i` smaller than
-    :math:`r_\textrm{cond} \lambda_\textrm{max}` are truncated (where
-    :math:`\lambda_\textrm{max}` is the largest eigenvalue).
+    The matrix is assumed Hermitian positive semi-definite (e.g. a shifted
+    quantum geometric tensor or neural tangent kernel). The eigenvalues
+    :math:`\lambda_i` at or below
+    :math:`\max(r_\textrm{tol}, \epsilon_\textrm{dtype}) \lambda_\textrm{max}` are
+    truncated (where :math:`\lambda_\textrm{max}` is the largest eigenvalue and
+    :math:`\epsilon_\textrm{dtype}` the machine epsilon of the matrix dtype, the
+    resolution of the eigensolver). Negative eigenvalues, which in a positive
+    semi-definite matrix are roundoff, are therefore always discarded rather than
+    inverted.
 
     The eigenvalues are further smoothed with another filter, originally introduced in
     `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
@@ -83,10 +106,11 @@ def pinv_smooth(
     Args:
         A: LinearOperator (matrix)
         b: vector or Pytree
-        rtol : Relative tolerance for small singular values of :code:`A`. For
-            the purposes of rank determination, singular values are treated
-            as zero if they are smaller than `rtol` times the largest
-            singular value of :code:`A`.
+        rtol : Relative tolerance for small eigenvalues of :code:`A`. For
+            the purposes of rank determination, eigenvalues are treated
+            as zero if they are at or below `rtol` (floored at the machine
+            epsilon of the dtype of :code:`A`) times the largest eigenvalue
+            of :code:`A`.
         rtol_smooth : Regularization parameter used with a similar effect to `rtol`
             but with a softer curve. See :math:`\epsilon` in the formula
             above.
@@ -100,17 +124,11 @@ def pinv_smooth(
 
     Σ, U = jnp.linalg.eigh(A)
 
-    # Discard eigenvalues below numerical precision
-    Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
-
-    # Set regularizer for singular value cutoff
-    regularizer = 1.0 / (1.0 + (rtol_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
-
-    Σ_inv = Σ_inv * regularizer
+    Σ_inv, keep = _smooth_inverse_eigenvalues(Σ, rtol, rtol_smooth)
 
     x = U @ (Σ_inv * (U.conj().T @ b))
 
-    rank = jnp.sum(Σ > rtol * Σ[-1])
+    rank = jnp.sum(keep)
     cond_number = Σ[-1] / Σ[0]
     info = {
         "eval_min": Σ[0],
@@ -307,8 +325,10 @@ def cholesky_with_fallback(
         A: the matrix A in Ax=b
         b: the vector or pytree b in Ax=b
         rtol: Relative tolerance for small eigenvalues of :code:`A`, passed to
-            :func:`pinv_smooth`. Eigenvalues smaller than ``rtol`` times the
-            largest are truncated.
+            :func:`pinv_smooth`. Eigenvalues at or below ``rtol`` (floored at the
+            machine epsilon of the matrix dtype) times the largest are truncated,
+            and negative ones always are: the fallback only runs when Cholesky
+            failed, i.e. when roundoff made the shifted matrix indefinite.
         rtol_smooth: Soft regularisation parameter passed to :func:`pinv_smooth`.
             See :func:`pinv_smooth` for details.
         x0: unused
@@ -502,9 +522,10 @@ def pinv_smooth_distributed(
     of a symmetric/Hermitian matrix in a distributed manner, then applies the same smoothed
     regularization as :func:`~netket.optimizer.solver.pinv_smooth`.
 
-    The eigenvalues :math:`\lambda_i` smaller than
-    :math:`r_\textrm{tol} \lambda_\textrm{max}` are truncated (where
-    :math:`\lambda_\textrm{max}` is the largest eigenvalue).
+    The eigenvalues :math:`\lambda_i` at or below
+    :math:`\max(r_\textrm{tol}, \epsilon_\textrm{dtype}) \lambda_\textrm{max}`,
+    negative ones included, are truncated as in
+    :func:`~netket.optimizer.solver.pinv_smooth`.
 
     The eigenvalues are further smoothed with another filter, originally introduced in
     `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
@@ -611,13 +632,7 @@ def pinv_smooth_distributed(
         # `_shardmap_ctx` entry point is the one that does not consume `A`.
         _A_work, Σ, U, _status = jaxmg.syevd_shardmap_ctx(A, T_A=local_tile_size)
 
-        # Discard eigenvalues below numerical precision
-        Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
-
-        # Set regularizer for singular value cutoff
-        regularizer = 1.0 / (1.0 + (rtol_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
-
-        Σ_inv = Σ_inv * regularizer
+        Σ_inv, _ = _smooth_inverse_eigenvalues(Σ, rtol, rtol_smooth)
 
         # U is sharded like `A`, so with Explicit mesh axes jax requires the
         # sharding of these contractions to be given.
