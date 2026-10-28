@@ -102,25 +102,47 @@ def test_inverse(grp):
         assert_equal(grp._canonical(grp[i] @ grp[j]), grp._canonical(group.Identity()))
 
 
+_composition_cache = {}
+
+
+def _composition_canonicals(grp):
+    """Canonical forms of all products ``grp[i] @ grp[j]``, as an array ``Q`` of
+    shape ``(n, n, ...)`` with ``Q[i, j] = grp._canonical(grp[i] @ grp[j])``.
+
+    This is computed directly from the group elements (it does not use any of the
+    tables under test), and is cached because it is shared by
+    `test_product_table` and `test_conjugacy_table`, which dominate the runtime
+    of this file for the larger groups.
+    """
+    # keyed by id, storing grp itself so that the id cannot be reused
+    cached = _composition_cache.get(id(grp))
+    if cached is None or cached[0] is not grp:
+        n = len(grp)
+        Q = np.array(
+            [[grp._canonical(grp[i] @ grp[j]) for j in range(n)] for i in range(n)]
+        )
+        cached = _composition_cache[id(grp)] = (grp, Q)
+    return cached[1]
+
+
 @pytest.mark.parametrize("grp", groups)
 def test_product_table(grp):
     pt = grp.product_table
-    # u = g^-1 h  ->  gu = h
-    for i in range(len(grp)):
-        for j in range(len(grp)):
-            assert_equal(grp._canonical(grp[i] @ grp[pt[i, j]]), grp._canonical(grp[j]))
+    Q = _composition_canonicals(grp)
+    n = len(grp)
+    canonical = np.array([grp._canonical(grp[j]) for j in range(n)])
+    # u = g^-1 h  ->  gu = h, i.e. canonical(grp[i] @ grp[pt[i, j]]) == canonical(grp[j])
+    assert_equal(Q[np.arange(n)[:, None], pt], np.broadcast_to(canonical, Q.shape))
 
 
 @pytest.mark.parametrize("grp", groups)
 def test_conjugacy_table(grp):
     ct = grp.conjugacy_table
-    inv = grp.inverse
-    for i in range(len(grp)):
-        for j, jinv in enumerate(inv):
-            assert_equal(
-                grp._canonical(grp[jinv] @ grp[i] @ grp[j]),
-                grp._canonical(grp[ct[i, j]]),
-            )
+    Q = _composition_canonicals(grp)
+    n = len(grp)
+    # c = h^-1 g h  <->  h c = g h, i.e. for g = grp[i], h = grp[j], c = grp[ct[i, j]]:
+    # canonical(grp[j] @ grp[ct[i, j]]) == canonical(grp[i] @ grp[j])
+    assert_equal(Q[np.arange(n)[None, :], ct], Q)
 
 
 # Conjugacy class sizes and irrep dimensions taken from
