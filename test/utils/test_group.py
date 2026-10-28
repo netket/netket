@@ -401,7 +401,6 @@ def test_cyclic_group():
 
 
 def test_permutations():
-
     cycle_array = [1, 2, 0]
 
     cycle = Permutation(permutation_array=cycle_array)

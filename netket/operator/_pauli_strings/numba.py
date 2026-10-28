@@ -252,9 +252,9 @@ class PauliStringsNumba(PauliStringsBase):
             self,
         )
 
-        assert (
-            x.shape[-1] == self.hilbert.size
-        ), "size of hilbert space does not match size of x"
+        assert x.shape[-1] == self.hilbert.size, (
+            "size of hilbert space does not match size of x"
+        )
         xp_ids, mels = self._flattened_kernel(
             x_ids,
             sections,

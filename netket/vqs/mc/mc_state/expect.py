@@ -125,7 +125,5 @@ def get_local_kernel_sum(vs: MCState, O: SumGenericOperator):
 # but if somebody wants to override behaviour for an existing operator or define
 # a completely arbitrary novel type of operator, this makes it much easier.
 @dispatch
-def expect(
-    vstate: MCState, Ô: AbstractOperator, chunk_size: None
-) -> Stats:  # noqa: F811
+def expect(vstate: MCState, Ô: AbstractOperator, chunk_size: None) -> Stats:  # noqa: F811
     return local_estimators(vstate, Ô, chunk_size).to_stats()

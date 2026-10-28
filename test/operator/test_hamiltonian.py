@@ -185,9 +185,9 @@ def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
     # LocalOperator.n_conn and Ising.n_conn do not consider that mels[0] can be 0,
     # so n_conn1 can be n_conn2 + 1
     delta = n_conn1 - n_conn2
-    assert (
-        (delta == 0) | ((delta == 1) & (mels2[:, 0] == 0))
-    ).all(), f"n_conn1:\n{n_conn1}\nn_conn2:\n{n_conn2}"
+    assert ((delta == 0) | ((delta == 1) & (mels2[:, 0] == 0))).all(), (
+        f"n_conn1:\n{n_conn1}\nn_conn2:\n{n_conn2}"
+    )
 
     # Shapes of σp and mels can be different because of padding
     assert σp1.dtype == σp2.dtype

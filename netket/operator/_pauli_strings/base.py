@@ -82,8 +82,7 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
             hilbert = Qubit(len(operators[0]))
         else:
             raise ValueError(
-                "To construct an empty PauliString the hilbert space "
-                "must be specified."
+                "To construct an empty PauliString the hilbert space must be specified."
             )
 
     if not np.allclose(hilbert.shape, 2):
@@ -257,9 +256,9 @@ class PauliStringsBase(DiscreteOperator):
         for operator, weight in of_qubit_operator.terms.items():  # gives dict
             s = ["I"] * n_qubits
             for loc, op in operator:
-                assert (
-                    loc < n_qubits
-                ), f"operator index {loc} is longer than n_qubits={n_qubits}"
+                assert loc < n_qubits, (
+                    f"operator index {loc} is longer than n_qubits={n_qubits}"
+                )
                 s[loc] = op
             operators.append("".join(s))
             weights.append(weight)

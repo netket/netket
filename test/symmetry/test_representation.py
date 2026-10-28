@@ -46,7 +46,6 @@ representation_list.append(
 
 @pytest.mark.parametrize("representation", representation_list)
 def test_projectors(representation):
-
     hilbert_space = representation.hilbert
 
     projector_list = [
@@ -74,7 +73,6 @@ def test_projectors(representation):
 
 @pytest.mark.parametrize("representation", representation_list)
 def test_irrep_dims(representation):
-
     irrep_dims_1 = representation.irrep_subspace_dims()
     _, irrep_dims_2 = representation.symmetry_adapted_basis()
     assert jnp.all(irrep_dims_1 == irrep_dims_2)

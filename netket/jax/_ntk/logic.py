@@ -72,6 +72,8 @@ class ApplyFn(Protocol):
     def __call__(
         self, params: PyTree, inputs: NTTree[jnp.ndarray], *args, **kwargs
     ) -> NTTree[jnp.ndarray]: ...
+
+
 class EmpiricalKernelFn(Protocol):
     """A type alias for empirical kernel functions computing either NTK or NNGP.
 

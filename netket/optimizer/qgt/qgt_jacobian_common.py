@@ -51,8 +51,9 @@ def rescale(centered_oks, offset, *, ndims: int = 1):
     axis = tuple(range(ndims))
 
     scale = jax.tree_util.tree_map(
-        lambda x: (jnp.sum((x * x.conj()).real, axis=axis, keepdims=True) + offset)
-        ** 0.5,
+        lambda x: (
+            (jnp.sum((x * x.conj()).real, axis=axis, keepdims=True) + offset) ** 0.5
+        ),
         centered_oks,
     )
     centered_oks = jax.tree_util.tree_map(jnp.divide, centered_oks, scale)

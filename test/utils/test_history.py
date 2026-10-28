@@ -211,9 +211,9 @@ def test_historydict_push():
                     v1[hkey], v2[hkey], err_msg=f"data differs for '{key}.{hkey}'"
                 )
         elif isinstance(v1, nk.utils.history.HistoryDict):
-            assert set(v1.keys()) == set(
-                v2.keys()
-            ), f"HistoryDict keys differ for '{key}'"
+            assert set(v1.keys()) == set(v2.keys()), (
+                f"HistoryDict keys differ for '{key}'"
+            )
 
 
 def test_historydict_push_auto_step():

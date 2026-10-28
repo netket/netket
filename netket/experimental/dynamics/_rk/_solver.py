@@ -140,9 +140,11 @@ class RKExplicitSolver(AbstractSolver):
 
         b = self.tableau.b[0] if self.tableau.b.ndim == 2 else self.tableau.b
         y_tp1 = jax.tree_util.tree_map(
-            lambda y_t, k: y_t
-            + jnp.asarray(dt, dtype=y_t.dtype)
-            * jnp.tensordot(jnp.asarray(b, dtype=k.dtype), k, axes=1),
+            lambda y_t, k: (
+                y_t
+                + jnp.asarray(dt, dtype=y_t.dtype)
+                * jnp.tensordot(jnp.asarray(b, dtype=k.dtype), k, axes=1)
+            ),
             y_t,
             k,
         )
@@ -162,16 +164,22 @@ class RKExplicitSolver(AbstractSolver):
         k = self._compute_slopes(f, t, dt, y_t)
 
         y_tp1 = jax.tree_util.tree_map(
-            lambda y_t, k: y_t
-            + jnp.asarray(dt, dtype=y_t.dtype)
-            * jnp.tensordot(jnp.asarray(self.tableau.b[0], dtype=k.dtype), k, axes=1),
+            lambda y_t, k: (
+                y_t
+                + jnp.asarray(dt, dtype=y_t.dtype)
+                * jnp.tensordot(
+                    jnp.asarray(self.tableau.b[0], dtype=k.dtype), k, axes=1
+                )
+            ),
             y_t,
             k,
         )
         db = self.tableau.b[0] - self.tableau.b[1]
         y_err = jax.tree_util.tree_map(
-            lambda k: jnp.asarray(dt, dtype=k.dtype)
-            * jnp.tensordot(jnp.asarray(db, dtype=k.dtype), k, axes=1),
+            lambda k: (
+                jnp.asarray(dt, dtype=k.dtype)
+                * jnp.tensordot(jnp.asarray(db, dtype=k.dtype), k, axes=1)
+            ),
             k,
         )
 

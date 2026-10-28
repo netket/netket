@@ -16,6 +16,7 @@
 Common utilities to define fields and properties of netket dataclasses
 and Pytrees.
 """
+
 from functools import partial
 
 import dataclasses

@@ -150,13 +150,15 @@ def srt_onthefly(
         else:
             _all_samples, _ = nkjax.chunk(all_samples, chunk_size=chunk_size)
             ntk_local = jax.lax.map(
-                lambda batch_lattice: _jacobian_contraction(
-                    samples,
-                    batch_lattice,
-                    parameters_real,
-                    model_state=model_state,
-                    jacobian_shift=jacobian_shift,
-                ).real,
+                lambda batch_lattice: (
+                    _jacobian_contraction(
+                        samples,
+                        batch_lattice,
+                        parameters_real,
+                        model_state=model_state,
+                        jacobian_shift=jacobian_shift,
+                    ).real
+                ),
                 _all_samples,
             )
             if mode == "complex":
