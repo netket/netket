@@ -96,14 +96,6 @@ for i in range(H.hilbert.size):
 
 operators["operator:(Non Hermitian)"] = H
 
-# Remove non jax operators when sharding is activated
-if jax.device_count() > 1:
-    _operators = {}
-    for k, o in operators.items():
-        if isinstance(o, nk.operator.DiscreteJaxOperator):
-            _operators[k] = o
-    operators = _operators
-
 
 # wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
 def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
