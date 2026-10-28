@@ -14,6 +14,7 @@
 
 from typing import Any, IO, TYPE_CHECKING
 from pathlib import Path
+import os
 
 import jax
 import numpy as np
@@ -135,8 +136,10 @@ class RuntimeLog(AbstractLog):
                 filename = filename + ".json"
             path = parent / filename
 
-            with open(path, "wb") as io:
+            tmp_path = parent / f".{filename}.tmp.{os.getpid()}"
+            with open(tmp_path, "wb") as io:
                 self._serialize(io)
+            os.replace(tmp_path, path)
         else:
             self._serialize(path)
 
