@@ -157,7 +157,7 @@ def test_one_step_lindbladian(solver):
             ha += (
                 (2.0 / 4.0)
                 * nk.operator.spin.sigmaz(hi, i)
-                * nk.operator.spin.sigmaz(hi, (i + 1) % L)
+                @ nk.operator.spin.sigmaz(hi, (i + 1) % L)
             )
             j_ops.append(nk.operator.spin.sigmam(hi, i))
         # Create the liouvillian

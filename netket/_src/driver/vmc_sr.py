@@ -12,7 +12,6 @@ from netket.optimizer.solver import cholesky_with_fallback
 from netket.vqs import MCState, FullSumState
 from netket.utils import timing, struct
 from netket.utils.citations import reference
-from netket.utils.deprecation import DeprecatedArg
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator, to_sparse_cached
@@ -31,46 +30,6 @@ ApplyFun = Callable[[PyTree, Array], Array]
 KernelArgs = tuple[ApplyFun, PyTree, Array, tuple[Any, ...]]
 KernelFun = Callable[[PyTree, Array], KernelArgs]
 DeriativesArgs = tuple[ApplyFun, PyTree, PyTree, Array]
-
-
-def VMC_SRt(
-    hamiltonian: AbstractOperator,
-    optimizer: Optimizer,
-    *,
-    diag_shift: ScalarOrSchedule,
-    linear_solver: Callable[[jax.Array, jax.Array], jax.Array] = cholesky_with_fallback,
-    mode: str | None = None,
-    jacobian_mode: str | None | DeprecatedArg = DeprecatedArg(),
-    variational_state: MCState,
-    linear_solver_fn: (
-        Callable[[jax.Array, jax.Array], jax.Array] | DeprecatedArg
-    ) = DeprecatedArg(),
-):
-    if not isinstance(jacobian_mode, DeprecatedArg):
-        if mode is not None:
-            raise ValueError(
-                "`jacobian_mode` is deprecated and renamed to `mode`. Just declare `mode`."
-            )
-        warn(
-            """
-            The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
-            """,
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        mode = jacobian_mode
-
-    return VMC_SR(
-        hamiltonian,
-        optimizer,
-        diag_shift=diag_shift,
-        linear_solver=linear_solver,
-        linear_solver_fn=linear_solver_fn,
-        mode=mode,
-        variational_state=variational_state,
-        use_ntk=True,
-        on_the_fly=False,
-    )
 
 
 # Number of lags used for the MCMC diagnostics accumulated across iterations.
@@ -292,9 +251,6 @@ class VMC_SR(AbstractOptimizationDriver):
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
         linear_solver: Callable[[Array, Array], Array] = cholesky_with_fallback,
-        linear_solver_fn: (
-            Callable[[Array, Array], Array] | DeprecatedArg
-        ) = DeprecatedArg(),
         variational_state: MCState,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
@@ -365,17 +321,6 @@ class VMC_SR(AbstractOptimizationDriver):
                 SR and minSR. (Defaults to None, which will automatically choose the best
                 method)
         """
-        # TODO: Deprecated in September 2025, netket 3.20
-        if not isinstance(linear_solver_fn, DeprecatedArg):
-            warn(
-                """
-                The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
-                """,
-                category=FutureWarning,
-                stacklevel=2,
-            )
-            linear_solver = linear_solver_fn
-
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
         if isinstance(variational_state, FullSumState):

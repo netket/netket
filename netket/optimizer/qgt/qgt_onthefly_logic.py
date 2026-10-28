@@ -41,8 +41,8 @@ from netket.jax.sharding import sharding_decorator
 
 
 def _mat_vec(jvp_fn, v, diag_shift, pdf=None):
-    # Save linearisation work
-    # TODO move to mat_vec_factory after jax v0.2.19
+    # The transpose is not done in mat_vec_factory because jax.linear_transpose
+    # returns a plain function, which cannot be returned from a jitted function.
     vjp_fn = jax.linear_transpose(jvp_fn, v)
 
     w = jvp_fn(v)

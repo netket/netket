@@ -199,7 +199,10 @@ def test_random_states_discrete_sharding(hi: DiscreteHilbert):
 
     # check that the sharding is correct
     s = hi.random_state(jax.random.key(13), 4)
-    assert s.sharding.spec == P()
+    if nk.config.netket_sharding:
+        assert s.sharding.spec == P()
+    else:
+        assert s.sharding.is_fully_replicated
 
     # Check that no communication happens
     @jax.jit
@@ -500,14 +503,10 @@ def test_local_indices_to_states(hi):
         np.testing.assert_allclose(local_states[idxs[..., s]], x[..., s])
 
 
-@pytest.mark.parametrize("inverted_ordering", [True, False])
-def test_spin_state_iteration(inverted_ordering: bool):
-    hilbert = Spin(s=0.5, N=5, inverted_ordering=inverted_ordering)
+def test_spin_state_iteration():
+    hilbert = Spin(s=0.5, N=5)
 
-    if inverted_ordering:
-        reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=5)]
-    else:
-        reference = [np.array(el) for el in itertools.product([1.0, -1.0], repeat=5)]
+    reference = [np.array(el) for el in itertools.product([1.0, -1.0], repeat=5)]
 
     for state, ref in zip(hilbert.states(), reference):
         np.testing.assert_allclose(state, ref)

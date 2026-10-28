@@ -667,7 +667,7 @@ def test_jax_operator_to_jax_operator(op):
         if isinstance(op, DiscreteJaxOperator)
     ],
 )
-@pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
+@common.onlyif_sharding
 def test_jax_operator_sharding_preserved(op):
     """Check that get_conn_padded preserves sharding for JAX operators"""
     hi = op.hilbert

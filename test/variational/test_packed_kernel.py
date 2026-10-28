@@ -78,9 +78,9 @@ def _local_operator():
         nk.operator.spin.sigmaz,
     )
     H = (
-        sum(sx(hi, i) * sz(hi, (i + 1) % 8) for i in range(8))
+        sum(sx(hi, i) @ sz(hi, (i + 1) % 8) for i in range(8))
         + 0.5
-        * sum(sy(hi, i) * sy(hi, (i + 2) % 8) * sx(hi, (i + 5) % 8) for i in range(8))
+        * sum(sy(hi, i) @ sy(hi, (i + 2) % 8) @ sx(hi, (i + 5) % 8) for i in range(8))
         + 0.3 * sum(sx(hi, i) for i in range(8))
     )
     return hi, H.to_jax_operator(), nk.sampler.MetropolisLocal(hi)
@@ -209,13 +209,14 @@ def test_packed_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multip
 
     kernel = _packed(chunk_size, min_chunk_size=min_chunk_size)
     f = jax.jit(lambda v, σ, H: kernel(logpsi, v, σ, H))
+    n_devices = jax.device_count() if nk.config.netket_sharding else 1
     remainders = set()
     for seed in range(4):
-        σ = vs.hilbert.random_state(jax.random.key(seed), 61 * jax.device_count())
+        σ = vs.hilbert.random_state(jax.random.key(seed), 61 * n_devices)
         σp, _ = H.get_conn_padded(σ)
         is_conn = np.any(np.asarray(σp) != np.asarray(σ)[:, None], axis=-1)
         expected = 0
-        for n_conn in is_conn.reshape(jax.device_count(), -1).sum(axis=1):
+        for n_conn in is_conn.reshape(n_devices, -1).sum(axis=1):
             remainders.add(int(n_conn) % chunk_size)
             expected += 61 + -(-int(n_conn) // multiple) * multiple
         rows.clear()

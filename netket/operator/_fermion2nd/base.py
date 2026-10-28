@@ -27,7 +27,7 @@ from netket.operator._pauli_strings.base import _count_of_locations
 from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
-from netket.errors import OperatorMultiplicationDeprecationWarning
+from netket.errors import OperatorMultiplicationError
 
 from netket.hilbert import Fock, SpinOrbitalFermions
 
@@ -489,9 +489,8 @@ class FermionOperator2ndBase(DiscreteOperator):
         return self * scalar
 
     def __imul__(self, scalar):
-        if not is_scalar(scalar):
-            # we will overload this as matrix multiplication
-            self._op__imatmul__(scalar)
+        if isinstance(scalar, AbstractOperator):
+            raise OperatorMultiplicationError()
         if not np.can_cast(_dtype(scalar), self.dtype, casting="same_kind"):
             raise ValueError(
                 f"Cannot multiply inplace scalar with dtype {type(scalar)} "
@@ -513,14 +512,6 @@ class FermionOperator2ndBase(DiscreteOperator):
             dtype = np.promote_types(self.dtype, _dtype(scalar))
             op = self.copy(dtype=dtype)
             return op.__imul__(scalar)
-        if isinstance(scalar, AbstractOperator):
-            # TODO: Deprecated in September 2025
-            warnings.warn(OperatorMultiplicationDeprecationWarning())
-            # we will overload this as matrix multiplication
-            res = self._op__matmul__(scalar)
-            if res is not NotImplemented:
-                return res
-
         return super().__mul__(scalar)
 
     def transpose(self, *, concrete=False):

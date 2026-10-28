@@ -11,18 +11,13 @@ from netket.operator.boson import (
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 from netket.operator import AbstractOperator
-from netket.utils import module_version
 
 import pytest
 from pytest import raises
 
 from .. import common
 
-# TODO: once we require np 2.0.0, we can remove this
-if module_version(np) >= (2, 0, 0):
-    from numpy.exceptions import ComplexWarning
-else:
-    from numpy import ComplexWarning
+from numpy.exceptions import ComplexWarning
 
 import jax
 
@@ -306,10 +301,6 @@ def test_mul_matmul():
 
     op = nk.operator.LocalOperatorNumba(hi, sx, [0], dtype=complex)
     op @= nk.operator.LocalOperatorNumba(hi, sy, [1])
-    assert_same_matrices(op.to_dense(), sx0sy1_hat.to_dense())
-
-    op = nk.operator.LocalOperatorNumba(hi, sx, [0], dtype=complex)
-    op *= nk.operator.LocalOperatorNumba(hi, sy, [1])
     assert_same_matrices(op.to_dense(), sx0sy1_hat.to_dense())
 
     assert_same_matrices((2.0 * sx0sy1_hat).to_dense(), 2.0 * sx0sy1_hat.to_dense())
@@ -651,23 +642,18 @@ def test_pauli_strings_conversion_no_warn():
         nk.operator.spin.sigmax(nk.hilbert.Spin(1.0, 3), 0).to_pauli_strings()
 
 
-def test_operator_multiplication_deprecation_warning():
-    """Test that operator multiplication with * throws deprecation warning."""
-    import warnings
-    from netket.errors import OperatorMultiplicationDeprecationWarning
+def test_operator_multiplication_error():
+    """Test that operator multiplication with * raises an error."""
+    from netket.errors import OperatorMultiplicationError
 
     hi = nk.hilbert.Spin(s=1 / 2, N=2)
     op1 = nk.operator.spin.sigmax(hi, 0)
     op2 = nk.operator.spin.sigmaz(hi, 1)
 
-    # Test that * operator throws deprecation warning
-    with pytest.warns(OperatorMultiplicationDeprecationWarning):
-        result = op1 * op2
-
-    # Test that @ operator does NOT throw warning
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", OperatorMultiplicationDeprecationWarning)
-        result_correct = op1 @ op2
-
-    # Verify both give same result (backward compatibility)
-    assert_same_matrices(result, result_correct)
+    for a, b in [(op1, op2), (op1, op2.to_pauli_strings()), (op1.H, op1)]:
+        with pytest.raises(OperatorMultiplicationError):
+            a * b
+        with pytest.raises(OperatorMultiplicationError):
+            b * a
+    with pytest.raises(OperatorMultiplicationError):
+        op1 *= op2

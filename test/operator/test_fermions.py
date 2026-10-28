@@ -1009,23 +1009,15 @@ def test_fermion_ordering():
         pytest.param(nk.operator.FermionOperator2nd, id="FermionOperator2nd"),
     ],
 )
-def test_fermion_operator_multiplication_deprecation_warning(Op):
-    """Test that fermion operator multiplication with * throws deprecation warning."""
-    import warnings
-    from netket.errors import OperatorMultiplicationDeprecationWarning
+def test_fermion_operator_multiplication_error(Op):
+    """Test that fermion operator multiplication with * raises an error."""
+    from netket.errors import OperatorMultiplicationError
 
     hi = nk.hilbert.SpinOrbitalFermions(2)
     op1 = Op(hi, terms=("0^",), weights=(1.0,))
     op2 = Op(hi, terms=("1",), weights=(1.0,))
 
-    # Test that * operator throws deprecation warning
-    with pytest.warns(OperatorMultiplicationDeprecationWarning):
-        result = op1 * op2
-
-    # Test that @ operator does NOT throw warning
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", OperatorMultiplicationDeprecationWarning)
-        result_correct = op1 @ op2
-
-    # Verify both give same result (backward compatibility)
-    np.testing.assert_allclose(result.to_dense(), result_correct.to_dense())
+    with pytest.raises(OperatorMultiplicationError):
+        op1 * op2
+    with pytest.raises(OperatorMultiplicationError):
+        op1 *= op2

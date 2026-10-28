@@ -16,13 +16,7 @@
 
 from textwrap import dedent as _dedent
 
-from netket.utils import module_version as _module_version
-
-# TODO: (April 2026) keep only a branch when we drop jax 0.9
-if _module_version("jax") >= (0, 10):
-    from jax.extend.core import concrete_or_error as _jax_concrete_or_error
-else:  # pragma: no cover
-    from jax.core import concrete_or_error as _jax_concrete_or_error
+from jax.extend.core import concrete_or_error as _jax_concrete_or_error
 
 """NetKet error classes.
 (Inspired by NetKet error classes)
@@ -793,7 +787,7 @@ class UnoptimalSRtWarning(NetketWarning):
 
     .. note::
         a  detailed discussion can be found in the documentation of
-        :func:`netket.driver.VMC_SRt`).
+        :class:`netket.driver.VMC_SR`).
 
     """
 
@@ -801,7 +795,7 @@ class UnoptimalSRtWarning(NetketWarning):
         super().__init__(
             f"""
             You are in the case n_samples > num_params ({n_samples} > {n_parameters}),
-            for which the `VMC_SRt` is not optimal. Consider using `netket.driver.VMC`
+            for which `VMC_SR(..., use_ntk=True)` is not optimal. Consider using `netket.driver.VMC`
             with the preconditioner `nk.optimizer.SR` to achieve the same parameter dynamics,
             but with improved speed.
             """
@@ -1293,12 +1287,12 @@ class MCMixedStateExpectAndGradOnPhysicalOperatorError(NetketError):
         )
 
 
-class OperatorMultiplicationDeprecationWarning(NetketWarning):
+class OperatorMultiplicationError(NetketError, TypeError):
     """
-    Warning issued when using deprecated ``A*B`` syntax for operator multiplication.
+    Error raised when multiplying two operators with ``A*B``.
 
-    The ``A*B`` syntax for operator multiplication is deprecated and will be removed
-    in a future version of NetKet. Use ``A@B`` instead for matrix multiplication of
+    The ``A*B`` syntax for operator multiplication was deprecated in NetKet 3.20
+    and has been removed. Use ``A@B`` instead for the matrix multiplication of
     operators, which follows Python's standard matrix multiplication operator.
 
     Examples:
@@ -1306,7 +1300,7 @@ class OperatorMultiplicationDeprecationWarning(NetketWarning):
 
         .. code-block:: python
 
-            result = operator1 * operator2  # Deprecated
+            result = operator1 * operator2  # Error
 
         Use:
 
@@ -1323,7 +1317,7 @@ class OperatorMultiplicationDeprecationWarning(NetketWarning):
     def __init__(self):
         super().__init__(
             """
-            The '*' operator for multiplying operators is deprecated and will be removed in a future version.
+            The '*' operator cannot be used to multiply operators.
 
             Please use the '@' operator instead:
               - Replace: operator1 * operator2

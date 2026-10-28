@@ -165,15 +165,9 @@ class Adjoint(WrappedOperator):
         return f"Adjoint({self.parent})"
 
     def __mul__(self, other):
-        if self.parent == other:
-            return Squared(other)
-
         return self.collect() * other
 
     def __rmul__(self, other):
-        if self.parent == other:
-            return Squared(other.H.collect())
-
         return other * self.collect()
 
     def _op__matmul__(self, other):

@@ -40,7 +40,6 @@ from netket.utils import (
     _serialization as serialization_utils,
 )
 from netket.utils.moduletools import copy_doc
-from netket.utils.deprecation import deprecated
 from netket.utils.types import Array, PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -77,22 +76,6 @@ def compute_chain_length(n_chains, n_samples):
         )
 
     return chain_length
-
-
-@deprecated(
-    "This function has been removed. People should be free to use the chunk size they prefer."
-)
-def check_chunk_size(n_samples, chunk_size):
-    n_samples_per_rank = n_samples // jax.device_count()
-
-    if chunk_size is not None:
-        if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
-            raise ValueError(
-                f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
-                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
-                "unsupported. Please change `chunk_size` so that it divides evenly the"
-                "number of samples per rank or set it to `None` to disable chunking."
-            )
 
 
 def _is_power_of_two(n: int) -> bool:
@@ -231,8 +214,7 @@ class MCState(VariationalState):
         else:
             par_sharding = None
 
-        # TODO: deprecated in July 2025
-        # For simplicity, we do not accept numpy inputs in variables
+        # numpy leaves in variables are converted to jax arrays
         if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
             # resultis in SingleDeviceSharding if par_sharding is None
             variables = jax.tree.map(

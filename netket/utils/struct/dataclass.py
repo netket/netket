@@ -32,18 +32,13 @@
 """
 Utilities for defining custom classes that can be used with jax transformations.
 """
-from typing import TypeVar, overload
-from collections.abc import Callable
 
-# TODO: switch to typing when we require python 3.11
-from typing_extensions import (
-    dataclass_transform,  # pytype: disable=not-supported-yet
-)
+from typing import TypeVar, dataclass_transform, overload
+from collections.abc import Callable
 from functools import partial
 
 
 import dataclasses
-import warnings
 from dataclasses import MISSING
 
 from flax import serialization
@@ -410,14 +405,13 @@ def dataclass(
 
             The class is {clz}.
 
-            This behaviour is not supported and might break. Please remove
-            the decorator and just inherit from the base class, defining
-            a standard `__init__` method which calls `super().__init__(...)`
-            as usual.
+            This is not supported. Please remove the decorator and just
+            inherit from the base class, defining a standard `__init__`
+            method which calls `super().__init__(...)` as usual.
 
             If you need help, reach out with us.
             """
-            warnings.warn(msg, category=FutureWarning, stacklevel=1)
+            raise TypeError(msg)
 
         if "__post_init__" in clz.__dict__:
             msg = f"""
@@ -427,14 +421,13 @@ def dataclass(
 
             The class is {clz}.
 
-            This behaviour is not supported and might break. Please remove
-            the decorator and just inherit from the base class, defining
-            a standard `__init__` method which calls `super().__init__(...)`
-            as usual.
+            This is not supported. Please remove the decorator and just
+            inherit from the base class, defining a standard `__init__`
+            method which calls `super().__init__(...)` as usual.
 
             If you need help, reach out with us.
             """
-            warnings.warn(msg, category=FutureWarning, stacklevel=1)
+            raise TypeError(msg)
 
     # get globals of the class to put generated methods in there
     _globals = get_class_globals(clz)

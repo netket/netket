@@ -1,6 +1,5 @@
 from typing import Any
 from collections.abc import Callable
-from warnings import warn
 
 import jax
 import jax.numpy as jnp
@@ -8,7 +7,6 @@ from jax.flatten_util import ravel_pytree
 
 from netket import jax as nkjax
 from netket.optimizer.solver import cholesky
-from netket.utils.deprecation import DeprecatedArg
 from netket.utils import timing, struct
 from netket.utils.citations import reference
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
@@ -125,9 +123,6 @@ class Infidelity_SR(AbstractOptimizationDriver):
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
         linear_solver: Callable[[Array, Array], Array] = cholesky,
-        linear_solver_fn: (
-            Callable[[Array, Array], Array] | DeprecatedArg
-        ) = DeprecatedArg(),
         variational_state: VariationalState | None = None,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
@@ -175,17 +170,6 @@ class Infidelity_SR(AbstractOptimizationDriver):
                 SR and minSR. (Defaults to None, which will automatically choose the best
                 method)
         """
-
-        # TODO: Deprecated in September 2025, netket 3.20
-        if not isinstance(linear_solver_fn, DeprecatedArg):
-            warn(
-                """
-                The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
-                """,
-                category=FutureWarning,
-                stacklevel=2,
-            )
-            linear_solver = linear_solver_fn
 
         # Default chunk_size_bwd to the variational's state chunk size. In any case,
         # it usually should be smaller than the chunk size of variational state.

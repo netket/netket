@@ -102,12 +102,7 @@ def sigmay(
     """
     import numpy as np
     import netket.jax as nkjax
-    from netket.utils import module_version
-
-    if module_version(np) >= (2, 0, 0):
-        from numpy.exceptions import ComplexWarning
-    else:
-        from numpy import ComplexWarning  # type: ignore
+    from numpy.exceptions import ComplexWarning
 
     if not nkjax.is_complex_dtype(dtype):
         import jax.numpy as jnp

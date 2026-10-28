@@ -58,7 +58,7 @@ L = 4
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes, inverted_ordering=False)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Ising spin hamiltonian
 ha = nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)

@@ -84,7 +84,7 @@ class TDVP(TDVPBaseDriver):
                 the system :math:`Ax=b`.
                 Defaults to :func:`nk.optimizer.solver.pinv_smooth` with the default svd threshold of 1e-10.
                 To change the svd threshold you can use :func:`functools.partial` as follows:
-                :code:`functools.partial(nk.optimizer.solver.pinv_smooth, rcond_smooth=1e-5)`.
+                :code:`functools.partial(nk.optimizer.solver.pinv_smooth, rtol_smooth=1e-5)`.
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
             error_norm: Norm function used to calculate the error with adaptive integrators.

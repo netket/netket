@@ -24,7 +24,7 @@ Netket has the following classes of errors.
   JaxOperatorGetConnInJitError
   NonHolomorphicQGTOnTheFlyDenseRepresentationError
   NumbaOperatorGetConnDuringTracingError
-  OperatorMultiplicationDeprecationWarning
+  OperatorMultiplicationError
   RealQGTComplexDomainError
   UnoptimalSRtWarning
   SymmModuleInvalidInputShape

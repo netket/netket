@@ -54,8 +54,6 @@ from netket.utils.history import History, accum_in_tree, accum_histories_in_tree
 
 from netket.utils.static_range import StaticRange
 
-# TODO: remove this import as it is deprecated
-from netket.utils import mpi
 from netket.utils import citations
 
 _hide_submodules(
