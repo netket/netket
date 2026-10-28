@@ -31,7 +31,6 @@ from netket.optimizer import qgt
 from netket.optimizer.qgt.qgt_jacobian_pytree import QGTJacobianPyTreeT
 from netket.optimizer.qgt.qgt_jacobian_dense import QGTJacobianDenseT
 
-from .. import common
 
 QGT_objects = {}
 
@@ -184,7 +183,6 @@ def test_qgt_solve(qgt, vstate, solver, chunk_size):
     )
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "qgt",
     [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
@@ -271,7 +269,6 @@ def test_qgt_dense(qgt, vstate, chunk_size):
         assert Sd.shape == (vstate.n_parameters, vstate.n_parameters)
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
@@ -305,7 +302,6 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     jax.tree_util.tree_map(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
 
 
-@common.skipif_mpi
 def test_qgt_holomorphic_real_pars_throws():
     hi = nk.hilbert.Spin(1 / 2, 5)
     vstate = nk.vqs.MCState(
@@ -332,7 +328,7 @@ def test_qgt_onthefly_correct_chunking_selection():
     from netket.optimizer.qgt.qgt_onthefly_logic import _mat_vec
 
     # in standard version
-    if not nk.config.netket_experimental_sharding:
+    if jax.device_count() == 1:
         # check is the non chunked code
         QGT = nk.optimizer.qgt.QGTOnTheFly(vstate)
         assert QGT._mat_vec.func is _mat_vec

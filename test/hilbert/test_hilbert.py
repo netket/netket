@@ -35,10 +35,6 @@ from jax.sharding import PartitionSpec as P
 from jax.errors import JaxRuntimeError
 
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 hilberts = {}
 
 # Spin 1/2
@@ -157,7 +153,6 @@ particle_hilbert_params = [
 #
 # Tests
 #
-@common.skipif_distributed
 @pytest.mark.parametrize("hi", homogeneous_hilbert_params)
 def test_consistent_size_homogeneous(hi: HomogeneousHilbert):
     assert hi.size > 0
@@ -167,7 +162,6 @@ def test_consistent_size_homogeneous(hi: HomogeneousHilbert):
         assert np.isfinite(state).all()
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize("hi", particle_hilbert_params)
 def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
@@ -198,7 +192,7 @@ def test_random_states_discrete(hi: DiscreteHilbert):
 def test_random_states_discrete_sharding(hi: DiscreteHilbert):
     # check that the sharding is correct
     s = hi.random_state(jax.random.key(13), 4)
-    if nk.config.netket_sharding:
+    if jax.device_count() > 1:
         assert s.sharding.spec == P()
     else:
         assert s.sharding.is_fully_replicated
@@ -220,7 +214,6 @@ def test_random_states_discrete_sharding(hi: DiscreteHilbert):
             assert o not in l
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize("hi", discrete_indexable_hilbert_params)
 def test_constrained_correct(hi: DiscreteHilbert):
     n_states = hi.n_states
@@ -235,7 +228,6 @@ def test_random_states_in_space_homogeneous(hi: HomogeneousHilbert):
     assert np.all((states[..., None] == np.asarray(hi._local_states)).any(-1))
 
 
-@common.skipif_distributed
 def test_random_states_fock_infinite():
     hi = Fock(N=2)
     rstate = hi.random_state(jax.random.key(14), 20)
@@ -243,7 +235,6 @@ def test_random_states_fock_infinite():
     assert rstate.shape == (20, 2)
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize("hi", particle_hilbert_params)
 def test_random_states_particle(hi: Particle):
     assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
@@ -270,7 +261,6 @@ def test_random_states_particle(hi: Particle):
     ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
 
 
-@common.skipif_distributed
 def test_particle_fail():
     with pytest.raises(ValueError):
         _ = Particle(

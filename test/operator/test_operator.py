@@ -169,7 +169,7 @@ operators["ProductOperatorJax"] = nk.operator.ProductOperator(
 )
 
 # Remove non jax operators when sharding is activated
-if nk.config.netket_experimental_sharding:
+if jax.device_count() > 1:
     _operators = {}
     for k, o in operators.items():
         if isinstance(o, nk.operator.DiscreteJaxOperator):
@@ -209,7 +209,7 @@ def test_produce_elements_in_hilbert(op, attr):
     hi = op.hilbert
     get_conn_fun = getattr(op, attr)
 
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         # TODO: get_conn_fun(rstates[i]) and shard map do not play well
         # together.
         pytest.xfail("Broken under sharding")
@@ -231,7 +231,6 @@ def test_produce_elements_in_hilbert(op, attr):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-@common.skipif_distributed
 def test_is_hermitian(op):
     # There should be a list of Hermitian operators instead of having this weird skip condition
     if isinstance(
@@ -360,9 +359,7 @@ def test_get_conn_padded(op, shape, dtype):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
+@common.requires_multiple_devices
 @pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
 def test_operator_sharded_not_commuincating(op):
     if isinstance(op, nk.operator.DiscreteOperator) and not isinstance(
@@ -476,7 +473,6 @@ def test_operator_on_subspace():
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
-@common.skipif_distributed
 def test_operator_jax_conversion(op):
     op_jax = op.to_jax_operator()
     op_numba = op_jax.to_numba_operator()
@@ -511,7 +507,7 @@ def test_operator_jax_getconn(op):
 
     states = op.hilbert.all_states()
 
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         # TODO: shard_map breaks
         pytest.xfail("Broken under sharding")
 
@@ -665,7 +661,7 @@ def test_jax_operator_to_jax_operator(op):
         if isinstance(op, DiscreteJaxOperator)
     ],
 )
-@common.onlyif_sharding
+@common.requires_multiple_devices
 def test_jax_operator_sharding_preserved(op):
     """Check that get_conn_padded preserves sharding for JAX operators"""
     hi = op.hilbert
@@ -690,7 +686,7 @@ def test_jax_operator_sharding_preserved(op):
         assert sp.sharding.is_fully_replicated
 
 
-@common.skipif_distributed
+@common.skipif_multiple_devices("numba operators do not support several devices")
 def test_bose_hubbard_precision():
     # Issue #1994
     N = 2
@@ -720,7 +716,6 @@ def test_bose_hubbard_precision():
         if not name.startswith("Bose Hubbard Complex")
     ],
 )
-@common.skipif_distributed
 def test_operator_jax_n_conn(op):
     """Check that n_conn returns the same result for jax and numba operators"""
     op_jax = op.to_jax_operator()

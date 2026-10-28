@@ -209,7 +209,7 @@ def test_packed_kernel_evaluated_rows(system, chunk_size, min_chunk_size, multip
 
     kernel = _packed(chunk_size, min_chunk_size=min_chunk_size)
     f = jax.jit(lambda v, σ, H: kernel(logpsi, v, σ, H))
-    n_devices = jax.device_count() if nk.config.netket_sharding else 1
+    n_devices = jax.device_count()
     remainders = set()
     for seed in range(4):
         σ = vs.hilbert.random_state(jax.random.key(seed), 61 * n_devices)
@@ -468,7 +468,7 @@ def test_packed_kernel_config_flag(system, chunk_size, monkeypatch):
     )
 
 
-@common.onlyif_sharding_single_process
+@common.requires_multiple_devices_single_process
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
 def test_packed_kernel_no_collectives(system):
     # The packing must run per device: under GSPMD it would gather the
@@ -988,7 +988,7 @@ def test_apply_packed_sharded(slots):
         result,
         expected,
     )
-    if jax.device_count() > 1 and nk.config.netket_sharding:
+    if jax.device_count() > 1:
         for leaf in jax.tree.leaves(result):
             assert leaf.sharding.spec[0] == "S"
     hlo = g.lower(pars, xs, ws, fs).compile().as_text()

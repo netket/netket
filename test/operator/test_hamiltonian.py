@@ -17,7 +17,7 @@ import pytest
 
 import netket as nk
 
-from test import common
+from .. import common
 
 
 def test_ising_int_dtype():
@@ -84,7 +84,6 @@ def _colored_graph(graph):
     return nk.graph.Graph(edges=[(i, j, i % 2) for i, j in graph.edges()])
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -157,6 +156,7 @@ def _colored_graph(graph):
         pytest.param(nk.graph.Hypercube(4, 2), id="4x4"),
     ],
 )
+@common.skipif_multiple_devices("numba operators do not support several devices")
 def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
     hilbert = partial_hilbert(graph)
     H2 = partial_H_pair[1](hilbert, graph)
@@ -172,10 +172,9 @@ def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
     n_conn1 = H1.n_conn(σ)
     n_conn2 = H2.n_conn(σ)
 
-    if not nk.config.netket_experimental_sharding:
-        assert isinstance(σp1, np.ndarray)
-        assert isinstance(mels1, np.ndarray)
-        assert isinstance(n_conn1, np.ndarray)
+    assert isinstance(σp1, np.ndarray)
+    assert isinstance(mels1, np.ndarray)
+    assert isinstance(n_conn1, np.ndarray)
     σp2 = np.asarray(σp2)
     mels2 = np.asarray(mels2)
     n_conn2 = np.asarray(n_conn2)

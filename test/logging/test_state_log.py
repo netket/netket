@@ -29,7 +29,6 @@ def vstate(request):
     )
 
 
-@common.skipif_distributed
 def test_tar(vstate, tmp_path):
     path = str(tmp_path) + "/dir1/dir2"
 
@@ -76,7 +75,6 @@ def test_tar(vstate, tmp_path):
         assert file.endswith(".mpack")
 
 
-@common.skipif_distributed
 def test_dir(vstate, tmp_path):
     path = str(tmp_path) + "/dir1/dir2"
 
@@ -125,7 +123,7 @@ def test_lazy_init(tmp_path):
     assert len(files) == 0
 
 
-@common.onlyif_distributed
+@common.requires_multiple_devices
 def test_write_only_on_master(vstate, tmp_path):
     # Check that the logger runs everywhere but serializes only on rank 0
 
@@ -146,7 +144,7 @@ def test_write_only_on_master(vstate, tmp_path):
         assert len(files) == 0
 
 
-@common.skipif_distributed
+@pytest.mark.skipif(jax.process_count() > 1, reason="fakes the process index")
 @pytest.mark.parametrize("tar", [False, True])
 def test_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch, tar):
     # Pretend to be rank 1: nothing should be created on disk.

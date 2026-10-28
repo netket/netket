@@ -97,7 +97,7 @@ for i in range(H.hilbert.size):
 operators["operator:(Non Hermitian)"] = H
 
 # Remove non jax operators when sharding is activated
-if nk.config.netket_experimental_sharding:
+if jax.device_count() > 1:
     _operators = {}
     for k, o in operators.items():
         if isinstance(o, nk.operator.DiscreteJaxOperator):
@@ -201,7 +201,6 @@ def test_n_samples_api(vstate, _device_count):
     assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
 
-@common.skipif_mpi
 def test_sample_n_discard_per_chain_argument():
     # The `n_discard_per_chain` passed to `sample` must override the one of
     # the state, both when it is larger and when it is smaller.
@@ -228,7 +227,6 @@ def test_sample_n_discard_per_chain_argument():
     np.testing.assert_array_equal(_samples(10, n_discard_per_chain=0), no_discard)
 
 
-@common.skipif_mpi
 def test_chunk_size_api(vstate):
     assert vstate.chunk_size is None
 
@@ -258,7 +256,6 @@ def test_chunk_size_api(vstate):
     _ = vstate.sample(n_samples=1008 + 16)
 
 
-@common.skipif_mpi
 def test_constructor():
     sampler = nk.sampler.MetropolisLocal(hilbert=hi)
     model = nk.models.RBM()
@@ -286,7 +283,6 @@ def test_constructor():
         vs = nk.vqs.MCState(sampler, apply_fun=model.apply)
 
 
-@common.skipif_mpi
 def test_serialization(vstate):
     from flax import serialization
 
@@ -319,7 +315,6 @@ def test_serialization(vstate):
     np.testing.assert_allclose(vstate.samples, old_samples)
 
 
-@common.skipif_mpi
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
@@ -332,8 +327,7 @@ def test_init_parameters(vstate):
     jax.tree_util.tree_map(_f, pars, pars2)
 
 
-@common.skipif_mpi
-@common.xfailif_sharding
+@common.skipif_multiple_devices("MetropolisNumpy does not support several devices")
 @pytest.mark.parametrize(
     "operator",
     [
@@ -351,7 +345,6 @@ def test_expect_numpysampler_works(vstate, operator):
     assert isinstance(out, nk.stats.Stats)
 
 
-@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -368,7 +361,6 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -437,7 +429,6 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -468,7 +459,6 @@ def test_forces(vstate, operator):
     jax.tree_util.tree_map(np.testing.assert_array_equal, g1, O_grad1)
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -508,7 +498,6 @@ def test_expect_grad_nonhermitian_works(vstate):
     O_stat, O_grad = vstate.expect_and_grad(op)
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -573,7 +562,6 @@ def test_reproducible_copy():
         np.testing.assert_allclose(s1, s1_2)
 
 
-@common.skipif_distributed
 def test_error_wrong_variables():
     hi = nk.hilbert.Spin(0.5, 4)
     sa = nk.sampler.ExactSampler(hilbert=hi)

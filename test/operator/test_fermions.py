@@ -11,9 +11,6 @@ from netket.operator.fermion import destroy, create, number
 
 import pytest
 
-from .. import common
-
-pytestmark = common.skipif_distributed
 
 op_ferm = {}
 hi = nk.hilbert.SpinOrbitalFermions(4)
@@ -136,7 +133,7 @@ def test_openfermion_conversion(Op):
     from openfermion.ops import FermionOperator
 
     # TODO: fix under sharding the conversion to dense
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         pytest.xfail(
             "Sharding to dense conversion unsupported with "
             "Hilbert space size non divisible by n processes."
@@ -665,7 +662,7 @@ def test_openfermion_conversion_2(Op):
     from openfermion.ops import QubitOperator, FermionOperator
 
     # TODO: fix under sharding the conversion to dense
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         pytest.xfail(
             "Sharding to dense conversion unsupported with "
             "Hilbert space size non divisible by n processes."

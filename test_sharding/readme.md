@@ -1,13 +1,10 @@
-### NetKet Sharding Tests
+### NetKet multi-process tests
 
-This folder contains tests for running NetKet on multiple jax devices.
+The test suite runs on 2 CPU devices by default (see `test/conftest.py`), so the
+multi-device code paths are exercised by a plain `pytest` run. Use
+`pytest --devices N` (or `NETKET_TEST_DEVICES=N`) to pick another device count,
+e.g. `--devices 1` for the single-device code paths.
 
-They are kept separate from the normal tests as they need to be run with different flags (some of those set in pyproject.toml are incompatible and I haven't found a reliable way to override them)
-
-In particular it contains scripts to run:
-
-- run the normal tests on 2 cpu devices (run_standard_tests_with_sharding.sh)
-- run specific tests for sharding on 2 cpu devices (run_test_sharding.sh)
-- run specific tests for sharding on 2 separate processes (run_test_sharding_distributed.sh)
-
-They need to be run from the root folder of the netket repository, e.g. with `./test_sharding/run_test_sharding.sh`
+This folder only contains the script that runs tests across 2 separate processes
+with `djaxrun` (`run_test_sharding_distributed.sh`). It must be run from the root
+folder of the netket repository, e.g. with `./test_sharding/run_test_sharding_distributed.sh`.

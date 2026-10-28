@@ -3,10 +3,6 @@ import pytest
 import jax.numpy as jnp
 import netket as nk
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @pytest.mark.parametrize("chunk_size", [2, None])
 def test_chunk(chunk_size):

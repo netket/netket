@@ -31,7 +31,7 @@ SAMPLER_SEED = 15324
 
 
 def _allgather(x):
-    if nk.config.netket_experimental_sharding and jax.process_count() > 1:
+    if jax.process_count() > 1:
         x = multihost_utils.process_allgather(x)
     return x
 
@@ -61,7 +61,7 @@ def test_metropolis_serialization(key_type, sampler, tmp_path_distributed):
     state_dict = serialization.to_state_dict(sampler_state)
 
     # if we must do it, we must replicate
-    # if nk.config.netket_experimental_sharding and nk.config.netket_experimental_sharding_fast_serialization:
+    # if nk.config.netket_experimental_sharding_fast_serialization:
     #     def _fun(x):
     #         if isinstance(x, jax.Array) and not x.is_fully_replicated:
     #             return jax.lax.with_sharding_constraint(x, x.sharding.replicate())
@@ -73,8 +73,7 @@ def test_metropolis_serialization(key_type, sampler, tmp_path_distributed):
         with open(tmp_file_name, "wb") as f:
             f.write(bindata)
 
-    if nk.config.netket_experimental_sharding:
-        multihost_utils.sync_global_devices("ciao")
+    multihost_utils.sync_global_devices("ciao")
 
     # load data
     with open(tmp_file_name, "rb") as f:
@@ -91,21 +90,11 @@ def test_metropolis_serialization(key_type, sampler, tmp_path_distributed):
             sampler_state_2, state_dict_loaded
         )
 
-        if nk.config.netket_experimental_sharding:
-            if isinstance(
-                sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding
-            ):
-                pass
-            else:
-                assert sampler_state_2.σ.sharding.is_equivalent_to(
-                    sampler_state.σ.sharding, sampler_state.σ.ndim
-                )
-            assert bool(
-                jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :])
-            )
-        else:
-            assert isinstance(
-                sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding
+        if not isinstance(
+            sampler_state_2.σ.sharding, jax.sharding.SingleDeviceSharding
+        ):
+            assert sampler_state_2.σ.sharding.is_equivalent_to(
+                sampler_state.σ.sharding, sampler_state.σ.ndim
             )
         assert bool(jnp.all(sampler_state_2.σ == sampler_state.σ[: sa.n_batches, :]))
 

@@ -6,10 +6,8 @@ import numpy as np
 
 import netket as nk
 
-from .. import common
 
 SEED = 123
-pytestmark = common.skipif_distributed
 
 
 @pytest.mark.parametrize("rdtype", [jnp.float64])

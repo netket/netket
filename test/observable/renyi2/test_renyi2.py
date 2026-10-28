@@ -1,6 +1,7 @@
 import netket as nk
 import netket.experimental as nkx
 import numpy as np
+import jax
 
 import pytest
 
@@ -173,9 +174,7 @@ def test_local_estimators(useExactSampler):
     )
 
 
-@pytest.mark.skipif(
-    nk.config.netket_experimental_sharding, reason="Only run without sharding"
-)
+@pytest.mark.skipif(jax.device_count() > 1, reason="Only run without sharding")
 def test_oddchains():
     pytest.importorskip("qutip")
 

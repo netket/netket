@@ -1,19 +1,43 @@
 import os
+import sys
 from pathlib import Path
 
 import pytest
 import jax
+
+# The suite runs on several CPU devices by default, so that every test exercises
+# the sharded code paths. The device count is fixed when jax initialises its
+# backend, which happens when netket is imported (and pytest imports it while
+# resolving `filterwarnings`), so it must be chosen here, at conftest import.
+# A command-line option is parsed too late for that: `--devices` is read from
+# sys.argv and forwarded to the xdist workers through the environment.
+DEFAULT_TEST_DEVICES = 2
+
+
+def _requested_devices() -> int:
+    if "NETKET_TEST_DEVICES" in os.environ:
+        return int(os.environ["NETKET_TEST_DEVICES"])
+    for i, arg in enumerate(sys.argv):
+        if arg == "--devices" and i + 1 < len(sys.argv):
+            return int(sys.argv[i + 1])
+        if arg.startswith("--devices="):
+            return int(arg.split("=", 1)[1])
+    return DEFAULT_TEST_DEVICES
+
+
+if os.environ.get("DJAXRUN", "0") != "1":
+    _n_devices = _requested_devices()
+    os.environ["NETKET_TEST_DEVICES"] = str(_n_devices)
+    jax.config.update("jax_num_cpu_devices", _n_devices)
 
 
 @pytest.fixture
 def _device_count(request):
     """
     Fixture returning the number of devices among which NetKet distributes
-    the calculation (1 if sharding is disabled).
+    the calculation.
     """
-    import netket as nk
-
-    return jax.device_count() if nk.config.netket_sharding else 1
+    return jax.device_count()
 
 
 @pytest.fixture
@@ -23,7 +47,7 @@ def tmp_path_distributed(request, tmp_path):
     """
     import netket as nk
 
-    if nk.config.netket_experimental_sharding:
+    if jax.process_count() > 1:
         rng_key = nk.jax.PRNGKey()
         val = jax.random.randint(rng_key, (), minval=0, maxval=999999999)
         val = int(val)
@@ -66,6 +90,12 @@ def pytest_addoption(parser):
         type=float,
         default=0.2,
         help="rate of running a test for ARNN",
+    )
+    parser.addoption(
+        "--devices",
+        type=int,
+        default=DEFAULT_TEST_DEVICES,
+        help="Number of CPU devices to run the tests on (also NETKET_TEST_DEVICES)",
     )
     parser.addoption(
         "--jax-distributed",
@@ -130,6 +160,16 @@ def pytest_load_initial_conftests(early_config, parser, args):
 
 def pytest_configure(config):
     import os
+
+    # Kept out of pyproject.toml: resolving these categories imports netket, and
+    # pytest resolves the ini filters before loading this conftest, which would
+    # initialise jax before the device count above is set.
+    for category in (
+        "HolomorphicUndeclaredWarning",
+        "UnoptimalSRtWarning",
+        "InitializePeriodicLatticeOnSmallLatticeWarning",
+    ):
+        config.addinivalue_line("filterwarnings", f"ignore::netket.errors.{category}")
 
     global _clear_cache_every
     _clear_cache_every = config.getoption("--clear-cache-every")

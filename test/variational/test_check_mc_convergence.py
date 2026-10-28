@@ -21,10 +21,6 @@ import netket as nk
 from netket.stats import LocalEstimatorsBatch, online_statistics
 from netket._src.vqs.check_mc_convergence import acf_window_saturated, tau_corr_reliable
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 def ar1(phi, n_chains=8, n_samples=500, seed=42):
     """AR(1) process x[t] = phi*x[t-1] + sqrt(1-phi^2)*noise, tau ~ (1+phi)/(1-phi)."""

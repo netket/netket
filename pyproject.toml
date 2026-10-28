@@ -139,9 +139,6 @@ filterwarnings = [
     "ignore:Raw arrays as random keys to",
     "ignore:Defaulting to `holomorphic=False`,",
     "ignore::PendingDeprecationWarning: the matrix subclass",
-    "ignore::netket.errors.HolomorphicUndeclaredWarning",
-    "ignore::netket.errors.UnoptimalSRtWarning",
-    "ignore::netket.errors.InitializePeriodicLatticeOnSmallLatticeWarning",
 ]
 testpaths = ["test"]
 

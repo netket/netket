@@ -32,7 +32,6 @@ def vstate(request):
     )
 
 
-@common.skipif_distributed
 def test_hdf5log(vstate, tmp_path):
     # skip test if hdf5py not installed
     h5py = pytest.importorskip("h5py")
@@ -71,7 +70,6 @@ def test_hdf5log_flush_accepts_variational_state(vstate, tmp_path):
     log.flush(vstate)
 
 
-@common.skipif_distributed
 def test_hdf5log_preserves_structured_layout(tmp_path):
     h5py = pytest.importorskip("h5py")
 
@@ -120,7 +118,6 @@ def test_hdf5log_preserves_structured_layout(tmp_path):
         assert np.array_equal(np.array(f["data/stats/Sigma"]), np.array([0.1]))
 
 
-@common.skipif_distributed
 def test_lazy_init(tmp_path):
     # skip test if hdf5py not installed
     pytest.importorskip("h5py")
@@ -133,7 +130,7 @@ def test_lazy_init(tmp_path):
     assert len(files) == 0
 
 
-@common.onlyif_distributed
+@common.requires_multiple_devices
 def test_write_only_on_master(vstate, tmp_path):
     # Check that the logger runs everywhere but serializes only on rank 0
     # skip test if tensorboardX not installed
@@ -157,7 +154,6 @@ def test_write_only_on_master(vstate, tmp_path):
         assert len(files) == 0
 
 
-@common.skipif_distributed
 def test_append_mode_reopens_existing_file(vstate, tmp_path):
     h5py = pytest.importorskip("h5py")
 
@@ -181,7 +177,6 @@ def test_append_mode_reopens_existing_file(vstate, tmp_path):
     assert np.array_equal(iters, np.array([0, 1, 2, 3]))
 
 
-@common.skipif_distributed
 def test_mode_aliases(vstate, tmp_path):
     pytest.importorskip("h5py")
 
@@ -196,7 +191,6 @@ def test_mode_aliases(vstate, tmp_path):
     log.flush()
 
 
-@common.skipif_distributed
 def test_callback_reuse_across_runs(tmp_path):
     """Logger used as callback must survive run -> on_run_end -> run again."""
     h5py = pytest.importorskip("h5py")
@@ -219,7 +213,7 @@ def test_callback_reuse_across_runs(tmp_path):
     assert energy.shape[0] == 10
 
 
-@common.onlyif_distributed
+@common.requires_multiple_devices
 def test_callback_reuse_across_runs_distributed(tmp_path):
     """Under djaxrun: only rank-0 writes; logger must survive run -> on_run_end -> run again."""
     h5py = pytest.importorskip("h5py")
@@ -266,7 +260,7 @@ def test_experimental_hdf5log_is_deprecated_alias():
     assert HDF5Log is nk.logging.HDF5Log
 
 
-@common.skipif_distributed
+@pytest.mark.skipif(jax.process_count() > 1, reason="fakes the process index")
 def test_hdf5log_no_filesystem_access_on_non_master(tmp_path, monkeypatch):
     pytest.importorskip("h5py")
     # Pretend to be rank 1: nothing should be created on disk.

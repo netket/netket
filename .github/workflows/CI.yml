@@ -36,24 +36,13 @@ jobs:
             test_type: "main"
             env: NUMBA_BOUNDSCHECK=1
 
-          # Sharding tests
-          - name: "Sharding (1 CPU)"
+          # The suite runs on 2 CPU devices by default (see test/conftest.py).
+          # This job covers the single-device code paths.
+          - name: "Ubuntu (1 device)"
             os: ubuntu-latest
             python-version: "3.13"
-            test_type: "sharding"
-            sharding_script: "run_test_sharding_1cpu.sh"
-
-          - name: "Sharding (2 CPU)"
-            os: ubuntu-latest
-            python-version: "3.13"
-            test_type: "sharding"
-            sharding_script: "run_test_sharding_2cpu.sh"
-
-          - name: "Sharding (Standard)"
-            os: ubuntu-latest
-            python-version: "3.13"
-            test_type: "sharding"
-            sharding_script: "run_standard_tests_with_sharding.sh"
+            test_type: "main"
+            devices: 1
 
           - name: "Sharding (Distributed)"
             os: ubuntu-latest
@@ -107,9 +96,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
-          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-
           restore-keys: |
-            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-
+            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-
 
       - name: Main tests
         if: ${{ matrix.test_type == 'main' }}
@@ -118,7 +107,7 @@ jobs:
           # Left on `-n auto` (2 workers here) on purpose: `-n logical` gives 4 and
           # is faster, but killed the runner twice with a shutdown signal and no
           # failing test, i.e. OOM. To retry, lower --clear-cache-every. See #2264.
-          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 -m "not slow" test
+          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 --devices ${{ matrix.devices || 2 }} -m "not slow" test
 
       - name: Docstring tests
         if: ${{ matrix.test_type == 'doctest' }}
@@ -144,7 +133,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
-          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}-${{ steps.jaxfp.outputs.fp }}-${{ github.run_id }}
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-${{ github.run_id }}
 
       - name: Generate coverage report
         if: always()

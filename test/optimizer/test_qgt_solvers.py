@@ -91,7 +91,6 @@ def test_qgt_solve(qgt, vstate, solver):
 
 # Issue #789 https://github.com/netket/netket/issues/789
 # cannot multiply real qgt by complex vector
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "SType", [pytest.param(T, id=name) for name, T in QGT_types.items()]
 )
@@ -110,7 +109,6 @@ def test_qgt_throws(SType):
         S @ g_cmplx
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "SType", [pytest.param(T, id=name) for name, T in QGT_types.items()]
 )
@@ -128,7 +126,6 @@ def test_qgt_nondiff_sigma(SType):
     S @ vs.parameters
 
 
-@common.skipif_mpi
 def test_qgt_otf_scale_err():
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)

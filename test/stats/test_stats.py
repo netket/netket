@@ -26,9 +26,6 @@ from scipy.optimize import curve_fit
 
 from .. import common
 
-pytestmark = common.skipif_distributed
-
-
 WEIGHT_SEED = 3
 
 
@@ -84,7 +81,6 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
         assert stats.variance == pytest.approx(np.var(eloc))
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "n_chains",
     [
@@ -216,7 +212,6 @@ def test_decimal_format():
     )
 
 
-@common.skipif_mpi
 def test_R_hat():
     # detect disagreeing chains
     x = np.array(
