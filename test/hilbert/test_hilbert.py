@@ -72,9 +72,6 @@ hilberts["Bose Hubbard"] = Fock(n_max=4, n_particles=20, N=20)
 # Small hilbert space tests
 #
 
-# Spin 1/2
-hilberts["Spin 1/2 Small"] = Spin(s=0.5, N=10)
-
 # Spin 3
 hilberts["Spin 1/2 with total Sz Small"] = Spin(s=3, total_sz=1.0, N=4)
 
@@ -90,8 +87,6 @@ hilberts["DoubledHilbert[Spin]"] = DoubledHilbert(Spin(0.5, N=5))
 hilberts["DoubledHilbert[Spin(total_sz=0.5)]"] = DoubledHilbert(
     Spin(0.5, N=5, total_sz=0.5)
 )
-
-hilberts["DoubledHilbert[Fock]"] = DoubledHilbert(Spin(0.5, N=5))
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
 
@@ -138,6 +133,28 @@ discrete_indexable_hilbert_params = [
     if (isinstance(hi, DiscreteHilbert) and hi.is_indexable)
 ]
 
+# The tests of the random_state API (shapes, dtypes, jit, sharding) check the
+# code path rather than the values of the constraint, so they run on one space
+# per hilbert type and constraint type. All spaces in `hilberts` are sampled by
+# the other tests (e.g. test_flip_state_discrete, test_states_to_local_indices).
+_random_state_api_ids = [
+    "Spin[1/2, N=10]",  # no constraint
+    "Spin[1, N=6, total_sz=5.0]",  # SumConstraint
+    "Fock[max=5, N=41]",  # no constraint
+    "Fock[max=3, N=120, n_particles=110]",  # SumConstraint
+    "Fock * Fock (indexable)",  # TensorHilbert
+    "Fock * Fock (non-indexable)",
+    "Qubit Small",
+    "DoubledHilbert[Spin]",
+    "DoubledHilbert[Spin(total_sz=0.5)]",
+    "SpinOrbitalFermions",  # no constraint
+    "SpinOrbitalFermions (n_fermions)",  # SumConstraint
+    "SpinOrbitalFermions (polarized)",  # SumOnPartitionConstraint
+]
+random_state_api_hilbert_params = [
+    pytest.param(hilberts[name], id=name) for name in _random_state_api_ids
+]
+
 homogeneous_hilbert_params = [
     pytest.param(hi, id=name)
     for name, hi in hilberts.items()
@@ -170,7 +187,7 @@ def test_consistent_size_particle(hi: Particle):
     assert len(hi.domain) == (hi.size // hi.n_particles)
 
 
-@pytest.mark.parametrize("hi", discrete_hilbert_params)
+@pytest.mark.parametrize("hi", random_state_api_hilbert_params)
 def test_random_states_discrete(hi: DiscreteHilbert):
     assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
     assert hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype == np.float32
@@ -188,10 +205,12 @@ def test_random_states_discrete(hi: DiscreteHilbert):
     )
 
 
-@pytest.mark.parametrize("hi", discrete_hilbert_params)
+@pytest.mark.parametrize("hi", random_state_api_hilbert_params)
 def test_random_states_discrete_sharding(hi: DiscreteHilbert):
     # check that the sharding is correct
-    s = hi.random_state(jax.random.key(13), 4)
+    # (same batch size and key type as test_flip_state_discrete, so that the
+    # compiled sampler is reused)
+    s = hi.random_state(jax.random.key(13), 20)
     if jax.device_count() > 1:
         assert s.sharding.spec == P()
     else:
@@ -200,7 +219,7 @@ def test_random_states_discrete_sharding(hi: DiscreteHilbert):
     # Check that no communication happens
     @jax.jit
     def _fun(k):
-        return hi.random_state(k, 4)
+        return hi.random_state(k, 20)
 
     txt = _fun.lower(jax.random.key(13)).compile().as_text()
     for o in [
@@ -224,7 +243,8 @@ def test_constrained_correct(hi: DiscreteHilbert):
 def test_random_states_in_space_homogeneous(hi: HomogeneousHilbert):
     assert len(hi.local_states) == hi.local_size
 
-    states = hi.random_state(jax.random.PRNGKey(1), 100)
+    # 200 states as in test_states_to_local_indices, to reuse the compiled sampler
+    states = hi.random_state(jax.random.PRNGKey(1), 200)
     assert np.all((states[..., None] == np.asarray(hi._local_states)).any(-1))
 
 
