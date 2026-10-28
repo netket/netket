@@ -105,6 +105,18 @@ if jax.device_count() > 1:
     operators = _operators
 
 
+# wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
+def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
+    assert x.ndim in (1, 2)
+    return apply_fun(params, x, *args, **kwargs)
+
+
+# The wrapped apply functions are built once per model and reused by every test:
+# the apply function is a static argument of the jitted kernels, so a fresh
+# `partial` per test would defeat jax's compilation cache.
+_checked_apply_funs = {}
+
+
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
     ma = request.param
@@ -113,15 +125,32 @@ def vstate(request):
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
-    # wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
-    def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
-        assert x.ndim in (1, 2)
-        return apply_fun(params, x, *args, **kwargs)
-
-    apply_fun = vs._apply_fun
-    vs._apply_fun = partial(apply_fun_check_shape, apply_fun)
+    if id(ma) not in _checked_apply_funs:
+        _checked_apply_funs[id(ma)] = partial(apply_fun_check_shape, vs._apply_fun)
+    vs._apply_fun = _checked_apply_funs[id(ma)]
 
     return vs
+
+
+def model_operator_params(combinations, marks=lambda op: ()):
+    """
+    Parameters for `@pytest.mark.parametrize("vstate, operator", ..., indirect=["vstate"])`
+    restricted to the given `{model name: [operator names]}` combinations.
+
+    Every model and every operator appears in several combinations, but not the
+    full cartesian product, which mostly re-runs the same code paths.
+    """
+    return [
+        pytest.param(
+            machines[model_name],
+            operators[op_name],
+            id=f"{model_name}-{op_name}",
+            marks=marks(operators[op_name]),
+        )
+        for model_name, op_names in combinations.items()
+        for op_name in op_names
+        if op_name in operators
+    ]
 
 
 def check_consistent(vstate, n_devices):
@@ -129,6 +158,16 @@ def check_consistent(vstate, n_devices):
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 
+# The assertions only check the bookkeeping of the number of samples, which does not
+# depend on the model: one real-valued and one complex-valued model are enough.
+@pytest.mark.parametrize(
+    "vstate",
+    [
+        pytest.param(machines[name], id=name)
+        for name in ("model:(R->R)", "model:(R->C)")
+    ],
+    indirect=True,
+)
 def test_n_samples_api(vstate, _device_count):
     with raises(TypeError, match="should be a subtype"):
         vstate.sampler = 1
@@ -361,22 +400,45 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
+# Each model (real, real->complex, holomorphic and non-holomorphic complex) is
+# tested against a real, a complex and a squared operator, and every operator
+# is tested with both real and complex parameters.
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-            marks=(
-                pytest.mark.xfail(
-                    reason="MUSTFIX: Non hermitian gradient is known to be wrong"
-                )
-                if not op.is_hermitian
-                else []
-            ),
-        )
-        for name, op in operators.items()
-    ],
+    "vstate, operator",
+    model_operator_params(
+        {
+            "model:(R->R)": [
+                "operator:(Hermitian Real)",
+                "operator:(Hermitian Real Squared)",
+                "operator:(Hermitian Complex)",
+                "operator:(Non Hermitian)",
+            ],
+            "model:(R->C)": [
+                "operator:(IsingJax)",
+                "operator:(Hermitian Complex)",
+                "operator:(Hermitian Complex Squared)",
+                "operator:(Non Hermitian)",
+            ],
+            "model:(C->C)": [
+                "operator:(Hermitian Real)",
+                "operator:(Hermitian Complex Squared)",
+                "operator:(Non Hermitian)",
+            ],
+            "model:(C->C,nonholo)": [
+                "operator:(IsingJax)",
+                "operator:(Hermitian Real Squared)",
+                "operator:(Hermitian Complex)",
+            ],
+        },
+        marks=lambda op: (
+            pytest.mark.xfail(
+                reason="MUSTFIX: Non hermitian gradient is known to be wrong"
+            )
+            if not op.is_hermitian
+            else []
+        ),
+    ),
+    indirect=["vstate"],
 )
 def test_expect(vstate, operator):
     # Use lots of samples
@@ -429,22 +491,40 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+# Every model is tested with a complex operator (complex local energies, whose
+# real part must be taken for real parameters) and with a second operator.
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-            marks=(
-                pytest.mark.xfail(
-                    reason="MUSTFIX: Non-hermitian and Squared forces known to be wrong"
-                )
-                if isinstance(op, nk.operator.Squared) or (not op.is_hermitian)
-                else []
-            ),
-        )
-        for name, op in operators.items()
-    ],
+    "vstate, operator",
+    model_operator_params(
+        {
+            "model:(R->R)": [
+                "operator:(Hermitian Real)",
+                "operator:(Hermitian Complex)",
+                "operator:(Non Hermitian)",
+            ],
+            "model:(R->C)": [
+                "operator:(IsingJax)",
+                "operator:(Hermitian Complex)",
+            ],
+            "model:(C->C)": [
+                "operator:(Hermitian Real Squared)",
+                "operator:(Hermitian Complex)",
+                "operator:(Non Hermitian)",
+            ],
+            "model:(C->C,nonholo)": [
+                "operator:(Hermitian Complex)",
+                "operator:(Hermitian Complex Squared)",
+            ],
+        },
+        marks=lambda op: (
+            pytest.mark.xfail(
+                reason="MUSTFIX: Non-hermitian and Squared forces known to be wrong"
+            )
+            if isinstance(op, nk.operator.Squared) or (not op.is_hermitian)
+            else []
+        ),
+    ),
+    indirect=["vstate"],
 )
 def test_forces(vstate, operator):
     _, O_grad1 = vstate.expect_and_grad(operator)
@@ -460,14 +540,28 @@ def test_forces(vstate, operator):
 
 
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
+    "vstate, operator",
+    model_operator_params(
+        {
+            "model:(R->R)": [
+                "operator:(Hermitian Complex)",
+                "operator:(Hermitian Real Squared)",
+            ],
+            "model:(R->C)": [
+                "operator:(Hermitian Real)",
+                "operator:(Non Hermitian)",
+            ],
+            "model:(C->C)": [
+                "operator:(IsingJax)",
+                "operator:(Hermitian Complex Squared)",
+            ],
+            "model:(C->C,nonholo)": [
+                "operator:(Hermitian Complex)",
+                "operator:(Non Hermitian)",
+            ],
+        }
+    ),
+    indirect=["vstate"],
 )
 def test_local_estimators(vstate, operator):
     def assert_stats_equal(st1, st2):
@@ -499,15 +593,29 @@ def test_expect_grad_nonhermitian_works(vstate):
 
 
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-        if op.is_hermitian
-    ],
+    "vstate, operator",
+    model_operator_params(
+        {
+            "model:(R->R)": [
+                "operator:(Hermitian Real)",
+                "operator:(Hermitian Complex)",
+                "operator:(Hermitian Real Squared)",
+            ],
+            "model:(R->C)": [
+                "operator:(Hermitian Real)",
+                "operator:(Hermitian Real Squared)",
+            ],
+            "model:(C->C)": [
+                "operator:(IsingJax)",
+                "operator:(Hermitian Complex Squared)",
+            ],
+            "model:(C->C,nonholo)": [
+                "operator:(Hermitian Complex)",
+                "operator:(Hermitian Complex Squared)",
+            ],
+        }
+    ),
+    indirect=["vstate"],
 )
 def test_expect_chunking(vstate, operator):
     vstate.n_samples = 200

@@ -142,8 +142,15 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
+# model:(C->C,alpha=5) is only a larger version of model:(C->C) and goes through
+# the same code, so it is not repeated here.
 @pytest.mark.parametrize(
-    "machine", [pytest.param(ma, id=name) for name, ma in machines.items()]
+    "machine",
+    [
+        pytest.param(ma, id=name)
+        for name, ma in machines.items()
+        if name != "model:(C->C,alpha=5)"
+    ],
 )
 def test_derivatives_agree(machine):
     err = 1e-3
@@ -187,15 +194,34 @@ def _expval(par, vs, H):
     return np.real(expval)
 
 
+# Every pair of (qgt type, model), (qgt type, system) and (model, system) is
+# tested at least once, instead of the full cartesian product.
+_TFIM_systems = {"4-100-1": (4, 100, 1), "6-100-2": (6, 100, 2)}
+_TFIM_combinations = [
+    ("QGTJacobianDense", "model:(R->R)", "4-100-1"),
+    ("QGTJacobianDense", "model:(R->R)", "6-100-2"),
+    ("QGTJacobianDense", "model:(R->C)", "4-100-1"),
+    ("QGTJacobianDense", "model:(R->C)", "6-100-2"),
+    ("QGTJacobianDense", "model:(C->C)", "6-100-2"),
+    ("QGTJacobianDense", "model:(C->C,alpha=5)", "6-100-2"),
+    ("QGTJacobianPyTree", "model:(R->R)", "4-100-1"),
+    ("QGTJacobianPyTree", "model:(R->C)", "6-100-2"),
+    ("QGTJacobianPyTree", "model:(C->C)", "4-100-1"),
+    ("QGTJacobianPyTree", "model:(C->C,alpha=5)", "4-100-1"),
+]
+
+
 @pytest.mark.parametrize(
-    "L,n_iterations,h",
-    [(4, 100, 1), (6, 100, 2)],
-)
-@pytest.mark.parametrize(
-    "machine", [pytest.param(ma, id=name) for name, ma in machines.items()]
-)
-@pytest.mark.parametrize(
-    "qgtT", [pytest.param(qgtT, id=name) for name, qgtT in qgt_types.items()]
+    "qgtT, machine, L, n_iterations, h",
+    [
+        pytest.param(
+            qgt_types[qgt_name],
+            machines[model_name],
+            *_TFIM_systems[system],
+            id=f"{qgt_name}-{model_name}-{system}",
+        )
+        for qgt_name, model_name, system in _TFIM_combinations
+    ],
 )
 def test_TFIM_energy_strictly_decreases(
     L,
