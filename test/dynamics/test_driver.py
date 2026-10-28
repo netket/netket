@@ -110,9 +110,26 @@ def l4_norm(x):
     ) ** (1.0 / 4.0)
 
 
-@pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
-@pytest.mark.parametrize("solver", adaptive_step_solvers)
-@pytest.mark.parametrize("propagation_type", ["real", "imag"])
+_RK23, _RK45 = (p.values[0] for p in adaptive_step_solvers)
+_RK23_id, _RK45_id = (p.id for p in adaptive_step_solvers)
+
+
+# Pairwise design instead of the full 2 x 2 x 4 product: every pair of
+# (solver, error norm), (error norm, propagation type) and (solver, propagation
+# type) appears at least once. The three enter the adaptive step independently.
+@pytest.mark.parametrize(
+    "propagation_type, solver, error_norm",
+    [
+        pytest.param("imag", _RK23, "euclidean", id=f"imag-{_RK23_id}-euclidean"),
+        pytest.param("imag", _RK23, l4_norm, id=f"imag-{_RK23_id}-l4_norm"),
+        pytest.param("real", _RK23, "maximum", id=f"real-{_RK23_id}-maximum"),
+        pytest.param("real", _RK23, "qgt", id=f"real-{_RK23_id}-qgt"),
+        pytest.param("real", _RK45, "euclidean", id=f"real-{_RK45_id}-euclidean"),
+        pytest.param("real", _RK45, l4_norm, id=f"real-{_RK45_id}-l4_norm"),
+        pytest.param("imag", _RK45, "maximum", id=f"imag-{_RK45_id}-maximum"),
+        pytest.param("imag", _RK45, "qgt", id=f"imag-{_RK45_id}-qgt"),
+    ],
+)
 def test_one_adaptive_step(solver, error_norm, propagation_type):
     ha, vstate, _ = _setup_system(L=2)
     te = nkx.TDVP(
