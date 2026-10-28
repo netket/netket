@@ -89,9 +89,18 @@ hi_fermion = nk.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
 hi_fermion_spin = nk.hilbert.SpinOrbitalFermions(
     g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
 )
+# The spin-3/2 fermions live on a 3-site ring rather than on `g`: 81 states
+# instead of 576, which makes the chi-square test of `test_correct_sampling`
+# (whose cost scales with n_states * hilbert.size) ~10x cheaper, while keeping
+# four species with unequal fillings.
+g_3 = nk.graph.Hypercube(length=3, n_dim=1)
 hi_fermion_spin_higher = nk.hilbert.SpinOrbitalFermions(
-    g.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
+    g_3.n_nodes, s=3 / 2, n_fermions_per_spin=(2, 2, 1, 1)
 )
+# Same local dimension as `hib_u` on 3 sites (64 instead of 256 states), for the
+# parallel-tempering sampler, whose chi-square test is otherwise the most
+# expensive of `test_correct_sampling`.
+hib_u_small = nk.hilbert.Fock(n_max=3, N=g_3.n_nodes)
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
@@ -114,7 +123,7 @@ samplers["MetropolisPT(Local): Spin"] = nk.sampler.ParallelTemperingLocal(
     hi, n_replicas=4, sweep_size=hi.size * 4
 )
 samplers["MetropolisPT(Local): Fock"] = nk.sampler.ParallelTemperingLocal(
-    hib_u, n_replicas=4, sweep_size=hib_u.size * 4
+    hib_u_small, n_replicas=4, sweep_size=hib_u_small.size * 4
 )
 
 samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange(
@@ -141,7 +150,7 @@ samplers["Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"] = (
 )
 samplers["Metropolis(ParticleExchange,Spinful=3/2): SpinOrbitalFermions"] = (
     nk.sampler.MetropolisFermionHop(
-        hi_fermion_spin_higher, graph=g, spin_symmetric=True
+        hi_fermion_spin_higher, graph=g_3, spin_symmetric=True
     )
 )
 
@@ -467,9 +476,13 @@ def test_correct_sampling(sampler_c, model_and_weights):
         # TODO: Find periodic distribution that can be exactly sampled and do the same test.
 
         ma, w = model_and_weights(hi, sampler)
+        # The chains are not reset between repetitions, so the burn-in only
+        # matters for the first one; 256 sweeps are plenty for a Gaussian.
+        # Over 10 seeds every per-repetition p-value was ~1.0 with both
+        # (n_discard=2048, n_rep=6) and (n_discard=256, n_rep=3).
         n_samples = 5000
-        n_discard = 2 * 1024
-        n_rep = 6
+        n_discard = 256
+        n_rep = 3
         pvalues = np.zeros(n_rep)
 
         sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
@@ -591,8 +604,9 @@ def test_sampling_sharded_not_communicating(
     sampler = set_pdf_power(sampler_c)
     hi = sampler.hilbert
     ma, w = model_and_weights(hi, sampler)
+    # Only the compiled HLO is inspected: lowering with the initial state avoids
+    # compiling (and running) the same sampling function a second time.
     sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
-    samples, sampler_state = sampler.sample(ma, w, state=sampler_state, chain_length=1)
 
     sample_jit = jax.jit(
         sampler.sample, static_argnums=0, static_argnames="chain_length"
