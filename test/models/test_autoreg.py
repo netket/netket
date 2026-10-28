@@ -20,18 +20,6 @@ import pytest
 from jax import numpy as jnp
 from netket.utils import HashableArray
 
-from .. import common
-
-
-@pytest.fixture
-def skip(request):
-    rate = request.config.getoption("--arnn_test_rate")
-    rng = np.random.default_rng(common.hash_for_seed(request.node.callspec.id))
-    if rng.random() > rate:
-        pytest.skip(
-            "Running only a portion of the tests for ARNN. Use --arnn_test_rate=1 to run all tests."
-        )
-
 
 graph_full = nk.graph.Graph([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
 
@@ -225,37 +213,73 @@ partial_model_pairs = [
     ),
 ]
 
-partial_models = [
-    pytest.param(param.values[0][0], id=param.id) for param in partial_model_pairs
-]
-partial_models += [
-    pytest.param(param.values[0][1], id="fast_" + param.id)
-    for param in partial_model_pairs
-]
+partial_models = {param.id: param.values[0][0] for param in partial_model_pairs}
+partial_models |= {
+    "fast_" + param.id: param.values[0][1] for param in partial_model_pairs
+}
+model_pairs = {param.id: param.values[0] for param in partial_model_pairs}
+
+hilberts = {
+    "spin_1/2": nk.hilbert.Spin(s=1 / 2, N=4),
+    "spin_1": nk.hilbert.Spin(s=1, N=4),
+    "fock": nk.hilbert.Fock(n_max=3, N=4),
+}
+param_dtypes = {"float64": jnp.float64, "complex128": jnp.complex128}
 
 
-@pytest.mark.parametrize("machine_pow", [1, 2])
-@pytest.mark.parametrize("param_dtype", [jnp.float64, jnp.complex128])
-@pytest.mark.parametrize(
-    "hilbert",
-    [
-        pytest.param(
-            nk.hilbert.Spin(s=1 / 2, N=4),
-            id="spin_1/2",
-        ),
-        pytest.param(
-            nk.hilbert.Spin(s=1, N=4),
-            id="spin_1",
-        ),
-        pytest.param(
-            nk.hilbert.Fock(n_max=3, N=4),
-            id="fock",
-        ),
-    ],
-)
+def _cases(argname, models, ids):
+    """
+    Parametrize over `argname, hilbert, param_dtype, machine_pow` from ids of the
+    form "model-hilbert-dtype-machine_pow".
+
+    The full product (models x 3 Hilbert spaces x 2 dtypes x 2 machine_pow) is
+    too expensive, as every case is dominated by compilation. Instead every model
+    runs once (or twice), and the Hilbert spaces, dtypes and machine_pow are
+    spread over the models.
+    """
+    cases = []
+    for id in ids:
+        model, hilbert, dtype, machine_pow = id.split("-")
+        cases.append(
+            pytest.param(
+                models[model],
+                hilberts[hilbert],
+                param_dtypes[dtype],
+                int(machine_pow),
+                id=id,
+            )
+        )
+    return pytest.mark.parametrize(
+        f"{argname}, hilbert, param_dtype, machine_pow", cases
+    )
+
+
 class TestARNN:
-    @pytest.mark.parametrize("partial_model", partial_models)
-    def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow, skip):
+    @_cases(
+        "partial_model",
+        partial_models,
+        [
+            "dense-fock-float64-1",
+            "conv1d-spin_1-complex128-2",
+            "conv1d_dilation-spin_1/2-float64-2",
+            "conv2d-spin_1/2-complex128-2",
+            "conv2d_dilation-spin_1-complex128-1",
+            "lstm-spin_1/2-float64-1",
+            "lstm_square-spin_1-float64-2",
+            "lstm_full-fock-complex128-1",
+            "gru-fock-float64-1",
+            "fast_dense-spin_1-complex128-2",
+            "fast_conv1d-spin_1/2-complex128-1",
+            "fast_conv1d_dilation-fock-float64-1",
+            "fast_conv2d-fock-float64-2",
+            "fast_conv2d_dilation-spin_1-float64-2",
+            "fast_lstm-spin_1-complex128-1",
+            "fast_lstm_square-fock-complex128-2",
+            "fast_lstm_full-spin_1/2-float64-2",
+            "fast_gru-spin_1-float64-1",
+        ],
+    )
+    def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow):
         batch_size = 3
 
         model = partial_model(hilbert, param_dtype, machine_pow)
@@ -266,19 +290,32 @@ class TestARNN:
             key_model, spins, method=model.conditionals
         )
 
-        @jax.jit
         def conditionals(inputs):
             return model.apply(variables, inputs, method=model.conditionals)
 
-        @jax.jit
         def reorder(inputs):
             return model.apply(variables, inputs, axis=1, method=model.reorder)
 
-        @jax.jit
         def inverse_reorder(inputs):
             return model.apply(variables, inputs, axis=1, method=model.inverse_reorder)
 
-        p = reorder(p)
+        # Conditionals of the batch with the single element (i, j) flipped,
+        # for all (i, j) at once to compile only once
+        @jax.jit
+        def flipped_conditionals(spins):
+            def flip_one(i, j):
+                # Change one input element at a time
+                spins_new = reorder(spins)
+                spins_new = spins_new.at[i, j].multiply(-1)
+                spins_new = inverse_reorder(spins_new)
+
+                p_new = conditionals(spins_new)
+                return reorder(p_new)
+
+            i, j = jnp.divmod(jnp.arange(batch_size * hilbert.size), hilbert.size)
+            return jax.vmap(flip_one)(i, j)
+
+        p = jax.jit(reorder)(p)
 
         # Test if the model is normalized
         # The result may not be very accurate, because it is in exp space
@@ -288,23 +325,33 @@ class TestARNN:
         )
 
         # Test if the model is autoregressive
+        p = np.asarray(p)
+        p_new_all = np.asarray(flipped_conditionals(spins))
         for i in range(batch_size):
             for j in range(hilbert.size):
-                # Change one input element at a time
-                spins_new = reorder(spins)
-                spins_new = spins_new.at[i, j].multiply(-1)
-                spins_new = inverse_reorder(spins_new)
-
-                p_new = conditionals(spins_new)
-                p_new = reorder(p_new)
+                p_new = p_new_all[i * hilbert.size + j].copy()
 
                 # Sites after j can change, so we reset them before comparison
-                p_new = p_new.at[i, j + 1 :].set(p[i, j + 1 :])
+                p_new[i, j + 1 :] = p[i, j + 1 :]
 
                 np.testing.assert_allclose(p_new, p, err_msg=f"i={i} j={j}")
 
-    @pytest.mark.parametrize("partial_model_pair", partial_model_pairs)
-    def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow, skip):
+    @_cases(
+        "partial_model_pair",
+        model_pairs,
+        [
+            "dense-fock-float64-1",
+            "conv1d-spin_1/2-complex128-1",
+            "conv1d_dilation-spin_1-complex128-2",
+            "conv2d-spin_1/2-complex128-2",
+            "conv2d_dilation-fock-float64-2",
+            "lstm-spin_1-float64-1",
+            "lstm_square-spin_1/2-float64-2",
+            "lstm_full-fock-complex128-2",
+            "gru-fock-float64-1",
+        ],
+    )
+    def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow):
         batch_size = 3
 
         model1 = partial_model_pair[0](hilbert, param_dtype, machine_pow)
