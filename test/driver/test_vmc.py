@@ -83,8 +83,8 @@ def test_vmc_functions():
 
     driver.run(500)
 
-    tol = driver.energy.error_of_mean * 5
-    assert driver.energy.mean == approx(ma.expect(ha).mean, abs=tol)
+    tol = float(driver.energy.error_of_mean * 5)
+    assert driver.energy.mean == approx(np.asarray(ma.expect(ha).mean), abs=tol)
 
     state = ma.to_array()
 

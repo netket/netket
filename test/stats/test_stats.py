@@ -184,7 +184,7 @@ def test_tau_corr_fft_logic(batch_size, sig_corr):
 
         eom_fit = np.sqrt(np.var(data) * tau_fit_m / float(n_samples * batch_size))
 
-        assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.6)
+        assert eom_fit == pytest.approx(float(stats.error_of_mean), rel=0.6)
 
 
 def test_decimal_format():

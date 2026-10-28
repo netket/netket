@@ -430,8 +430,8 @@ def test_expect(vstate, operator):
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
 
     # check the expectation values
-    err = 5 * O_stat.error_of_mean
-    assert O_stat.mean == approx(O_exact, abs=err)
+    err = float(5 * O_stat.error_of_mean)
+    assert O_stat.mean == approx(np.asarray(O_exact), abs=err)
 
     O_grad, _ = ravel_pytree(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)

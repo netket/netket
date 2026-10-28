@@ -300,6 +300,9 @@ def test_pbar_starts_zero_ends_hundred(t0):
             kwargs["file"] = buf
             kwargs["dynamic_ncols"] = False
             kwargs["ncols"] = 80
+            # Redraw on every update so that each step shows up in the output.
+            kwargs["mininterval"] = 0
+            kwargs["miniters"] = 0
             super().__init__(*args, **kwargs)
 
     driver = nkx.TDVP(
