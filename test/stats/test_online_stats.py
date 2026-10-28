@@ -280,6 +280,14 @@ def test_complex_data():
     np.testing.assert_allclose(est.mean, expected_mean, rtol=1e-10)
 
 
+def test_nan_mean_of_real_complex_data_stays_real():
+    data = np.full((4, 10), -1.0 + 0j)
+    assert isinstance(online_statistics(data).mean, float)
+    data[0, 0] = complex(np.nan, np.nan)
+    mean = online_statistics(data).mean
+    assert isinstance(mean, float) and math.isnan(mean)
+
+
 # --- Test 9: 1D single-chain input ---
 
 
