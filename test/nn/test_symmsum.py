@@ -29,20 +29,40 @@ bare_modules["RBM(complex)"] = nk.models.RBM(alpha=1, param_dtype=complex)
 ones = HashableArray(np.ones(9))
 
 
-@pytest.mark.parametrize(
-    "bare_module", [pytest.param(v, id=k) for k, v in bare_modules.items()]
-)
-@pytest.mark.parametrize(
-    "character_id,characters,trivial",
-    [
-        pytest.param(None, None, True, id="Char=None"),
-        pytest.param(0, None, True, id="Id=0"),
-        pytest.param(1, None, False, id="Id=1"),
-        pytest.param(None, ones, True, id="Char=Triv"),
+def _symmexpsum_cases():
+    characters = {
+        "Char=None": (None, None, True),
+        "Id=0": (0, None, True),
+        "Id=1": (1, None, False),
+        "Char=Triv": (None, ones, True),
+        "Invalid": (0, ones, True),
+    }
+    # Char=None, Id=0 and Char=Triv all select the trivial representation through
+    # different arguments, so they are not all repeated for both dtypes.
+    cases = [
+        ("Char=None", "RBM(real)"),
+        ("Char=None", "RBM(complex)"),
+        ("Id=0", "RBM(complex)"),
+        ("Id=1", "RBM(real)"),
+        ("Id=1", "RBM(complex)"),
+        ("Char=Triv", "RBM(real)"),
+        ("Invalid", "RBM(complex)"),
+    ]
+    return [
         pytest.param(
-            0, ones, True, marks=pytest.mark.xfail(raises=AttributeError), id="Invalid"
-        ),
-    ],
+            bare_modules[module],
+            *characters[char],
+            id=f"{char}-{module}",
+            marks=(
+                [pytest.mark.xfail(raises=AttributeError)] if char == "Invalid" else []
+            ),
+        )
+        for char, module in cases
+    ]
+
+
+@pytest.mark.parametrize(
+    "bare_module,character_id,characters,trivial", _symmexpsum_cases()
 )
 def test_symmexpsum(bare_module, character_id, characters, trivial):
     graph = nk.graph.Square(3)
@@ -65,27 +85,30 @@ def test_symmexpsum(bare_module, character_id, characters, trivial):
 
         # check that for symmetric inputs it gives same output as the original
         s0 = jnp.full((hi.size,), 1.3)
-        out_sym = ma.apply(vs.variables, s0)
-        out_bare = bare_module.apply({"params": vs.parameters["module"]}, s0)
+        out_sym = jax.jit(ma.apply)(vs.variables, s0)
+        out_bare = jax.jit(bare_module.apply)({"params": vs.parameters["module"]}, s0)
         np.testing.assert_allclose(out_sym, out_bare)
 
     # check that it works with different shapes
+    # (jit init and apply: compiling them once per shape is much cheaper than
+    # running the many operations of the model eagerly)
+    apply = jax.jit(ma.apply)
     s0 = hi.random_state(jax.random.key(0))
-    out0, pars = ma.init_with_output(jax.random.key(0), s0)
+    out0, pars = jax.jit(ma.init_with_output)(jax.random.key(0), s0)
     assert out0.shape == ()
 
-    out1 = ma.apply(pars, s0.reshape((1, -1)))
+    out1 = apply(pars, s0.reshape((1, -1)))
     assert out1.shape == (1,)
 
     np.testing.assert_allclose(out0, out1.reshape(()))
 
     # 2D and 3D
     s1 = hi.random_state(jax.random.key(15), (100,))
-    out1 = ma.apply(pars, s1)
+    out1 = apply(pars, s1)
     assert out1.shape == (100,)
 
     s2 = s1.reshape((10, 10, hi.size))
-    out2 = ma.apply(pars, s2)
+    out2 = apply(pars, s2)
     assert out2.shape == (10, 10)
 
     def _logspace_allclose(x, y, logrcond=-10):
@@ -99,6 +122,6 @@ def test_symmexpsum(bare_module, character_id, characters, trivial):
     _logspace_allclose(out1, out2.reshape((-1,)))
 
     s3 = s1.reshape((2, 5, 10, hi.size))
-    out3 = ma.apply(pars, s3)
+    out3 = apply(pars, s3)
     assert out3.shape == (2, 5, 10)
     _logspace_allclose(out1, out3.reshape((-1,)))

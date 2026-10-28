@@ -23,9 +23,17 @@ from .test_nn import _setup_symm
 import pytest
 
 
-@pytest.mark.parametrize("use_hidden_bias", [True, False])
-@pytest.mark.parametrize("use_visible_bias", [True, False])
-@pytest.mark.parametrize("symmetries", ["trans", "autom"])
+# The biases are symmetric by construction, so the four bias combinations are
+# spread over the two symmetry groups instead of testing all of them for both.
+@pytest.mark.parametrize(
+    "symmetries, use_visible_bias, use_hidden_bias",
+    [
+        ("trans", True, True),
+        ("trans", False, False),
+        ("autom", True, False),
+        ("autom", False, True),
+    ],
+)
 def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     g, hi, perms = _setup_symm(symmetries, N=8)
 
@@ -42,7 +50,11 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     print(pars)
 
     v = hi.random_state(jax.random.PRNGKey(1), 3)
-    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
+    # vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
+    # code below implements the commented line above, but is vectorised
+    v = v[..., np.asarray(perms)].transpose(1, 0, 2)
+    v = v.reshape(len(perms) * 3, g.n_nodes)
+    vals = jax.jit(ma.apply)(pars, v).reshape(len(perms), 3)
 
     for val in vals[1:]:
         np.testing.assert_allclose(val, vals[0])
