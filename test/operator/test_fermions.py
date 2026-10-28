@@ -17,7 +17,10 @@ hi = nk.hilbert.SpinOrbitalFermions(4)
 
 fermi_operator_impl = {}
 fermi_operator_impl["FermionOperator2nd"] = nk.operator.FermionOperator2nd
-fermi_operator_impl["FermionOperator2ndJax"] = nk.operator.FermionOperator2ndJax
+# FermionOperator2nd is currently an alias of FermionOperator2ndJax: only test
+# the latter separately if they differ, to avoid running every test twice.
+if nk.operator.FermionOperator2nd is not nk.operator.FermionOperator2ndJax:
+    fermi_operator_impl["FermionOperator2ndJax"] = nk.operator.FermionOperator2ndJax
 fermi_operator_impl["FermionOperator2ndJax(_mode=mask)"] = partial(
     nk.operator.FermionOperator2ndJax, _mode="mask"
 )
