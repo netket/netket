@@ -34,7 +34,7 @@ def _check_total_sz(total_sz, S, size):
     m = round(2 * total_sz)
     if np.abs(m) > size * (2 * S):
         raise ValueError(
-            "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
+            "Cannot fix the total magnetization: 2|M| cannot exceed Nspins."
         )
 
     # If half-integer spins (1/2, 3/2)

@@ -40,8 +40,7 @@ frozen_vs = nk.vqs.freeze_parameters(vs, lambda path, leaf: "Dense_2" not in pat
 print("\n=== Frozen the first (hidden) layer ===")
 print(f"Trainable parameters: {nk.jax.tree_size(frozen_vs.parameters)}")
 print(
-    f"Frozen parameters:    "
-    f"{nk.jax.tree_size(frozen_vs.model_state['frozen_params'])}"
+    f"Frozen parameters:    {nk.jax.tree_size(frozen_vs.model_state['frozen_params'])}"
 )
 
 # ── 5. Continue training only the output layer ─────────────────────────────

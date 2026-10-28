@@ -116,7 +116,6 @@ def l4_norm(x):
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
 def test_one_adaptive_step(solver, error_norm, propagation_type):
-
     ha, vstate, _ = _setup_system(L=2)
     te = nkx.TDVP(
         ha,
@@ -327,9 +326,9 @@ def test_pbar_starts_zero_ends_hundred(t0):
 
     assert unique_pcts[0] == 0, f"Bar should start at 0%, got {unique_pcts[0]}%"
     assert unique_pcts[-1] == 100, f"Bar should end at 100%, got {unique_pcts[-1]}%"
-    assert all(
-        p >= 0 for p in unique_pcts
-    ), f"Negative percentages in progress bar: {unique_pcts}"
+    assert all(p >= 0 for p in unique_pcts), (
+        f"Negative percentages in progress bar: {unique_pcts}"
+    )
     assert unique_pcts[1] <= max_first_step_pct, (
         f"Bar jumped from 0% to {unique_pcts[1]}% on first update "
         f"(expected ≤ {max_first_step_pct:.0f}% for one step)"

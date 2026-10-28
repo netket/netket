@@ -8,7 +8,6 @@ from itertools import product
 
 
 def test_permutation_operator():
-
     translation_1 = nk.symmetry.group.Permutation(
         permutation_array=jnp.array([1, 2, 0]), name="translation_1"
     )

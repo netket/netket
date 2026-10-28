@@ -40,7 +40,6 @@ coefficient_list = [[1, 1.0j], [1.0j, -jnp.real(3.5)]]
 @pytest.mark.parametrize("operator_2", operator_list)
 @pytest.mark.parametrize("coefficient", coefficient_list)
 def test_operator_sum(operator_1, operator_2, coefficient):
-
     sum_op = coefficient[0] * operator_1 + coefficient[1] * operator_2
 
     sum_dense_1 = sum_op.to_dense()

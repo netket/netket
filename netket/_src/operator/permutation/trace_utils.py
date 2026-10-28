@@ -100,13 +100,11 @@ def get_parity_sum(occupation_list, n_occupations):
     table[0][(0,) * len(n_occupations)] = 1
 
     for i in range(len(occupation_list)):
-
         occupation_iterator = product(
             *list(range(n_occupation + 1) for n_occupation in n_occupations)
         )
 
         for occupation in occupation_iterator:
-
             not_included_sum = np.array(occupation) - occupation_list[i]
             if np.any(not_included_sum < 0):
                 table[i + 1][occupation] = table[i][occupation]

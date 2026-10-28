@@ -324,8 +324,9 @@ def _imag_mat_vec(v: PyTree, oks: PyTree) -> PyTree:
     # prepare
     flip_sign = jnp.array([1, -1]).reshape(1, 2, 1)
     oks_l = jax.tree_util.tree_map(
-        lambda o: o
-        * flip_sign.reshape(tuple(2 if i == 1 else 1 for i in range(o.ndim))),
+        lambda o: (
+            o * flip_sign.reshape(tuple(2 if i == 1 else 1 for i in range(o.ndim)))
+        ),
         oks,
     )
 

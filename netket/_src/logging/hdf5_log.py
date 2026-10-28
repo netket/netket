@@ -242,8 +242,7 @@ class HDF5Log(AbstractCallback):
 
         if os.path.exists(path) and mode == "x":
             raise ValueError(
-                "Output file already exists. Either delete it manually or"
-                "change `path`."
+                "Output file already exists. Either delete it manually orchange `path`."
             )
 
         dir_name = os.path.dirname(path)

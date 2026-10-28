@@ -174,13 +174,13 @@ def get_citations_for_docs(format_type: str = "detailed") -> str:
             # Show condition if present
             if group_info["condition"]:
                 html_parts.append(
-                    f'<p><strong>When:</strong> {group_info["condition"]}</p>'
+                    f"<p><strong>When:</strong> {group_info['condition']}</p>"
                 )
 
             # Show message if present
             if group_info["message"]:
                 html_parts.append(
-                    f'<p><strong>Citation message:</strong> {group_info["message"]}</p>'
+                    f"<p><strong>Citation message:</strong> {group_info['message']}</p>"
                 )
 
             # Show citation keys with linked titles if available
@@ -193,12 +193,12 @@ def get_citations_for_docs(format_type: str = "detailed") -> str:
                         )
                     elif entry["title"]:
                         refs_parts.append(
-                            f'<code>{entry["key"]}</code>: {entry["title"]}'
+                            f"<code>{entry['key']}</code>: {entry['title']}"
                         )
                     else:
-                        refs_parts.append(f'<code>{entry["key"]}</code>')
+                        refs_parts.append(f"<code>{entry['key']}</code>")
                 html_parts.append(
-                    f'<p><strong>References:</strong> {"; ".join(refs_parts)}</p>'
+                    f"<p><strong>References:</strong> {'; '.join(refs_parts)}</p>"
                 )
             else:
                 keys_str = ", ".join(

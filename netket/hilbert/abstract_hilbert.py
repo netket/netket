@@ -112,9 +112,7 @@ class AbstractHilbert(abc.ABC):
         hash of this Hilbert space
         """
 
-    def __mul__(
-        self, other: "AbstractHilbert"
-    ) -> Union[Self, "TensorGenericHilbert"]:  # noqa: F821
+    def __mul__(self, other: "AbstractHilbert") -> Union[Self, "TensorGenericHilbert"]:  # noqa: F821
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
@@ -127,9 +125,7 @@ class AbstractHilbert(abc.ABC):
 
         return TensorGenericHilbert(self, other)
 
-    def __rmul__(
-        self, other: "AbstractHilbert"
-    ) -> Union[Self, "TensorGenericHilbert"]:  # noqa: F821
+    def __rmul__(self, other: "AbstractHilbert") -> Union[Self, "TensorGenericHilbert"]:  # noqa: F821
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 

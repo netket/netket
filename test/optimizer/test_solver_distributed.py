@@ -91,9 +91,9 @@ def test_cholesky_distributed_vs_cholesky():
     )
 
     # Results should be very similar
-    assert jnp.allclose(
-        x_standard, x_distributed, rtol=1e-5, atol=1e-5
-    ), "Distributed and standard cholesky give different results"
+    assert jnp.allclose(x_standard, x_distributed, rtol=1e-5, atol=1e-5), (
+        "Distributed and standard cholesky give different results"
+    )
 
 
 @requires_gpu
@@ -141,9 +141,9 @@ def test_cholesky_distributed_tiling():
         x, _ = solver(A, b)
 
         residual = A @ x - b
-        assert (
-            jnp.linalg.norm(residual) < 1e-5
-        ), f"Solution not accurate with local_tile_size={tile_size}"
+        assert jnp.linalg.norm(residual) < 1e-5, (
+            f"Solution not accurate with local_tile_size={tile_size}"
+        )
 
 
 @requires_gpu
@@ -192,9 +192,9 @@ def test_pinv_smooth_distributed_vs_pinv_smooth():
     )
 
     # Results should be very similar
-    assert jnp.allclose(
-        x_standard, x_distributed, rtol=1e-5, atol=1e-5
-    ), "Distributed and standard pinv_smooth give different results"
+    assert jnp.allclose(x_standard, x_distributed, rtol=1e-5, atol=1e-5), (
+        "Distributed and standard pinv_smooth give different results"
+    )
 
 
 @requires_gpu
@@ -248,9 +248,9 @@ def test_pinv_smooth_distributed_tiling():
         x, _ = solver(A, b)
 
         residual = A @ x - b
-        assert (
-            jnp.linalg.norm(residual) < 1e-5
-        ), f"Solution not accurate with local_tile_size={tile_size}"
+        assert jnp.linalg.norm(residual) < 1e-5, (
+            f"Solution not accurate with local_tile_size={tile_size}"
+        )
 
 
 @requires_gpu
@@ -280,9 +280,9 @@ def test_pinv_smooth_distributed_regularization():
 
     # Solutions should differ due to different regularization
     # (but both should still be valid solutions, just with different conditioning)
-    assert not jnp.allclose(
-        x_low, x_high, rtol=1e-3
-    ), "Different regularization should give different solutions"
+    assert not jnp.allclose(x_low, x_high, rtol=1e-3), (
+        "Different regularization should give different solutions"
+    )
 
 
 ### Tests of the interface with jaxmg, which do not require jaxmg nor a GPU.
