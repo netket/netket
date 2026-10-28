@@ -116,8 +116,8 @@ def test_vmc_functions():
         print(mean, var)
 
         # 5-sigma test for expectation values
-        tol = op_stats.error_of_mean * 5
-        assert mean.real == approx(exact_ex, abs=tol)
+        tol = float(op_stats.error_of_mean * 5)
+        assert mean.real == approx(np.asarray(exact_ex), abs=tol)
 
 
 def test_vmc_progress_bar():
