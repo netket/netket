@@ -1,3 +1,5 @@
+import io
+import sys
 import netket as nk
 import netket.experimental as nkx
 import time
@@ -535,3 +537,24 @@ def test_progress_bar_with_its_own_size():
         pb.on_step_end(step, {}, driver)
     assert pb._pbar.n == 10
     pb.on_run_end(driver.step_count, driver)
+
+
+def test_progress_bar_repaints_are_throttled(monkeypatch):
+    stderr = io.StringIO()
+    monkeypatch.setattr(sys, "stderr", stderr)
+    driver = DummyDriver()
+    driver.step_count = 0
+    driver._start_step = 0
+    driver._loss_stats = "1.0"
+
+    pb = nk._src.callbacks.progressbar.ProgressBarCallback(200)
+    pb.on_run_start(0, driver)
+    for step in range(200):
+        pb.before_parameter_update(step, {}, driver)
+        driver.step_count = step + 1
+        pb.on_step_end(step, {}, driver)
+    pb.on_run_end(driver.step_count, driver)
+
+    repaints = stderr.getvalue().count("\r")
+    assert repaints < 20, stderr.getvalue()
+    assert "200/200" in stderr.getvalue()

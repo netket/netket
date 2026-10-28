@@ -180,7 +180,7 @@ def check_mc_convergence(
                 "R_hat": f"{stats.R_hat:.4f}",
                 "sat": saturated,
             }
-            pbar.set_postfix(postfix)
+            pbar.set_postfix(postfix, refresh=False)
             pbar.update(_chain_length)
 
             if saturated:
@@ -486,7 +486,8 @@ def thermalise_mcmc(
                     "mean": f"{stats.mean:.4g}",
                     "R_hat": f"{rhat_val:.4f}",
                     "patience": f"{consecutive_good}/{patience}",
-                }
+                },
+                refresh=False,
             )
             pbar.update(_chain_length)
             iter_count += 1

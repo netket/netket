@@ -201,7 +201,8 @@ def expect_to_precision(
                 ]
 
                 pbar.set_postfix(
-                    _format_postfix(stats_list, active, atol_leaves, rtol_leaves)
+                    _format_postfix(stats_list, active, atol_leaves, rtol_leaves),
+                    refresh=False,
                 )
                 pbar.update(1)
                 it += 1

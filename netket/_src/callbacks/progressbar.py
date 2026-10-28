@@ -64,14 +64,13 @@ class TimeProgressBarCallback(AbstractCallback, mutable=True):
     def before_parameter_update(self, step, log_data, driver):
         if driver._loss_stats is not None:
             self._pbar.set_postfix_str(
-                driver._loss_name + "=" + str(driver._loss_stats)
+                driver._loss_name + "=" + str(driver._loss_stats), refresh=False
             )
 
     def on_step_end(self, step, log_data, driver):
         self._pbar.update(
             _elapsed_time(driver, self._t_start, self._T_final) - self._pbar.n
         )
-        self._pbar.refresh()
 
     def on_run_end(self, step, driver):
         if self._pbar is not None:
@@ -121,13 +120,12 @@ class ProgressBarCallback(AbstractCallback, mutable=True):
         # if the cost-function is defined then report it in the progress bar
         if driver._loss_stats is not None:
             self._pbar.set_postfix_str(
-                driver._loss_name + "=" + str(driver._loss_stats)
+                driver._loss_name + "=" + str(driver._loss_stats), refresh=False
             )
 
     def on_step_end(self, step, log_data, driver):
         step_value = driver.step_count - self._start_step
         self._pbar.update(step_value - self._pbar.n)
-        self._pbar.refresh()
 
     def on_run_end(self, step, driver):
         step_value = driver.step_count - self._start_step
