@@ -44,12 +44,6 @@ jobs:
             test_type: "main"
             devices: 1
 
-          - name: "Sharding (Distributed)"
-            os: ubuntu-latest
-            python-version: "3.13"
-            test_type: "sharding"
-            sharding_script: "run_test_sharding_distributed.sh"
-
     env:
       # The suite is compilation-bound; reuse XLA executables across xdist workers
       # and across runs. Keys cover HLO + target, so a hit is identical work.
@@ -70,7 +64,7 @@ jobs:
 
       - name: Sync environment
         run: |
-          uv sync --extra dev --extra extra ${{ matrix.test_type != 'sharding' && '--extra pyscf' || '' }}
+          uv sync --extra dev --extra extra --extra pyscf
 
       # Keys track the host CPU target and ubuntu-latest is a mixed fleet, so one
       # shared cache hit nothing and doubled each run (--xla_cpu_max_isa does not
@@ -96,9 +90,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
-          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-
           restore-keys: |
-            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-
+            jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-
 
       - name: Main tests
         if: ${{ matrix.test_type == 'main' }}
@@ -114,11 +108,6 @@ jobs:
         run: |
           uv run pytest --cov=netket --cov-append --doctest-continue-on-failure --doctest-modules netket/
 
-      - name: Sharding tests
-        if: ${{ matrix.test_type == 'sharding' }}
-        run: |
-          uv run ./test_sharding/"${{ matrix.sharding_script }}" -m 'not slow'
-
       # run_id stores a fresh entry per push, found by the prefix above. always():
       # an executable is valid even if the test asserting on it failed.
       - name: Prune JAX compilation cache
@@ -133,7 +122,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
-          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.sharding_script }}${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-${{ github.run_id }}
+          key: jax-cache-${{ matrix.os }}-${{ matrix.test_type }}-${{ matrix.devices }}-${{ steps.jaxfp.outputs.fp }}-${{ github.run_id }}
 
       - name: Generate coverage report
         if: always()

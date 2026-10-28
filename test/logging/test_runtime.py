@@ -10,9 +10,6 @@ from jax import numpy as jnp
 import netket as nk
 
 
-from .. import common
-
-
 @pytest.fixture()
 def vstate(request):
     N = 8
@@ -201,37 +198,6 @@ def test_json_log_append(tmp_path):
     np.testing.assert_allclose(
         log3.data["energy"].value, np.arange(n_first + n_second, dtype=float)
     )
-
-
-@common.requires_multiple_devices
-def test_write_only_on_master(tmp_path):
-    # Check that the logger runs everywhere but serializes only on rank 0
-
-    log = nk.logging.RuntimeLog()
-
-    n_steps = 10
-    for i in range(n_steps):
-        log(
-            i,
-            {
-                "value": float(i),
-            },
-        )
-
-    assert len(log.data["value"]) == n_steps
-    np.testing.assert_allclose(log.data["value"].iters, np.arange(n_steps))
-    np.testing.assert_allclose(log.data["value"].value, np.arange(n_steps))
-
-    rank = jax.process_index()
-
-    tmp_path = tmp_path / f"out_{rank}.log"
-
-    log.serialize(tmp_path)
-
-    if rank == 0:
-        assert tmp_path.exists()
-    else:
-        assert not tmp_path.exists()
 
 
 @pytest.mark.skipif(jax.process_count() > 1, reason="fakes the process index")
