@@ -395,7 +395,9 @@ def test_packed_kernel_logpsi_of_samples_after_loops(conn_chunk_size):
         return vs._apply_fun(variables, x)
 
     def kernel(variables, σ, H):
-        return kernels_packed._local_value_kernel_jax_packed(
+        # Inspect the implementation inside the custom-JVP boundary: the
+        # outer JAXPR only contains the opaque custom_jvp_call primitive.
+        return kernels_packed._local_value_kernel_jax_packed_impl(
             logpsi,
             variables,
             σ,
@@ -403,6 +405,7 @@ def test_packed_kernel_logpsi_of_samples_after_loops(conn_chunk_size):
             chunk_size=None,
             min_chunk_size=None,
             conn_chunk_size=conn_chunk_size,
+            include_zero_mels=False,
         )
 
     jaxpr = jax.make_jaxpr(kernel)(vs.variables, σ, H).jaxpr
@@ -493,6 +496,58 @@ def test_padding_is_the_sample(system):
     σp, mels = H.get_conn_padded(σ)
     is_conn = np.any(np.asarray(σp) != np.asarray(σ)[:, None, :], axis=-1)
     assert np.all(np.asarray(mels)[is_conn] != 0)
+
+
+def test_zero_matrix_elements_are_packed_only_without_derivatives(monkeypatch):
+    # A zero field gives zero off-diagonal matrix elements, but a nonzero
+    # derivative with respect to the field. Even a model-only gradient must
+    # use the derivative-safe path for subsequent mixed derivatives.
+    hi = nk.hilbert.Spin(0.5, 2)
+    graph = nk.graph.Chain(2)
+    σ = jnp.asarray(hi.all_states())
+    params = jnp.asarray([0.1, -0.2])
+    logpsi = lambda p, x: x @ p
+
+    original = kernels_packed._local_value_kernel_jax_packed_impl
+    routes = []
+
+    def spy(*args, **kwargs):
+        routes.append(kwargs["include_zero_mels"])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(kernels_packed, "_local_value_kernel_jax_packed_impl", spy)
+
+    def loss(p, h):
+        H = nk.operator.IsingJax(hi, graph, h=h)
+        return jnp.sum(_packed(3)(logpsi, p, σ, H)).real
+
+    loss(params, jnp.array(0.0))
+    assert routes and not any(routes)
+    routes.clear()
+    jax.grad(lambda p: loss(p, jnp.array(0.0)))(params)
+    assert routes and all(routes)
+    routes.clear()
+    grad_h = jax.grad(lambda h: loss(params, h))(jnp.array(0.0))
+    assert routes and all(routes)
+    assert abs(grad_h) > 0
+
+    routes.clear()
+    mixed_grad = jax.grad(lambda h: jnp.sum(jax.grad(lambda p: loss(p, h))(params)))(
+        jnp.array(0.0)
+    )
+    assert routes and all(routes)
+    reference = jax.grad(
+        lambda h: jnp.sum(
+            jax.grad(
+                lambda p: jnp.sum(
+                    kernels.local_value_kernel_jax(
+                        logpsi, p, σ, nk.operator.IsingJax(hi, graph, h=h)
+                    )
+                ).real
+            )(params)
+        )
+    )(jnp.array(0.0))
+    np.testing.assert_allclose(mixed_grad, reference, rtol=1e-12, atol=1e-12)
 
 
 @pytest.mark.parametrize("chunk_size", [None, 3])
