@@ -31,7 +31,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "numpy>=1.20,<3.0",
     "scipy>=1.5.3, <2",
@@ -116,7 +116,7 @@ version-file = "netket/_version.py"
 
 [tool.black]
 line-length = 88
-target-version = ['py311', 'py312', 'py313']
+target-version = ['py313']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -166,14 +166,14 @@ filterwarnings = [
 testpaths = ["test"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 88
 exclude = ["Examples", "docs/conf.py", "*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "D410", "UP", "TID252", "TC010"]
 fixable = ["E", "F", "W", "D", "UP"]
-ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035"]
+ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035", "UP046", "UP047"]
 #ignore = ["E266"]
 
 [tool.ruff.lint.per-file-ignores]
