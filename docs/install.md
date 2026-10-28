@@ -10,7 +10,7 @@ NetKet is a standard Python package that can be installed using pip or uv. This 
 
 ## Basic Installation
 
-NetKet requires Python 3.11 or later. To install NetKet, simply run:
+NetKet requires Python 3.13 or later. To install NetKet, simply run:
 
 **Using pip:**
 ```bash
