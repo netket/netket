@@ -116,14 +116,14 @@ jobs:
       # run_id stores a fresh entry per push, found by the prefix above. always():
       # an executable is valid even if the test asserting on it failed.
       - name: Prune JAX compilation cache
-        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'pull_request') }}  # TEMP (#2319): save from the PR to measure warm-cache timings; revert before merge
         run: |
           # jax never evicts, so drop entries unwritten for a week.
           find "$JAX_COMPILATION_CACHE_DIR" -type f -mtime +7 -delete 2>/dev/null || true
           du -sh "$JAX_COMPILATION_CACHE_DIR" || true
 
       - name: Save JAX compilation cache
-        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'pull_request') }}  # TEMP (#2319): save from the PR to measure warm-cache timings; revert before merge
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/.jax-cache
