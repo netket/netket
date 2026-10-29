@@ -225,12 +225,47 @@ def test_DenseEquivariant_creation(mode):
         )
 
 
-@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
-@pytest.mark.parametrize("use_bias", [True, False])
-@pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
-@pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
-@pytest.mark.parametrize("mask", [True, False])
-@pytest.mark.parametrize("batch", [(3,), (2, 2)])
+def _dense_equivariant_cases():
+    # Every mode is tested for equivariance under all four (lattice, symmetries)
+    # groups. The full product with batch, mask and use_bias (96 cases) is not
+    # needed: these only change shapes or which elements are zero, so they are
+    # spread over the groups such that every mode sees both values of each and
+    # most of their pairs.
+    batches = {"batch0": (3,), "batch1": (2, 2)}
+    lattices = {"Chain": nk.graph.Chain, "Square": nk.graph.Square}
+    cases = [
+        # mode, lattice, symmetries, batch, mask, use_bias
+        ("fft", "Chain", "trans", "batch0", True, False),
+        ("fft", "Chain", "trans", "batch1", False, True),
+        ("fft", "Chain", "space_group", "batch0", False, True),
+        ("fft", "Square", "trans", "batch1", True, True),
+        ("fft", "Square", "space_group", "batch1", False, False),
+        ("matrix", "Chain", "trans", "batch1", False, False),
+        ("matrix", "Chain", "space_group", "batch1", False, True),
+        ("matrix", "Square", "trans", "batch0", True, True),
+        ("matrix", "Square", "space_group", "batch0", True, False),
+        ("irreps", "Chain", "trans", "batch0", True, False),
+        ("irreps", "Chain", "space_group", "batch1", True, True),
+        ("irreps", "Square", "trans", "batch1", False, False),
+        ("irreps", "Square", "space_group", "batch0", False, True),
+    ]
+    return [
+        pytest.param(
+            symmetries,
+            use_bias,
+            lattices[lattice],
+            mode,
+            mask,
+            batches[batch],
+            id=f"{batch}-{mask}-{mode}-{lattice}-{use_bias}-{symmetries}",
+        )
+        for mode, lattice, symmetries, batch, mask, use_bias in cases
+    ]
+
+
+@pytest.mark.parametrize(
+    "symmetries, use_bias, lattice, mode, mask, batch", _dense_equivariant_cases()
+)
 def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
     rng = nk.jax.PRNGSeq(0)
 

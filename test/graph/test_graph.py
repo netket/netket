@@ -35,12 +35,9 @@ from netket.graph import (
 from netket.graph import _lattice
 from netket.utils import group
 
-from .. import common
 
 import warnings
 from netket.errors import InitializePeriodicLatticeOnSmallLatticeWarning
-
-pytestmark = common.skipif_distributed
 
 graphs = [
     # star and tree
@@ -566,8 +563,10 @@ def test_automorphisms(graph):
     if not graph.is_connected():
         return
 
-    def is_automorphism(f, graph):
-        edges = graph.edges()
+    # set membership: same check as `in graph.edges()`, O(1) per lookup
+    edges = set(graph.edges())
+
+    def is_automorphism(f, edges):
         for v, w in edges:
             fv, fw = f[v], f[w]
             if (fv, fw) not in edges and (fw, fv) not in edges:
@@ -577,16 +576,20 @@ def test_automorphisms(graph):
 
     autom = np.asarray(graph.automorphisms())
     for f in autom:
-        assert is_automorphism(f, graph)
+        assert is_automorphism(f, edges)
 
 
 def _check_symmgroup(autom, symmgroup):
     """Asserts that symmgroup consists of automorphisms listed in autom and has no duplicate elements."""
 
+    # Membership in a set uses Permutation.__hash__ (hash of the inverse
+    # permutation array) followed by Permutation.__eq__ on hash hits, so it
+    # checks the same thing as `in autom.elems` without the O(|G|^2) scan.
+    autom_elems = set(autom.elems)
     for el in symmgroup.to_array():
         assert (
             group.Permutation(inverse_permutation_array=el, validate=False)
-            in autom.elems
+            in autom_elems
         )
 
     assert symmgroup == symmgroup.remove_duplicates()
@@ -814,7 +817,9 @@ def test_symmgroup():
 
     assert_eq_hash(group.Identity(), group.Identity())
 
-    tr = Grid([8, 4, 3]).translation_group
+    # distinct extents along the three axes; kept small because tr() @ tr()
+    # takes |T|^2 element products
+    tr = Grid([5, 4, 3]).translation_group
     assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))
 
     assert_eq_hash(tr().remove_duplicates(), tr())

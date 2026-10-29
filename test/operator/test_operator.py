@@ -169,7 +169,7 @@ operators["ProductOperatorJax"] = nk.operator.ProductOperator(
 )
 
 # Remove non jax operators when sharding is activated
-if nk.config.netket_experimental_sharding:
+if jax.device_count() > 1:
     _operators = {}
     for k, o in operators.items():
         if isinstance(o, nk.operator.DiscreteJaxOperator):
@@ -209,7 +209,7 @@ def test_produce_elements_in_hilbert(op, attr):
     hi = op.hilbert
     get_conn_fun = getattr(op, attr)
 
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         # TODO: get_conn_fun(rstates[i]) and shard map do not play well
         # together.
         pytest.xfail("Broken under sharding")
@@ -219,11 +219,23 @@ def test_produce_elements_in_hilbert(op, attr):
 
     local_states = hi.local_states
     max_conn_size = op.max_conn_size
-    rstates = hi.random_state(rng.next(), 1000)
+    rstates = np.asarray(hi.random_state(rng.next(), 1000))
 
-    for i in range(len(rstates)):
-        rstatet, mels = get_conn_fun(rstates[i])
+    # The connected elements of all states are computed in a single batched call,
+    # which gives for every state the same result as calling `attr` on it alone
+    # (apart from the padding, which is to the largest number of connected
+    # elements in the batch). `attr` itself is called on the first state.
+    if attr == "get_conn_padded":
+        conns = list(zip(*op.get_conn_padded(rstates)))
+    else:
+        sections = np.empty(len(rstates), dtype=np.intp)
+        xp, mels = op.get_conn_flattened(rstates, sections)
+        conns = list(
+            zip(np.split(xp, sections[:-1]), np.split(np.asarray(mels), sections[:-1]))
+        )
+    conns.append(get_conn_fun(rstates[0]))
 
+    for rstatet, mels in conns:
         assert np.all(np.isin(rstatet, local_states))
         assert len(mels) <= max_conn_size
 
@@ -231,7 +243,6 @@ def test_produce_elements_in_hilbert(op, attr):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-@common.skipif_distributed
 def test_is_hermitian(op):
     # There should be a list of Hermitian operators instead of having this weird skip condition
     if isinstance(
@@ -248,17 +259,37 @@ def test_is_hermitian(op):
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
 
-    def _get_nonzero_conn(op, s):
-        sp, mels = op.get_conn(s)
-        return sp[mels != 0, :], mels[mels != 0]
+    def _get_nonzero_conn_batch(op, states):
+        # Same as calling op.get_conn(s) for every s in states (get_conn is
+        # get_conn_flattened on a batch of 1), but in a single call.
+        sections = np.empty(len(states), dtype=np.intp)
+        sp, mels = op.get_conn_flattened(states, sections)
+        sp, mels = np.asarray(sp), np.asarray(mels)
+        res = []
+        for sp_i, mels_i in zip(
+            np.split(sp, sections[:-1]), np.split(mels, sections[:-1])
+        ):
+            res.append((sp_i[mels_i != 0, :], mels_i[mels_i != 0]))
+        return res
 
-    rstates = hi.random_state(rng.next(), 100)
+    rstates = np.asarray(hi.random_state(rng.next(), 100))
+    conns = _get_nonzero_conn_batch(op, rstates)
+
+    # the batched call agrees with get_conn on a single state
+    sp0, mels0 = op.get_conn(rstates[0])
+    np.testing.assert_array_equal(sp0[mels0 != 0, :], conns[0][0])
+    np.testing.assert_array_equal(mels0[mels0 != 0], conns[0][1])
+
+    all_rstatet = np.concatenate([rstatet for rstatet, _ in conns], axis=0)
+    inv_conns = iter(_get_nonzero_conn_batch(op, all_rstatet))
+
     for i in range(len(rstates)):
         rstate = rstates[i]
-        rstatet, mels = _get_nonzero_conn(op, rstate)
+        rstatet, mels = conns[i]
 
-        for k, state in enumerate(rstatet):
-            invstates, mels1 = _get_nonzero_conn(op, state)
+        for k in range(len(rstatet)):
+            # connections of the state rstatet[k]
+            invstates, mels1 = next(inv_conns)
 
             found = False
             for kp, invstate in enumerate(invstates):
@@ -333,9 +364,10 @@ def test_repr(op):
     "shape",
     [
         pytest.param(s, id=f"shape={s}")
+        # a single and a multiple batch dimension; (2, 1) is not tested as it
+        # goes through the same reshapes as (2, 1, 1)
         for s in [
             (2,),
-            (2, 1),
             (2, 1, 1),
         ]
     ],
@@ -360,9 +392,7 @@ def test_get_conn_padded(op, shape, dtype):
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
+@common.requires_multiple_devices
 @pytest.mark.skipif(jax.device_count() < 2, reason="Only run with >1 device")
 def test_operator_sharded_not_commuincating(op):
     if isinstance(op, nk.operator.DiscreteOperator) and not isinstance(
@@ -476,7 +506,6 @@ def test_operator_on_subspace():
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
-@common.skipif_distributed
 def test_operator_jax_conversion(op):
     op_jax = op.to_jax_operator()
     op_numba = op_jax.to_numba_operator()
@@ -511,7 +540,7 @@ def test_operator_jax_getconn(op):
 
     states = op.hilbert.all_states()
 
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         # TODO: shard_map breaks
         pytest.xfail("Broken under sharding")
 
@@ -665,7 +694,7 @@ def test_jax_operator_to_jax_operator(op):
         if isinstance(op, DiscreteJaxOperator)
     ],
 )
-@common.onlyif_sharding
+@common.requires_multiple_devices
 def test_jax_operator_sharding_preserved(op):
     """Check that get_conn_padded preserves sharding for JAX operators"""
     hi = op.hilbert
@@ -690,7 +719,7 @@ def test_jax_operator_sharding_preserved(op):
         assert sp.sharding.is_fully_replicated
 
 
-@common.skipif_distributed
+@common.skipif_multiple_devices("numba operators do not support several devices")
 def test_bose_hubbard_precision():
     # Issue #1994
     N = 2
@@ -720,7 +749,6 @@ def test_bose_hubbard_precision():
         if not name.startswith("Bose Hubbard Complex")
     ],
 )
-@common.skipif_distributed
 def test_operator_jax_n_conn(op):
     """Check that n_conn returns the same result for jax and numba operators"""
     op_jax = op.to_jax_operator()

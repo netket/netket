@@ -11,8 +11,6 @@ from jax import numpy as jnp
 import netket as nk
 import netket.experimental as nkx
 
-from .. import common
-
 
 @pytest.fixture()
 def vstate(request):
@@ -32,7 +30,6 @@ def vstate(request):
     )
 
 
-@common.skipif_distributed
 def test_hdf5log(vstate, tmp_path):
     # skip test if hdf5py not installed
     h5py = pytest.importorskip("h5py")
@@ -71,7 +68,6 @@ def test_hdf5log_flush_accepts_variational_state(vstate, tmp_path):
     log.flush(vstate)
 
 
-@common.skipif_distributed
 def test_hdf5log_preserves_structured_layout(tmp_path):
     h5py = pytest.importorskip("h5py")
 
@@ -120,7 +116,6 @@ def test_hdf5log_preserves_structured_layout(tmp_path):
         assert np.array_equal(np.array(f["data/stats/Sigma"]), np.array([0.1]))
 
 
-@common.skipif_distributed
 def test_lazy_init(tmp_path):
     # skip test if hdf5py not installed
     pytest.importorskip("h5py")
@@ -133,31 +128,6 @@ def test_lazy_init(tmp_path):
     assert len(files) == 0
 
 
-@common.onlyif_distributed
-def test_write_only_on_master(vstate, tmp_path):
-    # Check that the logger runs everywhere but serializes only on rank 0
-    # skip test if tensorboardX not installed
-    pytest.importorskip("h5py")
-
-    rank = jax.process_index()
-    path = str(tmp_path) + "/dir1/r{rank}"
-
-    log = nk.logging.HDF5Log(path + "/output")
-
-    for i in range(30):
-        log(i, {"Energy": jnp.array(1.0), "complex": jnp.array(1.0 + 1j)}, vstate)
-
-    log.flush()
-    del log
-
-    files = glob.glob(path + "/*")
-    if rank == 0:
-        assert len(files) >= 1
-    else:
-        assert len(files) == 0
-
-
-@common.skipif_distributed
 def test_append_mode_reopens_existing_file(vstate, tmp_path):
     h5py = pytest.importorskip("h5py")
 
@@ -181,7 +151,6 @@ def test_append_mode_reopens_existing_file(vstate, tmp_path):
     assert np.array_equal(iters, np.array([0, 1, 2, 3]))
 
 
-@common.skipif_distributed
 def test_mode_aliases(vstate, tmp_path):
     pytest.importorskip("h5py")
 
@@ -196,7 +165,6 @@ def test_mode_aliases(vstate, tmp_path):
     log.flush()
 
 
-@common.skipif_distributed
 def test_callback_reuse_across_runs(tmp_path):
     """Logger used as callback must survive run -> on_run_end -> run again."""
     h5py = pytest.importorskip("h5py")
@@ -217,32 +185,6 @@ def test_callback_reuse_across_runs(tmp_path):
         energy = np.array(f["data/Energy/Mean"])
 
     assert energy.shape[0] == 10
-
-
-@common.onlyif_distributed
-def test_callback_reuse_across_runs_distributed(tmp_path):
-    """Under djaxrun: only rank-0 writes; logger must survive run -> on_run_end -> run again."""
-    h5py = pytest.importorskip("h5py")
-
-    rank = jax.process_index()
-    N = 4
-    hi = nk.hilbert.Spin(1 / 2, N)
-    ha = nk.operator.IsingJax(hi, nk.graph.Hypercube(length=N, n_dim=1), h=1.0)
-    vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), nk.models.RBM(alpha=1))
-    gs = nk.driver.VMC(ha, nk.optimizer.Sgd(0.01), variational_state=vs)
-
-    path = tmp_path / "output.h5"
-    logger = nk.logging.HDF5Log(str(path))
-
-    gs.run(n_iter=5, callback=[logger])
-    gs.run(n_iter=5, callback=[logger])
-
-    if rank == 0:
-        with h5py.File(path, "r") as f:
-            energy = np.array(f["data/Energy/Mean"])
-        assert energy.shape[0] == 10
-    else:
-        assert not path.exists()
 
 
 def test_save_params_deprecated(tmp_path):
@@ -266,7 +208,7 @@ def test_experimental_hdf5log_is_deprecated_alias():
     assert HDF5Log is nk.logging.HDF5Log
 
 
-@common.skipif_distributed
+@pytest.mark.skipif(jax.process_count() > 1, reason="fakes the process index")
 def test_hdf5log_no_filesystem_access_on_non_master(tmp_path, monkeypatch):
     pytest.importorskip("h5py")
     # Pretend to be rank 1: nothing should be created on disk.

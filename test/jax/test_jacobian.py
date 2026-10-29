@@ -12,7 +12,6 @@ import netket as nk
 from .. import common
 
 
-@common.skipif_distributed
 def test_real_function_error():
     k = jax.random.key(1)
 
@@ -27,7 +26,6 @@ def test_real_function_error():
         nk.jax.jacobian(afun, parameters, xs, model_state, mode="complex")
 
 
-@common.skipif_distributed
 def test_real_function_output():
     k = jax.random.key(1)
 
@@ -48,7 +46,7 @@ def test_real_function_output():
     np.testing.assert_allclose(jac_re, jac_2)
 
 
-@common.onlyif_sharding
+@common.requires_multiple_devices
 @pytest.mark.parametrize("sharded", [False, True])
 def test_real_function_sharding(sharded):
     k = jax.random.key(1)
