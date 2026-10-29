@@ -32,12 +32,15 @@ import multiprocessing as mp
 import queue as queue_mod
 import random
 import socket
+import sys
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 _PORT_RANGE = Path("/proc/sys/net/ipv4/ip_local_port_range")
+# The repository root, so that the spawned processes can import `test.*`.
+_REPO_ROOT = str(Path(__file__).resolve().parents[1])
 
 
 def _free_port() -> int:
@@ -117,6 +120,12 @@ def run_distributed(
         AssertionError: with the remote traceback if a worker fails, or if a
             worker does not return before ``timeout`` (e.g. a deadlock).
     """
+    # pytest's importlib mode does not put the repository on sys.path, and the
+    # spawned processes import `worker` (and this module) by name. multiprocessing
+    # hands sys.path to them before that import.
+    if _REPO_ROOT not in sys.path:
+        sys.path.insert(0, _REPO_ROOT)
+
     coordinator = f"127.0.0.1:{_free_port()}"
     ctx = mp.get_context("spawn")
     result_queue: Any = ctx.Queue()
@@ -147,9 +156,13 @@ def run_distributed(
             if remaining <= 0:
                 break
             try:
-                rank, status, payload = result_queue.get(timeout=remaining)
+                rank, status, payload = result_queue.get(timeout=min(remaining, 1.0))
             except queue_mod.Empty:
-                break
+                # A process that dies before reporting (e.g. failing to import the
+                # worker) never will: stop waiting once they are all gone.
+                if all(p.exitcode is not None for p in procs):
+                    break
+                continue
             (results if status == "ok" else errors)[rank] = payload
     finally:
         for p in procs:
@@ -166,8 +179,8 @@ def run_distributed(
     exitcodes = [p.exitcode for p in procs]
     missing = sorted(set(range(nproc)) - results.keys())
     assert not missing, (
-        f"ranks {missing} returned no result within {timeout}s "
-        f"(deadlock?); exit codes={exitcodes}"
+        f"ranks {missing} returned no result (deadlock or crash before reporting, "
+        f"see the captured stderr); exit codes={exitcodes}"
     )
     assert all(e == 0 for e in exitcodes), f"worker exit codes: {exitcodes}"
     return [results[r] for r in range(nproc)]
