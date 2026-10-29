@@ -120,11 +120,14 @@ def run_distributed(
         AssertionError: with the remote traceback if a worker fails, or if a
             worker does not return before ``timeout`` (e.g. a deadlock).
     """
-    # pytest's importlib mode does not put the repository on sys.path, and the
-    # spawned processes import `worker` (and this module) by name. multiprocessing
-    # hands sys.path to them before that import.
-    if _REPO_ROOT not in sys.path:
-        sys.path.insert(0, _REPO_ROOT)
+    # The spawned processes import `worker` (and this module) by name, as
+    # `test.<...>`, using the sys.path that multiprocessing hands them. Put the
+    # repository first: pytest's importlib mode does not add it, and behind the
+    # standard library `test` would be CPython's own test package (shipped e.g. by
+    # Homebrew's python, which macOS spawns the processes with).
+    if _REPO_ROOT in sys.path:
+        sys.path.remove(_REPO_ROOT)
+    sys.path.insert(0, _REPO_ROOT)
 
     coordinator = f"127.0.0.1:{_free_port()}"
     ctx = mp.get_context("spawn")
