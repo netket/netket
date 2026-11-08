@@ -80,6 +80,32 @@ def test_Heisenberg():
     assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
 
 
+@pytest.mark.parametrize(
+    "graph",
+    [
+        pytest.param(nk.graph.Chain(8, max_neighbor_order=2), id="chain"),
+        pytest.param(nk.graph.Square(4, max_neighbor_order=2), id="square"),
+    ],
+)
+def test_Heisenberg_sign_rule_colored(graph):
+    # https://github.com/netket/netket/issues/2320
+    # Flipping the next-nearest-neighbour bonds (with or without the nearest
+    # neighbour ones) is not a sublattice rotation and changes the spectrum.
+    hi = nk.hilbert.Spin(0.5, N=graph.n_nodes, total_sz=0)
+    ha = nk.operator.Heisenberg(hi, graph, J=[1, 0.5])
+    ha_rot = nk.operator.Heisenberg(hi, graph, J=[1, 0.5], sign_rule=[True, False])
+    assert nk.exact.lanczos_ed(ha) == pytest.approx(nk.exact.lanczos_ed(ha_rot))
+
+    for sign_rule in ([False, True], [True, True]):
+        with pytest.raises(ValueError, match="sublattice rotation"):
+            nk.operator.Heisenberg(hi, graph, J=[1, 0.5], sign_rule=sign_rule)
+
+    # Colors with J=0 do not enter the operator, so their sign rule is ignored.
+    ha_rot = nk.operator.Heisenberg(hi, graph, J=[1, 0], sign_rule=[True, True])
+    ha = nk.operator.Heisenberg(hi, graph, J=[1, 0])
+    assert nk.exact.lanczos_ed(ha) == pytest.approx(nk.exact.lanczos_ed(ha_rot))
+
+
 def _colored_graph(graph):
     return nk.graph.Graph(edges=[(i, j, i % 2) for i, j in graph.edges()])
 
@@ -185,9 +211,9 @@ def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
     # LocalOperator.n_conn and Ising.n_conn do not consider that mels[0] can be 0,
     # so n_conn1 can be n_conn2 + 1
     delta = n_conn1 - n_conn2
-    assert ((delta == 0) | ((delta == 1) & (mels2[:, 0] == 0))).all(), (
-        f"n_conn1:\n{n_conn1}\nn_conn2:\n{n_conn2}"
-    )
+    assert (
+        (delta == 0) | ((delta == 1) & (mels2[:, 0] == 0))
+    ).all(), f"n_conn1:\n{n_conn1}\nn_conn2:\n{n_conn2}"
 
     # Shapes of σp and mels can be different because of padding
     assert σp1.dtype == σp2.dtype
