@@ -43,12 +43,17 @@ def get_local_kernel_arguments(vstate: MCState, Ô: Squared):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
 
     σ = vstate.samples
-    σp, mels = Ô.parent.get_conn_padded(σ)
+    # The parent can leave the sampled sector even when A†A preserves it.
+    # In that case |A_loc|² cannot account for the norm outside that sector.
+    op = Ô.collect() if Ô.hilbert.constrained else Ô.parent
+    σp, mels = op.get_conn_padded(σ)
     return σ, (σp, mels)
 
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: Squared):  # noqa: F811
+    if Ô.hilbert.constrained:
+        return kernels.local_value_kernel
     return kernels.local_value_squared_kernel
 
 

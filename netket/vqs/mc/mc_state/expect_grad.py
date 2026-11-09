@@ -79,6 +79,8 @@ def expect_and_grad_squared_op(
             "Cannot specify `use_covariance` with Squared[...] operator.\n"
             "This operator must use the same formula as non-hermitian operators to work."
         )
+    if Ô.hilbert.constrained:
+        return expect_and_grad(vstate, Ô.collect(), chunk_size, *args, mutable=mutable)
     return expect_and_grad_nonhermitian(vstate, Ô, chunk_size, *args, mutable=mutable)
 
 

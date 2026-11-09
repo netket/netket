@@ -46,6 +46,8 @@ from netket.vqs.mc import local_estimators
 # Dispatches to select what expect-kernel to use
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F811
+    if Ô.hilbert.constrained:
+        return kernels.local_value_kernel_chunked
     return kernels.local_value_squared_kernel_chunked
 
 

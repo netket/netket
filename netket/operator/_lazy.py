@@ -191,6 +191,10 @@ class Adjoint(WrappedOperator):
 class Squared(WrappedOperator):
     """
     A wrapper lazily representing the matrix-squared (A^dag A) of the wrapped object A.
+
+    On constrained Hilbert spaces, MCState evaluation and matrix conversion
+    collect the product before restricting to the constrained basis, since A
+    itself need not preserve the constraint.
     """
 
     parent: DiscreteOperator
@@ -202,6 +206,16 @@ class Squared(WrappedOperator):
 
     def collect(self):
         return self.parent.H.collect()._op__matmul__(self.parent)
+
+    def to_sparse(self):
+        if self.hilbert.constrained:
+            return self.collect().to_sparse()
+        return super().to_sparse()
+
+    def to_dense(self):
+        if self.hilbert.constrained:
+            return self.collect().to_dense()
+        return super().to_dense()
 
     @property
     def T(self):
