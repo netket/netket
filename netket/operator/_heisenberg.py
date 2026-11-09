@@ -17,7 +17,7 @@ from typing import TypeVar as _TypeVar
 
 import numpy as np
 
-from netket.graph import AbstractGraph
+from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType
 
@@ -28,37 +28,6 @@ from ._local_operator import (
 )
 
 _LocalOperatorT = _TypeVar("_LocalOperatorT", bound=_LocalOperatorBase)
-
-
-def _is_sublattice_rotation(n_nodes: int, edges, flipped) -> bool:
-    """
-    Checks whether flipping the sign of the exchange term on the edges marked
-    by ``flipped`` is a sublattice rotation, i.e. whether the sites can be split
-    into two sublattices A and B such that the flipped edges are exactly the ones
-    connecting A to B. This holds if and only if every cycle of the graph
-    contains an even number of flipped edges.
-    """
-    adjacency = [[] for _ in range(n_nodes)]
-    for (i, j), f in zip(edges, flipped):
-        adjacency[i].append((j, f))
-        adjacency[j].append((i, f))
-
-    sublattice = [None] * n_nodes
-    for root in range(n_nodes):
-        if sublattice[root] is not None:
-            continue
-        sublattice[root] = False
-        stack = [root]
-        while stack:
-            i = stack.pop()
-            for j, f in adjacency[i]:
-                expected = sublattice[i] ^ f
-                if sublattice[j] is None:
-                    sublattice[j] = expected
-                    stack.append(j)
-                elif sublattice[j] != expected:
-                    return False
-    return True
 
 
 def Heisenberg(
@@ -88,13 +57,10 @@ def Heisenberg(
             bipartite, False otherwise.
             If a sequence of coupling strengths is passed, defaults to False
             and a matching sequence of sign_rule must be specified to override it.
-            In that case, the sign is flipped on all edges of the colors with
-            sign_rule=True, and this is only allowed if it is a basis change,
-            that is if the sites can be split into two sublattices such that
-            those edges connect different sublattices, and the edges of the
-            other colors connect sites of the same sublattice. For example,
-            on a J1-J2 lattice ``sign_rule=[True, False]`` is allowed, while
-            ``sign_rule=[False, True]`` is not.
+            This is only allowed if the sites can be split into two sublattices
+            such that the edges of the colors with sign_rule=True connect
+            different sublattices, and the others the same one (e.g. on a J1-J2
+            lattice ``[True, False]`` is allowed, ``[False, True]`` is not).
         dtype: Data type of the matrix elements.
         acting_on_subspace: Specifies the mapping between nodes of the graph and
             Hilbert space sites, so that graph node :code:`i ∈ [0, ..., graph.n_nodes - 1]`,
@@ -120,26 +86,22 @@ def Heisenberg(
             sign_rule = [False] * len(J)
         else:
             assert len(sign_rule) == len(J)
-            # The sign rule must be the same sublattice rotation for all colors
-            # at once: checking that every color is bipartite on its own is not
-            # enough (e.g. sign_rule=[False, True] on a J1-J2 lattice).
-            # Colors with J=0 do not contribute to the operator and are ignored.
-            edges = [
-                (i, j, c) for i, j, c in graph.edges(return_color=True) if J[c] != 0
-            ]
-            if not _is_sublattice_rotation(
-                graph.n_nodes,
-                [(i, j) for i, j, _ in edges],
-                [bool(sign_rule[c]) for _, _, c in edges],
-            ):
+            # The flipped edges must connect different sublattices and the others
+            # the same one. Replacing every non-flipped edge by a path of length
+            # two through an extra node, this means the graph must be bipartite.
+            # Colors with J=0 do not enter the operator and are ignored.
+            edges = []
+            for k, (i, j, c) in enumerate(graph.edges(return_color=True)):
+                if J[c] == 0:
+                    continue
+                elif sign_rule[c]:
+                    edges.append((i, j))
+                else:
+                    edges += [(i, graph.n_nodes + k), (graph.n_nodes + k, j)]
+            if not Graph(edges, graph.n_nodes + graph.n_edges).is_bipartite():
                 raise ValueError(
-                    f"sign_rule={list(sign_rule)} does not correspond to a "
-                    "sublattice rotation of this graph, so it would change the "
-                    "spectrum of the Hamiltonian. The sign rule can only be "
-                    "applied if the sites can be split into two sublattices "
-                    "such that the edges of the colors with sign_rule=True "
-                    "connect different sublattices, and those of the colors "
-                    "with sign_rule=False connect sites of the same one."
+                    f"sign_rule={list(sign_rule)} is not a sublattice rotation of "
+                    "this graph and would change the spectrum of the Hamiltonian."
                 )
     else:
         if sign_rule is None:
