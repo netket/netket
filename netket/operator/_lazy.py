@@ -22,11 +22,6 @@ from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
 
 
-def _is_constrained(hilbert) -> bool:
-    # Adjoint can also wrap continuous operators, whose spaces lack `.constrained`.
-    return isinstance(hilbert, DiscreteHilbert) and hilbert.constrained
-
-
 class WrappedOperator(AbstractOperator):
     _parent: DiscreteOperator
     """The wrapped object"""
@@ -181,7 +176,11 @@ class Adjoint(WrappedOperator):
             # Squared(A) estimates A†A from |A_loc|², which is only correct if A
             # preserves the constraint. As we cannot check that, on constrained
             # spaces we form the actual product instead.
-            if not _is_constrained(self.hilbert):
+            # (Adjoint can also wrap continuous operators, which lack `.constrained`.)
+            is_constrained = (
+                isinstance(self.hilbert, DiscreteHilbert) and self.hilbert.constrained
+            )
+            if not is_constrained:
                 return Squared(other)
             try:
                 adjoint = self.collect()
