@@ -15,10 +15,15 @@
 import numpy as np
 import jax.numpy as jnp
 
+from netket.hilbert import DiscreteHilbert
 from netket.utils.dispatch import parametric
 
 from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
+
+
+def _is_constrained(hilbert) -> bool:
+    return isinstance(hilbert, DiscreteHilbert) and hilbert.constrained
 
 
 class WrappedOperator(AbstractOperator):
@@ -172,7 +177,22 @@ class Adjoint(WrappedOperator):
 
     def _op__matmul__(self, other):
         if self.parent == other:
-            return Squared(other)
+            # Squared(A) estimates A†A from |A_loc|², which is only correct if A
+            # preserves the constraint. As we cannot check that, on constrained
+            # spaces we form the actual product instead.
+            if not _is_constrained(self.hilbert):
+                return Squared(other)
+            try:
+                adjoint = self.collect()
+            except NotImplementedError as err:
+                raise NotImplementedError(
+                    f"Cannot compute A.H @ A on the constrained space {self.hilbert} "
+                    f"because the adjoint of {type(other).__name__} cannot be "
+                    "constructed explicitly.\n"
+                    "If A preserves the constraint, use `nk.operator.Squared(A)`, "
+                    "which estimates A†A from |A_loc|²."
+                ) from err
+            return adjoint @ other
 
         return self.collect() @ other
 
@@ -191,6 +211,12 @@ class Adjoint(WrappedOperator):
 class Squared(WrappedOperator):
     """
     A wrapper lazily representing the matrix-squared (A^dag A) of the wrapped object A.
+
+    Expectation values are estimated from :math:`|A_{loc}|^2`, which only
+    requires the connected elements of A. On constrained Hilbert spaces this
+    (as well as the conversion to a dense or sparse matrix) is only correct if
+    A preserves the constraint. For this reason, :code:`A.H @ A` returns the
+    actual product rather than :code:`Squared(A)` on constrained spaces.
     """
 
     parent: DiscreteOperator
