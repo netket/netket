@@ -23,6 +23,7 @@ from ._discrete_operator import DiscreteOperator
 
 
 def _is_constrained(hilbert) -> bool:
+    # Adjoint can also wrap continuous operators, whose spaces lack `.constrained`.
     return isinstance(hilbert, DiscreteHilbert) and hilbert.constrained
 
 
