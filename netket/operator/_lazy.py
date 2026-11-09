@@ -173,9 +173,9 @@ class Adjoint(WrappedOperator):
 
     def _op__matmul__(self, other):
         if self.parent == other:
-            # Squared(A) estimates A†A from |A_loc|², which is only correct if A
-            # preserves the constraint. As we cannot check that, on constrained
-            # spaces we form the actual product instead.
+            # The |A_loc|² estimator requires the sampling distribution to cover
+            # the support of A|psi>. A can leave a constrained sector even when
+            # A†A preserves it, so form the actual product on constrained spaces.
             # (Adjoint can also wrap continuous operators, which lack `.constrained`.)
             is_constrained = (
                 isinstance(self.hilbert, DiscreteHilbert) and self.hilbert.constrained
@@ -189,8 +189,9 @@ class Adjoint(WrappedOperator):
                     f"Cannot compute A.H @ A on the constrained space {self.hilbert} "
                     f"because the adjoint of {type(other).__name__} cannot be "
                     "constructed explicitly.\n"
-                    "If A preserves the constraint, use `nk.operator.Squared(A)`, "
-                    "which estimates A†A from |A_loc|²."
+                    "The explicit `nk.operator.Squared(A)` estimator is an "
+                    "alternative only if the support of A|psi> is contained "
+                    "in the support of |psi>."
                 ) from err
             return adjoint @ other
 
@@ -209,14 +210,25 @@ class Adjoint(WrappedOperator):
 
 @parametric
 class Squared(WrappedOperator):
-    """
+    r"""
     A wrapper lazily representing the matrix-squared (A^dag A) of the wrapped object A.
 
-    Expectation values are estimated from :math:`|A_{loc}|^2`, which only
-    requires the connected elements of A. On constrained Hilbert spaces this
-    (as well as the conversion to a dense or sparse matrix) is only correct if
-    A preserves the constraint. For this reason, :code:`A.H @ A` returns the
-    actual product rather than :code:`Squared(A)` on constrained spaces.
+    Monte Carlo expectation values use :math:`|A_{loc}|^2`, which only requires
+    the connected elements of A. This estimator is valid when the support of
+    :math:`A|\psi\rangle` is contained in the support of :math:`|\psi\rangle`.
+    A constraint-preserving A and a wavefunction with full support within that
+    space satisfy this condition. Constraint preservation alone is not
+    sufficient: exact zeros can invalidate the estimator within the sector.
+
+    Dense and sparse conversion instead multiplies the matrix of A restricted
+    to its Hilbert space. This requires A to map that space into itself, but
+    has no wavefunction-support requirement. For a parent that changes the
+    constraint, form the product with :meth:`collect` before conversion if
+    concrete multiplication is supported.
+
+    On constrained discrete spaces, :code:`A.H @ A` forms the actual product
+    instead of automatically selecting this estimator. Explicit construction
+    of :code:`Squared(A)` keeps the estimator described above.
     """
 
     parent: DiscreteOperator

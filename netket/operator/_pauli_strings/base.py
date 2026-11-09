@@ -327,6 +327,24 @@ class PauliStringsBase(DiscreteOperator):
     def _reset_caches(self):
         self._is_hermitian = None
 
+    def transpose(self, *, concrete=False):
+        if not concrete:
+            from .._lazy import Transpose
+
+            return Transpose(self)
+        # Y is the only Pauli matrix that is antisymmetric
+        y_parity = (-1) ** np.char.count(self.operators, "Y")
+        new = self.copy()
+        new._weights = (self.weights * y_parity).astype(self.dtype)
+        return new
+
+    def conjugate(self, *, concrete=False):
+        # Y is the only Pauli matrix that is imaginary
+        y_parity = (-1) ** np.char.count(self.operators, "Y")
+        new = self.copy()
+        new._weights = (self.weights.conj() * y_parity).astype(self.dtype)
+        return new
+
     def _op__matmul__(self, other):
         if not isinstance(other, PauliStringsBase):
             return NotImplemented
