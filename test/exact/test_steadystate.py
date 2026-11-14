@@ -17,9 +17,6 @@ import numpy as np
 
 import netket as nk
 
-from .. import common
-
-pytestmark = common.skipif_distributed
 
 SEED = 3141592
 L = 4

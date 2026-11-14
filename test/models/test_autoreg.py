@@ -17,20 +17,9 @@ import netket as nk
 import netket.experimental as nkx
 import numpy as np
 import pytest
+from .. import common
 from jax import numpy as jnp
 from netket.utils import HashableArray
-
-from .. import common
-
-
-@pytest.fixture
-def skip(request):
-    rate = request.config.getoption("--arnn_test_rate")
-    rng = np.random.default_rng(common.hash_for_seed(request.node.callspec.id))
-    if rng.random() > rate:
-        pytest.skip(
-            "Running only a portion of the tests for ARNN. Use --arnn_test_rate=1 to run all tests."
-        )
 
 
 graph_full = nk.graph.Graph([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
@@ -254,8 +243,11 @@ partial_models += [
     ],
 )
 class TestARNN:
+    # Every model is tested once, with the Hilbert spaces, dtypes and machine_pow
+    # spread over the models: each case is dominated by compilation.
+    @common.pairwise(strength=1)
     @pytest.mark.parametrize("partial_model", partial_models)
-    def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow, skip):
+    def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow):
         batch_size = 3
 
         model = partial_model(hilbert, param_dtype, machine_pow)
@@ -266,19 +258,32 @@ class TestARNN:
             key_model, spins, method=model.conditionals
         )
 
-        @jax.jit
         def conditionals(inputs):
             return model.apply(variables, inputs, method=model.conditionals)
 
-        @jax.jit
         def reorder(inputs):
             return model.apply(variables, inputs, axis=1, method=model.reorder)
 
-        @jax.jit
         def inverse_reorder(inputs):
             return model.apply(variables, inputs, axis=1, method=model.inverse_reorder)
 
-        p = reorder(p)
+        # Conditionals of the batch with the single element (i, j) flipped,
+        # for all (i, j) at once to compile only once
+        @jax.jit
+        def flipped_conditionals(spins):
+            def flip_one(i, j):
+                # Change one input element at a time
+                spins_new = reorder(spins)
+                spins_new = spins_new.at[i, j].multiply(-1)
+                spins_new = inverse_reorder(spins_new)
+
+                p_new = conditionals(spins_new)
+                return reorder(p_new)
+
+            i, j = jnp.divmod(jnp.arange(batch_size * hilbert.size), hilbert.size)
+            return jax.vmap(flip_one)(i, j)
+
+        p = jax.jit(reorder)(p)
 
         # Test if the model is normalized
         # The result may not be very accurate, because it is in exp space
@@ -288,23 +293,22 @@ class TestARNN:
         )
 
         # Test if the model is autoregressive
+        p = np.asarray(p)
+        p_new_all = np.asarray(flipped_conditionals(spins))
         for i in range(batch_size):
             for j in range(hilbert.size):
-                # Change one input element at a time
-                spins_new = reorder(spins)
-                spins_new = spins_new.at[i, j].multiply(-1)
-                spins_new = inverse_reorder(spins_new)
-
-                p_new = conditionals(spins_new)
-                p_new = reorder(p_new)
+                p_new = p_new_all[i * hilbert.size + j].copy()
 
                 # Sites after j can change, so we reset them before comparison
-                p_new = p_new.at[i, j + 1 :].set(p[i, j + 1 :])
+                p_new[i, j + 1 :] = p[i, j + 1 :]
 
                 np.testing.assert_allclose(p_new, p, err_msg=f"i={i} j={j}")
 
+    # Every model is tested once, with the Hilbert spaces, dtypes and machine_pow
+    # spread over the models: each case is dominated by compilation.
+    @common.pairwise(strength=1)
     @pytest.mark.parametrize("partial_model_pair", partial_model_pairs)
-    def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow, skip):
+    def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow):
         batch_size = 3
 
         model1 = partial_model_pair[0](hilbert, param_dtype, machine_pow)

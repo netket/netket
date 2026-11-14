@@ -7,10 +7,6 @@ import jax.numpy as jnp
 
 import numpy as np
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @pytest.mark.parametrize("a", [[1.0, 2.0], [1.0, -2.0], [1j, 2j]])
 @pytest.mark.parametrize("b", [None, [1.0, 2.0], [1.0, -1.0], [1j, -1j]])

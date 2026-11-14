@@ -221,7 +221,6 @@ def test_n_samples_diag_api(vstate, _device_count):
     )
 
 
-@common.skipif_mpi
 def test_serialization(vstate):
     from flax import serialization
 
@@ -253,8 +252,7 @@ def test_serialization(vstate):
     np.testing.assert_allclose(old_samples, vstate_new.samples)
 
 
-@common.skipif_mpi
-@common.xfailif_sharding
+@common.skipif_multiple_devices("MetropolisNumpy does not support several devices")
 @pytest.mark.parametrize(
     "operator",
     [
@@ -272,8 +270,7 @@ def test_expect_numpysampler_works(vstate, operator):
     assert isinstance(out, nk.stats.Stats)
 
 
-@common.skipif_distributed  # no jax version of LocalLiouvillian
-@common.skipif_mpi
+@common.skipif_multiple_devices("no jax version of LocalLiouvillian")
 @pytest.mark.parametrize(
     "operator",
     [
@@ -301,8 +298,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     )
 
 
-@common.skipif_distributed  # no jax version of LocalLiouvillian
-@common.skipif_mpi
+@common.skipif_multiple_devices("no jax version of LocalLiouvillian")
 @pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_grad_chunking(vstate, n_chunks):
     operator = LdagL
@@ -323,7 +319,6 @@ def test_expect_grad_chunking(vstate, n_chunks):
     )
 
 
-@common.skipif_mpi
 def test_expect_and_grad_physical_operator_has_informative_error(vstate):
     with pytest.raises(
         nk.errors.MCMixedStateExpectAndGradOnPhysicalOperatorError
@@ -338,7 +333,6 @@ def test_expect_and_grad_physical_operator_has_informative_error(vstate):
     assert type(ha).__qualname__ in msg
 
 
-@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -375,8 +369,7 @@ def check_consistent_diag(vstate):
     )
 
 
-@common.skipif_distributed  # no jax version of LocalLiouvillian
-@common.skipif_mpi
+@common.skipif_multiple_devices("no jax version of LocalLiouvillian")
 @pytest.mark.parametrize(
     "operator",
     [
@@ -408,8 +401,7 @@ def test_expect_exact(vstate, operator):
         np.testing.assert_allclose(O_expval_exact.imag, O_mean.imag, atol=err, rtol=err)
 
 
-@common.skipif_distributed  # no jax version of LocalLiouvillian
-@common.skipif_mpi
+@common.skipif_multiple_devices("no jax version of LocalLiouvillian")
 @pytest.mark.parametrize(
     "operator",
     [

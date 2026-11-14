@@ -9,6 +9,7 @@ import pytest
 import netket as nk
 import netket.experimental as nkx
 
+from test import common
 from test.common_mesh import with_meshes
 
 
@@ -103,9 +104,7 @@ def test_expect_fermionic_operators_chunked_sharding_regression(
     assert jnp.isfinite(res.mean)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
+@common.requires_multiple_devices
 @with_meshes(auto=[((2,), ("S",))])
 def test_apply_chunked_with_coo_array_nonchunked_arg(mesh):
     meta = nk.jax.COOArray(

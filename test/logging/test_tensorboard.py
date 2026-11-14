@@ -36,7 +36,6 @@ def vstate(request):
     )
 
 
-@common.skipif_distributed
 def test_tblog(vstate, tmp_path):
     # skip test if tensorboardX not installed
     pytest.importorskip("tensorboardX")
@@ -55,7 +54,6 @@ def test_tblog(vstate, tmp_path):
     assert len(files) >= 1
 
 
-@common.skipif_distributed
 def test_tblog_tree_log_paths():
     Pair = namedtuple("Pair", ["x", "y"])
 
@@ -103,7 +101,6 @@ class _FakeWriter:
         self.scalars.append((tag, value, step))
 
 
-@common.skipif_distributed
 def test_tblog_writes_jax_scalars():
     # Regression test for gh #2244: jax/numpy 0-dim array scalars (e.g.
     # `acceptance`, which arrives as a jaxlib ArrayImpl) were silently dropped
@@ -136,7 +133,6 @@ def test_tblog_writes_jax_scalars():
     assert "vector" not in tags
 
 
-@common.skipif_distributed
 def test_lazy_init(tmp_path):
     # skip test if tensorboardX not installed
     pytest.importorskip("tensorboardX")
@@ -149,7 +145,7 @@ def test_lazy_init(tmp_path):
     assert len(files) == 0
 
 
-@common.onlyif_distributed
+@common.requires_multiple_devices
 def test_write_only_on_master(vstate, tmp_path):
     # Check that the logger runs everywhere but serializes only on rank 0
     # skip test if tensorboardX not installed

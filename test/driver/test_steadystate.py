@@ -5,7 +5,6 @@ import netket as nk
 
 from .. import common
 
-pytestmark = common.skipif_distributed
 
 SEED = 214748364
 
@@ -67,6 +66,7 @@ def _setup_obs(L):
 ####
 
 
+@common.skipif_multiple_devices("no jax version of LocalLiouvillian")
 def test_estimate():
     lind, _, driver = _setup_ss()
 

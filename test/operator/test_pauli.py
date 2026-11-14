@@ -22,7 +22,7 @@ import netket as nk
 from netket.utils import array_in
 
 operators = [nk.operator.PauliStringsJax]
-if not nk.config.netket_experimental_sharding:
+if jax.device_count() == 1:
     operators = [
         nk.operator.PauliStringsNumba,
     ] + operators

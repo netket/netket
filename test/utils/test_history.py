@@ -22,10 +22,6 @@ import flax
 
 import netket as nk
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @dataclass
 class MockCompoundType:

@@ -37,7 +37,6 @@ def isolated_mlflow(tmp_path, monkeypatch):
         pass
 
 
-@common.skipif_distributed
 def test_mlflow_log_basic(vstate, isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -59,7 +58,6 @@ def test_mlflow_log_basic(vstate, isolated_mlflow):
     assert len(history_acc) == 10
 
 
-@common.skipif_distributed
 def test_mlflow_log_nested_keys(vstate, isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -78,7 +76,6 @@ def test_mlflow_log_nested_keys(vstate, isolated_mlflow):
     assert len(client.get_metric_history(run_id, "Energy.Sigma")) == 1
 
 
-@common.skipif_distributed
 def test_mlflow_log_complex(vstate, isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -97,7 +94,6 @@ def test_mlflow_log_complex(vstate, isolated_mlflow):
     assert im_hist[0].value == pytest.approx(2.0)
 
 
-@common.skipif_distributed
 def test_mlflow_log_with_tags(isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -114,7 +110,6 @@ def test_mlflow_log_with_tags(isolated_mlflow):
     assert run.data.tags.get("L") == "20"
 
 
-@common.skipif_distributed
 def test_mlflow_log_resume(isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -136,7 +131,6 @@ def test_mlflow_log_resume(isolated_mlflow):
     assert len(history) == 10
 
 
-@common.skipif_distributed
 def test_lazy_init(isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -148,7 +142,6 @@ def test_lazy_init(isolated_mlflow):
     assert mlflow.active_run() is None
 
 
-@common.skipif_distributed
 def test_mlflow_log_save_params(vstate, tmp_path, isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -170,7 +163,6 @@ def test_mlflow_log_save_params(vstate, tmp_path, isolated_mlflow):
     assert len(artifacts) >= 1
 
 
-@common.skipif_distributed
 def test_mlflow_log_no_save_params(vstate, isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -187,7 +179,6 @@ def test_mlflow_log_no_save_params(vstate, isolated_mlflow):
     assert len(artifacts) == 0
 
 
-@common.skipif_distributed
 def test_repr(isolated_mlflow):
     log = nk.logging.MLFlowLog(experiment_name="test_repr", run_name="my_run")
     assert "MLFlowLog" in repr(log)
@@ -200,13 +191,11 @@ def test_repr(isolated_mlflow):
     del log
 
 
-@common.skipif_distributed
 def test_save_params_every_zero_raises(isolated_mlflow):
     with pytest.raises(ValueError, match="save_params_every"):
         nk.logging.MLFlowLog(save_params=True, save_params_every=0)
 
 
-@common.skipif_distributed
 def test_metadata_not_relogged_on_resume(isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -225,7 +214,6 @@ def test_metadata_not_relogged_on_resume(isolated_mlflow):
     del log2
 
 
-@common.skipif_distributed
 def test_mlflow_log_1d_array_expanded(isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -241,7 +229,6 @@ def test_mlflow_log_1d_array_expanded(isolated_mlflow):
     assert client.get_metric_history(run_id, "vals.2")[0].value == pytest.approx(3.0)
 
 
-@common.skipif_distributed
 def test_mlflow_log_ignore(isolated_mlflow):
     mlflow = isolated_mlflow
 
@@ -257,7 +244,7 @@ def test_mlflow_log_ignore(isolated_mlflow):
     assert len(client.get_metric_history(run_id, "skip_me.0")) == 0
 
 
-@common.onlyif_distributed
+@common.requires_multiple_devices
 def test_write_only_on_master(vstate, isolated_mlflow):
     rank = jax.process_index()
 

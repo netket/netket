@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import netket as nk
+
+from .. import common
 import numpy as np
 from scipy import sparse
 
@@ -21,9 +23,6 @@ from pytest import approx
 
 from netket.operator import spin, LocalOperatorNumba
 
-from test import common
-
-pytestmark = common.skipif_distributed
 
 np.set_printoptions(linewidth=180)
 
@@ -130,6 +129,7 @@ dtypes = dtypes_r + dtypes_c
 
 
 @pytest.mark.parametrize("dtype", dtypes)
+@common.skipif_multiple_devices("no jax version of LocalLiouvillian")
 def test_dtype(dtype):
     if not nk.jax.is_complex_dtype(dtype):
         with pytest.raises(TypeError):

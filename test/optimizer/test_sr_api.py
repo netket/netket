@@ -20,10 +20,6 @@ from collections.abc import Callable
 
 import netket as nk
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @pytest.mark.parametrize(
     "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]

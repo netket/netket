@@ -8,7 +8,10 @@ import numpy as np
 import netket as nk
 import netket.experimental as nkx
 
-from ..common import onlyif_sharding_single_process
+from ..common import requires_multiple_devices, requires_multiple_devices_single_process
+
+
+pytestmark = requires_multiple_devices
 
 
 def _setup(L, alpha=1, reset_chains=False):
@@ -38,9 +41,6 @@ def _check_correct_sharding(x, replicated=False):
     assert x.sharding.is_equivalent_to(s, x.ndim)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_sampling():
     vs, *_ = _setup(16)
     n_chains = 16 * jax.device_count()
@@ -62,9 +62,6 @@ def test_sampling():
     _check_correct_sharding(x)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_pt():
     vs, _, ha = _setup(8)
     hi = ha.hilbert
@@ -84,9 +81,6 @@ def test_pt():
     assert samples.sharding.is_equivalent_to(sharding, 3)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_project_preserves_sharding():
     """Regression test: Representation.project() must preserve sample sharding.
 
@@ -108,7 +102,7 @@ def test_project_preserves_sharding():
     _check_correct_sharding(samples)
 
 
-@onlyif_sharding_single_process
+@requires_multiple_devices_single_process
 def test_sampling_warns_if_sampler_state_sigma_is_replicated():
     vs, *_ = _setup(8)
 
@@ -123,9 +117,6 @@ def test_sampling_warns_if_sampler_state_sigma_is_replicated():
     assert any("state.σ" in str(w.message) for w in record)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_expect():
     vs, _, ha = _setup(16)
     E = vs.expect(ha)
@@ -135,9 +126,6 @@ def test_expect():
         _check_correct_sharding(l, replicated=True)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_grad():
     vs, g, ha = _setup(16)
     E, G = vs.expect_and_grad(ha)
@@ -170,9 +158,6 @@ def test_grad():
     "reset_chains",
     [False, True],
 )
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_vmc(Op, qgt, chunk_size, reset_chains):
     vs, g, _ = _setup(16, reset_chains=reset_chains)
     vs.chunk_size = chunk_size
@@ -198,9 +183,6 @@ def test_vmc(Op, qgt, chunk_size, reset_chains):
         pytest.param(nk.optimizer.qgt.QGTJacobianDense, id="dense"),
     ],
 )
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_qgt_jacobian(qgt):
     n_samples = 1024
     vs, *_ = _setup(16)
@@ -216,9 +198,6 @@ def test_qgt_jacobian(qgt):
         _check_correct_sharding(l, replicated=True)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_qgt_onthefly():
     vs, *_ = _setup(16)
     S = vs.quantum_geometric_tensor(nk.optimizer.qgt.QGTOnTheFly(holomorphic=True))
@@ -230,7 +209,7 @@ def test_qgt_onthefly():
         _check_correct_sharding(l, replicated=True)
 
 
-@onlyif_sharding_single_process
+@requires_multiple_devices_single_process
 def test_qgt_onthefly_chunked_matches_unchunked():
     """Regression test: QGTOnTheFly chunked result must be device-count independent.
 
@@ -287,9 +266,6 @@ def test_qgt_onthefly_chunked_matches_unchunked():
     "Op",
     [pytest.param(nk.operator.IsingJax, id="IsingJax")],
 )
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_operators(Op):
     vs, g, *_ = _setup(16)
     ha = Op(hilbert=vs.hilbert, graph=g, h=1.0)
@@ -306,9 +282,6 @@ def test_operators(Op):
     _check_correct_sharding(mels)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 @pytest.mark.parametrize(
     "chunk_size",
     [None, 64],
@@ -328,9 +301,6 @@ def test_fullsumstate(chunk_size):
     gs.run(5)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 @pytest.mark.parametrize(
     "chunk_size",
     [None, 64],
@@ -355,9 +325,6 @@ def test_exactsampler(chunk_size):
     gs.run(5)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 @pytest.mark.filterwarnings("ignore::netket.errors.InsufficientSamplesForSRWarning")
 def test_autoreg():
     L = 32
@@ -375,9 +342,6 @@ def test_autoreg():
     gs.run(n_iter=5)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 @pytest.mark.parametrize(
     "logger",
     [
@@ -422,9 +386,6 @@ def test_loggers(tmp_path, logger):
     out_fun(logger)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_serialization():
     vs, _, ha = _setup(12)
 
@@ -441,9 +402,6 @@ def test_serialization():
     gs2.run(1)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_timeevolution():
     L = 8
     vs, _, ha = _setup(L)
@@ -470,9 +428,6 @@ def test_timeevolution():
     te2.run(T=0.005, obs={"Sx": Sx}, show_progress=True)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_sr():
     vs, _, ha = _setup(12, alpha=2)
     vs.n_samples = 64
@@ -487,7 +442,7 @@ def test_sr():
     gs.run(2)
 
 
-@onlyif_sharding_single_process
+@requires_multiple_devices_single_process
 def test_jacobian_chunked():
     vs, _, ha = _setup(12, alpha=2)
     vs.n_samples = 64
@@ -529,9 +484,6 @@ def test_jacobian_chunked():
     jax.tree.map(np.testing.assert_allclose, j, jc)
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_srt_onthefly_applyop():
     """
     Minimal working example to reproduce sharding crash.
@@ -562,9 +514,6 @@ def test_srt_onthefly_applyop():
     print("Done — no crash.")
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
 def test_apply_operator_chunked_pnc_mwe():
     """
     Minimal working example for the chunked sharding crash in apply_operator

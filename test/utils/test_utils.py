@@ -24,10 +24,6 @@ from netket.jax import PRNGKey, PRNGSeq
 from netket.utils import HashableArray
 from netket.utils.summation import KahanSum
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 def test_PRNGSeq():
     k = PRNGKey(44)

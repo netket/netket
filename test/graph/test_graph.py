@@ -35,12 +35,9 @@ from netket.graph import (
 from netket.graph import _lattice
 from netket.utils import group
 
-from .. import common
 
 import warnings
 from netket.errors import InitializePeriodicLatticeOnSmallLatticeWarning
-
-pytestmark = common.skipif_distributed
 
 graphs = [
     # star and tree

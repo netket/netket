@@ -7,10 +7,6 @@ from functools import partial
 
 from netket.jax.sharding import distribute_to_devices_along_axis
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @pytest.mark.parametrize("jit", [False, True])
 @pytest.mark.parametrize("chunk_size", [None, 16, 123, 8192, 1000000])

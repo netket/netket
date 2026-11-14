@@ -17,21 +17,8 @@ import netket.experimental as nkx
 import numpy as np
 import optax
 import pytest
-from jax import numpy as jnp
-
 from .. import common
-
-pytestmark = common.skipif_distributed
-
-
-@pytest.fixture
-def skip(request):
-    rate = request.config.getoption("--arnn_test_rate")
-    rng = np.random.default_rng(common.hash_for_seed(request.node.callspec.id))
-    if rng.random() > rate:
-        pytest.skip(
-            "Running only a portion of the tests for ARNN. Use --arnn_test_rate=1 to run all tests."
-        )
+from jax import numpy as jnp
 
 
 graph_full = nk.graph.Graph([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
@@ -208,6 +195,9 @@ partial_model_pairs = [
 ]
 
 
+# Every model is tested once, with the Hilbert spaces, dtypes and machine_pow
+# spread over the models: each case is dominated by compilation.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize("machine_pow", [1, 2])
 @pytest.mark.parametrize("param_dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize(
@@ -228,7 +218,7 @@ partial_model_pairs = [
     ],
 )
 @pytest.mark.parametrize("partial_model_pair", partial_model_pairs)
-def test_vmc_same(partial_model_pair, hilbert, param_dtype, machine_pow, skip):
+def test_vmc_same(partial_model_pair, hilbert, param_dtype, machine_pow):
     model1 = partial_model_pair[0](hilbert, param_dtype, machine_pow)
     model2 = partial_model_pair[1](hilbert, param_dtype, machine_pow)
 

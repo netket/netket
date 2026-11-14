@@ -24,11 +24,10 @@ import scipy
 from flax import serialization
 
 import netket as nk
-import netket.experimental as nkx
 
 from .. import common
+import netket.experimental as nkx
 
-pytestmark = common.skipif_distributed
 
 SEED = 214748364
 
@@ -111,7 +110,9 @@ def l4_norm(x):
     ) ** (1.0 / 4.0)
 
 
-@common.skipif_distributed
+# The solver, the error norm and the propagation type enter the adaptive step
+# independently: test every pair of them, not the full product.
+@common.pairwise()
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
@@ -145,6 +146,7 @@ def test_one_adaptive_schmitt(solver, error_norm):
 
 
 @pytest.mark.parametrize("solver", all_solvers)
+@common.skipif_multiple_devices("no jax version of LocalLiouvillian")
 def test_one_step_lindbladian(solver):
     def _setup_lindbladian_system():
         L = 3

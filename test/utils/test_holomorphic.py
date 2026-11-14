@@ -18,11 +18,6 @@ import jax
 import flax
 
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
-
 def test_is_holomorphic():
     from netket.utils import is_probably_holomorphic
 
