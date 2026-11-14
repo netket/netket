@@ -282,47 +282,10 @@ def _dtype_id(dtype):
     return "None" if dtype is None else np.dtype(dtype).name
 
 
-# Under jit=False the same functions run op by op, with the same dtype semantics,
-# which is several times slower than jit=True. jit=True runs on every dtype
-# combination, jit=False on one of each kind (real/real, complex/complex, real
-# params with complex output, complex params with real output, inhomogeneous
-# params with complex and with real output), covering both precisions.
-eager_test_types = [
-    (jnp.float32, jnp.float64),
-    (jnp.complex64, jnp.complex128),
-    (jnp.complex128, jnp.float32),
-    (jnp.complex64, None),
-    (jnp.float64, jnp.complex64),
-    (jnp.float64, None),
-]
-
-
-def matvec_cases(dtypes, holomorphic=(True, False)):
-    """
-    (outdtype, pardtype, holomorphic, jit) cases: every dtype combination with
-    jit=True and those in `eager_test_types` also with jit=False.
-    With real parameters `.conjugate()` is the identity, so the non-holomorphic
-    function is the holomorphic one, and that case is listed once.
-    """
-    cases = []
-    for outdtype, pardtype in dtypes:
-        for holo in holomorphic:
-            if not holo and _has_real_params(pardtype):
-                continue
-            for jit in (True, False):
-                if not jit and (outdtype, pardtype) not in eager_test_types:
-                    continue
-                cases.append(
-                    pytest.param(
-                        outdtype,
-                        pardtype,
-                        holo,
-                        jit,
-                        id=f"{_dtype_id(outdtype)}-{_dtype_id(pardtype)}"
-                        f"-jit={jit}-holomorphic={holo}",
-                    )
-                )
-    return cases
+def _holomorphic_duplicate(params):
+    """With real parameters `.conjugate()` is the identity, so the non-holomorphic
+    function is the holomorphic one (and uses the same jacobian mode)."""
+    return not params["holomorphic"] and _has_real_params(params["pardtype"])
 
 
 # tests
@@ -339,10 +302,13 @@ def test_reassemble_complex(e):
 
 # A single, small number of samples: chunk_size=8 already splits it in several
 # chunks, and more samples would not exercise any other code path.
+# Every pair of dtypes, holomorphic, jit and chunk_size is tested, not their full
+# product (jit=False runs the same functions op by op, several times slower).
+@common.pairwise(exclude=_holomorphic_duplicate)
+@common.named_parametrize("holomorphic", [True, False])
 @common.named_parametrize("n_samp", [24 * jax.device_count()])
-@pytest.mark.parametrize(
-    "outdtype, pardtype, holomorphic, jit", matvec_cases(all_test_types)
-)
+@common.named_parametrize("jit", [True, False])
+@pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
 def test_matvec(e, jit, chunk_size):
     diag_shift = 0.01
@@ -370,10 +336,11 @@ def test_matvec(e, jit, chunk_size):
     tree_samedtypes(actual, expected)
 
 
+@common.pairwise(exclude=_holomorphic_duplicate)
+@common.named_parametrize("holomorphic", [True, False])
 @common.named_parametrize("n_samp", [24 * jax.device_count()])
-@pytest.mark.parametrize(
-    "outdtype, pardtype, holomorphic, jit", matvec_cases(all_test_types)
-)
+@common.named_parametrize("jit", [True, False])
+@pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
 def test_matvec_linear_transpose(e, jit, chunk_size):
     def f(params_model_state, x):
@@ -416,11 +383,13 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
 
 
 # TODO separate test for prepare_centered_oks
+@common.pairwise()
+@common.named_parametrize("holomorphic", [True])
 @common.named_parametrize("n_samp", [25 * jax.device_count()])
+@common.named_parametrize("jit", [True, False])
 @common.named_parametrize("chunk_size", [7, None])
 @pytest.mark.parametrize(
-    "outdtype, pardtype, holomorphic, jit",
-    matvec_cases(r_r_test_types + c_c_test_types + r_c_test_types, holomorphic=[True]),
+    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
 def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
     mv = qgt_jacobian_pytree._mat_vec

@@ -17,6 +17,7 @@ import netket as nk
 import netket.experimental as nkx
 import numpy as np
 import pytest
+from .. import common
 from jax import numpy as jnp
 from netket.utils import HashableArray
 
@@ -213,72 +214,39 @@ partial_model_pairs = [
     ),
 ]
 
-partial_models = {param.id: param.values[0][0] for param in partial_model_pairs}
-partial_models |= {
-    "fast_" + param.id: param.values[0][1] for param in partial_model_pairs
-}
-model_pairs = {param.id: param.values[0] for param in partial_model_pairs}
-
-hilberts = {
-    "spin_1/2": nk.hilbert.Spin(s=1 / 2, N=4),
-    "spin_1": nk.hilbert.Spin(s=1, N=4),
-    "fock": nk.hilbert.Fock(n_max=3, N=4),
-}
-param_dtypes = {"float64": jnp.float64, "complex128": jnp.complex128}
+partial_models = [
+    pytest.param(param.values[0][0], id=param.id) for param in partial_model_pairs
+]
+partial_models += [
+    pytest.param(param.values[0][1], id="fast_" + param.id)
+    for param in partial_model_pairs
+]
 
 
-def _cases(argname, models, ids):
-    """
-    Parametrize over `argname, hilbert, param_dtype, machine_pow` from ids of the
-    form "model-hilbert-dtype-machine_pow".
-
-    The full product (models x 3 Hilbert spaces x 2 dtypes x 2 machine_pow) is
-    too expensive, as every case is dominated by compilation. Instead every model
-    runs once (or twice), and the Hilbert spaces, dtypes and machine_pow are
-    spread over the models.
-    """
-    cases = []
-    for id in ids:
-        model, hilbert, dtype, machine_pow = id.split("-")
-        cases.append(
-            pytest.param(
-                models[model],
-                hilberts[hilbert],
-                param_dtypes[dtype],
-                int(machine_pow),
-                id=id,
-            )
-        )
-    return pytest.mark.parametrize(
-        f"{argname}, hilbert, param_dtype, machine_pow", cases
-    )
-
-
+@pytest.mark.parametrize("machine_pow", [1, 2])
+@pytest.mark.parametrize("param_dtype", [jnp.float64, jnp.complex128])
+@pytest.mark.parametrize(
+    "hilbert",
+    [
+        pytest.param(
+            nk.hilbert.Spin(s=1 / 2, N=4),
+            id="spin_1/2",
+        ),
+        pytest.param(
+            nk.hilbert.Spin(s=1, N=4),
+            id="spin_1",
+        ),
+        pytest.param(
+            nk.hilbert.Fock(n_max=3, N=4),
+            id="fock",
+        ),
+    ],
+)
 class TestARNN:
-    @_cases(
-        "partial_model",
-        partial_models,
-        [
-            "dense-fock-float64-1",
-            "conv1d-spin_1-complex128-2",
-            "conv1d_dilation-spin_1/2-float64-2",
-            "conv2d-spin_1/2-complex128-2",
-            "conv2d_dilation-spin_1-complex128-1",
-            "lstm-spin_1/2-float64-1",
-            "lstm_square-spin_1-float64-2",
-            "lstm_full-fock-complex128-1",
-            "gru-fock-float64-1",
-            "fast_dense-spin_1-complex128-2",
-            "fast_conv1d-spin_1/2-complex128-1",
-            "fast_conv1d_dilation-fock-float64-1",
-            "fast_conv2d-fock-float64-2",
-            "fast_conv2d_dilation-spin_1-float64-2",
-            "fast_lstm-spin_1-complex128-1",
-            "fast_lstm_square-fock-complex128-2",
-            "fast_lstm_full-spin_1/2-float64-2",
-            "fast_gru-spin_1-float64-1",
-        ],
-    )
+    # Every model is tested once, with the Hilbert spaces, dtypes and machine_pow
+    # spread over the models: each case is dominated by compilation.
+    @common.pairwise(strength=1)
+    @pytest.mark.parametrize("partial_model", partial_models)
     def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow):
         batch_size = 3
 
@@ -336,21 +304,10 @@ class TestARNN:
 
                 np.testing.assert_allclose(p_new, p, err_msg=f"i={i} j={j}")
 
-    @_cases(
-        "partial_model_pair",
-        model_pairs,
-        [
-            "dense-fock-float64-1",
-            "conv1d-spin_1/2-complex128-1",
-            "conv1d_dilation-spin_1-complex128-2",
-            "conv2d-spin_1/2-complex128-2",
-            "conv2d_dilation-fock-float64-2",
-            "lstm-spin_1-float64-1",
-            "lstm_square-spin_1/2-float64-2",
-            "lstm_full-fock-complex128-2",
-            "gru-fock-float64-1",
-        ],
-    )
+    # Every model is tested once, with the Hilbert spaces, dtypes and machine_pow
+    # spread over the models: each case is dominated by compilation.
+    @common.pairwise(strength=1)
+    @pytest.mark.parametrize("partial_model_pair", partial_model_pairs)
     def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow):
         batch_size = 3
 

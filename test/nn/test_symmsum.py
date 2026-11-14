@@ -29,40 +29,20 @@ bare_modules["RBM(complex)"] = nk.models.RBM(alpha=1, param_dtype=complex)
 ones = HashableArray(np.ones(9))
 
 
-def _symmexpsum_cases():
-    characters = {
-        "Char=None": (None, None, True),
-        "Id=0": (0, None, True),
-        "Id=1": (1, None, False),
-        "Char=Triv": (None, ones, True),
-        "Invalid": (0, ones, True),
-    }
-    # Char=None, Id=0 and Char=Triv all select the trivial representation through
-    # different arguments, so they are not all repeated for both dtypes.
-    cases = [
-        ("Char=None", "RBM(real)"),
-        ("Char=None", "RBM(complex)"),
-        ("Id=0", "RBM(complex)"),
-        ("Id=1", "RBM(real)"),
-        ("Id=1", "RBM(complex)"),
-        ("Char=Triv", "RBM(real)"),
-        ("Invalid", "RBM(complex)"),
-    ]
-    return [
-        pytest.param(
-            bare_modules[module],
-            *characters[char],
-            id=f"{char}-{module}",
-            marks=(
-                [pytest.mark.xfail(raises=AttributeError)] if char == "Invalid" else []
-            ),
-        )
-        for char, module in cases
-    ]
-
-
 @pytest.mark.parametrize(
-    "bare_module,character_id,characters,trivial", _symmexpsum_cases()
+    "bare_module", [pytest.param(v, id=k) for k, v in bare_modules.items()]
+)
+@pytest.mark.parametrize(
+    "character_id,characters,trivial",
+    [
+        pytest.param(None, None, True, id="Char=None"),
+        pytest.param(0, None, True, id="Id=0"),
+        pytest.param(1, None, False, id="Id=1"),
+        pytest.param(None, ones, True, id="Char=Triv"),
+        pytest.param(
+            0, ones, True, marks=pytest.mark.xfail(raises=AttributeError), id="Invalid"
+        ),
+    ],
 )
 def test_symmexpsum(bare_module, character_id, characters, trivial):
     graph = nk.graph.Square(3)

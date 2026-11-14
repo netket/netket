@@ -19,21 +19,16 @@ import jax.numpy as jnp
 from jax.nn.initializers import uniform
 
 from .test_nn import _setup_symm
+from .. import common
 
 import pytest
 
 
-# The biases are symmetric by construction, so the four bias combinations are
-# spread over the two symmetry groups instead of testing all of them for both.
-@pytest.mark.parametrize(
-    "symmetries, use_visible_bias, use_hidden_bias",
-    [
-        ("trans", True, True),
-        ("trans", False, False),
-        ("autom", True, False),
-        ("autom", False, True),
-    ],
-)
+# The biases are symmetric by construction: test every pair of the arguments.
+@common.pairwise()
+@pytest.mark.parametrize("use_hidden_bias", [True, False])
+@pytest.mark.parametrize("use_visible_bias", [True, False])
+@pytest.mark.parametrize("symmetries", ["trans", "autom"])
 def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     g, hi, perms = _setup_symm(symmetries, N=8)
 

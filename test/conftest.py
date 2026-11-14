@@ -106,6 +106,47 @@ def pytest_addoption(parser):
         default=False,
         help="Disable async cpu dispatch",
     )
+    parser.addoption(
+        "--full-product",
+        action="store_true",
+        default=os.environ.get("NETKET_TEST_FULL_PRODUCT", "0") not in ("", "0"),
+        help="Run the full product of the parametrizations of the tests marked "
+        "with `common.pairwise` (also NETKET_TEST_FULL_PRODUCT=1)",
+    )
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(config, items):
+    """Deselect the tests not needed by `common.pairwise` (see its docstring).
+
+    Runs after `-k`/`-m`, so that it selects among the tests they kept: a test
+    asked for explicitly (`-k`, or its node id) always runs."""
+    if config.getoption("--full-product"):
+        return
+    from test.common import select_pairwise
+
+    groups = {}
+    for item in items:
+        if item.get_closest_marker("pairwise") and hasattr(item, "callspec"):
+            key = (item.path, getattr(item, "cls", None), item.originalname)
+            groups.setdefault(key, []).append(item)
+    if not groups:
+        return
+
+    keep = set()
+    for group in groups.values():
+        kwargs = group[0].get_closest_marker("pairwise").kwargs
+        keep.update(id(it) for it in select_pairwise(group, **kwargs))
+    selected = []
+    deselected = []
+    for item in items:
+        if item.get_closest_marker("pairwise") and hasattr(item, "callspec"):
+            (selected if id(item) in keep else deselected).append(item)
+        else:
+            selected.append(item)
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+        items[:] = selected
 
 
 _n_test_since_reset: int = 0

@@ -125,6 +125,7 @@ addopts = "--color=yes --verbose --durations=50 -n auto --dist loadfile --tb=sho
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
 markers = [
     "slow: marks tests as slow (deselected by default in CI)",
+    "pairwise: run part of the product of the parametrizations, see test/common.py::pairwise",
 ]
 filterwarnings = [
     "ignore::UserWarning",
