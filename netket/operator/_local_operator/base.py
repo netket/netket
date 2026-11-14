@@ -273,6 +273,7 @@ class LocalOperatorBase(DiscreteOperator):
     def conjugate(self, *, concrete=False):
         r"""LocalOperator: Returns the complex conjugate of this operator."""
         new = self.copy()
+        new._constant = new._constant.conjugate()
         for aon in new._operators_dict.keys():
             new._operators_dict[aon] = new._operators_dict[aon].copy().conjugate()
         return new

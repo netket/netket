@@ -134,6 +134,27 @@ def test_local_operator_transpose_conjugation(op_tuple):
     assert_same_matrices(math_h, mat)
 
 
+@pytest.mark.parametrize(
+    "cls", [nk.operator.LocalOperatorJax, nk.operator.LocalOperatorNumba]
+)
+@pytest.mark.parametrize("shift", [1j, 1 + 2j])
+@pytest.mark.parametrize("with_local_term", [False, True])
+def test_constrained_adjoint_product_complex_constant(cls, shift, with_local_term):
+    hi = nk.hilbert.Fock(n_max=1, N=2, n_particles=1)
+    op = cls(hi, constant=shift)
+    if with_local_term:
+        op += bnumber(hi, 0, cls=cls)
+
+    # Materialize first to exercise conjugation after the original caches exist.
+    matrix = op.to_dense()
+    np.testing.assert_allclose(op.conjugate().to_dense(), matrix.conj())
+    np.testing.assert_allclose(op.H.collect().to_dense(), matrix.conj().T)
+    expected = matrix.conj().T @ matrix
+    np.testing.assert_allclose((op.H @ op).to_dense(), expected)
+    np.testing.assert_allclose((op.H @ op).to_sparse().toarray(), expected)
+    np.testing.assert_allclose(op.to_dense(), matrix)
+
+
 def test_lazy_operator_matdensevec():
     sz0 = nk.operator.spin.sigmaz(hi, 0)
     v_np = np.random.rand(hi.n_states)
