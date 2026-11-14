@@ -105,6 +105,18 @@ if nk.config.netket_experimental_sharding:
     operators = _operators
 
 
+# wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
+def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
+    assert x.ndim in (1, 2)
+    return apply_fun(params, x, *args, **kwargs)
+
+
+# The wrapped apply functions are built once per model and reused by every test:
+# the apply function is a static argument of the jitted kernels, so a fresh
+# `partial` per test would defeat jax's compilation cache.
+_checked_apply_funs = {}
+
+
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
     ma = request.param
@@ -113,13 +125,9 @@ def vstate(request):
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
-    # wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
-    def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
-        assert x.ndim in (1, 2)
-        return apply_fun(params, x, *args, **kwargs)
-
-    apply_fun = vs._apply_fun
-    vs._apply_fun = partial(apply_fun_check_shape, apply_fun)
+    if id(ma) not in _checked_apply_funs:
+        _checked_apply_funs[id(ma)] = partial(apply_fun_check_shape, vs._apply_fun)
+    vs._apply_fun = _checked_apply_funs[id(ma)]
 
     return vs
 

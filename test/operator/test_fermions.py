@@ -20,7 +20,6 @@ hi = nk.hilbert.SpinOrbitalFermions(4)
 
 fermi_operator_impl = {}
 fermi_operator_impl["FermionOperator2nd"] = nk.operator.FermionOperator2nd
-fermi_operator_impl["FermionOperator2ndJax"] = nk.operator.FermionOperator2ndJax
 fermi_operator_impl["FermionOperator2ndJax(_mode=mask)"] = partial(
     nk.operator.FermionOperator2ndJax, _mode="mask"
 )
