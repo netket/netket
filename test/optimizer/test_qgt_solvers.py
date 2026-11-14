@@ -49,7 +49,12 @@ solvers["pinv_smooth"] = nk.optimizer.solver.pinv_smooth
 dtypes = {"float": float, "complex": complex}
 
 
-@pytest.fixture(params=[pytest.param(dtype, id=name) for name, dtype in dtypes.items()])
+# Module scope: the tests only read the state, and building and sampling a fresh
+# one compiles the sampler again (~1 s).
+@pytest.fixture(
+    scope="module",
+    params=[pytest.param(dtype, id=name) for name, dtype in dtypes.items()],
+)
 def vstate(request):
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
