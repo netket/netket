@@ -14,13 +14,15 @@
 
 """
 The packed local-value kernel of jax operators, which evaluates the network only
-on the connected configurations that differ from the sample.
+on the nonzero connected configurations that differ from the sample.
 """
 
 from collections.abc import Callable
+from functools import partial
 
 import jax
 import jax.numpy as jnp
+from jax.custom_derivatives import SymbolicZero
 
 from netket.utils.types import PyTree, Array
 import netket.jax as nkjax
@@ -44,16 +46,19 @@ def local_value_kernel_jax_packed(
     conn_chunk_size: int | None = None,
 ):
     r"""
-    local_value kernel for MCState and jax-compatible operators that evaluates
-    :math:`\log\psi` only on the connected configurations :math:`x' \neq x`.
+    Local-value kernel for jax-compatible operators that evaluates
+    :math:`\log\psi` only on nonzero connected configurations
+    :math:`x' \neq x` for value-only evaluation. During differentiation,
+    zero-valued off-diagonal connections are retained so that derivatives
+    with respect to operator coefficients remain correct, including mixed
+    higher-order derivatives.
 
     .. warning::
         This function is experimental: it is public, but it can change in a
         minor release of NetKet, with a note in the changelog.
 
-    :class:`~netket.vqs.MCState` uses it in ``expect`` and ``expect_and_grad``
-    if the experimental flag ``NETKET_EXPERIMENTAL_PACKED_KERNEL`` is set (off
-    by default), for instance with
+    :class:`~netket.vqs.MCState` uses it when the experimental flag
+    ``NETKET_EXPERIMENTAL_PACKED_KERNEL`` is set (off by default), for instance with
     ``nk.config.netket_experimental_packed_kernel = True``. It can also be
     called explicitly, with the same arguments as
     :func:`~netket.vqs.mc.kernels.local_value_kernel_jax`, for example
@@ -125,10 +130,69 @@ def local_value_kernel_jax_packed(
     )(pars, σ, O)
 
 
+def _jvp_active_inputs(impl, primals, tangents):
+    # JAX's symbolic zeros identify the inputs not differentiated through.
+    leaves, tree = jax.tree.flatten(primals)
+    tangent_leaves = tree.flatten_up_to(tangents)
+    active = [type(t) is not SymbolicZero for t in tangent_leaves]
+
+    def active_impl(*inputs):
+        args = iter(inputs)
+        return impl(
+            *jax.tree.unflatten(
+                tree,
+                [next(args) if use else primal for primal, use in zip(leaves, active)],
+            )
+        )
+
+    return jax.jvp(
+        active_impl,
+        [p for p, use in zip(leaves, active) if use],
+        [t for t, use in zip(tangent_leaves, active) if use],
+    )
+
+
 def _local_value_kernel_jax_packed(
     logpsi, pars, σ, O, *, chunk_size, min_chunk_size, conn_chunk_size
 ):
-    # Runs on the samples of a single device.
+    # Runs on the samples of a single device. In any differentiated call,
+    # retain zero-valued off-diagonal elements: even a model-only gradient
+    # can subsequently be differentiated with respect to operator coefficients.
+    impl = partial(
+        _local_value_kernel_jax_packed_impl,
+        logpsi,
+        chunk_size=chunk_size,
+        min_chunk_size=min_chunk_size,
+        conn_chunk_size=conn_chunk_size,
+    )
+
+    @jax.custom_jvp
+    def evaluate(pars, σ, O):
+        return impl(pars, σ, O, include_zero_mels=False)
+
+    def evaluate_jvp(primals, tangents):
+        # The derivative-safe path must be used even for model-only gradients:
+        # differentiating one of those gradients later with respect to an
+        # operator coefficient needs the log-amplitude of zero-valued entries.
+        return _jvp_active_inputs(
+            partial(impl, include_zero_mels=True), primals, tangents
+        )
+
+    evaluate.defjvp(evaluate_jvp, symbolic_zeros=True)
+    return evaluate(pars, σ, O)
+
+
+def _local_value_kernel_jax_packed_impl(
+    logpsi,
+    pars,
+    σ,
+    O,
+    *,
+    chunk_size,
+    min_chunk_size,
+    conn_chunk_size,
+    include_zero_mels,
+):
     n_samples, N = σ.shape
     if n_samples == 0:
         # Nothing to evaluate: the empty local values, with the dtype of those
@@ -160,22 +224,21 @@ def _local_value_kernel_jax_packed(
         # The connected configurations equal to σ (the diagonal and the
         # padding) are found by comparison, so that we do not rely on the
         # operator placing them at a given position, and take logpsi(σ) without
-        # evaluating the network. The selection does not depend on the matrix
-        # elements: a configuration whose matrix element is zero for the current
-        # coefficients of the operator is still evaluated, so that the
-        # derivatives with respect to those coefficients are correct.
+        # evaluating the network. With derivatives, retain zero-valued entries:
+        # their coefficient tangents may be nonzero even at zero value.
         is_new = jnp.any(σp != jnp.expand_dims(σ, -2), axis=-1)
+        needs_logpsi = is_new if include_zero_mels else is_new & (mels != 0)
         logpsi_σp = nkjax.apply_packed(
             logpsi,
             pars,
             σp.reshape(-1, N),
-            is_new.reshape(-1),
+            needs_logpsi.reshape(-1),
             jnp.zeros((), logpsi_dtype),
             chunk_size=chunk_size,
             min_chunk_size=min_chunk_size,
             axis_0_is_sharded=False,
         ).reshape(is_new.shape)
-        return logpsi_σp, is_new, mels
+        return logpsi_σp, needs_logpsi, mels
 
     # Groups of samples whose padded connected configurations hold at most
     # conn_chunk_size configurations, all of the same size, each packed
@@ -186,13 +249,13 @@ def _local_value_kernel_jax_packed(
     group_size = max(1, min(n_samples, conn_chunk_size // max(1, max_conn_size)))
     n_groups = -(-n_samples // group_size)
     if n_groups == 1:
-        logpsi_σp, is_new, mels = evaluate_connected(σ)
+        logpsi_σp, needs_logpsi, mels = evaluate_connected(σ)
     else:
         group_size = -(-n_samples // n_groups)
         n_pad = n_groups * group_size - n_samples
         # The last group is padded with copies of the last sample.
         σ_groups = jnp.concatenate([σ, jnp.repeat(σ[-1:], n_pad, axis=0)])
-        logpsi_σp, is_new, mels = jax.tree.map(
+        logpsi_σp, needs_logpsi, mels = jax.tree.map(
             lambda a: a.reshape((-1,) + a.shape[2:])[:n_samples],
             jax.lax.map(evaluate_connected, σ_groups.reshape(n_groups, group_size, N)),
         )
@@ -205,7 +268,7 @@ def _local_value_kernel_jax_packed(
     logpsi_σ = nkjax.apply_chunked(
         logpsi, in_axes=(None, 0), chunk_size=chunk_size, axis_0_is_sharded=False
     )(pars, σ)
-    logpsi_σp = jnp.where(is_new, logpsi_σp, jnp.expand_dims(logpsi_σ, -1))
+    logpsi_σp = jnp.where(needs_logpsi, logpsi_σp, jnp.expand_dims(logpsi_σ, -1))
     # The same summation as local_value_kernel_jax. No step accumulates terms in
     # an order that can change from call to call (unlike a scatter-add on GPU),
     # so that the result is deterministic.
