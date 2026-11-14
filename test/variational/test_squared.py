@@ -16,7 +16,9 @@ from .. import common
         pytest.param(
             nk.operator.LocalOperatorNumba,
             id="numba",
-            marks=common.skipif_distributed,
+            marks=common.skipif_multiple_devices(
+                "numba operators do not support several devices"
+            ),
         ),
     ],
 )
