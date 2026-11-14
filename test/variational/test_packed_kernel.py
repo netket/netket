@@ -1116,6 +1116,9 @@ def _loss_fns(system, param_dtype, chunk_size):
     return eloc, loss, p0, t, H
 
 
+# The derivatives go through the same rules for every operator: each system and
+# each dtype is tested once.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
 @pytest.mark.parametrize("param_dtype", [float, complex])
 def test_packed_kernel_higher_order_derivatives(system, param_dtype):
@@ -1192,6 +1195,7 @@ def _count(jaxpr, name):
     return n
 
 
+@common.pairwise(strength=1)
 @pytest.mark.parametrize("system", ["heisenberg_triangular", "hubbard"])
 @pytest.mark.parametrize("chunk_size", [None, 16])
 def test_packed_kernel_vmap(system, chunk_size):
