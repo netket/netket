@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from netket.stats.mc_stats import statistics, Stats, StatsBatch
+from netket.stats._autocorr import integrated_time
 from netket._src.stats.online_stats import (
     online_statistics,
     OnlineStats,
