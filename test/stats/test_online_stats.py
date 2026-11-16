@@ -26,10 +26,6 @@ from netket._src.stats.online_stats.accumulator_batch import (
     online_statistics_batch,
 )
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 rng = np.random.default_rng(42)
 

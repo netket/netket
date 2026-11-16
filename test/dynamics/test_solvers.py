@@ -38,10 +38,6 @@ from netket.experimental.dynamics._rk._tableau import (
     bt_rk4_fehlberg,
 )
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 tableaus_rk = {
     "bt_feuler": bt_feuler,

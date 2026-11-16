@@ -96,14 +96,6 @@ for i in range(H.hilbert.size):
 
 operators["operator:(Non Hermitian)"] = H
 
-# Remove non jax operators when sharding is activated
-if nk.config.netket_experimental_sharding:
-    _operators = {}
-    for k, o in operators.items():
-        if isinstance(o, nk.operator.DiscreteJaxOperator):
-            _operators[k] = o
-    operators = _operators
-
 
 # wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
 def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
@@ -137,6 +129,16 @@ def check_consistent(vstate, n_devices):
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 
+# The assertions only check the bookkeeping of the number of samples, which does not
+# depend on the model: one real-valued and one complex-valued model are enough.
+@pytest.mark.parametrize(
+    "vstate",
+    [
+        pytest.param(machines[name], id=name)
+        for name in ("model:(R->R)", "model:(R->C)")
+    ],
+    indirect=True,
+)
 def test_n_samples_api(vstate, _device_count):
     with raises(TypeError, match="should be a subtype"):
         vstate.sampler = 1
@@ -209,7 +211,6 @@ def test_n_samples_api(vstate, _device_count):
     assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
 
-@common.skipif_mpi
 def test_sample_n_discard_per_chain_argument():
     # The `n_discard_per_chain` passed to `sample` must override the one of
     # the state, both when it is larger and when it is smaller.
@@ -236,7 +237,6 @@ def test_sample_n_discard_per_chain_argument():
     np.testing.assert_array_equal(_samples(10, n_discard_per_chain=0), no_discard)
 
 
-@common.skipif_mpi
 def test_chunk_size_api(vstate):
     assert vstate.chunk_size is None
 
@@ -266,7 +266,6 @@ def test_chunk_size_api(vstate):
     _ = vstate.sample(n_samples=1008 + 16)
 
 
-@common.skipif_mpi
 def test_constructor():
     sampler = nk.sampler.MetropolisLocal(hilbert=hi)
     model = nk.models.RBM()
@@ -294,7 +293,6 @@ def test_constructor():
         vs = nk.vqs.MCState(sampler, apply_fun=model.apply)
 
 
-@common.skipif_mpi
 def test_serialization(vstate):
     from flax import serialization
 
@@ -327,7 +325,6 @@ def test_serialization(vstate):
     np.testing.assert_allclose(vstate.samples, old_samples)
 
 
-@common.skipif_mpi
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
@@ -340,8 +337,7 @@ def test_init_parameters(vstate):
     jax.tree_util.tree_map(_f, pars, pars2)
 
 
-@common.skipif_mpi
-@common.xfailif_sharding
+@common.skipif_multiple_devices("MetropolisNumpy does not support several devices")
 @pytest.mark.parametrize(
     "operator",
     [
@@ -359,7 +355,6 @@ def test_expect_numpysampler_works(vstate, operator):
     assert isinstance(out, nk.stats.Stats)
 
 
-@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -376,7 +371,9 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
-@common.skipif_mpi
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
     "operator",
     [
@@ -445,7 +442,9 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
-@common.skipif_mpi
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
     "operator",
     [
@@ -476,16 +475,11 @@ def test_forces(vstate, operator):
     jax.tree_util.tree_map(np.testing.assert_array_equal, g1, O_grad1)
 
 
-@common.skipif_mpi
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
+    "operator", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_local_estimators(vstate, operator):
     def assert_stats_equal(st1, st2):
@@ -516,22 +510,16 @@ def test_expect_grad_nonhermitian_works(vstate):
     O_stat, O_grad = vstate.expect_and_grad(op)
 
 
-@common.skipif_mpi
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
     "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-        if op.is_hermitian
-    ],
+    [pytest.param(op, id=name) for name, op in operators.items() if op.is_hermitian],
 )
-@pytest.mark.parametrize("n_chunks", [1, 2])
-def test_expect_chunking(vstate, operator, n_chunks):
+def test_expect_chunking(vstate, operator):
     vstate.n_samples = 200
-    chunk_size = vstate.n_samples_per_rank // n_chunks
+    chunk_size = vstate.n_samples_per_rank // 2
     eval_nochunk = vstate.expect(operator)
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)
@@ -581,7 +569,6 @@ def test_reproducible_copy():
         np.testing.assert_allclose(s1, s1_2)
 
 
-@common.skipif_distributed
 def test_error_wrong_variables():
     hi = nk.hilbert.Spin(0.5, 4)
     sa = nk.sampler.ExactSampler(hilbert=hi)

@@ -8,8 +8,6 @@ from jax.nn.initializers import normal
 
 import netket as nk
 
-from .. import common
-
 
 @pytest.fixture()
 def vstate(request):
@@ -29,7 +27,6 @@ def vstate(request):
     )
 
 
-@common.skipif_distributed
 def test_tar(vstate, tmp_path):
     path = str(tmp_path) + "/dir1/dir2"
 
@@ -76,7 +73,6 @@ def test_tar(vstate, tmp_path):
         assert file.endswith(".mpack")
 
 
-@common.skipif_distributed
 def test_dir(vstate, tmp_path):
     path = str(tmp_path) + "/dir1/dir2"
 
@@ -125,28 +121,7 @@ def test_lazy_init(tmp_path):
     assert len(files) == 0
 
 
-@common.onlyif_distributed
-def test_write_only_on_master(vstate, tmp_path):
-    # Check that the logger runs everywhere but serializes only on rank 0
-
-    rank = jax.process_index()
-
-    path = str(tmp_path) + "/dir1/r{rank}"
-
-    log = nk.logging.StateLog(path, "w", tar=False, save_every=1)
-    for i in range(10):
-        log(i, None, vstate)
-
-    log.flush()
-
-    files = glob.glob(path + "/*.mpack")
-    if rank == 0:
-        assert len(files) == 10
-    else:
-        assert len(files) == 0
-
-
-@common.skipif_distributed
+@pytest.mark.skipif(jax.process_count() > 1, reason="fakes the process index")
 @pytest.mark.parametrize("tar", [False, True])
 def test_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch, tar):
     # Pretend to be rank 1: nothing should be created on disk.

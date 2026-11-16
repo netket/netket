@@ -3,10 +3,6 @@ from pytest import approx
 import netket as nk
 import numpy as np
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 operators = {}
 

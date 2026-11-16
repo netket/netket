@@ -23,9 +23,10 @@ import optax
 
 import pytest
 
+from test import common
+
 from netket.models import RBM, RBMModPhase
 
-from test.common import skipif_distributed
 
 machines = [
     pytest.param(
@@ -99,7 +100,7 @@ def _setup(
     lattice = nk.graph.Square(L, max_neighbor_order=2)
     hi = nk.hilbert.Spin(s=1 / 2, N=lattice.n_nodes)
     H = nk.operator.Ising(hilbert=hi, graph=lattice, h=1.0)
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         H = H.to_jax_operator()
 
     # Define a variational state
@@ -230,7 +231,6 @@ def test_SRt_vs_SR(model, onthefly, momentum):
         np.testing.assert_allclose(energy_kernelSR, energy_SR, atol=1e-10)
 
 
-@skipif_distributed
 @pytest.mark.parametrize("onthefly", onthefly_vals)
 def test_SRt_real_vs_complex(onthefly):
     """s
@@ -282,7 +282,6 @@ def test_SRt_real_vs_complex(onthefly):
         np.testing.assert_allclose(energy_real, energy_complex, atol=1e-10)
 
 
-@skipif_distributed
 def test_SRt_constructor_errors():
     """
     Error if jacobian mode is malformed.
@@ -304,7 +303,6 @@ def test_SRt_constructor_errors():
         )
 
 
-@skipif_distributed
 def test_SRt_schedules():
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
@@ -319,7 +317,6 @@ def test_SRt_schedules():
     gs.run(1)
 
 
-@skipif_distributed
 @pytest.mark.parametrize("use_ntk", [True, False])
 def test_SRt_supports_netket_solvers(use_ntk):
     """
@@ -393,6 +390,14 @@ def test_srt_vs_ntk(model, momentum):
 # the instability. Most likely cause is numerical errors accumulating.
 
 
+def _sr_with_ntk_options(params):
+    # momentum and proj_reg are only implemented with the NTK.
+    return not params["use_ntk"] and (
+        params["momentum"] is not None or params["proj_reg"] is not None
+    )
+
+
+@common.pairwise(exclude=_sr_with_ntk_options)
 @pytest.mark.parametrize(
     "proj_reg", [pytest.param(None, id=""), pytest.param(1.0, id="proj_reg")]
 )
@@ -405,10 +410,6 @@ def test_SRt_chunked(use_ntk, onthefly, model, momentum, proj_reg):
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics with and without chunking
     """
-    if not use_ntk:
-        if momentum is not None or proj_reg is not None:
-            pytest.skip("not implemented")
-
     n_iters = 5
     diag_shift = 0.01
     chunk_size = 64
@@ -503,7 +504,6 @@ def test_fullsum_vmc_vs_vmcsr(model, momentum):
         np.testing.assert_allclose(energy_vmc, energy_SR, atol=1e-10)
 
 
-@skipif_distributed
 @pytest.mark.parametrize("onthefly", onthefly_vals)
 def test_SRt_ntk_dtype_is_preserved(onthefly):
     """

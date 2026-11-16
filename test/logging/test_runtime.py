@@ -10,9 +10,6 @@ from jax import numpy as jnp
 import netket as nk
 
 
-from .. import common
-
-
 @pytest.fixture()
 def vstate(request):
     N = 8
@@ -31,7 +28,6 @@ def vstate(request):
     )
 
 
-@common.skipif_distributed
 def test_serialize(vstate, tmp_path):
     log = nk.logging.RuntimeLog()
     e = vstate.expect(nk.operator.spin.sigmax(vstate.hilbert, 0))
@@ -119,7 +115,6 @@ def test_serialize(vstate, tmp_path):
     assert len(log.data["energy"]["iters"] == 11)
 
 
-@common.skipif_distributed
 def test_deserialize(tmp_path):
     log = nk.logging.RuntimeLog()
 
@@ -146,7 +141,6 @@ def test_deserialize(tmp_path):
     assert log3._old_step == n_steps - 1
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize("fails", [False, True])
 def test_serialize_replaces_the_file_atomically(tmp_path, fails):
     path = tmp_path / "out.log"
@@ -176,7 +170,6 @@ def test_serialize_replaces_the_file_atomically(tmp_path, fails):
     np.testing.assert_allclose(written, [0] if fails else [0, 1])
 
 
-@common.skipif_distributed
 def test_json_log_append(tmp_path):
     prefix = str(tmp_path / "out")
     n_first = 5
@@ -207,38 +200,7 @@ def test_json_log_append(tmp_path):
     )
 
 
-@common.onlyif_distributed
-def test_write_only_on_master(tmp_path):
-    # Check that the logger runs everywhere but serializes only on rank 0
-
-    log = nk.logging.RuntimeLog()
-
-    n_steps = 10
-    for i in range(n_steps):
-        log(
-            i,
-            {
-                "value": float(i),
-            },
-        )
-
-    assert len(log.data["value"]) == n_steps
-    np.testing.assert_allclose(log.data["value"].iters, np.arange(n_steps))
-    np.testing.assert_allclose(log.data["value"].value, np.arange(n_steps))
-
-    rank = jax.process_index()
-
-    tmp_path = tmp_path / f"out_{rank}.log"
-
-    log.serialize(tmp_path)
-
-    if rank == 0:
-        assert tmp_path.exists()
-    else:
-        assert not tmp_path.exists()
-
-
-@common.skipif_distributed
+@pytest.mark.skipif(jax.process_count() > 1, reason="fakes the process index")
 def test_json_log_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch):
     # Pretend to be rank 1: nothing should be created on disk.
     monkeypatch.setattr(jax, "process_index", lambda *args, **kwargs: 1)

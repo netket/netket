@@ -14,9 +14,6 @@ import re
 
 from ..variational.finite_diff import central_diff_grad
 
-from .. import common
-
-pytestmark = common.skipif_distributed
 
 SEED = 214362
 

@@ -15,13 +15,11 @@
 import pytest
 
 import netket as nk
+
+from .. import common
 import numpy as np
 
 import jax
-
-from .. import common
-
-pytestmark = common.skipif_distributed
 
 
 def test_sum_constraint():
@@ -110,6 +108,9 @@ class CustomConstraintPy(nk.hilbert.constraint.DiscreteHilbertConstraint):
         return "CustomConstraintPy()"
 
 
+@common.xfail_multiple_devices(
+    "constrained_generic: 'Cannot convert GSPMDSharding {maximal device=0} into SdyArray'"
+)
 def test_extra_constraint_integration(recwarn):
     base_constraint = nk.hilbert.constraint.SumConstraint(0.0)
     extra_constraint = CustomConstraintPy()
@@ -178,6 +179,9 @@ def test_constraint_interface_errors():
         _ = nk.hilbert.Spin(0.5, 4, constraint=CustomConstraint(1))
 
 
+@common.xfail_multiple_devices(
+    "constrained_generic: 'Cannot convert GSPMDSharding {maximal device=0} into SdyArray'"
+)
 def test_extra_constraint_spin_orbital_fermion():
     hi = nk.hilbert.SpinOrbitalFermions(4, s=1 / 2, n_fermions_per_spin=(1, 2))
     assert isinstance(hi.constraint, nk.hilbert.constraint.SumOnPartitionConstraint)

@@ -69,7 +69,7 @@ def _setup(*, complex=True, machine=None):
     H = nk.operator.Heisenberg(
         hilbert=hi, graph=lattice, J=[1.0, 0.0], sign_rule=[-1, 1]
     )
-    if nk.config.netket_experimental_sharding:
+    if jax.device_count() > 1:
         H = H.to_jax_operator()
 
     # Define a variational state

@@ -6,10 +6,6 @@ import netket as nk
 import numpy as np
 from functools import partial
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @pytest.mark.parametrize(
     "w_dtype", [jnp.float32, jnp.float64, jnp.complex64, jnp.int32]
