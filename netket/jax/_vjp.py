@@ -116,22 +116,15 @@ def vjp_rr(
         return primals_out, vjp_fun
 
 
-def vjp_fun_rc(vals_r_dtype, vals_j_dtype, conjugate, vjp_r_fun, vjp_j_fun, ȳ):
+def vjp_fun_rc(vals_dtype, conjugate, vjp_fun, ȳ):
     """
     function computing the vjp product for a R->C function.
     """
-    ȳ_r = ȳ.real
-    ȳ_j = ȳ.imag
-
     # val = vals_r + vals_j
-    vr_jr = vjp_r_fun(jnp.asarray(ȳ_r, dtype=vals_r_dtype))
-    vj_jr = vjp_r_fun(jnp.asarray(ȳ_j, dtype=vals_r_dtype))
-    vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j_dtype))
-    vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j_dtype))
+    v_j = vjp_fun(jnp.asarray(ȳ, dtype=vals_dtype))
+    vs_j = vjp_fun(jnp.asarray(-1j * ȳ, dtype=vals_dtype))
 
-    r = tree_map(_cmplx, vr_jr, vj_jr)
-    i = tree_map(_cmplx, vr_jj, vj_jj)
-    out = tree_map(_cmplx, r, i)
+    out = tree_map(partial(_cmplx, conj=False), v_j, vs_j)
 
     if conjugate:
         out = tree_map(jnp.conjugate, out)
@@ -143,31 +136,14 @@ def vjp_rc(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
 ) -> tuple[Any, Callable] | tuple[Any, Callable, Any]:
     if has_aux:
-
-        def real_fun(*primals):
-            val, aux = fun(*primals)
-            return val.real, aux
-
-        def imag_fun(*primals):
-            val, aux = fun(*primals)
-            return val.imag, aux
-
-        vals_r, vjp_r_fun, aux = jax.vjp(real_fun, *primals, has_aux=True)
-        vals_j, vjp_j_fun, _ = jax.vjp(imag_fun, *primals, has_aux=True)
+        primals_out, vjp_fun, aux = jax.vjp(fun, *primals, has_aux=True)
 
     else:
-        real_fun = lambda *primals: fun(*primals).real
-        imag_fun = lambda *primals: fun(*primals).imag
-
-        vals_r, vjp_r_fun = jax.vjp(real_fun, *primals, has_aux=False)
-        vals_j, vjp_j_fun = jax.vjp(imag_fun, *primals, has_aux=False)
-
-    primals_out = vals_r + 1j * vals_j
+        primals_out, vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
     vjp_fun = Partial(
-        HashablePartial(vjp_fun_rc, vals_r.dtype, vals_j.dtype, conjugate),
-        vjp_r_fun,
-        vjp_j_fun,
+        HashablePartial(vjp_fun_rc, primals_out.dtype, conjugate),
+        vjp_fun,
     )
 
     if has_aux:
