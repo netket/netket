@@ -15,10 +15,13 @@
 from typing import Union
 
 import numpy as np
+import jax
 
 from numba import njit
 
-from netket.operator import AbstractOperator, LocalOperator
+from tqdm import tqdm
+
+from netket.operator import AbstractOperator, LocalOperatorNumba as LocalOperator
 from netket.hilbert import AbstractHilbert, Spin
 from netket.utils import struct
 from netket.utils.types import Array, DType
@@ -137,53 +140,68 @@ def _convert_data(
     Nb = sigma_s.shape[0]
     N_target = N + N * mixed_state_target  # N or 2N if mixed state
 
-    # constant number of connected states per operator
-    Nc = Us[0].hilbert.local_size
-    sigma_p = np.zeros((0, N_target), dtype=sigma_s.dtype)
-    mels = np.zeros((0,), dtype=Us[0].dtype)
+    # Use lists for efficient appending, then convert to arrays at the end
+    sigma_p_list = []
+    mels_list = []
     secs = np.zeros(Nb + 1, dtype=np.intp)
     MAX_LEN = 0
 
     last_i = 0
-    for i, (sigma, U) in enumerate(zip(sigma_s, Us)):
+    for i, (sigma, U) in tqdm(
+        enumerate(zip(sigma_s, Us)),
+        total=len(Us),
+        desc="Preprocessing dataset...",
+        disable=(jax.process_index() != 0),
+    ):
         sigma_p_i, mels_i = U.get_conn(sigma)
 
         if not mixed_state_target:
             Nc = mels_i.size
+            sigma_p_list.append(sigma_p_i)
+            mels_list.append(mels_i)
         else:
             # size of the cartesian product sigma_p x sigma_p
             Nc = mels_i.size**2
-
-        sigma_p = np.resize(sigma_p, (last_i + Nc, N_target))
-        mels = np.resize(mels, (last_i + Nc,))
-
-        if not mixed_state_target:
-            sigma_p[last_i:, :] = sigma_p_i
-            # <sigma_s|U|sigma_p>
-            mels[last_i:] = mels_i
-        else:
             # indices of the cartesian product
             x, y = np.meshgrid(np.arange(mels_i.size), np.arange(mels_i.size))
-            sigma_p[last_i:, :] = np.hstack(
-                [sigma_p_i[x.flatten()], sigma_p_i[y.flatten()]]
+            sigma_p_list.append(
+                np.hstack([sigma_p_i[x.flatten()], sigma_p_i[y.flatten()]])
             )
             # <sigma_s|U|sigma_p><sigma_p'|U|sigma_s>
-            mels[last_i:] = np.prod(
-                np.stack(
-                    [mels_i[x.flatten()], np.conjugate(mels_i[y.flatten()])], axis=-1
-                ),
-                axis=-1,
+            mels_list.append(
+                np.prod(
+                    np.stack(
+                        [mels_i[x.flatten()], np.conjugate(mels_i[y.flatten()])],
+                        axis=-1,
+                    ),
+                    axis=-1,
+                )
             )
 
         secs[i] = last_i
         last_i = last_i + Nc
         MAX_LEN = max(Nc, MAX_LEN)
 
-    sigma_p = np.resize(sigma_p, (last_i + MAX_LEN, N_target))
-    mels = np.resize(mels, (last_i + MAX_LEN,))
-    sigma_p[last_i + Nc :, :] = 0.0
-    mels[last_i + Nc :] = 0.0
-    secs[-1] = last_i  # + MAX_LEN
+    secs[-1] = last_i
+
+    # Concatenate all arrays at once (much faster than repeated resize)
+    sigma_p = (
+        np.concatenate(sigma_p_list, axis=0)
+        if sigma_p_list
+        else np.zeros((0, N_target), dtype=sigma_s.dtype)
+    )
+    mels = (
+        np.concatenate(mels_list, axis=0)
+        if mels_list
+        else np.zeros((0,), dtype=Us[0].dtype)
+    )
+
+    # Add padding at the end
+    padding_size = MAX_LEN
+    sigma_p = np.resize(sigma_p, (last_i + padding_size, N_target))
+    mels = np.resize(mels, (last_i + padding_size,))
+    sigma_p[last_i:, :] = 0.0
+    mels[last_i:] = 0.0
 
     return sigma_p, mels, secs, MAX_LEN
 
