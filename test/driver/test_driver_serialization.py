@@ -21,7 +21,6 @@ import netket as nk
 
 from .. import common
 
-pytestmark = common.skipif_distributed
 
 SR_MOMENTUM = dict(momentum=0.9, use_ntk=True, on_the_fly=True)
 SR_DENSE_MOMENTUM = dict(momentum=0.9, use_ntk=True, on_the_fly=False)
@@ -86,7 +85,10 @@ def _make_driver(kind, param_dtype):
         "VMC_SR+momentum",
         "VMC_SR+dense_momentum",
         "Infidelity_SR+momentum",
-        "SteadyState",
+        pytest.param(
+            "SteadyState",
+            marks=common.skipif_multiple_devices("no jax version of LocalLiouvillian"),
+        ),
     ],
 )
 def test_restore_into_fresh_driver(kind, param_dtype):

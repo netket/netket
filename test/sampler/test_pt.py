@@ -15,7 +15,6 @@
 import flax
 from jax import numpy as jnp
 
-from .. import common
 
 import numpy as np
 import pytest
@@ -33,7 +32,6 @@ SAMPLER_SEED = 15324
 
 
 # Initializations raising errors
-@common.skipif_mpi
 def test_wrong_initialization():
     g = nk.graph.Hypercube(length=4, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
@@ -208,7 +206,6 @@ def test_multiplerules_pt(model_and_weights):
     assert samples.shape == (sa.n_batches // sa.n_replicas, 10, hi.size)
 
 
-@common.skipif_distributed
 def test_asymmetric_rule_correct_marginal():
     """Regression test for issue #2250.
 

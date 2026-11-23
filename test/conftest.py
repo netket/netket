@@ -9,11 +9,9 @@ import jax
 def _device_count(request):
     """
     Fixture returning the number of devices among which NetKet distributes
-    the calculation (1 if sharding is disabled).
+    the calculation.
     """
-    import netket as nk
-
-    return jax.device_count() if nk.config.netket_sharding else 1
+    return jax.device_count()
 
 
 @pytest.fixture
@@ -23,7 +21,7 @@ def tmp_path_distributed(request, tmp_path):
     """
     import netket as nk
 
-    if nk.config.netket_experimental_sharding:
+    if jax.process_count() > 1:
         rng_key = nk.jax.PRNGKey()
         val = jax.random.randint(rng_key, (), minval=0, maxval=999999999)
         val = int(val)

@@ -59,7 +59,6 @@ def offline_wandb(tmp_path, monkeypatch):
     del wandb.logged, wandb.artifacts
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize(
     "item, expected",
     [
@@ -94,7 +93,6 @@ def test_wandb_log_metrics(offline_wandb, item, expected):
     assert len(offline_wandb.logged) == 3
 
 
-@common.skipif_distributed
 def test_wandb_log_run_id(offline_wandb):
     log = nk.logging.WandbLog(
         project="test_resume",
@@ -112,7 +110,6 @@ def test_wandb_log_run_id(offline_wandb):
     assert not any(k.startswith("skip_me") for k in logged)
 
 
-@common.skipif_distributed
 def test_wandb_log_disabled(offline_wandb):
     log = nk.logging.WandbLog(project="test_disabled", mode="disabled")
     log(0, {"Energy": 1.0})
@@ -120,7 +117,6 @@ def test_wandb_log_disabled(offline_wandb):
     del log
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize("save_params", [True, False])
 def test_wandb_log_save_params(vstate, offline_wandb, save_params):
     log = nk.logging.WandbLog(
@@ -136,7 +132,6 @@ def test_wandb_log_save_params(vstate, offline_wandb, save_params):
     assert offline_wandb.artifacts == [f"{run_id}-parameters"] * n_saved
 
 
-@common.skipif_distributed
 def test_wandb_log_as_callback(vstate, offline_wandb):
     hi = vstate.hilbert
     ha = nk.operator.Ising(hi, nk.graph.Chain(hi.size), h=1.0)
@@ -167,7 +162,7 @@ def test_missing_wandb_raises(monkeypatch):
         nk.logging.WandbLog()
 
 
-@common.onlyif_distributed
+@common.requires_multiple_devices
 def test_write_only_on_master(vstate, offline_wandb):
     rank = jax.process_index()
 

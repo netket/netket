@@ -9,9 +9,6 @@ import netket.operator as op
 import netket.graph as gr
 from scipy.linalg import expm
 
-from .. import common
-
-pytestmark = common.skipif_distributed
 
 SEED = 214748364
 

@@ -20,6 +20,7 @@ import netket as nk
 
 from .. import common
 
+
 # Tests that force chain positions via plain numpy arrays are skipped under
 # distributed execution (sharded sampler_state can't accept a host array).
 # Everything else runs in both single-process and distributed modes.
@@ -83,7 +84,7 @@ def test_raises_non_metropolis(hi, hamiltonian):
         vs.thermalise(hamiltonian, verbose=False)
 
 
-@common.skipif_distributed
+@common.skipif_multiple_devices("there is at least one chain per device")
 def test_raises_single_chain(hi, hamiltonian):
     """Raises ValueError when n_chains < 2 (R̂ is undefined).
 
@@ -122,7 +123,6 @@ def test_return_types_and_hist_keys(vstate_uniform, hamiltonian):
 # ---------------------------------------------------------------------------
 
 
-@common.skipif_distributed
 def test_mutates_sampler_state(vstate_uniform, hamiltonian):
     """thermalise mutates state.sampler_state in-place (unlike check_mc_convergence)."""
     _force_all_chains_to_same_state(vstate_uniform)
@@ -140,7 +140,6 @@ def test_mutates_sampler_state(vstate_uniform, hamiltonian):
 # ---------------------------------------------------------------------------
 
 
-@common.skipif_distributed
 def test_converges_from_biased_start(vstate_uniform, hamiltonian):
     """With a uniform wavefunction and all chains starting at the same state,
     thermalise should converge to R̂ < rhat_tol well before max_chain_length."""
@@ -166,7 +165,6 @@ def test_converges_from_biased_start(vstate_uniform, hamiltonian):
     )
 
 
-@common.skipif_distributed
 def test_r_hat_improves_from_biased_start(vstate_uniform, hamiltonian):
     """R̂ after thermalisation is lower than R̂ computed right after forcing chains
     to the same state (before any mixing has occurred)."""

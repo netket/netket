@@ -24,10 +24,6 @@ from netket.utils import struct
 
 import jax
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @struct.dataclass
 class Point0:
