@@ -15,6 +15,10 @@ class CallbackList(AbstractCallback):
             callbacks = (callbacks,)
         self.callbacks = tuple(sorted(callbacks, key=lambda x: x.callback_order))
 
+    def on_run_prep_allocate(self, driver):
+        for callback in self.callbacks:
+            callback.on_run_prep_allocate(driver)
+
     def on_run_start(self, step, driver):
         for callback in self.callbacks:
             callback.on_run_start(step, driver)
@@ -65,3 +69,11 @@ class CallbackList(AbstractCallback):
     def on_run_error(self, step, error, driver):
         for callback in self.callbacks:
             callback.on_run_error(step, error, driver)
+
+    def on_checkpoint_save(self, step, driver):
+        for callback in self.callbacks:
+            callback.on_checkpoint_save(step, driver)
+
+    def on_checkpoint_restore(self, step, driver):
+        for callback in self.callbacks:
+            callback.on_checkpoint_restore(step, driver)

@@ -104,6 +104,23 @@ def tree_log(tree, root, data, *, iter=None, chunk_size: int | None = None):
     )
 
 
+def _drop_rows(group, step, n_keep=None):
+    """
+    Drops the rows logged at iteration ``step`` or later from the datasets under
+    ``group``. A group without its own ``iter`` (the fields of a tuple) keeps as
+    many rows as the closest enclosing one.
+    """
+    import h5py
+
+    if isinstance(group.get("iter"), h5py.Dataset):
+        n_keep = int(np.count_nonzero(group["iter"][:] < step))
+    for child in group.values():
+        if isinstance(child, h5py.Group):
+            _drop_rows(child, step, n_keep)
+        elif n_keep is not None and n_keep < child.shape[0]:
+            child.resize(n_keep, axis=0)
+
+
 class HDF5Log(AbstractCallback):
     r"""
     HDF5 Logger, that can be passed with keyword argument `out` to Monte
@@ -317,12 +334,26 @@ class HDF5Log(AbstractCallback):
         return 10
 
     def on_run_start(self, step, driver):
+        """
+        Opens the file, and drops the rows logged at iteration ``step`` or later
+        (in append mode), so that a run resumed from a checkpoint does not log the
+        steps after it twice, and a fresh run does not mix with an earlier one.
+        """
         if self._writer is None:
             self._init_output_file()
-        if self._metadata and self._is_master_process:
+        if not self._is_master_process:
+            return
+        if self._metadata:
             grp = self._writer.require_group("metadata")
             for key, val in self._metadata.items():
                 grp.attrs[key] = val
+        if "data" in self._writer:
+            _drop_rows(self._writer["data"], step)
+            self._writer.flush()
+
+    def on_checkpoint_save(self, step, driver):
+        """Writes the logged data to disk before a checkpoint is taken."""
+        self.flush()
 
     def on_step_end(self, step, log_data, driver):
         self(step, log_data)

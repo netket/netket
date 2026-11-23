@@ -216,6 +216,7 @@ class TDVPBaseDriver(AbstractDriver):
         show_progress=True,
         callback=None,
         timeit: bool = False,
+        checkpointer=None,
     ):
         """
         Runs the time evolution.
@@ -240,6 +241,7 @@ class TDVPBaseDriver(AbstractDriver):
                 :class:`~netket.callbacks.AbstractCallback` objects are instead called at every
                 time step, with the step count, as in the other drivers.
             timeit: If True, provide timing information.
+            checkpointer: See :meth:`~netket.driver.AbstractDriver.run`.
         """
         # Fixed before `on_run_start`, so that a callback restoring the time there
         # (e.g. when resuming from a checkpoint) does not move the end of the run.
@@ -254,6 +256,7 @@ class TDVPBaseDriver(AbstractDriver):
             show_progress=show_progress,
             callback=callback,
             timeit=timeit,
+            checkpointer=checkpointer,
         )
 
     def compute_loss_and_update(self):
@@ -478,6 +481,9 @@ class _AtStoppingTimes(AbstractCallback):
     def callback_order(self) -> int:
         return self.callback.callback_order
 
+    def on_run_prep_allocate(self, driver):
+        self.callback.on_run_prep_allocate(driver)
+
     def on_run_start(self, step, driver):
         self.callback.on_run_start(driver.t, driver)
 
@@ -494,6 +500,12 @@ class _AtStoppingTimes(AbstractCallback):
 
     def on_run_error(self, step, error, driver):
         self.callback.on_run_error(driver.t, error, driver)
+
+    def on_checkpoint_save(self, step, driver):
+        self.callback.on_checkpoint_save(driver.t, driver)
+
+    def on_checkpoint_restore(self, step, driver):
+        self.callback.on_checkpoint_restore(driver.t, driver)
 
 
 class _StopAfterLastStep(AbstractCallback):

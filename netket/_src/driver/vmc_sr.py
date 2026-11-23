@@ -256,6 +256,7 @@ class VMC_SR(AbstractOptimizationDriver):
         mode: JacobianMode | None = None,
         use_ntk: bool | None = None,
         on_the_fly: bool | None = None,
+        callbacks=(),
     ):
         r"""
         Initialize the driver with the given arguments.
@@ -320,8 +321,15 @@ class VMC_SR(AbstractOptimizationDriver):
                 instead of the Quantum Geometric Tensor (QGT), aka switching between
                 SR and minSR. (Defaults to None, which will automatically choose the best
                 method)
+            callbacks: Persistent callbacks attached to the driver (see
+                :class:`~netket.driver.AbstractDriver`).
         """
-        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
+        super().__init__(
+            variational_state,
+            optimizer,
+            minimized_quantity_name="Energy",
+            callbacks=callbacks,
+        )
 
         if isinstance(variational_state, FullSumState):
             if use_ntk:
