@@ -19,10 +19,13 @@ import jax.numpy as jnp
 from jax.nn.initializers import uniform
 
 from .test_nn import _setup_symm
+from .. import common
 
 import pytest
 
 
+# The biases are symmetric by construction: test every pair of the arguments.
+@common.pairwise()
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
 @pytest.mark.parametrize("use_visible_bias", [True, False])
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])

@@ -17,20 +17,9 @@ import netket as nk
 import netket.experimental as nkx
 import numpy as np
 import pytest
+from .. import common
 from jax import numpy as jnp
 from netket.utils import HashableArray
-
-from .. import common
-
-
-@pytest.fixture
-def skip(request):
-    rate = request.config.getoption("--arnn_test_rate")
-    rng = np.random.default_rng(common.hash_for_seed(request.node.callspec.id))
-    if rng.random() > rate:
-        pytest.skip(
-            "Running only a portion of the tests for ARNN. Use --arnn_test_rate=1 to run all tests."
-        )
 
 
 graph_full = nk.graph.Graph([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
@@ -254,8 +243,11 @@ partial_models += [
     ],
 )
 class TestARNN:
+    # Every model is tested once, with the Hilbert spaces, dtypes and machine_pow
+    # spread over the models: each case is dominated by compilation.
+    @common.pairwise(strength=1)
     @pytest.mark.parametrize("partial_model", partial_models)
-    def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow, skip):
+    def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow):
         batch_size = 3
 
         model = partial_model(hilbert, param_dtype, machine_pow)
@@ -303,8 +295,11 @@ class TestARNN:
 
                 np.testing.assert_allclose(p_new, p, err_msg=f"i={i} j={j}")
 
+    # Every model is tested once, with the Hilbert spaces, dtypes and machine_pow
+    # spread over the models: each case is dominated by compilation.
+    @common.pairwise(strength=1)
     @pytest.mark.parametrize("partial_model_pair", partial_model_pairs)
-    def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow, skip):
+    def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow):
         batch_size = 3
 
         model1 = partial_model_pair[0](hilbert, param_dtype, machine_pow)

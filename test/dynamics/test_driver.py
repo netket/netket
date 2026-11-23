@@ -110,6 +110,9 @@ def l4_norm(x):
     ) ** (1.0 / 4.0)
 
 
+# The solver, the error norm and the propagation type enter the adaptive step
+# independently: test every pair of them, not the full product.
+@common.pairwise()
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("solver", adaptive_step_solvers)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])

@@ -26,6 +26,7 @@ from jax.nn.initializers import normal
 from netket.optimizer.linear_operator import LinearOperator
 
 from .finite_diff import central_diff_grad
+from .. import common
 
 
 SEED = 2148364
@@ -187,6 +188,7 @@ def _expval(par, vs, H):
     return np.real(expval)
 
 
+@common.pairwise()
 @pytest.mark.parametrize(
     "L,n_iterations,h",
     [(4, 100, 1), (6, 100, 2)],
