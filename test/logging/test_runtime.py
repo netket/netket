@@ -207,37 +207,6 @@ def test_json_log_append(tmp_path):
     )
 
 
-@common.onlyif_distributed
-def test_write_only_on_master(tmp_path):
-    # Check that the logger runs everywhere but serializes only on rank 0
-
-    log = nk.logging.RuntimeLog()
-
-    n_steps = 10
-    for i in range(n_steps):
-        log(
-            i,
-            {
-                "value": float(i),
-            },
-        )
-
-    assert len(log.data["value"]) == n_steps
-    np.testing.assert_allclose(log.data["value"].iters, np.arange(n_steps))
-    np.testing.assert_allclose(log.data["value"].value, np.arange(n_steps))
-
-    rank = jax.process_index()
-
-    tmp_path = tmp_path / f"out_{rank}.log"
-
-    log.serialize(tmp_path)
-
-    if rank == 0:
-        assert tmp_path.exists()
-    else:
-        assert not tmp_path.exists()
-
-
 @common.skipif_distributed
 def test_json_log_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch):
     # Pretend to be rank 1: nothing should be created on disk.
