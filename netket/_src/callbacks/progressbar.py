@@ -1,13 +1,12 @@
 import math
 from typing import Any
 
-from tqdm.auto import tqdm
-
 import jax
 
 from netket.utils import struct
 
 from netket._src.callbacks.base import AbstractCallback
+from netket._src.progress import progress_bar
 
 
 def _elapsed_time(driver, t_start: float, T_final: float) -> float:
@@ -49,11 +48,10 @@ class TimeProgressBarCallback(AbstractCallback, mutable=True):
             f"{{l_bar}}{{bar}}| {{n:.{n_dec}f}}/{{total:.{n_dec}f}}"
             " [{elapsed}<{remaining}, {rate_fmt}{postfix}]"
         )
-        self._pbar = tqdm(
+        self._pbar = progress_bar(
             total=self._T_final,
             unit="t",
             disable=not jax.process_index() == 0,
-            dynamic_ncols=True,
             leave=self._leave,
             bar_format=bar_format,
         )
@@ -63,6 +61,7 @@ class TimeProgressBarCallback(AbstractCallback, mutable=True):
 
     def before_parameter_update(self, step, log_data, driver):
         if driver._loss_stats is not None:
+            # refresh=False: update() shows it, throttled by the backend.
             self._pbar.set_postfix_str(
                 driver._loss_name + "=" + str(driver._loss_stats), refresh=False
             )
@@ -102,33 +101,35 @@ class ProgressBarCallback(AbstractCallback, mutable=True):
     def on_run_start(self, step, driver):
         # Count from the step the run started at, even if another callback
         # changes the step count (e.g. when resuming from a checkpoint).
-        self._start_step = getattr(driver, "_start_step", None)
-        if self._start_step is None:
-            self._start_step = driver.step_count
+        start_step = getattr(driver, "_start_step", None)
+        if start_step is None:
+            start_step = driver.step_count
+        # Host ints: the step count may be a JAX scalar.
+        self._start_step = int(start_step)
 
-        self._pbar = tqdm(
+        self._pbar = progress_bar(
             total=self._n_steps,
             disable=not jax.process_index() == 0,
-            dynamic_ncols=True,
             leave=self._leave,
         )
-        self._pbar.update(driver.step_count - self._start_step)
+        self._pbar.update(int(driver.step_count) - self._start_step)
         self._pbar.unpause()
         self._pbar.refresh()
 
     def before_parameter_update(self, step, log_data, driver):
         # if the cost-function is defined then report it in the progress bar
         if driver._loss_stats is not None:
+            # refresh=False: update() shows it, throttled by the backend.
             self._pbar.set_postfix_str(
                 driver._loss_name + "=" + str(driver._loss_stats), refresh=False
             )
 
     def on_step_end(self, step, log_data, driver):
-        step_value = driver.step_count - self._start_step
+        step_value = int(driver.step_count) - self._start_step
         self._pbar.update(step_value - self._pbar.n)
 
     def on_run_end(self, step, driver):
-        step_value = driver.step_count - self._start_step
+        step_value = int(driver.step_count) - self._start_step
         if self._pbar is not None:
             self._pbar.update(step_value - self._pbar.n)
             self._pbar.refresh()

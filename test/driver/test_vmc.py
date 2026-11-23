@@ -120,7 +120,9 @@ def test_vmc_functions():
         assert mean.real == approx(np.asarray(exact_ex), abs=tol)
 
 
-def test_vmc_progress_bar():
+def test_vmc_progress_bar(monkeypatch):
+    # A drawn bar, although stderr is redirected (see netket._src.progress).
+    monkeypatch.setattr("netket._src.progress._logs", lambda: False)
     ha, sx, ma, sampler, driver = _setup_vmc()
     tempdir = tempfile.mkdtemp()
     prefix = tempdir + "/vmc_progressbar_test"
