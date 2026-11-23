@@ -2,13 +2,13 @@
 
 import jax
 import jax.numpy as jnp
-from tqdm.auto import tqdm
 
 from netket.vqs.mc import MCState
 from netket.sampler import MetropolisSampler
 from netket.operator import AbstractOperator
 from netket._src.stats.online_stats import online_statistics
 from netket._src.stats.online_stats.accumulator_batch import OnlineStatsBatch
+from netket._src.progress import progress_bar
 
 
 def _summary_error_and_scale(stats) -> tuple[float, float]:
@@ -184,7 +184,7 @@ def expect_to_precision(
     ]
 
     it = 0
-    with tqdm(
+    with progress_bar(
         total=max_iter,
         desc="Sampling",
         unit="iter",

@@ -29,6 +29,7 @@
 
 ### New Features
 * {meth}`netket.vqs.MCState.expect_to_precision` has a new `min_length` argument (default 32): it now keeps sampling until every chain holds at least `min_length` samples, even if the tolerance is met earlier, so that the split-R̂ of the result is meaningful. Before, it could stop after a single round of very few samples per chain for low-variance observables, reporting an R̂ well above 1 even for well-mixed chains [PR #2312](https://github.com/netket/netket/pull/2312).
+* When stderr is not a terminal (e.g. in a batch job), the progress of the drivers, {meth}`netket.vqs.MCState.expect_to_precision`, {meth}`netket.vqs.MCState.check_mc_convergence` and {meth}`netket.vqs.MCState.thermalise` is now written as periodic lines (with elapsed time) to the `netket.progress` logger at `INFO` instead of drawing a progress bar, every 60 seconds and when the loop ends, if those records are handled. NetKet now requires `tqdm>=4.66` [PR #2331](https://github.com/netket/netket/pull/2331).
 * Metropolis transition rules can override {meth}`~netket.sampler.rules.MetropolisRule.update_rule_state` to update their `rule_state` after every step, knowing which moves were accepted. This makes it possible to write rules that tune themselves, e.g. adjusting their proposal size to reach a target acceptance rate. The default does nothing, so existing rules sample exactly as before [PR #2282](https://github.com/netket/netket/pull/2282).
 
 ### Bug Fixes

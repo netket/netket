@@ -548,6 +548,8 @@ def test_progress_bar_repaints_are_throttled(monkeypatch):
     driver._loss_stats = "1.0"
 
     pb = nk._src.callbacks.progressbar.ProgressBarCallback(200)
+    # A drawn bar, although stderr is not a terminal (see netket._src.progress).
+    monkeypatch.setattr(nk._src.progress, "_logs", lambda: False)
     pb.on_run_start(0, driver)
     for step in range(200):
         pb.before_parameter_update(step, {}, driver)

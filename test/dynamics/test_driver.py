@@ -313,7 +313,11 @@ def test_pbar_starts_zero_ends_hundred(t0):
         t0=t0,
     )
 
-    with patch("netket._src.callbacks.progressbar.tqdm", BufferedTqdm):
+    # A drawn bar, although stderr is not a terminal (see netket._src.progress).
+    with (
+        patch("netket._src.progress._logs", return_value=False),
+        patch("netket._src.progress.tqdm", BufferedTqdm),
+    ):
         driver.run(T=T, show_progress=True)
 
     lines = [
