@@ -25,14 +25,16 @@ jobs:
             python-version: "3.13"
             test_type: "doctest"
 
+          # 3.14: coverage measures branches with sys.monitoring there, which
+          # is much cheaper than the tracing it falls back to on 3.13.
           - name: "Ubuntu"
             os: ubuntu-latest
-            python-version: "3.13"
+            python-version: "3.14"
             test_type: "main"
 
           - name: "macOS"
             os: macos-latest
-            python-version: "3.13"
+            python-version: "3.14"
             test_type: "main"
             env: NUMBA_BOUNDSCHECK=1
 
@@ -98,10 +100,21 @@ jobs:
         if: ${{ matrix.test_type == 'main' }}
         run: |
           export NETKET_EXPERIMENTAL=1
-          # Left on `-n auto` (2 workers here) on purpose: `-n logical` gives 4 and
-          # is faster, but killed the runner twice with a shutdown signal and no
-          # failing test, i.e. OOM. To retry, lower --clear-cache-every. See #2264.
-          uv run pytest --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every 200 --devices ${{ matrix.devices || 2 }} -m "not slow" test
+          # Tests are distributed by file (--dist loadfile in pyproject.toml), so
+          # the tests of a file reuse their compiled functions, and the caches are
+          # cleared between files.
+          # On Linux `-n auto` gives 2 workers for the 4 logical CPUs, and the
+          # suite is bound by single-threaded compilation: `-n logical` runs 4.
+          # It ran out of memory when the caches were cleared every 200 tests
+          # (#2264); clearing them after every file bounds the memory of a
+          # worker. The used memory is logged to keep an eye on the headroom.
+          workers=auto
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            workers=logical
+            ( while sleep 60; do free -m | awk 'NR==2 {print "[memory] used " $3 " MiB, available " $7 " MiB"}'; done ) &
+            trap "kill $! 2>/dev/null" EXIT
+          fi
+          uv run pytest -n $workers --cov=netket --cov-append --jax-cpu-disable-async-dispatch --clear-cache-every file --devices ${{ matrix.devices || 2 }} -m "not slow" test
 
       - name: Docstring tests
         if: ${{ matrix.test_type == 'doctest' }}
