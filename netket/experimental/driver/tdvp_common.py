@@ -487,7 +487,7 @@ class _AtStoppingTimes(AbstractCallback):
 
     def on_step_end(self, step, log_data, driver):
         if driver._stop_time is not None:
-            self.callback.on_step_end(driver._stop_time, log_data, driver)
+            return self.callback.on_step_end(driver._stop_time, log_data, driver)
 
     def on_run_end(self, step, driver):
         self.callback.on_run_end(driver.t, driver)
@@ -504,12 +504,11 @@ class _StopAfterLastStep(AbstractCallback):
 
     @property
     def callback_order(self) -> int:
-        # Run last, so raising StopRun never skips a later callback's collective.
         return STOPPING_CALLBACK_ORDER
 
     def on_step_end(self, step, log_data, driver):
         if driver._is_last_step:
-            raise RunFinished(f"Reached t={driver.t:.6g}")
+            return RunFinished(f"Reached t={driver.t:.6g}")
 
 
 @dispatch

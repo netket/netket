@@ -19,17 +19,29 @@ class LegacyCallbackWrapper(AbstractCallback):
     into a callback that can be used with the new callback system.
 
     The legacy callback should return a boolean indicating whether to continue the run (True) or stop it (False).
+    It is called before the parameter update; a False stops the run after it.
     """
 
     callback: LegacyCallbackT
+    _stop: StopRun | None = struct.field(
+        pytree_node=False, serialize=False, default=None
+    )
 
     def __init__(self, callback: LegacyCallbackT):
         self.callback = callback
+        self._stop = None
+
+    def on_run_start(self, step, driver):
+        self._stop = None
 
     def before_parameter_update(self, step, log_data, driver):
-        do_continue = self.callback(step, log_data, driver)
-        if not do_continue:
-            raise StopRun(f"Legacy callback {self.callback} requested to stop the run.")
+        if not self.callback(step, log_data, driver):
+            self._stop = StopRun(
+                f"Legacy callback {self.callback} requested to stop the run."
+            )
+
+    def on_step_end(self, step, log_data, driver):
+        return self._stop
 
 
 class LegacyLoggerWrapper(AbstractCallback):

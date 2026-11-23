@@ -66,7 +66,7 @@ class Timeout(AbstractCallback, mutable=True):
         # different steps. Take process 0's decision on every rank, so the whole
         # run times out in lock-step on a single authoritative clock.
         if _timed_out_on_master(elapsed >= self.timeout):
-            raise StopRun(
+            return StopRun(
                 f"Timeout: training stopped after {self.timeout:.1f} seconds."
             )
 

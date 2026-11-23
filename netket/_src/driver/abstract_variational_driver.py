@@ -17,6 +17,7 @@ from collections.abc import Iterable
 from pathlib import Path
 import sys
 import time
+import warnings
 
 import numbers
 
@@ -29,6 +30,7 @@ from netket.utils.iterators import to_iterable
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState, FullSumState
 
+from netket._src import distributed
 from netket._src.callbacks.base import AbstractCallback, StopRun, RunFinished
 from netket._src.callbacks.observables import ObservableCallback
 from netket._src.callbacks.legacy_wrappers import (
@@ -55,7 +57,7 @@ class AbstractDriver(struct.Pytree, mutable=True):
 
     The :meth:`run` method executes the driver loop and invokes
     :class:`~netket.callbacks.AbstractCallback` hooks at well-defined points during each step.
-    To stop the loop early from a callback, raise :class:`~netket.callbacks.StopRun`.
+    To stop the loop early from a callback, return :class:`~netket.callbacks.StopRun`.
     For a detailed description of the loop structure and the available callback hooks, see
     :ref:`advanced_custom_callbacks`.
 
@@ -392,10 +394,10 @@ class AbstractDriver(struct.Pytree, mutable=True):
         such as the acceptance rate of a sampler.
 
         Alternatively, :class:`~netket.callbacks.AbstractCallback` subclasses can be
-        used to hook into more stages of the loop.  To stop the optimisation early from
-        any callback hook, raise :class:`~netket.callbacks.StopRun`: the driver will
-        catch it, finalise all callbacks via their ``on_run_end`` method, and return
-        normally without propagating the exception.
+        used to hook into more stages of the loop.  To stop the optimisation early,
+        return a :class:`~netket.callbacks.StopRun` from ``on_step_end``: the run
+        stops after that step, counted in :attr:`step_count`, all callbacks are
+        finalised via their ``on_run_end`` method, and ``run`` returns normally.
 
         Loggers are specified as an iterable passed to the keyword argument `out`. If only
         a string is specified, this will create by default a :class:`nk.logging.JsonLog`.
@@ -452,59 +454,78 @@ class AbstractDriver(struct.Pytree, mutable=True):
 
         with timing.timed_scope(force=timeit) as timer:
             try:
-                callbacks.on_run_start(self.step_count, self)
-                for step in range(self.step_count, self._target_step):
-                    self._step_attempt = 0
-                    step_log_data = {}
+                try:
+                    callbacks.on_run_start(self.step_count, self)
+                    stop = None
+                    while stop is None and self.step_count < self._target_step:
+                        self._step_attempt = 0
+                        step_log_data = {}
 
-                    while True:
-                        callbacks.on_step_start(self.step_count, step_log_data, self)
+                        while True:
+                            callbacks.on_step_start(
+                                self.step_count, step_log_data, self
+                            )
 
-                        self.reset_step()
+                            self.reset_step()
 
-                        callbacks.on_compute_update_start(
+                            callbacks.on_compute_update_start(
+                                self.step_count, step_log_data, self
+                            )
+                            self._loss_stats, self._dp = self.compute_loss_and_update()
+                            reject_step = callbacks.on_compute_update_end(
+                                self.step_count, step_log_data, self
+                            )
+                            driver_reject_step = not self._accept_step()
+                            if driver_reject_step or reject_step:
+                                self._step_attempt += 1
+                                continue
+                            else:
+                                break
+                        # If we are here, we accepted the step
+                        if self._loss_stats is not None:
+                            step_log_data[self._loss_name] = self._loss_stats
+
+                        self._log_additional_data(step_log_data)
+                        callbacks.before_parameter_update(
                             self.step_count, step_log_data, self
                         )
-                        self._loss_stats, self._dp = self.compute_loss_and_update()
-                        reject_step = callbacks.on_compute_update_end(
+                        self.update_parameters(self._dp)
+
+                        stop = callbacks.on_step_end(
                             self.step_count, step_log_data, self
                         )
-                        driver_reject_step = not self._accept_step()
-                        if driver_reject_step or reject_step:
-                            self._step_attempt += 1
-                            continue
-                        else:
-                            break
-                    # If we are here, we accepted the step
-                    if self._loss_stats is not None:
-                        step_log_data[self._loss_name] = self._loss_stats
-
-                    self._log_additional_data(step_log_data)
-                    callbacks.before_parameter_update(
-                        self.step_count, step_log_data, self
+                        # A RunFinished ends the run on a step that only reports its
+                        # end (the final time of a time evolution): not counted.
+                        if not isinstance(stop, RunFinished):
+                            self._step_count += 1
+                        # One process's stop stops them all (asked first: every
+                        # process must take part).
+                        if distributed.any_rank(stop is not None) and stop is None:
+                            stop = StopRun(
+                                "Another process stopped the run at step "
+                                f"{self.step_count}."
+                            )
+                except StopRun as error:
+                    # TODO: deprecated in NetKet 3.24, make it an error.
+                    warnings.warn(
+                        "Raising StopRun from a callback hook other than on_step_end "
+                        "is deprecated: return it from on_step_end instead. Raised "
+                        "elsewhere, it stops the run in the middle of a step, which "
+                        "is not counted, and every process must raise it.",
+                        FutureWarning,
+                        stacklevel=2,
                     )
-                    self.update_parameters(self._dp)
-
-                    callbacks.on_step_end(self.step_count, step_log_data, self)
-                    self._step_count += 1
-
+                    stop = error
+                # A run that reached its end (e.g. the final time of a time
+                # evolution) completed: it did not stop early.
+                if isinstance(stop, RunFinished):
+                    stop = None
                 callbacks.on_run_end(self.step_count, self)
-            except StopRun as error:
-                callbacks.on_run_end(self.step_count, self)
-                # If all processes did not raise StopRun, some will deadlock here.
-                # This means you have a bug somewhere in YOUR code.
-                if isinstance(error, RunFinished):
-                    # The run reached its end (e.g. the final time of a time
-                    # evolution), it did not stop early.
-                    pass
-                elif jax.process_count() > 1:
+                if stop is not None:
                     print(
                         f"[process {jax.process_index()}/{jax.process_count()}] "
-                        f"Stopping early because of : {error}"
+                        f"Stopping early because of: {stop}"
                     )
-                else:
-                    print("Stopping early because of : ", error)
-
             except KeyboardInterrupt as error:
                 callbacks.on_run_error(self.step_count, error, self)
                 if _graceful_keyboard_interrupt and hasattr(sys, "ps1"):
@@ -513,7 +534,7 @@ class AbstractDriver(struct.Pytree, mutable=True):
                     raise
             except Exception as error:
                 callbacks.on_run_error(self.step_count, error, self)
-                raise error
+                raise
 
         if timeit:
             self._timer = timer

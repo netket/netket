@@ -76,7 +76,8 @@ def test_earlystopping_with_patience():
 
     vmc.run(20, callback=es)
 
-    assert vmc.step_count == patience
+    # It stops at the end of step `patience`, which is counted.
+    assert vmc.step_count == patience + 1
 
 
 def test_earlystopping_baseline_with_patience():
@@ -89,9 +90,7 @@ def test_earlystopping_baseline_with_patience():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
 
     assert step == 10
@@ -110,9 +109,9 @@ def test_earlystopping_resumes_patience_from_checkpoint():
     es = flax.serialization.from_state_dict(
         nk.callbacks.EarlyStopping(patience=10), state
     )
-    with pytest.raises(nk.callbacks.StopRun):
-        for step in range(6, 20):
-            es.on_step_end(step, {"loss": DummyLogEntry(1.0)}, driver)
+    for step in range(6, 20):
+        if es.on_step_end(step, {"loss": DummyLogEntry(1.0)}, driver):
+            break
     # The best value was at step 0, so it stops at step 11 (not 17, as it
     # would if the patience counter started over when resuming).
     assert step == 11
@@ -139,9 +138,7 @@ def test_earlystopping_with_delayed_start():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
     assert step == 31
     assert es._best_iter == 20
@@ -154,9 +151,7 @@ def test_earlystopping_doesnt_get_stuck_with_patience():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
 
     assert step == 12
@@ -170,9 +165,7 @@ def test_earlystopping_doesnt_get_stuck_with_patience_reltol():
     es = nk.callbacks.EarlyStopping(patience=10, min_reldelta=1.5e-3)
     driver = DummyDriver()
     for step in range(len(loss_values)):
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
 
     assert step == 12
@@ -182,9 +175,7 @@ def test_earlystopping_doesnt_get_stuck_with_patience_reltol():
     es = nk.callbacks.EarlyStopping(patience=10, min_reldelta=1e-4)
     driver = DummyDriver()
     for step in range(len(loss_values)):
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
 
     assert step == 16
@@ -206,9 +197,7 @@ def test_earlystopping_baseline_with_patience_abstol_delayed_start():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
     assert step == patience + start_from_step
     assert es._best_iter == 7
@@ -222,9 +211,7 @@ def test_earlystopping_baseline_with_patience_abstol_delayed_start():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
     assert step == 22
     assert es._best_iter == 18
@@ -293,8 +280,7 @@ def test_invalid_loss_stopping_correct_interval():
     assert cb._last_valid_iter == 2
 
     driver._step_count = 8
-    with pytest.raises(nk.callbacks.StopRun):
-        cb.on_step_end(None, log_data, driver)
+    assert isinstance(cb.on_step_end(None, log_data, driver), nk.callbacks.StopRun)
     assert cb._last_valid_iter == 2
 
 
@@ -325,8 +311,7 @@ def test_invalid_loss_stopping_vector_valued():
 
     # Still invalid after `patience` steps -> stop.
     driver._step_count = patience + 1
-    with pytest.raises(nk.callbacks.StopRun):
-        cb.on_step_end(None, log_data, driver)
+    assert isinstance(cb.on_step_end(None, log_data, driver), nk.callbacks.StopRun)
 
 
 def test_save_variational_state_max_to_keep(tmp_path):
@@ -374,9 +359,7 @@ def _stop_step(make_callback, losses, resume_at=None):
             cb = flax.serialization.from_bytes(make_callback(), data)
         driver.step_count = step
         driver._loss_stats = DummyLogEntry(loss)
-        try:
-            cb.on_step_end(step, {"loss": DummyLogEntry(loss)}, driver)
-        except nk.callbacks.StopRun:
+        if cb.on_step_end(step, {"loss": DummyLogEntry(loss)}, driver) is not None:
             return step
     return None
 
@@ -440,9 +423,7 @@ def test_convergence_stopping():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
 
     assert step == 11
@@ -451,9 +432,7 @@ def test_convergence_stopping():
     driver = DummyDriver()
     for step in range(len(loss_values)):
         print(es)
-        try:
-            es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver)
-        except nk.callbacks.StopRun:
+        if es.on_step_end(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
 
     assert step == 13

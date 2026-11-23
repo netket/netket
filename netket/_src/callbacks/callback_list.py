@@ -1,7 +1,7 @@
 from typing import Any
 
 
-from netket._src.callbacks.base import AbstractCallback
+from netket._src.callbacks.base import AbstractCallback, RunFinished, StopRun
 
 
 class CallbackList(AbstractCallback):
@@ -40,8 +40,23 @@ class CallbackList(AbstractCallback):
             callback.before_parameter_update(step, log_data, driver)
 
     def on_step_end(self, step, log_data, driver):
+        # TODO: deprecate raising StopRun from on_step_end, in favour of returning it.
+        stop = None
         for callback in self.callbacks:
-            callback.on_step_end(step, log_data, driver)
+            try:
+                request = callback.on_step_end(step, log_data, driver)
+            except StopRun as error:
+                request = error
+            if request is not None and not isinstance(request, StopRun):
+                raise TypeError(
+                    f"{type(callback).__name__}.on_step_end returned {request!r}: "
+                    "return None, or a StopRun to stop the run."
+                )
+            if stop is None or (
+                isinstance(request, RunFinished) and not isinstance(stop, RunFinished)
+            ):
+                stop = request
+        return stop
 
     def on_run_end(self, step, driver):
         for callback in self.callbacks:

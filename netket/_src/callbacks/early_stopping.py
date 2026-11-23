@@ -123,7 +123,7 @@ class EarlyStopping(AbstractCallback, mutable=True):
                 self._best_patience_counter = 0
 
         if self._best_patience_counter > self.patience:
-            raise StopRun(
+            return StopRun(
                 f"EarlyStopping: no improvement detected after {self._best_patience_counter} steps "
                 f"(best value {self._best_val} at step {self._best_iter})."
             )
