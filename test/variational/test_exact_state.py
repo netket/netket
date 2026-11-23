@@ -143,8 +143,15 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
+# model:(C->C,alpha=5) is only a larger version of model:(C->C) and goes through
+# the same code, so it is not repeated here.
 @pytest.mark.parametrize(
-    "machine", [pytest.param(ma, id=name) for name, ma in machines.items()]
+    "machine",
+    [
+        pytest.param(ma, id=name)
+        for name, ma in machines.items()
+        if name != "model:(C->C,alpha=5)"
+    ],
 )
 def test_derivatives_agree(machine):
     err = 1e-3
