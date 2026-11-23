@@ -111,6 +111,27 @@ These objects can be passed to {class}`~netket.experimental.hilbert.Particle` an
 
 ```
 
+(experimental-checkpoint-api)=
+## Checkpointing
+
+A checkpointer saves a run of a driver, and resumes it from its latest checkpoint when the
+run is started again, e.g. after a crash or a preemption: pass it to
+{meth}`~netket.driver.AbstractDriver.run` as `checkpointer=`. Implement
+{class}`~netket.experimental.checkpoint.AbstractCheckpointer` to write one.
+
+```{eval-rst}
+.. currentmodule:: netket.experimental
+```
+
+```{eval-rst}
+.. autosummary::
+  :toctree: _generated/experimental/checkpoint
+  :nosignatures:
+
+  checkpoint.AbstractCheckpointer
+  checkpoint.Checkpoint
+```
+
 ## Time Evolution Driver
 
 
