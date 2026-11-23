@@ -84,6 +84,42 @@ class MetropolisRule(struct.Pytree):
         """
         return sampler_state.rule_state
 
+    def update_rule_state(
+        self,
+        sampler: "sampler.MetropolisSampler",  # noqa: F821
+        machine: nn.Module,
+        params: PyTree,
+        sampler_state: "sampler.SamplerState",  # noqa: F821
+        accepted: jnp.ndarray,
+    ) -> PyTree:
+        """
+        Updates the state of the rule after its proposed moves have been
+        accepted or rejected.
+
+        :class:`~netket.sampler.MetropolisSampler` calls this after every
+        Metropolis step, and the returned value becomes the new ``rule_state``.
+        Override it to make a rule adapt to how often its moves are accepted,
+        for example to tune the size of its proposals. The default
+        implementation returns the current rule_state without modifying it.
+
+        :class:`~netket.sampler.ParallelTemperingSampler` and the numpy
+        samplers do not call it.
+
+        Arguments:
+            sampler: The Metropolis sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            params: The PyTree of parameters of the model.
+            sampler_state: The state of the sampler before this step. Should
+                not modify it.
+            accepted: Boolean array of shape ``(sampler.n_batches,)``, True for
+                the chains whose move was accepted.
+
+        Returns:
+           The new state of the rule, with the same structure, shapes and
+           dtypes as the current one.
+        """
+        return sampler_state.rule_state
+
     @abc.abstractmethod
     def transition(
         self,
