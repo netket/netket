@@ -41,7 +41,13 @@ def _compute_chunk_shape(value: np.ndarray, chunk_size: int | None) -> tuple[int
 
 
 def _append_dataset(root, value, data, *, chunk_size: int | None = None):
+    # ``np.asarray`` materialises ``value`` to host -- a collective when it is a
+    # sharded array, so every rank must reach it. ``data`` is ``None`` on
+    # non-master ranks (they hold no writer): they still materialise (to join
+    # the collective) but do not write. See HDF5Log.__call__.
     value = np.asarray(value)
+    if data is None:
+        return
     if root in data:
         f_value = data[root]
         f_value.resize(f_value.shape[0] + 1, axis=0)
@@ -100,7 +106,7 @@ def tree_log(tree, root, data, *, iter=None, chunk_size: int | None = None):
 
 class HDF5Log(AbstractCallback):
     r"""
-    HDF5 Logger, that can be passed with keyword argument `logger` to Monte
+    HDF5 Logger, that can be passed with keyword argument `out` to Monte
     Carlo drivers in order to serialize the output data of the simulation.
 
     The logger has support for scalar numbers, NumPy/JAX arrays, and netket.stats.Stats objects.
@@ -117,7 +123,7 @@ class HDF5Log(AbstractCallback):
     inspecting the datasets as a dictionary, i.e. :code:`f['data/energy/Mean']`
 
     This class is a full :class:`~netket.callbacks.AbstractCallback` and can be passed
-    either as ``out=logger`` *or* inside the ``callbacks=[..., logger]`` list.
+    either as ``out=logger`` *or* as ``callback=logger``.
 
     .. tip::
         Use the ``metadata`` argument to attach a flat dict of hyper-parameters
@@ -153,7 +159,7 @@ class HDF5Log(AbstractCallback):
         >>>
         >>> import netket as nk
         >>> logger = nk.logging.HDF5Log("output")
-        >>> gs.run(n_iter=300, callbacks=[logger])
+        >>> gs.run(n_iter=300, callback=logger)
 
     .. note::
         The API of this logger is covered by our Semantic Versioning API guarantees. However, the structure of the
@@ -236,12 +242,12 @@ class HDF5Log(AbstractCallback):
 
         if os.path.exists(path) and mode == "x":
             raise ValueError(
-                "Output file already exists. Either delete it manually or"
-                "change `path`."
+                "Output file already exists. Either delete it manually orchange `path`."
             )
 
+        # Only the master process writes to disk, so only it creates the folder.
         dir_name = os.path.dirname(path)
-        if dir_name != "":
+        if dir_name != "" and self._is_master_process:
             os.makedirs(dir_name, exist_ok=True)
 
         self._file_mode = mode
@@ -263,14 +269,13 @@ class HDF5Log(AbstractCallback):
         if self._writer is None:
             self._init_output_file()
 
-        if self._is_master_process:
-            tree_log(
-                log_data,
-                "data",
-                self._writer,
-                iter=step,
-                chunk_size=self._chunk_size,
-            )
+        tree_log(
+            log_data,
+            "data",
+            self._writer,
+            iter=step,
+            chunk_size=self._chunk_size,
+        )
 
         self._steps_notflushed_write += 1
         if self._steps_notflushed_write >= self._write_every:

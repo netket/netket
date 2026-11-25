@@ -1,6 +1,5 @@
 from typing import Any
 from collections.abc import Callable
-from warnings import warn
 
 import jax
 import jax.numpy as jnp
@@ -8,7 +7,6 @@ from jax.flatten_util import ravel_pytree
 
 from netket import jax as nkjax
 from netket.optimizer.solver import cholesky
-from netket.utils.deprecation import DeprecatedArg
 from netket.utils import timing, struct
 from netket.utils.citations import reference
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
@@ -22,6 +20,7 @@ from netket._src.driver.abstract_optimization_driver import (
 )
 from netket._src.ngd.sr_srt_common import sr, srt, get_samples_and_pdf
 from netket._src.ngd.srt_onthefly import srt_onthefly
+from netket._src.driver.vmc_sr import _init_momentum_buffer
 from netket._src.nn.apply_operator.functional import make_logpsi_op_afun
 from netket._src.callbacks.auto_chunk_size import get_forward_operator
 from netket._src.observable.infidelity.expect import get_local_estimator
@@ -109,7 +108,7 @@ class Infidelity_SR(AbstractOptimizationDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    info: Any | None = None
+    info: Any | None = struct.field(serialize=False, default=None)
     """
     PyTree to pass on information from the solver,e.g, the quadratic model.
     """
@@ -124,9 +123,6 @@ class Infidelity_SR(AbstractOptimizationDriver):
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
         linear_solver: Callable[[Array, Array], Array] = cholesky,
-        linear_solver_fn: (
-            Callable[[Array, Array], Array] | DeprecatedArg
-        ) = DeprecatedArg(),
         variational_state: VariationalState | None = None,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
@@ -174,17 +170,6 @@ class Infidelity_SR(AbstractOptimizationDriver):
                 SR and minSR. (Defaults to None, which will automatically choose the best
                 method)
         """
-
-        # TODO: Deprecated in September 2025, netket 3.20
-        if not isinstance(linear_solver_fn, DeprecatedArg):
-            warn(
-                """
-                The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
-                """,
-                category=FutureWarning,
-                stacklevel=2,
-            )
-            linear_solver = linear_solver_fn
 
         # Default chunk_size_bwd to the variational's state chunk size. In any case,
         # it usually should be smaller than the chunk size of variational state.
@@ -257,7 +242,11 @@ class Infidelity_SR(AbstractOptimizationDriver):
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
 
-        self._old_updates: PyTree = None
+        # Built here rather than at the first step, so that a freshly built
+        # driver can load it back from a checkpoint.
+        self._old_updates = _init_momentum_buffer(
+            self.state.parameters, self.momentum, self._on_the_fly
+        )
 
         # PyTree to pass on information from the solver, e.g, the quadratic model
         self.info = None

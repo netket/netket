@@ -84,9 +84,7 @@ def _(
 
 
 @expect.dispatch
-def infidelity(
-    vstate: MCState, op: InfidelityOperator, chunk_size: int | None
-):  # noqa: F811
+def infidelity(vstate: MCState, op: InfidelityOperator, chunk_size: int | None):  # noqa: F811
     return local_estimators(vstate, op, chunk_size).to_stats()
 
 

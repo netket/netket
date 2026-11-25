@@ -22,7 +22,6 @@ PyTree = Any
 
 @dataclasses.dataclass(frozen=True)
 class ModuleFramework(abc.ABC):
-
     @property
     def model_contains_parameters(self) -> bool:
         """

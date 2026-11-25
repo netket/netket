@@ -20,7 +20,6 @@ import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P, NamedSharding
 
 from netket.utils import config
-from netket.utils.deprecation import warn_deprecation
 
 
 safe_zip = partial(zip, strict=True)
@@ -113,19 +112,6 @@ def shard_along_axis(x, axis: int):
             NamedSharding(mesh, P(*shard_shape)),
         )
     return x
-
-
-@jax.jit
-def with_samples_sharding_constraint(x, shape=None):
-    """
-    ensure the input x is sharded along axis 0 on all devices
-    works both outside and inside of jit
-    """
-    warn_deprecation(
-        "with_samples_sharding_constraint is deprecated in favour of nk.jax.sharding.shard_along_axis(x, axis=0)"
-    )
-
-    return shard_along_axis(x, 0)
 
 
 def extract_replicated(t):

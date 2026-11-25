@@ -14,7 +14,6 @@
 
 """Tests for LocalEstimators and LocalEstimatorsBatch."""
 
-
 import numpy as np
 import numpy.testing as npt
 import pytest

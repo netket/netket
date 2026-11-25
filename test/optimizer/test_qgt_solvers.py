@@ -49,7 +49,12 @@ solvers["pinv_smooth"] = nk.optimizer.solver.pinv_smooth
 dtypes = {"float": float, "complex": complex}
 
 
-@pytest.fixture(params=[pytest.param(dtype, id=name) for name, dtype in dtypes.items()])
+# Module scope: the tests only read the state, and building and sampling a fresh
+# one compiles the sampler again (~1 s).
+@pytest.fixture(
+    scope="module",
+    params=[pytest.param(dtype, id=name) for name, dtype in dtypes.items()],
+)
 def vstate(request):
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
@@ -178,27 +183,6 @@ def test_solver_dense_api(solver):
     np.testing.assert_allclose(A @ x, b)
 
 
-# Not all solvers had 'rcond' deprecated, so we test only for pinv and pinv_smooth.
-@pytest.mark.parametrize("solver_func", [solvers["pinv"], solvers["pinv_smooth"]])
-def test_solver_rcond_deprecation(solver_func):
-    key = jax.random.PRNGKey(0)
-    A = jax.random.normal(key, (10, 10))
-    A = A @ A.T  # Make PSD
-    b = jax.random.normal(key, (10,))
-
-    # Test with new argument (rtol)
-    x_new, _ = solver_func(A, b, rtol=1e-6)
-
-    with pytest.warns(FutureWarning, match="'rcond' argument is deprecated"):
-        x_old, _ = solver_func(A, b, rcond=1e-6)
-
-    # Check that results are identical
-    np.testing.assert_allclose(x_new, x_old, rtol=1e-10)
-
-    # Check that the solution is correct
-    np.testing.assert_allclose(A @ x_new, b, rtol=1e-6)
-
-
 # ---------------------------------------------------------------------------
 # nan_fallback tests
 # ---------------------------------------------------------------------------
@@ -287,3 +271,30 @@ def test_nan_fallback_equality_and_hash():
     assert s1 == s2
     assert hash(s1) == hash(s2)
     assert s1 is not s2  # distinct objects
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_pinv_smooth_discards_negative_and_unresolved_eigenvalues(dtype):
+    # 1e-12 is below float32's resolution of the spectrum but above rtol=1e-14.
+    evals = np.array([-1e-3, 1e-12, 1e-2, 1.0], dtype=dtype)
+    A = jnp.diag(jnp.asarray(evals))
+    b = jnp.ones(evals.size, dtype=dtype)
+
+    x, info = pinv_smooth(A, b)
+
+    keep = np.array([False, dtype == np.float64, True, True])
+    expected = np.where(keep, 1.0 / np.where(keep, evals, 1.0), 0.0)
+    np.testing.assert_allclose(x, expected, rtol=1e-5)
+    assert info["rank"] == keep.sum()
+
+
+def test_cholesky_with_fallback_drops_negative_modes():
+    evals = jnp.array([-1e-4, 1e-3, 1.0])
+    Q, _ = jnp.linalg.qr(jax.random.normal(jax.random.key(0), (3, 3)))
+    A = Q @ jnp.diag(evals) @ Q.T
+    b = Q @ jnp.ones(3)
+
+    x, info = nk.optimizer.solver.cholesky_with_fallback(A, b)
+
+    assert info["solver_fallback"]
+    np.testing.assert_allclose(Q.T @ x, [0.0, 1e3, 1.0], rtol=1e-6, atol=1e-8)

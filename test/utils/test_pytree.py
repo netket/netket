@@ -377,11 +377,11 @@ class TestMutablePytree:
 
         assert jax.tree_util.tree_leaves(b) == [2, 5]
 
-        # pre init
-        with pytest.warns(FutureWarning):
+        # pre init and post init are not supported when inheriting from a Pytree
+        with pytest.raises(TypeError, match="__pre_init__"):
 
             @dataclass
-            class B(A):
+            class C(A):
                 z: int
 
                 def __pre_init__(self, x, y, kk):
@@ -389,13 +389,14 @@ class TestMutablePytree:
                     kwargs["z"] = kk
                     return args, kwargs
 
-        b = B(1, 2, kk=5)
+        with pytest.raises(TypeError, match="__post_init__"):
 
-        assert b.x == 1
-        assert b.y == 2
-        assert b.z == 5
+            @dataclass
+            class D(A):
+                z: int
 
-        assert jax.tree_util.tree_leaves(b) == [2, 5]
+                def __post_init__(self):
+                    pass
 
     def test_field_ignore(self):
         """Test that field(pytree_ignore=True) drops fields from pytree flattening"""

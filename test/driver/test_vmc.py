@@ -60,13 +60,31 @@ def test_raise_n_iter():
         driver.run("prova", 12)
 
 
+class _RestoreStepCount(nk.callbacks.AbstractCallback):
+    """Sets the step count on run start, like a checkpointer resuming a run."""
+
+    def on_run_start(self, step, driver):
+        driver._step_count = 5
+
+
+def test_run_end_ignores_step_count_restored_on_run_start():
+    ha, sx, ma, sampler, driver = _setup_vmc()
+    log = nk.logging.RuntimeLog()
+    driver.run(8, out=log, callback=_RestoreStepCount())
+
+    assert driver.step_count == 8
+    assert driver._start_step == 0
+    assert driver._target_step == 8
+    assert list(log.data["Energy"].iters) == [5, 6, 7]
+
+
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 
     driver.run(500)
 
-    tol = driver.energy.error_of_mean * 5
-    assert driver.energy.mean == approx(ma.expect(ha).mean, abs=tol)
+    tol = float(driver.energy.error_of_mean * 5)
+    assert driver.energy.mean == approx(np.asarray(ma.expect(ha).mean), abs=tol)
 
     state = ma.to_array()
 
@@ -98,11 +116,13 @@ def test_vmc_functions():
         print(mean, var)
 
         # 5-sigma test for expectation values
-        tol = op_stats.error_of_mean * 5
-        assert mean.real == approx(exact_ex, abs=tol)
+        tol = float(op_stats.error_of_mean * 5)
+        assert mean.real == approx(np.asarray(exact_ex), abs=tol)
 
 
-def test_vmc_progress_bar():
+def test_vmc_progress_bar(monkeypatch):
+    # A drawn bar, although stderr is redirected (see netket._src.progress).
+    monkeypatch.setattr("netket._src.progress._logs", lambda: False)
     ha, sx, ma, sampler, driver = _setup_vmc()
     tempdir = tempfile.mkdtemp()
     prefix = tempdir + "/vmc_progressbar_test"

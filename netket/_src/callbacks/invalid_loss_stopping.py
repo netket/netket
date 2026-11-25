@@ -33,7 +33,9 @@ class InvalidLossStopping(AbstractCallback, mutable=True):
     patience: int | float = struct.field(pytree_node=False)
     """Number of epochs with invalid loss after which training will be stopped."""
 
-    _last_valid_iter: int = struct.field(pytree_node=False, serialize=False, default=0)
+    # Saved, so that a run resumed from a checkpoint does not stop at the first
+    # invalid step, as if the loss had been invalid since step 0.
+    _last_valid_iter: int = struct.field(pytree_node=False, serialize=True, default=0)
     """Last valid iteration, to check against patience."""
 
     def __init__(self, monitor: str = "mean", patience: int | float = 0):
@@ -54,6 +56,12 @@ class InvalidLossStopping(AbstractCallback, mutable=True):
         self.patience = patience
         self._last_valid_iter = 0
 
+    # TODO: backward compatibility for checkpoints saved before September 2026.
+    # Remove in 2027.
+    def __process_deserialization_state__(self, state):
+        # Files saved by older versions do not contain it.
+        return {"_last_valid_iter": self._last_valid_iter, **state}
+
     @property
     def callback_order(self) -> int:
         # Run last, so raising StopRun never skips a later callback's collective.
@@ -67,7 +75,9 @@ class InvalidLossStopping(AbstractCallback, mutable=True):
         if driver._loss_stats is not None:
             loss = np.real(getattr(driver._loss_stats, self.monitor))
 
-            if not np.isfinite(loss):
+            # `loss` may be vector-valued (e.g. a foundation ReplicaStats has one
+            # mean per anchor); stop if ANY component is non-finite.
+            if not np.all(np.isfinite(loss)):
                 if driver.step_count - self._last_valid_iter >= self.patience:
                     raise StopRun(
                         f"InvalidLossStopping: loss is not finite ({loss}) "

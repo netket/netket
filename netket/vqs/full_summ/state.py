@@ -122,8 +122,7 @@ class FullSumState(VariationalState):
         else:
             par_sharding = None
 
-        # TODO: deprecated in July 2025
-        # For simplicity, we do not accept numpy inputs in variables
+        # numpy leaves in variables are converted to jax arrays
         # resultis in SingleDeviceSharding if par_sharding is None
         if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
             variables = jax.tree.map(
@@ -284,6 +283,17 @@ class FullSumState(VariationalState):
         """
         self._array = None
         self._pdf = None
+
+    def _replace_model(self, model=None, *, apply_fun=None, variables=None):
+        return type(self)(
+            hilbert=self.hilbert,
+            model=model,
+            apply_fun=apply_fun,
+            variables=variables,
+            chunk_size=self.chunk_size,
+            mutable=self.mutable,
+            training_kwargs=dict(self.training_kwargs),
+        )
 
     @property
     def model(self) -> Any | None:

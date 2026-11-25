@@ -112,14 +112,13 @@ def check_permutation_compatibility(
     assert index_set == list(range(n + 1)), "`partition` is not a proper partition."
 
     for partition_subset, constraint in zip(partition, constraints, strict=True):
-        assert (
-            0 < constraint < len(partition_subset)
-        ), "There is a trivial or invalid constraint."
+        assert 0 < constraint < len(partition_subset), (
+            "There is a trivial or invalid constraint."
+        )
 
     is_compatible = True
 
     for index, partition_subset in enumerate(partition):
-
         partition_subset_preimage = sorted(
             permutation.inverse_permutation_array[partition_subset]
         )
@@ -175,7 +174,6 @@ class PermutationOperatorFermion(PermutationOperatorBase):
             raise TypeError("The Hilbert space must have a fixed number of fermions.")
 
         if hilbert.n_fermions_per_spin[0] is not None:
-
             if (
                 sum(
                     constraint == 0 or constraint == hilbert.n_orbitals
@@ -198,9 +196,9 @@ class PermutationOperatorFermion(PermutationOperatorBase):
                 is_compatible = check_permutation_compatibility(
                     permutation, partition, list(hilbert.n_fermions_per_spin)
                 )
-                assert (
-                    is_compatible
-                ), "The permutation is not compatible with the Hilbert space constraints"
+                assert is_compatible, (
+                    "The permutation is not compatible with the Hilbert space constraints"
+                )
 
         super().__init__(hilbert, permutation, dtype=dtype)
 

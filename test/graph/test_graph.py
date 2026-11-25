@@ -281,13 +281,13 @@ def test_lattice_symmetry(i, name):
         _ = sgb.little_group([1] * dimension[i])
 
     # The little group of Γ is the full point group
-    assert sgb.little_group(np.zeros(dimension[i])) == sgb.point_group_
+    assert sgb.little_group(np.zeros(dimension[i])) == sgb._point_group
 
     # Generate little groups and their irreps
     assert len(sgb.little_group(*kvec[i])) == little_group_size[i]
     assert len(sgb.little_group(kvec[i])) == little_group_size[i]
     irrep_from_lg = sgb.space_group_irreps(kvec[i])
-    irrep_from_sg = sgb.space_group.character_table()
+    irrep_from_sg = sgb.character_table()
     for irrep in irrep_from_lg:
         assert np.any(np.all(np.isclose(irrep, irrep_from_sg), axis=1))
 
@@ -566,8 +566,10 @@ def test_automorphisms(graph):
     if not graph.is_connected():
         return
 
-    def is_automorphism(f, graph):
-        edges = graph.edges()
+    # set membership: same check as `in graph.edges()`, O(1) per lookup
+    edges = set(graph.edges())
+
+    def is_automorphism(f, edges):
         for v, w in edges:
             fv, fw = f[v], f[w]
             if (fv, fw) not in edges and (fw, fv) not in edges:
@@ -577,14 +579,21 @@ def test_automorphisms(graph):
 
     autom = np.asarray(graph.automorphisms())
     for f in autom:
-        assert is_automorphism(f, graph)
+        assert is_automorphism(f, edges)
 
 
 def _check_symmgroup(autom, symmgroup):
     """Asserts that symmgroup consists of automorphisms listed in autom and has no duplicate elements."""
 
+    # Membership in a set uses Permutation.__hash__ (hash of the inverse
+    # permutation array) followed by Permutation.__eq__ on hash hits, so it
+    # checks the same thing as `in autom.elems` without the O(|G|^2) scan.
+    autom_elems = set(autom.elems)
     for el in symmgroup.to_array():
-        assert group.Permutation(el, validate=False) in autom.elems
+        assert (
+            group.Permutation(inverse_permutation_array=el, validate=False)
+            in autom_elems
+        )
 
     assert symmgroup == symmgroup.remove_duplicates()
     assert isinstance(symmgroup[0], group.Identity)
@@ -811,7 +820,9 @@ def test_symmgroup():
 
     assert_eq_hash(group.Identity(), group.Identity())
 
-    tr = Grid([8, 4, 3]).translation_group
+    # distinct extents along the three axes; kept small because tr() @ tr()
+    # takes |T|^2 element products
+    tr = Grid([5, 4, 3]).translation_group
     assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))
 
     assert_eq_hash(tr().remove_duplicates(), tr())
@@ -998,9 +1009,9 @@ def test_small_lattice_warning_higher_dim():
         nk.graph.Grid([2, 3, 2], pbc=True)
         nk.graph.Square(2, pbc=True)
         nk.graph.Cube(2, pbc=True)
-    assert (
-        len(record) == 12
-    ), "All examples above should raise warnings but some didn't."
+    assert len(record) == 12, (
+        "All examples above should raise warnings but some didn't."
+    )
     with warnings.catch_warnings():  # None of the following should raise warnings
         warnings.simplefilter("error")
         nk.graph.Triangular([2, 3], pbc=False)

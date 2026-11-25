@@ -8,6 +8,7 @@
 
 This module contains some *internal utilities* to work with Jax.
 This part of the API is not public, and can change without notice.
+The exception is {func}`~netket.jax.apply_packed`, which is public but experimental: it can change in a minor release, with a note in the changelog.
 
 ## Utility functions
 
@@ -78,6 +79,7 @@ This part of the API is not public, and can change without notice.
   apply_chunked
   vmap_chunked
   vjp_chunked
+  apply_packed
 ```
 
 ## Math

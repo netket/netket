@@ -102,10 +102,19 @@ def local_estimators(vstate: Any, op: Any, chunk_size: Any):  # noqa: F811
 @jax.jit
 def force_to_grad(Ō_grad, parameters):
     """
-    Converts the forces vector F_k = cov(O_k, E_loc) to the observable gradient.
-    In case of a complex target (which we assume to correspond to a holomorphic
-    parametrization), this is the identity. For real-valued parameters, the gradient
-    is 2 Re[F].
+    Converts the forces vector F_k = cov(O_k, E_loc) into the gradient used by the
+    optimizers, g_k = dE/dx_k + i dE/dy_k for theta_k = x_k + i y_k.
+
+    For both real and complex (holomorphic) parameters this is a factor 2:
+
+      - complex parameters:  g = 2 F
+      - real parameters:     g = 2 Re[F]
+
+    so that a wavefunction parametrised by a complex leaf and the same wavefunction
+    parametrised by two real leaves receive identical updates.
+
+    Note that this is the conjugate of jax.grad's convention for f: C -> R; it is the
+    one for which `params + optax_update` is correct gradient descent.
     """
     Ō_grad = jax.tree_util.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(

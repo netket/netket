@@ -314,7 +314,6 @@ class Slater2nd(nn.Module):
         _, data = self.rdm_one_body(return_intermediates=True)
 
         if self.generalized:
-
             I_minus_rdm = jnp.eye(self.hilbert.size) - data["rdm"]
             Q = jnp.kron(I_minus_rdm, data["S_inv"].T)
             return Q
@@ -405,9 +404,7 @@ class MultiSlater2nd(nn.Module):
             generalized=self.generalized,
             kernel_init=self.kernel_init,
             param_dtype=self.param_dtype,
-        )(
-            n_bc
-        )
+        )(n_bc)
         # sum the determinants
         log_det_sum = nkjax.logsumexp_cplx(multi_log_det, axis=0)
         return log_det_sum

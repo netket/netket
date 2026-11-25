@@ -102,7 +102,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         if spin_size == 1:
             if n_fermions_per_spin is not None:
                 raise ValueError(
-                    "Cannot specify `n_fermions_per_spin` for spin-less " "fermions."
+                    "Cannot specify `n_fermions_per_spin` for spin-less fermions."
                 )
 
             n_fermions_per_spin = (n_fermions,)

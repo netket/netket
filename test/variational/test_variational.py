@@ -105,6 +105,18 @@ if nk.config.netket_experimental_sharding:
     operators = _operators
 
 
+# wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
+def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
+    assert x.ndim in (1, 2)
+    return apply_fun(params, x, *args, **kwargs)
+
+
+# The wrapped apply functions are built once per model and reused by every test:
+# the apply function is a static argument of the jitted kernels, so a fresh
+# `partial` per test would defeat jax's compilation cache.
+_checked_apply_funs = {}
+
+
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
     ma = request.param
@@ -113,13 +125,9 @@ def vstate(request):
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
-    # wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
-    def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
-        assert x.ndim in (1, 2)
-        return apply_fun(params, x, *args, **kwargs)
-
-    apply_fun = vs._apply_fun
-    vs._apply_fun = partial(apply_fun_check_shape, apply_fun)
+    if id(ma) not in _checked_apply_funs:
+        _checked_apply_funs[id(ma)] = partial(apply_fun_check_shape, vs._apply_fun)
+    vs._apply_fun = _checked_apply_funs[id(ma)]
 
     return vs
 
@@ -199,6 +207,33 @@ def test_n_samples_api(vstate, _device_count):
     vstate.chain_length = 2
     check_consistent(vstate, _device_count)
     assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
+
+
+@common.skipif_mpi
+def test_sample_n_discard_per_chain_argument():
+    # The `n_discard_per_chain` passed to `sample` must override the one of
+    # the state, both when it is larger and when it is smaller.
+    sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    model = nk.models.RBM(alpha=1)
+
+    def _samples(n_discard_state, **kwargs):
+        vs = nk.vqs.MCState(
+            sampler,
+            model,
+            n_samples=64,
+            n_discard_per_chain=n_discard_state,
+            seed=0,
+            sampler_seed=1,
+        )
+        return np.asarray(vs.sample(**kwargs))
+
+    no_discard = _samples(0)
+    with_discard = _samples(10)
+    # sanity check: discarding changes the samples
+    assert not np.array_equal(no_discard, with_discard)
+
+    np.testing.assert_array_equal(_samples(0, n_discard_per_chain=10), with_discard)
+    np.testing.assert_array_equal(_samples(10, n_discard_per_chain=0), no_discard)
 
 
 @common.skipif_mpi
@@ -403,8 +438,8 @@ def test_expect(vstate, operator):
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
 
     # check the expectation values
-    err = 5 * O_stat.error_of_mean
-    assert O_stat.mean == approx(O_exact, abs=err)
+    err = float(5 * O_stat.error_of_mean)
+    assert O_stat.mean == approx(np.asarray(O_exact), abs=err)
 
     O_grad, _ = ravel_pytree(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)

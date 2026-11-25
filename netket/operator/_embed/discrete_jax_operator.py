@@ -39,7 +39,6 @@ class EmbedDiscreteJaxOperator(
         operator: DiscreteJaxOperator,
         subspace: int,
     ):
-
         if not isinstance(operator, DiscreteJaxOperator):
             raise TypeError(
                 "Arguments to EmbedDiscreteJaxOperator must be "

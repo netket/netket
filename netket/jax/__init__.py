@@ -23,7 +23,6 @@ from ._utils_dtype import (
 )
 
 from ._utils_tree import (
-    tree_ravel as _deprecated_tree_ravel,
     tree_size,
     eval_shape,
     tree_leaf_isreal,
@@ -53,6 +52,7 @@ from ._chunk_utils import chunk, unchunk
 from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
 from ._vjp_chunked import vjp_chunked
 from ._vmap_chunked import apply_chunked, vmap_chunked
+from ._apply_packed import apply_packed
 
 from ._math import logsumexp_cplx, logdet_cmplx
 
@@ -71,18 +71,3 @@ from . import sharding
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__, ignore=("sharding", "lax"))
-
-# Deprecation machinery
-_deprecations = {
-    # January 2025, NetKet 3.16
-    "tree_ravel": (
-        "netket.jax.tree_ravel is deprecated: use jax.flatten_util.ravel_pytree directly",
-        _deprecated_tree_ravel,
-    ),
-}
-
-from netket.utils.deprecation import deprecation_getattr as _deprecation_getattr
-
-__getattr__ = _deprecation_getattr(__name__, _deprecations)
-
-del _deprecation_getattr

@@ -247,7 +247,8 @@ class OnlineStats(struct.Pytree):
         if total == 0.0:
             return _NaN
         m = (jnp.sum(self._chain_count * self._chain_mean) / total).item()
-        if isinstance(m, complex) and m.imag == 0.0:
+        # A NaN sample becomes NaN + NaN j in complex arithmetic: keep it real.
+        if isinstance(m, complex) and (m.imag == 0.0 or isnan(m.real)):
             return m.real
         return m
 

@@ -14,14 +14,9 @@
 
 import jax
 
-from netket.utils import module_version
-
 
 def pcast(x, axis_name, *, to="varying"):
     if to != "varying":
         raise NotImplementedError("Only `to='varying'` is currently supported.")
-
-    if module_version("jax") < (0, 8, 2):
-        return jax.lax.pvary(x, axis_name)
 
     return jax.lax.pcast(x, axis_name, to=to)

@@ -23,25 +23,10 @@ from jax.tree_util import (
     tree_map,
     tree_leaves,
 )
-from jax.flatten_util import ravel_pytree
+from flax import serialization
 
 from netket.utils.types import PyTree, Scalar
 from netket.utils.numbers import is_scalar
-
-
-def tree_ravel(pytree: PyTree) -> tuple[jnp.ndarray, Callable]:
-    """Ravel (i.e. flatten) a pytree of arrays down to a 1D array.
-
-    Args:
-      pytree: a pytree to ravel
-
-    Returns:
-      A pair where the first element is a 1D array representing the flattened and
-      concatenated leaf values, and the second element is a callable for
-      unflattening a 1D vector of the same length back to a pytree of of the same
-      structure as the input ``pytree``.
-    """
-    return ravel_pytree(pytree)
 
 
 def eval_shape(fun, *args, has_aux=False, **kwargs):
@@ -221,6 +206,21 @@ register_pytree_node(
     RealImagTuple,
     lambda xs: (xs, None),
     lambda _, xs: RealImagTuple(xs),
+)
+
+# Make it saveable with flax.serialization, e.g. as part of a driver checkpoint.
+serialization.register_serialization_state(
+    RealImagTuple,
+    lambda x: {
+        "real": serialization.to_state_dict(x.real),
+        "imag": serialization.to_state_dict(x.imag),
+    },
+    lambda target, state: RealImagTuple(
+        (
+            serialization.from_state_dict(target.real, state["real"], name="real"),
+            serialization.from_state_dict(target.imag, state["imag"], name="imag"),
+        )
+    ),
 )
 
 

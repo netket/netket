@@ -30,12 +30,12 @@ def printfmt(key, value=None, *, indent=0, pre="", alignment=STD_SPACE):
         indent_spaces = indent * 2
         alignment -= indent_spaces + len(INDENT_STR)
 
-        pre = f"{pre}{'' : <{indent_spaces}}{INDENT_STR}"
+        pre = f"{pre}{'': <{indent_spaces}}{INDENT_STR}"
 
     if value is not None:
-        print(f"{pre}{key : <{alignment}} : {value}", flush=True)
+        print(f"{pre}{key: <{alignment}} : {value}", flush=True)
     else:
-        print(f"{pre}{key : <{alignment}}", flush=True)
+        print(f"{pre}{key: <{alignment}}", flush=True)
 
 
 def _fmt_device(dev):

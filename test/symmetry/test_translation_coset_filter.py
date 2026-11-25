@@ -172,9 +172,9 @@ class TestChars:
         C = T_full.coset_filter(T_sub)
         for k in T_full.k_points:
             chars = C.chars(k)
-            assert np.allclose(
-                np.abs(chars), 1.0
-            ), f"chars must have unit modulus, got {np.abs(chars)}"
+            assert np.allclose(np.abs(chars), 1.0), (
+                f"chars must have unit modulus, got {np.abs(chars)}"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -225,9 +225,9 @@ class TestLabelInterface:
         for label, k in zip(C.irrep_labels, C.k_points):
             P_by_label = C.projector_refinement(label=label)
             P_by_k = C.projector_refinement(k=k)
-            assert _ops_equal(
-                P_by_label, P_by_k
-            ), f"label={label!r} and k={k} give different projectors"
+            assert _ops_equal(P_by_label, P_by_k), (
+                f"label={label!r} and k={k} give different projectors"
+            )
 
     def test_invalid_label_raises(self, chain_1d):
         hi, lattice, T_full, T_sub, stride = chain_1d
@@ -293,9 +293,9 @@ class TestIterativeDecomposition:
                 @ C_2.projector_refinement(k=k)
                 @ T_coarse.projector(k=k)
             )
-            assert _ops_equal(
-                P_direct, P_iter
-            ), f"three-level decomposition failed at k={k} (L={L}, s1={s1}, s2={s2})"
+            assert _ops_equal(P_direct, P_iter), (
+                f"three-level decomposition failed at k={k} (L={L}, s1={s1}, s2={s2})"
+            )
 
     def test_coset_reps_count_product(self):
         """|C_1| * |C_2| * |T_coarse| == |T_full|"""
@@ -352,9 +352,9 @@ class TestNQSWorkflow:
 
         for k in T_full.k_points:
             chars = C.chars(k)
-            assert np.allclose(
-                np.abs(chars), 1.0
-            ), f"chars at k={k} are not on the unit circle: {chars}"
+            assert np.allclose(np.abs(chars), 1.0), (
+                f"chars at k={k} are not on the unit circle: {chars}"
+            )
 
     def test_perms_chars_progressive_symmetrization(self):
         """Shapes are correct for a 3-level setup; chars match expected values."""

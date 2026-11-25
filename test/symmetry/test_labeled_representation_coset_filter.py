@@ -220,9 +220,9 @@ class TestProjectorRefinement:
             P_H = rep_c4.projector(character_index=sub_idx)
             combined = F_C @ P_H
             P_direct = rep_d4.projector(label=label)
-            assert _ops_close_dense(
-                combined, P_direct
-            ), f"F_C @ P_H ≠ P_G for {label!r}"
+            assert _ops_close_dense(combined, P_direct), (
+                f"F_C @ P_H ≠ P_G for {label!r}"
+            )
 
 
 # ---------------------------------------------------------------------------

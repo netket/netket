@@ -32,7 +32,6 @@ def test_fermionic_sign():
 
 
 def test_perm_op_fermion():
-
     key = jax.random.PRNGKey(0)
     hilbert = SpinOrbitalFermions(4, 1, n_fermions_per_spin=(2, 2, 3))
     x = hilbert.random_state(key, size=3)

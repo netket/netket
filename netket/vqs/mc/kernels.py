@@ -215,7 +215,7 @@ def local_value_kernel_jax_chunked(
         local_value_chunked = nkjax.apply_chunked(
             _local_value_kernel,
             in_axes=(None, 0, None),
-            chunk_size=max(1, chunk_size // O.max_conn_size),
+            chunk_size=max(1, chunk_size // max(1, O.max_conn_size)),
             pvary_argnums=(0,),
         )
         return local_value_chunked(pars, σ, O)

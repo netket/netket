@@ -96,7 +96,5 @@ def _(
 
 
 @expect.dispatch
-def Renyi2(
-    vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | None
-):  # noqa: F811
+def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: int | None):  # noqa: F811
     return local_estimators(vstate, op, chunk_size).to_stats()

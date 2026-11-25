@@ -136,6 +136,13 @@ class Pytree(metaclass=PytreeMeta):
     and will be removed in the future. We suggest you to remove
     the `@nk.utils.struct.dataclass` decorator and simply define
     an `__init__` method.
+
+    When serialized (e.g. to save a checkpoint), a PyTree saves all of its
+    normal fields, including those declared with a bare annotation, but not
+    the static ones (`pytree_node=False`). Use `field(serialize=...)` to change
+    this for a single field. Note that adding or removing a saved field means
+    that older files will no longer load, as a missing or unexpected field
+    raises an error.
     """
 
     _pytree__initializing: bool
@@ -345,6 +352,16 @@ class Pytree(metaclass=PytreeMeta):
     def __post_init__(self):
         pass
 
+    def __process_deserialization_state__(self, state):
+        """
+        Change the saved state, keyed by attribute name, before it is loaded.
+        For example, to fill in fields missing from files saved by older versions.
+
+        See the "Loading Files Saved by Older Versions" section of the PyTree user
+        guide (:doc:`/user-guides/pytree`) for an example.
+        """
+        return state
+
     def __process_deserialization_updates__(self, updates):
         """
         Internal function used to modify a posteriori how a
@@ -458,6 +475,13 @@ class Pytree(metaclass=PytreeMeta):
                 del state[serialize_name]
 
         # end renaming
+
+        state = pytree.__process_deserialization_state__(state)
+
+        # Files written by older versions may contain fields that are no longer
+        # saved. Ignore them.
+        for name in noserialize_field_names:
+            state.pop(name, None)
 
         for name in pytree.__dict__:
             if name in noserialize_field_names:

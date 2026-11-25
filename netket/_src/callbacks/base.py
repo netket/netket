@@ -25,6 +25,16 @@ class StopRun(Exception):
     pass
 
 
+class RunFinished(StopRun):
+    """
+    Exception to be raised by callbacks to end a run that has reached its end,
+    for example the final time of a time evolution.
+
+    It works like :class:`~netket.callbacks.StopRun`, but the driver does not
+    print that the run is stopping early.
+    """
+
+
 #: ``callback_order`` for callbacks that may raise :class:`StopRun`. They run
 #: *last* (after observables at 0 and loggers at 10) so that, on the step a
 #: callback stops the run, no later callback in the hook is skipped — a skipped

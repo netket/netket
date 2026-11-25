@@ -34,7 +34,7 @@ TIPS = [
     # Loggers
     "You can load logged data with nk.utils.history.HistoryDict.from_file(data.log).",
     "You can plot data with JsonLog.data['Energy'][:-30].plot().",
-    "HDF5Log/MLFlowLog/TensorBoardLog accept metadata={'L': 20, 'model': 'RBM'} to store hyperparameters with the run.",
+    "HDF5Log/MLFlowLog/WandbLog/TensorBoardLog accept metadata={'L': 20, 'model': 'RBM'} to store hyperparameters with the run.",
     # Variational states
     "To build H|ψ⟩ use nk.vqs.apply_operator(H, vstate_ψ).",
     "log(ψ) ∈ ℜ → ψ = exp(logψ) ∈ ℜ₊ (real NN gives only positive wave-function).",
@@ -115,7 +115,7 @@ def show_random_tip():
     for i, line in enumerate(lines):
         if i == 0:
             # First line: style the prefix
-            console.print(f"[bold cyan]{prefix}[/bold cyan]{line[len(prefix):]}")
+            console.print(f"[bold cyan]{prefix}[/bold cyan]{line[len(prefix) :]}")
         else:
             # Subsequent lines: already have proper indentation
             console.print(line)

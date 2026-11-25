@@ -104,7 +104,7 @@ def _label_to_character_index(labels: list[str], label: str) -> int:
         return labels.index(label)
     except ValueError:
         raise ValueError(
-            f"Unknown label {label!r}.\n" f"Available labels: {labels}."
+            f"Unknown label {label!r}.\nAvailable labels: {labels}."
         ) from None
 
 

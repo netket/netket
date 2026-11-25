@@ -40,7 +40,6 @@ from netket.utils import (
     _serialization as serialization_utils,
 )
 from netket.utils.moduletools import copy_doc
-from netket.utils.deprecation import deprecated
 from netket.utils.types import Array, PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -77,22 +76,6 @@ def compute_chain_length(n_chains, n_samples):
         )
 
     return chain_length
-
-
-@deprecated(
-    "This function has been removed. People should be free to use the chunk size they prefer."
-)
-def check_chunk_size(n_samples, chunk_size):
-    n_samples_per_rank = n_samples // jax.device_count()
-
-    if chunk_size is not None:
-        if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
-            raise ValueError(
-                f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
-                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
-                "unsupported. Please change `chunk_size` so that it divides evenly the"
-                "number of samples per rank or set it to `None` to disable chunking."
-            )
 
 
 def _is_power_of_two(n: int) -> bool:
@@ -231,8 +214,7 @@ class MCState(VariationalState):
         else:
             par_sharding = None
 
-        # TODO: deprecated in July 2025
-        # For simplicity, we do not accept numpy inputs in variables
+        # numpy leaves in variables are converted to jax arrays
         if any(isinstance(x, np.ndarray) for x in jax.tree.leaves(variables)):
             # resultis in SingleDeviceSharding if par_sharding is None
             variables = jax.tree.map(
@@ -518,6 +500,24 @@ class MCState(VariationalState):
         """
         self._samples = None
 
+    def _replace_model(self, model=None, *, apply_fun=None, variables=None):
+        new = type(self)(
+            sampler=self.sampler,
+            model=model,
+            apply_fun=apply_fun,
+            variables=variables,
+            n_samples=self.n_samples,
+            n_discard_per_chain=self.n_discard_per_chain,
+            chunk_size=self.chunk_size,
+            mutable=self.mutable,
+            training_kwargs=dict(self.training_kwargs),
+        )
+        new.sampler_state = self.sampler_state
+        new._sampler_state_previous = self._sampler_state_previous
+        if self._samples is not None:
+            new._samples = self._samples
+        return new
+
     @timing.timed
     def sample(
         self,
@@ -556,11 +556,11 @@ class MCState(VariationalState):
             self._sampler_model, self._sampler_variables, self.sampler_state
         )
 
-        if self.n_discard_per_chain > 0:
+        if n_discard_per_chain > 0:
             with timing.timed_scope("sampling n_discarded samples") as timer:
                 _, self.sampler_state = self.sampler.sample(
                     self._sampler_model,
-                    self.variables,
+                    self._sampler_variables,
                     state=self.sampler_state,
                     chain_length=n_discard_per_chain,
                 )
@@ -876,6 +876,7 @@ class MCState(VariationalState):
         rtol: float | PyTree | None = None,
         max_iter: int = 10_000,
         max_lag: int = 64,
+        min_length: int = 32,
         verbose: bool = True,
     ):
         r"""Sample until the standard error of :math:`\langle O \rangle` meets the requested tolerance.
@@ -938,6 +939,8 @@ class MCState(VariationalState):
             max_iter: Maximum number of sampling iterations before stopping
                 unconditionally.
             max_lag: Maximum lag used by the online autocorrelation estimator.
+            min_length: Minimum number of samples per chain before stopping,
+                so that the split-R̂ of the result is meaningful.
             verbose: If ``True`` (default), display a :mod:`tqdm` progress bar
                 showing the current error and tolerances.
 
@@ -966,6 +969,7 @@ class MCState(VariationalState):
             rtol=rtol,
             max_iter=max_iter,
             max_lag=max_lag,
+            min_length=min_length,
             verbose=verbose,
         )
 

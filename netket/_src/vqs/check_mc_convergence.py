@@ -11,7 +11,6 @@ from pathlib import Path
 
 import jax
 import jax.numpy as jnp
-from tqdm.auto import tqdm
 
 from netket.sampler import MetropolisSampler
 from netket.operator import AbstractOperator
@@ -26,6 +25,7 @@ from netket._src.stats.online_stats import (
 )
 from netket._src.stats.local_estimators import LocalEstimatorsBatch
 from netket.utils.history import HistoryDict
+from netket._src.progress import progress_bar
 
 
 def check_mc_convergence(
@@ -141,7 +141,7 @@ def check_mc_convergence(
     iter = 0
     hist_data = HistoryDict()
 
-    with tqdm(
+    with progress_bar(
         desc="MC convergence",
         total=max_chain_length,
         initial=_chain_length,
@@ -180,7 +180,7 @@ def check_mc_convergence(
                 "R_hat": f"{stats.R_hat:.4f}",
                 "sat": saturated,
             }
-            pbar.set_postfix(postfix)
+            pbar.set_postfix(postfix, refresh=False)
             pbar.update(_chain_length)
 
             if saturated:
@@ -429,7 +429,7 @@ def thermalise_mcmc(
     good = not math.isnan(rhat_val) and rhat_val < rhat_tol
     consecutive_good = 1 if good else 0
 
-    with tqdm(
+    with progress_bar(
         desc="MC thermalisation",
         total=max_chain_length,
         initial=_chain_length,
@@ -486,7 +486,8 @@ def thermalise_mcmc(
                     "mean": f"{stats.mean:.4g}",
                     "R_hat": f"{rhat_val:.4f}",
                     "patience": f"{consecutive_good}/{patience}",
-                }
+                },
+                refresh=False,
             )
             pbar.update(_chain_length)
             iter_count += 1

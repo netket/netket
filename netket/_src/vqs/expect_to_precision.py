@@ -2,13 +2,13 @@
 
 import jax
 import jax.numpy as jnp
-from tqdm.auto import tqdm
 
 from netket.vqs.mc import MCState
 from netket.sampler import MetropolisSampler
 from netket.operator import AbstractOperator
 from netket._src.stats.online_stats import online_statistics
 from netket._src.stats.online_stats.accumulator_batch import OnlineStatsBatch
+from netket._src.progress import progress_bar
 
 
 def _summary_error_and_scale(stats) -> tuple[float, float]:
@@ -99,11 +99,12 @@ def expect_to_precision(
     rtol=None,
     max_iter: int = 10_000,
     max_lag: int = 64,
+    min_length: int = 32,
     verbose: bool = True,
 ):
     """
     Sample until the estimated standard error of the mean meets the requested
-    tolerance(s).
+    tolerance(s), with at least ``min_length`` samples per chain.
 
     This uses NetKet's online_statistics to update estimates incrementally.
 
@@ -145,6 +146,8 @@ def expect_to_precision(
             pytree matching the structure of ``op``.
         max_iter: Maximum number of sampling iterations.
         max_lag: Max lag used for autocorrelation estimation.
+        min_length: Minimum number of samples per chain before stopping, so
+            that the split-R̂ of the result is meaningful.
         verbose: Whether to show a progress bar.
     """
     if not isinstance(state.sampler, MetropolisSampler):
@@ -165,6 +168,7 @@ def expect_to_precision(
         )
 
     state.sample()
+    chain_length = state.chain_length
     stats_list = _accumulate_stats(
         state,
         op_leaves,
@@ -175,11 +179,12 @@ def expect_to_precision(
     active = [
         i
         for i in range(len(op_leaves))
-        if _check_not_converged(stats_list[i], atol_leaves[i], rtol_leaves[i])
+        if chain_length < min_length
+        or _check_not_converged(stats_list[i], atol_leaves[i], rtol_leaves[i])
     ]
 
     it = 0
-    with tqdm(
+    with progress_bar(
         total=max_iter,
         desc="Sampling",
         unit="iter",
@@ -189,19 +194,22 @@ def expect_to_precision(
         try:
             while active and it < max_iter:
                 state.sample(n_discard_per_chain=0)
+                chain_length += state.chain_length
                 stats_list = _accumulate_stats(
                     state, op_leaves, active, stats_list, max_lag=max_lag
                 )
                 active = [
                     i
                     for i in active
-                    if _check_not_converged(
+                    if chain_length < min_length
+                    or _check_not_converged(
                         stats_list[i], atol_leaves[i], rtol_leaves[i]
                     )
                 ]
 
                 pbar.set_postfix(
-                    _format_postfix(stats_list, active, atol_leaves, rtol_leaves)
+                    _format_postfix(stats_list, active, atol_leaves, rtol_leaves),
+                    refresh=False,
                 )
                 pbar.update(1)
                 it += 1
@@ -209,10 +217,13 @@ def expect_to_precision(
             if _is_rank0:
                 pbar.write("  Early termination requested by user.")
 
+        # Reduce on all ranks: _summary_error_and_scale calls get_stats(), a
+        # cross-process collective. Gating it behind _is_rank0 would run one
+        # extra collective on rank 0 alone and deadlock the other ranks.
+        err = max(_summary_error_and_scale(s)[0] for s in stats_list)
         if verbose and _is_rank0:
             if it >= max_iter:
                 pbar.write("  Reached max_iter before target precision.")
-            err = max(_summary_error_and_scale(s)[0] for s in stats_list)
             pbar.write(f"  [done] max error = {err:g}")
 
     return treedef.unflatten(stats_list)

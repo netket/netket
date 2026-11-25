@@ -15,6 +15,7 @@
 """
 Expectation value calculations for DeterminantVariationalState using Wick's theorem.
 """
+
 from typing import Union
 from functools import partial
 

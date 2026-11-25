@@ -24,9 +24,9 @@ def _build_rotation(hi, basis, dtype=np.complex64):
     assert len(basis) == hi.size
     for j in range(hi.size):
         if basis[j] == "X":
-            localop *= op.LocalOperatorNumba(hi, U_X, [j])
+            localop @= op.LocalOperatorNumba(hi, U_X, [j])
         if basis[j] == "Y":
-            localop *= op.LocalOperatorNumba(hi, U_Y, [j])
+            localop @= op.LocalOperatorNumba(hi, U_Y, [j])
     return localop
 
 

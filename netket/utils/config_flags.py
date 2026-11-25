@@ -263,6 +263,25 @@ config.define(
 )
 
 config.define(
+    "NETKET_EXPERIMENTAL_PACKED_KERNEL",
+    bool,
+    default=False,
+    help=dedent(
+        """
+        Experimental. If True, the local estimators of jax operators
+        (:class:`netket.operator.DiscreteJaxOperator`) on a :class:`netket.vqs.MCState`
+        are computed with :func:`netket.vqs.mc.kernels_packed.local_value_kernel_jax_packed`,
+        which evaluates the network only on the connected configurations that
+        differ from the sample instead of on all the padded ones, in
+        `expect` and `expect_and_grad`, with or without `chunk_size`. This is
+        faster for operators with many zero matrix elements (e.g. Heisenberg or
+        Hubbard models). Disabled by default.
+        """
+    ),
+    runtime=True,
+)
+
+config.define(
     "NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION",
     bool,
     default=False,

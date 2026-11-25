@@ -27,7 +27,6 @@ from netket.jax.sharding.fixed_sharding_decorator import (
 
 from netket.jax.sharding.fixed_sharding_utils import (
     shard_along_axis as shard_along_axis,
-    with_samples_sharding_constraint as with_samples_sharding_constraint,
     extract_replicated as extract_replicated,
     distribute_to_devices_along_axis as distribute_to_devices_along_axis,
     gather as gather,
@@ -39,18 +38,5 @@ from netket.jax.sharding.flexible_sharding import (
 
 
 from netket.utils import _hide_submodules
-from netket.utils.deprecation import warn_deprecation as _warn_deprecation
-
-
-# TODO: Deprecated in July 2025, remove eventually. It was internal
-def __getattr__(name):
-    """Handle deprecated attribute access with warnings."""
-    if name == "SHARD_MAP_STACK_LEVEL":
-        _warn_deprecation(
-            "Accessing netket.jax.sharding.SHARD_MAP_STACK_LEVEL directly is deprecated. Use _get_SHARD_MAP_STACK_LEVEL() instead.",
-        )
-        return _get_SHARD_MAP_STACK_LEVEL()
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
-
 
 _hide_submodules(__name__)

@@ -254,13 +254,13 @@ hamiltonian = nk.operator.Ising(hilbert, graph, h=1.0)
 
 # Standard NetKet workflow
 model = nk.models.RBM(alpha=1)
-sampler = nk.sampler.MetropolisExchange(hilbert, graph)  # Respects magnetization
+sampler = nk.sampler.MetropolisExchange(hilbert, graph=graph)  # Respects magnetization
 vstate = nk.vqs.MCState(sampler, model)
 
 # Optimization works as usual
 optimizer = nk.optimizer.Sgd(0.01)
-driver = nk.driver.VMC(hamiltonian, optimizer)
-driver.run(vstate, n_iter=100)
+driver = nk.driver.VMC(hamiltonian, optimizer, variational_state=vstate)
+driver.run(n_iter=100)
 ```
 
 ## See Also

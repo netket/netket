@@ -44,6 +44,8 @@ uv.lock
 # Logs and databases #
 ######################
 *.log
+# per-rank output of djaxrun
+djaxrunlog-p*
 *.sql
 *.sqlite
 *.json

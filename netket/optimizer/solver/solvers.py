@@ -20,17 +20,35 @@ from jax.sharding import PartitionSpec as P
 from jax.flatten_util import ravel_pytree
 
 from netket.utils.api_utils import partial_from_kwargs
-from netket.utils.deprecation import warn_deprecation
 from netket._src.solvers.nan_fallback import (
     _nan_fallback_solver,
     nan_fallback as nan_fallback,
 )
-from netket.utils.optional_deps import import_optional_dependency
+from netket._src.solvers.jaxmg_interface import (
+    check_matrix_shardable,
+    default_tile_size,
+    import_jaxmg,
+    on_process_grid,
+    process_grid_shape,
+)
 from netket.utils.citations import reference
 
-# `jaxmg` 1.0 is a breaking release, not supported yet.
-_JAXMG_MIN_VERSION = "0.0.9"
-_JAXMG_MAX_VERSION = "1.0.0"
+
+def _smooth_inverse_eigenvalues(Σ, rtol, rtol_smooth):
+    r"""The regularised inverse of the ascending spectrum ``Σ`` of a Hermitian
+    positive semi-definite matrix, as used by :func:`pinv_smooth`.
+
+    Eigenvalues at or below ``max(rtol, eps) * λ_max`` are discarded, with ``eps``
+    the machine epsilon of ``Σ``'s dtype. Negative eigenvalues are roundoff and
+    are always discarded.
+    """
+    λ_max = jnp.maximum(Σ[-1], 0.0)
+    cutoff = jnp.maximum(rtol, jnp.finfo(Σ.dtype).eps) * λ_max
+    keep = Σ > cutoff
+    # A discarded eigenvalue may be exactly zero.
+    Σ_safe = jnp.where(keep, Σ, 1.0)
+    regularizer = 1.0 / (1.0 + (rtol_smooth * λ_max / Σ_safe) ** 6)
+    return jnp.where(keep, regularizer / Σ_safe, 0.0), keep
 
 
 @partial_from_kwargs
@@ -41,17 +59,21 @@ def pinv_smooth(
     rtol: float = 1e-14,
     rtol_smooth: float = 1e-14,
     x0=None,
-    rcond: float = None,
-    rcond_smooth: float = None,
     return_eigvals: bool = False,
 ):
     r"""
     Solve the linear system by building a pseudo-inverse from the
     eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
 
-    The eigenvalues :math:`\lambda_i` smaller than
-    :math:`r_\textrm{cond} \lambda_\textrm{max}` are truncated (where
-    :math:`\lambda_\textrm{max}` is the largest eigenvalue).
+    The matrix is assumed Hermitian positive semi-definite (e.g. a shifted
+    quantum geometric tensor or neural tangent kernel). The eigenvalues
+    :math:`\lambda_i` at or below
+    :math:`\max(r_\textrm{tol}, \epsilon_\textrm{dtype}) \lambda_\textrm{max}` are
+    truncated (where :math:`\lambda_\textrm{max}` is the largest eigenvalue and
+    :math:`\epsilon_\textrm{dtype}` the machine epsilon of the matrix dtype, the
+    resolution of the eigensolver). Negative eigenvalues, which in a positive
+    semi-definite matrix are roundoff, are therefore always discarded rather than
+    inverted.
 
     The eigenvalues are further smoothed with another filter, originally introduced in
     `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
@@ -84,32 +106,17 @@ def pinv_smooth(
     Args:
         A: LinearOperator (matrix)
         b: vector or Pytree
-        rtol : Relative tolerance for small singular values of :code:`A`. For
-            the purposes of rank determination, singular values are treated
-            as zero if they are smaller than `rtol` times the largest
-            singular value of :code:`A`.
+        rtol : Relative tolerance for small eigenvalues of :code:`A`. For
+            the purposes of rank determination, eigenvalues are treated
+            as zero if they are at or below `rtol` (floored at the machine
+            epsilon of the dtype of :code:`A`) times the largest eigenvalue
+            of :code:`A`.
         rtol_smooth : Regularization parameter used with a similar effect to `rtol`
             but with a softer curve. See :math:`\epsilon` in the formula
             above.
-        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
-        rcond_smooth: (deprecated) Alias for `rtol_smooth`. Will be removed in a future release.
         return_eigvals: If True, also return the eigenvalues of A.
     """
     del x0
-
-    if rcond is not None:
-        warn_deprecation(
-            "The 'rcond' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol' instead."
-        )
-        rtol = rcond
-
-    if rcond_smooth is not None:
-        warn_deprecation(
-            "The 'rcond_smooth' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol_smooth' instead."
-        )
-        rtol_smooth = rcond
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
@@ -117,17 +124,11 @@ def pinv_smooth(
 
     Σ, U = jnp.linalg.eigh(A)
 
-    # Discard eigenvalues below numerical precision
-    Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
-
-    # Set regularizer for singular value cutoff
-    regularizer = 1.0 / (1.0 + (rtol_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
-
-    Σ_inv = Σ_inv * regularizer
+    Σ_inv, keep = _smooth_inverse_eigenvalues(Σ, rtol, rtol_smooth)
 
     x = U @ (Σ_inv * (U.conj().T @ b))
 
-    rank = jnp.sum(Σ > rtol * Σ[-1])
+    rank = jnp.sum(keep)
     cond_number = Σ[-1] / Σ[0]
     info = {
         "eval_min": Σ[0],
@@ -148,7 +149,6 @@ def pinv(
     *,
     rtol: float = 1e-12,
     x0=None,
-    rcond: float = None,
     return_eigvals: bool = False,
 ):
     """
@@ -185,16 +185,8 @@ def pinv(
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
         rtol: Cut-off ratio for small singular values of :code:`A`.
-        rcond: (deprecated) Alias for `rtol`. Will be removed in a future release.
     """
     del x0
-
-    if rcond is not None:
-        warn_deprecation(
-            "The 'rcond' argument is deprecated and will be removed in a future release. "
-            "Please use 'rtol' instead."
-        )
-        rtol = rcond
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
@@ -290,7 +282,6 @@ def LU(A, b, *, trans=0, x0=None):
     Args:
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
-        lower: if True uses the lower half of the A matrix
         x0: unused
     """
 
@@ -334,8 +325,10 @@ def cholesky_with_fallback(
         A: the matrix A in Ax=b
         b: the vector or pytree b in Ax=b
         rtol: Relative tolerance for small eigenvalues of :code:`A`, passed to
-            :func:`pinv_smooth`. Eigenvalues smaller than ``rtol`` times the
-            largest are truncated.
+            :func:`pinv_smooth`. Eigenvalues at or below ``rtol`` (floored at the
+            machine epsilon of the matrix dtype) times the largest are truncated,
+            and negative ones always are: the fallback only runs when Cholesky
+            failed, i.e. when roundoff made the shifted matrix indefinite.
         rtol_smooth: Soft regularisation parameter passed to :func:`pinv_smooth`.
             See :func:`pinv_smooth` for details.
         x0: unused
@@ -362,7 +355,6 @@ def solve(A, b, *, assume_a="pos", x0=None):
     Args:
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
-        lower: if True uses the lower half of the A matrix
         x0: unused
     """
     del x0
@@ -381,7 +373,7 @@ def solve(A, b, *, assume_a="pos", x0=None):
     message="This work used the JAXMg distributed linear solver from Ref.",
 )
 @partial_from_kwargs
-def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
+def cholesky_distributed(A, b, *, local_tile_size=None, process_grid=None, x0=None):
     """
     Solve the linear system using a distributed Cholesky factorization.
 
@@ -392,8 +384,21 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
 
     .. note::
 
-        This solver requires the `jaxmg` package to be installed, with a version
-        older than 1.0 (``pip install 'jaxmg<1.0.0'``).
+        Requires `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_ >= 1.4.1
+        and **one python process per GPU** (e.g. launch with ``djaxrun``).
+
+    .. note::
+
+        JAXMg factorises (the local shard of) ``A`` in place. Inside of a
+        jitted function where ``A`` is not used after the solve, as in
+        NetKet's drivers, this needs no copy of ``A`` if the default process
+        grid and tile size are used (unless the local shard of ``A`` has an
+        awkward size, with no divisor of at least 64 below the tile-size cap). If ``A`` is still needed afterwards, for
+        example when calling the solver eagerly or combining it with
+        :func:`~netket.optimizer.solver.nan_fallback`, a copy of the local
+        shard of ``A`` is made first. A non-default ``process_grid``, or a
+        ``local_tile_size`` not dividing the local shard, also require a
+        (padded) copy.
 
     .. note::
 
@@ -411,10 +416,11 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
         A: the matrix A in Ax=b (should be positive definite, sharded)
         b: the vector b in Ax=b
         local_tile_size: Tile size for matrix A. Controls the tiling strategy for
-             distributed computation (see `NVIDIA cuSOLVER tile strategy
-             <https://docs.nvidia.com/cuda/cusolver/index.html#tile-strategy>`_).
-             Defaults to ``A.shape[0] // jax.local_device_count()`` to distribute
-             work evenly across devices, with a minimum of 64.
+             distributed computation (see `choosing a tile size
+             <https://flatironinstitute.github.io/jaxmg/latest/examples/choose_tile_size/>`_).
+             Defaults to the largest tile dividing the local shard of `A`
+             (so that `A` needs no padding), capped at 4096, if one of at
+             least 64 exists.
 
              The tile size determines the memory/communication tradeoff:
 
@@ -425,9 +431,20 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
 
              See `ArXiV:2601.14466 <https://arxiv.org/abs/2601.14466>`_ for details specific
              to NQS.
-             For most applications, the default (matrix size / device count) works well.
+             For most applications the default works well.
              Adjust if you encounter memory issues (decrease local_tile_size) or excessive
              communication overhead (increase local_tile_size).
+        process_grid: Shape ``(process_rows, process_cols)`` of the 2D cuSOLVERMp
+             process grid, which must have one slot per device. Defaults to
+             ``(n_devices, 1)``, which matches the row sharding NetKet uses for
+             the NTK (``use_ntk=True``), and therefore requires no
+             redistribution of `A` (by default, an `A` sharded by columns may
+             use the ``(1, n_devices)`` grid instead). A genuinely 2D grid
+             reduces the
+             communication volume of the factorisation itself, at the cost of
+             redistributing `A` first, and can be faster for large matrices.
+             It requires the devices of the mesh to be in the order of
+             :func:`jax.devices`, as in the mesh set by NetKet.
         x0: unused (kept for API compatibility)
 
     Returns:
@@ -447,44 +464,36 @@ def cholesky_distributed(A, b, *, local_tile_size=None, x0=None):
     """
     del x0
 
-    jaxmg = import_optional_dependency(
-        "jaxmg",
-        minimum_version=_JAXMG_MIN_VERSION,
-        maximum_version=_JAXMG_MAX_VERSION,
-        descr="cholesky_distributed solver",
-    )
+    jaxmg = import_jaxmg("cholesky_distributed solver")
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
     b, unravel = ravel_pytree(b)
 
-    # Set default tile size: distribute matrix evenly across devices
+    # jaxmg requires A and b to have the same dtype.
+    dtype = jnp.result_type(A, b)
+    A, b = A.astype(dtype), b.astype(dtype)
+
+    grid_shape = process_grid_shape(process_grid)
+    check_matrix_shardable(A.shape[0], grid_shape, caller="cholesky_distributed")
+
     if local_tile_size is None:
-        n_devices = jax.local_device_count()
-        # Divide matrix among devices, with minimum tile size of 64
-        local_tile_size = max(64, A.shape[0] // n_devices)
-        # Clamp to matrix size
-        local_tile_size = min(local_tile_size, A.shape[0])
         # Max value is 8192, but it seems 4096 is ok
-        local_tile_size = min(local_tile_size, 4096)
+        local_tile_size = default_tile_size(A.shape[0], grid_shape, max_tile_size=4096)
 
-    # JAXMg's potrs expects b to be 2D
-    if b.ndim == 1:
-        b = jnp.expand_dims(b, axis=1)
-        squeeze_output = True
-    else:
-        squeeze_output = False
+    # jaxmg reads the mesh and the sharding of `A` off `A` itself, reshapes a
+    # 1D `b` to a (N, 1) matrix, and gives the solution back sharded like `b`.
+    # The `_shardmap_ctx` entry point, meant to be called inside of an outer
+    # `jax.jit`, is used because by default `jaxmg.potrs` donates `A` and `b`,
+    # deleting them when called outside of `jax.jit`. NetKet's solvers must not
+    # consume the linear problem, or combinators reusing it, such as
+    # :func:`~netket.optimizer.solver.nan_fallback`, would crash.
+    @on_process_grid(process_grid)
+    def solve(A, b):
+        _A_work, x, _status = jaxmg.potrs_shardmap_ctx(A, b, T_A=local_tile_size)
+        return x
 
-    x = jaxmg.potrs(
-        A,
-        b,
-        T_A=local_tile_size,
-        mesh=jax.sharding.get_abstract_mesh(),
-        in_specs=P("S", None),
-    )
-
-    if squeeze_output:
-        x = jnp.squeeze(x, axis=1)
+    x = solve(A, b)
 
     return unravel(x), None
 
@@ -502,19 +511,21 @@ def pinv_smooth_distributed(
     rtol: float = 1e-14,
     rtol_smooth: float = 1e-14,
     local_tile_size=None,
+    process_grid=None,
     x0=None,
 ):
     r"""
     Solve the linear system using a distributed pseudo-inverse from eigendecomposition.
 
     This is the distributed/multi-GPU equivalent of :func:`~netket.optimizer.solver.pinv_smooth`.
-    It uses jaxmg's `syevd` function (cuSOLVERMg SYEVD) to compute eigenvalues and eigenvectors
+    It uses jaxmg's `syevd` function (cuSOLVERMp SYEVD) to compute eigenvalues and eigenvectors
     of a symmetric/Hermitian matrix in a distributed manner, then applies the same smoothed
     regularization as :func:`~netket.optimizer.solver.pinv_smooth`.
 
-    The eigenvalues :math:`\lambda_i` smaller than
-    :math:`r_\textrm{tol} \lambda_\textrm{max}` are truncated (where
-    :math:`\lambda_\textrm{max}` is the largest eigenvalue).
+    The eigenvalues :math:`\lambda_i` at or below
+    :math:`\max(r_\textrm{tol}, \epsilon_\textrm{dtype}) \lambda_\textrm{max}`,
+    negative ones included, are truncated as in
+    :func:`~netket.optimizer.solver.pinv_smooth`.
 
     The eigenvalues are further smoothed with another filter, originally introduced in
     `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
@@ -527,8 +538,19 @@ def pinv_smooth_distributed(
 
     .. note::
 
-        This solver requires the `jaxmg` package to be installed, with a version
-        older than 1.0 (``pip install 'jaxmg<1.0.0'``).
+        Requires `jaxmg <https://flatironinstitute.github.io/jaxmg/>`_ >= 1.4.1
+        and **one python process per GPU** (e.g. launch with ``djaxrun``).
+
+    .. note::
+
+        JAXMg overwrites (the local shard of) ``A`` with its work space, and
+        stores the eigenvectors in a new buffer as large as ``A``, so the solve
+        needs about twice the memory of ``A``. If ``A`` is still needed
+        afterwards, for example when calling the solver eagerly or combining
+        it with :func:`~netket.optimizer.solver.nan_fallback`, a further copy
+        of the local shard of ``A`` is made first. A non-default
+        ``process_grid``, or a ``local_tile_size`` not dividing the local
+        shard, also require a (padded) copy.
 
     Args:
         A: the matrix A in Ax=b (should be symmetric/Hermitian, sharded)
@@ -541,10 +563,11 @@ def pinv_smooth_distributed(
             but with a softer curve. See :math:`\epsilon` in the formula
             above.
         local_tile_size: Tile size for matrix A. Controls the tiling strategy for
-             distributed computation (see `NVIDIA cuSOLVER tile strategy
-             <https://docs.nvidia.com/cuda/cusolver/index.html#tile-strategy>`_).
-             Defaults to ``A.shape[0] // jax.local_device_count()`` to distribute
-             work evenly across devices, with a minimum of 64.
+             distributed computation (see `choosing a tile size
+             <https://flatironinstitute.github.io/jaxmg/latest/examples/choose_tile_size/>`_).
+             Defaults to the largest tile dividing the local shard of `A`
+             (so that `A` needs no padding), capped at 512, if one of at
+             least 64 exists.
 
              The tile size determines the memory/communication tradeoff:
 
@@ -555,9 +578,20 @@ def pinv_smooth_distributed(
 
              See `ArXiV:2601.14466 <https://arxiv.org/abs/2601.14466>`_ for details specific
              to NQS.
-             For most applications, the default (matrix size / device count) works well.
+             For most applications the default works well.
              Adjust if you encounter memory issues (decrease local_tile_size) or excessive
              communication overhead (increase local_tile_size).
+        process_grid: Shape ``(process_rows, process_cols)`` of the 2D cuSOLVERMp
+             process grid, which must have one slot per device. Defaults to
+             ``(n_devices, 1)``, which matches the row sharding NetKet uses for
+             the NTK (``use_ntk=True``), and therefore requires no
+             redistribution of `A` (by default, an `A` sharded by columns may
+             use the ``(1, n_devices)`` grid instead). A genuinely 2D grid
+             reduces the
+             communication volume of the eigendecomposition itself, at the cost
+             of redistributing `A` first, and can be faster for large matrices.
+             It requires the devices of the mesh to be in the order of
+             :func:`jax.devices`, as in the mesh set by NetKet.
 
     Returns:
         tuple: (solution, None) where solution is the unraveled result.
@@ -578,44 +612,33 @@ def pinv_smooth_distributed(
     """
     del x0
 
-    jaxmg = import_optional_dependency(
-        "jaxmg",
-        minimum_version=_JAXMG_MIN_VERSION,
-        maximum_version=_JAXMG_MAX_VERSION,
-        descr="pinv_smooth_distributed solver",
-    )
+    jaxmg = import_jaxmg("pinv_smooth_distributed solver")
 
     if not isinstance(A, jax.Array):
         A = A.to_dense()
     b, unravel = ravel_pytree(b)
 
-    # Set default tile size: distribute matrix evenly across devices
+    grid_shape = process_grid_shape(process_grid)
+    check_matrix_shardable(A.shape[0], grid_shape, caller="pinv_smooth_distributed")
+
     if local_tile_size is None:
-        n_devices = jax.local_device_count()
-        # Divide matrix among devices, with minimum tile size of 64
-        local_tile_size = max(64, A.shape[0] // n_devices)
-        # Clamp to matrix size
-        local_tile_size = min(local_tile_size, A.shape[0])
         # Max value is 1024 (see https://docs.nvidia.com/cuda/pdf/CUSOLVER_Library.pdf#page=361)
         # but 512 consumes less memory and seems ok
-        local_tile_size = min(local_tile_size, 512)
+        local_tile_size = default_tile_size(A.shape[0], grid_shape, max_tile_size=512)
 
-    # Compute eigendecomposition using distributed solver
-    Σ, U = jaxmg.syevd(
-        A,
-        T_A=local_tile_size,
-        mesh=jax.sharding.get_abstract_mesh(),
-        in_specs=(P("S", None),),
-    )
+    @on_process_grid(process_grid)
+    def solve(A, b):
+        # Compute eigendecomposition using distributed solver. As above, the
+        # `_shardmap_ctx` entry point is the one that does not consume `A`.
+        _A_work, Σ, U, _status = jaxmg.syevd_shardmap_ctx(A, T_A=local_tile_size)
 
-    # Discard eigenvalues below numerical precision
-    Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rtol, jnp.reciprocal(Σ), 0.0)
+        Σ_inv, _ = _smooth_inverse_eigenvalues(Σ, rtol, rtol_smooth)
 
-    # Set regularizer for singular value cutoff
-    regularizer = 1.0 / (1.0 + (rtol_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
+        # U is sharded like `A`, so with Explicit mesh axes jax requires the
+        # sharding of these contractions to be given.
+        y = jnp.matmul(U.conj().T, b, out_sharding=P())
+        return jnp.matmul(U, Σ_inv * y, out_sharding=P())
 
-    Σ_inv = Σ_inv * regularizer
-
-    x = U @ (Σ_inv * (U.conj().T @ b))
+    x = solve(A, b)
 
     return unravel(x), None

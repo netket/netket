@@ -71,7 +71,8 @@ def is_scalar(x: Array):  # noqa: F811
     return x.ndim == 0
 
 
-# TODO: When jax>=0.8.2 we should remove this as it is already handled by the Array case
+# Since jax 0.8.2, tracers are no longer subclasses of jax.Array (isinstance still
+# holds through its metaclass), so dispatch does not send them to the Array case.
 @dispatch(precedence=-1)
 def is_scalar(x: jax.core.Tracer):  # noqa: F811
     return x.ndim == 0

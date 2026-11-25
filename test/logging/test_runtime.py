@@ -147,6 +147,36 @@ def test_deserialize(tmp_path):
 
 
 @common.skipif_distributed
+@pytest.mark.parametrize("fails", [False, True])
+def test_serialize_replaces_the_file_atomically(tmp_path, fails):
+    path = tmp_path / "out.log"
+    log = nk.logging.RuntimeLog()
+    log(0, {"energy": 0.0})
+    log.serialize(path)
+
+    log(1, {"energy": 1.0})
+    seen = []
+    write = log._serialize
+
+    def _read_while_writing(io):
+        seen.append(nk.logging.RuntimeLog.deserialize(path))
+        if fails:
+            raise RuntimeError("killed mid-write")
+        write(io)
+
+    log._serialize = _read_while_writing
+    if fails:
+        with pytest.raises(RuntimeError, match="killed mid-write"):
+            log.serialize(path)
+    else:
+        log.serialize(path)
+
+    np.testing.assert_allclose(seen[0].data["energy"].iters, [0])
+    written = nk.logging.RuntimeLog.deserialize(path).data["energy"].iters
+    np.testing.assert_allclose(written, [0] if fails else [0, 1])
+
+
+@common.skipif_distributed
 def test_json_log_append(tmp_path):
     prefix = str(tmp_path / "out")
     n_first = 5
@@ -206,3 +236,19 @@ def test_write_only_on_master(tmp_path):
         assert tmp_path.exists()
     else:
         assert not tmp_path.exists()
+
+
+@common.skipif_distributed
+def test_json_log_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch):
+    # Pretend to be rank 1: nothing should be created on disk.
+    monkeypatch.setattr(jax, "process_index", lambda *args, **kwargs: 1)
+
+    root = tmp_path / "dir1"
+    log = nk.logging.JsonLog(str(root / "dir2" / "out"), "w", write_every=1)
+    for i in range(3):
+        log(i, {"energy": float(i)}, vstate)
+    log.flush(vstate)
+    del log
+
+    assert not root.exists()
+    assert list(tmp_path.iterdir()) == []

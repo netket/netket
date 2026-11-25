@@ -95,6 +95,22 @@ def test_pauli_subtraction(Op):
 
 
 @pytest.mark.parametrize("Op", operators)
+def test_pauli_transpose_conjugate(Op):
+    op = Op(["XYI", "YYZ", "ZIY"], [1 + 2j, 0.5j, -1.0])
+    mat = op.to_dense()
+    np.testing.assert_allclose(op.transpose(concrete=True).to_dense(), mat.T)
+    np.testing.assert_allclose(op.conjugate(concrete=True).to_dense(), mat.conj())
+    np.testing.assert_allclose(op.H.collect().to_dense(), mat.conj().T)
+
+
+@pytest.mark.parametrize("Op", operators)
+def test_constrained_pauli_adjoint_product(Op):
+    hi = nk.hilbert.Spin(0.5, N=2, total_sz=0)
+    op = Op(hi, ["ZI"], [1j])
+    np.testing.assert_allclose((op.H @ op).to_dense(), np.eye(hi.n_states))
+
+
+@pytest.mark.parametrize("Op", operators)
 def test_pauli_simple_constructor(Op):
     operator = "XX"
     weight = 0.3

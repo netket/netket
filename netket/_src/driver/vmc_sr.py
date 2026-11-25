@@ -12,7 +12,6 @@ from netket.optimizer.solver import cholesky_with_fallback
 from netket.vqs import MCState, FullSumState
 from netket.utils import timing, struct
 from netket.utils.citations import reference
-from netket.utils.deprecation import DeprecatedArg
 from netket.utils.types import ScalarOrSchedule, Optimizer, Array, PyTree
 from netket.jax._jacobian.default_mode import JacobianMode
 from netket.operator import AbstractOperator, to_sparse_cached
@@ -33,43 +32,34 @@ KernelFun = Callable[[PyTree, Array], KernelArgs]
 DeriativesArgs = tuple[ApplyFun, PyTree, PyTree, Array]
 
 
-def VMC_SRt(
-    hamiltonian: AbstractOperator,
-    optimizer: Optimizer,
-    *,
-    diag_shift: ScalarOrSchedule,
-    linear_solver: Callable[[jax.Array, jax.Array], jax.Array] = cholesky_with_fallback,
-    mode: str | None = None,
-    jacobian_mode: str | None | DeprecatedArg = DeprecatedArg(),
-    variational_state: MCState,
-    linear_solver_fn: (
-        Callable[[jax.Array, jax.Array], jax.Array] | DeprecatedArg
-    ) = DeprecatedArg(),
-):
-    if not isinstance(jacobian_mode, DeprecatedArg):
-        if mode is not None:
-            raise ValueError(
-                "`jacobian_mode` is deprecated and renamed to `mode`. Just declare `mode`."
-            )
-        warn(
-            """
-            The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
-            """,
-            category=FutureWarning,
-            stacklevel=2,
-        )
-        mode = jacobian_mode
+# Number of lags used for the MCMC diagnostics accumulated across iterations.
+_MCMC_DIAGNOSTICS_MAX_LAG = 32
 
-    return VMC_SR(
-        hamiltonian,
-        optimizer,
-        diag_shift=diag_shift,
-        linear_solver=linear_solver,
-        linear_solver_fn=linear_solver_fn,
-        mode=mode,
-        variational_state=variational_state,
-        use_ntk=True,
-        on_the_fly=False,
+
+def _init_momentum_buffer(parameters, momentum, on_the_fly):
+    """The zeros that the SPRING solvers would otherwise create at the first step."""
+    if momentum is None:
+        return None
+    params_real, _ = nkjax.tree_to_real(parameters)
+    buffer = jax.tree_util.tree_map(jnp.zeros_like, params_real)
+    if not on_the_fly:
+        buffer, _ = ravel_pytree(buffer)
+    return buffer
+
+
+def _init_mcmc_diagnostics(state, hamiltonian, decay):
+    """The empty accumulator that online_statistics would create at the first step."""
+    # It must have the same dtype as the local energies.
+    log_psi = jax.eval_shape(
+        state._apply_fun,
+        state.variables,
+        state.hilbert.random_state(jax.random.key(0), 1),
+    )
+    return OnlineStats(
+        state.sampler.n_chains,
+        dtype=jnp.result_type(hamiltonian.dtype, log_psi.dtype),
+        decay=decay,
+        max_lag=_MCMC_DIAGNOSTICS_MAX_LAG,
     )
 
 
@@ -247,7 +237,7 @@ class VMC_SR(AbstractOptimizationDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    info: Any | None = None
+    info: Any | None = struct.field(serialize=False, default=None)
     """
     PyTree to pass on information from the solver,e.g, the quadratic model.
     """
@@ -261,9 +251,6 @@ class VMC_SR(AbstractOptimizationDriver):
         proj_reg: ScalarOrSchedule | None = None,
         momentum: ScalarOrSchedule | None = None,
         linear_solver: Callable[[Array, Array], Array] = cholesky_with_fallback,
-        linear_solver_fn: (
-            Callable[[Array, Array], Array] | DeprecatedArg
-        ) = DeprecatedArg(),
         variational_state: MCState,
         chunk_size_bwd: int | None = None,
         mode: JacobianMode | None = None,
@@ -334,17 +321,6 @@ class VMC_SR(AbstractOptimizationDriver):
                 SR and minSR. (Defaults to None, which will automatically choose the best
                 method)
         """
-        # TODO: Deprecated in September 2025, netket 3.20
-        if not isinstance(linear_solver_fn, DeprecatedArg):
-            warn(
-                """
-                The keyword argument `linear_solver_fn` is deprecated in favour of `linear_solver`.
-                """,
-                category=FutureWarning,
-                stacklevel=2,
-            )
-            linear_solver = linear_solver_fn
-
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
         if isinstance(variational_state, FullSumState):
@@ -410,7 +386,11 @@ class VMC_SR(AbstractOptimizationDriver):
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
 
-        self._old_updates: PyTree = None
+        # Built here rather than at the first step, so that a freshly built
+        # driver can load it back from a checkpoint.
+        self._old_updates = _init_momentum_buffer(
+            self.state.parameters, self.momentum, self._on_the_fly
+        )
 
         # PyTree to pass on information from the solver, e.g, the quadratic model
         self.info = None
@@ -429,6 +409,11 @@ class VMC_SR(AbstractOptimizationDriver):
         self._loss_stats_online = None
 
         decay = self._mcmc_convergence_diagnostics_ema_decay
+        if decay is not None:
+            # Built here so that a fresh driver can load it from a checkpoint.
+            self._loss_stats_online = _init_mcmc_diagnostics(
+                self.state, self._ham, decay
+            )
         if jax.process_index() == 0 and decay is not None:
             print(
                 f"online_statistics: "
@@ -462,11 +447,16 @@ class VMC_SR(AbstractOptimizationDriver):
             # across different MCMC iterations with an exponential moving average.
             decay = self._mcmc_convergence_diagnostics_ema_decay
             if decay is not None:
+                old_estimator = self._loss_stats_online
+                # If it is still empty, rebuild it in case the number of samples
+                # or chains changed since the driver was built.
+                if old_estimator is not None and old_estimator.n_samples == 0:
+                    old_estimator = None
                 self._loss_stats_online = nkstats.online_statistics(
                     local_energies,
-                    old_estimator=self._loss_stats_online,
+                    old_estimator=old_estimator,
                     decay=decay,
-                    max_lag=32,
+                    max_lag=_MCMC_DIAGNOSTICS_MAX_LAG,
                 )
 
         # Extract the hyperparameters which might be iteration dependent

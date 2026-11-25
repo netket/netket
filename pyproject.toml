@@ -31,17 +31,17 @@ classifiers = [
 ]
 dynamic = ["version"]
 
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
-    "numpy>=1.20,<3.0",
+    "numpy>=2.0,<3.0",
     "scipy>=1.5.3, <2",
-    "tqdm>=4.60, <5",
+    "tqdm>=4.66, <5",
     "rich>=12.0",
     "numba>=0.59",
     "igraph>=0.10.0",
-    "jax>=0.7.0",
+    "jax>=0.10.0",
     "equinox>=0.12.2",
-    "flax>=0.10.6",
+    "flax>=0.12.7",
     "orjson>=3.10.7, <4",
     "optax>=0.2.2, <0.3",
     "plum-dispatch>=2.4",
@@ -52,7 +52,7 @@ dependencies = [
 [project.optional-dependencies]
 cuda = ["jax[cuda12]; sys_platform == 'linux'"]
 pyscf = ["pyscf>=2.0"]
-extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=4", "mlflow>=2.0.0", "jaxmg>=0.0.9,<1.0.0; sys_platform == 'linux'"]
+extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=5", "mlflow>=2.0.0", "wandb>=0.19.0"]
 dev = [
     "networkx>=2.4",
     "matplotlib>=3",
@@ -62,19 +62,18 @@ dev = [
     "pytest-json-report>=1.3",
     "coverage>=5",
     "pre-commit>=2.7",
-    "black==25.1.0",
-    "ruff==0.14.1",
+    "ruff==0.17.3",
     "qutip>=5",
     "wheel>=0.38.1",
     "build>=1",
 ]
 docs = [
-    "Sphinx>=8.2.3,<9.2.0",
+    "Sphinx>=8.2.3,<9.3.0",
     "sphinx-design>=0.4.0",
     "sphinx-autodoc-typehints>=1.22,<4.0",
     "sphinxcontrib-fulltoc~=1.2.0",
-    "sphinxcontrib-jsmath~=1.0.1",
-    "myst-parser>=2.0.0,<5.2.0",
+    "sphinxcontrib-jsmath>=1.0.1,<2.1.0",
+    "myst-parser>=2.0.0,<5.3.0",
     "myst-nb>=1.0,<1.5",
     "sphinx-book-theme>=1.1,<1.5",
     "sphinx-copybutton>=0.5.2",
@@ -114,25 +113,6 @@ version-file = "netket/_version.py"
 
 # Development tools
 
-[tool.black]
-line-length = 88
-target-version = ['py311', 'py312', 'py313']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
-
 [tool.coverage.run]
 branch = true
 parallel = true
@@ -166,31 +146,19 @@ filterwarnings = [
 testpaths = ["test"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 88
-exclude = ["Examples", "docs/conf.py", "*.ipynb"]
+exclude = ["docs/conf.py", "*.ipynb"]
 
 [tool.ruff.lint]
+exclude = ["Examples/**"]
 select = ["E", "F", "W", "D410", "UP", "TID252", "TC010"]
 fixable = ["E", "F", "W", "D", "UP"]
-ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035"]
+ignore = ["E501", "E731", "E721", "E701", "E741", "UP007", "UP035", "UP046", "UP047"]
 #ignore = ["E266"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
-"netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
 "docs/sphinx_extensions/*" = ["UP", "D"]
 "!netket/utils/*.py" = ["TID252"]
-
-[tool.mypy]
-show_error_codes = true
-disable_error_code = "attr-defined, name-defined, annotation-unchecked, import-untyped"
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = false
-
-
-[[tool.mypy.overrides]]
-module = ["netket"]
-ignore_missing_imports = true

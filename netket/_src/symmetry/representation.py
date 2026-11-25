@@ -220,7 +220,6 @@ class Representation:
         irrep_dims = []
 
         for projector in projectors:
-
             eigvals, eigvecs = np.linalg.eig(projector)
             is_in_image = np.abs(eigvals - 1) < 1e-12
             selected_eigvecs = eigvecs[:, is_in_image]

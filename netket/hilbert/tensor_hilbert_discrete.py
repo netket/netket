@@ -38,7 +38,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         >>> from netket.hilbert import Spin, Fock
         >>> hi = Fock(3)*Spin(0.5, 5)
         >>> print(hi)
-        Fock(n_max=3, N=1)⊗Spin(s=1/2, N=5, ordering=new)
+        Fock(n_max=3, N=1)⊗Spin(s=1/2, N=5)
         >>> isinstance(hi, nk.hilbert.TensorHilbert)
         True
         >>> type(hi)
@@ -50,7 +50,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         r"""Constructs a tensor Hilbert space
 
         Args:
-            *hilb: An iterable object containing at least 1 hilbert space.
+            *hilb_spaces: An iterable object containing at least 1 hilbert space.
         """
         if not all(isinstance(hi, DiscreteHilbert) for hi in hilb_spaces):
             raise TypeError(

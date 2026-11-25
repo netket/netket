@@ -27,6 +27,7 @@ from netket import jax as nkjax
 from netket.jax import canonicalize_dtypes
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import dtype as _dtype, is_scalar
+from netket.errors import OperatorMultiplicationError
 
 from .._abstract_operator import AbstractOperator
 from .._discrete_operator import DiscreteOperator
@@ -81,8 +82,7 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
             hilbert = Qubit(len(operators[0]))
         else:
             raise ValueError(
-                "To construct an empty PauliString the hilbert space "
-                "must be specified."
+                "To construct an empty PauliString the hilbert space must be specified."
             )
 
     if not np.allclose(hilbert.shape, 2):
@@ -172,7 +172,7 @@ class PauliStringsBase(DiscreteOperator):
            >>> hilbert = nk.hilbert.Spin(1/2, 2)
            >>> op = nk.operator.PauliStrings(hilbert, operators, weights)
            >>> op.hilbert
-           Spin(s=1/2, N=2, ordering=new)
+           Spin(s=1/2, N=2)
         """
         if hilbert is None:
             raise ValueError("None-valued hilbert passed.")
@@ -256,9 +256,9 @@ class PauliStringsBase(DiscreteOperator):
         for operator, weight in of_qubit_operator.terms.items():  # gives dict
             s = ["I"] * n_qubits
             for loc, op in operator:
-                assert (
-                    loc < n_qubits
-                ), f"operator index {loc} is longer than n_qubits={n_qubits}"
+                assert loc < n_qubits, (
+                    f"operator index {loc} is longer than n_qubits={n_qubits}"
+                )
                 s[loc] = op
             operators.append("".join(s))
             weights.append(weight)
@@ -327,6 +327,24 @@ class PauliStringsBase(DiscreteOperator):
     def _reset_caches(self):
         self._is_hermitian = None
 
+    def transpose(self, *, concrete=False):
+        if not concrete:
+            from .._lazy import Transpose
+
+            return Transpose(self)
+        # Y is the only Pauli matrix that is antisymmetric
+        y_parity = (-1) ** np.char.count(self.operators, "Y")
+        new = self.copy()
+        new._weights = (self.weights * y_parity).astype(self.dtype)
+        return new
+
+    def conjugate(self, *, concrete=False):
+        # Y is the only Pauli matrix that is imaginary
+        y_parity = (-1) ** np.char.count(self.operators, "Y")
+        new = self.copy()
+        new._weights = (self.weights.conj() * y_parity).astype(self.dtype)
+        return new
+
     def _op__matmul__(self, other):
         if not isinstance(other, PauliStringsBase):
             return NotImplemented
@@ -375,14 +393,7 @@ class PauliStringsBase(DiscreteOperator):
 
     def __mul__(self, other):
         if isinstance(other, AbstractOperator):
-            raise TypeError(
-                "To multiply operators use the matrix`@` "
-                "multiplication operator `@` instead of the element-wise "
-                "multiplication operator `*`.\n\n"
-                "For example:\n\n"
-                ">>> nk.operator.PauliStrings('XY')@nk.operator.PauliStrings('ZY')"
-                "\n\n"
-            )
+            raise OperatorMultiplicationError()
         elif is_scalar(other):
             op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
@@ -391,14 +402,7 @@ class PauliStringsBase(DiscreteOperator):
 
     def __imul__(self, other):
         if isinstance(other, AbstractOperator):
-            raise TypeError(
-                "To multiply operators use the matrix`@` "
-                "multiplication operator `@` instead of the element-wise "
-                "multiplication operator `*`.\n\n"
-                "For example:\n\n"
-                ">>> nk.operator.PauliStrings('XY')@nk.operator.PauliStrings('ZY')"
-                "\n\n"
-            )
+            raise OperatorMultiplicationError()
         elif is_scalar(other):
             if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
                 raise ValueError(

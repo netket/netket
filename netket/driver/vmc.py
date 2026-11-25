@@ -48,8 +48,8 @@ class VMC(AbstractOptimizationDriver):
 
     # Serialized state
     _old_updates: PyTree = None
-    _loss_grad: PyTree = None
-    info: Any | None = None
+    _loss_grad: PyTree = struct.field(serialize=False, default=None)
+    info: Any | None = struct.field(serialize=False, default=None)
 
     def __init__(
         self,
@@ -140,10 +140,8 @@ class VMC(AbstractOptimizationDriver):
     @timing.timed
     def compute_loss_and_update(self):
         """
-        Performs a number of VMC optimization steps.
-
-        Args:
-            n_steps (int): Number of steps to perform.
+        Performs a step of the VMC optimization, returning the loss statistics and
+        the PyTree of the gradients that will be optimized.
         """
 
         self.state.reset()

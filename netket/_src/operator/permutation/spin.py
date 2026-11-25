@@ -85,7 +85,6 @@ class PermutationOperator(PermutationOperatorBase):
         cycle_decomposition = self.permutation.cycle_decomposition()
 
         if isinstance(self.hilbert, HomogeneousHilbert):
-
             if not self.hilbert.constrained:
                 return self.hilbert.local_size ** len(cycle_decomposition)
 

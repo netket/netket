@@ -40,7 +40,7 @@ class SaveVariationalState(AbstractCallback, mutable=True):
         >>> driver.run(  # doctest: +SKIP
         ...     n_iter=50,
         ...     out="test",
-        ...     callback=nk.callbacks.SaveVariationalStateCallback(path="optimization", interval=10),
+        ...     callback=nk.logging.SaveVariationalState(path="optimization", interval=10),
         ... )
         >>> nqxpack.load("optimization/state_00010.nk")  # doctest: +SKIP
 

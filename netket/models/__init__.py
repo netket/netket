@@ -39,8 +39,6 @@ from .mlp import MLP
 
 from .slater import Slater2nd, MultiSlater2nd
 
-from .utils import update_GCNN_parity
-
 
 from netket.utils import _hide_submodules
 

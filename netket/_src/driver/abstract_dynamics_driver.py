@@ -166,8 +166,7 @@ class AbstractDynamicsDriver(AbstractDriver):
                 callbacks fire normally.
             out: Logger or iterable of loggers for output.
             obs: Observables to compute at each logging step.
-            max_steps: Safety cap on iterations when ``T_or_n`` is a float,
-                to prevent infinite loops if ``dt`` is zero.
+            n_iter: Number of iterations to perform. Mutually exclusive with ``T``.
             show_progress: Show a progress bar (default True).
             callback: User callbacks.
             timeit: If True, print timing information after the run.

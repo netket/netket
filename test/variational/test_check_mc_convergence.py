@@ -104,13 +104,16 @@ def test_check_mc_convergence_runs(vstate):
     assert "mean" in hist and "tau_corr_acf" in hist
 
 
-def test_check_mc_convergence_plot(vstate):
-    """plot=True runs without error and does not open a window."""
+def test_check_mc_convergence_plot(vstate, tmp_path):
+    """plot=<path> saves the figure there and does not open a window."""
     from unittest.mock import patch
 
     H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
     with patch("matplotlib.pyplot.show"):
-        vstate.check_mc_convergence(H, max_chain_length=50, plot=True)
+        vstate.check_mc_convergence(
+            H, max_chain_length=50, plot=tmp_path / "mc_convergence.png"
+        )
+    assert (tmp_path / "mc_convergence.png").exists()
 
 
 # --- expect_to_precision ---
@@ -170,6 +173,15 @@ def test_expect_to_precision_combined_tol(vstate):
     assert s.error_of_mean <= 0.5 + 1e-12 * abs(s.mean)
     # stopped on the atol floor instead of running to max_iter
     assert stats.n_samples < 500 * vstate.n_samples
+
+
+def test_expect_to_precision_min_length(vstate):
+    """A tolerance met at once still samples min_length per chain."""
+    H = nk.operator.Ising(vstate.hilbert, nk.graph.Chain(4), h=1.0)
+    stats = vstate.expect_to_precision(H, atol=1e3, min_length=8, verbose=False)
+    assert stats.n_samples == 8 * vstate.sampler.n_chains
+    stats = vstate.expect_to_precision(H, atol=1e3, min_length=1, verbose=False)
+    assert stats.n_samples == vstate.n_samples
 
 
 def test_expect_to_precision_tol_pytree(vstate):

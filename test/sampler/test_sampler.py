@@ -889,3 +889,57 @@ def test_chunking_invariant(model_and_weights, sampler_type):
     )
 
     np.testing.assert_allclose(samples, samples_ch)
+
+
+@common.skipif_distributed
+def test_metropolis_keeps_chunk_size():
+    # The constructor used to validate chunk_size and then drop it, so the
+    # "chunked" samplers above silently evaluated all the chains at once.
+    hi = nk.hilbert.Spin(0.5, 4)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains_per_rank=16, chunk_size=8)
+    assert sa.chunk_size == 8
+
+    batch_sizes = set()
+
+    def logpsi(params, x):
+        batch_sizes.add(x.shape[0])  # at trace time
+        return jnp.zeros(x.shape[0])
+
+    state = sa.init_state(logpsi, {}, seed=SAMPLER_SEED)
+    batch_sizes.clear()  # init_state only evaluates the shapes of a full batch
+    state = sa.reset(logpsi, {}, state=state)
+    sa.sample(logpsi, {}, state=state, chain_length=2)
+    assert batch_sizes == {8}
+
+
+class _AcceptanceCountingRule(nk.sampler.rules.LocalRule):
+    """LocalRule whose rule_state counts the accepted moves of every chain."""
+
+    def init_state(self, sampler, machine, params, key):
+        return jnp.zeros((sampler.n_batches,), dtype=jnp.int32)
+
+    def update_rule_state(self, sampler, machine, params, sampler_state, accepted):
+        return sampler_state.rule_state + accepted
+
+
+@common.skipif_distributed
+@pytest.mark.parametrize("wrapper", ["none", "multiple", "tensor"])
+def test_update_rule_state_sees_acceptance(wrapper):
+    hi = nk.hilbert.Spin(0.5, 4)
+    rule = _AcceptanceCountingRule()
+    if wrapper == "multiple":
+        rule = nk.sampler.rules.MultipleRules([rule, rule], [0.5, 0.5])
+    elif wrapper == "tensor":
+        hi = hi * nk.hilbert.Fock(3)
+        rule = nk.sampler.rules.TensorRule(hi, [rule, rule])
+    sa = nk.sampler.MetropolisSampler(hi, rule, n_chains=8)
+    ma = nk.models.RBM(alpha=1)
+    w = ma.init(jax.random.PRNGKey(0), jnp.zeros((1, hi.size)))
+
+    state = sa.reset(ma, w, sa.init_state(ma, w, seed=SAMPLER_SEED))
+    _, state = sa.sample(ma, w, state=state, chain_length=10)
+
+    # Every (sub-)rule saw every accept/reject outcome.
+    for count in jax.tree_util.tree_leaves(state.rule_state):
+        np.testing.assert_array_equal(count, state.n_accepted_proc)
+    assert int(state.n_accepted) > 0

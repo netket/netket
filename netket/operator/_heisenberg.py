@@ -56,7 +56,11 @@ def Heisenberg(
             sign rule cannot be applied. Defaults to True if the lattice is
             bipartite, False otherwise.
             If a sequence of coupling strengths is passed, defaults to False
-            and a matching sequence of sign_rule must be specified to override it
+            and a matching sequence of sign_rule must be specified to override it.
+            This is only allowed if the sites can be split into two sublattices
+            such that the edges of the colors with sign_rule=True connect
+            different sublattices, and the others the same one (e.g. on a J1-J2
+            lattice ``[True, False]`` is allowed, ``[False, True]`` is not).
         dtype: Data type of the matrix elements.
         acting_on_subspace: Specifies the mapping between nodes of the graph and
             Hilbert space sites, so that graph node :code:`i ∈ [0, ..., graph.n_nodes - 1]`,
@@ -82,12 +86,23 @@ def Heisenberg(
             sign_rule = [False] * len(J)
         else:
             assert len(sign_rule) == len(J)
-            for i in range(len(J)):
-                subgraph = Graph(edges=graph.edges(filter_color=i))
-                if sign_rule[i] and not subgraph.is_bipartite():
-                    raise ValueError(
-                        "sign_rule=True specified for a non-bipartite lattice"
-                    )
+            # The flipped edges must connect different sublattices and the others
+            # the same one. Replacing every non-flipped edge by a path of length
+            # two through an extra node, this means the graph must be bipartite.
+            # Colors with J=0 do not enter the operator and are ignored.
+            edges = []
+            for k, (i, j, c) in enumerate(graph.edges(return_color=True)):
+                if J[c] == 0:
+                    continue
+                elif sign_rule[c]:
+                    edges.append((i, j))
+                else:
+                    edges += [(i, graph.n_nodes + k), (graph.n_nodes + k, j)]
+            if not Graph(edges, graph.n_nodes + graph.n_edges).is_bipartite():
+                raise ValueError(
+                    f"sign_rule={list(sign_rule)} is not a sublattice rotation of "
+                    "this graph and would change the spectrum of the Hamiltonian."
+                )
     else:
         if sign_rule is None:
             sign_rule = graph.is_bipartite()
