@@ -174,6 +174,10 @@ def _serve(rank, nproc, devices_per_process, coordinator, tasks, replies):
 
         jax.config.update("jax_platforms", "cpu")
         jax.config.update("jax_num_cpu_devices", devices_per_process)
+        # Executables loaded from the persistent compilation cache (CI sets
+        # JAX_COMPILATION_CACHE_DIR) deadlock in cross-process collectives on
+        # the GitHub runners, while freshly compiled ones work.
+        jax.config.update("jax_enable_compilation_cache", False)
         jax.distributed.initialize(
             coordinator_address=coordinator, num_processes=nproc, process_id=rank
         )
