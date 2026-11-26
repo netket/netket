@@ -1,34 +1,8 @@
 import os
-import sys
 from pathlib import Path
 
 import pytest
 import jax
-
-# The suite runs on several CPU devices by default, so that every test exercises
-# the sharded code paths. The device count is fixed when jax initialises its
-# backend, which happens when netket is imported (and pytest imports it while
-# resolving `filterwarnings`), so it must be chosen here, at conftest import.
-# A command-line option is parsed too late for that: `--devices` is read from
-# sys.argv and forwarded to the xdist workers through the environment.
-DEFAULT_TEST_DEVICES = 2
-
-
-def _requested_devices() -> int:
-    if "NETKET_TEST_DEVICES" in os.environ:
-        return int(os.environ["NETKET_TEST_DEVICES"])
-    for i, arg in enumerate(sys.argv):
-        if arg == "--devices" and i + 1 < len(sys.argv):
-            return int(sys.argv[i + 1])
-        if arg.startswith("--devices="):
-            return int(arg.split("=", 1)[1])
-    return DEFAULT_TEST_DEVICES
-
-
-if os.environ.get("DJAXRUN", "0") != "1":
-    _n_devices = _requested_devices()
-    os.environ["NETKET_TEST_DEVICES"] = str(_n_devices)
-    jax.config.update("jax_num_cpu_devices", _n_devices)
 
 
 @pytest.fixture
@@ -96,8 +70,8 @@ def pytest_addoption(parser):
     parser.addoption(
         "--devices",
         type=int,
-        default=DEFAULT_TEST_DEVICES,
-        help="Number of CPU devices to run the tests on (also NETKET_TEST_DEVICES)",
+        default=2,
+        help="Number of CPU devices to run the tests on (default: 2)",
     )
     parser.addoption(
         "--jax-distributed",
@@ -139,33 +113,28 @@ def clear_jax_cache(request):
             _n_test_since_reset = 0
 
 
-def pytest_load_initial_conftests(early_config, parser, args):
-    """Initialize JAX distributed BEFORE any plugin processes filterwarnings.
-
-    pytest_configure runs too late: the _pytest.warnings plugin resolves
-    fully-qualified warning class names (e.g. netket.errors.*) during
-    pytest_configure, which imports netket, which calls jax.devices() and
-    initialises the XLA backend.  jax.distributed.initialize() must be called
-    before that happens, so we use this earlier hook.
-    """
-    djaxrun_mode = os.environ.get("DJAXRUN", "0") == "1"
-    jax_distributed_flag = "--jax-distributed" in args
-
-    if djaxrun_mode or jax_distributed_flag:
-        import jax
-
-        print("\n---------------------------------------------")
-        print("Initializing JAX distributed...")
-        jax.distributed.initialize()
-        os.environ["NETKET_EXPERIMENTAL_SHARDING"] = "1"
-
-
 def pytest_configure(config):
-    import os
+    # jax fixes its devices when it initialises its backend, at the first
+    # jax.devices() call, e.g. when importing netket below: set them up first.
+    # By default the suite runs on several CPU devices, so that every test
+    # exercises the sharded code paths.
+    jax.config.update("jax_num_cpu_devices", config.getoption("--devices"))
+    distributed = os.environ.get("DJAXRUN", "0") == "1" or config.getoption(
+        "--jax-distributed"
+    )
+    if distributed:
+        # Every process runs the tests itself: no xdist workers, which would
+        # each try to join the jax.distributed session as the same rank.
+        if hasattr(config.option, "dist"):
+            config.option.dist = "no"
+        jax.distributed.initialize()
 
-    # Kept out of pyproject.toml: resolving these categories imports netket, and
-    # pytest resolves the ini filters before loading this conftest, which would
-    # initialise jax before the device count above is set.
+    if config.getoption("--jax-cpu-disable-async-dispatch"):
+        print("Disabling async CPU dispatch...")
+        jax.config.update("jax_cpu_enable_async_dispatch", False)
+
+    # Not in pyproject.toml: pytest resolves the ini filters before loading this
+    # conftest, and resolving these imports netket, which initialises jax.
     for category in (
         "HolomorphicUndeclaredWarning",
         "UnoptimalSRtWarning",
@@ -175,45 +144,15 @@ def pytest_configure(config):
 
     global _clear_cache_every
     _clear_cache_every = config.getoption("--clear-cache-every")
-
-    djaxrun_mode = os.environ.get("DJAXRUN", "0") == "1"
-
     if _clear_cache_every is not None:
         print(f"Clearing jax cache every {_clear_cache_every} tests")
 
-    if config.getoption("--jax-cpu-disable-async-dispatch"):
-        print("Disabling async CPU dispatch...")
-        import jax
+    import netket as nk
 
-        jax.config.update("jax_cpu_enable_async_dispatch", False)
-
-    if djaxrun_mode or config.getoption("--jax-distributed"):
-        # Multiprocess test workers can't share a JAX distributed session
-        if hasattr(config.option, "numprocesses"):
-            config.option.numprocesses = 0
-
-    if config.getoption("--jax-distributed") or djaxrun_mode:
-        import jax
-
-        default_string = f"r{jax.process_index()}/{jax.process_count()} - "
-        print(default_string, jax.devices())
-        print(default_string, jax.local_devices())
-        print("---------------------------------------------\n", flush=True)
-
-        import netket as nk
-
-        if not nk.config.netket_experimental_sharding:
-            raise ValueError("problem")
+    print("\n---------------------------------------------")
+    if distributed:
+        assert nk.config.netket_sharding
+        print(f"r{jax.process_index()}/{jax.process_count()} -", jax.devices())
     else:
-        import netket as nk
-
-        if nk.config.netket_experimental_sharding:
-            import jax
-
-            print("\n---------------------------------------------")
-            print(f"Testing under non-distributed sharding with : {jax.devices()} ...")
-            print("---------------------------------------------\n", flush=True)
-        else:
-            print("\n---------------------------------------------")
-            print("Testing under standard setup ...")
-            print("---------------------------------------------\n", flush=True)
+        print(f"Testing on {jax.device_count()} devices: {jax.devices()}")
+    print("---------------------------------------------\n", flush=True)
