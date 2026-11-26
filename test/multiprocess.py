@@ -1,32 +1,34 @@
-"""Run functions on several ``jax.distributed`` processes from a plain pytest run.
+"""Run test code on several ``jax.distributed`` processes from a plain pytest run.
 
-A :class:`DistributedCluster` spawns ``nproc`` python processes, each with
-``devices_per_process`` CPU devices, that call ``jax.distributed.initialize`` and
-then wait for work. ``cluster.run(fn, *args)`` calls ``fn(*args)`` on every
-process and returns the results, indexed by rank::
+Calling a function decorated with :func:`distributed` runs it on every process of
+a cluster of 2 processes with 2 CPU devices each, and returns its results, as a
+list indexed by rank::
 
-    def _energy(L):
+    @distributed
+    def energy(L):
         vs, ha = ...
         return complex(vs.expect(ha).mean)
 
-    def test_ranks_agree(distributed):
-        e0, e1 = distributed.run(_energy, 8)
+    def test_ranks_agree():
+        e0, e1 = energy(8)
         assert e0 == e1
 
-The processes are started on the first call and then reused by every test, so
-netket is imported, and most functions compiled, once per session. The
-``distributed`` fixture of ``test/sharding/conftest.py`` provides the shared
-cluster. If a call fails without every rank reporting back (a crash, or a rank
-stuck in a collective that another one skipped), the processes are killed and the
-next call starts new ones.
+The processes initialise ``jax.distributed`` as soon as they start, then wait for
+work. They are started by the first call and reused by all the following ones,
+so netket is imported, and most functions compiled, once per session. If a call
+fails without every rank reporting back (a crash, or a rank stuck in a collective
+that another one skipped), the processes are killed and the next call starts new
+ones.
 
-``fn`` and its arguments are pickled, so ``fn`` must be defined at the top level
-of a module, and the arguments and results must be picklable: return numpy or
-plain Python data, not jax arrays. Use ``jax.process_index()`` for the rank.
+The function is sent to the processes by name, so it must be defined at the top
+level of a module. Its arguments and results are pickled: return numpy or plain
+Python data, not jax arrays. Use ``jax.process_index()`` for the rank.
 """
 
 from __future__ import annotations
 
+import atexit
+import functools
 import multiprocessing as mp
 import queue
 import random
@@ -43,28 +45,46 @@ from typing import Any
 # stuck in a collective that the first one never entered.
 _GRACE_PERIOD = 30.0
 
+# True in the processes of the cluster.
+_on_a_rank = False
+
+
+def distributed(fn: Callable[..., Any]) -> Callable[..., list[Any]]:
+    """Makes calling ``fn`` run it on every rank of the shared cluster.
+
+    Raises:
+        AssertionError: with the remote tracebacks if ``fn`` raises on some rank,
+            or if some rank dies or does not return.
+    """
+
+    # This wrapper, not `fn`, is sent to the processes: they import it by name,
+    # and there it calls `fn` directly.
+    @functools.wraps(fn)
+    def run_on_every_rank(*args, **kwargs):
+        if _on_a_rank:
+            return fn(*args, **kwargs)
+        return _cluster.run(run_on_every_rank, *args, **kwargs)
+
+    return run_on_every_rank
+
 
 class DistributedCluster:
-    def __init__(self, nproc: int = 2, devices_per_process: int = 2):
+    def __init__(self, nproc: int, devices_per_process: int, timeout: float = 300.0):
         self.nproc = nproc
         self.devices_per_process = devices_per_process
+        self.timeout = timeout
         self._procs: list[Any] = []
         self._tasks: list[Any] = []
 
-    def run(self, fn: Callable[..., Any], *args: Any, timeout: float = 300.0):
-        """Calls ``fn(*args)`` on every rank and returns the results, by rank.
-
-        Raises:
-            AssertionError: with the remote tracebacks if ``fn`` raises on some rank,
-                or if some rank dies or does not return within ``timeout``.
-        """
+    def run(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> list[Any]:
+        """Calls ``fn(*args, **kwargs)`` on every rank and returns the results."""
         if not self._procs:
             self._start()
         for tasks in self._tasks:
-            tasks.put((fn, args))
+            tasks.put((fn, args, kwargs))
 
         replies: dict[int, tuple[bool, Any]] = {}
-        deadline = time.monotonic() + timeout
+        deadline = time.monotonic() + self.timeout
         while len(replies) < self.nproc and time.monotonic() < deadline:
             try:
                 rank, ok, value = self._replies.get(timeout=0.5)
@@ -124,6 +144,11 @@ class DistributedCluster:
         ]
         for p in self._procs:
             p.start()
+        # Registered after the exit handler of multiprocessing, so that it runs
+        # first: that one sends SIGTERM to the processes and waits for them to
+        # exit, forever, as jax catches SIGTERM.
+        atexit.unregister(self.close)
+        atexit.register(self.close)
 
     def close(self, kill: bool = False):
         """Stops the processes, killing those that do not exit within 10s."""
@@ -137,8 +162,13 @@ class DistributedCluster:
         self._procs = []
 
 
+_cluster = DistributedCluster(nproc=2, devices_per_process=2)
+
+
 def _serve(rank, nproc, devices_per_process, coordinator, tasks, replies):
     """Main loop of every process of the cluster."""
+    global _on_a_rank
+    _on_a_rank = True
     try:
         import jax
 
@@ -154,8 +184,8 @@ def _serve(rank, nproc, devices_per_process, coordinator, tasks, replies):
 
     while (task := tasks.get()) is not None:
         try:
-            fn, args = task
-            replies.put((rank, True, fn(*args)))
+            fn, args, kwargs = task
+            replies.put((rank, True, fn(*args, **kwargs)))
         except BaseException:
             replies.put((rank, False, traceback.format_exc()))
 

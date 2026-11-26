@@ -2,40 +2,40 @@
 
 import os
 
+import jax
 import pytest
 
+from ..multiprocess import distributed
 
-def _topology():
-    import jax
 
+@distributed
+def topology():
     return jax.process_index(), jax.process_count(), jax.local_device_count()
 
 
-def _fail_on_rank_1():
-    import jax
-
+@distributed
+def fail_on_rank_1():
     if jax.process_index() == 1:
         raise RuntimeError("kaboom")
 
 
-def _die_on_rank_1():
-    import jax
-
+@distributed
+def die_on_rank_1():
     if jax.process_index() == 1:
         os._exit(3)
 
 
-def test_topology(distributed):
-    assert distributed.run(_topology) == [(0, 2, 2), (1, 2, 2)]
+def test_topology():
+    assert topology() == [(0, 2, 2), (1, 2, 2)]
 
 
-def test_errors_are_reported_and_the_cluster_survives(distributed):
+def test_errors_are_reported_and_the_cluster_survives():
     with pytest.raises(AssertionError, match="kaboom"):
-        distributed.run(_fail_on_rank_1)
-    assert distributed.run(_topology) == [(0, 2, 2), (1, 2, 2)]
+        fail_on_rank_1()
+    assert topology() == [(0, 2, 2), (1, 2, 2)]
 
 
-def test_a_crashed_cluster_is_restarted(distributed):
+def test_a_crashed_cluster_is_restarted():
     with pytest.raises(AssertionError, match=r"ranks \[1\] did not return"):
-        distributed.run(_die_on_rank_1)
-    assert distributed.run(_topology) == [(0, 2, 2), (1, 2, 2)]
+        die_on_rank_1()
+    assert topology() == [(0, 2, 2), (1, 2, 2)]

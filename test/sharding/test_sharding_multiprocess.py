@@ -2,9 +2,9 @@
 
 They cover what a single process with several devices cannot: collectives across
 processes (a rank that skips one deadlocks the others), arrays that are not fully
-addressable, and I/O that must happen on rank 0 only. Each test runs functions on
-the processes of the ``distributed`` fixture (see :mod:`test.multiprocess`) and
-checks that all ranks return the same, globally reduced, values.
+addressable, and I/O that must happen on rank 0 only. The functions decorated
+with ``@distributed`` run on every process (see :mod:`test.multiprocess`), and
+the tests check that all ranks return the same, globally reduced, values.
 """
 
 import json
@@ -17,6 +17,8 @@ import pytest
 
 import netket as nk
 import netket.experimental as nkx
+
+from ..multiprocess import distributed
 
 N_STEPS = 4
 
@@ -41,18 +43,20 @@ def _assert_ranks_agree(results):
         jax.tree.map(np.testing.assert_allclose, r0, r)
 
 
-def _expect_and_grad():
+@distributed
+def expect_and_grad():
     vs, ha = _setup()
     assert not vs.samples.is_fully_addressable
     E, grad = vs.expect_and_grad(ha)
     return complex(E.mean), _flatten(grad)
 
 
-def test_expect_and_grad(distributed):
-    _assert_ranks_agree(distributed.run(_expect_and_grad))
+def test_expect_and_grad():
+    _assert_ranks_agree(expect_and_grad())
 
 
-def _vmc_sr_and_tdvp():
+@distributed
+def vmc_sr_and_tdvp():
     vs, ha = _setup()
     sr = nk.driver.VMC_SR(
         ha, nk.optimizer.Sgd(0.01), variational_state=vs, diag_shift=0.1
@@ -68,11 +72,12 @@ def _vmc_sr_and_tdvp():
     return complex(vs.expect(ha).mean), _flatten(vs.parameters)
 
 
-def test_vmc_sr_and_tdvp(distributed):
-    _assert_ranks_agree(distributed.run(_vmc_sr_and_tdvp))
+def test_vmc_sr_and_tdvp():
+    _assert_ranks_agree(vmc_sr_and_tdvp())
 
 
-def _serialization_roundtrip():
+@distributed
+def serialization_roundtrip():
     vs, ha = _setup()
     vs.sample()
     vs2 = flax.serialization.from_bytes(vs, flax.serialization.to_bytes(vs))
@@ -80,11 +85,12 @@ def _serialization_roundtrip():
     return complex(vs2.expect(ha).mean)
 
 
-def test_serialization(distributed):
-    _assert_ranks_agree(distributed.run(_serialization_roundtrip))
+def test_serialization():
+    _assert_ranks_agree(serialization_roundtrip())
 
 
-def _run_vmc_with_loggers(tmpdir):
+@distributed
+def run_vmc_with_loggers(tmpdir):
     """Writes the logs of every rank to its own directory, ``tmpdir/r{rank}``."""
     out = Path(tmpdir) / f"r{jax.process_index()}"
     out.mkdir()
@@ -102,8 +108,8 @@ def _run_vmc_with_loggers(tmpdir):
     runtime.serialize(str(out / "runtime"))
 
 
-def test_loggers_write_only_on_rank_0(distributed, tmp_path):
-    distributed.run(_run_vmc_with_loggers, str(tmp_path))
+def test_loggers_write_only_on_rank_0(tmp_path):
+    run_vmc_with_loggers(tmp_path)
     assert list((tmp_path / "r1").iterdir()) == []
 
     out = tmp_path / "r0"
