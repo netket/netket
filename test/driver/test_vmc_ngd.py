@@ -23,6 +23,8 @@ import optax
 
 import pytest
 
+from test import common
+
 from netket.models import RBM, RBMModPhase
 
 
@@ -388,6 +390,14 @@ def test_srt_vs_ntk(model, momentum):
 # the instability. Most likely cause is numerical errors accumulating.
 
 
+def _sr_with_ntk_options(params):
+    # momentum and proj_reg are only implemented with the NTK.
+    return not params["use_ntk"] and (
+        params["momentum"] is not None or params["proj_reg"] is not None
+    )
+
+
+@common.pairwise(exclude=_sr_with_ntk_options)
 @pytest.mark.parametrize(
     "proj_reg", [pytest.param(None, id=""), pytest.param(1.0, id="proj_reg")]
 )
@@ -400,10 +410,6 @@ def test_SRt_chunked(use_ntk, onthefly, model, momentum, proj_reg):
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics with and without chunking
     """
-    if not use_ntk:
-        if momentum is not None or proj_reg is not None:
-            pytest.skip("not implemented")
-
     n_iters = 5
     diag_shift = 0.01
     chunk_size = 64

@@ -23,6 +23,7 @@ from netket.utils.group import PermutationGroup
 from netket.errors import SymmModuleInvalidInputShape
 
 import pytest
+from .. import common
 
 
 def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
@@ -225,6 +226,10 @@ def test_DenseEquivariant_creation(mode):
         )
 
 
+# Every mode is tested for equivariance under all four (lattice, symmetries)
+# groups. batch, mask and use_bias only change shapes or which elements are zero,
+# so only their pairs with each other and with the groups and modes are tested.
+@common.pairwise(cross=("mode", "lattice", "symmetries"))
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])

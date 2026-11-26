@@ -265,6 +265,17 @@ rc_r_test_types = list(itertools.product(rt, [None]))
 test_types = r_r_test_types + c_c_test_types + r_c_test_types + rc_c_test_types
 all_test_types = test_types + c_r_test_types + rc_r_test_types
 
+
+def _has_real_params(pardtype):
+    return pardtype is not None and not nkjax.is_complex_dtype(pardtype)
+
+
+def _holomorphic_duplicate(params):
+    """With real parameters `.conjugate()` is the identity, so the non-holomorphic
+    function is the holomorphic one (and uses the same jacobian mode)."""
+    return not params["holomorphic"] and _has_real_params(params["pardtype"])
+
+
 # tests
 
 
@@ -277,6 +288,9 @@ def test_reassemble_complex(e):
     )
 
 
+# Every pair of dtypes, holomorphic, jit and chunk_size is tested, not their full
+# product (jit=False runs the same functions op by op, several times slower).
+@common.pairwise(exclude=_holomorphic_duplicate)
 @common.named_parametrize("holomorphic", [True, False])
 @common.named_parametrize("n_samp", [24 * jax.device_count(), 1024])
 @common.named_parametrize("jit", [True, False])
@@ -308,6 +322,7 @@ def test_matvec(e, jit, chunk_size):
     tree_samedtypes(actual, expected)
 
 
+@common.pairwise(exclude=_holomorphic_duplicate)
 @common.named_parametrize("holomorphic", [True, False])
 @common.named_parametrize("n_samp", [24 * jax.device_count(), 1024])
 @common.named_parametrize("jit", [True, False])
@@ -354,6 +369,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
 
 
 # TODO separate test for prepare_centered_oks
+@common.pairwise()
 @common.named_parametrize("holomorphic", [True])
 @common.named_parametrize("n_samp", [25 * jax.device_count(), 1024])
 @common.named_parametrize("jit", [True, False])

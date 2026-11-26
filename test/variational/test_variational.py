@@ -361,6 +361,9 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.to_array(), ket.reshape(q_obj.shape))
 
 
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
     "operator",
     [
@@ -429,6 +432,9 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
     "operator",
     [
@@ -459,15 +465,11 @@ def test_forces(vstate, operator):
     jax.tree_util.tree_map(np.testing.assert_array_equal, g1, O_grad1)
 
 
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
+    "operator", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_local_estimators(vstate, operator):
     def assert_stats_equal(st1, st2):
@@ -498,16 +500,12 @@ def test_expect_grad_nonhermitian_works(vstate):
     O_stat, O_grad = vstate.expect_and_grad(op)
 
 
+# Every model and every operator is tested, not all of their combinations, which
+# mostly re-run the same code paths.
+@common.pairwise(strength=1)
 @pytest.mark.parametrize(
     "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-        if op.is_hermitian
-    ],
+    [pytest.param(op, id=name) for name, op in operators.items() if op.is_hermitian],
 )
 @pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_chunking(vstate, operator, n_chunks):
