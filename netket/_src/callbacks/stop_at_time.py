@@ -36,9 +36,8 @@ class _StopAtTime(AbstractCallback):
 
     @property
     def callback_order(self) -> int:
-        # Run last, so raising StopRun never skips a later callback's collective.
         return STOPPING_CALLBACK_ORDER
 
     def on_step_end(self, step, log_data, driver):
         if driver.t >= self.T_final:
-            raise StopRun(f"Reached t={driver.t:.6g} >= T_final={self.T_final:.6g}")
+            return StopRun(f"Reached t={driver.t:.6g} >= T_final={self.T_final:.6g}")

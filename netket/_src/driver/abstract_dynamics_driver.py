@@ -69,6 +69,7 @@ class AbstractDynamicsDriver(AbstractDriver):
         *,
         t0: float = 0.0,
         minimized_quantity_name: str = "loss",
+        callbacks=(),
     ):
         """
         Initializes a dynamics driver.
@@ -77,9 +78,13 @@ class AbstractDynamicsDriver(AbstractDriver):
             variational_state: The variational state.
             t0: Initial simulation time (default 0.0).
             minimized_quantity_name: Name of the monitored quantity in logged data.
+            callbacks: Persistent callbacks attached to the driver (see
+                :class:`~netket.driver.AbstractDriver`).
         """
         super().__init__(
-            variational_state, minimized_quantity_name=minimized_quantity_name
+            variational_state,
+            minimized_quantity_name=minimized_quantity_name,
+            callbacks=callbacks,
         )
         self._t = KahanSum(t0)
 
@@ -154,6 +159,7 @@ class AbstractDynamicsDriver(AbstractDriver):
         callback: Union[LegacyCallbackT, AbstractCallback, None] = None,
         timeit: bool = False,
         step_size: float = 0.0,
+        checkpointer=None,
     ):
         """
         Run the time evolution.
@@ -170,6 +176,7 @@ class AbstractDynamicsDriver(AbstractDriver):
             show_progress: Show a progress bar (default True).
             callback: User callbacks.
             timeit: If True, print timing information after the run.
+            checkpointer: See :meth:`~netket.driver.AbstractDriver.run`.
         """
         if n_iter is None and T is None:
             raise ValueError(
@@ -196,4 +203,5 @@ class AbstractDynamicsDriver(AbstractDriver):
             callback=callback,
             timeit=timeit,
             step_size=step_size,
+            checkpointer=checkpointer,
         )

@@ -17,6 +17,7 @@ This page lists the documentation of all sub-packages of NetKet.
 :maxdepth: 1
 
 callbacks
+checkpoint
 drivers
 errors
 exact

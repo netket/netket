@@ -141,3 +141,57 @@ def assert_allclose(x, y, **kwargs):
         if not y.is_fully_addressable:
             y = multihost_utils.process_allgather(y)
     np.testing.assert_allclose(x, y, **kwargs)
+
+
+class MemoryCheckpointer(nk.experimental.checkpoint.AbstractCheckpointer):
+    """
+    Keeps the checkpoints of a run in ``checkpoints`` (step -> state), saving every
+    ``every`` steps and where the run ends, and stopping the run at ``stop_at``.
+    Appends what it is asked to ``events``.
+    """
+
+    def __init__(self, every=2, *, checkpoints=None, stop_at=None, events=None):
+        self.every = every
+        self.checkpoints = {} if checkpoints is None else checkpoints
+        self.stop_at = stop_at
+        self.events = [] if events is None else events
+
+    def restore(self, driver, *, start_step, target_step):
+        self.events.append(("restore", start_step, target_step))
+        checkpoint = self.read(target=nk.checkpoint.checkpoint_state(driver))
+        return None if checkpoint is None else checkpoint.state
+
+    def latest_step(self):
+        return max(self.checkpoints, default=None)
+
+    def read(self, step=None, *, target=None):
+        step = self.latest_step() if step is None else step
+        if step is None:
+            return None
+        state = self.checkpoints[step]
+        # Like orbax, read into a target only if it has the same structure.
+        if target is not None and jax.tree.structure(state) != jax.tree.structure(
+            target
+        ):
+            raise ValueError("The checkpoint does not match the driver's structure.")
+        return nk.experimental.checkpoint.Checkpoint(step, state, {})
+
+    def should_save(self, step, *, last):
+        self.events.append(("should_save", step, last))
+        return last or step % self.every == 0
+
+    def save(self, step, state):
+        self.events.append(("save", step))
+        self.checkpoints[step] = state
+
+    def should_stop(self, step):
+        self.events.append(("should_stop", step))
+        if step == self.stop_at:
+            return nk.callbacks.StopRun(f"stop at step {step}")
+
+    def wait(self):
+        self.events.append(("wait",))
+
+    def close(self, cause=None):
+        self.events.append(("close",))
+        self.cause = cause

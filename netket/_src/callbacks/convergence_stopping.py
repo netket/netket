@@ -108,7 +108,7 @@ class ConvergenceStopping(AbstractCallback, mutable=True):
             self._patience_counter = 0
 
         if self._patience_counter > self.patience:
-            raise StopRun(
+            return StopRun(
                 f"ConvergenceStopping: smoothed loss {loss_smooth:.6g} has been below "
                 f"target {self.target} for {self._patience_counter} steps."
             )

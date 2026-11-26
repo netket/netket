@@ -13,6 +13,7 @@
 # limitations under the License.
 
 __all__ = [
+    "checkpoint",
     "driver",
     "dynamics",
     "geometry",
@@ -36,6 +37,7 @@ from . import logging
 from . import qsr
 from . import observable
 from . import models
+from . import checkpoint
 
 from .driver import TDVP
 from .qsr import QSR
