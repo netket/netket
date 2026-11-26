@@ -7,10 +7,6 @@ import jax.numpy as jnp
 
 from netket.utils import StaticRange
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 def test_staticrange_eq():
     ran = StaticRange(0, 10, 100)

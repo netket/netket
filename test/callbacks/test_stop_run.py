@@ -7,8 +7,6 @@ import netket.experimental as nkx
 from netket.callbacks import AbstractCallback, StopRun
 from netket.utils import struct
 
-from .. import common
-
 
 def _vmc():
     hi = nk.hilbert.Spin(0.5, 4)
@@ -121,7 +119,6 @@ def test_a_stop_on_one_process_stops_every_process():
     assert driver.step_count == 3
 
 
-@common.skipif_distributed
 def test_a_legacy_callback_stops_a_time_evolution_after_the_step_of_its_time():
     # Called at the stopping times, with the time; its False stops the run after
     # the step from that time.
@@ -138,7 +135,6 @@ def test_a_legacy_callback_stops_a_time_evolution_after_the_step_of_its_time():
     assert driver.step_count == 2
 
 
-@common.skipif_distributed
 def test_a_stop_at_the_final_time_ends_the_run_uncounted(capsys):
     # The step at the final time only reports it: the run ends there, not early,
     # and the step is not counted, whatever else asks to stop on it.

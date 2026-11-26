@@ -8,10 +8,7 @@ import netket as nk
 from netket.callbacks import AbstractCallback
 from netket.utils import struct
 
-from .. import common
 from .orbax_checkpointer import Checkpointer
-
-pytestmark = common.skipif_distributed
 
 
 def _vmc():

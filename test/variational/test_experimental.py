@@ -27,9 +27,6 @@ from netket import experimental as nkx
 
 import netket as nk
 
-from .. import common
-
-pytestmark = common.skipif_distributed
 
 SEED = 111
 

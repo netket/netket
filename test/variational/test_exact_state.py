@@ -27,7 +27,6 @@ from netket.optimizer.linear_operator import LinearOperator
 
 from .finite_diff import central_diff_grad
 
-from .. import common
 
 SEED = 2148364
 
@@ -98,7 +97,6 @@ def vstate(request):
     return nk.vqs.FullSumState(hi, ma)
 
 
-@common.skipif_mpi
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
@@ -111,7 +109,6 @@ def test_init_parameters(vstate):
     jax.tree_util.tree_map(_f, pars, pars2)
 
 
-@common.skipif_mpi
 def test_basic_methods(vstate):
     key1, key2 = jax.random.split(nk.jax.PRNGKey())
     s = vstate.hilbert.random_state(key1)
@@ -121,7 +118,6 @@ def test_basic_methods(vstate):
     assert np.shape(vstate.log_value(s)) == (2,)
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "qgtT", [pytest.param(qgtT, id=name) for name, qgtT in qgt_types.items()]
 )
@@ -130,7 +126,6 @@ def test_qgt_construction(vstate, qgtT):
     assert isinstance(qgt, LinearOperator)
 
 
-@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -192,7 +187,6 @@ def _expval(par, vs, H):
     return np.real(expval)
 
 
-@common.skipif_mpi
 @pytest.mark.parametrize(
     "L,n_iterations,h",
     [(4, 100, 1), (6, 100, 2)],
@@ -249,7 +243,6 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     )
 
 
-@common.skipif_mpi
 def test_chunk_size_api(vstate):
     assert vstate.chunk_size is None
 

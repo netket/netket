@@ -2,7 +2,6 @@
 
 from typing import Any
 from functools import partial
-import os
 
 import pytest
 
@@ -11,76 +10,33 @@ import netket as nk
 import numpy as np
 
 
-def _is_true(x):
-    if isinstance(x, str):
-        xl = x.lower()
-        if xl == "1" or x == "true":
-            return True
-    elif x == 1:
-        return True
-    else:
-        return False
+_multiple_devices = jax.device_count() > 1
 
-
-skipif_ci = pytest.mark.skipif(
-    _is_true(os.environ.get("CI", False)), reason="Test too slow/broken on CI"
+requires_multiple_devices = pytest.mark.skipif(
+    not _multiple_devices, reason="Needs more than one device"
 )
-"""Use as a decorator to mark a test to be skipped when running on CI.
-For example:
+"""Use as a decorator to mark a test that only makes sense with several devices."""
 
-Example:
->>> @skipif_ci
->>> def test_my_serial_function():
->>>     your_serial_test()
-
-"""
-
-# TODO: Remove
-skipif_mpi = pytest.mark.skipif(False, reason="Only run without MPI")
-onlyif_mpi = pytest.mark.skipif(True, reason="Only run with MPI")
-
-
-skipif_sharding = pytest.mark.skipif(
-    nk.config.netket_experimental_sharding, reason="Only run without sharding"
-)
-"""Use as a decorator to mark a test to be skipped when running under Sharding."""
-
-xfailif_sharding = pytest.mark.xfail(
-    nk.config.netket_experimental_sharding and len(jax.devices()) > 1,
-    reason="This test is broken under sharding with multiple devices.",
-)
-"""Use as a decorator to mark a test to be expected to fail only when running with
-Sharding.
-"""
-onlyif_sharding = pytest.mark.skipif(
-    not (nk.config.netket_experimental_sharding and len(jax.devices()) > 1),
-    reason="Only run with Sharding on multiple devices",
-)
-
-skipif_distributed = pytest.mark.skipif(
-    (nk.config.netket_experimental_sharding and len(jax.devices()) > 1),
-    reason="Skip if distributed",
-)
-"""Use as a decorator to mark a test to be skipped when running under Sharding with multiple devices."""
-
-
-onlyif_distributed = pytest.mark.skipif(
-    not (nk.config.netket_experimental_sharding and len(jax.devices()) > 1),
-    reason="Only if distributed",
-)
-
-onlyif_sharding_single_process = pytest.mark.skipif(
-    not (
-        nk.config.netket_experimental_sharding
-        and jax.local_device_count() > 1
-        and jax.process_count() == 1
-    ),
-    reason="Only run with sharding on multiple local devices in a single process",
+requires_multiple_devices_single_process = pytest.mark.skipif(
+    not (jax.local_device_count() > 1 and jax.process_count() == 1),
+    reason="Needs several devices in a single process",
 )
 """Use as a decorator to mark a test that requires multi-device sharding but is
 incompatible with multi-process distributed execution (e.g. because it uses
 process-local warnings or single-device reference meshes).
 """
+
+
+def skipif_multiple_devices(reason: str):
+    """Skip the decorated test when running on several devices, for code that is
+    not supported there. A reason is mandatory."""
+    return pytest.mark.skipif(_multiple_devices, reason=reason)
+
+
+def xfail_multiple_devices(reason: str, strict: bool = True):
+    """Mark the decorated test as known to fail on several devices. A reason is
+    mandatory."""
+    return pytest.mark.xfail(_multiple_devices, reason=reason, strict=strict)
 
 
 class set_config:

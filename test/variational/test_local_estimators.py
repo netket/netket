@@ -56,7 +56,6 @@ def ising(hi):
 # ── MCState.local_estimators (non-sharding) ───────────────────────────────────
 
 
-@common.skipif_distributed
 def test_local_estimators(vstate, ising):
     le = vstate.local_estimators(ising)
 
@@ -77,7 +76,6 @@ def test_local_estimators(vstate, ising):
     npt.assert_allclose(np.array(le.data), np.array(le_chunked.data), atol=1e-5)
 
 
-@common.skipif_distributed
 def test_accumulation_across_steps(vstate_fn, ising):
     vstate_fn.sample()
     acc = vstate_fn.local_estimators(ising).accumulate()
@@ -89,7 +87,7 @@ def test_accumulation_across_steps(vstate_fn, ising):
     assert float(stats.error_of_mean) > 0
 
 
-@common.onlyif_distributed
+@common.requires_multiple_devices
 def test_local_estimators_sharding_matches_samples(vstate_fn, ising):
     samples = vstate_fn.samples
     le = vstate_fn.local_estimators(ising)
@@ -99,7 +97,7 @@ def test_local_estimators_sharding_matches_samples(vstate_fn, ising):
 # ── sharding ──────────────────────────────────────────────────────────────────
 
 
-@common.onlyif_sharding_single_process
+@common.requires_multiple_devices_single_process
 def test_local_estimators_under_sharding(vstate, ising):
     le = vstate.local_estimators(ising)
     jax.block_until_ready(le.data)

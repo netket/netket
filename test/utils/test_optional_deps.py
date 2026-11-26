@@ -19,10 +19,6 @@ import pytest
 
 from netket.utils.optional_deps import import_optional_dependency
 
-from .. import common
-
-pytestmark = common.skipif_distributed
-
 
 @pytest.fixture
 def fake_module(monkeypatch):

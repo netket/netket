@@ -11,8 +11,6 @@ from netket.utils import struct
 
 from .. import common
 
-pytestmark = common.skipif_distributed
-
 
 def _system(mc=False, *, n_samples=64, param_dtype=float):
     hi = nk.hilbert.Spin(0.5, 4)
