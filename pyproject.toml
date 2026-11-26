@@ -51,7 +51,12 @@ dependencies = [
 
 [project.optional-dependencies]
 cuda = ["jax[cuda12]; sys_platform == 'linux'"]
-pyscf = ["pyscf>=2.0"]
+# pyscf 2.15.1 publishes no arm64 macOS wheel and its sdist does not build
+# (libxcfun.patch is missing from it), so cap it on that platform.
+pyscf = [
+    "pyscf>=2.0,<2.15.1; platform_system == 'Darwin' and platform_machine == 'arm64'",
+    "pyscf>=2.0; platform_system != 'Darwin' or platform_machine != 'arm64'",
+]
 extra = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0", "qutip>=5", "mlflow>=2.0.0", "wandb>=0.19.0"]
 dev = [
     "networkx>=2.4",
@@ -84,7 +89,9 @@ docs = [
 dev = [
     "netket[pyscf,extra,dev,docs]",
     "ipykernel>=6.20",
-    "pyscf>=2.9.0",
+    # Same cap as the pyscf extra above (broken 2.15.1 sdist on arm64 macOS).
+    "pyscf>=2.9.0,<2.15.1; platform_system == 'Darwin' and platform_machine == 'arm64'",
+    "pyscf>=2.9.0; platform_system != 'Darwin' or platform_machine != 'arm64'",
 ]
 docs = [
     "netket[docs]"
