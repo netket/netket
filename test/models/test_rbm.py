@@ -45,7 +45,11 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     print(pars)
 
     v = hi.random_state(jax.random.PRNGKey(1), 3)
-    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
+    # vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
+    # code below implements the commented line above, but is vectorised
+    v = v[..., np.asarray(perms)].transpose(1, 0, 2)
+    v = v.reshape(len(perms) * 3, g.n_nodes)
+    vals = jax.jit(ma.apply)(pars, v).reshape(len(perms), 3)
 
     for val in vals[1:]:
         np.testing.assert_allclose(val, vals[0])

@@ -14,6 +14,7 @@
 
 import pytest
 
+import functools
 from functools import partial
 
 import jax
@@ -105,17 +106,20 @@ def _unwrap(x):
         return x
 
 
-@pytest.fixture(
-    params=[pytest.param(modelT, id=name) for name, modelT in models.items()]
-)
+@pytest.fixture(params=list(models))
 def model(request):
-    modelT = request.param
-
-    return modelT(alpha=1)
+    return request.param
 
 
 @pytest.fixture
-def vstate(request, model, chunk_size):
+def vstate(model, chunk_size):
+    return cached_vstate(model, chunk_size)
+
+
+# The tests only read the state, so each distinct one is built and sampled once.
+@functools.cache
+def cached_vstate(model_name, chunk_size):
+    model = models[model_name](alpha=1)
     # The tests below invert S, so S must be invertible: rank(QGT) is at most
     # `n_states - 1`, so keep n_states well above n_parameters, and initialise at
     # a finite scale, as at ~0 parameters the RBM log-derivatives get collinear.
@@ -160,8 +164,17 @@ def is_complex_failing(vstate, qgt_partial):
     "solver",
     [pytest.param(solver, id=name) for name, solver in solvers.items()],
 )
+# Chunking only splits the samples, independently of the precision: the chunked
+# QGTs are solved for one model of each jacobian mode (real, complex with real
+# parameters, complex/holomorphic with complex parameters), not for float32.
 @pytest.mark.parametrize(
-    "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
+    "model, chunk_size",
+    [
+        pytest.param(name, chunk_size, id=f"{name}-chunk={chunk_size}")
+        for chunk_size in [None, 16]
+        for name in models
+        if chunk_size is None or name != "RBM[dtype=float32]"
+    ],
 )
 def test_qgt_solve(qgt, vstate, solver, chunk_size):
     if is_complex_failing(vstate, qgt):

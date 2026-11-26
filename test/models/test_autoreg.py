@@ -258,19 +258,32 @@ class TestARNN:
             key_model, spins, method=model.conditionals
         )
 
-        @jax.jit
         def conditionals(inputs):
             return model.apply(variables, inputs, method=model.conditionals)
 
-        @jax.jit
         def reorder(inputs):
             return model.apply(variables, inputs, axis=1, method=model.reorder)
 
-        @jax.jit
         def inverse_reorder(inputs):
             return model.apply(variables, inputs, axis=1, method=model.inverse_reorder)
 
-        p = reorder(p)
+        # Conditionals of the batch with the single element (i, j) flipped,
+        # for all (i, j) at once to compile only once
+        @jax.jit
+        def flipped_conditionals(spins):
+            def flip_one(i, j):
+                # Change one input element at a time
+                spins_new = reorder(spins)
+                spins_new = spins_new.at[i, j].multiply(-1)
+                spins_new = inverse_reorder(spins_new)
+
+                p_new = conditionals(spins_new)
+                return reorder(p_new)
+
+            i, j = jnp.divmod(jnp.arange(batch_size * hilbert.size), hilbert.size)
+            return jax.vmap(flip_one)(i, j)
+
+        p = jax.jit(reorder)(p)
 
         # Test if the model is normalized
         # The result may not be very accurate, because it is in exp space
@@ -280,18 +293,14 @@ class TestARNN:
         )
 
         # Test if the model is autoregressive
+        p = np.asarray(p)
+        p_new_all = np.asarray(flipped_conditionals(spins))
         for i in range(batch_size):
             for j in range(hilbert.size):
-                # Change one input element at a time
-                spins_new = reorder(spins)
-                spins_new = spins_new.at[i, j].multiply(-1)
-                spins_new = inverse_reorder(spins_new)
-
-                p_new = conditionals(spins_new)
-                p_new = reorder(p_new)
+                p_new = p_new_all[i * hilbert.size + j].copy()
 
                 # Sites after j can change, so we reset them before comparison
-                p_new = p_new.at[i, j + 1 :].set(p[i, j + 1 :])
+                p_new[i, j + 1 :] = p[i, j + 1 :]
 
                 np.testing.assert_allclose(p_new, p, err_msg=f"i={i} j={j}")
 
