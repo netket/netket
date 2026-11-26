@@ -33,7 +33,6 @@ def test_runtime_log_drops_the_entries_from_the_restored_step():
     assert log._old_step == 3
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize("fmt", ["json", "hdf5"])
 def test_a_resumed_run_does_not_log_its_steps_twice(tmp_path, fmt):
     prefix = str(tmp_path / "log")
@@ -85,7 +84,6 @@ def test_a_resumed_run_does_not_log_its_steps_twice(tmp_path, fmt):
     assert all(n == 6 for n in rows.values()), rows
 
 
-@common.skipif_distributed
 @pytest.mark.parametrize("fmt", ["json", "hdf5"])
 def test_a_fresh_run_drops_the_rows_of_a_stale_log(tmp_path, fmt):
     # A stale log from an earlier run in the same output, a checkpointer with
