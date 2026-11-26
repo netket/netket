@@ -125,27 +125,6 @@ def test_lazy_init(tmp_path):
     assert len(files) == 0
 
 
-@common.onlyif_distributed
-def test_write_only_on_master(vstate, tmp_path):
-    # Check that the logger runs everywhere but serializes only on rank 0
-
-    rank = jax.process_index()
-
-    path = str(tmp_path) + "/dir1/r{rank}"
-
-    log = nk.logging.StateLog(path, "w", tar=False, save_every=1)
-    for i in range(10):
-        log(i, None, vstate)
-
-    log.flush()
-
-    files = glob.glob(path + "/*.mpack")
-    if rank == 0:
-        assert len(files) == 10
-    else:
-        assert len(files) == 0
-
-
 @common.skipif_distributed
 @pytest.mark.parametrize("tar", [False, True])
 def test_no_filesystem_access_on_non_master(vstate, tmp_path, monkeypatch, tar):

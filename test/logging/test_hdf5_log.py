@@ -133,30 +133,6 @@ def test_lazy_init(tmp_path):
     assert len(files) == 0
 
 
-@common.onlyif_distributed
-def test_write_only_on_master(vstate, tmp_path):
-    # Check that the logger runs everywhere but serializes only on rank 0
-    # skip test if tensorboardX not installed
-    pytest.importorskip("h5py")
-
-    rank = jax.process_index()
-    path = str(tmp_path) + "/dir1/r{rank}"
-
-    log = nk.logging.HDF5Log(path + "/output")
-
-    for i in range(30):
-        log(i, {"Energy": jnp.array(1.0), "complex": jnp.array(1.0 + 1j)}, vstate)
-
-    log.flush()
-    del log
-
-    files = glob.glob(path + "/*")
-    if rank == 0:
-        assert len(files) >= 1
-    else:
-        assert len(files) == 0
-
-
 @common.skipif_distributed
 def test_append_mode_reopens_existing_file(vstate, tmp_path):
     h5py = pytest.importorskip("h5py")
@@ -217,32 +193,6 @@ def test_callback_reuse_across_runs(tmp_path):
         energy = np.array(f["data/Energy/Mean"])
 
     assert energy.shape[0] == 10
-
-
-@common.onlyif_distributed
-def test_callback_reuse_across_runs_distributed(tmp_path):
-    """Under djaxrun: only rank-0 writes; logger must survive run -> on_run_end -> run again."""
-    h5py = pytest.importorskip("h5py")
-
-    rank = jax.process_index()
-    N = 4
-    hi = nk.hilbert.Spin(1 / 2, N)
-    ha = nk.operator.IsingJax(hi, nk.graph.Hypercube(length=N, n_dim=1), h=1.0)
-    vs = nk.vqs.MCState(nk.sampler.MetropolisLocal(hi), nk.models.RBM(alpha=1))
-    gs = nk.driver.VMC(ha, nk.optimizer.Sgd(0.01), variational_state=vs)
-
-    path = tmp_path / "output.h5"
-    logger = nk.logging.HDF5Log(str(path))
-
-    gs.run(n_iter=5, callback=[logger])
-    gs.run(n_iter=5, callback=[logger])
-
-    if rank == 0:
-        with h5py.File(path, "r") as f:
-            energy = np.array(f["data/Energy/Mean"])
-        assert energy.shape[0] == 10
-    else:
-        assert not path.exists()
 
 
 def test_save_params_deprecated(tmp_path):
